@@ -88,8 +88,8 @@ import { vinceBotAction } from "./actions/bot.action";
 // Actions - Knowledge
 import { vinceUploadAction } from "./actions/upload.action";
 
-// Actions - Grok Expert
-import { vinceGrokExpertAction } from "./actions/grokExpert.action";
+// Actions - Grok Expert (commented out - low value)
+// import { vinceGrokExpertAction } from "./actions/grokExpert.action";
 
 // Actions - Meme Deep Dive
 import { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
@@ -102,8 +102,8 @@ import { vinceAlertsAction } from "./actions/alerts.action";
 import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 
-// Tasks
-import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
+// Tasks (Grok Expert commented out - low value)
+// import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -177,8 +177,8 @@ export const vincePlugin: Plugin = {
     vinceBotAction,
     // Knowledge Upload
     vinceUploadAction,
-    // Grok Expert
-    vinceGrokExpertAction,
+    // Grok Expert (commented out - low value)
+    // vinceGrokExpertAction,
     // Meme Deep Dive
     vinceMemeDeepDiveAction,
     // Early Detection System
@@ -262,7 +262,7 @@ export const vincePlugin: Plugin = {
     console.log("  ║   ├─ DEFI       PENDLE, AAVE, UNI knowledge                   ║");
     console.log("  ║   ├─ LIFESTYLE  Daily suggestions                             ║");
     console.log("  ║   ├─ ART        NFT floors (CryptoPunks, Meridian)            ║");
-    console.log("  ║   └─ GROK       Daily pulse + research suggestions            ║");
+    // console.log("  ║   └─ GROK       Daily pulse + research suggestions            ║");
     console.log("  ║                                                               ║");
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log("  ║                                                               ║");
@@ -295,7 +295,7 @@ export const vincePlugin: Plugin = {
           case "deribit": return "Deribit (DVOL, P/C ratio)";
           case "hyperliquid": return "Hyperliquid (funding, crowding)";
           case "opensea": return "OpenSea (NFT floors)";
-          case "xai": return "XAI (Grok)";
+          // case "xai": return "XAI (Grok)";
           case "browser": return "Browser (news)";
           default: return s.name;
         }
@@ -307,14 +307,14 @@ export const vincePlugin: Plugin = {
           case "deribit": return "Deribit";
           case "hyperliquid": return "Hyperliquid";
           case "opensea": return "OpenSea";
-          case "xai": return "XAI";
+          // case "xai": return "XAI";
           case "browser": return "Browser";
           default: return s.name;
         }
       });
     
-    // Check if XAI is configured (needs API key)
-    const xaiConfigured = serviceSources.find((s) => s.name === "xai") !== undefined;
+    // Check if XAI is configured (Grok Expert commented out)
+    // const xaiConfigured = serviceSources.find((s) => s.name === "xai") !== undefined;
 
     if (externalServices.length > 0) {
       console.log(`  [VINCE] ✅ Using external plugins: ${externalServices.join(", ")}`);
@@ -322,9 +322,9 @@ export const vincePlugin: Plugin = {
     if (fallbackServices.length > 0) {
       console.log(`  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`);
     }
-    if (!xaiConfigured) {
-      console.log(`  [VINCE] ⚠️  XAI not configured (add XAI_API_KEY for Grok Expert)`);
-    }
+    // if (!xaiConfigured) {
+    //   console.log(`  [VINCE] ⚠️  XAI not configured (add XAI_API_KEY for Grok Expert)`);
+    // }
     console.log("");
 
     // Verify Hyperliquid API connection (async, non-blocking)
@@ -348,13 +348,13 @@ export const vincePlugin: Plugin = {
       }
     })();
 
-    // Register Grok Expert daily task
-    try {
-      await registerGrokExpertTask(runtime);
-      logger.info("[VINCE] Grok Expert daily task registered");
-    } catch (e) {
-      logger.warn("[VINCE] Failed to register Grok Expert task:", e);
-    }
+    // Register Grok Expert daily task (commented out - low value)
+    // try {
+    //   await registerGrokExpertTask(runtime);
+    //   logger.info("[VINCE] Grok Expert daily task registered");
+    // } catch (e) {
+    //   logger.warn("[VINCE] Failed to register Grok Expert task:", e);
+    // }
   },
 };
 
@@ -422,7 +422,7 @@ export { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 export { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 export { vinceBotAction } from "./actions/bot.action";
 export { vinceUploadAction } from "./actions/upload.action";
-export { vinceGrokExpertAction } from "./actions/grokExpert.action";
+// export { vinceGrokExpertAction } from "./actions/grokExpert.action";
 export { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 export { vinceWatchlistAction } from "./actions/watchlist.action";
 export { vinceAlertsAction } from "./actions/alerts.action";

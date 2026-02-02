@@ -1,6 +1,8 @@
 /**
  * VINCE GROK EXPERT Action
  *
+ * DISABLED: This action is not registered in the plugin (commented out in index.ts).
+ *
  * Grok-powered daily pulse that aggregates all data sources, suggests a "Prompt of the Day"
  * for knowledge improvement, and recommends research topics across 9 categories.
  *

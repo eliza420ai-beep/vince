@@ -365,7 +365,7 @@ export function initializeFallbackServices(runtime: IAgentRuntime): void {
   getOrCreateHyperliquidService(runtime);
   getOrCreateOpenSeaService(runtime);
   getOrCreateNansenService(runtime);
-  getOrCreateXAIService(runtime);
+  // getOrCreateXAIService(runtime); // Grok Expert commented out - low value
   getOrCreateBrowserService(runtime);
 
   const sources = getServiceSources();

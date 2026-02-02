@@ -5,7 +5,7 @@
  * - VINCE_ALOHA (aloha.action.ts)
  * - VINCE_GM (gm.action.ts)
  * - VINCE_INTEL (intel.action.ts)
- * - VINCE_GROK_EXPERT (grokExpert.action.ts)
+ * - VINCE_GROK_EXPERT (grokExpert.action.ts) - commented out
  */
 
 import { describe, it, expect, beforeEach } from "bun:test";
@@ -20,7 +20,7 @@ import {
 import { vinceAlohaAction } from "../../actions/aloha.action";
 import { vinceGmAction } from "../../actions/gm.action";
 import { vinceIntelAction } from "../../actions/intel.action";
-import { vinceGrokExpertAction } from "../../actions/grokExpert.action";
+// import { vinceGrokExpertAction } from "../../actions/grokExpert.action"; // Grok commented out
 
 // ==========================================
 // VINCE_ALOHA Tests
@@ -220,80 +220,18 @@ describe("VINCE_INTEL Action", () => {
 });
 
 // ==========================================
-// VINCE_GROK_EXPERT Tests
+// VINCE_GROK_EXPERT Tests (commented out - Grok feature disabled)
 // ==========================================
-
+/*
 describe("VINCE_GROK_EXPERT Action", () => {
   describe("validate", () => {
-    it("should return true for 'grok pulse' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("grok pulse");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'grok expert' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("grok expert");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'prompt of the day' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("prompt of the day");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'potd' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("potd");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'research suggestions' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("research suggestions");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return true for 'daily digest' keyword", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("daily digest");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(true);
-    });
-
-    it("should return false for unrelated message", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("hello world");
-      const result = await vinceGrokExpertAction.validate(runtime, message);
-      expect(result).toBe(false);
-    });
+    it("should return true for 'grok pulse' keyword", async () => { ... });
+    it("should return true for 'grok expert' keyword", async () => { ... });
+    ...
   });
-
-  describe("handler", () => {
-    it("should call callback even without XAI service", async () => {
-      const runtime = createMockRuntime();
-      const message = createMockMessage("grok expert");
-      const state = createMockState();
-      const callback = createMockCallback();
-
-      try {
-        await vinceGrokExpertAction.handler(runtime, message, state, {}, callback);
-      } catch (e) {
-        // Handler may throw - that's expected
-      }
-
-      // Should call callback with error message about missing XAI service
-      expect(callback.calls.length).toBeGreaterThan(0);
-      expect(callback.calls[0]).toHaveProperty("text");
-    });
-  });
+  describe("handler", () => { ... });
 });
+*/
 
 // ==========================================
 // Error Handling Tests
@@ -345,19 +283,6 @@ describe("Analysis Actions - Error Handling", () => {
     expect(callback.calls.length).toBeGreaterThan(0);
   });
 
-  it("VINCE_GROK_EXPERT should call callback even when missing XAI service", async () => {
-    const runtime = createMockRuntime({ services: {} });
-    const message = createMockMessage("grok pulse");
-    const state = createMockState();
-    const callback = createMockCallback();
-
-    try {
-      await vinceGrokExpertAction.handler(runtime, message, state, {}, callback);
-    } catch (e) {
-      // May throw, but callback should still be called
-    }
-
-    // Should provide helpful error message
-    expect(callback.calls.length).toBeGreaterThan(0);
-  });
+  // VINCE_GROK_EXPERT test commented out - Grok feature disabled
+  // it("VINCE_GROK_EXPERT should call callback even when missing XAI service", async () => { ... });
 });

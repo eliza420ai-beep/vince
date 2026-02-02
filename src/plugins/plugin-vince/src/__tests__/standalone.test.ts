@@ -9,7 +9,7 @@
  *
  * Run with: bun test src/plugins/plugin-vince/src/__tests__/standalone.test.ts
  */
-
+/// <reference types="bun-types" />
 import { describe, it, expect, beforeAll } from "bun:test";
 
 // ==========================================
@@ -18,7 +18,7 @@ import { describe, it, expect, beforeAll } from "bun:test";
 import { DeribitFallbackService } from "../services/fallbacks/deribit.fallback";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import { OpenSeaFallbackService } from "../services/fallbacks/opensea.fallback";
-import { XAIFallbackService } from "../services/fallbacks/xai.fallback";
+// import { XAIFallbackService } from "../services/fallbacks/xai.fallback"; // Grok commented out
 import { BrowserFallbackService } from "../services/fallbacks/browser.fallback";
 
 // ==========================================
@@ -192,58 +192,8 @@ describe("Plugin-Vince Standalone - Fallback Services", () => {
     }, TEST_TIMEOUT);
   });
 
-  describe("XAI Fallback Service (Grok Expert)", () => {
-    let service: XAIFallbackService;
-
-    beforeAll(() => {
-      service = new XAIFallbackService(mockRuntime);
-    });
-
-    it("should check configuration status", () => {
-      const isConfigured = service.isConfigured();
-
-      if (isConfigured) {
-        console.log("✅ XAI Service: Configured (XAI_API_KEY present)");
-      } else {
-        console.log("⚠️  XAI Service: Not configured (XAI_API_KEY missing - optional)");
-      }
-
-      expect(typeof isConfigured).toBe("boolean");
-    });
-
-    it("should handle missing API key gracefully", async () => {
-      if (service.isConfigured()) {
-        console.log("   Skipping - API key is present");
-        return;
-      }
-
-      const result = await service.generateText({
-        prompt: "Hello",
-        maxTokens: 10,
-      });
-
-      expect(result).toHaveProperty("success", false);
-      expect(result).toHaveProperty("error");
-      console.log("✅ XAI gracefully handles missing API key");
-    });
-
-    it("should generate text when configured", async () => {
-      if (!service.isConfigured()) {
-        console.log("   Skipping - no API key");
-        return;
-      }
-
-      const result = await service.generateText({
-        prompt: "Say 'test' and nothing else.",
-        maxTokens: 10,
-        temperature: 0,
-      });
-
-      expect(result).toHaveProperty("success", true);
-      expect(result.text.length).toBeGreaterThan(0);
-      console.log(`✅ XAI Generate: "${result.text.substring(0, 50)}..."`);
-    }, TEST_TIMEOUT);
-  });
+  // XAI Fallback Service (Grok Expert) - commented out - Grok feature disabled
+  // describe("XAI Fallback Service (Grok Expert)", () => { ... });
 });
 
 // ==========================================

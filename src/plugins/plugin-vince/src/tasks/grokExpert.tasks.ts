@@ -1,6 +1,8 @@
 /**
  * Grok Expert Daily Task
- * 
+ *
+ * DISABLED: Task registration is commented out in plugin index.ts.
+ *
  * Automatically runs the Grok Expert daily pulse at a configured time.
  * Default: Once per day (24 hours)
  * 
