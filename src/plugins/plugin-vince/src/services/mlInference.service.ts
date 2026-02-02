@@ -1,0 +1,676 @@
+/**
+ * VINCE ML Inference Service
+ *
+ * Provides ONNX model inference for ML-enhanced trading decisions.
+ * Loads pre-trained models and runs inference for:
+ * - Signal quality prediction
+ * - Position sizing recommendations
+ * - Take-profit/Stop-loss optimization
+ *
+ * Design:
+ * - Models are stored as ONNX files in the data directory
+ * - Uses onnxruntime-node for efficient inference
+ * - Includes caching and fallback to rule-based logic
+ * - Models are optional - service degrades gracefully without them
+ */
+
+import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import * as fs from "fs";
+import * as path from "path";
+import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
+import type { MarketFeatures, SessionFeatures, SignalFeatures, RegimeFeatures } from "./vinceFeatureStore.service";
+
+// ==========================================
+// Types
+// ==========================================
+
+/**
+ * Input features for signal quality model
+ */
+export interface SignalQualityInput {
+  // Market features (normalized)
+  priceChange24h: number;
+  volumeRatio: number;
+  fundingPercentile: number;
+  longShortRatio: number;
+  
+  // Signal features
+  strength: number;
+  confidence: number;
+  sourceCount: number;
+  hasCascadeSignal: number; // 0 or 1
+  hasFundingExtreme: number; // 0 or 1
+  hasWhaleSignal: number; // 0 or 1
+  
+  // Session features
+  isWeekend: number; // 0 or 1
+  isOpenWindow: number; // 0 or 1
+  utcHour: number; // Normalized 0-1
+  
+  // Regime features
+  volatilityRegimeHigh: number; // 0 or 1
+  marketRegimeBullish: number; // 0 or 1
+  marketRegimeBearish: number; // 0 or 1
+}
+
+/**
+ * Input features for position sizing model
+ */
+export interface PositionSizingInput {
+  signalQualityScore: number; // From signal quality model
+  strength: number;
+  confidence: number;
+  volatilityRegime: number; // 0-2 (low, normal, high)
+  currentDrawdown: number;
+  recentWinRate: number;
+  streakMultiplier: number;
+}
+
+/**
+ * Input features for TP/SL optimization
+ */
+export interface TPSLInput {
+  direction: number; // 0 = short, 1 = long
+  atrPct: number;
+  strength: number;
+  confidence: number;
+  volatilityRegime: number;
+  marketRegime: number; // -1, 0, 1
+}
+
+/**
+ * Prediction result with confidence
+ */
+export interface Prediction {
+  value: number;
+  confidence: number;
+  modelVersion: string;
+  latencyMs: number;
+}
+
+/**
+ * Model metadata
+ */
+interface ModelInfo {
+  name: string;
+  path: string;
+  version: string;
+  inputShape: number[];
+  outputShape: number[];
+  loadedAt: number;
+  inferenceCount: number;
+  avgLatencyMs: number;
+}
+
+// ==========================================
+// Configuration
+// ==========================================
+
+const ML_CONFIG = {
+  /** Directory for model files */
+  modelsDir: "./.elizadb/vince-paper-bot/models",
+  
+  /** Model filenames */
+  models: {
+    signalQuality: "signal_quality.onnx",
+    positionSizing: "position_sizing.onnx",
+    tpOptimizer: "tp_optimizer.onnx",
+    slOptimizer: "sl_optimizer.onnx",
+  },
+  
+  /** Fallback thresholds when models unavailable */
+  fallback: {
+    signalQualityThreshold: 0.6,
+    minPositionSizePct: 0.5,
+    maxPositionSizePct: 2.0,
+    defaultTPMultiplier: 1.5,
+    defaultSLMultiplier: 1.0,
+  },
+  
+  /** Cache settings */
+  predictionCacheTTLMs: 5000, // 5 seconds
+  
+  /** Feature normalization bounds */
+  normalization: {
+    priceChange: { min: -20, max: 20 },
+    volumeRatio: { min: 0, max: 5 },
+    strength: { min: 0, max: 100 },
+    confidence: { min: 0, max: 100 },
+    atr: { min: 0, max: 10 },
+    drawdown: { min: 0, max: 50 },
+    winRate: { min: 0, max: 100 },
+  },
+};
+
+// ==========================================
+// ML Inference Service
+// ==========================================
+
+export class VinceMLInferenceService extends Service {
+  static serviceType = "VINCE_ML_INFERENCE_SERVICE";
+  capabilityDescription = "ONNX model inference for ML-enhanced trading";
+
+  private modelsLoaded = false;
+  private modelInfo: Map<string, ModelInfo> = new Map();
+  private predictionCache: Map<string, { result: Prediction; expiry: number }> = new Map();
+  
+  // ONNX runtime session placeholders
+  // These will be populated if onnxruntime-node is available
+  private signalQualitySession: any = null;
+  private positionSizingSession: any = null;
+  private tpOptimizerSession: any = null;
+  private slOptimizerSession: any = null;
+  private ort: any = null;
+
+  constructor(protected runtime: IAgentRuntime) {
+    super();
+  }
+
+  static async start(runtime: IAgentRuntime): Promise<VinceMLInferenceService> {
+    const service = new VinceMLInferenceService(runtime);
+    await service.initialize();
+    return service;
+  }
+
+  private async initialize(): Promise<void> {
+    // Try to load ONNX runtime
+    try {
+      // Dynamic import to handle cases where onnxruntime is not installed
+      this.ort = await import("onnxruntime-node");
+      logger.info("[MLInference] ONNX runtime loaded successfully");
+      
+      // Try to load models
+      await this.loadModels();
+    } catch (error) {
+      logger.info(
+        "[MLInference] ONNX runtime not available - using rule-based fallbacks. " +
+        "Install 'onnxruntime-node' for ML features."
+      );
+    }
+  }
+
+  async stop(): Promise<void> {
+    // Release model sessions
+    this.signalQualitySession = null;
+    this.positionSizingSession = null;
+    this.tpOptimizerSession = null;
+    this.slOptimizerSession = null;
+    this.modelInfo.clear();
+    this.predictionCache.clear();
+    logger.info("[MLInference] Service stopped");
+  }
+
+  // ==========================================
+  // Model Loading
+  // ==========================================
+
+  private async loadModels(): Promise<void> {
+    if (!this.ort) return;
+
+    const modelsPath = path.resolve(ML_CONFIG.modelsDir);
+    
+    if (!fs.existsSync(modelsPath)) {
+      logger.info(`[MLInference] Models directory not found: ${modelsPath}`);
+      return;
+    }
+
+    // Load each model if available
+    await this.loadModel("signalQuality", ML_CONFIG.models.signalQuality);
+    await this.loadModel("positionSizing", ML_CONFIG.models.positionSizing);
+    await this.loadModel("tpOptimizer", ML_CONFIG.models.tpOptimizer);
+    await this.loadModel("slOptimizer", ML_CONFIG.models.slOptimizer);
+
+    const loadedCount = this.modelInfo.size;
+    if (loadedCount > 0) {
+      this.modelsLoaded = true;
+      logger.info(`[MLInference] ✅ Loaded ${loadedCount} ML models`);
+    }
+  }
+
+  private async loadModel(name: string, filename: string): Promise<void> {
+    const modelPath = path.join(ML_CONFIG.modelsDir, filename);
+    
+    if (!fs.existsSync(modelPath)) {
+      logger.debug(`[MLInference] Model not found: ${filename}`);
+      return;
+    }
+
+    try {
+      const session = await this.ort.InferenceSession.create(modelPath);
+      
+      // Store session
+      switch (name) {
+        case "signalQuality":
+          this.signalQualitySession = session;
+          break;
+        case "positionSizing":
+          this.positionSizingSession = session;
+          break;
+        case "tpOptimizer":
+          this.tpOptimizerSession = session;
+          break;
+        case "slOptimizer":
+          this.slOptimizerSession = session;
+          break;
+      }
+
+      // Store metadata
+      this.modelInfo.set(name, {
+        name,
+        path: modelPath,
+        version: "1.0.0", // Would be embedded in model in production
+        inputShape: [], // Would extract from model
+        outputShape: [],
+        loadedAt: Date.now(),
+        inferenceCount: 0,
+        avgLatencyMs: 0,
+      });
+
+      logger.info(`[MLInference] Loaded model: ${name}`);
+    } catch (error) {
+      logger.error(`[MLInference] Failed to load ${name}: ${error}`);
+    }
+  }
+
+  // ==========================================
+  // Inference Methods
+  // ==========================================
+
+  /**
+   * Predict signal quality (probability of profitable trade)
+   */
+  async predictSignalQuality(input: SignalQualityInput): Promise<Prediction> {
+    const startTime = Date.now();
+    
+    // Check cache
+    const cacheKey = `sq_${JSON.stringify(input)}`;
+    const cached = this.predictionCache.get(cacheKey);
+    if (cached && cached.expiry > Date.now()) {
+      return cached.result;
+    }
+
+    // If model available, run inference
+    if (this.signalQualitySession && this.ort) {
+      try {
+        const features = this.prepareSignalQualityFeatures(input);
+        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const results = await this.signalQualitySession.run({ input: tensor });
+        
+        // Assuming output is probability
+        const probability = results.output?.data?.[0] ?? 0.5;
+        
+        const result: Prediction = {
+          value: probability,
+          confidence: 0.8, // Would come from model uncertainty estimation
+          modelVersion: this.modelInfo.get("signalQuality")?.version ?? "unknown",
+          latencyMs: Date.now() - startTime,
+        };
+
+        // Update stats
+        this.updateModelStats("signalQuality", result.latencyMs);
+        
+        // Cache result
+        this.predictionCache.set(cacheKey, {
+          result,
+          expiry: Date.now() + ML_CONFIG.predictionCacheTTLMs,
+        });
+
+        return result;
+      } catch (error) {
+        logger.debug(`[MLInference] Signal quality inference error: ${error}`);
+      }
+    }
+
+    // Fallback: rule-based estimation
+    return this.fallbackSignalQuality(input, startTime);
+  }
+
+  /**
+   * Predict optimal position size (as multiplier of base size)
+   */
+  async predictPositionSize(input: PositionSizingInput): Promise<Prediction> {
+    const startTime = Date.now();
+
+    // If model available, run inference
+    if (this.positionSizingSession && this.ort) {
+      try {
+        const features = this.preparePositionSizingFeatures(input);
+        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const results = await this.positionSizingSession.run({ input: tensor });
+        
+        const sizeMultiplier = results.output?.data?.[0] ?? 1.0;
+        
+        const result: Prediction = {
+          value: Math.max(ML_CONFIG.fallback.minPositionSizePct, 
+                         Math.min(ML_CONFIG.fallback.maxPositionSizePct, sizeMultiplier)),
+          confidence: 0.7,
+          modelVersion: this.modelInfo.get("positionSizing")?.version ?? "unknown",
+          latencyMs: Date.now() - startTime,
+        };
+
+        this.updateModelStats("positionSizing", result.latencyMs);
+        return result;
+      } catch (error) {
+        logger.debug(`[MLInference] Position sizing inference error: ${error}`);
+      }
+    }
+
+    // Fallback: rule-based
+    return this.fallbackPositionSize(input, startTime);
+  }
+
+  /**
+   * Predict optimal take-profit level (as multiplier of ATR)
+   */
+  async predictTakeProfit(input: TPSLInput): Promise<Prediction> {
+    const startTime = Date.now();
+
+    if (this.tpOptimizerSession && this.ort) {
+      try {
+        const features = this.prepareTPSLFeatures(input);
+        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const results = await this.tpOptimizerSession.run({ input: tensor });
+        
+        const tpMultiplier = results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultTPMultiplier;
+        
+        return {
+          value: Math.max(1.0, Math.min(4.0, tpMultiplier)),
+          confidence: 0.6,
+          modelVersion: this.modelInfo.get("tpOptimizer")?.version ?? "unknown",
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (error) {
+        logger.debug(`[MLInference] TP optimizer inference error: ${error}`);
+      }
+    }
+
+    // Fallback
+    return this.fallbackTakeProfit(input, startTime);
+  }
+
+  /**
+   * Predict optimal stop-loss level (as multiplier of ATR)
+   */
+  async predictStopLoss(input: TPSLInput): Promise<Prediction> {
+    const startTime = Date.now();
+
+    if (this.slOptimizerSession && this.ort) {
+      try {
+        const features = this.prepareTPSLFeatures(input);
+        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const results = await this.slOptimizerSession.run({ input: tensor });
+        
+        const slMultiplier = results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultSLMultiplier;
+        
+        return {
+          value: Math.max(0.5, Math.min(2.5, slMultiplier)),
+          confidence: 0.6,
+          modelVersion: this.modelInfo.get("slOptimizer")?.version ?? "unknown",
+          latencyMs: Date.now() - startTime,
+        };
+      } catch (error) {
+        logger.debug(`[MLInference] SL optimizer inference error: ${error}`);
+      }
+    }
+
+    // Fallback
+    return this.fallbackStopLoss(input, startTime);
+  }
+
+  // ==========================================
+  // Feature Preparation
+  // ==========================================
+
+  private prepareSignalQualityFeatures(input: SignalQualityInput): Float32Array {
+    const norm = ML_CONFIG.normalization;
+    
+    return new Float32Array([
+      this.normalize(input.priceChange24h, norm.priceChange.min, norm.priceChange.max),
+      this.normalize(input.volumeRatio, norm.volumeRatio.min, norm.volumeRatio.max),
+      input.fundingPercentile / 100,
+      this.normalize(input.longShortRatio, 0.5, 2.0),
+      input.strength / 100,
+      input.confidence / 100,
+      Math.min(1, input.sourceCount / 5),
+      input.hasCascadeSignal,
+      input.hasFundingExtreme,
+      input.hasWhaleSignal,
+      input.isWeekend,
+      input.isOpenWindow,
+      input.utcHour / 24,
+      input.volatilityRegimeHigh,
+      input.marketRegimeBullish,
+      input.marketRegimeBearish,
+    ]);
+  }
+
+  private preparePositionSizingFeatures(input: PositionSizingInput): Float32Array {
+    const norm = ML_CONFIG.normalization;
+    
+    return new Float32Array([
+      input.signalQualityScore,
+      input.strength / 100,
+      input.confidence / 100,
+      input.volatilityRegime / 2,
+      this.normalize(input.currentDrawdown, norm.drawdown.min, norm.drawdown.max),
+      input.recentWinRate / 100,
+      this.normalize(input.streakMultiplier, 0.5, 1.5),
+    ]);
+  }
+
+  private prepareTPSLFeatures(input: TPSLInput): Float32Array {
+    return new Float32Array([
+      input.direction,
+      this.normalize(input.atrPct, 0, 10),
+      input.strength / 100,
+      input.confidence / 100,
+      input.volatilityRegime / 2,
+      (input.marketRegime + 1) / 2, // Normalize -1 to 1 -> 0 to 1
+    ]);
+  }
+
+  private normalize(value: number, min: number, max: number): number {
+    return Math.max(0, Math.min(1, (value - min) / (max - min)));
+  }
+
+  // ==========================================
+  // Fallback Methods (Rule-Based)
+  // ==========================================
+
+  private fallbackSignalQuality(input: SignalQualityInput, startTime: number): Prediction {
+    // Simple rule-based quality score
+    let score = 0.5;
+    
+    // Strength contribution
+    score += (input.strength - 60) * 0.005;
+    
+    // Confidence contribution
+    score += (input.confidence - 55) * 0.005;
+    
+    // Source count bonus
+    score += Math.min(0.1, input.sourceCount * 0.02);
+    
+    // High-value signal bonuses
+    if (input.hasCascadeSignal) score += 0.1;
+    if (input.hasFundingExtreme) score += 0.08;
+    if (input.hasWhaleSignal) score += 0.05;
+    
+    // Penalties
+    if (input.isWeekend) score -= 0.1;
+    if (input.volatilityRegimeHigh) score -= 0.05;
+    
+    // Open window bonus
+    if (input.isOpenWindow) score += 0.05;
+    
+    return {
+      value: Math.max(0, Math.min(1, score)),
+      confidence: 0.5, // Lower confidence for fallback
+      modelVersion: "fallback_v1",
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  private fallbackPositionSize(input: PositionSizingInput, startTime: number): Prediction {
+    let multiplier = 1.0;
+    
+    // Quality score influence
+    if (input.signalQualityScore > 0.7) {
+      multiplier *= 1.2;
+    } else if (input.signalQualityScore < 0.5) {
+      multiplier *= 0.8;
+    }
+    
+    // Volatility adjustment
+    if (input.volatilityRegime === 2) {
+      multiplier *= 0.7; // Reduce size in high volatility
+    }
+    
+    // Drawdown adjustment
+    if (input.currentDrawdown > 10) {
+      multiplier *= 0.8;
+    }
+    
+    // Win rate adjustment
+    if (input.recentWinRate > 60) {
+      multiplier *= 1.1;
+    } else if (input.recentWinRate < 40) {
+      multiplier *= 0.9;
+    }
+    
+    // Streak adjustment
+    multiplier *= input.streakMultiplier;
+    
+    return {
+      value: Math.max(ML_CONFIG.fallback.minPositionSizePct,
+                      Math.min(ML_CONFIG.fallback.maxPositionSizePct, multiplier)),
+      confidence: 0.5,
+      modelVersion: "fallback_v1",
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  private fallbackTakeProfit(input: TPSLInput, startTime: number): Prediction {
+    let multiplier = ML_CONFIG.fallback.defaultTPMultiplier;
+    
+    // Adjust based on strength
+    if (input.strength > 75) {
+      multiplier *= 1.2; // Target more profit for strong signals
+    }
+    
+    // Adjust for volatility
+    if (input.volatilityRegime === 2) {
+      multiplier *= 1.3; // Wider TP in high volatility
+    } else if (input.volatilityRegime === 0) {
+      multiplier *= 0.8; // Tighter TP in low volatility
+    }
+    
+    // Adjust for market regime alignment
+    const aligned = 
+      (input.direction === 1 && input.marketRegime === 1) ||
+      (input.direction === 0 && input.marketRegime === -1);
+    
+    if (aligned) {
+      multiplier *= 1.1; // Can target more when aligned with trend
+    }
+    
+    return {
+      value: multiplier,
+      confidence: 0.5,
+      modelVersion: "fallback_v1",
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  private fallbackStopLoss(input: TPSLInput, startTime: number): Prediction {
+    let multiplier = ML_CONFIG.fallback.defaultSLMultiplier;
+    
+    // Wider stops in high volatility
+    if (input.volatilityRegime === 2) {
+      multiplier *= 1.3;
+    }
+    
+    // Tighter stops for weaker signals
+    if (input.strength < 60 || input.confidence < 55) {
+      multiplier *= 0.9;
+    }
+    
+    return {
+      value: multiplier,
+      confidence: 0.5,
+      modelVersion: "fallback_v1",
+      latencyMs: Date.now() - startTime,
+    };
+  }
+
+  // ==========================================
+  // Utilities
+  // ==========================================
+
+  private updateModelStats(modelName: string, latencyMs: number): void {
+    const info = this.modelInfo.get(modelName);
+    if (info) {
+      const newCount = info.inferenceCount + 1;
+      info.avgLatencyMs = (info.avgLatencyMs * info.inferenceCount + latencyMs) / newCount;
+      info.inferenceCount = newCount;
+    }
+  }
+
+  /**
+   * Get model status
+   */
+  getModelStatus(): {
+    onnxAvailable: boolean;
+    modelsLoaded: boolean;
+    models: Array<{
+      name: string;
+      loaded: boolean;
+      inferenceCount: number;
+      avgLatencyMs: number;
+    }>;
+  } {
+    const models = [];
+    
+    for (const [name, info] of this.modelInfo) {
+      models.push({
+        name,
+        loaded: true,
+        inferenceCount: info.inferenceCount,
+        avgLatencyMs: Math.round(info.avgLatencyMs * 10) / 10,
+      });
+    }
+    
+    // Add missing models
+    for (const modelName of Object.keys(ML_CONFIG.models)) {
+      if (!this.modelInfo.has(modelName)) {
+        models.push({
+          name: modelName,
+          loaded: false,
+          inferenceCount: 0,
+          avgLatencyMs: 0,
+        });
+      }
+    }
+    
+    return {
+      onnxAvailable: this.ort !== null,
+      modelsLoaded: this.modelsLoaded,
+      models,
+    };
+  }
+
+  /**
+   * Check if models are available
+   */
+  isReady(): boolean {
+    return this.modelsLoaded || this.ort !== null; // Fallbacks always work
+  }
+
+  /**
+   * Check if using real models vs fallback
+   */
+  isUsingModels(): boolean {
+    return this.modelsLoaded && this.signalQualitySession !== null;
+  }
+}
+
+export default VinceMLInferenceService;

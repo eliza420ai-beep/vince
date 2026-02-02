@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+
+# Eliza / DB
+.eliza/
+.elizadb/
+
+# IDE / OS
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Optional: uncomment if you don't want to track knowledge build artifacts
+# knowledge/**/*.pdf

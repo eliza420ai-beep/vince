@@ -1,0 +1,196 @@
+# VINCE Plugin Progress Tracker
+# Last updated: 2026-02-02
+# Update this file after every feature completion or session end.
+
+================================================================================
+COMPLETED
+================================================================================
+
+## Core Architecture ✅
+- Plugin structure (index.ts) with 27 services, 20 actions, 2 providers, 1 evaluator
+- Fallback service pattern (external plugins → built-in API clients)
+- ASCII dashboard on startup with live market prices
+- Service source tracking (external vs fallback logging)
+
+## Services - Data Sources (18 services) ✅
+- VinceCoinGlassService - L/S ratio, funding, OI, fear/greed
+- VinceCoinGeckoService - Exchange health, liquidity, prices
+- VinceMarketDataService - Enriched context (RSI, volatility, regime)
+- VinceSignalAggregatorService - Weighted voting across 15+ sources
+- VinceTopTradersService - Whale wallet tracking via Hyperliquid
+- VinceNewsSentimentService - MandoMinutes sentiment
+- VinceDexScreenerService - Hot memes on SOLANA + BASE
+- VinceMeteoraService - LP pool discovery for DCA strategy
+- VinceNFTFloorService - Floor tracking for ~12 curated collections
+- VinceLifestyleService - Daily suggestions based on day of week
+- VinceDeribitService - Options IV, Greeks, strikes
+- VinceNansenService - Smart money (100 credits)
+- VinceSanbaseService - On-chain analytics (1K/mo)
+- VinceBinanceService - Top traders, taker flow
+- VinceBinanceLiquidationService - Liquidation data
+- VinceMarketRegimeService - Trending/ranging/choppy detection
+- VinceHIP3Service - Stocks, commodities, indices (34 assets)
+- VinceWatchlistService - Early detection watchlist
+- VinceAlertService - Price and signal alerts
+
+## Services - Paper Trading Bot (5 services) ✅
+- VincePaperTradingService - Bot orchestration
+- VincePositionManagerService - Position tracking
+- VinceRiskManagerService - Circuit breakers, daily loss limits
+- VinceTradeJournalService - Trade history
+- VinceGoalTrackerService - $420/day, $10K/month KPIs
+
+## Services - Self-Improving Architecture (2 services) ✅
+- VinceParameterTunerService - Bayesian parameter optimization
+- VinceImprovementJournalService - Structured improvement suggestions
+
+## Services - ML Enhancement Layer (4 services) ✅
+- VinceFeatureStoreService - 40+ features per trade (JSONL)
+- VinceWeightBanditService - Thompson Sampling for signal weights
+- VinceSignalSimilarityService - k-NN on embeddings
+- VinceMLInferenceService - ONNX model inference
+
+## Fallback Services (7 fallbacks) ✅
+- deribit.fallback.ts - Direct Deribit API client
+- hyperliquid.fallback.ts - Direct Hyperliquid API client
+- opensea.fallback.ts - OpenSea NFT floor fallback
+- nansen.fallback.ts - Nansen API fallback
+- xai.fallback.ts - XAI/Grok API fallback
+- browser.fallback.ts - Browser automation fallback
+- puppeteer.browser.ts - Puppeteer-based browser
+
+## Actions - Focus Areas (11 actions) ✅
+- vinceGmAction - Morning briefing
+- vinceAlohaAction - Evening summary
+- vinceOptionsAction - Covered calls / secured puts
+- vincePerpsAction - Long/short signals
+- vinceMemesAction - Hot memes scanner
+- vinceAirdropsAction - Airdrop tracking
+- vinceLifestyleAction - Daily suggestions
+- vinceNftFloorAction - NFT floor analysis
+- vinceIntelAction - Combined intelligence
+- vinceNewsAction - MandoMinutes news
+- vinceHIP3Action - TradFi assets (gold, NVDA, SPX)
+
+## Actions - Paper Trading Bot (4 actions) ✅
+- vinceBotStatusAction - Portfolio status
+- vinceBotPauseAction - Pause/resume bot
+- vinceWhyTradeAction - Explain trade decision
+- vinceBotAction - Execute trade
+
+## Actions - Utilities (5 actions) ✅
+- vinceUploadAction - Knowledge upload
+- vinceGrokExpertAction - Daily pulse + research suggestions
+- vinceMemeDeepDiveAction - Deep dive into specific meme
+- vinceWatchlistAction - Manage watchlist
+- vinceAlertsAction - Manage alerts
+
+## Providers (2 providers) ✅
+- vinceContextProvider - Aggregated market context
+- trenchKnowledgeProvider - RAG for meme trading knowledge
+
+## Evaluators (1 evaluator) ✅
+- tradePerformanceEvaluator - Track signal source performance
+
+## Tasks (1 task) ✅
+- grokExpert.tasks.ts - Daily Grok research task
+
+## Tests ✅
+- Unit tests: actions (4 files), bullBearCase, standalone
+- Integration tests: knowledge, hip3-verify, hyperliquid-verify
+- E2E tests: realData, knowledgeQuality
+- Test utilities: test-utils.ts, knowledge-utils.ts
+
+## Documentation ✅
+- WHAT.md - Purpose and philosophy
+- WHY.md - Framework decisions (ElizaOS vs ClawdBot)
+- HOW.md - Development guide
+- CLAUDE.md - AI operating manual
+- START.md - Complete vibe coding manifesto
+- README.md - Project overview
+- progress.txt - This file
+
+## Configuration ✅
+- dynamicConfig.ts - Tunable parameters
+- paperTradingDefaults.ts - Bot defaults
+- targetAssets.ts - BTC, ETH, SOL, HYPE + 34 HIP-3
+- memes.constants.ts - 50+ tracked meme tokens
+
+## ML Learning State ✅
+- Feature store: 10 feature files collected (2026-02-02)
+- Tuned config: Source weights initialized, no adjustments yet
+- Improvement journal: Empty (no suggestions yet)
+
+================================================================================
+IN PROGRESS
+================================================================================
+
+🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
+🔄 Feature store needs 90+ trades for ONNX model training
+🔄 No improvement suggestions generated yet (needs more trading data)
+
+================================================================================
+NEXT / BACKLOG
+================================================================================
+
+📋 Train ONNX models when feature store reaches 90+ trades
+📋 Add more NFT collections to floor tracking
+📋 Implement ClawdBot integration for self-healing (see WHY.md)
+📋 Add Telegram/Discord notifications for alerts
+📋 Add more meme tokens to constants
+📋 Implement position sizing based on Kelly Criterion ML model
+📋 Add correlation-based position limits
+📋 Implement trailing stop-loss logic
+
+================================================================================
+KNOWN ISSUES / LIMITATIONS
+================================================================================
+
+⚠️ XAI/Grok requires API key (not all users will have)
+⚠️ Nansen limited to 100 credits/month
+⚠️ Sanbase limited to 1K calls/month
+⚠️ Paper bot circuit breakers not yet validated with real trading
+⚠️ ONNX inference not yet active (needs training data)
+⚠️ Eliza Cloud deploy (vince2) timed out after 15 min; 15 credits were deducted
+   (see DEPLOYMENT section below)
+
+================================================================================
+SUPABASE / STORAGE
+================================================================================
+
+We added this clarification so it’s recorded in progress.txt:
+
+- **POSTGRES_URL (Supabase Postgres)** = main app database. ElizaOS (plugin-sql) uses it for conversation/message storage, agent memory, entities, rooms, relationships, tasks, cache, and knowledge embeddings. So Supabase is used for memory storage of conversations and all other runtime persistence. Required for persistent deploy; without it the app uses local PGLite.
+- **SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL** = optional. Used only for the feature store: paper-bot feature records are upserted to table `vince_paper_bot_features` so you can query 500+ rows for ML training. See FEATURE-STORE.md. Not needed for conversation/memory; that goes through POSTGRES_URL.
+
+================================================================================
+DEPLOYMENT (Eliza Cloud)
+================================================================================
+
+2026-02-02 – vince2 deploy timeout:
+- Command: elizaos deploy --project-name vince2 (with ANTHROPIC, OPENAI, POSTGRES_URL)
+- Credits: 15 deducted when container was created (before health check)
+- Container created: 0983fab1-1756-4008-8f7c-c7592aa9c915
+- Outcome: CLI reported "Deployment failed" – timeout after 15 minutes waiting for
+  container to pass health check (/health returning 200). Container may still exist
+  or still be deploying.
+- Dashboard: https://www.elizacloud.ai/dashboard/containers/0983fab1-1756-4008-8f7c-c7592aa9c915
+- Next steps:
+  1. Check status: elizaos containers list
+  2. View logs: elizaos containers logs --project-name vince2 --tail 200
+  3. Ensure app returns 200 OK at /health (required for deploy success)
+  4. If deploy never became usable: contact Eliza Cloud support to request
+     credit restoration for timed-out deployment (15 credits)
+
+================================================================================
+SESSION NOTES
+================================================================================
+
+2026-02-02:
+- Created progress.txt
+- Finetuned START.md to be VINCE/ElizaOS specific
+- Verified documentation stack (WHAT, WHY, HOW, CLAUDE, START)
+- Plugin has 27 services, 20 actions, 2 providers, 1 evaluator
+- ML layer collecting features, awaiting sufficient data for training
+- Eliza Cloud deploy (vince2) timed out; 15 credits deducted; documented above
+- Documented Supabase usage in progress.txt: POSTGRES_URL = main app DB (conversations, memory, entities, rooms, embeddings). Optional SUPABASE_SERVICE_ROLE_KEY = feature store (vince_paper_bot_features) for ML only. See FEATURE-STORE.md for feature-store setup.

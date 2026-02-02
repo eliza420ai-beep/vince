@@ -1,0 +1,55 @@
+{
+  "name": "@elizaos/plugin-vince",
+  "version": "1.0.0",
+  "description": "Standalone VINCE agent plugin - unified data intelligence for trading, options, perps, memes, and lifestyle",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run --dir=.",
+    "test:unit": "vitest run src/__tests__/bullBearCase.test.ts --dir=.",
+    "test:e2e": "vitest run src/__tests__/realData.e2e.test.ts --dir=.",
+    "test:watch": "vitest --dir=."
+  },
+  "keywords": [
+    "elizaos",
+    "plugin",
+    "vince",
+    "standalone",
+    "trading",
+    "options",
+    "perps",
+    "memetics",
+    "airdrops",
+    "defi",
+    "lifestyle",
+    "nft",
+    "paper-trading"
+  ],
+  "dependencies": {
+    "@elizaos/core": "workspace:*",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@elizaos/plugin-knowledge-ingestion": "workspace:*",
+    "@elizaos/plugin-deribit": "workspace:*",
+    "@elizaos/plugin-hyperliquid": "workspace:*",
+    "@elizaos/plugin-nft-collections": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@elizaos/plugin-knowledge-ingestion": {
+      "optional": true
+    },
+    "@elizaos/plugin-deribit": {
+      "optional": true
+    },
+    "@elizaos/plugin-hyperliquid": {
+      "optional": true
+    },
+    "@elizaos/plugin-nft-collections": {
+      "optional": true
+    }
+  }
+}
