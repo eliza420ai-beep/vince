@@ -28,7 +28,7 @@
       "@elizaos/core/*": ["../../core/src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json", "*.json"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts", "src/**/*.json", "*.json"],
   "exclude": [
     "dist",
     "node_modules",
