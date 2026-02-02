@@ -50,12 +50,14 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^5.1.1",
     "pdf-parse": "^2.4.5",
+    "pg": "^8.18.0",
     "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
   },
   "scripts": {
-    "start": "elizaos start",
+    "start": "node scripts/start-with-db.js",
+    "start:postgres": "node scripts/db-bootstrap.js && elizaos start",
     "dev": "elizaos dev",
     "build": "bun run build.ts",
     "lint": "prettier --write ./src",
@@ -78,7 +80,9 @@
     "cypress:open": "bun run test:install && cypress open",
     "build:watch": "bun run build.ts --watch",
     "deploy:cloud": "bash scripts/deploy-cloud.sh",
-    "pdf-to-md": "bun run scripts/pdf-to-md.ts"
+    "pdf-to-md": "bun run scripts/pdf-to-md.ts",
+    "db:check": "node scripts/check-db-migrations.js",
+    "db:bootstrap": "node scripts/db-bootstrap.js"
   },
   "publishConfig": {
     "access": "public"

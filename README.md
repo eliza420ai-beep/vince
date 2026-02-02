@@ -31,14 +31,26 @@ elizaos dev
 # Start development with hot-reloading (recommended)
 elizaos dev
 
-# OR start without hot-reloading
-elizaos start
+# OR start without hot-reloading (uses Postgres when POSTGRES_URL is set)
+bun start
 # Note: When using 'start', you need to rebuild after changes:
 # bun run build
 
 # Test the project
 elizaos test
 ```
+
+## Production with Supabase (Postgres)
+
+We use **Postgres/Supabase** for production so the app and deploy use the same DB.
+
+1. **In `.env`** set `POSTGRES_URL` to the **direct** Supabase connection (not the pooler):
+   - Use **port 5432** (direct), not 6543 (pooler). Migrations fail on the pooler.
+   - Add `?sslmode=verify-full` to avoid SSL warnings.
+   - Example:  
+     `POSTGRES_URL=postgresql://postgres:YOUR_PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`
+2. **Run locally:** `bun start` — the start script runs the migration bootstrap (creates `migrations` schema) when `POSTGRES_URL` is set, then starts the app.
+3. **Deploy:** Use the same `POSTGRES_URL` (direct 5432) in your deploy env. See [DEPLOY.md](DEPLOY.md).
 
 ## Testing
 
@@ -120,6 +132,27 @@ Customize your project by modifying:
 
 - `src/index.ts` - Main entry point
 - `src/character.ts` - Character definition
+
+## Troubleshooting
+
+### Database migration failed (`CREATE SCHEMA IF NOT EXISTS migrations`)
+
+If you see:
+
+```text
+Failed to run database migrations (error=Failed query: CREATE SCHEMA IF NOT EXISTS migrations
+```
+
+**Fix (Supabase / Postgres for prod):** In `.env`, set `POSTGRES_URL` to the **direct** connection: **port 5432** (not 6543). Add `?sslmode=verify-full`, e.g.  
+`POSTGRES_URL=postgresql://postgres:PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`  
+Then run **`bun start`** — the start script runs the migration bootstrap first.
+
+**Local-only (no Postgres):** Leave `POSTGRES_URL` empty in `.env` and run `bun start` to use PGLite.
+
+**"self-signed certificate in certificate chain":** If bootstrap or the app fails with this SSL error, add to `.env`:  
+`POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in; use only if needed).
+
+See [DEPLOY.md](DEPLOY.md) for deploy and bootstrap SQL.
 
 ## Deploy
 
