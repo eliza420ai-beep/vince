@@ -100,8 +100,8 @@ You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the curren
 1. In `.env` set at least:
    - `ANTHROPIC_API_KEY=...`
    - `OPENAI_API_KEY=...`
-   - `POSTGRES_URL=postgresql://user:password@host:5432/dbname?sslmode=require`
-2. **If using Supabase**: run the migration bootstrap once (see [Supabase: migration schema failed](#supabase-migration-schema-failed) below).
+   - `POSTGRES_URL=postgresql://user:password@host:5432/dbname?sslmode=verify-full`
+2. **Supabase:** Use the **direct** connection (port **5432**, not 6543). The app’s `bun start` runs the migration bootstrap when `POSTGRES_URL` is set, so migrations work locally and in prod. If you still see “CREATE SCHEMA IF NOT EXISTS migrations” failed, see [Supabase: migration schema failed](#supabase-migration-schema-failed) below.
 3. Run deploy **once** with the script (so all three are passed correctly).
 
 ### Supabase: migration schema failed
@@ -114,14 +114,9 @@ Failed to run database migrations (error=Failed query: CREATE SCHEMA IF NOT EXIS
 
 Supabase can block schema creation when the app connects. Fix it once:
 
-1. **Use SSL and direct connection** in `.env`:
-   - Port **5432** (direct), not 6543 (pooler).
-   - Add `?sslmode=require` to the URL:  
-   `POSTGRES_URL=postgresql://postgres:PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=require`
-2. **Pre-create the migrations schema** (once):
-   - Open **Supabase Dashboard → SQL Editor**.
-   - Run the **entire** **`scripts/supabase-migrations-bootstrap.sql`** (creates `migrations` schema and tables).
-3. Restart the app (`elizaos start` or `bun start`). Migrations will see the schema/tables and proceed.
+1. **Use direct connection** in `.env`: Port **5432** (direct), not 6543 (pooler). Add `?sslmode=verify-full`:  
+   `POSTGRES_URL=postgresql://postgres:PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`
+2. **Run `bun start`** — the start script runs the migration bootstrap (creates `migrations` schema) when `POSTGRES_URL` is set. If that still fails, pre-create the schema: open **Supabase Dashboard → SQL Editor**, run **`scripts/supabase-migrations-bootstrap.sql`**, then run `bun start` again.
 
 If you prefer to run without Supabase for now, leave `POSTGRES_URL` unset (or empty) in `.env`; the app will use local PGLite.
 
