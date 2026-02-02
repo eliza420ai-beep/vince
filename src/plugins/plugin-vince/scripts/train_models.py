@@ -53,10 +53,17 @@ except ImportError:
 # ==========================================
 
 def load_features(filepath: str) -> pd.DataFrame:
-    """Load feature records from JSON file exported by FeatureStore."""
+    """Load feature records from JSONL file(s) exported by FeatureStore (one JSON object per line)."""
+    records = []
     with open(filepath, 'r') as f:
-        records = json.load(f)
-    
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                print(f"Warning: Skipping invalid JSON line: {e}")
     print(f"Loaded {len(records)} records from {filepath}")
     
     # Flatten nested structure
@@ -112,6 +119,14 @@ def load_features(filepath: str) -> pd.DataFrame:
             for k, v in r['labels'].items():
                 flat[f'label_{k}'] = v
         
+        # ML label: use labels.profitable or outcome.profitable when present
+        if 'labels' in r and r['labels'] and 'profitable' in r['labels']:
+            flat['label_profitable'] = r['labels']['profitable']
+        elif 'outcome' in r and r['outcome'] and 'profitable' in r['outcome']:
+            flat['label_profitable'] = r['outcome']['profitable']
+        else:
+            flat['label_profitable'] = None  # open or pre-close record
+
         flat_records.append(flat)
     
     df = pd.DataFrame(flat_records)
