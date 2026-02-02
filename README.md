@@ -1,4 +1,4 @@
-# Project Starter
+# VINCE
 
 This is the starter template for ElizaOS projects.
 
