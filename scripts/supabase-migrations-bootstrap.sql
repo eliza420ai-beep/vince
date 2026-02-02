@@ -39,3 +39,16 @@ CREATE TABLE IF NOT EXISTS migrations._snapshots (
 -- Optional: grant to anon/authenticated/service_role if you use them for DB access
 -- GRANT USAGE ON SCHEMA migrations TO anon, authenticated, service_role;
 -- GRANT ALL ON ALL TABLES IN SCHEMA migrations TO anon, authenticated, service_role;
+
+-- Optional: paper trades table for vince-paper-bot (also created by plugin-vince runtime migrations)
+-- If you use PGLite (no POSTGRES_URL), the runtime creates this automatically.
+CREATE SCHEMA IF NOT EXISTS plugin_vince;
+CREATE TABLE IF NOT EXISTS plugin_vince.paper_bot_features (
+  id TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  payload JSONB NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_plugin_vince_paper_bot_features_created_at
+  ON plugin_vince.paper_bot_features (created_at);
+CREATE INDEX IF NOT EXISTS idx_plugin_vince_paper_bot_features_payload_asset
+  ON plugin_vince.paper_bot_features USING GIN ((payload->'asset'));

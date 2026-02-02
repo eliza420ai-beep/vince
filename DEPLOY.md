@@ -2,24 +2,24 @@
 
 So you don’t burn $15 on a typo again.
 
-**Docs:** [Deploy to Eliza Cloud](https://docs.elizaos.ai/guides/deploy-to-cloud) — `elizaos deploy --project-name <name>` with multiple `--env "KEY=VALUE"` for secrets. Official example uses `DATABASE_URL`; for ElizaOS use **`POSTGRES_URL`** (same value, correct variable name for the runtime).
+**Docs:** [Deploy to Eliza Cloud](https://docs.elizaos.ai/guides/deploy-to-cloud) — `elizaos deploy --project-name <name>` with multiple `--env "KEY=VALUE"` for secrets. We deploy with **PGLite** by default (no `POSTGRES_URL`); add **`POSTGRES_URL`** only if you want Postgres.
 
-**Minimal (required only):**
+**Deploy with PGLite (recommended):** Leave `POSTGRES_URL` unset. The app uses embedded **PGLite**. **Paper trades** are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/` (and in the PGLite table `plugin_vince.paper_bot_features`). No external DB required.
+
+**Minimal (required only — PGLite, no Postgres):**
 
 ```bash
 elizaos deploy --project-name vince2 \
   --env "ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' .env | cut -d= -f2-)" \
-  --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)" \
-  --env "POSTGRES_URL=$(grep '^POSTGRES_URL=' .env | cut -d= -f2-)"
+  --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)"
 ```
 
-**Full (matches our .env: API keys + feature store; no OpenRouter):**
+**Full (PGLite + optional Supabase for feature store; no OpenRouter):**
 
 ```bash
 elizaos deploy --project-name vince2 \
   --env "ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' .env | cut -d= -f2-)" \
   --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)" \
-  --env "POSTGRES_URL=$(grep '^POSTGRES_URL=' .env | cut -d= -f2-)" \
   --env "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SUPABASE_SERVICE_ROLE_KEY=' .env | cut -d= -f2-)" \
   --env "COINGECKO_API_KEY=$(grep '^COINGECKO_API_KEY=' .env | cut -d= -f2-)" \
   --env "DISABLE_COINGECKO_MCP=$(grep '^DISABLE_COINGECKO_MCP=' .env | cut -d= -f2-)" \
@@ -52,7 +52,7 @@ elizaos deploy --project-name vince2 \
 
 (Optional: add `--env "SUPABASE_URL=$(grep '^SUPABASE_URL=' .env | cut -d= -f2-)"` if the app doesn’t derive it from `POSTGRES_URL`.)
 
-Use **minimal** to confirm deploy works; use **full** so production has the same API keys as local and the **feature store** (paper-bot records upserted to Supabase for ML — see [FEATURE-STORE.md](FEATURE-STORE.md)). To add more vars from `.env`, add more `--env "KEY=$(grep '^KEY=' .env | cut -d= -f2-)"` lines (no need to pass `ELIZAOS_API_KEY` — that’s for the CLI only). **`SUPABASE_URL`** is optional (app derives it from `POSTGRES_URL`). **Add `SUPABASE_SERVICE_ROLE_KEY`** (and optionally `SUPABASE_URL`) to the deploy command only if you want the [feature store](FEATURE-STORE.md) in production.
+Use **minimal** to confirm deploy works with **PGLite** (no Postgres). Paper trades are always written to **JSONL** in `.elizadb/vince-paper-bot/features/`; with PGLite they are also written to `plugin_vince.paper_bot_features`. Use **full** to add API keys and optionally **Supabase** for ML (paper-bot records dual-write to Supabase when `SUPABASE_SERVICE_ROLE_KEY` is set — see [FEATURE-STORE.md](FEATURE-STORE.md)). To add more vars from `.env`, add more `--env "KEY=$(grep '^KEY=' .env | cut -d= -f2-)"` lines (no need to pass `ELIZAOS_API_KEY` — that’s for the CLI only). **`SUPABASE_URL`** is optional. Add **`POSTGRES_URL`** only if you want Postgres instead of PGLite.
 
 ## The bug you hit
 
@@ -69,7 +69,9 @@ It must be:
 |-----|----------|--------|
 | `ANTHROPIC_API_KEY` | ✅ Yes | Claude (VINCE model) |
 | `OPENAI_API_KEY` | ✅ Yes | Embeddings (plugin-sql / RAG) |
-| `POSTGRES_URL` | ✅ Yes | Persistent DB (plugin-sql); **must** be `POSTGRES_URL=postgresql://...` |
+| `POSTGRES_URL` | No (PGLite default) | Persistent DB (plugin-sql). **Omit** to use **PGLite**; set to `postgresql://...` only if you want Postgres. |
+
+**Paper trades / feature store:** Trades are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/`. With PGLite they are also written to `plugin_vince.paper_bot_features`. No extra env needed for JSONL or PGLite.
 
 Optional (plugin-vince features):
 
@@ -82,16 +84,16 @@ Optional (plugin-vince features):
 | `OPENSEA_API_KEY` | NFT floors (OpenSea fallback) |
 | `XAI_API_KEY` | X.ai model fallback |
 
-**Supabase URL and feature store (important for deploy):**
+**Supabase (optional — for ML feature store):**
 
-- **`SUPABASE_URL`** — Optional. When `POSTGRES_URL` points to Supabase, the app derives it (e.g. `db.XXX.supabase.co` → `https://XXX.supabase.co`). Add `--env "SUPABASE_URL=..."` only if you need the feature store and derivation doesn’t work.
-- **`SUPABASE_SERVICE_ROLE_KEY`** — **Required only if you want the feature store in production.** See [FEATURE-STORE.md](FEATURE-STORE.md). Then add it to the deploy command:
+- **`SUPABASE_URL`** — Optional. Add `--env "SUPABASE_URL=..."` only if you want the feature store and the app does not derive it from `POSTGRES_URL` doesn’t work.
+- **`SUPABASE_SERVICE_ROLE_KEY`** — Optional. **Only if you want paper trades dual-write to Supabase** for ML (see [FEATURE-STORE.md](FEATURE-STORE.md)). Paper trades are always in **JSONL** and in PGLite when using PGLite; Supabase is an extra sync target. Add to deploy command:
 
 ```bash
   --env "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SUPABASE_SERVICE_ROLE_KEY=' .env | cut -d= -f2-)"
 ```
 
-Optionally add `--env "SUPABASE_URL=..."` if the app doesn’t derive it from `POSTGRES_URL`. Without these, deploy still works; conversation/memory use `POSTGRES_URL` only.
+Add `--env "SUPABASE_URL=..."` only if the app doesn’t derive it from `POSTGRES_URL`. Without these, deploy still works; paper trades stay in **JSONL** (and in PGLite when you use PGLite).
 
 You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the current VINCE agent unless you add those plugins.
 
@@ -100,11 +102,11 @@ You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the curren
 1. In `.env` set at least:
    - `ANTHROPIC_API_KEY=...`
    - `OPENAI_API_KEY=...`
-   - `POSTGRES_URL=postgresql://user:password@host:5432/dbname?sslmode=verify-full`
-2. **Supabase:** Use the **direct** connection (port **5432**, not 6543). The app’s `bun start` runs the migration bootstrap when `POSTGRES_URL` is set, so migrations work locally and in prod. If you still see “CREATE SCHEMA IF NOT EXISTS migrations” failed, see [Supabase: migration schema failed](#supabase-migration-schema-failed) below.
-3. Run deploy **once** with the script (so all three are passed correctly).
+2. **PGLite (default):** Leave `POSTGRES_URL` unset or empty. The app uses embedded PGLite. **Paper trades** are stored in **JSONL** under `.elizadb/vince-paper-bot/features/` and in the PGLite table `plugin_vince.paper_bot_features`. No external DB required.
+3. **Optional Postgres:** If you want Postgres instead, set `POSTGRES_URL=postgresql://user:password@host:5432/dbname?sslmode=verify-full`. The app’s `bun start` runs the migration bootstrap when `POSTGRES_URL` is set, so migrations work locally and in prod. If you still see “CREATE SCHEMA IF NOT EXISTS migrations” failed, see [Supabase: migration schema failed](#supabase-migration-schema-failed) below.
+4. **Optional Supabase:** For ML, add `SUPABASE_SERVICE_ROLE_KEY` (and optionally `SUPABASE_URL`) so paper trades are also synced to Supabase; see [FEATURE-STORE.md](FEATURE-STORE.md). **JSONL** and PGLite storage do not require Supabase.
 
-### Supabase: migration schema failed
+### Supabase / Postgres: migration schema failed
 
 If you see:
 
@@ -118,7 +120,7 @@ Supabase can block schema creation when the app connects. Fix it once:
    `POSTGRES_URL=postgresql://postgres:PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`
 2. **Run `bun start`** — the start script runs the migration bootstrap (creates `migrations` schema) when `POSTGRES_URL` is set. If that still fails, pre-create the schema: open **Supabase Dashboard → SQL Editor**, run **`scripts/supabase-migrations-bootstrap.sql`**, then run `bun start` again.
 
-If you prefer to run without Supabase for now, leave `POSTGRES_URL` unset (or empty) in `.env`; the app will use local PGLite.
+For **PGLite-only** deploy, leave `POSTGRES_URL` unset; no migration bootstrap is needed.
 
 ## Deploy (recommended)
 
@@ -126,20 +128,19 @@ If you prefer to run without Supabase for now, leave `POSTGRES_URL` unset (or em
 bun run deploy:cloud
 ```
 
-This runs `scripts/deploy-cloud.sh`, which reads `.env` and passes `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and **`POSTGRES_URL`** (with the variable name) to `elizaos deploy`. No copy-paste of secrets.
+This runs `scripts/deploy-cloud.sh`, which reads `.env` and passes `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, and optionally **`POSTGRES_URL`** (if set) to `elizaos deploy`. For **PGLite** deploy, ensure `POSTGRES_URL` is not set in `.env` (or that the script only passes it when present). Paper trades are stored in **JSONL** and in PGLite.
 
 ## Deploy (manual)
 
-If you prefer to run the CLI yourself:
+**PGLite (no Postgres):**
 
 ```bash
 elizaos deploy --project-name vince \
   --env "ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' .env | cut -d= -f2-)" \
-  --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)" \
-  --env "POSTGRES_URL=$(grep '^POSTGRES_URL=' .env | cut -d= -f2-)"
+  --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)"
 ```
 
-Important: the third `--env` must be **`POSTGRES_URL=...`**, not just the URL.
+**With Postgres:** add `--env "POSTGRES_URL=$(grep '^POSTGRES_URL=' .env | cut -d= -f2-)"`. The value must be **`POSTGRES_URL=postgresql://...`**, not just the URL.
 
 ## Stack already exists (500: Stack [...] already exists)
 
@@ -234,7 +235,7 @@ elizaos containers logs --project-name vince --tail 200
 
 Look for:
 
-- **DB errors** – `POSTGRES_URL` wrong or DB unreachable (e.g. network/SSL from ECS).
+- **DB errors** – Only if you set `POSTGRES_URL`: wrong URL or DB unreachable (e.g. network/SSL from ECS). With PGLite (no `POSTGRES_URL`) the embedded DB is used and paper trades go to **JSONL** + PGLite table.
 - **OOM / crash** – process restarts; may need more memory in the task definition.
 - **Never “listening”** – server only starts after all plugins/agents init; plugin-vince starts many services (Meteora, Deribit, NFT, etc.), so startup can be slow on a small container.
 
@@ -253,7 +254,7 @@ VINCE loads many services (DB, Meteora, Deribit, DexScreener, NFT floor, etc.). 
 
 - **Increase task CPU/memory** in the Eliza Cloud / ECS task definition so init finishes sooner.
 - **Increase deployment timeout** in the deploy/CloudFormation config if the app does eventually become healthy but after 45+ minutes (not ideal; better to fix startup or resources).
-- **Confirm DB is reachable** – wrong `POSTGRES_URL` or unreachable DB (e.g. not in same VPC or no SSL) will hang or fail during plugin-sql init/migrations and the server may never listen.
+- **Confirm DB is reachable** – Only if using Postgres: wrong `POSTGRES_URL` or unreachable DB can hang plugin-sql init. With PGLite (no `POSTGRES_URL`) there is no external DB; paper trades are stored in JSONL and in the PGLite table.
 
 ### 5. **CLI troubleshooting (from the error message)**
 

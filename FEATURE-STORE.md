@@ -1,18 +1,20 @@
 # VINCE Paper Bot Feature Store (ML)
 
-Feature records from vince-paper-bot trades are used for ML training (e.g. 500+ records for your script). They are stored in two places:
+Feature records from vince-paper-bot trades are used for ML training (e.g. 500+ records for your script). They are stored in up to three places:
 
 | Storage | When used | Purpose |
 |--------|------------|---------|
 | **Local JSONL** | Always | `.elizadb/vince-paper-bot/features/features_*.jsonl` – backup, offline, export |
+| **PGLite / Postgres** | When using ElizaOS DB | Table `plugin_vince.paper_bot_features` – same DB as agent (PGLite or Postgres) |
 | **Supabase** | Optional (when keys set) | Table `vince_paper_bot_features` – query 500+ in one place for ML |
 
 ## Current behavior
 
 - **Local**: Every flush (e.g. every 1 min) appends records to `features_YYYY-MM-DD_<ts>.jsonl` under `.elizadb/vince-paper-bot/features/`.
+- **PGLite/Postgres**: If the runtime has a DB connection (PGLite when no `POSTGRES_URL`, or Postgres when set), the same records are **also** upserted into `plugin_vince.paper_bot_features`. The table is created automatically at startup via plugin-vince’s Drizzle schema (runtime migrations).
 - **Supabase**: **Only if** `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_ANON_KEY`) is set, the same records are **also** upserted into Supabase so you can run your ML script against 500+ rows in one query.
 
-Without Supabase keys, **Supabase does not record these trades** – only the local JSONL files do.
+Without Supabase keys, **Supabase does not record these trades** – local JSONL and (when available) PGLite/Postgres do.
 
 ## Enable Supabase recording (recommended for ML)
 

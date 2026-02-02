@@ -880,9 +880,38 @@ export class VinceFeatureStoreService extends Service {
           logger.debug(`[VinceFeatureStore] Synced ${toFlush.length} records to Supabase`);
         }
       }
+
+      // 3. Optional PGLite/Postgres dual-write (plugin_vince.paper_bot_features)
+      await this.flushToPglite(toFlush);
     } catch (error) {
       logger.error(`[VinceFeatureStore] Error flushing records: ${error}`);
       this.records.push(...toFlush);
+    }
+  }
+
+  /**
+   * Upsert feature records into plugin_vince.paper_bot_features (PGLite or Postgres).
+   * No-op if runtime has no DB connection or table does not exist yet.
+   */
+  private async flushToPglite(records: FeatureRecord[]): Promise<void> {
+    if (records.length === 0) return;
+    try {
+      const conn = await this.runtime.getConnection?.();
+      if (!conn || typeof (conn as { query?: unknown }).query !== "function") return;
+      const client = conn as { query: (text: string, values?: unknown[]) => Promise<{ rows?: unknown[] }> };
+      const table = "plugin_vince.paper_bot_features";
+      const sql = `INSERT INTO ${table} (id, created_at, payload) VALUES ($1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET created_at = EXCLUDED.created_at, payload = EXCLUDED.payload`;
+      for (const r of records) {
+        await client.query(sql, [
+          r.id,
+          new Date(r.timestamp).toISOString(),
+          JSON.stringify(r),
+        ]);
+      }
+      logger.debug(`[VinceFeatureStore] Synced ${records.length} records to PGLite/Postgres`);
+    } catch (err) {
+      logger.debug(`[VinceFeatureStore] PGLite/Postgres write skipped (table may not exist yet): ${err}`);
     }
   }
 

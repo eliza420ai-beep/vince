@@ -108,6 +108,9 @@ import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
 
+// Schema for PGLite/Postgres paper trades table (runtime migrations)
+import { paperTradesSchema } from "./schema/paperTrades";
+
 // ==========================================
 // Plugin Definition
 // ==========================================
@@ -118,7 +121,10 @@ export const vincePlugin: Plugin = {
     "Unified data intelligence for VINCE agent. " +
     "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors, Lifestyle. " +
     "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, LIFESTYLE, ART.",
-  
+
+  /** Drizzle schema for plugin_vince.paper_bot_features (PGLite/Postgres). */
+  schema: paperTradesSchema,
+
   // Services - all data sources
   services: [
     VinceCoinGlassService,
