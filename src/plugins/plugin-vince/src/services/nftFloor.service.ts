@@ -30,9 +30,7 @@ const CURATED_COLLECTIONS: CuratedCollection[] = [
   { slug: "meridian-by-matt-deslauriers", name: "Meridian", category: "generative", priority: 15 },
   // XCOPY
   { slug: "xcopy-editions", name: "XCOPY Editions", category: "blue_chip", priority: 16 },
-  { slug: "max-pain-and-frens-by-xcopy", name: "MAX PAIN AND FRENS", category: "blue_chip", priority: 17 },
   // Photography
-  { slug: "drip-drop-by-dave-krugman", name: "DRIP DROP", category: "photography", priority: 20 },
   { slug: "drive-dave-krugman", name: "DRIVE", category: "photography", priority: 21 },
 ];
 
