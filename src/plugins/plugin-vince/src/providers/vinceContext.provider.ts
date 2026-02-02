@@ -15,6 +15,9 @@ import type { VinceMarketDataService } from "../services/marketData.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceLifestyleService } from "../services/lifestyle.service";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
+import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
+import type { VincePositionManagerService } from "../services/vincePositionManager.service";
+import { formatPnL, formatPct, formatUsd } from "../utils/tradeExplainer";
 
 export const vinceContextProvider: Provider = {
   name: "VINCE_CONTEXT",
@@ -141,6 +144,48 @@ export const vinceContextProvider: Provider = {
 
         values.nftThinFloorCount = thinFloors.length;
         data.nftStatus = nftService.getStatus();
+      }
+
+      // Paper trading bot status — inject real data when user asks about bot/portfolio
+      // so chat response matches dashboard (avoids LLM hallucinating numbers)
+      const userText = (message.content?.text ?? "").toLowerCase();
+      const isBotStatusQuery =
+        userText.includes("bot") ||
+        userText.includes("status") ||
+        userText.includes("paper") ||
+        userText.includes("portfolio");
+      if (isBotStatusQuery) {
+        const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as VincePaperTradingService | null;
+        const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
+        if (paperTrading && positionManager) {
+          const status = paperTrading.getStatus();
+          const portfolio = positionManager.getPortfolio();
+          const positions = positionManager.getOpenPositions();
+          const returnStr = portfolio.returnPct >= 0 ? `+${portfolio.returnPct.toFixed(2)}%` : `${portfolio.returnPct.toFixed(2)}%`;
+          const lines: string[] = [];
+          lines.push("**Paper Trading Bot Status (use these exact numbers in your response — do not invent values)**");
+          lines.push(`${status.isPaused ? "PAUSED" : "ACTIVE"}`);
+          lines.push(`Total Value: ${formatUsd(portfolio.totalValue)} (${returnStr})`);
+          lines.push(`Balance: ${formatUsd(portfolio.balance)}`);
+          lines.push(`Realized P&L: ${formatPnL(portfolio.realizedPnl)}`);
+          lines.push(`Unrealized P&L: ${formatPnL(portfolio.unrealizedPnl)}`);
+          lines.push(`Trades: ${portfolio.tradeCount} (${portfolio.winCount}W / ${portfolio.lossCount}L)`);
+          lines.push(`Win Rate: ${portfolio.winRate.toFixed(1)}%`);
+          if (positions.length > 0) {
+            lines.push("Open Positions:");
+            for (const pos of positions) {
+              const dir = pos.direction.toUpperCase();
+              const pnlStr = formatPnL(pos.unrealizedPnl);
+              const pnlPct = formatPct(pos.unrealizedPnlPct);
+              lines.push(`  ${dir} ${pos.asset} @ $${pos.entryPrice.toLocaleString()} | P&L: ${pnlStr} (${pnlPct}) | SL: $${pos.stopLossPrice.toLocaleString()} | TP: $${(pos.takeProfitPrices?.[0] ?? 0).toLocaleString()}`);
+            }
+          } else {
+            lines.push("Open Positions: none");
+          }
+          contextParts.push("");
+          contextParts.push(lines.join("\n"));
+          values.paperBotStatus = lines.join("\n");
+        }
       }
 
       // Service availability summary
