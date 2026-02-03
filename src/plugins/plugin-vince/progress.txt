@@ -402,6 +402,21 @@ SESSION NOTES
 ================================================================================
 
 2026-02-03:
+- Risk manager & sizing now treat exposure **by margin**, not by notional. `position.marginUsd`
+  is stored on open/partial/restore; `getCurrentExposure()` sums margin; validateTrade() converts
+  requested size to margin before enforcing both per-position and total caps. Aggressive preset
+  (VINCE_PAPER_AGGRESSIVE=true) therefore allows multiple 40x HYPE positions so long as posted
+  margin stays under 60% of portfolio instead of blocking at $40k notional.
+- Feature store `collectMarketFeatures()` now fetches market context, Binance depth, DVOL, RSI,
+  and ATR **in parallel** with a 6s timeout per source. One slow API no longer stalls the entire
+  record, and latency shrank from “sum of all awaits” to “slowest call”.
+- README trimmed to reflect reality: ALOHA day report (PERPS + OPTIONS vibe check) is the primary
+  user-facing feature; every other action is treated as supporting/legacy until it advances the ML
+  paper bot loop. Progress file updated accordingly.
+- Knowledge ingestion loop doubled down: `VINCE_UPLOAD` now routes long-form sources through our
+  summarize fork ([IkigaiLabsETH/summarize](https://github.com/IkigaiLabsETH/summarize)), so every
+  morning upload (YouTube, podcast, PDF, article) lands in `knowledge/` with clean front‑matter +
+  source URL. Daily habit: feed quality content → run ALOHA informed by fresh research → retrain ML.
 - MCP / Eliza Cloud: New section “MCP / ELIZA CLOUD – LEVERAGE OPPORTUNITIES” in
   progress.txt with concrete suggestions: ElizaOS Cloud MCP (credits, memory,
   agent interaction), Time & Date (session/tz), Weather (Lifestyle), Crypto Price

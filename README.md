@@ -15,6 +15,16 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 
 ---
 
+## 🎯 Current focus (Feb 2026)
+
+- **ALOHA day report** – our primary action. One command delivers the daily “vibe check”: market temperature, PERPS posture, OPTIONS positioning, and whether the bot should even be trading.
+- **Machine-learning paper trading** – every engineering sprint feeds the paper bot more signal coverage, cleaner feature collection, faster training, and better ONNX models. Everything else is backlog polish.
+- **Other actions** – still present, but treated as supporting cast. If it doesn’t improve the paper strategy or the daily ALOHA briefing, it’s deliberately low priority.
+
+If you only remember one thing: _ALOHA in, better ML out._
+
+---
+
 ## 🚀 Milestone: Full ML loop on Eliza Cloud (no redeploy tax)
 
 **We shipped it.** The paper bot now runs a **complete ML lifecycle in production** without paying $15 per model update:
@@ -53,27 +63,19 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
-## Features
+## Features (what actually matters)
 
-- **VINCE agent** — Unified orchestrator across 7 areas: OPTIONS, PERPS, MEMETICS, AIRDROPS, DEFI, LIFESTYLE, ART
-- **Self-improving paper trading bot** — ML pipeline above; **trains on Eliza Cloud** (Supabase Storage for models, no extra redeploy); no live execution, suggest and inform only
-- **Teammate context** — USER/SOUL/TOOLS/MEMORY files loaded every session so the agent behaves like a teammate, not a generic chatbot
-- **Data sources** — Deribit, CoinGlass, Binance, DexScreener, Meteora, Nansen, Sanbase, OpenSea (with fallbacks when APIs are absent)
-- **ElizaOS** — Character-driven, plugin-based; Postgres/Supabase for production
+- **ALOHA** – single command; returns vibe check + PERPS pulse + OPTIONS posture + “should we even trade today?” judgment. This is the action we run every morning.
+- **Self-improving paper bot** – ML loop described above; no live execution, but every trade is stored, learnt from, and used to tighten thresholds.
+- **Teammate context** – USER/SOUL/TOOLS/MEMORY keep the responses in character.
+- **Knowledge ingestion** – the `VINCE_UPLOAD` action pipes long-form research through our fork of **summarize** (`IkigaiLabsETH/summarize`) so every PDF, podcast, or YouTube link we feed in ends up as structured knowledge under `knowledge/`. [1]
+- **Other actions** – still exposed, but they’re backlog fodder until they support ALOHA or the ML loop.
 
-**Day reports:** We’re really stoked about the daily briefs. The **GM**, **OPTIONS**, and **PERPS** day reports are pure gold—they pull from all our signal sources and the quality is so good.
+### Action status (trimmed-down reality)
 
-### Action status (honest take)
-
-- **OPTIONS & PERPS day reports** — Pure gold; core value.
-- **NEWS** — Great when fresh, but heavily dependent on [MandoMinutes](https://www.mandominutes.com/Latest). When that source isn't updated, data gets stale. A big future feature: our own news plugin and day report (likely needs ~$100/mo X API).
-- **MEMES** — Not yet where we want it; not top priority. UI quick fix: bold styling looks messy and should be toned down.
-- **TREADFI** — We're betting on farming all major perps DEXes and love their market-making bots. Figuring out the right settings to actually make money is complex; it's a core feature we want to keep if we can be profitable beyond the airdrop era.
-- **LIFESTYLE** — Life is more than trading. The curated local hotel/restaurant/spa/health/fitness knowledge is worth more focus and improves IRL UX; we may migrate this to a dedicated CLAWDBOT.
-- **NFTs** — Few care anymore (maybe 1K true fans on CT); we've spent a decade curating digital art and still value spotting gems on the floor (thin floor) from iconic collections. Solid base MVP; needs more work.
-- **INTEL** — Solid output but feels redundant with what GM / Aloha already cover.
-- **BOT** — Not good enough yet: not easy on the eyes and not consistent with the writing style of our other actions.
-- **UPLOAD / knowledge folder** — We believe the knowledge base will become one of the most important parts of VINCE. Improving how we upload research (YouTube, long PDFs, long articles → RAG) deserves a lot of attention; it may also be a fit for a dedicated ClawdBot (Moltbot).
+- **ALOHA (includes PERPS & OPTIONS insights)** – ⭐ Core value.
+- **VINCE_PERPS / VINCE_OPTIONS** – Used inside ALOHA; still callable directly, but treated as subcomponents not standalone experiences.
+- **Everything else (NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD)** – kept for heritage, lightly maintained, not a product focus right now.
 
 ## Getting started
 
@@ -197,6 +199,8 @@ export default new ProjectTestSuite();
 ```
 
 The test utilities in `__tests__/utils/` provide helper functions to simplify writing tests.
+
+[1]: https://github.com/IkigaiLabsETH/summarize
 
 ## Configuration
 
