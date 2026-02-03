@@ -63,6 +63,7 @@ export const vinceCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
+    // Teammate (USER, SOUL, TOOLS, MEMORY) is provider-only — not in knowledge to avoid RAG duplication
     // Options frameworks for covered calls / secured puts
     { directory: "options", shared: true },
     // Perps trading frameworks

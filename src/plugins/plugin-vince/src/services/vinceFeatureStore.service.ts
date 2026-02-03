@@ -308,7 +308,10 @@ export class VinceFeatureStoreService extends Service {
   static serviceType = "VINCE_FEATURE_STORE_SERVICE";
   capabilityDescription = "Collects trading features for ML training";
 
-  private config: FeatureStoreConfig;
+  /** ElizaOS Service base expects public config; keep for type compatibility */
+  public override config: Record<string, unknown> = {};
+  /** Feature store options (dataDir, flushInterval, etc.) */
+  private storeConfig: FeatureStoreConfig;
   private records: FeatureRecord[] = [];
   private pendingOutcomes: Map<string, string> = new Map(); // positionId -> recordId
   private flushTimer: NodeJS.Timeout | null = null;
@@ -317,7 +320,7 @@ export class VinceFeatureStoreService extends Service {
 
   constructor(protected runtime: IAgentRuntime) {
     super();
-    this.config = { ...DEFAULT_CONFIG };
+    this.storeConfig = { ...DEFAULT_CONFIG };
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceFeatureStoreService> {
@@ -327,15 +330,15 @@ export class VinceFeatureStoreService extends Service {
   }
 
   private async initialize(): Promise<void> {
-    if (!this.config.enabled) {
+    if (!this.storeConfig.enabled) {
       logger.info("[VinceFeatureStore] Disabled");
       return;
     }
 
     try {
       // Ensure data directory exists
-      if (!fs.existsSync(this.config.dataDir)) {
-        fs.mkdirSync(this.config.dataDir, { recursive: true });
+      if (!fs.existsSync(this.storeConfig.dataDir)) {
+        fs.mkdirSync(this.storeConfig.dataDir, { recursive: true });
       }
 
       // Optional Supabase dual-write for ML (500+ records queryable in one place)
@@ -361,11 +364,11 @@ export class VinceFeatureStoreService extends Service {
       // Start flush timer
       this.flushTimer = setInterval(() => {
         this.flush();
-      }, this.config.flushIntervalMs);
+      }, this.storeConfig.flushIntervalMs);
 
       this.initialized = true;
       logger.info(
-        `[VinceFeatureStore] ✅ Initialized - storing features to ${this.config.dataDir}`
+        `[VinceFeatureStore] ✅ Initialized - storing features to ${this.storeConfig.dataDir}`
       );
     } catch (error) {
       logger.error(`[VinceFeatureStore] Initialization error: ${error}`);
@@ -393,7 +396,7 @@ export class VinceFeatureStoreService extends Service {
     signal: AggregatedSignal;
     execution?: Partial<TradeExecutionFeatures>;
   }): Promise<string> {
-    if (!this.config.enabled || !this.initialized) return "";
+    if (!this.storeConfig.enabled || !this.initialized) return "";
 
     const recordId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
@@ -420,7 +423,7 @@ export class VinceFeatureStoreService extends Service {
       this.records.push(record);
 
       // Auto-flush if buffer is full
-      if (this.records.length >= this.config.maxRecordsPerFile) {
+      if (this.records.length >= this.storeConfig.maxRecordsPerFile) {
         await this.flush();
       }
 
@@ -439,7 +442,7 @@ export class VinceFeatureStoreService extends Service {
    * Link a trade position to a feature record
    */
   linkTrade(recordId: string, positionId: string): void {
-    if (!this.config.enabled) return;
+    if (!this.storeConfig.enabled) return;
     this.pendingOutcomes.set(positionId, recordId);
     logger.debug(`[VinceFeatureStore] Linked position ${positionId} to record ${recordId}`);
   }
@@ -452,7 +455,7 @@ export class VinceFeatureStoreService extends Service {
     position: Position,
     additionalDetails?: Partial<TradeExecutionFeatures>
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.storeConfig.enabled) return;
 
     const record = this.records.find((r) => r.id === recordId);
     if (!record) {
@@ -501,7 +504,7 @@ export class VinceFeatureStoreService extends Service {
       holdingPeriodMs?: number;
     }
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.storeConfig.enabled) return;
 
     const recordId = this.pendingOutcomes.get(positionId);
     if (!recordId) {
@@ -857,7 +860,7 @@ export class VinceFeatureStoreService extends Service {
 
     try {
       const filename = `features_${new Date().toISOString().split("T")[0]}_${Date.now()}.jsonl`;
-      const filepath = path.join(this.config.dataDir, filename);
+      const filepath = path.join(this.storeConfig.dataDir, filename);
 
       // 1. Always write local JSONL (backup, offline)
       const lines = toFlush.map((r) => JSON.stringify(r)).join("\n");
@@ -928,13 +931,13 @@ export class VinceFeatureStoreService extends Service {
 
     try {
       const files = fs
-        .readdirSync(this.config.dataDir)
+        .readdirSync(this.storeConfig.dataDir)
         .filter((f) => f.startsWith("features_") && f.endsWith(".jsonl"))
         .sort()
         .reverse();
 
       for (const file of files) {
-        const filepath = path.join(this.config.dataDir, file);
+        const filepath = path.join(this.storeConfig.dataDir, file);
         const content = fs.readFileSync(filepath, "utf-8");
         const lines = content.split("\n").filter((l) => l.trim());
 
@@ -999,8 +1002,8 @@ export class VinceFeatureStoreService extends Service {
     return {
       bufferedRecords: this.records.length,
       pendingOutcomes: this.pendingOutcomes.size,
-      dataDir: this.config.dataDir,
-      enabled: this.config.enabled,
+      dataDir: this.storeConfig.dataDir,
+      enabled: this.storeConfig.enabled,
       initialized: this.initialized,
     };
   }

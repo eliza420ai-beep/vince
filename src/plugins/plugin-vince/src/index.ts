@@ -23,6 +23,7 @@
  */
 
 import type { Plugin, IAgentRuntime } from "@elizaos/core";
+import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 
 // Services - Data Sources
@@ -101,6 +102,7 @@ import { vinceAlertsAction } from "./actions/alerts.action";
 // Providers
 import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
+import { teammateContextProvider } from "./providers/teammateContext.provider";
 
 // Tasks (Grok Expert commented out - low value)
 // import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
@@ -156,8 +158,8 @@ export const vincePlugin: Plugin = {
     // Self-Improving Architecture
     VinceParameterTunerService,
     VinceImprovementJournalService,
-    // ML Enhancement (V4)
-    VinceFeatureStoreService,
+    // ML Enhancement (V4) — FeatureStore uses storeConfig; cast so Plugin services array accepts it
+    VinceFeatureStoreService as typeof Service,
     VinceWeightBanditService,
     VinceSignalSimilarityService,
     VinceMLInferenceService,
@@ -192,8 +194,9 @@ export const vincePlugin: Plugin = {
     vinceAlertsAction,
   ],
   
-  // Providers - unified context
+  // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
   providers: [
+    teammateContextProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
   ],
@@ -439,6 +442,7 @@ export { vinceAlertsAction } from "./actions/alerts.action";
 
 export { vinceContextProvider } from "./providers/vinceContext.provider";
 export { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
+export { teammateContextProvider } from "./providers/teammateContext.provider";
 
 // ==========================================
 // Analysis Exports
@@ -455,5 +459,12 @@ export { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluat
 // ==========================================
 // Config Exports (Self-Improving Architecture)
 // ==========================================
-
-export * from "./config/dynamicConfig";
+// Explicit exports to avoid re-exporting SignalThresholds (already from types/analysis)
+export {
+  dynamicConfig,
+  initializeDynamicConfig,
+  getThresholds,
+  getSourceWeight,
+  meetsThresholds,
+} from "./config/dynamicConfig";
+export type { SourceWeights, AdjustmentRecord, TunedConfig } from "./config/dynamicConfig";
