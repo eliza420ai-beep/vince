@@ -33,6 +33,8 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 **Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
 
+**Paper trading algo: improvements we can claim.** We improved the paper trading algo by (1) wiring more market data into both the live logic and the ML feature store—order-book imbalance, price vs SMA20, funding 8h delta, DVOL—(2) adding a book-imbalance filter (reject long when book favors sellers, short when it favors buyers), (3) boosting confidence when trend (SMA20) and funding reversal align, (4) capping size in high DVOL, and (5) covering that logic with unit tests (23 tests, 100% coverage on the extended-snapshot util). The training script and feature store include these fields so ML can use them after retrain. We do **not** yet claim improved P&L or win rate; that requires backtest or live results over time.
+
 Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
 ## Features

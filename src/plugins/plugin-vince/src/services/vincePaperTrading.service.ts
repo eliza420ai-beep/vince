@@ -53,6 +53,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { formatUsd } from "../utils/tradeExplainer";
+import {
+  getBookImbalanceRejection,
+  getAdjustedConfidence,
+  type ExtendedSnapshot,
+} from "../utils/extendedSnapshotLogic";
 
 // ==========================================
 // Pending Entry Types
@@ -506,13 +511,53 @@ export class VincePaperTradingService extends Service {
           continue;
         }
 
-        // Convert to AggregatedTradeSignal format
+        // Extended market snapshot: order-book filter, trend alignment boost, funding reversal (DATA_LEVERAGE)
+        const featureStore = this.getFeatureStore();
+        let extendedSnapshot: ExtendedSnapshot | null = null;
+        if (featureStore && typeof featureStore.getExtendedMarketSnapshot === "function") {
+          try {
+            extendedSnapshot = await featureStore.getExtendedMarketSnapshot(asset);
+          } catch (e) {
+            logger.debug(`[VincePaperTrading] Extended snapshot skip: ${e}`);
+          }
+        }
+        const bookRejection = getBookImbalanceRejection(
+          { direction: signal.direction, confidence: signal.confidence },
+          extendedSnapshot
+        );
+        if (bookRejection.reject) {
+          this.logSignalRejection(
+            asset,
+            { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
+            bookRejection.reason!
+          );
+          continue;
+        }
+        let fundingRate = 0;
+        if (marketData) {
+          try {
+            const ctx = await marketData.getEnrichedContext(asset);
+            fundingRate = ctx?.fundingRate ?? 0;
+          } catch (_) {}
+        }
+        const adjustedConfidence = getAdjustedConfidence(
+          { direction: signal.direction, confidence: signal.confidence },
+          extendedSnapshot,
+          fundingRate
+        );
+        if (adjustedConfidence > signal.confidence && signal.direction !== "neutral") {
+          logger.debug(
+            `[VincePaperTrading] ${asset} extended snapshot confidence boost: ${signal.confidence} -> ${adjustedConfidence}`
+          );
+        }
+
+        // Convert to AggregatedTradeSignal format (use adjustedConfidence so SMA20/funding boosts apply)
         // Now using the proper confirmingCount from multi-source aggregation
         const tradeSignal: AggregatedTradeSignal = {
           asset,
           direction: signal.direction,
           strength: signal.strength,
-          confidence: signal.confidence,
+          confidence: adjustedConfidence,
           confirmingCount: signal.confirmingCount ?? signal.factors.length, // Use new field, fallback to factors
           conflictingCount: 0,
           signals: signal.factors.map((f, i) => ({
@@ -529,6 +574,16 @@ export class VincePaperTradingService extends Service {
           timestamp: Date.now(),
           session: (signal as { session?: string }).session,
         };
+
+        // Log extended market snapshot when available (DATA_LEVERAGE debugging)
+        if (extendedSnapshot && signal.direction !== "neutral") {
+          logger.debug(
+            `[VincePaperTrading] ${asset} extended snapshot: book=${extendedSnapshot.bookImbalance?.toFixed(2) ?? "n/a"} ` +
+              `priceVsSma20=${extendedSnapshot.priceVsSma20?.toFixed(1) ?? "n/a"}% ` +
+              `fundingDelta=${extendedSnapshot.fundingDelta != null ? (extendedSnapshot.fundingDelta * 100).toFixed(4) + "%" : "n/a"} ` +
+              `dvol=${extendedSnapshot.dvol?.toFixed(0) ?? "n/a"}`
+          );
+        }
 
         // Validate signal
         const signalValidation = riskManager.validateSignal(tradeSignal);
@@ -564,16 +619,15 @@ export class VincePaperTradingService extends Service {
           logger.debug(`[VincePaperTrading] ${asset}: ${correlationResult.reason}`);
         }
 
-        // Apply DVOL-adjusted sizing (reduce size in high volatility)
-        if (marketData && (asset === "BTC" || asset === "ETH")) {
-          const dvol = await marketData.getDVOL(asset);
+        // Apply DVOL-adjusted sizing (reduce size in high volatility); prefer extended snapshot when available
+        if (asset === "BTC" || asset === "ETH") {
+          let dvol: number | null = extendedSnapshot?.dvol ?? null;
+          if (dvol === null && marketData) dvol = await marketData.getDVOL(asset);
           if (dvol !== null) {
             if (dvol > 85) {
-              // Extreme volatility: 50% size
               baseSizeUsd = baseSizeUsd * 0.5;
               logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>85): size reduced 50%`);
             } else if (dvol > 70) {
-              // High volatility: 70% size
               baseSizeUsd = baseSizeUsd * 0.7;
               logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>70): size reduced 30%`);
             }

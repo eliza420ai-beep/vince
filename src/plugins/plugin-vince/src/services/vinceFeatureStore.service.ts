@@ -416,6 +416,33 @@ export class VinceFeatureStoreService extends Service {
   // ==========================================
 
   /**
+   * Return extended market snapshot for use by the trading algo.
+   * Used in evaluateAndTrade for order-book filter, trend alignment boost, and funding reversal.
+   */
+  async getExtendedMarketSnapshot(asset: string): Promise<{
+    bookImbalance: number | null;
+    priceVsSma20: number | null;
+    fundingDelta: number | null;
+    dvol: number | null;
+  }> {
+    if (!this.initialized) {
+      return { bookImbalance: null, priceVsSma20: null, fundingDelta: null, dvol: null };
+    }
+    try {
+      const m = await this.collectMarketFeatures(asset);
+      return {
+        bookImbalance: m.bookImbalance,
+        priceVsSma20: m.priceVsSma20,
+        fundingDelta: m.fundingDelta,
+        dvol: m.dvol,
+      };
+    } catch (e) {
+      logger.debug(`[VinceFeatureStore] getExtendedMarketSnapshot error: ${e}`);
+      return { bookImbalance: null, priceVsSma20: null, fundingDelta: null, dvol: null };
+    }
+  }
+
+  /**
    * Record a trading decision with all features
    */
   async recordDecision(params: {
@@ -876,10 +903,10 @@ export class VinceFeatureStoreService extends Service {
 
     if (marketRegimeService) {
       try {
-        const regime = marketRegimeService.getCurrentRegime?.(asset);
+        const regime = await marketRegimeService.getRegime(asset);
         if (regime) {
-          volatilityRegime = regime.volatilityLevel || "normal";
-          marketRegime = regime.trend || "neutral";
+          volatilityRegime = regime.regime === "volatile" ? "high" : "normal";
+          marketRegime = regime.regime;
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] Market regime error: ${e}`);
