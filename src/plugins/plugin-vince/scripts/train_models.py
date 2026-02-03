@@ -21,7 +21,7 @@ Usage:
   via the TRAIN_ONNX_WHEN_READY task (max once per 24h).
 
 Requirements:
-    pip install -r requirements.txt  (xgboost scikit-learn pandas numpy onnx skl2onnx joblib; scipy optional for outlier handling)
+    pip3 install -r requirements.txt  (xgboost scikit-learn pandas numpy onnx onnxmltools joblib; scipy optional)
 """
 
 import argparse
@@ -47,18 +47,20 @@ from sklearn.metrics import (
 
 try:
     import xgboost as xgb
-    from skl2onnx import convert_sklearn
-    from skl2onnx.common.data_types import FloatTensorType
     import onnx
+    from onnxmltools.convert.xgboost import convert as convert_xgboost
+    from onnxmltools.convert.common.data_types import FloatTensorType
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
+    convert_xgboost = None  # type: ignore
+    FloatTensorType = None  # type: ignore
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 if not ONNX_AVAILABLE:
-    logger.warning("ONNX export not available. Install: pip install onnx skl2onnx")
+    logger.warning("ONNX export not available. Install: pip3 install onnx onnxmltools")
 
 
 def setup_logging_to_file(output_dir: Path, verbose: bool = False) -> None:
@@ -559,17 +561,36 @@ def train_sl_optimizer_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBRegressor:
 # ONNX Export
 # ==========================================
 
+def _onnx_rename_io_for_runtime(onnx_model: "onnx.ModelProto", input_name: str = "input", output_name: str = "output") -> None:
+    """Rename graph input/output to 'input'/'output' for onnxruntime-node compatibility."""
+    g = onnx_model.graph
+    if g.input:
+        g.input[0].name = input_name
+    if g.output:
+        g.output[0].name = output_name
+
+
 def export_to_onnx(model: Any, X_sample: pd.DataFrame, output_path: str, model_name: str) -> bool:
-    """Export sklearn/xgboost model to ONNX format (target_opset=12 for compatibility)."""
-    if not ONNX_AVAILABLE:
-        logger.warning("Skipping ONNX export for %s - ONNX not available", model_name)
+    """Export XGBoost model to ONNX via onnxmltools. I/O named 'input'/'output' for onnxruntime-node."""
+    if not ONNX_AVAILABLE or convert_xgboost is None or FloatTensorType is None:
+        logger.warning("Skipping ONNX export for %s - install: pip3 install onnx onnxmltools", model_name)
         return False
     try:
-        initial_type = [("float_input", FloatTensorType([None, X_sample.shape[1]]))]
-        onnx_model = convert_sklearn(model, initial_types=initial_type, target_opset=12)
-        onnx.save_model(onnx_model, output_path)
-        logger.info("Exported %s to %s", model_name, output_path)
-        return True
+        n_features = X_sample.shape[1]
+        # onnxmltools expects feature names f0, f1, ...; XGBoost trained on DataFrame has column names.
+        booster = model.get_booster()
+        original_names = list(booster.feature_names) if booster.feature_names else []
+        try:
+            booster.feature_names = [f"f{i}" for i in range(n_features)]
+            initial_types = [("input", FloatTensorType([None, n_features]))]
+            onnx_model = convert_xgboost(model, initial_types=initial_types, target_opset=12)
+            _onnx_rename_io_for_runtime(onnx_model, input_name="input", output_name="output")
+            onnx.save_model(onnx_model, output_path)
+            logger.info("Exported %s to %s", model_name, output_path)
+            return True
+        finally:
+            if original_names:
+                booster.feature_names = original_names
     except Exception as e:
         logger.warning("Failed to export %s: %s", model_name, e)
         return False

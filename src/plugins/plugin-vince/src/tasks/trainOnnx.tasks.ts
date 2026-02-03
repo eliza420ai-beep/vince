@@ -9,7 +9,7 @@
  * - Runs on a schedule (default: every 12 hours via updateInterval).
  * - Skips if complete record count < 90.
  * - Throttles to at most once per 24h to avoid redundant training.
- * - Requires: Python 3, pip install -r scripts/requirements.txt (xgboost, skl2onnx, etc.)
+ * - Requires: Python 3, pip3 install -r scripts/requirements.txt (xgboost, onnxmltools, etc.)
  */
 
 import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";

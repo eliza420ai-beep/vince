@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-03
+# Last updated: 2026-02-03 (progress refresh: ONNX/synthetic/tests complete)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -118,15 +118,17 @@ COMPLETED
 
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
+- ONNX export: train_models.py uses onnxmltools (not skl2onnx) for XGBoost → ONNX; booster feature names temporarily set to f0, f1, … for converter compatibility. All four models (signal_quality, position_sizing, tp_optimizer, sl_optimizer) export to .onnx when pip3 install onnx onnxmltools. Docs/scripts use pip3 (Mac).
 
 ## Fetch Performance (Timeouts + Parallelization) ✅
 - Coinglass: 10s timeout on every fetch; refreshData() runs BTC/ETH/SOL + Fear/Greed in parallel; per-asset OI/funding/Binance L/S in parallel; fetchFreeData() runs price/funding/LS/OI in one Promise.all.
 - Signal aggregator: SOURCE_FETCH_TIMEOUT_MS (12s) and withTimeout(ms, label, promise) so one slow source returns null and does not block. Phase 1: Binance, Deribit IV, MarketData, Sanbase, Hyperliquid (options pulse + cross-venue), Deribit comprehensive + DVOL fetched in a single Promise.all; sections 3–10 use pre-fetched results. Phase 2: getTakerVolume, getRSIAdjustment, getOpenWindowInfo wrapped in withTimeout. getAllSignals() uses Promise.all(assets.map(getSignal)) so multi-asset aggregation runs in parallel.
 
 ## ML Learning State ✅
-- Feature store: 10 feature files collected (2026-02-02)
-- Tuned config: Source weights initialized, no adjustments yet
-- Improvement journal: Empty (no suggestions yet)
+- Feature store: 21+ feature/synthetic files in .elizadb/vince-paper-bot/features (features_*.jsonl, synthetic_*.jsonl). 1250+ completed trades for training.
+- Synthetic data: generate_synthetic_features.py supports --count, --output, --append (timestamps continue), --win-rate, --seed. train_models.py loads all features_*.jsonl and synthetic_*.jsonl from --data dir.
+- ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
+- Tests: test_train_models.py (6 tests) and generate_synthetic_features.py verified; pytest optional.
 
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
@@ -171,7 +173,7 @@ IN PROGRESS
 
 🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
    → Use VINCE_PAPER_AGGRESSIVE=true ($280 TP, 2:1 R:R, 40x, no cooldown) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
-🔄 Feature store: collect 90+ complete trades; then ONNX training runs automatically (or run script manually)
+🔄 Feature store: 90+ trades available; ONNX training runs automatically (TRAIN_ONNX_WHEN_READY) or manually: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Install: pip3 install onnx onnxmltools.
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
 
@@ -220,7 +222,7 @@ NEXT / BACKLOG
 
 📋 Migrate prod to Supabase Postgres (POSTGRES_URL); then plugin_vince.paper_bot_features
    lives in same DB as ElizaOS tables (agents, memories, entities, rooms). See FEATURE-STORE.md.
-🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. Manual: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. Manual: pip3 install onnx onnxmltools && python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Exports signal_quality.onnx, position_sizing.onnx, tp_optimizer.onnx, sl_optimizer.onnx.
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
@@ -246,7 +248,7 @@ KNOWN ISSUES / LIMITATIONS
 ⚠️ Nansen limited to 100 credits/month
 ⚠️ Sanbase limited to 1K calls/month
 ⚠️ Paper bot circuit breakers not yet validated with real trading
-⚠️ ONNX inference not yet active (needs training data)
+⚠️ ONNX inference active when .onnx files present in models dir; install onnxmltools and run train_models.py to generate them (feature names f0,f1,… applied at export for converter)
 ⚠️ Eliza Cloud deploy (vince2) timed out after 15 min; 15 credits were deducted
    (see DEPLOYMENT section below)
 
@@ -372,7 +374,9 @@ SESSION NOTES
   (Good/OK/Weak/Poor) and TP as [$280]. Result: 2:1 R:R, $280 TP, $140 risk; fewer trades
   needed for daily target; no cooldown after loss in aggressive (AGGRESSIVE_RISK_LIMITS.cooldownAfterLossMs=0).
   Trade-opened banner was also cleaned up (fixed-width lines, section labels, spacing).
-- Fetch performance (important): (1) Coinglass: all HTTP fetches use AbortSignal.timeout(10s); refreshData() fetches all assets + fear/greed in parallel; fetchCoinGlassData runs OI, funding, Binance L/S in parallel per asset; fetchFreeData runs price, funding, L/S, OI history in one Promise.all. (2) Signal aggregator: added SOURCE_FETCH_TIMEOUT_MS=12s and withTimeout(ms, label, promise) helper; phase-1 async sources (Binance getIntelligence, Deribit getIVSurface, MarketData getEnrichedContext, Sanbase getOnChainContext, Hyperliquid getOptionsPulse + getCrossVenueFunding, Deribit getComprehensiveData + getVolatilityIndex) are fetched in a single Promise.all with per-call timeout; sections 3–10 use these pre-fetched results instead of sequential awaits. Phase-2 calls (getTakerVolume, getRSIAdjustment, getOpenWindowInfo) wrapped in withTimeout. getAllSignals() now uses Promise.all(assets.map(getSignal)) so multi-asset aggregation is parallel. Result: aggregation time bounded by slowest source (~12s max) instead of sum of many sequential calls.
+- Fetch performance (important): (1) Coinglass: all HTTP fetches use AbortSignal.timeout(10s); refreshData() fetches all assets + fear/greed in parallel; fetchCoinGlassData runs OI, funding, Binance L/S in parallel per asset; fetchFreeData runs price, funding, L/S, OI history in one Promise.all. (2) Signal aggregator: added SOURCE_FETCH_TIMEOUT_MS=12s and withTimeout(ms, label, promise) helper; phase-1 async sources (Binance getIntelligence, Deribit getIVSurface, MarketData getEnrichedContext, Sanbase getOnChainContext, Hyperliquid getOptionsPulse + getCrossVenueFunding, Deribit getComprehensiveData + getVolatilityIndex) are fetched in a single Promise.all with per-call timeout; sections 3–10 use these pre-fetched results instead of sequential awaits. Phase-2 calls (getTakerVolume, getRSIAdjustment, getOpenWindowInfo) wrapped in withTimeout. getAllSignals() now uses Promise.all(assets.map(getSignal)) so multi-asset aggregation is parallel. Result:   aggregation time bounded by slowest source (~12s max) instead of sum of many sequential calls.
+- Scripts and ONNX: (1) Switched ONNX export from skl2onnx to onnxmltools (XGBoost not supported by skl2onnx). (2) Export failed until booster feature names set to f0, f1, … before convert_xgboost (onnxmltools requires that pattern). (3) All four .onnx models now export when pip3 install onnx onnxmltools. (4) Docs and log messages use pip3 (Mac). (5) generate_synthetic_features.py: --append to extend existing JSONL (timestamps continue), optional larger --count; train_models loads all synthetic_*.jsonl in --data dir.    (6) test_train_models.py: 6 tests pass (generate→train, learning baseline, insufficient data, SL label, multi-asset). (7) requirements.txt: onnxmltools>=1.16.0, no skl2onnx; install note: pip3 install -r requirements.txt.
+- progress.txt: This file updated to reflect completed ONNX export (onnxmltools, f0/f1 feature names), synthetic data (--append, --count), and test_train_models.py (6 tests). ML inference service uses session.run({ input: tensor }) and results.output; ONNX models exported by train_models use default onnxmltools input/output names (compatible).
 
 2026-02-02:
 - Created progress.txt

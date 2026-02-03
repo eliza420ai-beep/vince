@@ -59,7 +59,12 @@ python3 src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 
 python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
 ```
 
-Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records).
+**Generate more synthetic data** (e.g. to stress-test training or get a larger dataset):
+- Larger single file: `--count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl`
+- Append to existing file (timestamps continue after last record): `--count 200 --output features.jsonl --append`
+- `train_models.py --data .elizadb/vince-paper-bot/features` loads all `synthetic_*.jsonl` and `features_*.jsonl` in that directory, so you can mix real and multiple synthetic files.
+
+Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records), `--seed 123` (reproducibility).
 
 ## Testing that training improves paper trading parameters
 
@@ -67,7 +72,7 @@ To prove that `train_models.py` learns and improves paper trading algo parameter
 
 ```bash
 # From repo root; requires deps from requirements.txt
-pip install -r src/plugins/plugin-vince/scripts/requirements.txt
+pip3 install -r src/plugins/plugin-vince/scripts/requirements.txt
 python3 src/plugins/plugin-vince/scripts/test_train_models.py
 ```
 

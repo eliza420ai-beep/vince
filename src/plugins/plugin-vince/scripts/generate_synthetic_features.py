@@ -13,7 +13,9 @@ Records include outcome.maxAdverseExcursion so the SL optimizer can train.
 
 Usage:
   python3 generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
-  python3 train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
+  python3 generate_synthetic_features.py --count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl
+  python3 generate_synthetic_features.py --count 200 --output features.jsonl --append
+  python3 train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
 """
 
 import argparse
@@ -160,6 +162,7 @@ def main():
     p = argparse.ArgumentParser(description="Generate synthetic feature-store JSONL for ML testing")
     p.add_argument("--count", type=int, default=150, help="Number of records to generate (default 150, use >=90 for train_models --min-samples 90)")
     p.add_argument("--output", type=str, default="synthetic_features.jsonl", help="Output JSONL path")
+    p.add_argument("--append", action="store_true", help="Append to existing file (timestamps continue after last record)")
     p.add_argument("--win-rate", type=float, default=0.52, help="Target win rate 0–1 (default 0.52)")
     p.add_argument("--seed", type=int, default=42, help="Random seed")
     p.add_argument("--sentiment-fraction", type=float, default=0.2, help="Fraction of records with signal.sources as list of dicts (sentiment) for signal_avg_sentiment column (default 0.2)")
@@ -170,6 +173,20 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
 
     base_ts = 1738000000000  # ms
+    if args.append and out.exists() and out.stat().st_size > 0:
+        last_line = None
+        with open(out, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    last_line = line
+        if last_line:
+            try:
+                last = json.loads(last_line)
+                base_ts = int(last.get("timestamp", base_ts)) + 3600000
+            except json.JSONDecodeError:
+                pass
+
     records = []
     for i in range(args.count):
         win = random.random() < args.win_rate
@@ -177,13 +194,15 @@ def main():
         include_sentiment = random.random() < args.sentiment_fraction
         records.append(one_record(ts, win=win, include_sentiment_sources=include_sentiment))
 
-    with open(out, "w") as f:
+    mode = "a" if args.append else "w"
+    with open(out, mode) as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
 
     wins = sum(1 for r in records if r["labels"]["profitable"])
-    logger.info("Wrote %d synthetic records to %s (%.1f%% wins). Next (from repo root): python3 src/plugins/plugin-vince/scripts/train_models.py --data %s --output .elizadb/vince-paper-bot/models --min-samples 90",
-                len(records), out, 100 * wins / len(records), out)
+    action = "Appended" if args.append else "Wrote"
+    logger.info("%s %d synthetic records to %s (%.1f%% wins). Next (from repo root): python3 src/plugins/plugin-vince/scripts/train_models.py --data %s --output .elizadb/vince-paper-bot/models --min-samples 90",
+                action, len(records), out, 100 * wins / len(records), out)
     return 0
 
 
