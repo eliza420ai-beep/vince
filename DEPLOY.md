@@ -110,6 +110,35 @@ Add `--env "SUPABASE_URL=..."` only if the app doesn’t derive it from `POSTGRE
 
 You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the current VINCE agent unless you add those plugins.
 
+## ML (ONNX) on Eliza Cloud — will it be active?
+
+**Short answer: no, not on a fresh deploy.** The bot will still run; it will use **rule-based fallbacks** for signal quality, position sizing, and TP/SL instead of ONNX models.
+
+**Why:** ONNX models live under `.elizadb/vince-paper-bot/models/`. The directory `.elizadb/` is in `.gitignore`, so it is **not** in the image when you deploy. The container starts with no `.onnx` files, so the ML Inference Service logs e.g. "Models directory not found" or "Model not found" and loads 0 models. All ML-driven logic then uses the built-in fallbacks (thresholds, rule-based sizing, ATR-based TP/SL).
+
+**What still works on Cloud without ONNX:** Paper trading, signal aggregation, bandit weights, similarity (from in-memory state), improvement report consumption (from `training_metadata.json` if you had it), and all non-ML features. Only the **ONNX inference** (signal quality score, ML position multiplier, ML TP/SL multipliers) is inactive.
+
+**To make ML active on Cloud:**
+
+1. **Train locally** (after you have 90+ closed trades or synthetic data):
+   ```bash
+   python3 src/plugins/plugin-vince/scripts/train_models.py \
+     --data .elizadb/vince-paper-bot/features \
+     --output .elizadb/vince-paper-bot/models \
+     --min-samples 90
+   ```
+2. **Copy the built models into the repo** (so the image includes them):
+   ```bash
+   cp .elizadb/vince-paper-bot/models/signal_quality.onnx    src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/position_sizing.onnx   src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/tp_optimizer.onnx       src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/sl_optimizer.onnx       src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
+   git add src/plugins/plugin-vince/models/*.onnx src/plugins/plugin-vince/models/training_metadata.json
+   git commit -m "chore: ship ONNX models for Cloud ML"
+   ```
+3. **Deploy.** The Dockerfile copies `src/plugins/plugin-vince/models/` into `.elizadb/vince-paper-bot/models/` at build time, so the container will have the ONNX files and ML will be active. See `src/plugins/plugin-vince/models/README.md` for details.
+
 ## One-time setup
 
 1. In `.env` set at least:

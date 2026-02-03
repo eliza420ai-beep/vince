@@ -41,6 +41,10 @@ COPY . .
 # Build the application
 RUN bun run build
 
+# Ship ML ONNX models for Eliza Cloud (see src/plugins/plugin-vince/models/README.md)
+RUN mkdir -p /app/.elizadb/vince-paper-bot/models && \
+    cp -r /app/src/plugins/plugin-vince/models/. /app/.elizadb/vince-paper-bot/models/
+
 # Change ownership of the app directory to node user
 RUN chown -R node:node /app
 

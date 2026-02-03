@@ -1,0 +1,200 @@
+{
+  "trained_at": "2026-02-03T17:45:42.907307",
+  "data_file": ".elizadb/vince-paper-bot/features",
+  "total_records": 1269,
+  "trades_with_outcomes": 1250,
+  "models_trained": [
+    "signal_quality",
+    "position_sizing",
+    "tp_optimizer",
+    "sl_optimizer"
+  ],
+  "models_fit": [
+    "signal_quality",
+    "position_sizing",
+    "tp_optimizer",
+    "sl_optimizer"
+  ],
+  "improvement_report": {
+    "feature_importances": {
+      "signal_quality": {
+        "feature_importances": {
+          "market_priceChange24h": 0.05048047751188278,
+          "market_volumeRatio": 0.06275644153356552,
+          "market_fundingPercentile": 0.05587111413478851,
+          "market_longShortRatio": 0.041282154619693756,
+          "signal_strength": 0.062052272260189056,
+          "signal_confidence": 0.06584163010120392,
+          "signal_source_count": 0.0,
+          "signal_hasCascadeSignal": 0.0,
+          "signal_hasFundingExtreme": 0.06499245017766953,
+          "signal_hasWhaleSignal": 0.05806724354624748,
+          "session_isWeekend": 0.0,
+          "session_isOpenWindow": 0.06583087891340256,
+          "session_utcHour": 0.06918471306562424,
+          "signal_avg_sentiment": 0.07409904152154922,
+          "regime_volatility_high": 0.057060569524765015,
+          "regime_bullish": 0.0,
+          "regime_bearish": 0.05036308616399765,
+          "asset_BTC": 0.03918655216693878,
+          "asset_ETH": 0.05188397690653801,
+          "asset_HYPE": 0.06698716431856155,
+          "asset_SOL": 0.06406022608280182
+        },
+        "suggested_threshold": 0.48
+      },
+      "position_sizing": {
+        "feature_importances": {
+          "signal_strength": 0.10757571458816528,
+          "signal_confidence": 0.11630767583847046,
+          "signal_source_count": 0.0,
+          "session_isWeekend": 0.0,
+          "exec_streakMultiplier": 0.1282861977815628,
+          "signal_avg_sentiment": 0.12129685282707214,
+          "volatility_level": 0.10314628481864929,
+          "asset_BTC": 0.11299403011798859,
+          "asset_ETH": 0.11697041243314743,
+          "asset_HYPE": 0.08284158259630203,
+          "asset_SOL": 0.11058121174573898
+        }
+      },
+      "tp_optimizer": {
+        "feature_importances": {
+          "signal_direction_num": 0.07296667248010635,
+          "market_atrPct": 0.10086383670568466,
+          "signal_strength": 0.1032334417104721,
+          "signal_confidence": 0.08711476624011993,
+          "signal_avg_sentiment": 0.10936266928911209,
+          "volatility_level": 0.08747273683547974,
+          "market_regime_num": 0.08128319680690765,
+          "asset_BTC": 0.08792872726917267,
+          "asset_ETH": 0.10285742580890656,
+          "asset_HYPE": 0.07914496958255768,
+          "asset_SOL": 0.08777163922786713
+        }
+      },
+      "sl_optimizer": {
+        "feature_importances": {
+          "signal_direction_num": 0.0912984162569046,
+          "market_atrPct": 0.11322145909070969,
+          "signal_strength": 0.1216483786702156,
+          "signal_confidence": 0.09100887179374695,
+          "signal_avg_sentiment": 0.16216616332530975,
+          "volatility_level": 0.0742153748869896,
+          "market_regime_num": 0.08554579317569733,
+          "asset_BTC": 0.049231257289648056,
+          "asset_ETH": 0.06367498636245728,
+          "asset_HYPE": 0.057018790394067764,
+          "asset_SOL": 0.0909704938530922
+        }
+      }
+    },
+    "tp_level_performance": {
+      "0": {
+        "win_rate": 0.599,
+        "count": 309
+      },
+      "1": {
+        "win_rate": 0.548,
+        "count": 294
+      },
+      "2": {
+        "win_rate": 0.53,
+        "count": 347
+      },
+      "3": {
+        "win_rate": 0.553,
+        "count": 300
+      }
+    },
+    "decision_drivers_by_direction": {
+      "long": {
+        "sample_drivers": [
+          "Funding neutral",
+          "Session overlap",
+          "Strength > 50",
+          "Extreme fear (17)",
+          "Market regime bearish (weak 24h price action + sentiment)",
+          "SOL funding discount on Hyperliquid vs CEX - long edge",
+          "Funding negative (-0.0140%)",
+          "Long-biased L/S (3.76)"
+        ],
+        "trade_count": 633,
+        "total_factor_mentions": 1909
+      },
+      "short": {
+        "sample_drivers": [
+          "Funding neutral",
+          "Session overlap",
+          "Strength > 50",
+          "Market regime bearish (weak 24h price action + sentiment)",
+          "Extreme fear (17)",
+          "Options skew fearful (put premium elevated) - contrarian long",
+          "OI 7.0B",
+          "Long-biased L/S (2.31)"
+        ],
+        "trade_count": 636,
+        "total_factor_mentions": 1975
+      }
+    },
+    "suggested_signal_factors": [
+      {
+        "name": "Funding 8h delta",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Change in funding rate over last 8h; predicts reversals."
+      },
+      {
+        "name": "Order book imbalance",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Bid vs ask depth; short-term direction."
+      },
+      {
+        "name": "Bid-ask spread",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Liquidity / slippage proxy."
+      },
+      {
+        "name": "Price vs SMA20",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Trend alignment."
+      },
+      {
+        "name": "DVOL / volatility index",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Options-implied volatility."
+      },
+      {
+        "name": "NASDAQ 24h change",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Risk-on/risk-off macro."
+      },
+      {
+        "name": "ETF flow (BTC/ETH)",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "Institutional flow."
+      },
+      {
+        "name": "Macro risk environment",
+        "reason": "present but 0% non-null \u2014 consider populating",
+        "description": "risk_on / risk_off / neutral."
+      },
+      {
+        "name": "Signal source sentiment",
+        "reason": "present but 19% non-null \u2014 consider populating",
+        "description": "Per-source sentiment from aggregator."
+      }
+    ],
+    "action_items": [
+      "Consider setting ML fallback signalQualityThreshold to 0.48 (or use in Parameter Tuner bounds).",
+      "Signal quality is most driven by: signal_avg_sentiment, session_utcHour, asset_HYPE. Tune corresponding thresholds (e.g. minStrength, minConfidence) in dynamicConfig.",
+      "TP level 2 has win_rate 53.00% (347 trades). Review whether to reduce weight or tighten conditions.",
+      "Review 'Decision drivers that influenced opens' below: those data points drove long/short opens and feed the same features the ML models use.",
+      "Consider adding the 'Suggested signal factors' below to the feature store and signal aggregator to improve future training."
+    ],
+    "suggested_tuning": {
+      "min_strength": 54,
+      "min_confidence": 48
+    },
+    "suggested_signal_quality_threshold": 0.48
+  }
+}
