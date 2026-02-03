@@ -184,6 +184,8 @@ export const TAKE_PROFIT_USD_AGGRESSIVE = 210;
  * Use with runtime setting vince_paper_aggressive = true (or set limits/leverage in dynamicConfig).
  */
 export const AGGRESSIVE_LEVERAGE = 10;
+/** Base position size as % of portfolio in aggressive mode; ~12% with 10x gives ~$210 at first TP (~2.2% move). */
+export const AGGRESSIVE_BASE_SIZE_PCT = 12;
 export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
   ...DEFAULT_RISK_LIMITS,
   maxLeverage: 10,

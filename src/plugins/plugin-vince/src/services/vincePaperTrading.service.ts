@@ -33,6 +33,7 @@ import {
   FEES,
   DEFAULT_LEVERAGE,
   AGGRESSIVE_LEVERAGE,
+  AGGRESSIVE_BASE_SIZE_PCT,
   DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
   getPaperTradeAssets,
@@ -469,9 +470,10 @@ export class VincePaperTradingService extends Service {
 
         // Calculate position size
         const portfolio = positionManager.getPortfolio();
-        let baseSizeUsd = portfolio.totalValue * 0.05; // 5% base size
         const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         const leverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
+        const baseSizePct = aggressive ? AGGRESSIVE_BASE_SIZE_PCT / 100 : 0.05;
+        let baseSizeUsd = portfolio.totalValue * baseSizePct;
 
         // Apply correlation filter (reduce size for correlated positions)
         const correlationResult = riskManager.getCorrelationSizeMultiplier(
@@ -854,14 +856,14 @@ export class VincePaperTradingService extends Service {
     console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount} (sources)  ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log("  ║  RISK MANAGEMENT:                                             ║");
-    const slLoss = sizeUsd * (slPct / 100);
+    const slLoss = sizeUsd * leverage * (slPct / 100);
     console.log(`  ║    Stop-Loss:   $${stopLossPrice.toFixed(2).padEnd(10)} (${slPct.toFixed(1)}% → -$${slLoss.toFixed(0)})              ║`);
     if (takeProfitPrices.length > 0) {
-      const tp1Profit = sizeUsd * (tp1Pct / 100);
+      const tp1Profit = sizeUsd * leverage * (tp1Pct / 100);
       console.log(`  ║    Take-Profit: $${takeProfitPrices[0].toFixed(2).padEnd(10)} (${tp1Pct.toFixed(1)}% → +$${tp1Profit.toFixed(0)})             ║`);
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
-        const tp2Profit = sizeUsd * (tp2Pct / 100);
+        const tp2Profit = sizeUsd * leverage * (tp2Pct / 100);
         console.log(`  ║                 $${takeProfitPrices[1].toFixed(2).padEnd(10)} (${tp2Pct.toFixed(1)}% → +$${tp2Profit.toFixed(0)})             ║`);
       }
     }
