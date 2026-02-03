@@ -20,6 +20,7 @@
  *   --lang <code>       Output language (e.g. en, auto); summarize --lang
  *   --firecrawl         Pass --firecrawl auto for web URLs (needs FIRECRAWL_API_KEY)
  *   --knowledge-dir     Base knowledge dir (default: ./knowledge)
+ *   --concurrency <n>    Max parallel jobs (default: 3)
  *   --dry-run           Print what would be done, no writes
  *
  * Inputs: URLs (http(s)://) or local file paths (e.g. ./doc.pdf, /path/to/audio.mp3). Summarize supports PDF, audio, video, text.
@@ -184,6 +185,7 @@ function writeKnowledgeFile(
 title: "${title.replace(/"/g, '\\"')}"
 source: ${sourceUrl}
 category: ${category}
+ingestedWith: ingest-urls
 tags:
   - ingest-urls
   - batch
@@ -225,6 +227,8 @@ const lengthPreset = lengthIdx >= 0 && args[lengthIdx + 1] ? args[lengthIdx + 1]
 const langIdx = args.indexOf("--lang");
 const langOpt = langIdx >= 0 && args[langIdx + 1] ? args[langIdx + 1] : undefined;
 const firecrawl = args.includes("--firecrawl");
+const concurrencyIdx = args.indexOf("--concurrency");
+const concurrency = Math.max(1, parseInt(concurrencyIdx >= 0 && args[concurrencyIdx + 1] ? args[concurrencyIdx + 1] : "3", 10) || 3);
 const slidesDir = slides ? path.join(knowledgeDir, ".slides") : undefined;
 
 function isUrl(s: string): boolean {
@@ -255,7 +259,7 @@ if (fileIdx >= 0 && args[fileIdx + 1]) {
     else if (isLocalPath(u)) inputs.push(path.resolve(u));
   }
 } else {
-  const skipNext = new Set(["--file", "--length", "--lang", "--knowledge-dir"]);
+  const skipNext = new Set(["--file", "--length", "--lang", "--knowledge-dir", "--concurrency"]);
   for (let i = 0; i < args.length; i++) {
     if (skipNext.has(args[i])) {
       i++;
@@ -284,17 +288,36 @@ Options:
   --length <preset>   long|xl|xxl|medium|short (default: long)
   --lang <code>       Output language (e.g. en, auto)
   --firecrawl         --firecrawl auto for web URLs (FIRECRAWL_API_KEY)
+  --concurrency <n>  Max parallel jobs (default: 3)
   --knowledge-dir    Default: ./knowledge
   --dry-run           No file writes
 `);
   process.exit(1);
 }
 
+/** Run up to `concurrency` tasks from `items` at a time; return results in order. */
+async function runWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+  async function worker(): Promise<void> {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]);
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
 async function main() {
-  console.log(`[ingest-urls] Processing ${inputs.length} input(s), extractOnly=${extractOnly}, youtube=${youtube}, slides=${slides}, length=${lengthPreset}, lang=${langOpt ?? "—"}, firecrawl=${firecrawl}, dryRun=${dryRun}`);
-  let ok = 0;
-  let fail = 0;
-  for (const input of inputs) {
+  console.log(`[ingest-urls] Processing ${inputs.length} input(s), concurrency=${concurrency}, extractOnly=${extractOnly}, youtube=${youtube}, slides=${slides}, length=${lengthPreset}, lang=${langOpt ?? "—"}, firecrawl=${firecrawl}, dryRun=${dryRun}`);
+  type ItemResult = { input: string; ok: boolean };
+  const results = await runWithConcurrency(inputs, concurrency, async (input) => {
     const isYt = youtube && isUrl(input);
     const result = await runSummarize(input, {
       isYouTube: isYt,
@@ -308,18 +331,22 @@ async function main() {
       lang: langOpt,
     });
     if (!result) {
-      fail++;
-      continue;
+      return { input, ok: false };
     }
     const title = generateTitle(result.content);
     const category = detectCategory(result.content);
     const sourceLabel = isUrl(input) ? input : `file://${path.resolve(input)}`;
     const written = writeKnowledgeFile(knowledgeDir, category, title, result.content, sourceLabel, dryRun);
-    if (written) ok++;
-    else fail++;
+    return { input, ok: !!written };
+  });
+  const ok = results.filter((r) => r.ok).length;
+  const failed = results.filter((r) => !r.ok);
+  console.log(`[ingest-urls] Done: ${ok} saved, ${failed.length} failed`);
+  if (failed.length > 0) {
+    console.error("[ingest-urls] Failed inputs:");
+    failed.forEach((r) => console.error(`  - ${r.input}`));
   }
-  console.log(`[ingest-urls] Done: ${ok} saved, ${fail} failed`);
-  process.exit(fail > 0 ? 1 : 0);
+  process.exit(failed.length > 0 ? 1 : 0);
 }
 
 main();

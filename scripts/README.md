@@ -20,6 +20,13 @@ We use [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) to gr
 - **Language**: `VINCE_UPLOAD_LANG=en` (or other code) for output language; or `--lang` in the batch script.
 - **Timeout**: Upload and batch pass `--timeout` to the summarize CLI so it doesn't exit early on long runs.
 
+**Troubleshooting**
+
+- **"Summarize failed" / non-zero exit**: Check that `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` is set when not using `--extract`. For web URLs, try `VINCE_UPLOAD_FIRECRAWL=auto` (and `FIRECRAWL_API_KEY`) if the page is JS-heavy. The UPLOAD action retries once and surfaces a short stderr snippet in the reply.
+- **Timeout**: Long YouTube or slide extraction can hit the default timeout. Increase with a larger `--timeout` in summarize (handled automatically by upload/batch) or run the batch script with fewer items.
+- **Too little content**: Some URLs return almost no text; try `--firecrawl` for web or paste the content manually and use "upload: [paste]".
+- **Rate limits**: If you hit provider rate limits, use `--extract` for batch ingest (no LLM calls) or reduce `--concurrency` in the batch script.
+
 ---
 
 ## ingest-urls (batch)
@@ -58,11 +65,14 @@ bun run scripts/ingest-urls.ts /path/to/audio.mp3 ./report.pdf
 # Web with Firecrawl fallback and language
 bun run scripts/ingest-urls.ts --file urls.txt --firecrawl --lang en
 
+# Limit parallel jobs and see failed URLs at end
+bun run scripts/ingest-urls.ts --file urls.txt --concurrency 2
+
 # Custom knowledge dir and dry-run
 bun run scripts/ingest-urls.ts --file urls.txt --knowledge-dir ./knowledge --dry-run
 ```
 
-**Options**: `--file <path>`, `--extract`, `--youtube`, `--slides`, `--slides-ocr`, `--length long|xl|xxl|medium|short`, `--lang <code>`, `--firecrawl`, `--knowledge-dir <dir>`, `--dry-run`. Inputs can be URLs or local file paths (PDF, audio, video, text). With `--extract`, web URLs get `--format md`. The script passes `--timeout` to summarize so the CLI doesn't exit before our timeout.
+**Options**: `--file <path>`, `--extract`, `--youtube`, `--slides`, `--slides-ocr`, `--length long|xl|xxl|medium|short`, `--lang <code>`, `--firecrawl`, `--concurrency <n>` (default 3), `--knowledge-dir <dir>`, `--dry-run`. Inputs can be URLs or local file paths (PDF, audio, video, text). With `--extract`, web URLs get `--format md`. The script passes `--timeout` to summarize and runs up to `--concurrency` jobs in parallel; at the end it lists any failed inputs.
 
 ---
 

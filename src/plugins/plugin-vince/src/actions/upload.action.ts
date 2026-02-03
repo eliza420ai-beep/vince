@@ -124,9 +124,14 @@ function extractSingleUrl(text: string): string | null {
 /** Allowed summary length presets (summarize --length). */
 const SUMMARY_LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const;
 
+/** Result from summarize: success with content, or failure with optional stderr for user feedback */
+type SummarizeResult =
+  | { content: string; sourceUrl: string }
+  | { error: string; stderr?: string };
+
 /**
  * Run steipete/summarize CLI to get transcript or summary for a URL.
- * Uses bunx (Bun) so no global install is required.
+ * Uses bunx (Bun) so no global install is required. Retries once on non-zero exit.
  * @see https://github.com/IkigaiLabsETH/summarize (Ikigai fork); https://github.com/steipete/summarize (upstream)
  *
  * Env:
@@ -140,7 +145,7 @@ const SUMMARY_LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const
 async function runSummarizeCli(
   url: string,
   options: { isYouTube?: boolean; timeoutMs?: number; extractOnly?: boolean } = {}
-): Promise<{ content: string; sourceUrl: string } | null> {
+): Promise<SummarizeResult | null> {
   const { isYouTube = false, extractOnly } = options;
   const useExtractOnly = extractOnly ?? (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" || process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
   const youtubeSlides = isYouTube && (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
@@ -174,45 +179,53 @@ async function runSummarizeCli(
   const lang = process.env.VINCE_UPLOAD_LANG?.trim();
   if (lang) args.push("--lang", lang);
 
-  return new Promise((resolve) => {
-    const child = spawn("bunx", args, {
-      stdio: ["ignore", "pipe", "pipe"],
-      shell: process.platform === "win32",
+  const runOne = (): Promise<SummarizeResult | null> =>
+    new Promise((resolve) => {
+      const child = spawn("bunx", args, {
+        stdio: ["ignore", "pipe", "pipe"],
+        shell: process.platform === "win32",
+      });
+      let stdout = "";
+      let stderr = "";
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout += chunk.toString("utf-8");
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderr += chunk.toString("utf-8");
+      });
+      const timer = setTimeout(() => {
+        child.kill("SIGTERM");
+        logger.warn({ url, isYouTube, timeoutMs }, "[VINCE_UPLOAD] summarize CLI timed out");
+        resolve({ error: "Timed out", stderr: stderr.slice(0, 300) });
+      }, timeoutMs);
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          logger.debug({ code, stderr: stderr.slice(0, 500) }, "[VINCE_UPLOAD] summarize CLI exited non-zero");
+          resolve({ error: "Summarize failed", stderr: stderr.trim().slice(0, 300) });
+          return;
+        }
+        const content = stdout.trim();
+        if (content.length < MIN_TEXT_LENGTH) {
+          logger.debug("[VINCE_UPLOAD] summarize returned too little content");
+          resolve({ error: "Too little content", stderr: stderr.trim().slice(0, 200) });
+          return;
+        }
+        resolve({ content, sourceUrl: url });
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        logger.debug({ err: String(err) }, "[VINCE_UPLOAD] summarize CLI spawn error");
+        resolve({ error: String(err), stderr: (err as Error).message?.slice(0, 200) });
+      });
     });
-    let stdout = "";
-    let stderr = "";
-    child.stdout?.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf-8");
-    });
-    child.stderr?.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf-8");
-    });
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      logger.warn({ url, isYouTube, timeoutMs }, "[VINCE_UPLOAD] summarize CLI timed out");
-      resolve(null);
-    }, timeoutMs);
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        logger.debug({ code, stderr: stderr.slice(0, 500) }, "[VINCE_UPLOAD] summarize CLI exited non-zero");
-        resolve(null);
-        return;
-      }
-      const content = stdout.trim();
-      if (content.length < MIN_TEXT_LENGTH) {
-        logger.debug("[VINCE_UPLOAD] summarize returned too little content");
-        resolve(null);
-        return;
-      }
-      resolve({ content, sourceUrl: url });
-    });
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      logger.debug({ err: String(err) }, "[VINCE_UPLOAD] summarize CLI spawn error");
-      resolve(null);
-    });
-  });
+
+  let result = await runOne();
+  if (result && "error" in result && result.error !== "Too little content") {
+    logger.info({ url }, "[VINCE_UPLOAD] summarize failed, retrying once");
+    result = await runOne();
+  }
+  return result;
 }
 
 /**
@@ -359,13 +372,14 @@ async function simpleFallbackStorage(
   content: string,
   title: string,
   timestamp: number,
-  opts?: { sourceUrl?: string }
+  opts?: { sourceUrl?: string; ingestedWith?: string }
 ): Promise<IKnowledgeGenerationResult> {
   try {
     const sourceUrl = opts?.sourceUrl ?? `chat://vince-upload/${timestamp}`;
+    const ingestedWith = opts?.ingestedWith ?? "vince-upload";
     // Detect category
     const category = detectSimpleCategory(content);
-    
+
     // Generate filename
     const slugTitle = title
       .toLowerCase()
@@ -373,26 +387,27 @@ async function simpleFallbackStorage(
       .replace(/^-|-$/g, "")
       .slice(0, 50);
     const filename = `vince-upload-${slugTitle}-${timestamp}.md`;
-    
+
     // Determine knowledge base path
     const knowledgeBasePath = "./knowledge";
     const categoryPath = path.join(knowledgeBasePath, category);
     const filepath = path.join(categoryPath, filename);
-    
+
     // Ensure category directory exists
     if (!fs.existsSync(categoryPath)) {
       fs.mkdirSync(categoryPath, { recursive: true });
     }
-    
+
     // Calculate word count
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
-    
+
     // Generate markdown content (structure aligns with knowledge/README.md and KNOWLEDGE-USAGE-GUIDELINES.md)
     const knowledgeNote = `> **Knowledge base note:** Numbers and metrics here are illustrative from the source; use for methodologies and frameworks, not as current data. For live data use actions/APIs.`;
     const markdownContent = `---
 title: "${title.replace(/"/g, '\\"')}"
 source: ${sourceUrl}
 category: ${category}
+ingestedWith: ${ingestedWith}
 tags:
   - vince-upload
   - user-submitted
@@ -554,7 +569,7 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
           });
         }
         const summarized = await runSummarizeCli(youtubeUrl, { isYouTube: true });
-        if (summarized) {
+        if (summarized && "content" in summarized) {
           const timestamp = Date.now();
           const title = generateTitle(summarized.content);
           const knowledgeService = await tryLoadKnowledgeFileService(runtime);
@@ -573,7 +588,7 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
                   preserveOriginal: true,
                 });
               })()
-            : await simpleFallbackStorage(runtime, summarized.content, title, timestamp, { sourceUrl: summarized.sourceUrl });
+            : await simpleFallbackStorage(runtime, summarized.content, title, timestamp, { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" });
           if (callback && fileResult.success && fileResult.file) {
             await callback({
               text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
@@ -588,8 +603,11 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
           return;
         }
         if (callback) {
+          const errMsg = summarized && "error" in summarized
+            ? [summarized.error, summarized.stderr].filter(Boolean).join(summarized.stderr ? "\n(summarize): " : "")
+            : "summarize timed out or isn't installed";
           await callback({
-            text: `⚠️ **Couldn't fetch that YouTube** (summarize timed out or isn't installed).\n\n• Install: \`bun install -g @steipete/summarize\` and set \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`\n• Or paste the transcript here and I'll save it.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+            text: `⚠️ **Couldn't fetch that YouTube**\n\n${errMsg}\n\n• Install: \`bun install -g @steipete/summarize\` and set \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`\n• Or paste the transcript here and I'll save it.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
             actions: ["VINCE_UPLOAD"],
           });
         }
@@ -609,7 +627,7 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
             });
           }
           const summarized = await runSummarizeCli(singleUrl, { isYouTube: false });
-          if (summarized) {
+          if (summarized && "content" in summarized) {
             content = summarized.content;
             const timestamp = Date.now();
             const title = generateTitle(content);
@@ -629,7 +647,7 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
                 preserveOriginal: true,
               });
             } else {
-              fileResult = await simpleFallbackStorage(runtime, content, title, timestamp, { sourceUrl: summarized.sourceUrl });
+              fileResult = await simpleFallbackStorage(runtime, content, title, timestamp, { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" });
             }
             if (callback && fileResult.success && fileResult.file) {
               await callback({
@@ -645,8 +663,11 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
             return;
           }
           if (callback) {
+            const errMsg = summarized && "error" in summarized
+              ? [summarized.error, summarized.stderr].filter(Boolean).join(summarized.stderr ? "\n(summarize): " : "")
+              : "Install `bun install -g @steipete/summarize` and set an API key, or paste the article text here.";
             await callback({
-              text: `⚠️ **Couldn't fetch that URL.** Install \`bun install -g @steipete/summarize\` and set an API key, or paste the article text here.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              text: `⚠️ **Couldn't fetch that URL**\n\n${errMsg}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
               actions: ["VINCE_UPLOAD"],
             });
           }
