@@ -116,20 +116,32 @@ export class VinceCoinGlassService extends Service {
 
   /**
    * Print CoinGlass dashboard (same box style as paper trade-opened banner).
+   * Shows data sources and how this data impacts paper trading, options, perps.
    */
   private printCoinGlassDashboard(): void {
-    const source = this.isAvailable ? "CoinGlass API (Hobbyist)" : "Free APIs (Binance)";
     const assets = ["BTC", "ETH", "SOL"];
 
     startBox();
-    logLine("🔮 COINGLASS MARKET INTELLIGENCE");
+    logLine("🔮 COINGLASS DATA ($350/yr)");
+    logEmpty();
+    if (this.isAvailable) {
+      logLine("From CoinGlass: Funding, OI (24h). Others: L/S=Binance, F&G=alt.me");
+    } else {
+      logLine("⚠️ No API key - all from free APIs (Binance + alternative.me)");
+    }
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("IMPACT ON ALGO:");
+    logLine("  Paper: Signal strength/bias, contrarian & squeeze triggers");
+    logLine("  Options: Strike width, fear premium; funding = buffer view");
+    logLine("  Perps: Squeeze/fade ideas, crowd positioning, OI trend");
     logEmpty();
     sep();
     logEmpty();
 
-    const sourceEmoji = this.isAvailable ? "✅" : "🔄";
     const timeStr = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-    logLine(`${sourceEmoji} ${source} ${timeStr}`);
+    logLine(`🕐 ${timeStr}`);
 
     sep();
     logEmpty();
