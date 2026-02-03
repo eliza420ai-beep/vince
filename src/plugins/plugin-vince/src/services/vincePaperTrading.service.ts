@@ -898,9 +898,10 @@ export class VincePaperTradingService extends Service {
     const maxSourcesLen = 26;
     const sourcesDisplay = sourcesStr.length > maxSourcesLen ? sourcesStr.slice(0, maxSourcesLen - 1) + "…" : sourcesStr;
     const reasons = (signal.reasons ?? []).slice(0, 14);
-    const thesisParts = reasons.slice(0, 4).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 2).join(" "));
-    const thesisLine = [...new Set(thesisParts)].slice(0, 3).join(" + ") + ` → ${direction.toUpperCase()}`;
-    const maxThesisLen = 52;
+    const thesisParts = reasons.slice(0, 4).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 3).join(" "));
+    const unique = [...new Set(thesisParts)].slice(0, 3);
+    const thesisLine = `${direction.toUpperCase()} because: ${unique.join(", ")}`;
+    const maxThesisLen = 58;
     const thesisDisplay = thesisLine.length > maxThesisLen ? thesisLine.slice(0, maxThesisLen - 1) + "…" : thesisLine;
     const maxReasonLen = 56;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
@@ -923,15 +924,14 @@ export class VincePaperTradingService extends Service {
     console.log(line(`  Entry    ${entryTimeUtc}`));
     console.log(line(`  Notional ${formatUsd(sizeUsd)}`));
     console.log(line(`  Margin   ${formatUsd(marginUsd)}`));
-    console.log(line(`  Leverage ${leverage}x`));
-    console.log(line(`  ~$${pnlPer1Pct.toFixed(0)}/1%`));
+    console.log(line(`  Leverage ${leverage}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`));
     console.log(line(`  Strategy VinceSignalFollowing`));
     if (position?.liquidationPrice != null) {
       const liqStr = position.liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       console.log(line(`  Liq      $${liqStr}  (~${liqPct.toFixed(1)}%)`));
     }
     if (entryATRPct != null) {
-      console.log(line(`  ATR(14)  ${(entryATRPct).toFixed(2)}%`));
+      console.log(line(`  ATR(14)  ${(entryATRPct).toFixed(2)}%  (volatility → SL floor)`));
       const slNote = isSingleTpAggressive ? `${TARGET_RR_AGGRESSIVE}:1 R:R target` : "1.5× ATR";
       console.log(line(`  SL       ${stopLossPct.toFixed(2)}% (${slNote})`));
     }
@@ -946,14 +946,19 @@ export class VincePaperTradingService extends Service {
     console.log(line(`  ${factorCount} factors  ·  ${sourceCount} sources  ·  ${sourcesDisplay}`));
     console.log(line(`  Thesis   ${thesisDisplay}`));
     console.log(empty);
-    for (const reason of reasons) {
-      let text = reason;
+    const reasonParts = reasons.map((r) => {
+      let text = r;
       if (text.length > maxReasonLen) {
         const lastSpace = text.slice(0, maxReasonLen + 1).lastIndexOf(" ");
         text = (lastSpace > 24 ? text.slice(0, lastSpace) : text.slice(0, maxReasonLen)) + "…";
       }
-      console.log(line(`    • ${text}`));
-    }
+      return text;
+    });
+    const mid = Math.ceil(reasonParts.length / 2);
+    const line1 = `  • ${reasonParts.slice(0, mid).join("  • ")}`;
+    const line2 = `  • ${reasonParts.slice(mid).join("  • ")}`;
+    console.log(line(line1));
+    if (line2.trim() !== "•") console.log(line(line2));
     if (factorCount > 14) {
       console.log(line(`    … +${factorCount - 14} more (see feature store)`));
     }
@@ -969,18 +974,16 @@ export class VincePaperTradingService extends Service {
     console.log(line("  RISK MANAGEMENT"));
     console.log(empty);
     const slStr = stopLossPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    console.log(line(`  Stop-Loss   $${slStr}  (${slPct.toFixed(1)}%)`));
-    console.log(line(`  If hit      -$${slLoss.toFixed(0)}`));
+    console.log(line(`  SL   $${slStr}  (${slPct.toFixed(1)}%)  If hit -$${slLoss.toFixed(0)}`));
     if (takeProfitPrices.length > 0) {
       const tp1Str = takeProfitPrices[0].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      console.log(line(`  Take-Profit $${tp1Str}  (${tp1Pct.toFixed(1)}%)`));
-      console.log(line(`  If hit      +$${tp1Profit.toFixed(0)}${isSingleTpAggressive ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]` : ""}`));
+      const tp1Suffix = isSingleTpAggressive ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]` : "";
+      console.log(line(`  TP   $${tp1Str}  (${tp1Pct.toFixed(1)}%)  If hit +$${tp1Profit.toFixed(0)}${tp1Suffix}`));
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
         const tp2Profit = sizeUsd * (tp2Pct / 100);
         const tp2Str = takeProfitPrices[1].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        console.log(line(`  TP2         $${tp2Str}  (${tp2Pct.toFixed(1)}%)`));
-        console.log(line(`  If hit      +$${tp2Profit.toFixed(0)}`));
+        console.log(line(`  TP2  $${tp2Str}  (${tp2Pct.toFixed(1)}%)  If hit +$${tp2Profit.toFixed(0)}`));
       }
     }
     console.log(line(`  R:R (TP1 vs SL)  ${rrRatio}:1  ${rrLabel}`));
