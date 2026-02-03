@@ -9,7 +9,10 @@ const project: Project = {
       ...vinceAgent,
       plugins: [logFilterPlugin, ...(vinceAgent.plugins ?? [])],
     },
-    elizaAgent,
+    {
+      ...elizaAgent,
+      plugins: [logFilterPlugin, ...(elizaAgent.plugins ?? [])],
+    },
   ],
 };
 

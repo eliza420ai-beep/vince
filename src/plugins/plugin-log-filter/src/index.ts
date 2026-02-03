@@ -20,6 +20,11 @@ const SUPPRESS_ERROR_PATTERNS = [
   /\[PLUGIN:SQL\].*Max retry attempts reached.*central_messages/i,
   // Transient SQL retries (rooms, participants, etc.) - plugin retries and typically succeeds
   /\[PLUGIN:SQL\].*Database operation failed, retrying/i,
+  // Failed query (participants, rooms) - common with direct/DM chat, retries usually succeed
+  /Failed query:.*participants.*room_id/i,
+  /Failed query:.*select.*from "rooms"/i,
+  // BatchEmbeddings 500 - transient embedding API errors, chat still works (degraded RAG)
+  /\[BatchEmbeddings\].*API error: 500/i,
   /Cannot map room\/world to central IDs/i,
   /MESSAGE-BUS.*(?:room|world).*mapping/i,
   // Server/World ID warnings - expected for direct client (no Discord/Telegram server)
@@ -65,6 +70,10 @@ function shouldSuppressMissingApiKeyWarning(message: string): boolean {
   if (/Invalid input format for embedding/i.test(message)) return true;
   // HTTP auth disabled notice - expected for local dev
   if (/Authentication middleware configured.*API Key: DISABLED/i.test(message)) return true;
+  // AI SDK model compatibility - frequencyPenalty/presencePenalty not supported by some models (harmless)
+  if (/frequencyPenalty.*not supported/i.test(message)) return true;
+  if (/presencePenalty.*not supported/i.test(message)) return true;
+  if (/AI SDK Warning/i.test(message) && /not supported by this model/i.test(message)) return true;
   return false;
 }
 
@@ -200,6 +209,15 @@ let originalWarn: typeof coreLogger.warn;
 // Track if we've already patched
 let isPatched = false;
 
+/** AI SDK and similar libs log to console.warn directly - suppress known harmless model warnings */
+function shouldSuppressConsoleWarn(message: string): boolean {
+  if (!message || typeof message !== 'string') return false;
+  if (/frequencyPenalty.*not supported/i.test(message)) return true;
+  if (/presencePenalty.*not supported/i.test(message)) return true;
+  if (/AI SDK Warning/i.test(message) && /not supported by this model/i.test(message)) return true;
+  return false;
+}
+
 export const logFilterPlugin: Plugin = {
     name: 'log-filter',
     description: 'Filters verbose logs to keep terminal output clean',
@@ -259,8 +277,21 @@ export const logFilterPlugin: Plugin = {
             originalWarn(message, ...args);
         } as typeof coreLogger.warn;
         
+        // Patch console.warn for AI SDK and other libs that bypass the logger
+        const originalConsoleWarn = console.warn;
+        console.warn = function (...args: unknown[]) {
+            const msg = args.map((a) => (typeof a === 'string' ? a : String(a))).join(' ');
+            if (shouldSuppressConsoleWarn(msg)) {
+                if (process.env.LOG_LEVEL === 'debug') {
+                    originalConsoleWarn('[LogFilter] Suppressed console.warn:', msg.substring(0, 80) + '...');
+                }
+                return;
+            }
+            originalConsoleWarn.apply(console, args);
+        };
+
         isPatched = true;
-        coreLogger.info('[LogFilter] ✅ Logger filter active - suppressing verbose MCP schemas + MESSAGE-BUS/central_messages errors');
+        coreLogger.info('[LogFilter] ✅ Logger filter active - suppressing MCP schemas, MESSAGE-BUS/SQL/embedding noise, AI SDK warnings');
     },
 };
 
