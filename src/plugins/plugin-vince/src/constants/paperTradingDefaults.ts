@@ -246,8 +246,8 @@ export const SIGNAL_THRESHOLDS = {
   /** Minimum confirming signals (keep conservative for direction confirmation) */
   MIN_CONFIRMING: 3,
 
-  /** Strong signal threshold (used for strong-signal confirming override) */
-  STRONG_STRENGTH: 60,
+  /** Strong signal threshold (used for strong-signal confirming override; ≥ this + HIGH_CONFIDENCE → need only 2 confirming) */
+  STRONG_STRENGTH: 55,
 
   /** High confidence threshold (used for strong-signal confirming override) */
   HIGH_CONFIDENCE: 55,
