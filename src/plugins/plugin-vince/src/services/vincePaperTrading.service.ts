@@ -32,6 +32,7 @@ import {
   SLIPPAGE,
   FEES,
   DEFAULT_LEVERAGE,
+  AGGRESSIVE_LEVERAGE,
   DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
   getPaperTradeAssets,
@@ -469,7 +470,8 @@ export class VincePaperTradingService extends Service {
         // Calculate position size
         const portfolio = positionManager.getPortfolio();
         let baseSizeUsd = portfolio.totalValue * 0.05; // 5% base size
-        const leverage = DEFAULT_LEVERAGE;
+        const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+        const leverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
 
         // Apply correlation filter (reduce size for correlated positions)
         const correlationResult = riskManager.getCorrelationSizeMultiplier(
