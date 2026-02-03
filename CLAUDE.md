@@ -2,6 +2,23 @@
 
 > **Optimized for Claude LLM** - Complete reference for building ElizaOS agent projects
 
+## 🎯 This repo: VINCE
+
+This repository is the **VINCE** project: a unified data-intelligence agent (options, perps, memes, lifestyle, art) with a **self-improving paper trading bot** at the core.
+
+| What | Where |
+|------|--------|
+| **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
+| **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
+| **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
+| **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
+| **Project overview** | [README.md](README.md) |
+| **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
+
+Use the sections below for **generic ElizaOS** patterns (character, plugins, env, testing). For VINCE-specific implementation (signal sources, paper bot, ML pipeline), prefer the plugin docs above.
+
+---
+
 ## 📋 Project Overview
 
 | Property            | Value                         |
@@ -26,21 +43,22 @@ ElizaOS projects are **character-driven agent systems** that compose functionali
 
 ## 📁 Project Structure
 
+**This repo (VINCE):** `src/agents/vince.ts` (character), `src/index.ts` (entry), `src/plugins/plugin-vince/` (main plugin), `knowledge/teammate/` (USER.md, SOUL.md, TOOLS.md). No `characters/` folder; character is in code.
+
+**Generic ElizaOS layout:**
+
 ```
 your-agent-project/
 ├── 📂 src/
-│   ├── 📄 character.ts          # Agent personality & config
-│   ├── 📄 index.ts             # Main entry point
-│   └── 📄 plugin.ts            # Custom plugin (optional)
-├── 📂 characters/              # Character JSON files
-│   ├── 📄 production.json      # Production character
-│   ├── 📄 development.json     # Dev/testing character
-│   └── 📄 specialized.json     # Specialized variants
-├── 📂 data/                    # Agent memory & storage
-├── 📄 .env                     # Environment variables
-├── 📄 .env.local              # Local overrides (gitignored)
-├── 📄 package.json            # Dependencies & scripts
-└── 📄 tsconfig.json           # TypeScript configuration
+│   ├── 📄 character.ts          # Agent personality & config (or src/agents/name.ts)
+│   ├── 📄 index.ts              # Main entry point
+│   └── 📄 plugin.ts             # Custom plugin (optional)
+├── 📂 characters/               # Character JSON files (optional)
+├── 📂 knowledge/                # RAG / teammate context
+├── 📄 .env                      # Environment variables
+├── 📄 .env.example
+├── 📄 package.json
+└── 📄 tsconfig.json
 ```
 
 ## 🤖 Character Configuration
@@ -696,3 +714,13 @@ Plan for growth with proper infrastructure and monitoring.
 ---
 
 **🎉 Ready to build your ElizaOS agent!** Start with `elizaos start --dev` and let your agent evolve with your needs.
+
+---
+
+## Related docs (VINCE)
+
+- [README.md](README.md) — Project overview, getting started, configuration
+- [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage and ML training
+- [DEPLOY.md](DEPLOY.md) — Deploy to Eliza Cloud
+- [TREASURY.md](TREASURY.md) — Cost coverage and profitability mandate
+- [src/plugins/plugin-vince/](src/plugins/plugin-vince/) — WHAT, WHY, HOW, CLAUDE, README

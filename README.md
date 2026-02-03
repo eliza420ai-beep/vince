@@ -2,9 +2,13 @@
 
 Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
 
+**Docs:** [FEATURE-STORE.md](FEATURE-STORE.md) (ML / paper bot storage) · [DEPLOY.md](DEPLOY.md) (Eliza Cloud deploy) · [CLAUDE.md](CLAUDE.md) (dev guide) · [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (plugin README, WHAT/WHY/HOW, CLAUDE)
+
+---
+
 ## Heart of VINCE: signals → trades → learning
 
-The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 40+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. See `src/plugins/plugin-vince/SIGNAL_SOURCES.md` to enable or fix Binance, MarketRegime, News, Deribit, and the rest.
+The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 40+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. To enable or fix sources, see [plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md).
 
 ## Star feature: self-improving paper trading bot
 
@@ -18,7 +22,7 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 **Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
 
-See `src/plugins/plugin-vince/` for the implementation (services: feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade). At startup, check `[VINCE] 📡 Signal sources available:` to confirm which signal sources are registered.
+Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
 ## Features
 
@@ -42,20 +46,17 @@ See `src/plugins/plugin-vince/` for the implementation (services: feature store,
 - **BOT** — Not good enough yet: not easy on the eyes and not consistent with the writing style of our other actions.
 - **UPLOAD / knowledge folder** — We believe the knowledge base will become one of the most important parts of VINCE. Improving how we upload research (YouTube, long PDFs, long articles → RAG) deserves a lot of attention; it may also be a fit for a dedicated ClawdBot (Moltbot).
 
-## Getting Started
+## Getting started
 
 ```bash
-# Install and build
 bun install
 bun run build
+cp .env.example .env   # add API keys (see .env.example)
 
-# Copy env and add API keys (see .env.example)
-cp .env.example .env
-
-# Start VINCE (development with hot-reload)
+# Development (hot-reload)
 elizaos dev
 
-# Or start without hot-reload (uses Postgres when POSTGRES_URL is set)
+# Or start once (uses Postgres when POSTGRES_URL is set)
 bun start
 ```
 
@@ -164,9 +165,21 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 
 ## Configuration
 
-- `src/agents/vince.ts` — VINCE character and agent; knowledge dirs, system prompt, plugins
-- `src/plugins/plugin-vince/` — Paper bot, ML services, actions, providers
-- `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md (loaded every session)
+| What | Where |
+|------|--------|
+| VINCE character & agent | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
+| Paper bot, ML, actions, providers | `src/plugins/plugin-vince/` |
+| Teammate context (loaded every session) | `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md |
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage (JSONL, PGLite/Postgres, Supabase), training, env flags |
+| [DEPLOY.md](DEPLOY.md) | Deploy to Eliza Cloud (PGLite vs Postgres), env vars, troubleshooting |
+| [CLAUDE.md](CLAUDE.md) | ElizaOS project dev guide (character, plugins, env, testing) |
+| [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
+| [src/plugins/plugin-vince/README.md](src/plugins/plugin-vince/README.md) | Plugin overview; [WHAT.md](src/plugins/plugin-vince/WHAT.md) / [WHY.md](src/plugins/plugin-vince/WHY.md) / [HOW.md](src/plugins/plugin-vince/HOW.md) / [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for purpose, framework rationale, and development |
 
 ## Troubleshooting
 
@@ -187,11 +200,6 @@ Then run **`bun start`** — the start script runs the migration bootstrap first
 **"self-signed certificate in certificate chain":** If bootstrap or the app fails with this SSL error, add to `.env`:  
 `POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in; use only if needed).
 
-See [DEPLOY.md](DEPLOY.md) for deploy and bootstrap SQL.
+See [DEPLOY.md](DEPLOY.md) for full deploy options, bootstrap SQL, and troubleshooting.
 
-## Deploy
-
-elizaos deploy --project-name vince2 \
-  --env "ANTHROPIC_API_KEY=$(grep '^ANTHROPIC_API_KEY=' .env | cut -d= -f2-)" \
-  --env "OPENAI_API_KEY=$(grep '^OPENAI_API_KEY=' .env | cut -d= -f2-)" \
-  --env "POSTGRES_URL=$(grep '^POSTGRES_URL=' .env | cut -d= -f2-)"
+**Quick deploy (PGLite, minimal env):** `bun run deploy:cloud` or the minimal command in [DEPLOY.md](DEPLOY.md#minimal-required-only--pglite-no-postgres).

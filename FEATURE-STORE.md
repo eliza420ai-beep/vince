@@ -1,6 +1,14 @@
 # VINCE Paper Bot Feature Store (ML)
 
-Feature records from vince-paper-bot trades are used for ML training (e.g. 500+ records for your script). They are stored in up to three places:
+**Purpose:** Where paper-bot trade features (40+ per decision) are stored and how to use them for ML training. For deploy and env setup, see [DEPLOY.md](DEPLOY.md). For the rest of the repo, see [README.md](README.md).
+
+**When to read:** Setting up Supabase/PGLite for features, running the training script, or syncing existing JSONL to Supabase.
+
+---
+
+## Storage at a glance
+
+Feature records from vince-paper-bot trades are used for ML training (e.g. 90+ for ONNX, 500+ for larger runs). They can be stored in up to three places:
 
 | Storage | When used | Purpose |
 |--------|------------|---------|
@@ -113,3 +121,12 @@ If you already have many `.jsonl` files locally and want them in Supabase, run a
 2. Parses each line as JSON and upserts into `vince_paper_bot_features` (id, created_at from timestamp, payload = full object).
 
 Use the same `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as above.
+
+---
+
+## Related docs
+
+- [README.md](README.md) — Project overview and getting started
+- [DEPLOY.md](DEPLOY.md) — Deploy env (PGLite, Postgres, Supabase keys)
+- [src/plugins/plugin-vince/HOW.md](src/plugins/plugin-vince/HOW.md) — Paper bot dev and ML layer
+- [src/plugins/plugin-vince/scripts/README.md](src/plugins/plugin-vince/scripts/README.md) — Training script usage

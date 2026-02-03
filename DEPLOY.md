@@ -4,6 +4,10 @@ So you don’t burn $15 on a typo again.
 
 **Docs:** [Deploy to Eliza Cloud](https://docs.elizaos.ai/guides/deploy-to-cloud) — `elizaos deploy --project-name <name>` with multiple `--env "KEY=VALUE"` for secrets. We deploy with **PGLite** by default (no `POSTGRES_URL`); add **`POSTGRES_URL`** only if you want Postgres.
 
+**Purpose:** Deploy the VINCE app to Eliza Cloud: minimal vs full env, PGLite vs Postgres, troubleshooting. Feature-store: [FEATURE-STORE.md](FEATURE-STORE.md). Overview: [README.md](README.md).
+
+**Quick reference:** PGLite (recommended) = leave `POSTGRES_URL` unset. Postgres = set `POSTGRES_URL` (port 5432, `?sslmode=verify-full`). Minimal deploy = `ANTHROPIC_API_KEY` + `OPENAI_API_KEY` only; full = add API keys and optional `SUPABASE_SERVICE_ROLE_KEY`.
+
 **Deploy with PGLite (recommended):** Leave `POSTGRES_URL` unset. The app uses embedded **PGLite**. **Paper trades** are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/` (and in the PGLite table `plugin_vince.paper_bot_features`). No external DB required.
 
 **Minimal (required only — PGLite, no Postgres):**
@@ -255,6 +259,14 @@ VINCE loads many services (DB, Meteora, Deribit, DexScreener, NFT floor, etc.). 
 - **Increase task CPU/memory** in the Eliza Cloud / ECS task definition so init finishes sooner.
 - **Increase deployment timeout** in the deploy/CloudFormation config if the app does eventually become healthy but after 45+ minutes (not ideal; better to fix startup or resources).
 - **Confirm DB is reachable** – Only if using Postgres: wrong `POSTGRES_URL` or unreachable DB can hang plugin-sql init. With PGLite (no `POSTGRES_URL`) there is no external DB; paper trades are stored in JSONL and in the PGLite table.
+
+---
+
+## Related docs
+
+- [README.md](README.md) — Project overview, getting started, configuration
+- [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage (JSONL, PGLite/Postgres, Supabase)
+- [CLAUDE.md](CLAUDE.md) — ElizaOS dev guide for this project
 
 ### 5. **CLI troubleshooting (from the error message)**
 
