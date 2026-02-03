@@ -453,9 +453,12 @@ export interface AggregatedTradeSignal {
     news?: { count: number; avgStrength: number };
     on_chain?: { count: number; avgStrength: number };
   };
-  
+
   /** Timestamp */
   timestamp: number;
+
+  /** Trading session at signal time (e.g. eu_us_overlap, asia) */
+  session?: string;
 }
 
 // ==========================================

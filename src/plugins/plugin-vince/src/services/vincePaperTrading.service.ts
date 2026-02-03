@@ -459,6 +459,7 @@ export class VincePaperTradingService extends Service {
             return acc;
           }, {} as Record<string, number>) || {},
           timestamp: Date.now(),
+          session: (signal as { session?: string }).session,
         };
 
         // Validate signal
@@ -758,7 +759,7 @@ export class VincePaperTradingService extends Service {
       return null;
     }
 
-    // Apply slippage
+    // Apply slippage (capture for log)
     const slippageBps = this.calculateSlippage(sizeUsd);
     const slippageMultiplier = direction === "long" ? (1 + slippageBps / 10000) : (1 - slippageBps / 10000);
     entryPrice = entryPrice * slippageMultiplier;
@@ -850,20 +851,35 @@ export class VincePaperTradingService extends Service {
     // ==========================================
     const slPct = Math.abs((stopLossPrice - entryPrice) / entryPrice * 100);
     const tp1Pct = takeProfitPrices[0] ? Math.abs((takeProfitPrices[0] - entryPrice) / entryPrice * 100) : 0;
-    
+    const slLoss = sizeUsd * (slPct / 100);
+    const tp1Profit = takeProfitPrices[0] != null ? sizeUsd * (tp1Pct / 100) : 0;
+    const rrRatio = slLoss > 0 ? (tp1Profit / slLoss).toFixed(1) : "—";
+    const pnlPer1Pct = sizeUsd / 100;
     const marginUsd = sizeUsd / leverage;
     const liqPct = position?.liquidationPrice != null
       ? Math.abs((position.liquidationPrice - entryPrice) / entryPrice * 100)
       : (100 / leverage) * 0.9;
+    const entryTimeUtc = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
+    const sessionRaw = signal.session ?? "";
+    const sessionLabel = sessionRaw ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "";
+    const isSingleTpAggressive = takeProfitPrices.length === 1 && (this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true");
 
     console.log("");
     console.log("  ╔═══════════════════════════════════════════════════════════════╗");
     console.log(`  ║  📈 PAPER TRADE OPENED                                         ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log(`  ║  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"} ${asset.padEnd(6)} @ $${entryPrice.toFixed(2).padEnd(12)}                       ║`);
+    console.log(`  ║  Entry: ${entryTimeUtc.padEnd(52)} ║`);
     console.log(`  ║  Notional: ${formatUsd(sizeUsd).padEnd(8)} (margin ≈${formatUsd(marginUsd)} @ ${leverage}x)              ║`);
+    console.log(`  ║  ~$${pnlPer1Pct.toFixed(0)} per 1% move  ·  Strategy: VinceSignalFollowing        ║`);
     if (position?.liquidationPrice != null) {
       console.log(`  ║  Liquidation: $${position.liquidationPrice.toFixed(2).padEnd(10)} (~${liqPct.toFixed(1)}% away)              ║`);
+    }
+    if (entryATRPct != null) {
+      console.log(`  ║  ATR(14): ${(entryATRPct).toFixed(2)}%  ·  SL: ${stopLossPct.toFixed(2)}% (1.5× ATR)                        ║`);
+    }
+    if (sessionLabel) {
+      console.log(`  ║  Session: ${sessionLabel.padEnd(51)} ║`);
     }
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     const factorCount = signal.reasons?.length ?? 0;
@@ -892,21 +908,20 @@ export class VincePaperTradingService extends Service {
       console.log(`  ║    … +${factorCount - 14} more (feature store / journal)                      ║`);
     }
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount} (sources)  ║`);
+    console.log(`  ║  Signal: Strength ${signal.strength.toFixed(0)}%  Confidence ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount}   ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log("  ║  RISK MANAGEMENT:                                             ║");
-    // sizeUsd = notional (position value); PnL = notional * (price_move_pct/100), same as position manager
-    const slLoss = sizeUsd * (slPct / 100);
     console.log(`  ║    Stop-Loss:   $${stopLossPrice.toFixed(2).padEnd(10)} (${slPct.toFixed(1)}% → -$${slLoss.toFixed(0)})              ║`);
     if (takeProfitPrices.length > 0) {
-      const tp1Profit = sizeUsd * (tp1Pct / 100);
-      console.log(`  ║    Take-Profit: $${takeProfitPrices[0].toFixed(2).padEnd(10)} (${tp1Pct.toFixed(1)}% → +$${tp1Profit.toFixed(0)})             ║`);
+      const tp1Label = isSingleTpAggressive ? " [$210]" : "";
+      console.log(`  ║    Take-Profit: $${takeProfitPrices[0].toFixed(2).padEnd(10)} (${tp1Pct.toFixed(1)}% → +$${tp1Profit.toFixed(0)})${tp1Label}             ║`);
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
         const tp2Profit = sizeUsd * (tp2Pct / 100);
         console.log(`  ║                 $${takeProfitPrices[1].toFixed(2).padEnd(10)} (${tp2Pct.toFixed(1)}% → +$${tp2Profit.toFixed(0)})             ║`);
       }
     }
+    console.log(`  ║    R:R (TP1 vs SL): ${rrRatio}:1                                          ║`);
     console.log("  ╚═══════════════════════════════════════════════════════════════╝");
     console.log("");
 
