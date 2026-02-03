@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-03 (progress refresh: ONNX/synthetic/tests complete)
+# Last updated: 2026-02-03 (stale P&L bug fix + progress refresh)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -118,6 +118,12 @@ COMPLETED
 
 ## Paper trading algo: data leverage + tests (current) ✅
 - We can claim the paper trading algo was improved by: (1) wiring more market data into live logic and feature store (order-book imbalance, price vs SMA20, funding 8h delta, DVOL); (2) book-imbalance filter (reject long when book favors sellers, short when favors buyers); (3) confidence boosts when trend/SMA20 and funding reversal align; (4) DVOL-based size cap; (5) unit tests for extended-snapshot logic (23 tests, 100% coverage). ML pipeline and train_models.py include these features; retrain + deploy to have models use them. We do not yet claim improved P&L or win rate—that requires backtest or live results over time.
+
+## Essential bug fix: Stale P&L / uPNL (2026-02-03) ✅
+- Bug: Paper bot reported positions as "underwater" with stale unrealized P&L (e.g. -$40) while the market had already moved (e.g. BTC short from $75,872 at $75K was actually profitable). Strategy and entry were correct; only the displayed P&L was wrong.
+- Root cause: (1) Unrealized P&L is computed from mark price in VincePositionManager; mark price is updated every 30s by the paper loop via marketData.getEnrichedContext(asset) → ctx.currentPrice. (2) currentPrice comes from CoinGecko (coingeckoService.getPrice). (3) getEnrichedContext() refreshed CoinGlass but never called coingeckoService.refreshData(), so it always read from cache. (4) CoinGecko cache was only refreshed at service init and in a few other paths; TTL was 5 minutes. Result: P&L could be up to 5 minutes stale during fast moves.
+- Fixes applied: (1) marketData.service.ts: call coingeckoService.refreshData() before getPrice(asset) in getEnrichedContext() so the paper loop gets a chance to refresh. (2) coingecko.service.ts: reduce CACHE_TTL_MS from 5 min to 1 min so the 30s loop gets fresher prices without hammering the API. (3) vinceContext.provider.ts: when user asks for bot status/portfolio/uPNL, call paperTrading.refreshMarkPrices() before building context so the reply shows current P&L. (4) vincePaperTrading.service.ts: added public refreshMarkPrices() for on-demand refresh. (5) Trigger words for status refresh include "upnl" and "pnl".
+- Doc: STALE_PNL_INVESTIGATION.md in plugin-vince root summarizes root cause and fixes.
 
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
