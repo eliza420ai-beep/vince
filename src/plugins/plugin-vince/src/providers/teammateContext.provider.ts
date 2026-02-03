@@ -53,7 +53,13 @@ function getRecentMemoryFiles(memoryDir: string): string[] {
     if (!fs.existsSync(memoryDir)) return [];
     const entries = fs.readdirSync(memoryDir, { withFileTypes: true });
     const mdFiles = entries
-      .filter((e) => e.isFile() && e.name.endsWith(".md") && e.name !== ".gitkeep")
+      .filter(
+        (e) =>
+          e.isFile() &&
+          e.name.endsWith(".md") &&
+          e.name !== ".gitkeep" &&
+          e.name.toLowerCase() !== "readme.md"
+      )
       .map((e) => path.join(memoryDir, e.name));
     const stats = mdFiles.map((f) => ({ path: f, mtime: fs.statSync(f).mtime.getTime() }));
     stats.sort((a, b) => b.mtime - a.mtime);
@@ -78,6 +84,15 @@ export const teammateContextProvider: Provider = {
       logger.debug("[TeammateContext] knowledge/teammate/ not found; skipping");
       return { text: "", values: {}, data: {} };
     }
+
+    // Preamble: frames context so the agent treats this as teammate mode, not generic chat
+    parts.push(
+      "---",
+      "## TEAMMATE CONTEXT (loaded every session)",
+      "USER/SOUL/TOOLS/MEMORY below — use this to behave like a teammate who knows the user, not a generic chatbot.",
+      "---",
+      ""
+    );
 
     for (const filename of TEAMMATE_FILES) {
       const content = readFileSafe(path.join(basePath, filename));
