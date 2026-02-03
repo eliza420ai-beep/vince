@@ -544,6 +544,9 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] Liquidation service error: ${e}`);
       }
+      if (liqService && !sources.includes("LiquidationCascade") && !sources.includes("LiquidationPressure")) {
+        triedNoContribution.push("BinanceLiquidations");
+      }
     }
 
     // =========================================
@@ -751,8 +754,12 @@ export class VinceSignalAggregatorService extends Service {
             allFactors.push(`On-chain whale activity bearish (large transactions distributing)`);
           }
         }
+        if (sanbaseService && sanbaseService.isConfigured() && !sources.some((s) => s.startsWith("Sanbase"))) {
+          triedNoContribution.push("Sanbase");
+        }
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] Sanbase error: ${e}`);
+        if (sanbaseService?.isConfigured()) triedNoContribution.push("Sanbase");
       }
     }
 
@@ -875,8 +882,12 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
         }
+        if (hyperliquidService && !sources.some((s) => s === "HyperliquidBias" || s === "HyperliquidCrowding" || s === "CrossVenueFunding")) {
+          triedNoContribution.push("Hyperliquid");
+        }
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] Hyperliquid error: ${e}`);
+        if (hyperliquidService) triedNoContribution.push("Hyperliquid");
       }
     }
 
