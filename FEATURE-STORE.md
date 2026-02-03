@@ -40,35 +40,50 @@ So the “combo” with ElizaOS tables is: **same database, different schema/tab
 
 Without Supabase keys, **Supabase does not record these trades** – local JSONL and (when available) PGLite/Postgres do.
 
-## Enable Supabase recording (recommended for ML)
+## Enable Supabase dual-write (recommended for ML; persists across redeploys)
 
-1. **Create the table** in Supabase (SQL Editor):
+Features are written to Supabase in addition to local JSONL (and PGLite/Postgres). That data **persists across Eliza Cloud redeploys** and can be used for training and future reads.
 
-```sql
--- Run once in Supabase Dashboard → SQL Editor
-create table if not exists public.vince_paper_bot_features (
-  id text primary key,
-  created_at timestamptz not null default now(),
-  payload jsonb not null
-);
+### 1. Create the table in Supabase (one-time)
 
-create index if not exists idx_vince_paper_bot_features_created_at
-  on public.vince_paper_bot_features (created_at);
-create index if not exists idx_vince_paper_bot_features_payload_asset
-  on public.vince_paper_bot_features using gin ((payload->'asset'));
+In **Supabase Dashboard → SQL Editor**, run the bootstrap script:
+
+- **Option A:** Open `scripts/supabase-feature-store-bootstrap.sql` in this repo, copy its contents, paste into a new query, and click **Run**.
+- **Option B:** Or run the SQL from the script directly; it creates `public.vince_paper_bot_features` and indexes.
+
+### 2. Set env (local and deploy)
+
+In **`.env`** (and for Cloud, the deploy script will pass these when set):
+
+| Variable | Required | Where to get it |
+|---------|----------|------------------|
+| `SUPABASE_SERVICE_ROLE_KEY` | **Yes** | Supabase Dashboard → **Settings → API** → `service_role` (secret). |
+| `SUPABASE_URL` | Optional | `https://YOUR_PROJECT_REF.supabase.co`. If you use Supabase Postgres (`POSTGRES_URL=...@db.XXX.supabase.co:5432/...`), the app derives this; set only if you use a different URL. |
+
+Example in `.env`:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_URL=https://abcdefgh.supabase.co
 ```
 
-2. **Set env** (in `.env` or deploy):
+### 3. Restart (local) or redeploy (Cloud)
 
-- `SUPABASE_SERVICE_ROLE_KEY` = your project’s **Service role** key (Dashboard → Settings → API).  
-  Or `SUPABASE_ANON_KEY` if you prefer (ensure RLS allows insert if you use anon).
-- `SUPABASE_URL` is optional if you use Supabase Postgres: it’s derived from `POSTGRES_URL` (e.g. `postgresql://...@db.XXX.supabase.co:5432/...` → `https://XXX.supabase.co`). Set it only if you use a different URL.
+- **Local:** Restart the app (`bun start`). On startup you should see:  
+  `[VinceFeatureStore] Supabase dual-write enabled for ML (table: vince_paper_bot_features)`
+- **Eliza Cloud:** Run `bun run deploy:cloud` (or `./scripts/deploy-cloud.sh`). The script reads `.env` and passes `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` when set, so the deployed app will dual-write to Supabase.
 
-3. **Restart** the app. On startup you should see:
+### 4. Verify
 
-   `[VinceFeatureStore] Supabase dual-write enabled for ML (table: vince_paper_bot_features)`
+After some paper trades, open **Supabase Dashboard → Table Editor → `vince_paper_bot_features`**. You should see rows with `id`, `created_at`, and `payload` (full feature record). Use this table for ML training (e.g. 500+ rows) or future reads.
 
-4. **Verify**: After some paper trades, in Supabase Table Editor open `vince_paper_bot_features` – you should see rows with `id`, `created_at`, and `payload` (full feature record).
+### 5. ML models on Cloud (training without redeploy)
+
+To have **training run on Eliza Cloud** and persist models so you don’t need to redeploy (e.g. $15/redeploy):
+
+1. **Create a Storage bucket** in Supabase (one-time): [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Storage** → **New bucket** → Name: **`vince-ml-models`** → leave **Public bucket** off → **Create bucket**. Full steps: [DEPLOY.md#one-time-create-the-vince-ml-models-bucket](DEPLOY.md#one-time-create-the-vince-ml-models-bucket).
+2. Deploy with `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` set. The container has Python + training deps; when there are 90+ complete trades, the **TRAIN_ONNX_WHEN_READY** task runs, uploads `.onnx` and `training_metadata.json` to this bucket, and reloads the ML service.
+3. On the next deploy, the app downloads the latest models from `vince-ml-models` so ML stays up to date without baking models into the image. See [DEPLOY.md](DEPLOY.md) § “ML training on Eliza Cloud”.
 
 ## Aggressive paper trading ($210 take profit, 10x leverage)
 

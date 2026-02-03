@@ -1,6 +1,6 @@
 FROM node:23.3.0-slim
 
-# Install essential dependencies for the build process
+# Install essential dependencies for the build process (python3-pip for ML training on Cloud)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     build-essential \
@@ -10,6 +10,7 @@ RUN apt-get update && \
     git \
     make \
     python3 \
+    python3-pip \
     unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -43,7 +44,10 @@ RUN bun run build
 
 # Ship ML ONNX models for Eliza Cloud (see src/plugins/plugin-vince/models/README.md)
 RUN mkdir -p /app/.elizadb/vince-paper-bot/models && \
-    cp -r /app/src/plugins/plugin-vince/models/. /app/.elizadb/vince-paper-bot/models/
+    cp -r /app/src/plugins/plugin-vince/models/. /app/.elizadb/vince-paper-bot/models/ 2>/dev/null || true
+
+# Python ML deps so TRAIN_ONNX_WHEN_READY can run in container (train on Cloud, no redeploy needed)
+RUN python3 -m pip install --break-system-packages -r /app/src/plugins/plugin-vince/scripts/requirements.txt || true
 
 # Change ownership of the app directory to node user
 RUN chown -R node:node /app

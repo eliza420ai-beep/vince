@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Deploy to Eliza Cloud with required env vars from .env (no keys in the command).
 # Usage:
-#   bun run deploy:cloud           # project: vince
-#   bun run deploy:cloud vince2   # project: vince2 (e.g. when "vince" stack already exists)
+#   bun run deploy:cloud           # project: vince2 (default; use same name to update existing deploy)
+#   bun run deploy:cloud vince3   # new name if "Stack already exists" 500 for vince2
 
 set -e
 cd "$(dirname "$0")/.."
 
-PROJECT_NAME="${1:-vince}"
+PROJECT_NAME="${1:-vince2}"
 
 if [[ ! -f .env ]]; then
   echo "Error: .env not found. Copy .env.example to .env and fill in values."
@@ -33,9 +33,18 @@ ENV_OPENAI="OPENAI_API_KEY=$(get_env OPENAI_API_KEY)"
 ENV_ARGS=("--env" "$ENV_ANTHROPIC" "--env" "$ENV_OPENAI")
 if grep -q "^POSTGRES_URL=.\+" .env 2>/dev/null; then
   ENV_ARGS+=("--env" "POSTGRES_URL=$(get_env POSTGRES_URL)")
-  echo "Deploying to Eliza Cloud (project: ${PROJECT_NAME}) with PGLite/Postgres and LLM keys from .env..."
+  echo "Deploying to Eliza Cloud (project: ${PROJECT_NAME}) with Postgres and LLM keys from .env..."
 else
   echo "Deploying to Eliza Cloud (project: ${PROJECT_NAME}) with PGLite and LLM keys from .env (paper trades in JSONL)..."
+fi
+
+# Supabase dual-write: features persist across redeploys (see FEATURE-STORE.md)
+if grep -q "^SUPABASE_SERVICE_ROLE_KEY=.\+" .env 2>/dev/null; then
+  ENV_ARGS+=("--env" "SUPABASE_SERVICE_ROLE_KEY=$(get_env SUPABASE_SERVICE_ROLE_KEY)")
+  if grep -q "^SUPABASE_URL=.\+" .env 2>/dev/null; then
+    ENV_ARGS+=("--env" "SUPABASE_URL=$(get_env SUPABASE_URL)")
+  fi
+  echo "  + Supabase feature-store dual-write enabled (vince_paper_bot_features)."
 fi
 
 # Optional: uncomment and add get_env if you want these in cloud

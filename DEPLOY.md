@@ -110,13 +110,13 @@ Optional (plugin-vince features):
 **Supabase (optional — for ML feature store):**
 
 - **`SUPABASE_URL`** — Optional. Add `--env "SUPABASE_URL=..."` only if you want the feature store and the app does not derive it from `POSTGRES_URL` doesn’t work.
-- **`SUPABASE_SERVICE_ROLE_KEY`** — Optional. **Only if you want paper trades dual-write to Supabase** for ML (see [FEATURE-STORE.md](FEATURE-STORE.md)). Paper trades are always in **JSONL** and in PGLite when using PGLite; Supabase is an extra sync target. Add to deploy command:
+- **`SUPABASE_SERVICE_ROLE_KEY`** — When set, paper trades are dual-written to Supabase (`vince_paper_bot_features`). Create the table once: run **`scripts/supabase-feature-store-bootstrap.sql`** in Supabase Dashboard → SQL Editor (see [FEATURE-STORE.md](FEATURE-STORE.md)). **`bun run deploy:cloud`** passes it from `.env`; or add to deploy command:
 
 ```bash
   --env "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SUPABASE_SERVICE_ROLE_KEY=' .env | cut -d= -f2-)"
 ```
 
-Add `--env "SUPABASE_URL=..."` only if the app doesn’t derive it from `POSTGRES_URL`. Without these, deploy still works; paper trades stay in **JSONL** (and in PGLite when you use PGLite).
+Add `--env "SUPABASE_URL=..."` only if the app doesn’t derive it from `POSTGRES_URL`; set it if needed. When using **`bun run deploy:cloud`**, the script passes both Supabase vars from `.env` automatically. Without Supabase keys, paper trades stay in **JSONL** (and in PGLite when you use PGLite).
 
 You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the current VINCE agent unless you add those plugins.
 
@@ -128,26 +128,33 @@ You do **not** need Discord, Telegram, Twitter, EVM, Solana, etc. for the curren
 
 **What still works on Cloud without ONNX:** Paper trading, signal aggregation, bandit weights, similarity (from in-memory state), improvement report consumption (from `training_metadata.json` if you had it), and all non-ML features. Only the **ONNX inference** (signal quality score, ML position multiplier, ML TP/SL multipliers) is inactive.
 
-**To make ML active on Cloud:**
+**ML training on Eliza Cloud (no extra redeploy):**
 
-1. **Train locally** (after you have 90+ closed trades or synthetic data):
-   ```bash
-   python3 src/plugins/plugin-vince/scripts/train_models.py \
-     --data .elizadb/vince-paper-bot/features \
-     --output .elizadb/vince-paper-bot/models \
-     --min-samples 90
-   ```
-2. **Copy the built models into the repo** (so the image includes them):
-   ```bash
-   cp .elizadb/vince-paper-bot/models/signal_quality.onnx    src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/position_sizing.onnx   src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/tp_optimizer.onnx       src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/sl_optimizer.onnx       src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
-   git add src/plugins/plugin-vince/models/*.onnx src/plugins/plugin-vince/models/training_metadata.json
-   git commit -m "chore: ship ONNX models for Cloud ML"
-   ```
-3. **Deploy.** The Dockerfile copies `src/plugins/plugin-vince/models/` into `.elizadb/vince-paper-bot/models/` at build time, so the container will have the ONNX files and ML will be active. See `src/plugins/plugin-vince/models/README.md` for details.
+With **Supabase** configured (`SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL`), training can run **in the container** and models **persist across redeploys**:
+
+1. **Create a Storage bucket** in Supabase (one-time) — see [One-time: Create the `vince-ml-models` bucket](#one-time-create-the-vince-ml-models-bucket) below.
+2. **Deploy** with Supabase env vars set (e.g. `bun run deploy:cloud`). The image includes Python and the training script deps (`xgboost`, `onnxmltools`, etc.).
+3. The bot collects features (dual-write to Supabase table `vince_paper_bot_features`). When there are **90+ complete trades**, the **TRAIN_ONNX_WHEN_READY** task runs the Python training script in the container, then **uploads** the resulting `.onnx` and `training_metadata.json` to the `vince-ml-models` bucket and **reloads** the ML service. No redeploy needed.
+4. On a **future redeploy**, the container starts with an empty models dir; the ML service **downloads** the latest models from `vince-ml-models` and loads them. So you get updated ML without baking models into the image or paying to redeploy just for new models.
+
+### One-time: Create the `vince-ml-models` bucket
+
+Do this once in your Supabase project so the app can store and load ML models (no redeploy needed when training runs on Cloud).
+
+1. Open **[Supabase Dashboard](https://supabase.com/dashboard)** and select your project.
+2. In the left sidebar, click **Storage**.
+3. Click **New bucket**.
+4. **Name:** `vince-ml-models` (exactly).
+5. **Public bucket:** leave **off** (private is fine; the app uses the service role key to read/write).
+6. Click **Create bucket**.
+
+No policies or extra settings are required; the service role key has full access. After this, deploy with `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_URL` set so the app can upload models after training and download them on startup.
+
+---
+
+**To make ML active on Cloud (alternative — ship models in repo):**
+
+1. **Train locally** (after you have 90+ closed trades or synthetic data), then copy the built models into the repo and deploy (see `src/plugins/plugin-vince/models/README.md`). The Dockerfile copies `src/plugins/plugin-vince/models/` into the container at build time.
 
 ## One-time setup
 

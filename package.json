@@ -28,6 +28,7 @@
   ],
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
+    "onnxruntime-node": "^1.23.2",
     "@elizaos/cli": "1.7.2",
     "@elizaos/client": "1.7.2",
     "@elizaos/core": "1.7.2",

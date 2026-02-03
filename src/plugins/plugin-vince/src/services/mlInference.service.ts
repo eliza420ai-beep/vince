@@ -18,6 +18,7 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
+import { downloadModelsFromSupabase } from "../utils/supabaseMlModels";
 import type { MarketFeatures, SessionFeatures, SignalFeatures, RegimeFeatures } from "./vinceFeatureStore.service";
 
 // ==========================================
@@ -184,6 +185,17 @@ export class VinceMLInferenceService extends Service {
   }
 
   private async initialize(): Promise<void> {
+    // On Cloud: if local models dir is empty, pull from Supabase Storage (so redeploys get latest without $15 redeploy)
+    const modelsPath = path.resolve(ML_CONFIG.modelsDir);
+    const hasLocalOnnx =
+      fs.existsSync(modelsPath) &&
+      fs.readdirSync(modelsPath).some((f) => f.endsWith(".onnx"));
+    if (!hasLocalOnnx) {
+      const downloaded = await downloadModelsFromSupabase(this.runtime, modelsPath);
+      if (downloaded) {
+        logger.info("[MLInference] Models loaded from Supabase Storage (no redeploy needed).");
+      }
+    }
     // Load improvement report (threshold, TP level performance, optional tuning)
     this.loadImprovementReport();
     // Try to load ONNX runtime
@@ -199,6 +211,22 @@ export class VinceMLInferenceService extends Service {
         "Install 'onnxruntime-node' for ML features."
       );
     }
+  }
+
+  /**
+   * Reload models from disk (e.g. after training on Cloud). Call from TRAIN_ONNX_WHEN_READY task.
+   */
+  async reloadModels(): Promise<void> {
+    if (!this.ort) return;
+    this.signalQualitySession = null;
+    this.positionSizingSession = null;
+    this.tpOptimizerSession = null;
+    this.slOptimizerSession = null;
+    this.modelInfo.clear();
+    this.predictionCache.clear();
+    this.modelsLoaded = false;
+    this.loadImprovementReport();
+    await this.loadModels();
   }
 
   /** Read improvement report from training_metadata.json (threshold, tp_level_performance, suggested_tuning). */

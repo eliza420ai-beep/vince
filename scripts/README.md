@@ -1,5 +1,11 @@
 # Scripts
 
+## Supabase feature store (paper-bot dual-write)
+
+To persist paper-bot features across redeploys and query them for ML, run **once** in Supabase Dashboard → SQL Editor the script **`scripts/supabase-feature-store-bootstrap.sql`**. Then set `SUPABASE_SERVICE_ROLE_KEY` (and optionally `SUPABASE_URL`) in `.env`. The deploy script (`deploy-cloud.sh`) passes these to Cloud when set. See [FEATURE-STORE.md](../FEATURE-STORE.md) and [DEPLOY.md](../DEPLOY.md).
+
+---
+
 ## Knowledge ingestion playbook (summarize + UPLOAD)
 
 We use [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) to grow the `knowledge/` folder from URLs, YouTube, PDFs, and podcasts.

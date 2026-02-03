@@ -17,6 +17,8 @@ import { spawn } from "child_process";
 import * as path from "path";
 import * as fs from "fs";
 import type { VinceFeatureStoreService } from "../services/vinceFeatureStore.service";
+import type { VinceMLInferenceService } from "../services/mlInference.service";
+import { uploadModelsToSupabase } from "../utils/supabaseMlModels";
 
 const MIN_COMPLETE_RECORDS = 90;
 const MIN_SAMPLES_ARG = "90";
@@ -158,6 +160,16 @@ export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UU
         const result = await runTrainingScript();
         if (!result.success && result.stderr) {
           logger.warn(`[TrainONNX] Training failed: ${result.stderr.slice(-300)}`);
+        } else if (result.success) {
+          const modelsDir = getModelsDir();
+          const uploaded = await uploadModelsToSupabase(rt, modelsDir);
+          if (uploaded) {
+            const mlService = rt.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+            if (mlService?.reloadModels) {
+              await mlService.reloadModels();
+              logger.info("[TrainONNX] ML models reloaded; new thresholds active.");
+            }
+          }
         }
       } catch (error) {
         logger.error(`[TrainONNX] Task error: ${error}`);

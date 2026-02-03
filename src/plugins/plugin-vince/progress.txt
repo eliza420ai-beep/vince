@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-03 (UPLOAD + summarize + batch ingest + playbook)
+# Last updated: 2026-02-03 (Supabase dual-write + ML training on Eliza Cloud, no redeploy)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -169,14 +169,14 @@ COMPLETED
 
 ## ML on Eliza Cloud ✅
 - Why Cloud had no ML: .elizadb/ is gitignored, so the deploy image never contained ONNX files; the bot fell back to rule-based signal quality, sizing, and TP/SL.
-- Fix: We ship models in the repo so the image includes them at build time.
-  - Folder: src/plugins/plugin-vince/models/ (README + the four .onnx files + training_metadata.json). This path is in the repo and not gitignored.
-  - Dockerfile: After "bun run build", the image runs: mkdir -p /app/.elizadb/vince-paper-bot/models && cp -r src/plugins/plugin-vince/models/. into it. At runtime the ML Inference Service loads from .elizadb/vince-paper-bot/models/ and finds the ONNX files.
-- Flow to make ML active (and to refresh after retraining):
-  1. Train locally: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
-  2. Copy into repo: cp .elizadb/vince-paper-bot/models/{signal_quality,position_sizing,tp_optimizer,sl_optimizer}.onnx .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
-  3. Commit and deploy. Next Cloud deploy will have ML active.
-- Docs: README.md has "ML on Eliza Cloud" subsection with the same steps; DEPLOY.md has the full "ML (ONNX) on Eliza Cloud" section; plugin-vince/models/README.md has copy-paste commands.
+- **Option A – Training on Cloud (no extra redeploy):** With Supabase configured, training runs **in the container** and models **persist across redeploys**.
+  - Dockerfile: Python3 + pip + pip install -r scripts/requirements.txt (xgboost, onnxmltools, etc.) so TRAIN_ONNX_WHEN_READY can run train_models.py in the container.
+  - One-time: Create Supabase Storage bucket **vince-ml-models** (Dashboard → Storage → New bucket → name: vince-ml-models, private). See DEPLOY.md § "One-time: Create the vince-ml-models bucket".
+  - After training: task uploads .onnx + training_metadata.json to vince-ml-models (supabaseMlModels.ts), then calls ML service reloadModels() so new models apply without restart.
+  - On (re)deploy: ML Inference Service downloads from vince-ml-models if local models dir is empty, then loads. So no $15 redeploy needed to get new models.
+  - Utils: src/plugins/plugin-vince/src/utils/supabaseMlModels.ts (getSupabaseClient, uploadModelsToSupabase, downloadModelsFromSupabase).
+- **Option B – Ship models in repo:** Copy trained .onnx + training_metadata.json into src/plugins/plugin-vince/models/, commit, deploy. Dockerfile copies that folder into .elizadb/vince-paper-bot/models/ at build time. See plugin-vince/models/README.md.
+- Docs: DEPLOY.md "ML training on Eliza Cloud" and "One-time: Create the vince-ml-models bucket"; FEATURE-STORE.md §5; scripts/supabase-feature-store-bootstrap.sql for feature table.
 
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
@@ -296,7 +296,7 @@ NEXT / BACKLOG
 
 📋 Migrate prod to Supabase Postgres (POSTGRES_URL); then plugin_vince.paper_bot_features
    lives in same DB as ElizaOS tables (agents, memories, entities, rooms). See FEATURE-STORE.md.
-🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. Manual: pip3 install onnx onnxmltools && python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Exports signal_quality.onnx, position_sizing.onnx, tp_optimizer.onnx, sl_optimizer.onnx.
+🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual: pip3 install -r scripts/requirements.txt && python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
@@ -333,7 +333,7 @@ SUPABASE / STORAGE
 We added this clarification so it’s recorded in progress.txt:
 
 - **POSTGRES_URL (Supabase Postgres)** = main app database. ElizaOS (plugin-sql) uses it for conversation/message storage, agent memory, entities, rooms, relationships, tasks, cache, and knowledge embeddings. So Supabase is used for memory storage of conversations and all other runtime persistence. Required for persistent deploy; without it the app uses local PGLite.
-- **SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL** = optional. Used only for the feature store: paper-bot feature records are upserted to table `vince_paper_bot_features` so you can query 500+ rows for ML training. See FEATURE-STORE.md. Not needed for conversation/memory; that goes through POSTGRES_URL.
+- **SUPABASE_SERVICE_ROLE_KEY / SUPABASE_URL** = optional. Used for: (1) Feature store dual-write: paper-bot features upserted to table vince_paper_bot_features (create once: scripts/supabase-feature-store-bootstrap.sql); data persists across redeploys. (2) ML models on Cloud: Storage bucket vince-ml-models stores .onnx + training_metadata.json; training runs in container, app downloads latest on startup (no redeploy). Create bucket once: Dashboard → Storage → New bucket → name: vince-ml-models (private). deploy-cloud.sh passes these from .env when set. See FEATURE-STORE.md and DEPLOY.md.
 
 ================================================================================
 DEPLOYMENT (Eliza Cloud)
@@ -413,7 +413,7 @@ SESSION NOTES
   INFO logs list which sources contributed; DEBUG "tried but no contribution" for
   Binance, NewsSentiment, DeribitIVSkew, MarketRegime; extended to BinanceLiquidations,
   Sanbase, Hyperliquid when they run but don’t add a factor (signalAggregator). See SIGNAL_SOURCES.md.
-- ONNX training when 90+ trades: getCompleteRecordCount() on feature store; TRAIN_ONNX_WHEN_READY task runs on schedule (12h), max once per 24h; spawns train_models.py --min-samples 90. FEATURE-STORE.md updated.
+- ONNX training when 90+ trades: getCompleteRecordCount() on feature store; TRAIN_ONNX_WHEN_READY task runs on schedule (12h), max once per 24h; spawns train_models.py --min-samples 90. On Cloud: Dockerfile has Python ML deps; task uploads models to Supabase Storage (vince-ml-models) and calls reloadModels(); ML service downloads from bucket on startup if local empty. One-time: create bucket vince-ml-models (DEPLOY.md). FEATURE-STORE.md updated.
 - README (repo + plugin): Heart of VINCE, signal-source verification, improvement report.
 - FEATURE-STORE.md: current prod state (Eliza Cloud, PGLite); ElizaOS tables vs feature
   store; jsonl lives in plugin_vince.paper_bot_features (same DB when Postgres), not
@@ -421,6 +421,9 @@ SESSION NOTES
 - progress.txt: PRIORITY = improve real-time data for paper algo (leverage all sources);
   deployment note (prod works, still PGLite; next Supabase Postgres); NEXT = migrate
   to Supabase Postgres, then feature store in same DB as ElizaOS tables.
+- Supabase: feature-store table (supabase-feature-store-bootstrap.sql), deploy-cloud.sh
+  passes SUPABASE_* from .env; Storage bucket vince-ml-models for ML models (train on Cloud,
+  download on startup). DEPLOY.md has one-time bucket instructions. See COMPLETED "ML on Eliza Cloud" and "SUPABASE / STORAGE".
 - Product feedback: README "Action status (honest take)" added (OPTIONS/PERPS gold; NEWS
   MandoMinutes dependency; MEMES/TREADFI/LIFESTYLE/NFT/INTEL/BOT/UPLOAD). Backlog items
   added for news plugin, MEMES UI bold fix, BOT polish, INTEL redundancy, UPLOAD/knowledge,

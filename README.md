@@ -15,6 +15,22 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 
 ---
 
+## 🚀 Milestone: Full ML loop on Eliza Cloud (no redeploy tax)
+
+**We shipped it.** The paper bot now runs a **complete ML lifecycle in production** without paying $15 per model update:
+
+| What | How |
+|------|-----|
+
+| **Feature store** | Paper trade features dual-write to Supabase table `vince_paper_bot_features`. Data **persists across redeploys** — no more losing history when the container is recreated. |
+| **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container** (Dockerfile: Python + xgboost, onnxmltools, etc.). No local train-and-copy. |
+| **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** so new thresholds apply **immediately**. Next redeploy: app pulls latest from the bucket — **updated ML without another deploy**. |
+| **One-time setup** | Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase; create Storage bucket `vince-ml-models`. Set `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`, then `bun run deploy:cloud` and you’re set. See [DEPLOY.md](DEPLOY.md) and [FEATURE-STORE.md](FEATURE-STORE.md).
+
+**TL;DR:** One deploy. Features and models live in Supabase. Training runs on Cloud. New models take effect **without** another $15 redeploy.
+
+---
+
 ## Heart of VINCE: signals → trades → learning
 
 The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 50+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. To enable or fix sources, see [plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md).
@@ -24,7 +40,7 @@ The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sourc
 The most novel piece in this repo is the **paper trading bot that gets better over time** using machine learning:
 
 1. **Paper trading** — Runs simulated perpetuals (Hyperliquid-style) with real signals, risk limits, session filters, and goal tracking ($/day, $/month).
-2. **Feature store** — Records **50+ features** per decision: market (price, funding, OI, **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance**, **bid-ask spread**, **price vs SMA20**), session, signal (with **factor-derived sentiment**), regime, news (**sentiment score/direction**, **risk events**), execution, outcome. Data to JSONL and optionally Supabase for ML. See [plugin-vince/DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md).
+2. **Feature store** — Records **50+ features** per decision: market (price, funding, OI, **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance**, **bid-ask spread**, **price vs SMA20**), session, signal (with **factor-derived sentiment**), regime, news (**sentiment score/direction**, **risk events**), execution, outcome. Data to JSONL and **Supabase** (dual-write to `vince_paper_bot_features`) so it **persists across redeploys**. See [plugin-vince/DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md).
 3. **Online adaptation** — Thompson Sampling (weight bandit) and signal-similarity lookup adjust behavior from live outcomes; a Bayesian parameter tuner refines thresholds.
 4. **Offline ML** — A Python script (`plugin-vince/scripts/train_models.py`) trains XGBoost models (signal quality, position sizing, TP/SL) and exports to ONNX.
 5. **ONNX at runtime** — The bot loads ONNX models for signal-quality and sizing decisions, with rule-based fallbacks when models aren’t trained yet.
@@ -40,7 +56,7 @@ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature 
 ## Features
 
 - **VINCE agent** — Unified orchestrator across 7 areas: OPTIONS, PERPS, MEMETICS, AIRDROPS, DEFI, LIFESTYLE, ART
-- **Self-improving paper trading bot** — ML pipeline above; no live execution, suggest and inform only
+- **Self-improving paper trading bot** — ML pipeline above; **trains on Eliza Cloud** (Supabase Storage for models, no extra redeploy); no live execution, suggest and inform only
 - **Teammate context** — USER/SOUL/TOOLS/MEMORY files loaded every session so the agent behaves like a teammate, not a generic chatbot
 - **Data sources** — Deribit, CoinGlass, Binance, DexScreener, Meteora, Nansen, Sanbase, OpenSea (with fallbacks when APIs are absent)
 - **ElizaOS** — Character-driven, plugin-based; Postgres/Supabase for production
@@ -104,30 +120,9 @@ We use **Postgres/Supabase** for production so the app and deploy use the same D
 
 ### ML on Eliza Cloud (ONNX models)
 
-For the **paper trading bot**, ONNX models (signal quality, position sizing, TP/SL) are loaded from `.elizadb/vince-paper-bot/models/`. That directory is **gitignored**, so a fresh deploy has no models and the bot uses **rule-based fallbacks** until you ship them.
+**Recommended: train on Cloud, models in Supabase.** With Supabase configured (and the `vince-ml-models` Storage bucket created once), the bot **trains in the container** when it has 90+ complete trades, **uploads** models to Supabase Storage, and **reloads** the ML service. On the next redeploy, the app **downloads** the latest models from the bucket — so ML improves **without** an extra deploy. See the [Milestone](#milestone-ml-trains-on-eliza-cloud-no-extra-redeploy) section above and [DEPLOY.md](DEPLOY.md).
 
-**To make ML active on Cloud:**
-
-1. **Train locally** (after 90+ closed trades or synthetic data):
-   ```bash
-   python3 src/plugins/plugin-vince/scripts/train_models.py \
-     --data .elizadb/vince-paper-bot/features \
-     --output .elizadb/vince-paper-bot/models \
-     --min-samples 90
-   ```
-2. **Copy the built models into the repo** so the Docker image includes them:
-   ```bash
-   cp .elizadb/vince-paper-bot/models/signal_quality.onnx    src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/position_sizing.onnx   src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/tp_optimizer.onnx      src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/sl_optimizer.onnx      src/plugins/plugin-vince/models/
-   cp .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
-   git add src/plugins/plugin-vince/models/*.onnx src/plugins/plugin-vince/models/training_metadata.json
-   git commit -m "chore: ship ONNX models for Cloud ML"
-   ```
-3. **Deploy.** The Dockerfile copies `src/plugins/plugin-vince/models/` into `.elizadb/vince-paper-bot/models/` at build time, so the container loads the four ONNX models and ML is active.
-
-If the `models/` folder has no `.onnx` files (only the README), deploy still works; the bot runs with rule-based behavior until you add and commit the files above. See [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) and [DEPLOY.md](DEPLOY.md#ml-onnx-on-eliza-cloud--will-it-be-active) for details.
+**Alternative: ship models in the repo.** Train locally, copy `.onnx` + `training_metadata.json` into `src/plugins/plugin-vince/models/`, commit, and deploy; the Dockerfile copies that folder into the container. See [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) and [DEPLOY.md](DEPLOY.md#ml-onnx-on-eliza-cloud--will-it-be-active).
 
 ## Testing
 
