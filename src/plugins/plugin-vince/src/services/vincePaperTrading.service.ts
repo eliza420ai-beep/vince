@@ -560,7 +560,8 @@ export class VincePaperTradingService extends Service {
         }
         const bookRejection = getBookImbalanceRejection(
           { direction: signal.direction, confidence: signal.confidence },
-          extendedSnapshot
+          extendedSnapshot,
+          aggressiveMode ? 0.4 : undefined
         );
         if (bookRejection.reject) {
           this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), bookRejection.reason!);

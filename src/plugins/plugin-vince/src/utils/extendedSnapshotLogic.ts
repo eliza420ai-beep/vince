@@ -28,18 +28,20 @@ export const MAX_CONFIDENCE = 100;
  * Returns whether to reject the signal due to order book imbalance.
  * - Long: reject when book favors sellers (bookImbalance < -threshold).
  * - Short: reject when book favors buyers (bookImbalance > threshold).
+ * @param threshold - Optional; when provided (e.g. 0.4 in aggressive mode), use instead of BOOK_IMBALANCE_THRESHOLD for looser filter.
  */
 export function getBookImbalanceRejection(
   signal: SignalDirection,
-  snapshot: ExtendedSnapshot | null
+  snapshot: ExtendedSnapshot | null,
+  threshold: number = BOOK_IMBALANCE_THRESHOLD
 ): { reject: boolean; reason?: string } {
   if (signal.direction === "neutral") return { reject: false };
   const book = snapshot?.bookImbalance;
   if (book == null) return { reject: false };
-  if (signal.direction === "long" && book < -BOOK_IMBALANCE_THRESHOLD) {
+  if (signal.direction === "long" && book < -threshold) {
     return { reject: true, reason: `Order book favors sellers (imbalance ${book.toFixed(2)})` };
   }
-  if (signal.direction === "short" && book > BOOK_IMBALANCE_THRESHOLD) {
+  if (signal.direction === "short" && book > threshold) {
     return { reject: true, reason: `Order book favors buyers (imbalance ${book.toFixed(2)})` };
   }
   return { reject: false };
