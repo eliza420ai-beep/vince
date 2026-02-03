@@ -172,6 +172,12 @@ export const DEFAULT_TAKE_PROFIT_TARGETS = [1.5, 3, 5];
 export const DEFAULT_LEVERAGE = 3;
 
 /**
+ * Max margin loss when stop loss is hit (e.g. 25% = stop limits loss to 25% of margin).
+ * Leverage is capped so that (stopLossPct × leverage) ≤ this value.
+ */
+export const MAX_MARGIN_LOSS_PCT_AT_STOP = 25;
+
+/**
  * Optional dollar take-profit: close position when unrealized P&L reaches this (e.g. $210 = half of $420/day).
  * Default null = only price-based TPs. When aggressive preset is on, position manager uses TAKE_PROFIT_USD_AGGRESSIVE.
  */
