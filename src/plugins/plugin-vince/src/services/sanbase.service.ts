@@ -122,30 +122,28 @@ export class VinceSanbaseService extends Service {
 
   /**
    * Print dashboard (same box style as paper trade-opened banner).
+   * Honest about rate limits and algo impact: when limits hit, Sanbase adds no insight.
    */
   private printDashboard(): void {
     startBox();
-    logLine("🔗 SANTIMENT ON-CHAIN DASHBOARD");
-    logEmpty();
-    sep();
+    logLine("🔗 SANTIMENT ON-CHAIN");
     logEmpty();
     if (!this.isConfigured()) {
       logLine("⚠️ SANTIMENT_API_KEY not set - on-chain features disabled");
       logLine("   Get free key: https://app.santiment.net/account");
     } else {
-      logLine("✅ API Key configured (1000 calls/month free tier)");
+      logLine("✅ API key set (1000 calls/month free tier)");
       logEmpty();
       sep();
       logEmpty();
-      logLine("📊 AVAILABLE METRICS:");
-      logLine("   • Network Activity (active addresses, tx volume)");
-      logLine("   • Exchange Flows (inflow/outflow, accumulation)");
-      logLine("   • Whale Activity (large tx volume, count)");
-      logLine("   • Dev Activity (commits, contributors)");
+      logLine("ALGO IMPACT:");
+      logLine("   • Used for: Exchange Flows (1.2x) → accumulation/distribution");
+      logLine("   • Whale metrics disabled (30-day lag on free tier)");
       logEmpty();
       sep();
       logEmpty();
-      logLine("⚠️ Note: Some metrics have 30-day lag on free tier");
+      logLine("⚠️ If you hit API limits: Sanbase adds no insight for that request.");
+      logLine("   Algo continues with Binance, Deribit, CoinGlass, etc.");
     }
     endBox();
   }
