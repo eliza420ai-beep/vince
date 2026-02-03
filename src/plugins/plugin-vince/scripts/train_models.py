@@ -16,7 +16,7 @@ Usage:
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
 
-  --data can be a single JSONL file or a directory (loads all features_*.jsonl and combined.jsonl).
+  --data can be a single JSONL file or a directory (loads all features_*.jsonl, synthetic_*.jsonl, and combined.jsonl).
   When the feature store has 90+ complete trades (with outcome), the plugin can run this automatically
   via the TRAIN_ONNX_WHEN_READY task (max once per 24h).
 
@@ -81,8 +81,10 @@ def _jsonl_paths(data_path: str) -> List[str]:
     if p.is_file():
         return [str(p)]
     if p.is_dir():
-        files = sorted(p.glob("features_*.jsonl")) + (
-            [p / "combined.jsonl"] if (p / "combined.jsonl").exists() else []
+        files = (
+            sorted(p.glob("features_*.jsonl"))
+            + sorted(p.glob("synthetic_*.jsonl"))
+            + ([p / "combined.jsonl"] if (p / "combined.jsonl").exists() else [])
         )
         return [str(f) for f in files]
     return []
@@ -694,6 +696,19 @@ def build_improvement_report(
         "suggested_signal_factors": _suggest_signal_factors(df),
         "action_items": [],
     }
+    # Suggested min strength/confidence from 25th percentile of profitable trades (for bot to consume)
+    if "label_profitable" in df.columns and "signal_strength" in df.columns and "signal_confidence" in df.columns:
+        prof = df[df["label_profitable"] == True]
+        if len(prof) >= 20:
+            try:
+                q_str = prof["signal_strength"].quantile(0.25)
+                q_conf = prof["signal_confidence"].quantile(0.25)
+                report["suggested_tuning"] = {
+                    "min_strength": int(max(0, min(100, round(float(q_str))))),
+                    "min_confidence": int(max(0, min(100, round(float(q_conf))))),
+                }
+            except (TypeError, ValueError):
+                pass
     if "signal_quality" in report_entries and "suggested_threshold" in report_entries["signal_quality"]:
         t = report_entries["signal_quality"]["suggested_threshold"]
         report["suggested_signal_quality_threshold"] = t

@@ -596,8 +596,8 @@ await featureStore.recordFeatures(features);
 # Generate training data
 cat .elizadb/vince-paper-bot/features/*.jsonl > training_data.jsonl
 
-# Train models (requires Python)
-python scripts/train_models.py
+# Train models (requires Python 3)
+python3 scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 
 # Models output to:
 # - models/signal_quality.onnx

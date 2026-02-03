@@ -10,7 +10,7 @@ This test:
    (e.g. signal quality predictions are not all the same class when inputs vary).
 
 Run from repo root:
-    python src/plugins/plugin-vince/scripts/test_train_models.py
+    python3 src/plugins/plugin-vince/scripts/test_train_models.py
 Or with pytest:
     pytest src/plugins/plugin-vince/scripts/test_train_models.py -v
 """
@@ -124,6 +124,26 @@ def run_train_models(data_path: str, output_dir: str, min_samples: int = 30) -> 
         text=True,
         cwd=str(SCRIPT_DIR),
         timeout=120,
+    )
+
+
+def run_generate_synthetic_features(output_path: str, count: int = 150) -> subprocess.CompletedProcess:
+    """Run generate_synthetic_features.py and return the completed process."""
+    gen_script = SCRIPT_DIR / "generate_synthetic_features.py"
+    cmd = [
+        sys.executable,
+        str(gen_script),
+        "--count",
+        str(count),
+        "--output",
+        output_path,
+    ]
+    return subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=str(SCRIPT_DIR),
+        timeout=60,
     )
 
 
@@ -257,6 +277,36 @@ class TestTrainModels(unittest.TestCase):
                 np.isfinite(preds).all(),
                 "SL model predictions should be finite",
             )
+
+    def test_generate_synthetic_then_train_produces_models(self):
+        """Integration: generate_synthetic_features.py output is valid input for train_models.py (min_samples=90)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "synthetic_from_generator.jsonl")
+            output_dir = os.path.join(tmp, "models")
+
+            gen_result = run_generate_synthetic_features(data_path, count=150)
+            self.assertEqual(gen_result.returncode, 0, (
+                f"generate_synthetic_features.py failed: stdout={gen_result.stdout!r} stderr={gen_result.stderr!r}"
+            ))
+            self.assertTrue(os.path.isfile(data_path), f"Expected output file {data_path}")
+            with open(data_path) as f:
+                lines = [l for l in f if l.strip()]
+            self.assertGreaterEqual(len(lines), 90, "Need at least 90 records for --min-samples 90")
+
+            result = run_train_models(data_path, output_dir, min_samples=90)
+            self.assertEqual(result.returncode, 0, (
+                f"train_models.py failed on generator output: stdout={result.stdout!r} stderr={result.stderr!r}"
+            ))
+
+            metadata_path = os.path.join(output_dir, "training_metadata.json")
+            self.assertTrue(os.path.isfile(metadata_path), f"Missing {metadata_path}")
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+            self.assertGreaterEqual(metadata.get("trades_with_outcomes", 0), 90)
+            models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
+            self.assertGreaterEqual(len(models_fit), 1, (
+                "At least one model should be fit when training on generate_synthetic_features.py output"
+            ))
 
     def test_multi_asset_uses_asset_dummies(self):
         """When multiple assets are present, prepare_signal_quality_features includes asset_* dummy columns."""

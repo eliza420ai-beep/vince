@@ -6,13 +6,14 @@ Use when you don't have 90+ real trades yet: generate N fake records with
 the same shape as the feature store so you can:
   - Run train_models.py and produce ONNX models for testing
   - Validate the training script and inference service
+  - Run test_train_models.py integration test (generate -> train -> assert)
 
-Output: one JSONL file (or directory with one file) that train_models.py
-can load with --data <path>.
+Output: one JSONL file that train_models.py can load with --data <path>.
+Records include outcome.maxAdverseExcursion so the SL optimizer can train.
 
 Usage:
-  python generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
-  python train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
+  python3 generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
+  python3 train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
 """
 
 import argparse
@@ -33,7 +34,13 @@ SESSIONS = ["asia", "europe", "us", "eu_us_overlap", "off_hours"]
 EXIT_REASONS = ["take_profit", "stop_loss", "trailing_stop", "max_age", "partial_tp"]
 
 
-def one_record(ts: int, win: bool, asset: str | None = None) -> dict:
+def one_record(
+    ts: int,
+    win: bool,
+    asset: str | None = None,
+    *,
+    include_sentiment_sources: bool = False,
+) -> dict:
     asset = asset or random.choice(ASSETS)
     direction = random.choice(DIRECTIONS)
     strength = random.randint(40, 95)
@@ -45,6 +52,16 @@ def one_record(ts: int, win: bool, asset: str | None = None) -> dict:
     pnl_usd = 1000 * (pnl_pct / 100) * random.uniform(3, 10)  # rough
     mfe = max(0, pnl_pct + random.uniform(0, 1)) if win else random.uniform(-3, 0)
     mae = min(0, pnl_pct - random.uniform(0, 1)) if not win else random.uniform(0, 2)
+    # SL optimizer needs outcome.maxAdverseExcursion (train_models maps it to label_maxAdverseExcursion)
+    mae_abs = abs(mae)
+
+    sources: list[str] | list[dict] = ["CoinGlass", "BinanceTakerFlow", "MarketRegime"]
+    if include_sentiment_sources:
+        sources = [
+            {"name": "CoinGlass", "sentiment": random.uniform(-0.5, 0.5)},
+            {"name": "BinanceTakerFlow", "sentiment": random.uniform(-0.3, 0.3)},
+            {"name": "MarketRegime", "sentiment": random.uniform(-0.2, 0.2)},
+        ]
 
     return {
         "id": str(uuid.uuid4()),
@@ -78,7 +95,7 @@ def one_record(ts: int, win: bool, asset: str | None = None) -> dict:
             "strength": strength,
             "confidence": confidence,
             "sourceCount": random.randint(2, 8),
-            "sources": ["CoinGlass", "BinanceTakerFlow", "MarketRegime"],
+            "sources": sources,
             "strategyName": "momentum",
             "openWindowBoost": random.uniform(0, 10),
             "conflictingCount": random.randint(0, 2),
@@ -121,7 +138,8 @@ def one_record(ts: int, win: bool, asset: str | None = None) -> dict:
             "holdingPeriodMinutes": random.randint(30, 1440),
             "exitReason": random.choice(EXIT_REASONS),
             "maxFavorableExcursion": mfe,
-            "maxAdverseExcursion": mae,
+            # train_models uses outcome.maxAdverseExcursion for SL optimizer (positive magnitude, clipped 0..5)
+            "maxAdverseExcursion": min(5.0, mae_abs),
             "partialProfitsTaken": 1 if win and random.random() < 0.5 else 0,
             "trailingStopActivated": False,
             "trailingStopPrice": None,
@@ -140,10 +158,11 @@ def one_record(ts: int, win: bool, asset: str | None = None) -> dict:
 
 def main():
     p = argparse.ArgumentParser(description="Generate synthetic feature-store JSONL for ML testing")
-    p.add_argument("--count", type=int, default=120, help="Number of records to generate (default 120)")
+    p.add_argument("--count", type=int, default=150, help="Number of records to generate (default 150, use >=90 for train_models --min-samples 90)")
     p.add_argument("--output", type=str, default="synthetic_features.jsonl", help="Output JSONL path")
     p.add_argument("--win-rate", type=float, default=0.52, help="Target win rate 0–1 (default 0.52)")
     p.add_argument("--seed", type=int, default=42, help="Random seed")
+    p.add_argument("--sentiment-fraction", type=float, default=0.2, help="Fraction of records with signal.sources as list of dicts (sentiment) for signal_avg_sentiment column (default 0.2)")
     args = p.parse_args()
 
     random.seed(args.seed)
@@ -155,14 +174,15 @@ def main():
     for i in range(args.count):
         win = random.random() < args.win_rate
         ts = base_ts + i * 3600000
-        records.append(one_record(ts, win=win))
+        include_sentiment = random.random() < args.sentiment_fraction
+        records.append(one_record(ts, win=win, include_sentiment_sources=include_sentiment))
 
     with open(out, "w") as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
 
     wins = sum(1 for r in records if r["labels"]["profitable"])
-    logger.info("Wrote %d synthetic records to %s (%.1f%% wins). Use with: train_models.py --data %s --output <models_dir> --min-samples 90",
+    logger.info("Wrote %d synthetic records to %s (%.1f%% wins). Next (from repo root): python3 src/plugins/plugin-vince/scripts/train_models.py --data %s --output .elizadb/vince-paper-bot/models --min-samples 90",
                 len(records), out, 100 * wins / len(records), out)
     return 0
 

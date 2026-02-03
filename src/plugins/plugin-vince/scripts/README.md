@@ -45,7 +45,7 @@ From repo root (or plugin root), with a venv that has the training deps:
 
 ```bash
 # Run on the feature store directory (loads all features_*.jsonl)
-python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 ```
 
 Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).
@@ -55,8 +55,8 @@ Ensure feature store has enough samples (script skips training if &lt; 90; defau
 Generate enough synthetic records (same shape as feature store), then train. Default `--count 150` meets `--min-samples 90` and exercises all four models (signal quality, position sizing, TP optimizer, SL optimizer).
 
 ```bash
-python src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
-python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
+python3 src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
+python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
 ```
 
 Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records).

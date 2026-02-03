@@ -67,6 +67,33 @@ import type { VinceMLInferenceService, SignalQualityInput } from "./mlInference.
 // ML-Enhanced Configuration
 // ==========================================
 
+/** Max wait per external source so one slow API doesn't block the whole aggregation */
+const SOURCE_FETCH_TIMEOUT_MS = 12_000;
+
+/** Resolve to null on timeout so aggregation can continue with other sources */
+async function withTimeout<T>(
+  ms: number,
+  label: string,
+  p: Promise<T>
+): Promise<T | null> {
+  try {
+    const result = await Promise.race([
+      p,
+      new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timeout`)), ms)
+      ),
+    ]);
+    return result as T;
+  } catch (e) {
+    if (String(e).includes("timeout")) {
+      logger.debug(`[VinceSignalAggregator] ${label} timed out after ${ms}ms`);
+    } else {
+      logger.debug(`[VinceSignalAggregator] ${label} error: ${e}`);
+    }
+    return null;
+  }
+}
+
 const ML_CONFIG = {
   /** Enable bandit-based weight sampling */
   useBanditWeights: true,
@@ -378,16 +405,61 @@ export class VinceSignalAggregatorService extends Service {
     // Track which optional sources were tried but did not contribute (for DEBUG)
     const triedNoContribution: string[] = [];
 
-    // =========================================
-    // 3. Binance Intelligence (FREE APIs)
-    // =========================================
+    // Resolve services once for parallel fetch
     const binanceService = this.runtime.getService("VINCE_BINANCE_SERVICE") as VinceBinanceService | null;
-    if (binanceService) {
+    const deribitService = this.runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
+    const marketDataService = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+    const sanbaseService = this.runtime.getService("VINCE_SANBASE_SERVICE") as VinceSanbaseService | null;
+    const hyperliquidService = getOrCreateHyperliquidService(this.runtime);
+    const deribitPluginService = getOrCreateDeribitService(this.runtime);
+    const currency = asset === "BTC" ? "BTC" : asset === "ETH" ? "ETH" : asset === "SOL" ? "SOL" : null;
+    const isRateLimited = hyperliquidService?.isRateLimited?.() ?? false;
+
+    // Phase 1: fetch all async sources in parallel with per-source timeout
+    const [
+      binanceIntelligence,
+      deribitIVSurface,
+      marketContext,
+      sanbaseContext,
+      optionsPulse,
+      crossVenue,
+      comprehensiveData,
+      dvol,
+    ] = await Promise.all([
+      binanceService
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "Binance", binanceService.getIntelligence(asset))
+        : Promise.resolve(null),
+      deribitService && currency
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "DeribitIV", deribitService.getIVSurface(asset as "BTC" | "ETH" | "SOL"))
+        : Promise.resolve(null),
+      marketDataService
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "MarketData", marketDataService.getEnrichedContext(asset))
+        : Promise.resolve(null),
+      sanbaseService?.isConfigured()
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "Sanbase", sanbaseService.getOnChainContext(asset))
+        : Promise.resolve(null),
+      hyperliquidService && !isRateLimited
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "HLPulse", hyperliquidService.getOptionsPulse())
+        : Promise.resolve(null),
+      hyperliquidService && !isRateLimited
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "HLCrossVenue", hyperliquidService.getCrossVenueFunding())
+        : Promise.resolve(null),
+      deribitPluginService && currency
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "DeribitComp", deribitPluginService.getComprehensiveData(currency as "BTC" | "ETH" | "SOL"))
+        : Promise.resolve(null),
+      deribitPluginService && (currency === "BTC" || currency === "ETH")
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "DeribitDVOL", deribitPluginService.getVolatilityIndex(currency))
+        : Promise.resolve(null),
+    ]);
+
+    // =========================================
+    // 3. Binance Intelligence (FREE APIs) - use pre-fetched result
+    // =========================================
+    if (binanceIntelligence) {
       try {
-        const intel = await binanceService.getIntelligence(asset);
-        if (intel) {
-          // 3a. Top Trader Positions by SIZE (what big money is doing)
-          if (intel.topTraderPositions) {
+        const intel = binanceIntelligence;
+        // 3a. Top Trader Positions by SIZE (what big money is doing)
+        if (intel.topTraderPositions) {
             const { longPosition } = intel.topTraderPositions;
             // Contrarian: extreme positioning suggests reversal
             if (longPosition > 65) {
@@ -490,13 +562,12 @@ export class VinceSignalAggregatorService extends Service {
               allFactors.push(`Extreme funding: shorts paying ${(Math.abs(current) * 100).toFixed(3)}% - short squeeze likely`);
             }
           }
-        }
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] Binance error: ${e}`);
       }
-      if (!sources.some((s) => s.startsWith("Binance"))) {
-        triedNoContribution.push("Binance");
-      }
+    }
+    if (!sources.some((s) => s.startsWith("Binance"))) {
+      triedNoContribution.push("Binance");
     }
 
     // =========================================
@@ -594,195 +665,146 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
-    // 6. Deribit Options IV Skew (for BTC/ETH/SOL)
+    // 6. Deribit Options IV Skew (for BTC/ETH/SOL) - use pre-fetched result
     // =========================================
-    if (asset === "BTC" || asset === "ETH" || asset === "SOL") {
-      const deribitService = this.runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
-      if (deribitService) {
-        try {
-          const ivSurface = await deribitService.getIVSurface(asset as "BTC" | "ETH" | "SOL");
-          if (ivSurface && ivSurface.skewInterpretation) {
-            if (ivSurface.skewInterpretation === "fearful") {
-              // High put skew = fear = contrarian long signal
-              signals.push({
-                asset,
-                direction: "long",
-                strength: 55,
-                confidence: 50,
-                source: "DeribitIVSkew",
-                factors: [`Options skew fearful (put premium elevated) - contrarian long`],
-                timestamp: Date.now(),
-              });
-              sources.push("DeribitIVSkew");
-              allFactors.push(`Options skew fearful (put premium elevated) - contrarian long`);
-            } else if (ivSurface.skewInterpretation === "bullish") {
-              // High call skew = greed = contrarian short signal
-              signals.push({
-                asset,
-                direction: "short",
-                strength: 55,
-                confidence: 50,
-                source: "DeribitIVSkew",
-                factors: [`Options skew bullish (call premium elevated) - contrarian short`],
-                timestamp: Date.now(),
-              });
-              sources.push("DeribitIVSkew");
-              allFactors.push(`Options skew bullish (call premium elevated) - contrarian short`);
-            }
-          }
-          if (!sources.includes("DeribitIVSkew")) {
-            triedNoContribution.push("DeribitIVSkew");
-          }
-        } catch (e) {
-          logger.debug(`[VinceSignalAggregator] Deribit error: ${e}`);
-          triedNoContribution.push("DeribitIVSkew");
-        }
+    if (deribitIVSurface?.skewInterpretation) {
+      if (deribitIVSurface.skewInterpretation === "fearful") {
+        signals.push({
+          asset,
+          direction: "long",
+          strength: 55,
+          confidence: 50,
+          source: "DeribitIVSkew",
+          factors: [`Options skew fearful (put premium elevated) - contrarian long`],
+          timestamp: Date.now(),
+        });
+        sources.push("DeribitIVSkew");
+        allFactors.push(`Options skew fearful (put premium elevated) - contrarian long`);
+      } else if (deribitIVSurface.skewInterpretation === "bullish") {
+        signals.push({
+          asset,
+          direction: "short",
+          strength: 55,
+          confidence: 50,
+          source: "DeribitIVSkew",
+          factors: [`Options skew bullish (call premium elevated) - contrarian short`],
+          timestamp: Date.now(),
+        });
+        sources.push("DeribitIVSkew");
+        allFactors.push(`Options skew bullish (call premium elevated) - contrarian short`);
       }
+    }
+    if (!sources.includes("DeribitIVSkew") && currency) {
+      triedNoContribution.push("DeribitIVSkew");
     }
 
     // =========================================
-    // 7. Market Data Service (market regime)
+    // 7. Market Data Service (market regime) - use pre-fetched result
     // =========================================
-    const marketDataService = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
-    if (marketDataService) {
-      try {
-        const context = await marketDataService.getEnrichedContext(asset);
-        if (context && context.marketRegime !== "neutral") {
-          if (context.marketRegime === "bullish") {
-            signals.push({
-              asset,
-              direction: "long",
-              strength: 55,
-              confidence: 50,
-              source: "MarketRegime",
-              factors: [`Market regime bullish (strong 24h price action + sentiment)`],
-              timestamp: Date.now(),
-            });
-            sources.push("MarketRegime");
-            allFactors.push(`Market regime bullish (strong 24h price action + sentiment)`);
-          } else if (context.marketRegime === "bearish") {
-            signals.push({
-              asset,
-              direction: "short",
-              strength: 55,
-              confidence: 50,
-              source: "MarketRegime",
-              factors: [`Market regime bearish (weak 24h price action + sentiment)`],
-              timestamp: Date.now(),
-            });
-            sources.push("MarketRegime");
-            allFactors.push(`Market regime bearish (weak 24h price action + sentiment)`);
-          } else if (context.marketRegime === "volatile") {
-            // Volatile regime = caution factor (not a directional signal)
-            allFactors.push(`Market regime volatile (caution advised)`);
-          }
-        }
-        if (!sources.includes("MarketRegime")) {
-          triedNoContribution.push("MarketRegime");
-        }
-      } catch (e) {
-        logger.debug(`[VinceSignalAggregator] MarketData error: ${e}`);
-        triedNoContribution.push("MarketRegime");
+    if (marketContext?.marketRegime && marketContext.marketRegime !== "neutral") {
+      if (marketContext.marketRegime === "bullish") {
+        signals.push({
+          asset,
+          direction: "long",
+          strength: 55,
+          confidence: 50,
+          source: "MarketRegime",
+          factors: [`Market regime bullish (strong 24h price action + sentiment)`],
+          timestamp: Date.now(),
+        });
+        sources.push("MarketRegime");
+        allFactors.push(`Market regime bullish (strong 24h price action + sentiment)`);
+      } else if (marketContext.marketRegime === "bearish") {
+        signals.push({
+          asset,
+          direction: "short",
+          strength: 55,
+          confidence: 50,
+          source: "MarketRegime",
+          factors: [`Market regime bearish (weak 24h price action + sentiment)`],
+          timestamp: Date.now(),
+        });
+        sources.push("MarketRegime");
+        allFactors.push(`Market regime bearish (weak 24h price action + sentiment)`);
+      } else if (marketContext.marketRegime === "volatile") {
+        allFactors.push(`Market regime volatile (caution advised)`);
       }
+    }
+    if (!sources.includes("MarketRegime")) {
+      triedNoContribution.push("MarketRegime");
     }
 
     // =========================================
-    // 8. Sanbase On-Chain Analytics
+    // 8. Sanbase On-Chain Analytics - use pre-fetched result
     // =========================================
-    const sanbaseService = this.runtime.getService("VINCE_SANBASE_SERVICE") as VinceSanbaseService | null;
-    if (sanbaseService && sanbaseService.isConfigured()) {
-      try {
-        const onChainContext = await sanbaseService.getOnChainContext(asset);
-        
-        // 8a. Exchange Flows (accumulation/distribution)
-        if (onChainContext.exchangeFlows) {
-          const { sentiment } = onChainContext.exchangeFlows;
-          if (sentiment === "accumulation") {
-            // Money flowing OUT of exchanges = bullish (hodling)
-            signals.push({
-              asset,
-              direction: "long",
-              strength: 58,
-              confidence: 55,
-              source: "SanbaseExchangeFlows",
-              factors: [`On-chain accumulation (exchange outflows > inflows)`],
-              timestamp: Date.now(),
-            });
-            sources.push("SanbaseExchangeFlows");
-            allFactors.push(`On-chain accumulation (exchange outflows > inflows)`);
-          } else if (sentiment === "distribution") {
-            // Money flowing INTO exchanges = bearish (selling)
-            signals.push({
-              asset,
-              direction: "short",
-              strength: 58,
-              confidence: 55,
-              source: "SanbaseExchangeFlows",
-              factors: [`On-chain distribution (exchange inflows > outflows)`],
-              timestamp: Date.now(),
-            });
-            sources.push("SanbaseExchangeFlows");
-            allFactors.push(`On-chain distribution (exchange inflows > outflows)`);
-          }
+    if (sanbaseContext) {
+      if (sanbaseContext.exchangeFlows) {
+        const { sentiment } = sanbaseContext.exchangeFlows;
+        if (sentiment === "accumulation") {
+          signals.push({
+            asset,
+            direction: "long",
+            strength: 58,
+            confidence: 55,
+            source: "SanbaseExchangeFlows",
+            factors: [`On-chain accumulation (exchange outflows > inflows)`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseExchangeFlows");
+          allFactors.push(`On-chain accumulation (exchange outflows > inflows)`);
+        } else if (sentiment === "distribution") {
+          signals.push({
+            asset,
+            direction: "short",
+            strength: 58,
+            confidence: 55,
+            source: "SanbaseExchangeFlows",
+            factors: [`On-chain distribution (exchange inflows > outflows)`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseExchangeFlows");
+          allFactors.push(`On-chain distribution (exchange inflows > outflows)`);
         }
-
-        // 8b. Whale Activity
-        if (onChainContext.whaleActivity) {
-          const { sentiment } = onChainContext.whaleActivity;
-          if (sentiment === "bullish") {
-            signals.push({
-              asset,
-              direction: "long",
-              strength: 60,
-              confidence: 58,
-              source: "SanbaseWhales",
-              factors: [`On-chain whale activity bullish (large transactions accumulating)`],
-              timestamp: Date.now(),
-            });
-            sources.push("SanbaseWhales");
-            allFactors.push(`On-chain whale activity bullish (large transactions accumulating)`);
-          } else if (sentiment === "bearish") {
-            signals.push({
-              asset,
-              direction: "short",
-              strength: 60,
-              confidence: 58,
-              source: "SanbaseWhales",
-              factors: [`On-chain whale activity bearish (large transactions distributing)`],
-              timestamp: Date.now(),
-            });
-            sources.push("SanbaseWhales");
-            allFactors.push(`On-chain whale activity bearish (large transactions distributing)`);
-          }
-        }
-        if (sanbaseService && sanbaseService.isConfigured() && !sources.some((s) => s.startsWith("Sanbase"))) {
-          triedNoContribution.push("Sanbase");
-        }
-      } catch (e) {
-        logger.debug(`[VinceSignalAggregator] Sanbase error: ${e}`);
-        if (sanbaseService?.isConfigured()) triedNoContribution.push("Sanbase");
       }
+      if (sanbaseContext.whaleActivity) {
+        const { sentiment } = sanbaseContext.whaleActivity;
+        if (sentiment === "bullish") {
+          signals.push({
+            asset,
+            direction: "long",
+            strength: 60,
+            confidence: 58,
+            source: "SanbaseWhales",
+            factors: [`On-chain whale activity bullish (large transactions accumulating)`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseWhales");
+          allFactors.push(`On-chain whale activity bullish (large transactions accumulating)`);
+        } else if (sentiment === "bearish") {
+          signals.push({
+            asset,
+            direction: "short",
+            strength: 60,
+            confidence: 58,
+            source: "SanbaseWhales",
+            factors: [`On-chain whale activity bearish (large transactions distributing)`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseWhales");
+          allFactors.push(`On-chain whale activity bearish (large transactions distributing)`);
+        }
+      }
+    }
+    if (sanbaseService?.isConfigured() && !sources.some((s) => s.startsWith("Sanbase"))) {
+      triedNoContribution.push("Sanbase");
     }
 
     // =========================================
-    // 9. Hyperliquid Options Pulse & Cross-Venue Funding (external or fallback)
+    // 9. Hyperliquid Options Pulse & Cross-Venue Funding - use pre-fetched results
     // =========================================
-    const hyperliquidService = getOrCreateHyperliquidService(this.runtime);
-    if (hyperliquidService) {
-      // Check if service is rate limited before making calls
-      const isRateLimited = hyperliquidService.isRateLimited?.() ?? false;
-      if (isRateLimited) {
-        logger.debug("[VinceSignalAggregator] Hyperliquid rate limited, skipping API calls");
-      }
-      
-      try {
-        // 9a. Options Pulse - overall bias and squeeze risks
-        // Skip if rate limited - will use cached data or skip
-        const optionsPulse = isRateLimited ? null : await hyperliquidService.getOptionsPulse();
-        
-        if (optionsPulse) {
-          // Overall market bias from perps funding
-          if (optionsPulse.overallBias === "bullish") {
+    if (optionsPulse) {
+      // Overall market bias from perps funding
+      if (optionsPulse.overallBias === "bullish") {
             signals.push({
               asset,
               direction: "long",
@@ -845,12 +867,10 @@ export class VinceSignalAggregatorService extends Service {
               allFactors.push(`${asset} high squeeze risk - ${squeezeDir} squeeze possible`);
             }
           }
-        }
+      }
 
-        // 9b. Cross-Venue Funding (HL vs Binance/Bybit)
-        // Skip if rate limited - will use cached data or skip
-        const crossVenue = isRateLimited ? null : await hyperliquidService.getCrossVenueFunding();
-        if (crossVenue && crossVenue.arbitrageOpportunities.length > 0) {
+      // 9b. Cross-Venue Funding (HL vs Binance/Bybit)
+      if (crossVenue && crossVenue.arbitrageOpportunities.length > 0) {
           // Check if current asset has arbitrage opportunity
           const assetCrossVenue = crossVenue.assets.find(a => a.coin === asset);
           if (assetCrossVenue && assetCrossVenue.isArbitrageOpportunity) {
@@ -883,79 +903,47 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
         }
-        if (hyperliquidService && !sources.some((s) => s === "HyperliquidBias" || s === "HyperliquidCrowding" || s === "CrossVenueFunding")) {
-          triedNoContribution.push("Hyperliquid");
-        }
-      } catch (e) {
-        logger.debug(`[VinceSignalAggregator] Hyperliquid error: ${e}`);
-        if (hyperliquidService) triedNoContribution.push("Hyperliquid");
-      }
+    if (hyperliquidService && !sources.some((s) => s === "HyperliquidBias" || s === "HyperliquidCrowding" || s === "CrossVenueFunding")) {
+      triedNoContribution.push("Hyperliquid");
     }
 
     // =========================================
-    // 10. Deribit Options (Put/Call Ratio + DVOL) - external or fallback
+    // 10. Deribit Options (Put/Call Ratio + DVOL) - use pre-fetched results
     // =========================================
-    const deribitPluginService = getOrCreateDeribitService(this.runtime);
-    if (deribitPluginService) {
-      try {
-        // Map asset to currency
-        const currency = asset === "BTC" ? "BTC" : asset === "ETH" ? "ETH" : asset === "SOL" ? "SOL" : null;
-        
-        if (currency) {
-          // 10a. Put/Call Ratio (contrarian signal)
-          const comprehensiveData = await deribitPluginService.getComprehensiveData(currency as "BTC" | "ETH" | "SOL");
-          if (comprehensiveData?.optionsSummary?.putCallRatio) {
-            const pcRatio = comprehensiveData.optionsSummary.putCallRatio;
-            
-            // High P/C ratio (> 1.3) = too much fear/hedging = contrarian long
-            if (pcRatio > 1.3) {
-              signals.push({
-                asset,
-                direction: "long", // Contrarian
-                strength: 58,
-                confidence: 55,
-                source: "DeribitPutCallRatio",
-                factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`],
-                timestamp: Date.now(),
-              });
-              sources.push("DeribitPutCallRatio");
-              allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`);
-            }
-            // Low P/C ratio (< 0.7) = too much greed/complacency = contrarian short
-            else if (pcRatio < 0.7) {
-              signals.push({
-                asset,
-                direction: "short", // Contrarian
-                strength: 58,
-                confidence: 55,
-                source: "DeribitPutCallRatio",
-                factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`],
-                timestamp: Date.now(),
-              });
-              sources.push("DeribitPutCallRatio");
-              allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`);
-            }
-          }
-
-          // 10b. DVOL (Volatility Index) - only for BTC and ETH
-          if (currency === "BTC" || currency === "ETH") {
-            const dvol = await deribitPluginService.getVolatilityIndex(currency);
-            if (dvol?.current) {
-              const dvolValue = dvol.current;
-              
-              // High DVOL (> 80) = extreme fear/volatility = caution signal (add to factors but not a direction)
-              if (dvolValue > 80) {
-                allFactors.push(`${asset} DVOL ${dvolValue.toFixed(1)} (>80 = extreme volatility - use caution)`);
-              }
-              // Low DVOL (< 40) = complacency = potential breakout coming
-              else if (dvolValue < 40) {
-                allFactors.push(`${asset} DVOL ${dvolValue.toFixed(1)} (<40 = low volatility - breakout possible)`);
-              }
-            }
-          }
-        }
-      } catch (e) {
-        logger.debug(`[VinceSignalAggregator] Deribit plugin error: ${e}`);
+    const pcRatio = comprehensiveData?.optionsSummary?.putCallRatio;
+    if (currency && pcRatio !== undefined) {
+      if (pcRatio > 1.3) {
+        signals.push({
+          asset,
+          direction: "long",
+          strength: 58,
+          confidence: 55,
+          source: "DeribitPutCallRatio",
+          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`],
+          timestamp: Date.now(),
+        });
+        sources.push("DeribitPutCallRatio");
+        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`);
+      } else if (pcRatio < 0.7) {
+        signals.push({
+          asset,
+          direction: "short",
+          strength: 58,
+          confidence: 55,
+          source: "DeribitPutCallRatio",
+          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`],
+          timestamp: Date.now(),
+        });
+        sources.push("DeribitPutCallRatio");
+        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`);
+      }
+    }
+    if (dvol?.current !== undefined) {
+      const dvolValue = dvol.current;
+      if (dvolValue > 80) {
+        allFactors.push(`${asset} DVOL ${dvolValue.toFixed(1)} (>80 = extreme volatility - use caution)`);
+      } else if (dvolValue < 40) {
+        allFactors.push(`${asset} DVOL ${dvolValue.toFixed(1)} (<40 = low volatility - breakout possible)`);
       }
     }
 
@@ -1025,7 +1013,7 @@ export class VinceSignalAggregatorService extends Service {
           "HYPE": "BTCUSDT", // Use BTC as proxy for HYPE
         };
         const symbol = symbolMap[asset] || "BTCUSDT";
-        const takerVolume = await binanceService.getTakerVolume(symbol);
+        const takerVolume = await withTimeout(SOURCE_FETCH_TIMEOUT_MS, "TakerVolume", binanceService.getTakerVolume(symbol));
         
         if (takerVolume) {
           const { buySellRatio } = takerVolume;
@@ -1104,10 +1092,10 @@ export class VinceSignalAggregatorService extends Service {
     try {
       const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
       if (marketData && direction !== "neutral") {
-        const rsiAdj = await marketData.getRSIAdjustment(asset, direction);
-        rsiMultiplier = rsiAdj.multiplier;
-        if (rsiAdj.reason) {
-          allFactors.push(rsiAdj.reason);
+        const rsiAdj = await withTimeout(SOURCE_FETCH_TIMEOUT_MS, "RSI", marketData.getRSIAdjustment(asset, direction));
+        if (rsiAdj) {
+          rsiMultiplier = rsiAdj.multiplier;
+          if (rsiAdj.reason) allFactors.push(rsiAdj.reason);
         }
       }
     } catch (e) {
@@ -1148,7 +1136,7 @@ export class VinceSignalAggregatorService extends Service {
       try {
         const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
         if (marketData) {
-          openWindowInfo = await marketData.getOpenWindowInfo(asset);
+          openWindowInfo = (await withTimeout(SOURCE_FETCH_TIMEOUT_MS, "OpenWindow", marketData.getOpenWindowInfo(asset))) ?? null;
           
           if (openWindowInfo && openWindowInfo.isOpenWindow) {
             const boostResult = calculateOpenWindowBoost(
@@ -1296,14 +1284,20 @@ export class VinceSignalAggregatorService extends Service {
           const prediction = await mlService.predictSignalQuality(input);
           enhanced.mlQualityScore = prediction.value;
 
+          // Use improvement-report threshold when ML service provides it (from training_metadata.json)
+          const minQualityScore =
+            typeof (mlService as { getSignalQualityThreshold?: () => number }).getSignalQualityThreshold === "function"
+              ? (mlService as { getSignalQualityThreshold: () => number }).getSignalQualityThreshold()
+              : ML_CONFIG.minMLQualityScore;
+
           // Adjust confidence based on ML quality score
           if (prediction.value >= ML_CONFIG.boostMLQualityScore) {
             // High quality signal - boost confidence
             enhanced.confidence = Math.min(100, enhanced.confidence + ML_CONFIG.mlConfidenceBoost);
             enhanced.factors.push(`🤖 ML Quality: HIGH (${(prediction.value * 100).toFixed(0)}%) +${ML_CONFIG.mlConfidenceBoost}% confidence`);
             mlAdjusted = true;
-          } else if (prediction.value < ML_CONFIG.minMLQualityScore) {
-            // Low quality signal - reduce confidence
+          } else if (prediction.value < minQualityScore) {
+            // Low quality signal - reduce confidence (threshold from improvement report when available)
             enhanced.confidence = Math.max(0, enhanced.confidence + ML_CONFIG.mlConfidencePenalty);
             enhanced.factors.push(`🤖 ML Quality: LOW (${(prediction.value * 100).toFixed(0)}%) ${ML_CONFIG.mlConfidencePenalty}% confidence`);
             mlAdjusted = true;
@@ -1375,14 +1369,7 @@ export class VinceSignalAggregatorService extends Service {
    */
   async getAllSignals(): Promise<AggregatedSignal[]> {
     const assets = getPaperTradeAssets(this.runtime);
-    const signals: AggregatedSignal[] = [];
-
-    for (const asset of assets) {
-      const signal = await this.getSignal(asset);
-      signals.push(signal);
-    }
-
-    return signals;
+    return Promise.all(assets.map((asset) => this.getSignal(asset)));
   }
 
   /**

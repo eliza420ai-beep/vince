@@ -52,7 +52,7 @@ After each run you get:
 
 Use them to:
 
-- **Rule-based fallbacks** (e.g. `ML_CONFIG.fallback.signalQualityThreshold` in the inference service): set or nudge from the **suggested_signal_quality_threshold**.
+- **Rule-based fallbacks**: The ML inference service reads `training_metadata.json` on startup and, when `improvement_report.suggested_signal_quality_threshold` is present, uses it for fallback logic and exposes it via `getSignalQualityThreshold()`. The signal aggregator uses this threshold for the "low ML quality" cutoff (instead of the static `minMLQualityScore`). So after each training run, the next agent restart applies the suggested threshold automatically.
 - **Parameter tuner** (e.g. min strength/confidence): cross-check with **feature importances**; if “signal_strength” or “signal_confidence” are top for signal quality, those thresholds are good candidates to tune.
 - **TP/SL design**: use **tp_level_performance** to see which levels are worth emphasizing; use SL model and labels when you have `maxAdverseExcursion` in the feature store.
 

@@ -28,6 +28,8 @@ import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "./weightBandit.service";
 import type { VinceSignalSimilarityService } from "./signalSimilarity.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
+import type { VinceMLInferenceService } from "./mlInference.service";
+import type { PositionSizingInput, TPSLInput } from "./mlInference.service";
 import {
   SLIPPAGE,
   FEES,
@@ -176,6 +178,14 @@ export class VincePaperTradingService extends Service {
   
   private getNewsSentiment(): VinceNewsSentimentService | null {
     return this.runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+  }
+
+  /** TP multipliers to use (from improvement report: skip worst-performing level when applicable). */
+  private getTPMultipliersForReport(): number[] {
+    const ml = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+    const indices = (ml as { getTPLevelIndicesToUse?: () => number[] })?.getTPLevelIndicesToUse?.() ?? [0, 1, 2];
+    const mults = indices.map((i) => DEFAULT_TAKE_PROFIT_TARGETS[i]).filter((m): m is number => m != null);
+    return mults.length > 0 ? mults : [...DEFAULT_TAKE_PROFIT_TARGETS];
   }
 
   // ==========================================
@@ -442,6 +452,47 @@ export class VincePaperTradingService extends Service {
         const signal = await signalAggregator.getSignal(asset);
         if (!signal) continue;
 
+        // Block trade when ML quality is below trained threshold (fewer low-quality trades)
+        const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+        if (mlService && typeof (signal as AggregatedSignal).mlQualityScore === "number") {
+          const threshold =
+            typeof (mlService as { getSignalQualityThreshold?: () => number }).getSignalQualityThreshold === "function"
+              ? (mlService as { getSignalQualityThreshold: () => number }).getSignalQualityThreshold()
+              : null;
+          if (threshold != null && (signal as AggregatedSignal).mlQualityScore! < threshold) {
+            if (signal.direction !== "neutral" && signal.strength > 30) {
+              this.logSignalRejection(
+                asset,
+                { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
+                `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`
+              );
+            }
+            continue;
+          }
+        }
+
+        // Improvement report: optional min strength / min confidence (when suggested_tuning is in training_metadata)
+        if (mlService) {
+          const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
+          const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
+          if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
+            this.logSignalRejection(
+              asset,
+              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
+              `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`
+            );
+            continue;
+          }
+          if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
+            this.logSignalRejection(
+              asset,
+              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
+              `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`
+            );
+            continue;
+          }
+        }
+
         // Convert to AggregatedTradeSignal format
         // Now using the proper confirmingCount from multi-source aggregation
         const tradeSignal: AggregatedTradeSignal = {
@@ -548,6 +599,38 @@ export class VincePaperTradingService extends Service {
           baseSizeUsd = baseSizeUsd * streakInfo.multiplier;
           if (streakInfo.reason) {
             logger.info(`[VincePaperTrading] ${asset}: ${streakInfo.reason}`);
+          }
+        }
+
+        // ML position sizing: scale base size by model prediction (when model available)
+        if (mlService) {
+          try {
+            const riskState = riskManager.getRiskState?.();
+            const drawdownPct = riskState?.currentDrawdownPct ?? 0;
+            const lastN = Math.min(20, this.recentTradeOutcomes.length);
+            const recentWinRate =
+              lastN === 0 ? 50 : (this.recentTradeOutcomes.slice(-lastN).filter(Boolean).length / lastN) * 100;
+            const volatilityRegime =
+              regime?.regime === "volatile" ? 2 : regime?.regime === "neutral" ? 0 : 1;
+            const positionInput: PositionSizingInput = {
+              signalQualityScore: (signal as AggregatedSignal).mlQualityScore ?? 0.5,
+              strength: signal.strength,
+              confidence: signal.confidence,
+              volatilityRegime,
+              currentDrawdown: drawdownPct,
+              recentWinRate,
+              streakMultiplier: streakInfo.multiplier,
+            };
+            const sizePred = await mlService.predictPositionSize(positionInput);
+            const mlMultiplier = Math.max(0.5, Math.min(2.0, sizePred.value));
+            baseSizeUsd = baseSizeUsd * mlMultiplier;
+            if (mlMultiplier !== 1.0) {
+              logger.info(
+                `[VincePaperTrading] ${asset} ML position sizing: ${mlMultiplier.toFixed(2)}x (quality=${(positionInput.signalQualityScore * 100).toFixed(0)}% winRate=${recentWinRate.toFixed(0)}%)`
+              );
+            }
+          } catch (e) {
+            logger.debug(`[VincePaperTrading] ML position sizing skip: ${e}`);
           }
         }
 
@@ -769,10 +852,9 @@ export class VincePaperTradingService extends Service {
     entryPrice = entryPrice * slippageMultiplier;
 
     // Calculate ATR-based dynamic stop loss
-    // Calculate ATR-based dynamic stop loss
     let stopLossPct = DEFAULT_STOP_LOSS_PCT; // Default fallback
     let entryATRPct: number | undefined;
-    
+
     if (marketData) {
       try {
         entryATRPct = await marketData.getATRPercent(asset);
@@ -785,8 +867,84 @@ export class VincePaperTradingService extends Service {
     }
 
     const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
-    const defaultSlDistance = entryPrice * (stopLossPct / 100);
-    const takeProfitPrices: number[] = aggressive
+    const regimeService = this.getMarketRegime();
+    const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+    const atrPctForMl = entryATRPct ?? 2.0;
+
+    // Optional: ML TP/SL (use predicted ATR multipliers when models and ATR available)
+    let takeProfitPrices: number[];
+    let stopLossDistance: number;
+    let stopLossPrice: number;
+
+    if (mlService && regimeService && atrPctForMl > 0) {
+      try {
+        const regime = await regimeService.getRegime(asset);
+        const volatilityRegime = regime.regime === "volatile" ? 2 : regime.regime === "neutral" ? 0 : 1;
+        const marketRegime = regime.regime === "trending" ? 1 : regime.regime === "volatile" ? -1 : 0;
+        const tpslInput: TPSLInput = {
+          direction: direction === "long" ? 1 : 0,
+          atrPct: atrPctForMl,
+          strength: signal.strength,
+          confidence: signal.confidence,
+          volatilityRegime,
+          marketRegime,
+        };
+        const [tpPred, slPred] = await Promise.all([
+          mlService.predictTakeProfit(tpslInput),
+          mlService.predictStopLoss(tpslInput),
+        ]);
+        const tpMult = Math.max(1, Math.min(4, tpPred.value));
+        const slMult = Math.max(0.5, Math.min(2.5, slPred.value));
+        const baseTpDistancePrice = entryPrice * (atrPctForMl / 100) * tpMult;
+        takeProfitPrices = aggressive
+          ? [direction === "long" ? entryPrice + baseTpDistancePrice : entryPrice - baseTpDistancePrice]
+          : this.getTPMultipliersForReport().map((mult) =>
+              direction === "long" ? entryPrice + baseTpDistancePrice * mult : entryPrice - baseTpDistancePrice * mult
+            );
+        stopLossPct = Math.max(1, Math.min(4, atrPctForMl * slMult));
+        if (aggressive) {
+          stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, stopLossPct));
+          if (entryATRPct != null) {
+            const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
+            stopLossPct = Math.max(stopLossPct, atrFloorPct);
+          }
+        }
+        stopLossDistance = entryPrice * (stopLossPct / 100);
+        stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
+        logger.debug(
+          `[VincePaperTrading] ${asset} ML TP/SL: TP=${tpMult.toFixed(2)}×ATR SL=${slMult.toFixed(2)}×ATR → SL ${stopLossPct.toFixed(2)}%`
+        );
+      } catch (e) {
+        logger.debug(`[VincePaperTrading] ML TP/SL skip: ${e}`);
+        const defaultSlDistance = entryPrice * (stopLossPct / 100);
+        takeProfitPrices = aggressive
+          ? (() => {
+              const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
+              const pctMove = (targetUsd / sizeUsd) * 100;
+              const tpDistance = entryPrice * (pctMove / 100);
+              const singleTp = direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+              return [singleTp];
+            })()
+          : this.getTPMultipliersForReport().map((multiplier) => {
+              const tpDistance = defaultSlDistance * multiplier;
+              return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+            });
+        if (aggressive && takeProfitPrices.length === 1) {
+          const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
+          const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
+          stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
+          if (entryATRPct != null) {
+            const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
+            stopLossPct = Math.max(stopLossPct, atrFloorPct);
+            stopLossPct = Math.min(stopLossPct, MAX_SL_PCT_AGGRESSIVE);
+          }
+        }
+        stopLossDistance = entryPrice * (stopLossPct / 100);
+        stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
+      }
+    } else {
+      const defaultSlDistance = entryPrice * (stopLossPct / 100);
+      takeProfitPrices = aggressive
       ? (() => {
           const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
           const pctMove = (targetUsd / sizeUsd) * 100;
@@ -794,33 +952,23 @@ export class VincePaperTradingService extends Service {
           const singleTp = direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
           return [singleTp];
         })()
-      : DEFAULT_TAKE_PROFIT_TARGETS.map((multiplier) => {
+      : this.getTPMultipliersForReport().map((multiplier) => {
           const tpDistance = defaultSlDistance * multiplier;
           return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
         });
-
-    // In aggressive mode, set SL so R:R is good (target 1.5:1): max loss = TP / TARGET_RR
-    let stopLossDistance: number;
-    let stopLossPrice: number;
-    if (aggressive && takeProfitPrices.length === 1) {
-      const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
-      const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
-      stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
-      if (entryATRPct != null) {
-        const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
-        stopLossPct = Math.max(stopLossPct, atrFloorPct);
-        stopLossPct = Math.min(stopLossPct, MAX_SL_PCT_AGGRESSIVE);
+      if (aggressive && takeProfitPrices.length === 1) {
+        const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
+        const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
+        stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
+        if (entryATRPct != null) {
+          const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
+          stopLossPct = Math.max(stopLossPct, atrFloorPct);
+          stopLossPct = Math.min(stopLossPct, MAX_SL_PCT_AGGRESSIVE);
+        }
+        logger.debug(`[VincePaperTrading] Aggressive SL for R:R ${TARGET_RR_AGGRESSIVE}:1 → ${stopLossPct.toFixed(2)}%`);
       }
       stopLossDistance = entryPrice * (stopLossPct / 100);
-      stopLossPrice = direction === "long"
-        ? entryPrice - stopLossDistance
-        : entryPrice + stopLossDistance;
-      logger.debug(`[VincePaperTrading] Aggressive SL for R:R ${TARGET_RR_AGGRESSIVE}:1 → ${stopLossPct.toFixed(2)}% (risk ~$${targetSlLossUsd.toFixed(0)})`);
-    } else {
-      stopLossDistance = entryPrice * (stopLossPct / 100);
-      stopLossPrice = direction === "long"
-        ? entryPrice - stopLossDistance
-        : entryPrice + stopLossDistance;
+      stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
     }
 
     // Open position with ATR stored for trailing stop calculations

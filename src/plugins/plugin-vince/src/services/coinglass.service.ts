@@ -17,6 +17,8 @@ import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // Cache TTL
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
+/** Timeout for each HTTP request so slow/hanging APIs don't block indefinitely */
+const FETCH_TIMEOUT_MS = 10_000;
 
 interface CachedData {
   funding: Map<string, FundingData>;
@@ -433,10 +435,8 @@ export class VinceCoinGlassService extends Service {
       const response = await fetch(
         "https://open-api.coinglass.com/public/v2/open_interest?symbol=BTC",
         {
-          headers: { 
-            Accept: "application/json",
-            coinglassSecret: this.apiKey 
-          },
+          headers: { Accept: "application/json", coinglassSecret: this.apiKey! },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         }
       );
       
@@ -487,13 +487,11 @@ export class VinceCoinGlassService extends Service {
     const assets = ["BTC", "ETH", "SOL"];
 
     try {
-      // Fetch data for each asset
-      for (const asset of assets) {
-        await this.fetchAssetData(asset);
-      }
-
-      // Fetch fear/greed
-      await this.fetchFearGreed();
+      // Fetch all assets and fear/greed in parallel
+      await Promise.all([
+        ...assets.map((asset) => this.fetchAssetData(asset)),
+        this.fetchFearGreed(),
+      ]);
 
       this.cache.lastUpdate = now;
     } catch (error) {
@@ -511,61 +509,54 @@ export class VinceCoinGlassService extends Service {
 
   private async fetchCoinGlassData(asset: string): Promise<void> {
     const baseUrl = "https://open-api.coinglass.com";
-    const headers = { 
+    const headers = {
       Accept: "application/json",
-      coinglassSecret: this.apiKey! 
+      coinglassSecret: this.apiKey!,
     };
+    const signal = () => AbortSignal.timeout(FETCH_TIMEOUT_MS);
 
     try {
-      // Open Interest - V2 API with correct endpoint (underscore, not hyphen!)
-      // This is the MAIN value from your $350 subscription - aggregated OI across ALL exchanges
-      const oiRes = await fetch(`${baseUrl}/public/v2/open_interest?symbol=${asset}`, { headers });
+      // Run OI, optional funding, and Binance L/S in parallel
+      const [oiRes, fundingRes, _ls] = await Promise.all([
+        fetch(`${baseUrl}/public/v2/open_interest?symbol=${asset}`, { headers, signal: signal() }),
+        this.cache.funding.has(asset)
+          ? Promise.resolve(null as Response | null)
+          : fetch(`${baseUrl}/public/v2/funding?symbol=${asset}`, { headers, signal: signal() }),
+        this.fetchBinanceLongShort(asset),
+      ]);
+
       if (oiRes.ok) {
         const data = await oiRes.json();
-        // V2 API uses code: "0" for success
         if ((data.code === "0" || data.success) && data.data) {
-          // Find the asset in the response array
-          const assetData = Array.isArray(data.data) 
-            ? data.data.find((d: { symbol: string }) => d.symbol === asset) 
+          const assetData = Array.isArray(data.data)
+            ? data.data.find((d: { symbol: string }) => d.symbol === asset)
             : data.data;
-          
+
           if (assetData) {
-            // Parse change24h - check various possible field names from CoinGlass API
-            // V2 API uses: oichangePercent (24h), h1OIChangePercent (1h), h4OIChangePercent (4h)
-            const rawChange = assetData.oichangePercent 
-              ?? assetData.oiChangePercent  // Alternative casing
-              ?? assetData.h24OIChangePercent 
-              ?? assetData.oiChangePercent24h
-              ?? assetData.change24h;  // Fallback field name
-            
-            // Convert to number, preserving 0 as valid value
+            const rawChange =
+              assetData.oichangePercent ??
+              assetData.oiChangePercent ??
+              assetData.h24OIChangePercent ??
+              assetData.oiChangePercent24h ??
+              assetData.change24h;
             let change24h: number | null = null;
             if (rawChange !== undefined && rawChange !== null) {
-              const parsed = typeof rawChange === 'number' ? rawChange : parseFloat(String(rawChange));
-              if (!isNaN(parsed)) {
-                change24h = parsed;
-              }
+              const parsed = typeof rawChange === "number" ? rawChange : parseFloat(String(rawChange));
+              if (!isNaN(parsed)) change24h = parsed;
             }
-            
-            // Log for debugging when change24h is null
             if (change24h === null) {
-              logger.debug(`[VinceCoinGlass] ${asset} OI: No change24h found. Available fields: ${Object.keys(assetData).join(', ')}`);
+              logger.debug(`[VinceCoinGlass] ${asset} OI: No change24h. Fields: ${Object.keys(assetData).join(", ")}`);
             }
-            
             const oiValue = parseFloat(assetData.openInterest) || 0;
             this.cache.openInterest.set(asset, {
               asset,
               value: oiValue,
-              change24h, // null when data unavailable, 0 is valid
+              change24h,
               timestamp: Date.now(),
             });
-            
-            // Log successful OI fetch with change data
             if (change24h !== null) {
-              logger.debug(`[VinceCoinGlass] ${asset} OI: $${(oiValue / 1e9).toFixed(2)}B, change: ${change24h > 0 ? '+' : ''}${change24h.toFixed(1)}%`);
+              logger.debug(`[VinceCoinGlass] ${asset} OI: $${(oiValue / 1e9).toFixed(2)}B, change: ${change24h > 0 ? "+" : ""}${change24h.toFixed(1)}%`);
             }
-            
-            // Also extract funding rate from OI endpoint if available
             if (assetData.avgFundingRateBySymbol !== undefined) {
               this.cache.funding.set(asset, {
                 asset,
@@ -577,40 +568,21 @@ export class VinceCoinGlassService extends Service {
         }
       }
 
-      // Funding rate - V2 API (backup if not in OI response)
-      if (!this.cache.funding.has(asset)) {
-        const fundingRes = await fetch(`${baseUrl}/public/v2/funding?symbol=${asset}`, { headers });
-        if (fundingRes.ok) {
-          const data = await fundingRes.json();
-          if ((data.code === "0" || data.success) && data.data) {
-            // Find the asset in the response
-            const assetData = Array.isArray(data.data) 
-              ? data.data.find((d: { symbol: string }) => d.symbol === asset) 
-              : data.data;
-            
-            if (assetData?.uMarginList) {
-              // Calculate average funding rate across exchanges
-              const rates = assetData.uMarginList
-                .map((e: { rate: number }) => e.rate)
-                .filter((r: number) => !isNaN(r));
-              const avgRate = rates.length > 0 
-                ? rates.reduce((a: number, b: number) => a + b, 0) / rates.length 
-                : 0;
-              
-              this.cache.funding.set(asset, {
-                asset,
-                rate: avgRate,
-                timestamp: Date.now(),
-              });
-            }
+      if (fundingRes?.ok) {
+        const data = await fundingRes.json();
+        if ((data.code === "0" || data.success) && data.data) {
+          const assetData = Array.isArray(data.data)
+            ? data.data.find((d: { symbol: string }) => d.symbol === asset)
+            : data.data;
+          if (assetData?.uMarginList) {
+            const rates = assetData.uMarginList
+              .map((e: { rate: number }) => e.rate)
+              .filter((r: number) => !isNaN(r));
+            const avgRate = rates.length > 0 ? rates.reduce((a: number, b: number) => a + b, 0) / rates.length : 0;
+            this.cache.funding.set(asset, { asset, rate: avgRate, timestamp: Date.now() });
           }
         }
       }
-
-      // Long/Short ratio - NOT available on CoinGlass V2 API!
-      // Always use Binance free API for this (works great and is free)
-      await this.fetchBinanceLongShort(asset);
-      
     } catch (error) {
       logger.debug(`[VinceCoinGlass] Error fetching ${asset}: ${error}`);
     }
@@ -624,7 +596,8 @@ export class VinceCoinGlassService extends Service {
     try {
       const symbol = `${asset}USDT`;
       const lsRes = await fetch(
-        `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`
+        `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`,
+        { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
       );
       if (lsRes.ok) {
         const data = await lsRes.json();
@@ -646,24 +619,22 @@ export class VinceCoinGlassService extends Service {
   }
 
   private async fetchFreeData(asset: string): Promise<void> {
-    // Use Binance public API for basic data (free fallback)
+    const symbol = `${asset}USDT`;
+    const opts = { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) };
     try {
-      const symbol = `${asset}USDT`;
-      
-      // First, get the current price (needed to calculate OI in USD)
+      const [priceRes, fundingRes, lsRes, oiHistRes] = await Promise.all([
+        fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`, opts),
+        fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`, opts),
+        fetch(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`, opts),
+        fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`, opts),
+      ]);
+
       let price = 0;
-      const priceRes = await fetch(
-        `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`
-      );
       if (priceRes.ok) {
         const priceData = await priceRes.json();
         price = parseFloat(priceData.price) || 0;
       }
-      
-      // Binance funding rate (free)
-      const fundingRes = await fetch(
-        `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`
-      );
+
       if (fundingRes.ok) {
         const data = await fundingRes.json();
         this.cache.funding.set(asset, {
@@ -672,11 +643,6 @@ export class VinceCoinGlassService extends Service {
           timestamp: Date.now(),
         });
       }
-
-      // Binance L/S ratio (free)
-      const lsRes = await fetch(
-        `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`
-      );
       if (lsRes.ok) {
         const data = await lsRes.json();
         if (data[0]) {
@@ -692,11 +658,6 @@ export class VinceCoinGlassService extends Service {
         }
       }
 
-      // Binance OI with historical data (FREE) - use 1h period for recent change
-      // This is the same endpoint VinceBinanceService uses successfully
-      const oiHistRes = await fetch(
-        `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`
-      );
       if (oiHistRes.ok) {
         const histData = await oiHistRes.json() as Array<{ sumOpenInterestValue: string; timestamp: number }>;
         if (Array.isArray(histData) && histData.length > 0) {
@@ -718,22 +679,20 @@ export class VinceCoinGlassService extends Service {
             timestamp: Date.now(),
           });
           
-          logger.debug(`[VinceCoinGlass] ${asset} OI from Binance: $${(current / 1e9).toFixed(2)}B, change: ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(1)}%`);
+          logger.debug(`[VinceCoinGlass] ${asset} OI from Binance: $${(current / 1e9).toFixed(2)}B, change: ${changePercent > 0 ? "+" : ""}${changePercent.toFixed(1)}%`);
         }
-      } else {
-        // Fallback to simple OI endpoint if historical fails
-        const oiRes = await fetch(
-          `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`
-        );
+      }
+
+      if (!this.cache.openInterest.has(asset)) {
+        const oiRes = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`, opts);
         if (oiRes.ok) {
           const data = await oiRes.json();
           const oiQty = parseFloat(data.openInterest) || 0;
           const oiUsd = price > 0 ? oiQty * price : oiQty;
-          
           this.cache.openInterest.set(asset, {
             asset,
             value: oiUsd,
-            change24h: null, // Not available from simple endpoint
+            change24h: null,
             timestamp: Date.now(),
           });
         }
@@ -745,8 +704,9 @@ export class VinceCoinGlassService extends Service {
 
   private async fetchFearGreed(): Promise<void> {
     try {
-      // Alternative.me Fear & Greed (always free)
-      const res = await fetch("https://api.alternative.me/fng/?limit=1");
+      const res = await fetch("https://api.alternative.me/fng/?limit=1", {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.data?.[0]) {

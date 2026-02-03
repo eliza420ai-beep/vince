@@ -2,7 +2,7 @@
 
 **Unified Data Intelligence for the VINCE Agent**
 
-A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. VINCE operates as a quantitative trading assistant with a lifestyle overlay—balancing market analysis with day-of-week aware suggestions for dining, hotels, and activities.
+A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
 
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
@@ -21,6 +21,7 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 - [WHAT - The Plugin's Purpose](#what---the-plugins-purpose)
 - [HOW - Architecture and Implementation](#how---architecture-and-implementation)
 - [V4 - ML-Enhanced Paper Trading](#v4---ml-enhanced-paper-trading)
+- [ML at the Core: What’s Wired in Every Trade](#ml-at-the-core-whats-wired-in-every-trade)
 - [WHY - Design Philosophy](#why---design-philosophy)
 - [Installation and Configuration](#installation-and-configuration)
 - [Usage Examples](#usage-examples)
@@ -31,7 +32,9 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 
 ## Heart of VINCE: Signals → Trades → Learning
 
-The core of VINCE is a **sophisticated, multi-factor paper trading pipeline** that goes far beyond a few real-time data points:
+**The core of this repo is the ML-enhanced paper trading bot.** Every paper trade is shaped by trained models (signal quality, position sizing, take-profit/stop-loss) and by the **improvement report** produced after each training run—so the bot doesn’t just follow rules; it learns from its own outcomes and tightens thresholds, TP levels, and filters over time.
+
+The pipeline is a **sophisticated, multi-factor paper trading system** that goes far beyond a few real-time data points:
 
 1. **Many signal sources, many factors**  
    The [signal aggregator](src/services/signalAggregator.service.ts) pulls from **10+ sources** (CoinGlass, Binance taker flow, market regime, news sentiment, liquidations, Deribit skew, Sanbase flows, Hyperliquid bias, etc.). Each source can add one or more **factors** (e.g. “Funding negative”, “OI +5% (position buildup)”, “Strong taker buy pressure”).  
@@ -84,7 +87,7 @@ VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle a
 - **Open Window Trend Spotting:** Detects major market opens (London, New York) and boosts aligned signals
 - **Grok Expert Daily Pulse:** Automated research suggestions and prompt-of-the-day generation
 - **Early Detection System:** Watchlist management and multi-source alert aggregation
-- **V4 ML Enhancement:** Self-improving trading via Thompson Sampling, Bayesian optimization, and ONNX inference
+- **V4 ML at the Core:** ONNX models (signal quality, position sizing, TP/SL) wired into every trade; improvement report (threshold, TP level skip, min strength/confidence) consumed automatically; Thompson Sampling bandit and similarity lookup for online adaptation
 
 ---
 
@@ -365,6 +368,26 @@ Position sizing uses Kelly Criterion with adjustments:
 
 ## V4 - ML-Enhanced Paper Trading
 
+### ML at the Core: What’s Wired in Every Trade
+
+The paper bot is **ML-first**. Four ONNX models (plus the improvement report) drive sizing, entries, and exits. If models aren’t loaded, rule-based fallbacks keep the bot running.
+
+| Where | What ML does |
+|-------|----------------|
+| **Signal aggregator** | **Signal quality** model scores each signal; score boosts/penalizes confidence. **Similarity** model compares to past trades → "proceed" / "caution" / "avoid" adjusts confidence. |
+| **evaluateAndTrade()** | **Quality gate:** if `mlQualityScore` &lt; threshold from `training_metadata.json`, the trade is **blocked**. **Suggested min strength/confidence** from the improvement report (when present) reject weak signals. **Position sizing:** after all rule-based size adjustments, `predictPositionSize()` applies a 0.5×–2× multiplier from quality, regime, drawdown, win rate, and streak. |
+| **openTrade()** | **TP/SL:** when ATR and regime are available, `predictTakeProfit()` and `predictStopLoss()` set TP distance and SL% from ATR × model multiplier (1–4× for TP, 0.5–2.5× for SL). **TP level preference:** from `tp_level_performance` in the improvement report, the worst-performing level (win rate &lt; 45%, count ≥ 5) is **skipped** when building multiple take-profit levels. |
+
+**Improvement report consumption (training_metadata.json):**
+
+- **suggested_signal_quality_threshold** → used by ML inference and aggregator; trades below it are blocked.
+- **tp_level_performance** → drives which TP levels are used (skip worst).
+- **suggested_tuning.min_strength / min_confidence** → when the training script writes these (from profitable-trade percentiles), the bot rejects signals below them.
+
+**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md`. After 90+ closed trades, re-run training; on next bot restart, new models and thresholds apply. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) for the full improvement checklist and status.
+
+---
+
 ### The Vision: Self-Improving Trading Without External Dependencies
 
 V4 introduces machine learning capabilities that allow the paper trading bot to **learn from its own decisions** and **improve over time**—all within the ElizaOS ecosystem, without requiring external code modification tools like ClawdBot.
@@ -523,9 +546,8 @@ When enough data accumulates, we train XGBoost models offline and export to ONNX
 # Export features from the bot
 elizaos start  # Run for a while, accumulate trades
 
-# Train models (run separately)
-cd src/plugins/plugin-vince/scripts
-python train_models.py --input ../.elizadb/vince-paper-bot/features --output ../models
+# Train models (run separately, from repo root)
+python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 
 # Models are automatically loaded on next start
 ```

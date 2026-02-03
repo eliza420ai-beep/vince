@@ -102,6 +102,13 @@ interface ModelInfo {
   avgLatencyMs: number;
 }
 
+/** TP level performance from improvement report: level key "1"|"2"|"3" -> { win_rate, count }. */
+export interface ImprovementReportTuning {
+  suggested_signal_quality_threshold?: number;
+  tp_level_performance?: Record<string, { win_rate: number; count: number }>;
+  suggested_tuning?: { min_strength?: number; min_confidence?: number };
+}
+
 // ==========================================
 // Configuration
 // ==========================================
@@ -153,7 +160,11 @@ export class VinceMLInferenceService extends Service {
   private modelsLoaded = false;
   private modelInfo: Map<string, ModelInfo> = new Map();
   private predictionCache: Map<string, { result: Prediction; expiry: number }> = new Map();
-  
+  /** Signal quality threshold from improvement report (training_metadata.json); used when no ONNX model. */
+  private suggestedSignalQualityThreshold: number | null = null;
+  /** Cached improvement report for TP level preference and optional tuning. */
+  private improvementReport: ImprovementReportTuning | null = null;
+
   // ONNX runtime session placeholders
   // These will be populated if onnxruntime-node is available
   private signalQualitySession: any = null;
@@ -173,12 +184,13 @@ export class VinceMLInferenceService extends Service {
   }
 
   private async initialize(): Promise<void> {
+    // Load improvement report (threshold, TP level performance, optional tuning)
+    this.loadImprovementReport();
     // Try to load ONNX runtime
     try {
       // Dynamic import to handle cases where onnxruntime is not installed
       this.ort = await import("onnxruntime-node");
       logger.info("[MLInference] ONNX runtime loaded successfully");
-      
       // Try to load models
       await this.loadModels();
     } catch (error) {
@@ -187,6 +199,75 @@ export class VinceMLInferenceService extends Service {
         "Install 'onnxruntime-node' for ML features."
       );
     }
+  }
+
+  /** Read improvement report from training_metadata.json (threshold, tp_level_performance, suggested_tuning). */
+  private loadImprovementReport(): void {
+    try {
+      const metadataPath = path.join(ML_CONFIG.modelsDir, "training_metadata.json");
+      const resolved = path.resolve(metadataPath);
+      if (!fs.existsSync(resolved)) return;
+      const raw = fs.readFileSync(resolved, "utf-8");
+      const meta = JSON.parse(raw) as { improvement_report?: ImprovementReportTuning };
+      const report = meta.improvement_report;
+      if (!report) return;
+      this.improvementReport = report;
+      const t = report.suggested_signal_quality_threshold;
+      if (typeof t === "number" && t >= 0 && t <= 1) {
+        this.suggestedSignalQualityThreshold = t;
+        logger.info(`[MLInference] Using suggested signal quality threshold from report: ${t}`);
+      }
+    } catch {
+      // Ignore missing or invalid file
+    }
+  }
+
+  /** Threshold for signal quality (from improvement report or fallback config). Used by aggregator and fallback logic. */
+  getSignalQualityThreshold(): number {
+    return this.suggestedSignalQualityThreshold ?? ML_CONFIG.fallback.signalQualityThreshold;
+  }
+
+  /**
+   * TP level indices to use when building takeProfitPrices (0-based).
+   * From improvement report: skip the worst-performing level if win_rate < 0.45 and count >= 5.
+   * Default [0, 1, 2] when no report or no tp_level_performance.
+   */
+  getTPLevelIndicesToUse(): number[] {
+    const perf = this.improvementReport?.tp_level_performance;
+    if (!perf || typeof perf !== "object") return [0, 1, 2];
+    const levels = ["1", "2", "3"];
+    const minCount = 5;
+    const worstWinRateThreshold = 0.45;
+    let worstLevel: string | null = null;
+    let worstRate = 1;
+    for (const key of levels) {
+      const stat = perf[key];
+      if (!stat || stat.count < minCount) continue;
+      const rate = typeof stat.win_rate === "number" ? stat.win_rate : 0;
+      if (rate < worstRate && rate < worstWinRateThreshold) {
+        worstRate = rate;
+        worstLevel = key;
+      }
+    }
+    if (worstLevel == null) return [0, 1, 2];
+    const skipIndex = levels.indexOf(worstLevel);
+    const indices = [0, 1, 2].filter((i) => i !== skipIndex);
+    if (indices.length > 0) {
+      logger.info(`[MLInference] TP level preference: skip level ${worstLevel} (win_rate ${(worstRate * 100).toFixed(0)}%), use indices [${indices.join(", ")}]`);
+    }
+    return indices.length > 0 ? indices : [0, 1, 2];
+  }
+
+  /** Suggested min strength from improvement report (if present). Otherwise null. */
+  getSuggestedMinStrength(): number | null {
+    const v = this.improvementReport?.suggested_tuning?.min_strength;
+    return typeof v === "number" && v >= 0 && v <= 100 ? v : null;
+  }
+
+  /** Suggested min confidence from improvement report (if present). Otherwise null. */
+  getSuggestedMinConfidence(): number | null {
+    const v = this.improvementReport?.suggested_tuning?.min_confidence;
+    return typeof v === "number" && v >= 0 && v <= 100 ? v : null;
   }
 
   async stop(): Promise<void> {
@@ -513,10 +594,11 @@ export class VinceMLInferenceService extends Service {
   private fallbackPositionSize(input: PositionSizingInput, startTime: number): Prediction {
     let multiplier = 1.0;
     
-    // Quality score influence
-    if (input.signalQualityScore > 0.7) {
+    // Quality score influence (use threshold from improvement report when available)
+    const threshold = this.getSignalQualityThreshold();
+    if (input.signalQualityScore > threshold + 0.2) {
       multiplier *= 1.2;
-    } else if (input.signalQualityScore < 0.5) {
+    } else if (input.signalQualityScore < threshold) {
       multiplier *= 0.8;
     }
     

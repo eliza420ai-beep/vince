@@ -248,7 +248,8 @@ export class VinceNewsSentimentService extends Service {
     for (const news of topHeadlines) {
       const emoji = news.sentiment === "bullish" ? "🟢" : news.sentiment === "bearish" ? "🔴" : "⚪";
       const impactTag = news.impact === "high" ? "❗" : "";
-      const headline = (news.headline?.length ?? 0) > 55 ? (news.headline ?? "").substring(0, 52) + "..." : (news.headline ?? "");
+      const title = news.title ?? "";
+      const headline = title.length > 55 ? title.substring(0, 52) + "..." : title;
       logLine(`${emoji}${impactTag} ${headline}`);
     }
     if (riskEvents.length > 0) {
@@ -258,10 +259,11 @@ export class VinceNewsSentimentService extends Service {
       logLine("⚠️  ACTIVE RISK EVENTS:");
       for (const event of riskEvents.slice(0, 3)) {
         const sevEmoji = event.severity === "critical" ? "🚨" : event.severity === "high" ? "⚠️" : "⚡";
-        const desc = event.description.length > 52 ? event.description.substring(0, 49) + "..." : event.description;
+        const desc = (event.description?.length ?? 0) > 52 ? (event.description ?? "").substring(0, 49) + "..." : (event.description ?? "");
         logLine(`${sevEmoji} ${desc}`);
-        if (event.affectedAssets.length > 0) {
-          logLine(`   Affects: ${event.affectedAssets.slice(0, 5).join(", ")}`);
+        const assets = event.assets ?? [];
+        if (assets.length > 0) {
+          logLine(`   Affects: ${assets.slice(0, 5).join(", ")}`);
         }
       }
     }
