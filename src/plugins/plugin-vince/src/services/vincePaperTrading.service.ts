@@ -969,16 +969,18 @@ export class VincePaperTradingService extends Service {
     console.log(line("  RISK MANAGEMENT"));
     console.log(empty);
     const slStr = stopLossPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    console.log(line(`  Stop-Loss    $${pad(slStr, 14)}  ${slPct.toFixed(1)}%  →  -$${slLoss.toFixed(0)}`));
+    console.log(line(`  Stop-Loss   $${slStr}  (${slPct.toFixed(1)}%)`));
+    console.log(line(`  If hit      -$${slLoss.toFixed(0)}`));
     if (takeProfitPrices.length > 0) {
       const tp1Str = takeProfitPrices[0].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const tp1Suffix = isSingleTpAggressive ? `  [$${TAKE_PROFIT_USD_AGGRESSIVE}]` : "";
-      console.log(line(`  Take-Profit  $${pad(tp1Str, 14)}  ${tp1Pct.toFixed(1)}%  →  +$${tp1Profit.toFixed(0)}${tp1Suffix}`));
+      console.log(line(`  Take-Profit $${tp1Str}  (${tp1Pct.toFixed(1)}%)`));
+      console.log(line(`  If hit      +$${tp1Profit.toFixed(0)}${isSingleTpAggressive ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]` : ""}`));
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
         const tp2Profit = sizeUsd * (tp2Pct / 100);
         const tp2Str = takeProfitPrices[1].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        console.log(line(`               $${pad(tp2Str, 14)}  ${tp2Pct.toFixed(1)}%  →  +$${tp2Profit.toFixed(0)}`));
+        console.log(line(`  TP2         $${tp2Str}  (${tp2Pct.toFixed(1)}%)`));
+        console.log(line(`  If hit      +$${tp2Profit.toFixed(0)}`));
       }
     }
     console.log(line(`  R:R (TP1 vs SL)  ${rrRatio}:1  ${rrLabel}`));
