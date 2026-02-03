@@ -342,9 +342,12 @@ export class VinceNFTFloorService extends Service {
       };
 
       this.floorCache.set(collection.slug, nftCollection);
-      
-      // Log with real gap data
-      logger.info(`[VinceNFTFloor] ✅ ${collection.slug}: ${analysis.floorPrice.toFixed(2)} ETH | ${thickness.description} (score: ${thickness.score}) | Gap to 2nd: ${thickness.gaps.to2nd.toFixed(3)} ETH`);
+
+      // Only log collections worth displaying: gap to 2nd listing >= 0.21 ETH
+      const MIN_GAP_TO_2ND_ETH = 0.21;
+      if (thickness.gaps.to2nd >= MIN_GAP_TO_2ND_ETH) {
+        logger.info(`[VinceNFTFloor] ✅ ${collection.slug}: ${analysis.floorPrice.toFixed(2)} ETH | ${thickness.description} (score: ${thickness.score}) | Gap to 2nd: ${thickness.gaps.to2nd.toFixed(3)} ETH`);
+      }
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
