@@ -1,28 +1,44 @@
 # VINCE
 
-This is the starter template for ElizaOS projects.
+Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
+
+## Star feature: self-improving paper trading bot
+
+The most novel piece in this repo is the **paper trading bot that gets better over time** using machine learning:
+
+1. **Paper trading** — Runs simulated perpetuals (Hyperliquid-style) with real signals, risk limits, session filters, and goal tracking ($/day, $/month).
+2. **Feature store** — Records 40+ features per trading decision (market, session, signal, regime, news, execution, outcome) to JSONL and optionally Supabase for ML.
+3. **Online adaptation** — Thompson Sampling (weight bandit) and signal-similarity lookup adjust behavior from live outcomes; a Bayesian parameter tuner refines thresholds.
+4. **Offline ML** — A Python script (`plugin-vince/scripts/train_models.py`) trains XGBoost models (signal quality, position sizing, TP/SL) and exports to ONNX.
+5. **ONNX at runtime** — The bot loads ONNX models for signal-quality and sizing decisions, with rule-based fallbacks when models aren’t trained yet.
+
+**Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
+
+See `src/plugins/plugin-vince/` for the implementation (services: feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
 ## Features
 
-- Pre-configured project structure for ElizaOS development
-- Comprehensive testing setup with component and e2e tests
-- Default character configuration with plugin integration
-- Example service, action, and provider implementations
-- TypeScript configuration for optimal developer experience
-- Built-in documentation and examples
+- **VINCE agent** — Unified orchestrator across 7 areas: OPTIONS, PERPS, MEMETICS, AIRDROPS, DEFI, LIFESTYLE, ART
+- **Self-improving paper trading bot** — ML pipeline above; no live execution, suggest and inform only
+- **Teammate context** — USER/SOUL/TOOLS/MEMORY files loaded every session so the agent behaves like a teammate, not a generic chatbot
+- **Data sources** — Deribit, CoinGlass, Binance, DexScreener, Meteora, Nansen, Sanbase, OpenSea (with fallbacks when APIs are absent)
+- **ElizaOS** — Character-driven, plugin-based; Postgres/Supabase for production
 
 ## Getting Started
 
 ```bash
-# Create a new project
-elizaos create --type project my-project
-# Dependencies are automatically installed and built
+# Install and build
+bun install
+bun run build
 
-# Navigate to the project directory
-cd my-project
+# Copy env and add API keys (see .env.example)
+cp .env.example .env
 
-# Start development immediately
+# Start VINCE (development with hot-reload)
 elizaos dev
+
+# Or start without hot-reload (uses Postgres when POSTGRES_URL is set)
+bun start
 ```
 
 ## Development
@@ -128,10 +144,9 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 
 ## Configuration
 
-Customize your project by modifying:
-
-- `src/index.ts` - Main entry point
-- `src/character.ts` - Character definition
+- `src/agents/vince.ts` — VINCE character and agent; knowledge dirs, system prompt, plugins
+- `src/plugins/plugin-vince/` — Paper bot, ML services, actions, providers
+- `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md (loaded every session)
 
 ## Troubleshooting
 
