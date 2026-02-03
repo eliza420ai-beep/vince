@@ -347,6 +347,14 @@ SESSION NOTES
   trades BTC) added. Goal: more closed trades → more JSONL in .elizadb/vince-paper-bot/features
   → faster path to 90+ records for ONNX training and better ML script testing. See
   FEATURE-STORE.md “Aggressive paper trading” and “Paper bot: focus on one asset”; .env.example.
+- Strong-signal confirming override: We need more training data, so more trades (and higher
+  leverage where appropriate). Bot was correctly requiring 3 confirming sources for BTC, but
+  was blocking strong signals (e.g. 65% strength, 67% confidence) that had only 2 agreeing
+  sources. Added MIN_CONFIRMING_WHEN_STRONG=2 in paperTradingDefaults (SIGNAL_THRESHOLDS):
+  when strength >= STRONG_STRENGTH (60) and confidence >= HIGH_CONFIDENCE (55), allow 2
+  confirming signals instead of 3. Risk manager uses this in validateSignal(); HYPE still
+  uses 2 always. Tuning this constant (or the strength/confidence bar) controls trade
+  frequency vs. confluence. See vinceRiskManager.service.ts and paperTradingDefaults.ts.
 
 2026-02-02:
 - Created progress.txt

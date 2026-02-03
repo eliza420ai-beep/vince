@@ -447,11 +447,21 @@ export class VinceRiskManagerService extends Service {
 
     // Check confirming signals
     // HYPE has fewer signal sources (only on Hyperliquid), so use lower minimum
-    const minConfirming = signal.asset === "HYPE" ? 2 : this.limits.minConfirmingSignals;
+    // Strong-signal override: when strength/confidence are high, allow MIN_CONFIRMING_WHEN_STRONG (more trades → more training data)
+    const strongStrength = SIGNAL_THRESHOLDS.STRONG_STRENGTH;
+    const strongConfidence = SIGNAL_THRESHOLDS.HIGH_CONFIDENCE;
+    const minConfirmingWhenStrong = SIGNAL_THRESHOLDS.MIN_CONFIRMING_WHEN_STRONG;
+    const isStrongSignal = signal.strength >= strongStrength && signal.confidence >= strongConfidence;
+    const minConfirming =
+      signal.asset === "HYPE"
+        ? 2
+        : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
+          ? minConfirmingWhenStrong
+          : this.limits.minConfirmingSignals;
     if (signal.confirmingCount < minConfirming) {
-      return { 
-        valid: false, 
-        reason: `Only ${signal.confirmingCount} confirming signals, need ${minConfirming}` 
+      return {
+        valid: false,
+        reason: `Only ${signal.confirmingCount} confirming signals, need ${minConfirming}`,
       };
     }
 

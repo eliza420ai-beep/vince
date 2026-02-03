@@ -219,18 +219,24 @@ export const FEES = {
 export const SIGNAL_THRESHOLDS = {
   /** Minimum strength to consider trading (Learning Mode - aggressive) */
   MIN_STRENGTH: 40,
-  
+
   /** Minimum confidence to consider trading (Learning Mode - aggressive) */
   MIN_CONFIDENCE: 35,
-  
+
   /** Minimum confirming signals (keep conservative for direction confirmation) */
   MIN_CONFIRMING: 3,
-  
-  /** Strong signal threshold */
+
+  /** Strong signal threshold (used for strong-signal confirming override) */
   STRONG_STRENGTH: 60,
-  
-  /** High confidence threshold */
+
+  /** High confidence threshold (used for strong-signal confirming override) */
   HIGH_CONFIDENCE: 55,
+
+  /**
+   * When strength >= STRONG_STRENGTH and confidence >= HIGH_CONFIDENCE, allow this many
+   * confirming sources instead of MIN_CONFIRMING. Lower = more trades = more training data.
+   */
+  MIN_CONFIRMING_WHEN_STRONG: 2,
 } as const;
 
 // ==========================================
