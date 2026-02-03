@@ -110,7 +110,8 @@ export class VincePositionManagerService extends Service {
   getCurrentExposure(): number {
     let totalExposure = 0;
     for (const position of this.positions.values()) {
-      totalExposure += position.sizeUsd;
+      const margin = position.marginUsd ?? position.sizeUsd / position.leverage;
+      totalExposure += margin;
     }
     return totalExposure;
   }
@@ -178,21 +179,28 @@ export class VincePositionManagerService extends Service {
       factors.push(`Elevated drawdown (-25%)`);
     }
 
-    // Apply exposure limit
-    const maxExposure = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
-    const availableExposure = maxExposure - currentExposure;
+    // Apply exposure limit (margin based)
+    const maxExposureMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
+    const availableMargin = Math.max(0, maxExposureMargin - currentExposure);
     
-    let sizeUsd = currentCapital * (sizePct / 100);
-    if (sizeUsd > availableExposure) {
-      sizeUsd = availableExposure;
+    let targetMargin = currentCapital * (sizePct / 100);
+    if (targetMargin > availableMargin) {
+      targetMargin = availableMargin;
       factors.push("Exposure limit applied");
     }
-
-    // Minimum size check
+    
+    const leverage = DEFAULT_LEVERAGE;
+    let sizeUsd = targetMargin * leverage;
+    
+    // Minimum size check (notional)
     sizeUsd = Math.max(1000, sizeUsd);
+    const marginUsed = sizeUsd / leverage;
+    
+    if (marginUsed > availableMargin && availableMargin > 0) {
+      sizeUsd = availableMargin * leverage;
+    }
 
     // Calculate risk metrics
-    const leverage = DEFAULT_LEVERAGE;
     const stopLossPct = DEFAULT_STOP_LOSS_PCT / 100;
     const riskUsd = sizeUsd * stopLossPct;
     const riskPct = (riskUsd / currentCapital) * 100;
@@ -311,6 +319,8 @@ export class VincePositionManagerService extends Service {
       ? entryPrice - liquidationDistance 
       : entryPrice + liquidationDistance;
 
+    const margin = sizeUsd / leverage;
+
     const position: Position = {
       id: uuidv4(),
       asset,
@@ -318,6 +328,7 @@ export class VincePositionManagerService extends Service {
       status: "open",
       entryPrice,
       sizeUsd,
+      marginUsd: margin,
       leverage,
       stopLossPrice,
       takeProfitPrices,
@@ -336,7 +347,6 @@ export class VincePositionManagerService extends Service {
     this.positions.set(position.id, position);
     
     // Deduct position margin from balance
-    const margin = sizeUsd / leverage;
     this.portfolio.balance -= margin;
     this.portfolio.tradeCount++;
 
@@ -373,7 +383,7 @@ export class VincePositionManagerService extends Service {
     position.unrealizedPnlPct = 0;
 
     // Update portfolio
-    const margin = position.sizeUsd / position.leverage;
+    const margin = position.marginUsd ?? position.sizeUsd / position.leverage;
     this.portfolio.balance += margin + realizedPnl;
     this.portfolio.realizedPnl += realizedPnl;
     
@@ -648,6 +658,7 @@ export class VincePositionManagerService extends Service {
 
     // Update position
     position.sizeUsd = remainingSize;
+    position.marginUsd = remainingSize / position.leverage;
     position.partialProfitsTaken = profitsTaken + 1;
 
     // Move stop to breakeven after first partial
@@ -712,6 +723,9 @@ export class VincePositionManagerService extends Service {
     this.portfolio = { ...state.portfolio, lastUpdate: Date.now() };
     this.positions.clear();
     for (const position of state.positions) {
+      if (position.marginUsd === undefined || position.marginUsd === null) {
+        position.marginUsd = position.sizeUsd / position.leverage;
+      }
       if (position.status === "open") {
         this.positions.set(position.id, position);
       }

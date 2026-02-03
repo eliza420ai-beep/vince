@@ -338,6 +338,8 @@ export class VinceFeatureStoreService extends Service {
   private static readonly FUNDING_DELTA_WINDOW_MS = 8 * 60 * 60 * 1000;
   private static readonly PRICE_HISTORY_LEN = 20;
   private static readonly BINANCE_DEPTH_TIMEOUT_MS = 5000;
+  /** Max wait per external fetch so one slow API doesn't block feature collection */
+  private static readonly FEATURE_FETCH_TIMEOUT_MS = 6_000;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -605,6 +607,26 @@ export class VinceFeatureStoreService extends Service {
   // Feature Collection Helpers
   // ==========================================
 
+  /** Resolve to null on timeout so one slow API doesn't block feature collection */
+  private async withTimeout<T>(
+    ms: number,
+    label: string,
+    p: Promise<T>
+  ): Promise<T | null> {
+    try {
+      const result = await Promise.race([
+        p,
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`${label} timeout`)), ms)
+        ),
+      ]);
+      return result as T;
+    } catch (e) {
+      logger.debug(`[VinceFeatureStore] ${label} timed out or error: ${e}`);
+      return null;
+    }
+  }
+
   private async collectMarketFeatures(asset: string): Promise<MarketFeatures> {
     const marketDataService = this.runtime.getService(
       "VINCE_MARKET_DATA_SERVICE"
@@ -613,35 +635,45 @@ export class VinceFeatureStoreService extends Service {
       "VINCE_COINGLASS_SERVICE"
     ) as VinceCoinGlassService | null;
 
+    const t = VinceFeatureStoreService.FEATURE_FETCH_TIMEOUT_MS;
+
+    // Run all async fetches in parallel with timeouts (one slow API won't block the rest)
+    const [context, depthResult, dvolResult, rsiResult, atrResult] = await Promise.all([
+      marketDataService
+        ? this.withTimeout(t, "MarketContext", marketDataService.getEnrichedContext(asset))
+        : Promise.resolve(null),
+      this.withTimeout(t, "BinanceDepth", this.fetchBinanceDepth(asset)),
+      marketDataService && typeof (marketDataService as any).getDVOL === "function"
+        ? this.withTimeout(t, "DVOL", (marketDataService as any).getDVOL(asset))
+        : Promise.resolve(null),
+      marketDataService && typeof (marketDataService as any).estimateRSI === "function"
+        ? this.withTimeout(t, "RSI", (marketDataService as any).estimateRSI(asset))
+        : Promise.resolve(null),
+      marketDataService && typeof (marketDataService as any).getATRPercent === "function"
+        ? this.withTimeout(t, "ATR", (marketDataService as any).getATRPercent(asset))
+        : Promise.resolve(this.getDefaultAtrPct(asset)),
+    ]);
+
     let price = 0;
     let priceChange24h = 0;
     let volume24h = 0;
     let volumeRatio = 1.0;
     let fundingRate = 0;
-    let openInterest = 0;
     let longShortRatio = 1.0;
     let fearGreedIndex: number | null = null;
-
-    // Get market data (single call for price, funding, L/S, volumeRatio, optional volume24h)
-    if (marketDataService) {
-      try {
-        const context = await marketDataService.getEnrichedContext(asset);
-        if (context) {
-          price = context.currentPrice;
-          priceChange24h = context.priceChange24h;
-          fundingRate = context.fundingRate;
-          longShortRatio = context.longShortRatio;
-          fearGreedIndex = context.fearGreedValue;
-          volumeRatio = context.volumeRatio;
-          const v = (context as { volume24h?: number }).volume24h;
-          if (typeof v === "number") volume24h = v;
-        }
-      } catch (e) {
-        logger.debug(`[VinceFeatureStore] Market data error: ${e}`);
-      }
+    if (context) {
+      price = context.currentPrice;
+      priceChange24h = context.priceChange24h;
+      fundingRate = context.fundingRate;
+      longShortRatio = context.longShortRatio;
+      fearGreedIndex = context.fearGreedValue;
+      volumeRatio = context.volumeRatio;
+      const v = (context as { volume24h?: number }).volume24h;
+      if (typeof v === "number") volume24h = v;
     }
 
-    // CoinGlass / OI: use getOpenInterest (has value + change24h)
+    // CoinGlass / OI (sync)
+    let openInterest = 0;
     let oiChange24h = 0;
     if (coinglassService) {
       try {
@@ -650,8 +682,7 @@ export class VinceFeatureStoreService extends Service {
           openInterest = oi.value;
           if (oi.change24h != null && !Number.isNaN(oi.change24h)) oiChange24h = oi.change24h;
         }
-        // Volume from funding/OI path if we don't have it yet (Binance free path may set it)
-        const funding = coinglassService.getFunding(asset);
+        coinglassService.getFunding(asset);
       } catch (e) {
         logger.debug(`[VinceFeatureStore] CoinGlass error: ${e}`);
       }
@@ -671,7 +702,7 @@ export class VinceFeatureStoreService extends Service {
       );
       if (closest && Math.abs(closest.ts - targetTs) < 2 * 60 * 60 * 1000) {
         fundingDelta = fundingRate - closest.rate;
-          }
+      }
     }
 
     // Price SMA20: rolling window of closes
@@ -689,29 +720,12 @@ export class VinceFeatureStoreService extends Service {
       }
     }
 
-    // Binance order book (depth) for book imbalance and bid-ask spread
-    const { bookImbalance, bidAskSpread } = await this.fetchBinanceDepth(asset);
-
-    // DVOL (Deribit) and RSI estimate from market data service
-    let dvol: number | null = null;
-    let rsi14: number | null = null;
-    let atrPct = this.getDefaultAtrPct(asset);
-    if (marketDataService) {
-      try {
-        if (typeof (marketDataService as any).getDVOL === "function") {
-          dvol = await (marketDataService as any).getDVOL(asset);
-        }
-        if (typeof (marketDataService as any).estimateRSI === "function") {
-          const rsiOut = await (marketDataService as any).estimateRSI(asset);
-          if (rsiOut?.rsi != null) rsi14 = rsiOut.rsi;
-        }
-        if (typeof (marketDataService as any).getATRPercent === "function") {
-          atrPct = await (marketDataService as any).getATRPercent(asset);
-        }
-      } catch (e) {
-        logger.debug(`[VinceFeatureStore] MarketData DVOL/RSI/ATR error: ${e}`);
-      }
-    }
+    const { bookImbalance, bidAskSpread } = depthResult ?? { bookImbalance: null, bidAskSpread: null };
+    const dvol: number | null = (dvolResult as number | null) ?? null;
+    const rsiVal = (rsiResult as { rsi?: number } | null)?.rsi;
+    const rsi14: number | null = rsiVal != null ? rsiVal : null;
+    const atrPct: number =
+      typeof atrResult === "number" ? atrResult : this.getDefaultAtrPct(asset);
 
     return {
       price,

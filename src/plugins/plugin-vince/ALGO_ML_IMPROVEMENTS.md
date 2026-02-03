@@ -250,3 +250,33 @@ Use this after you have **90+ closed trades** (or enough for a meaningful train 
 
 6. **Optional: improvement report in code**
    - [ ] If you implemented “consume improvement report” (e.g. min strength, TP level preference), re-run training and update the tuning file so the bot picks up new suggestions.
+
+---
+
+## Latest training run (2026-02-03)
+
+**Data:** 1,287 records, 1,250 trades with outcomes (real + synthetic). Models trained and deployed to `src/plugins/plugin-vince/models/`.
+
+**Applied from `training_metadata.json`:**
+- `suggested_tuning`: min_strength 54, min_confidence 48
+- `suggested_signal_quality_threshold`: 0.48
+
+**TP level performance (win rate):**
+- TP0: 59.9% (309 trades)
+- TP1: 54.8% (294)
+- TP2: 53.0% (347) — review weight/tighten conditions
+- TP3: 55.3% (300)
+
+**Top feature importances (signal_quality):** regime_bearish, asset_BTC, regime_volatility_high, signal_hasWhaleSignal, session_utcHour, market_fundingPercentile, signal_confidence, market_oiChange24h.
+
+**Backlog (suggested signal factors to populate):**
+- Funding 8h delta
+- Order book imbalance
+- Bid-ask spread
+- Price vs SMA20
+- DVOL / volatility index
+- NASDAQ 24h change
+- ETF flow (BTC/ETH)
+- Macro risk environment
+- Signal source sentiment (20% non-null — consider boosting)
+

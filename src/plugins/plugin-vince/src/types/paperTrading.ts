@@ -36,6 +36,9 @@ export interface Position {
   /** Position size in USD */
   sizeUsd: number;
   
+  /** Margin posted in USD (sizeUsd / leverage) */
+  marginUsd: number;
+
   /** Leverage used */
   leverage: number;
   

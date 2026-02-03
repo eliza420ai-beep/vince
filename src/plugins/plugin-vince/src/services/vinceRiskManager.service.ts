@@ -495,28 +495,33 @@ export class VinceRiskManagerService extends Service {
       return { valid: false, reason: `Leverage ${leverage}x exceeds maximum ${this.limits.maxLeverage}x` };
     }
 
-    // Check position size
-    const maxPositionSize = (portfolioValue * this.limits.maxPositionSizePct) / 100;
-    if (sizeUsd > maxPositionSize) {
-      return { 
-        valid: true, 
-        reason: `Position size reduced to ${this.limits.maxPositionSizePct}% of portfolio`,
-        adjustedSize: maxPositionSize,
+    const positionMargin = sizeUsd / leverage;
+
+    // Check position size (margin-based)
+    const maxPositionMargin = (portfolioValue * this.limits.maxPositionSizePct) / 100;
+    if (positionMargin > maxPositionMargin) {
+      if (maxPositionMargin <= 0) {
+        return { valid: false, reason: "Insufficient margin allowance for new position" };
+      }
+      return {
+        valid: true,
+        reason: `Position margin reduced to ${this.limits.maxPositionSizePct}% of portfolio`,
+        adjustedSize: maxPositionMargin * leverage,
       };
     }
 
     // Check total exposure
-    const newExposure = currentExposure + sizeUsd;
+    const newExposure = currentExposure + positionMargin;
     const maxExposure = (portfolioValue * this.limits.maxTotalExposurePct) / 100;
     if (newExposure > maxExposure) {
-      const availableExposure = maxExposure - currentExposure;
-      if (availableExposure <= 0) {
+      const availableMargin = maxExposure - currentExposure;
+      if (availableMargin <= 0) {
         return { valid: false, reason: "Maximum total exposure reached" };
       }
       return {
         valid: true,
-        reason: `Position size reduced to fit exposure limits`,
-        adjustedSize: availableExposure,
+        reason: `Position margin reduced to fit exposure limits`,
+        adjustedSize: availableMargin * leverage,
       };
     }
 

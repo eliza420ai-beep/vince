@@ -405,31 +405,35 @@ export class VinceGoalTrackerService extends Service {
     // Size = Target / (ExpectedWin% * Leverage)
     let targetSize = targetPerTrade / (expectedWinPct * leverage);
 
-    // Apply risk limits
-    const maxPositionSize = currentCapital * (DEFAULT_RISK_LIMITS.maxPositionSizePct / 100);
+    // Apply risk limits (margin-based)
+    const maxPositionMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxPositionSizePct / 100);
     const maxRiskUsd = currentCapital * (this.goal.riskPerTradePct / 100);
     const riskBasedMaxSize = maxRiskUsd / stopLossPct;
+    const riskBasedMaxMargin = riskBasedMaxSize / leverage;
 
-    // Available exposure
-    const maxExposure = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
-    const availableExposure = maxExposure - currentExposure;
+    const maxExposureMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
+    const availableMargin = Math.max(0, maxExposureMargin - currentExposure);
 
-    // Final size is minimum of all constraints
-    let sizeUsd = Math.min(
-      targetSize,
-      maxPositionSize,
-      riskBasedMaxSize,
-      availableExposure,
+    const targetMargin = targetSize / leverage;
+
+    let marginToUse = Math.min(
+      targetMargin,
+      maxPositionMargin,
+      riskBasedMaxMargin,
+      availableMargin
     );
+    marginToUse = Math.max(0, marginToUse);
+
+    let sizeUsd = marginToUse * leverage;
 
     // Track which constraint was binding
-    if (sizeUsd === targetSize) {
+    if (marginToUse === targetMargin) {
       factors.push("Goal-based sizing");
-    } else if (sizeUsd === maxPositionSize) {
+    } else if (marginToUse === maxPositionMargin) {
       factors.push(`Capped at ${DEFAULT_RISK_LIMITS.maxPositionSizePct}% max position`);
-    } else if (sizeUsd === riskBasedMaxSize) {
+    } else if (marginToUse === riskBasedMaxMargin) {
       factors.push(`Risk-limited to ${this.goal.riskPerTradePct}% of capital`);
-    } else if (sizeUsd === availableExposure) {
+    } else if (marginToUse === availableMargin) {
       factors.push("Exposure limit reached");
     }
 
@@ -444,6 +448,11 @@ export class VinceGoalTrackerService extends Service {
 
     // Ensure minimum size
     sizeUsd = Math.max(1000, sizeUsd); // Minimum $1000 position
+    marginToUse = sizeUsd / leverage;
+    if (marginToUse > availableMargin && availableMargin > 0) {
+      marginToUse = availableMargin;
+      sizeUsd = availableMargin * leverage;
+    }
 
     // Calculate risk/reward
     const riskUsd = sizeUsd * stopLossPct;
