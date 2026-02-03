@@ -179,6 +179,13 @@ export const TAKE_PROFIT_USD: number | null = null;
 /** Used when vince_paper_aggressive is true: take profit at $210 (half daily target). */
 export const TAKE_PROFIT_USD_AGGRESSIVE = 210;
 
+/** Target R:R in aggressive mode; SL is set so max loss = TP / this (e.g. 1.5 → risk $140 for $210 TP). */
+export const TARGET_RR_AGGRESSIVE = 1.5;
+/** Min SL % in aggressive mode (avoid noise stops). */
+export const MIN_SL_PCT_AGGRESSIVE = 0.4;
+/** Max SL % in aggressive mode (cap risk if size is small). */
+export const MAX_SL_PCT_AGGRESSIVE = 2;
+
 /**
  * Aggressive preset (Hyperliquid-style): fixed margin, high leverage, $210 TP.
  * Use with runtime setting vince_paper_aggressive = true.
