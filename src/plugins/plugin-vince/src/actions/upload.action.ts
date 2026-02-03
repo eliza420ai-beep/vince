@@ -6,14 +6,22 @@
  *
  * Supports:
  * - Raw text content (pasted articles, notes, analysis)
- * - YouTube video URLs (transcribed and saved)
+ * - URLs (articles, PDFs): via steipete/summarize CLI when available
+ * - YouTube video URLs: transcript + summary via summarize (--youtube auto)
  * - Tweet-like content (optionally expanded with Grok/XAI)
  *
  * Usage:
  *   "upload: [content]"
+ *   "upload: https://example.com/article"
  *   "save this: [text content]"
  *   "ingest this video: [YouTube URL]"
  *   "remember: [important info]"
+ *
+ * SUMMARIZE INTEGRATION (optional):
+ * - If @steipete/summarize CLI is available (bunx or global), URLs and YouTube
+ *   are fetched/summarized and the result is saved to knowledge.
+ * - Install: bun install -g @steipete/summarize (or use bunx; no install required).
+ * - Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for summarize's model.
  *
  * STANDALONE MODE:
  * - Uses plugin-knowledge-ingestion if available (full categorization + LLM processing)
@@ -22,6 +30,7 @@
 
 import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { spawn } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import type {
@@ -95,6 +104,80 @@ function extractYouTubeUrl(text: string): string | null {
     }
   }
   return null;
+}
+
+/** Match a single http(s) URL in text (for article/PDF links) */
+const GENERIC_URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/i;
+
+function extractSingleUrl(text: string): string | null {
+  const trimmed = text.trim();
+  const match = trimmed.match(GENERIC_URL_REGEX);
+  if (!match) return null;
+  const url = match[0].replace(/[.,;:!?)]+$/, ""); // trim trailing punctuation
+  return url.length >= 10 ? url : null;
+}
+
+/**
+ * Run steipete/summarize CLI to get transcript or summary for a URL.
+ * Uses bunx (Bun) so no global install is required.
+ * @see https://github.com/steipete/summarize
+ */
+async function runSummarizeCli(
+  url: string,
+  options: { isYouTube?: boolean; timeoutMs?: number } = {}
+): Promise<{ content: string; sourceUrl: string } | null> {
+  const { isYouTube = false, timeoutMs = isYouTube ? 120_000 : 90_000 } = options;
+  const args = [
+    "@steipete/summarize",
+    url,
+    "--length",
+    "long",
+    "--plain",
+    "--no-color",
+  ];
+  if (isYouTube) {
+    args.push("--youtube", "auto");
+  }
+
+  return new Promise((resolve) => {
+    const child = spawn("bunx", args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: process.platform === "win32",
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString("utf-8");
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf-8");
+    });
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      logger.warn({ url, isYouTube }, "[VINCE_UPLOAD] summarize CLI timed out");
+      resolve(null);
+    }, timeoutMs);
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        logger.debug({ code, stderr: stderr.slice(0, 500) }, "[VINCE_UPLOAD] summarize CLI exited non-zero");
+        resolve(null);
+        return;
+      }
+      const content = stdout.trim();
+      if (content.length < MIN_TEXT_LENGTH) {
+        logger.debug("[VINCE_UPLOAD] summarize returned too little content");
+        resolve(null);
+        return;
+      }
+      resolve({ content, sourceUrl: url });
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      logger.debug({ err: String(err) }, "[VINCE_UPLOAD] summarize CLI spawn error");
+      resolve(null);
+    });
+  });
 }
 
 /**
@@ -240,9 +323,11 @@ async function simpleFallbackStorage(
   runtime: IAgentRuntime,
   content: string,
   title: string,
-  timestamp: number
+  timestamp: number,
+  opts?: { sourceUrl?: string }
 ): Promise<IKnowledgeGenerationResult> {
   try {
+    const sourceUrl = opts?.sourceUrl ?? `chat://vince-upload/${timestamp}`;
     // Detect category
     const category = detectSimpleCategory(content);
     
@@ -270,7 +355,7 @@ async function simpleFallbackStorage(
     // Generate markdown content
     const markdownContent = `---
 title: "${title.replace(/"/g, '\\"')}"
-source: chat://vince-upload/${timestamp}
+source: ${sourceUrl}
 category: ${category}
 tags:
   - vince-upload
@@ -299,7 +384,7 @@ ${content}
         content: markdownContent,
         metadata: {
           source: "vince-upload",
-          sourceUrl: `chat://vince-upload/${timestamp}`,
+          sourceUrl,
           processedAt: new Date(timestamp).toISOString(),
           wordCount,
           tags: ["vince-upload", "user-submitted", "chat"],
@@ -419,27 +504,117 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
     const startTime = Date.now();
 
     try {
-      // Check if this is a YouTube URL
+      // --- YouTube: run summarize CLI (transcript + summary) then save ---
       const youtubeUrl = extractYouTubeUrl(text);
-      
       if (youtubeUrl) {
-        // Delegate to knowledge ingestion plugin for YouTube processing
         if (callback) {
           await callback({
-            text: `🎥 **Processing YouTube Video**\n\nURL: ${youtubeUrl}\n\nTranscribing and extracting knowledge... This may take a moment.\n\n_Tip: For faster processing, share a direct link or paste the transcript directly._\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+            text: `🎥 **Processing YouTube**\n\n${youtubeUrl}\n\nFetching transcript and summary via summarize... This may take 1–2 minutes.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
             actions: ["VINCE_UPLOAD"],
           });
         }
-        
-        // Note: Full YouTube processing would require the VideoProcessorService
-        // For now, we inform the user and suggest alternatives
-        logger.info({ youtubeUrl }, "[VINCE_UPLOAD] YouTube URL detected - would process via VideoProcessorService");
+        const summarized = await runSummarizeCli(youtubeUrl, { isYouTube: true });
+        if (summarized) {
+          const timestamp = Date.now();
+          const title = generateTitle(summarized.content);
+          const knowledgeService = await tryLoadKnowledgeFileService(runtime);
+          const fileResult = knowledgeService
+            ? await (async () => {
+                const category = await knowledgeService.categorizeContent(summarized.content, "article");
+                const slugTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50);
+                return knowledgeService.generateKnowledgeFile({
+                  sourceType: "article",
+                  sourceUrl: summarized.sourceUrl,
+                  sourceId: `vince-${timestamp}`,
+                  additionalContext: summarized.content,
+                  suggestedCategory: category,
+                  suggestedFilename: `vince-upload-${slugTitle}-${timestamp}.md`,
+                  tags: ["vince-upload", "user-submitted", "youtube"],
+                  preserveOriginal: true,
+                });
+              })()
+            : await simpleFallbackStorage(runtime, summarized.content, title, timestamp, { sourceUrl: summarized.sourceUrl });
+          if (callback && fileResult.success && fileResult.file) {
+            await callback({
+              text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          } else if (callback && !fileResult.success) {
+            await callback({
+              text: `❌ Save failed: ${fileResult.error ?? "Unknown"}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          }
+          return;
+        }
+        if (callback) {
+          await callback({
+            text: `⚠️ **Couldn't fetch that YouTube** (summarize timed out or isn't installed).\n\n• Install: \`bun install -g @steipete/summarize\` and set \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`\n• Or paste the transcript here and I'll save it.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+            actions: ["VINCE_UPLOAD"],
+          });
+        }
         return;
       }
 
-      // Process text content
+      // --- Single URL (article/PDF): run summarize then save ---
       let content = extractContent(text);
-      
+      const singleUrl = content.trim().length < 500 && extractSingleUrl(content);
+      if (singleUrl && hasUploadIntent(text)) {
+        const urlContent = content.trim();
+        if (urlContent === singleUrl || (urlContent.startsWith(singleUrl) && urlContent.length < singleUrl.length + 50)) {
+          if (callback) {
+            await callback({
+              text: `🔗 **Fetching URL**\n\n${singleUrl}\n\nSummarizing... (up to ~90s)\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          }
+          const summarized = await runSummarizeCli(singleUrl, { isYouTube: false });
+          if (summarized) {
+            content = summarized.content;
+            const timestamp = Date.now();
+            const title = generateTitle(content);
+            const knowledgeService = await tryLoadKnowledgeFileService(runtime);
+            let fileResult: IKnowledgeGenerationResult;
+            if (knowledgeService) {
+              const category = await knowledgeService.categorizeContent(content, "article");
+              const slugTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50);
+              fileResult = await knowledgeService.generateKnowledgeFile({
+                sourceType: "article",
+                sourceUrl: summarized.sourceUrl,
+                sourceId: `vince-${timestamp}`,
+                additionalContext: content,
+                suggestedCategory: category,
+                suggestedFilename: `vince-upload-${slugTitle}-${timestamp}.md`,
+                tags: ["vince-upload", "user-submitted", "url"],
+                preserveOriginal: true,
+              });
+            } else {
+              fileResult = await simpleFallbackStorage(runtime, content, title, timestamp, { sourceUrl: summarized.sourceUrl });
+            }
+            if (callback && fileResult.success && fileResult.file) {
+              await callback({
+                text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+                actions: ["VINCE_UPLOAD"],
+              });
+            } else if (callback && !fileResult.success) {
+              await callback({
+                text: `❌ Save failed: ${fileResult.error ?? "Unknown"}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+                actions: ["VINCE_UPLOAD"],
+              });
+            }
+            return;
+          }
+          if (callback) {
+            await callback({
+              text: `⚠️ **Couldn't fetch that URL.** Install \`bun install -g @steipete/summarize\` and set an API key, or paste the article text here.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          }
+          return;
+        }
+      }
+
+      // --- Plain text / pasted content ---
       if (content.length < MIN_TEXT_LENGTH) {
         if (callback) {
           await callback({

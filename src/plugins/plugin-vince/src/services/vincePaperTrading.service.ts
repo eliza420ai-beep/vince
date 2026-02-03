@@ -1287,7 +1287,7 @@ export class VincePaperTradingService extends Service {
     await this.recordMLOutcome(closedPosition, reason);
 
     // ==========================================
-    // DETAILED TRADE CLOSED LOG
+    // DETAILED TRADE CLOSED LOG (visible in terminal + logger)
     // ==========================================
     const pnl = closedPosition.realizedPnl || 0;
     const pnlPct = closedPosition.realizedPnlPct || 0;
@@ -1295,23 +1295,50 @@ export class VincePaperTradingService extends Service {
     const pnlIcon = isWin ? "💰" : "💸";
     const resultText = isWin ? "WIN" : "LOSS";
     const dirIcon = closedPosition.direction === "long" ? "🟢" : "🔴";
-    
-    console.log("");
-    console.log("  ╔═══════════════════════════════════════════════════════════════╗");
-    console.log(`  ║  ${pnlIcon} PAPER TRADE CLOSED - ${resultText.padEnd(4)}                               ║`);
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  ${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset.padEnd(6)}                                            ║`);
-    console.log(`  ║  Entry: $${closedPosition.entryPrice.toFixed(2).padEnd(12)} Exit: $${closedPosition.markPrice.toFixed(2).padEnd(12)}        ║`);
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  P&L: ${(isWin ? "+" : "") + "$" + pnl.toFixed(2).padEnd(12)} (${(isWin ? "+" : "") + pnlPct.toFixed(2)}%)                       ║`);
-    console.log(`  ║  Close Reason: ${(reason || "manual").padEnd(45)} ║`);
-    console.log("  ╚═══════════════════════════════════════════════════════════════╝");
-    console.log("");
+    const closeReason = reason || "manual";
 
+    // Prominent one-line log so "PAPER TRADE CLOSED" always appears in terminal/log stream
     logger.info(
-      `[VincePaperTrading] ${isWin ? "✅" : "❌"} Closed ${closedPosition.direction.toUpperCase()} ${closedPosition.asset} | ` +
-      `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (${isWin ? "+" : ""}${pnlPct.toFixed(2)}%) | Reason: ${reason || "manual"}`
+      `[VincePaperTrading] ${pnlIcon} PAPER TRADE CLOSED – ${resultText}  ` +
+      `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
+      `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
+      `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (${isWin ? "+" : ""}${pnlPct.toFixed(2)}%)  ` +
+      `Close Reason: ${closeReason}`
     );
+
+    // Box banner (same style as PAPER TRADE OPENED)
+    const W = 63;
+    const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
+    const line = (s: string) => `  ║ ${pad(s, W)} ║`;
+    const empty = line("");
+    const sep = "  ╟" + "─".repeat(W + 2) + "╢";
+    const entryStr = closedPosition.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const exitStr = closedPosition.markPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const pnlStr = (isWin ? "+" : "") + "$" + pnl.toFixed(2);
+    const pnlPctStr = (isWin ? "+" : "") + pnlPct.toFixed(2) + "%";
+
+    console.log("");
+    console.log("  ╔" + "═".repeat(W + 2) + "╗");
+    console.log(empty);
+    console.log(line(`     💰  P A P E R   T R A D E   C L O S E D  –  ${resultText}`));
+    console.log(empty);
+    console.log(sep);
+    console.log(empty);
+    console.log(line("  POSITION"));
+    console.log(empty);
+    console.log(line(`  ${dirIcon} ${closedPosition.direction.toUpperCase()}  ${closedPosition.asset}  @  $${entryStr}`));
+    console.log(line(`  Entry    $${entryStr}`));
+    console.log(line(`  Exit     $${exitStr}`));
+    console.log(empty);
+    console.log(sep);
+    console.log(empty);
+    console.log(line("  P&L"));
+    console.log(empty);
+    console.log(line(`  ${pnlIcon}  ${pnlStr}  (${pnlPctStr})`));
+    console.log(line(`  Close Reason: ${closeReason}`));
+    console.log(empty);
+    console.log("  ╚" + "═".repeat(W + 2) + "╝");
+    console.log("");
 
     return closedPosition;
   }

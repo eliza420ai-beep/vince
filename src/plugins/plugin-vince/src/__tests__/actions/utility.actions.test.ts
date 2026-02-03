@@ -234,6 +234,20 @@ describe("VINCE_UPLOAD Action", () => {
       expect(result).toBe(false);
     });
 
+    it("should return true for YouTube URL (with upload intent or standalone)", async () => {
+      const runtime = createMockRuntime();
+      const message = createMockMessage("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+      const result = await vinceUploadAction.validate(runtime, message);
+      expect(result).toBe(true);
+    });
+
+    it("should return true for upload: <article URL>", async () => {
+      const runtime = createMockRuntime();
+      const message = createMockMessage("upload: https://example.com/some-article-about-trading");
+      const result = await vinceUploadAction.validate(runtime, message);
+      expect(result).toBe(true);
+    });
+
     it("should return false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("show me perps analysis today");
