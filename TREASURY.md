@@ -1,5 +1,14 @@
 # Treasury & Profitability Mandate
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 **The agent must aim to cover its operational costs (API calls, compute, tokens) and become profitable.** This document defines the mandate and practical strategies the agent and operators should follow.
 
 ---

@@ -1,5 +1,14 @@
 # Deploy to Eliza Cloud
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 So you don’t burn $15 on a typo again.
 
 **Docs:** [Deploy to Eliza Cloud](https://docs.elizaos.ai/guides/deploy-to-cloud) — `elizaos deploy --project-name <name>` with multiple `--env "KEY=VALUE"` for secrets. We deploy with **PGLite** by default (no `POSTGRES_URL`); add **`POSTGRES_URL`** only if you want Postgres.

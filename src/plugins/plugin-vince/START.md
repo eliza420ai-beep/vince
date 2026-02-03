@@ -1,5 +1,14 @@
 # START.md — From Chaos to VINCE: A Vibe Coding Manifesto for ElizaOS Traders
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 **Purpose:** Full system reference for **vibe coding** plugin-vince: vocabulary (Actions, Services, Providers, Evaluators), the six domains, signal system, ML layer, and workflow so you can ship with AI. Use [HOW.md](./HOW.md) for step-by-step implementation; use [CLAUDE.md](./CLAUDE.md) as the AI operating manual.
 
 **When to read:** Before extending VINCE, when onboarding, or when AI keeps missing context—so you can describe intent in ElizaOS terms.

@@ -48,12 +48,18 @@ From repo root (or plugin root), with a venv that has the training deps:
 python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 ```
 
-Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`). To test without real data, generate synthetic records then train:
+Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).
+
+### Synthetic data (no real trades yet)
+
+Generate enough synthetic records (same shape as feature store), then train. Default `--count 150` meets `--min-samples 90` and exercises all four models (signal quality, position sizing, TP optimizer, SL optimizer).
 
 ```bash
-python src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 120 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
+python src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
 python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
 ```
+
+Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records).
 
 ## Testing that training improves paper trading parameters
 
@@ -73,9 +79,12 @@ pytest src/plugins/plugin-vince/scripts/test_train_models.py -v
 
 The test suite:
 
-1. **test_training_produces_models_and_metadata** — Generates synthetic feature JSONL, runs `train_models.py`, and asserts that metadata is written and at least one model is fit (signal quality, position sizing, or TP optimizer).
-2. **test_learning_improves_over_baseline** — Asserts that the signal quality model has non-trivial feature importances, varying predictions, and AUC ≥ 0.5.
-3. **test_insufficient_data_exits_gracefully** — Ensures that with too few samples, no models are trained.
+1. **test_training_produces_models_and_metadata** — Generates minimal synthetic feature JSONL, runs `train_models.py`, and asserts that metadata is written and at least one model is fit.
+2. **test_generate_synthetic_then_train_produces_models** — Integration: runs `generate_synthetic_features.py` (150 records), then `train_models.py` with `--min-samples 90`, and asserts at least one model is fit (validates the two scripts together).
+3. **test_learning_improves_over_baseline** — Asserts that the signal quality model has non-trivial feature importances, varying predictions, and AUC ≥ 0.5.
+4. **test_insufficient_data_exits_gracefully** — Ensures that with too few samples, no models are trained.
+5. **test_sl_optimizer_trains_when_label_present** — SL optimizer trains when `label_maxAdverseExcursion` is present.
+6. **test_multi_asset_uses_asset_dummies** — Multi-asset data gets asset_* dummy columns.
 
 ## Reference
 

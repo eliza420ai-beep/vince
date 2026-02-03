@@ -1,5 +1,14 @@
 # WHAT.md — The Trader's Compass in a Chaotic World
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 **Purpose:** Define *what* plugin-vince is and does—scope, domains, and capabilities. For *why* we chose ElizaOS and design trade-offs, see [WHY.md](./WHY.md). For *how* to develop and extend it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
 
 ---

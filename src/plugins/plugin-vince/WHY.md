@@ -1,5 +1,14 @@
 # WHY: Framework Decision & Architecture Context
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 **Purpose:** Explain *why* VINCE was built on ElizaOS and how it compares to alternatives (e.g. ClawdBot). For *what* the plugin does, see [WHAT.md](./WHAT.md). For *how* to develop it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
 
 **When to re-read:** Before migrating to another framework, adding a new platform (e.g. full computer control), or debating local-first vs server-based deployment.

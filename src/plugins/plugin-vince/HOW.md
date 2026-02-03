@@ -1,5 +1,14 @@
 # HOW.md — plugin-vince Development Guide
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 This is the **hands-on development guide** for plugin-vince: workflows, adding actions/services, testing, debugging, and common patterns.
 
 **When to use this doc:** Adding or changing an action/service, debugging signal aggregation or the paper bot, writing tests, or looking up where state lives. For a full technical catalog (services, actions, constants), use [CLAUDE.md](./CLAUDE.md). For purpose and scope, use [WHAT.md](./WHAT.md); for framework rationale, [WHY.md](./WHY.md).

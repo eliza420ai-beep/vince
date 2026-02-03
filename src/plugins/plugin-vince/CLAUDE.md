@@ -1,5 +1,14 @@
 # plugin-vince Development Guide for Claude
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 > **Optimized for Claude LLM** - Complete reference for working with the VINCE trading plugin
 
 "VINCE is a quantitative trading assistant with a lifestyle overlay—balancing market analysis with day-of-week aware suggestions for dining, hotels, and activities."

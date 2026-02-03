@@ -1,5 +1,14 @@
 # Signal Sources for the Paper Trading Bot
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 **Purpose:** Which data sources feed the signal aggregator, how to enable them, and how to verify in logs which sources contributed. For hands-on dev and debugging, see [HOW.md](./HOW.md). For feature-store and ML, see [../../FEATURE-STORE.md](../../FEATURE-STORE.md).
 
 **When to read:** You see few factors per trade, only one source in logs, or want to add/fix CoinGlass, Binance, Deribit, News, Sanbase, etc.

@@ -1,5 +1,14 @@
 # VINCE
 
+```
+  ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
+  ██║   ██║██║████╗  ██║██╔════╝██╔════╝
+  ██║   ██║██║██╔██╗ ██║██║     █████╗  
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+   ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
+    ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+```
+
 Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
 
 **Docs:** [FEATURE-STORE.md](FEATURE-STORE.md) (ML / paper bot storage) · [DEPLOY.md](DEPLOY.md) (Eliza Cloud deploy) · [CLAUDE.md](CLAUDE.md) (dev guide) · [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (plugin README, WHAT/WHY/HOW, CLAUDE)
