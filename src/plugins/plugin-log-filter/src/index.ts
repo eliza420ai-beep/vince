@@ -18,6 +18,8 @@ const SUPPRESS_ERROR_PATTERNS = [
   /\[SERVICE:MESSAGE-BUS\].*Error sending response to central server/i,
   /Failed query:.*insert into "central_messages"/i,
   /\[PLUGIN:SQL\].*Max retry attempts reached.*central_messages/i,
+  // Transient SQL retries (rooms, participants, etc.) - plugin retries and typically succeeds
+  /\[PLUGIN:SQL\].*Database operation failed, retrying/i,
   /Cannot map room\/world to central IDs/i,
   /MESSAGE-BUS.*(?:room|world).*mapping/i,
   // Server/World ID warnings - expected for direct client (no Discord/Telegram server)

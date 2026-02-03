@@ -20,10 +20,9 @@ import { dynamicConfig, initializeDynamicConfig } from "../config/dynamicConfig"
 // ==========================================
 // Correlation Groups
 // Assets with high correlation (>0.85)
+// Disabled: we want to trade BTC and ETH independently even when both have open positions
 // ==========================================
-const CORRELATION_GROUPS: string[][] = [
-  ["BTC", "ETH"],  // BTC and ETH are ~0.85+ correlated
-];
+const CORRELATION_GROUPS: string[][] = [];
 
 /**
  * Get assets correlated with the given asset
