@@ -317,40 +317,53 @@ export class VincePaperTradingService extends Service {
    * Log why a signal was rejected (didn't meet thresholds)
    */
   private logSignalRejection(
-    asset: string, 
-    signal: AggregatedTradeSignal, 
+    asset: string,
+    signal: AggregatedTradeSignal,
     reason: string
   ): void {
     // Rate limit: only log once per asset per 5 minutes
     const cacheKey = `signal_reject_${asset}`;
     const lastLog = this.lastRejectionLog.get(cacheKey);
     const now = Date.now();
-    
+
     if (lastLog && now - lastLog < 5 * 60 * 1000) {
       return; // Skip, logged recently
     }
     this.lastRejectionLog.set(cacheKey, now);
 
-    // Get actual thresholds from risk manager
+    // Get base thresholds from risk manager
     const riskManager = this.getRiskManager();
     const limits = riskManager?.getLimits();
-    const minStrength = limits?.minSignalStrength ?? 60;
-    const minConfidence = limits?.minSignalConfidence ?? 60;
+    let minStrength = limits?.minSignalStrength ?? 60;
+    let minConfidence = limits?.minSignalConfidence ?? 60;
     // HYPE has fewer signal sources, so lower minimum
     const minConfirming = asset === "HYPE" ? 2 : (limits?.minConfirmingSignals ?? 3);
+
+    // When rejection was due to ML "report suggestion", show that stricter bar so the box matches reality
+    const usedReportSuggestion = reason.includes("report suggestion");
+    if (usedReportSuggestion) {
+      const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as { getSuggestedMinStrength?: () => number | null; getSuggestedMinConfidence?: () => number | null } | null;
+      if (mlService) {
+        const reportStr = mlService.getSuggestedMinStrength?.();
+        const reportConf = mlService.getSuggestedMinConfidence?.();
+        if (typeof reportStr === "number") minStrength = reportStr;
+        if (typeof reportConf === "number") minConfidence = reportConf;
+      }
+    }
 
     const dirIcon = signal.direction === "long" ? "🟢" : signal.direction === "short" ? "🔴" : "⚪";
     const strengthBar = this.createProgressBar(signal.strength, minStrength);
     const confidenceBar = this.createProgressBar(signal.confidence, minConfidence);
-    
+    const suggLabel = usedReportSuggestion ? " (ML)" : "";
+
     console.log("");
     console.log(`  ┌─────────────────────────────────────────────────────────────────┐`);
     console.log(`  │  ⏸️  SIGNAL EVALUATED - NO TRADE: ${asset.padEnd(6)}                        │`);
     console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
     console.log(`  │  Bias: ${dirIcon} ${signal.direction.toUpperCase().padEnd(6)} │ Reason: ${reason.substring(0, 30).padEnd(30)} │`);
     console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Strength:   ${strengthBar} ${signal.strength.toFixed(0).padStart(3)}% (need ${minStrength}%)        │`);
-    console.log(`  │  Confidence: ${confidenceBar} ${signal.confidence.toFixed(0).padStart(3)}% (need ${minConfidence}%)        │`);
+    console.log(`  │  Strength:   ${strengthBar} ${signal.strength.toFixed(0).padStart(3)}% (need ${minStrength}%${suggLabel})   │`);
+    console.log(`  │  Confidence: ${confidenceBar} ${signal.confidence.toFixed(0).padStart(3)}% (need ${minConfidence}%${suggLabel})   │`);
     console.log(`  │  Confirming: ${signal.confirmingCount} signals (need ${minConfirming})                            │`);
     console.log(`  └─────────────────────────────────────────────────────────────────┘`);
   }
