@@ -86,6 +86,16 @@ It must be:
 
 **Paper trades / feature store:** Trades are always stored in **JSONL** under `.elizadb/vince-paper-bot/features/`. With PGLite they are also written to `plugin_vince.paper_bot_features`. No extra env needed for JSONL or PGLite.
 
+### Will trading data persist and be used after a redeploy?
+
+| Setup | After redeploy |
+|--------|-----------------|
+| **PGLite only** (no `POSTGRES_URL`, no Supabase) | **No.** The container is new; `.elizadb/` and PGLite live on the container filesystem and are lost. New instance = empty features and DB. |
+| **Postgres** (`POSTGRES_URL` set, e.g. Supabase) | **Yes.** Data in `plugin_vince.paper_bot_features` (and all ElizaOS tables) lives in your external DB and is reused. |
+| **Supabase dual-write** (`SUPABASE_SERVICE_ROLE_KEY` set) | **Yes.** Features are also written to `vince_paper_bot_features` in Supabase; that data persists across redeploys and can be used for training or analysis. |
+
+**Summary:** In the **current state** (PGLite, no Postgres, no Supabase keys), redeploying to Eliza Cloud gives a **fresh container** — trading data is **not** stored or used after redeploy. To keep and use trading data across redeploys, set **`POSTGRES_URL`** (and optionally **`SUPABASE_SERVICE_ROLE_KEY`** for the feature table). ML ONNX models must still be [copied into the repo and committed](#ml-onnx-on-eliza-cloud--will-it-be-active) to be active on Cloud.
+
 Optional (plugin-vince features):
 
 | Env | Used by |

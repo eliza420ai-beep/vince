@@ -8,6 +8,7 @@ Python scripts for offline ML training used by the VINCE paper-trading ML pipeli
 |--------|--------|
 | `train_models.py` | Trains XGBoost models (signal quality, position sizing, TP optimizer) on feature-store data and exports to ONNX for `VinceMLInferenceService`. |
 | `generate_synthetic_features.py` | Generates synthetic feature-store JSONL (same shape as real trades) so you can run `train_models.py` and test the ML pipeline before you have 90+ real trades. |
+| `validate_ml_improvement.py` | **Proves** that ML-derived `suggested_tuning` (min strength/confidence) improves selectivity: loads feature-store data, computes 25th % of profitable trades, simulates applying those thresholds, and reports baseline vs filtered win rate. See [../ML_IMPROVEMENT_PROOF.md](../ML_IMPROVEMENT_PROOF.md). |
 
 **Input:** Path to a single JSONL file or to the feature directory (e.g. `.elizadb/vince-paper-bot/features`); the script loads all `features_*.jsonl` and `combined.jsonl` in that directory.  
 **Output:** ONNX models, `training_metadata.json`, `improvement_report.md`, and optional joblib backups.
