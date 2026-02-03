@@ -864,64 +864,90 @@ export class VincePaperTradingService extends Service {
     const sessionLabel = sessionRaw ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "";
     const isSingleTpAggressive = takeProfitPrices.length === 1 && (this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true");
 
-    console.log("");
-    console.log("  ╔═══════════════════════════════════════════════════════════════╗");
-    console.log(`  ║  📈 PAPER TRADE OPENED                                         ║`);
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"} ${asset.padEnd(6)} @ $${entryPrice.toFixed(2).padEnd(12)}                       ║`);
-    console.log(`  ║  Entry: ${entryTimeUtc.padEnd(52)} ║`);
-    console.log(`  ║  Notional: ${formatUsd(sizeUsd).padEnd(8)} (margin ≈${formatUsd(marginUsd)} @ ${leverage}x)              ║`);
-    console.log(`  ║  ~$${pnlPer1Pct.toFixed(0)} per 1% move  ·  Strategy: VinceSignalFollowing        ║`);
-    if (position?.liquidationPrice != null) {
-      console.log(`  ║  Liquidation: $${position.liquidationPrice.toFixed(2).padEnd(10)} (~${liqPct.toFixed(1)}% away)              ║`);
-    }
-    if (entryATRPct != null) {
-      console.log(`  ║  ATR(14): ${(entryATRPct).toFixed(2)}%  ·  SL: ${stopLossPct.toFixed(2)}% (1.5× ATR)                        ║`);
-    }
-    if (sessionLabel) {
-      console.log(`  ║  Session: ${sessionLabel.padEnd(51)} ║`);
-    }
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     const factorCount = signal.reasons?.length ?? 0;
     const sourceCount = signal.confirmingCount ?? 0;
     const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
     const maxSourcesLen = 26;
     const sourcesDisplay = sourcesStr.length > maxSourcesLen ? sourcesStr.slice(0, maxSourcesLen - 1) + "…" : sourcesStr;
-    console.log(`  ║  WHY: ${String(factorCount).padStart(2)} factors, ${sourceCount} sources (${sourcesDisplay.padEnd(maxSourcesLen)}) ║`);
     const reasons = (signal.reasons ?? []).slice(0, 14);
     const thesisParts = reasons.slice(0, 4).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 2).join(" "));
     const thesisLine = [...new Set(thesisParts)].slice(0, 3).join(" + ") + ` → ${direction.toUpperCase()}`;
     const maxThesisLen = 44;
     const thesisDisplay = thesisLine.length > maxThesisLen ? thesisLine.slice(0, maxThesisLen - 1) + "…" : thesisLine;
-    console.log(`  ║  Thesis: ${thesisDisplay.padEnd(maxThesisLen)} ║`);
     const maxReasonLen = 51;
+    const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
+
+    console.log("");
+    console.log("  ╔═══════════════════════════════════════════════════════════════╗");
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
+    console.log(`  ║       📈  P A P E R   T R A D E   O P E N E D                 ║`);
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
+    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
+    console.log("  ║                                                               ║");
+    console.log("  ║   POSITION                                                     ║");
+    console.log("  ║                                                               ║");
+    console.log(`  ║     ${direction === "long" ? "🟢  LONG" : "🔴  SHORT"}  ${asset}  @  $${entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}                  ║`);
+    console.log(`  ║     Entry: ${pad(entryTimeUtc, 50)}  ║`);
+    console.log(`  ║     Notional: ${pad(formatUsd(sizeUsd), 8)}   margin ≈ ${pad(formatUsd(marginUsd), 10)}   ${leverage}x            ║`);
+    console.log(`  ║     ~$${pnlPer1Pct.toFixed(0)} per 1% move   ·   VinceSignalFollowing            ║`);
+    if (position?.liquidationPrice != null) {
+      console.log(`  ║     Liquidation: $${position.liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).padEnd(12)}  (~${liqPct.toFixed(1)}% away)         ║`);
+    }
+    if (entryATRPct != null) {
+      console.log(`  ║     ATR(14): ${(entryATRPct).toFixed(2)}%   ·   SL: ${stopLossPct.toFixed(2)}% (1.5× ATR)                 ║`);
+    }
+    if (sessionLabel) {
+      console.log(`  ║     Session: ${pad(sessionLabel, 50)}  ║`);
+    }
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║   WHY THIS TRADE                                              ║");
+    console.log("  ║                                                               ║");
+    console.log(`  ║     ${String(factorCount).padStart(2)} factors   ${sourceCount} sources   ${pad(sourcesDisplay, maxSourcesLen)}  ║`);
+    console.log(`  ║     Thesis: ${pad(thesisDisplay, maxThesisLen)}  ║`);
+    console.log("  ║                                                               ║");
     for (const reason of reasons) {
       let text = reason;
       if (text.length > maxReasonLen) {
         const lastSpace = text.slice(0, maxReasonLen + 1).lastIndexOf(" ");
         text = (lastSpace > 32 ? text.slice(0, lastSpace) : text.slice(0, maxReasonLen)) + "…";
       }
-      console.log(`  ║    • ${text.padEnd(maxReasonLen)} ║`);
+      console.log(`  ║       • ${pad(text, maxReasonLen)}  ║`);
     }
     if (factorCount > 14) {
-      console.log(`  ║    … +${factorCount - 14} more (feature store / journal)                      ║`);
+      console.log(`  ║       … +${factorCount - 14} more (feature store / journal)               ║`);
     }
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  Signal: Strength ${signal.strength.toFixed(0)}%  Confidence ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount}   ║`);
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log("  ║  RISK MANAGEMENT:                                             ║");
-    console.log(`  ║    Stop-Loss:   $${stopLossPrice.toFixed(2).padEnd(10)} (${slPct.toFixed(1)}% → -$${slLoss.toFixed(0)})              ║`);
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║   SIGNAL                                                      ║");
+    console.log("  ║                                                               ║");
+    console.log(`  ║     Strength ${String(signal.strength).padStart(3)}%   Confidence ${String(signal.confidence).padStart(3)}%   Confirming: ${sourceCount}            ║`);
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  ║");
+    console.log("  ║                                                               ║");
+    console.log("  ║   RISK MANAGEMENT                                              ║");
+    console.log("  ║                                                               ║");
+    console.log(`  ║     Stop-Loss     $${pad(stopLossPrice.toFixed(2), 12)}   (${slPct.toFixed(1)}%  →  -$${slLoss.toFixed(0)})            ║`);
     if (takeProfitPrices.length > 0) {
-      const tp1Label = isSingleTpAggressive ? " [$210]" : "";
-      console.log(`  ║    Take-Profit: $${takeProfitPrices[0].toFixed(2).padEnd(10)} (${tp1Pct.toFixed(1)}% → +$${tp1Profit.toFixed(0)})${tp1Label}             ║`);
+      const tp1Label = isSingleTpAggressive ? "  [$210]" : "";
+      console.log(`  ║     Take-Profit   $${pad(takeProfitPrices[0].toFixed(2), 12)}   (${tp1Pct.toFixed(1)}%  →  +$${tp1Profit.toFixed(0)})${pad(tp1Label, 10)}  ║`);
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
         const tp2Profit = sizeUsd * (tp2Pct / 100);
-        console.log(`  ║                 $${takeProfitPrices[1].toFixed(2).padEnd(10)} (${tp2Pct.toFixed(1)}% → +$${tp2Profit.toFixed(0)})             ║`);
+        console.log(`  ║                   $${pad(takeProfitPrices[1].toFixed(2), 12)}   (${tp2Pct.toFixed(1)}%  →  +$${tp2Profit.toFixed(0)})            ║`);
       }
     }
-    console.log(`  ║    R:R (TP1 vs SL): ${rrRatio}:1                                          ║`);
+    console.log(`  ║     R:R (TP1 vs SL)   ${rrRatio}:1                                     ║`);
+    console.log("  ║                                                               ║");
+    console.log("  ║                                                               ║");
     console.log("  ╚═══════════════════════════════════════════════════════════════╝");
     console.log("");
 
