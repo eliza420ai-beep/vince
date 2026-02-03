@@ -842,15 +842,28 @@ export class VincePaperTradingService extends Service {
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     const factorCount = signal.reasons?.length ?? 0;
     const sourceCount = signal.confirmingCount ?? 0;
-    console.log(`  ║  WHY THIS TRADE: ${factorCount} factors, ${sourceCount} sources agreeing                 ║`);
-    // Show all factors (up to 12 lines so log stays readable; full list is in feature store / journal)
-    const reasons = (signal.reasons ?? []).slice(0, 12);
+    const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
+    const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
+    const maxSourcesLen = 26;
+    const sourcesDisplay = sourcesStr.length > maxSourcesLen ? sourcesStr.slice(0, maxSourcesLen - 1) + "…" : sourcesStr;
+    console.log(`  ║  WHY: ${String(factorCount).padStart(2)} factors, ${sourceCount} sources (${sourcesDisplay.padEnd(maxSourcesLen)}) ║`);
+    const reasons = (signal.reasons ?? []).slice(0, 14);
+    const thesisParts = reasons.slice(0, 4).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 2).join(" "));
+    const thesisLine = [...new Set(thesisParts)].slice(0, 3).join(" + ") + ` → ${direction.toUpperCase()}`;
+    const maxThesisLen = 44;
+    const thesisDisplay = thesisLine.length > maxThesisLen ? thesisLine.slice(0, maxThesisLen - 1) + "…" : thesisLine;
+    console.log(`  ║  Thesis: ${thesisDisplay.padEnd(maxThesisLen)} ║`);
+    const maxReasonLen = 51;
     for (const reason of reasons) {
-      const truncatedReason = reason.length > 55 ? reason.substring(0, 52) + "..." : reason;
-      console.log(`  ║    • ${truncatedReason.padEnd(55)} ║`);
+      let text = reason;
+      if (text.length > maxReasonLen) {
+        const lastSpace = text.slice(0, maxReasonLen + 1).lastIndexOf(" ");
+        text = (lastSpace > 32 ? text.slice(0, lastSpace) : text.slice(0, maxReasonLen)) + "…";
+      }
+      console.log(`  ║    • ${text.padEnd(maxReasonLen)} ║`);
     }
-    if (factorCount > 12) {
-      console.log(`  ║    … +${factorCount - 12} more (see feature store / journal)                    ║`);
+    if (factorCount > 14) {
+      console.log(`  ║    … +${factorCount - 14} more (feature store / journal)                      ║`);
     }
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount} (sources)  ║`);
