@@ -184,10 +184,10 @@ export const TAKE_PROFIT_USD_AGGRESSIVE = 280;
  * Improves trade quality vs earlier “ATR-only” SL which often gave 0.4:1–0.5:1.
  */
 export const TARGET_RR_AGGRESSIVE = 2.5;
-/** Min SL % in aggressive mode; 0.35 allows full 2.5:1 at $40K notional. */
-export const MIN_SL_PCT_AGGRESSIVE = 0.35;
+/** Min SL % in aggressive mode; 0.28 allows full 2.5:1 at $40K notional ($280 TP → $112 risk). */
+export const MIN_SL_PCT_AGGRESSIVE = 0.28;
 /** Max SL % in aggressive mode (cap risk when notional is small so R:R doesn’t go too wide). */
-export const MAX_SL_PCT_AGGRESSIVE = 1.0;
+export const MAX_SL_PCT_AGGRESSIVE = 0.65;
 /** In aggressive mode, SL is never below this multiple of ATR (avoids stops inside normal chop). */
 export const MIN_SL_ATR_MULTIPLIER_AGGRESSIVE = 0.5;
 
@@ -195,7 +195,7 @@ export const MIN_SL_ATR_MULTIPLIER_AGGRESSIVE = 0.5;
  * Aggressive preset (Hyperliquid-style): 40x, tight SL, high R:R, many trades for ML.
  * Use with runtime setting vince_paper_aggressive = true.
  * Math: $1K margin × 40x = $40K notional → TP $280 ≈ 0.7% move; SL for 2.5:1 → risk $112 ≈ 0.28% (min).
- * SL capped at 1% max; no cooldown after loss so we generate more trade data.
+ * SL capped at 0.65% max for high R:R; no cooldown after loss so we generate more trade data.
  */
 export const AGGRESSIVE_LEVERAGE = 40;
 /** Fixed margin per trade in aggressive mode (notional = margin × leverage = $40K). */
