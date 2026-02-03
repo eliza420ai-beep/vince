@@ -355,7 +355,8 @@ async function simpleFallbackStorage(
     // Calculate word count
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     
-    // Generate markdown content
+    // Generate markdown content (structure aligns with knowledge/README.md and KNOWLEDGE-USAGE-GUIDELINES.md)
+    const knowledgeNote = `> **Knowledge base note:** Numbers and metrics here are illustrative from the source; use for methodologies and frameworks, not as current data. For live data use actions/APIs.`;
     const markdownContent = `---
 title: "${title.replace(/"/g, '\\"')}"
 source: ${sourceUrl}
@@ -369,6 +370,10 @@ wordCount: ${wordCount}
 ---
 
 # ${title}
+
+${knowledgeNote}
+
+## Content
 
 ${content}
 `;

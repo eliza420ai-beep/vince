@@ -132,6 +132,8 @@ function writeKnowledgeFile(
   const categoryPath = path.join(knowledgeDir, category);
   const filepath = path.join(categoryPath, filename);
   const wordCount = content.split(/\s+/).filter(Boolean).length;
+  const knowledgeNote =
+    "> **Knowledge base note:** Numbers and metrics here are illustrative from the source; use for methodologies and frameworks, not as current data. For live data use actions/APIs.";
   const markdown = `---
 title: "${title.replace(/"/g, '\\"')}"
 source: ${sourceUrl}
@@ -144,6 +146,10 @@ wordCount: ${wordCount}
 ---
 
 # ${title}
+
+${knowledgeNote}
+
+## Content
 
 ${content}
 `;
