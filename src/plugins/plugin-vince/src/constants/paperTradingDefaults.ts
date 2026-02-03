@@ -172,12 +172,6 @@ export const DEFAULT_TAKE_PROFIT_TARGETS = [1.5, 3, 5];
 export const DEFAULT_LEVERAGE = 3;
 
 /**
- * Max margin loss when stop loss is hit (e.g. 25% = stop limits loss to 25% of margin).
- * Leverage is capped so that (stopLossPct × leverage) ≤ this value.
- */
-export const MAX_MARGIN_LOSS_PCT_AT_STOP = 25;
-
-/**
  * Optional dollar take-profit: close position when unrealized P&L reaches this (e.g. $210 = half of $420/day).
  * Default null = only price-based TPs. When aggressive preset is on, position manager uses TAKE_PROFIT_USD_AGGRESSIVE.
  */
@@ -189,19 +183,19 @@ export const TAKE_PROFIT_USD_AGGRESSIVE = 280;
  * Aggressive R:R: SL is chosen so max loss = TP / TARGET_RR (e.g. 2 → risk $140 for $280 TP = 2:1).
  * Improves trade quality vs earlier “ATR-only” SL which often gave 0.4:1–0.5:1.
  */
-export const TARGET_RR_AGGRESSIVE = 2;
-/** Min SL % in aggressive mode; 0.35 allows full 2:1 at $40K notional. */
+export const TARGET_RR_AGGRESSIVE = 2.5;
+/** Min SL % in aggressive mode; 0.35 allows full 2.5:1 at $40K notional. */
 export const MIN_SL_PCT_AGGRESSIVE = 0.35;
 /** Max SL % in aggressive mode (cap risk when notional is small so R:R doesn’t go too wide). */
-export const MAX_SL_PCT_AGGRESSIVE = 1.5;
+export const MAX_SL_PCT_AGGRESSIVE = 1.0;
 /** In aggressive mode, SL is never below this multiple of ATR (avoids stops inside normal chop). */
 export const MIN_SL_ATR_MULTIPLIER_AGGRESSIVE = 0.5;
 
 /**
- * Aggressive preset (Hyperliquid-style): fixed margin, high leverage, $280 TP, 2:1 R:R.
+ * Aggressive preset (Hyperliquid-style): 40x, tight SL, high R:R, many trades for ML.
  * Use with runtime setting vince_paper_aggressive = true.
- * Math: $1K margin × 40x = $40K notional → TP $280 ≈ 0.7% move; SL for 2:1 → risk $140 ≈ 0.35% (min).
- * SL also floored at 0.5× ATR in high vol. Liquidation ~2.5% away.
+ * Math: $1K margin × 40x = $40K notional → TP $280 ≈ 0.7% move; SL for 2.5:1 → risk $112 ≈ 0.28% (min).
+ * SL capped at 1% max; no cooldown after loss so we generate more trade data.
  */
 export const AGGRESSIVE_LEVERAGE = 40;
 /** Fixed margin per trade in aggressive mode (notional = margin × leverage = $40K). */

@@ -45,7 +45,6 @@ import {
   MIN_SL_PCT_AGGRESSIVE,
   MAX_SL_PCT_AGGRESSIVE,
   MIN_SL_ATR_MULTIPLIER_AGGRESSIVE,
-  MAX_MARGIN_LOSS_PCT_AT_STOP,
   getPaperTradeAssets,
   TIMING,
   PERSISTENCE_DIR,
@@ -524,8 +523,10 @@ export class VincePaperTradingService extends Service {
           }
         }
 
-        // Improvement report: optional min strength / min confidence (when suggested_tuning is in training_metadata)
-        if (mlService) {
+        // Improvement report: optional min strength / min confidence (when suggested_tuning is in training_metadata).
+        // In aggressive mode we skip this so we take more trades (base thresholds 40/35 only) for ML data.
+        const aggressiveMode = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+        if (mlService && !aggressiveMode) {
           const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
           const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
           if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
@@ -1073,26 +1074,13 @@ export class VincePaperTradingService extends Service {
     // Contributing source names for bandit outcome feedback (weight optimization)
     const contributingSources = Object.keys(signal.sourceBreakdown ?? {}).filter(Boolean);
 
-    // Cap leverage so that when stop loss is hit, margin loss ≤ MAX_MARGIN_LOSS_PCT_AT_STOP (e.g. 25%)
-    const effectiveLeverage = Math.min(
-      leverage,
-      MAX_MARGIN_LOSS_PCT_AT_STOP / Math.max(0.1, stopLossPct)
-    );
-    let effectiveSizeUsd = sizeUsd;
-    if (effectiveLeverage < leverage) {
-      effectiveSizeUsd = sizeUsd * (effectiveLeverage / leverage);
-      logger.info(
-        `[VincePaperTrading] Leverage capped ${leverage}x → ${effectiveLeverage.toFixed(0)}x so stop loss limits margin loss to ${MAX_MARGIN_LOSS_PCT_AT_STOP}% (SL ${stopLossPct.toFixed(2)}%)`
-      );
-    }
-
-    // Open position with ATR stored for trailing stop calculations
+    // Open position with ATR stored for trailing stop calculations (R:R from SL/TP logic above)
     const position = positionManager.openPosition({
       asset,
       direction,
       entryPrice,
-      sizeUsd: effectiveSizeUsd,
-      leverage: effectiveLeverage,
+      sizeUsd,
+      leverage,
       stopLossPrice,
       takeProfitPrices,
       strategyName: "VinceSignalFollowing",
@@ -1139,14 +1127,14 @@ export class VincePaperTradingService extends Service {
     // ==========================================
     const slPct = Math.abs((stopLossPrice - entryPrice) / entryPrice * 100);
     const tp1Pct = takeProfitPrices[0] ? Math.abs((takeProfitPrices[0] - entryPrice) / entryPrice * 100) : 0;
-    const slLoss = effectiveSizeUsd * (slPct / 100);
-    const tp1Profit = takeProfitPrices[0] != null ? effectiveSizeUsd * (tp1Pct / 100) : 0;
+    const slLoss = sizeUsd * (slPct / 100);
+    const tp1Profit = takeProfitPrices[0] != null ? sizeUsd * (tp1Pct / 100) : 0;
     const rrRatio = slLoss > 0 ? (tp1Profit / slLoss).toFixed(1) : "—";
     const rrNum = slLoss > 0 ? tp1Profit / slLoss : 0;
     const rrLabel =
       rrNum >= 1.5 ? "🟢 Good" : rrNum >= 1 ? "🟡 OK" : rrNum >= 0.5 ? "🟠 Weak" : rrNum > 0 ? "🔴 Poor" : "—";
-    const pnlPer1Pct = effectiveSizeUsd / 100;
-    const marginUsd = effectiveSizeUsd / effectiveLeverage;
+    const pnlPer1Pct = sizeUsd / 100;
+    const marginUsd = sizeUsd / leverage;
     const liqPct = position?.liquidationPrice != null
       ? Math.abs((position.liquidationPrice - entryPrice) / entryPrice * 100)
       : (100 / leverage) * 0.9;
@@ -1186,9 +1174,9 @@ export class VincePaperTradingService extends Service {
     const entryStr = entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     console.log(line(`  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"}  ${asset}  @  $${entryStr}`));
     console.log(line(`  Entry    ${entryTimeUtc}`));
-    console.log(line(`  Notional ${formatUsd(effectiveSizeUsd)}`));
+    console.log(line(`  Notional ${formatUsd(sizeUsd)}`));
     console.log(line(`  Margin   ${formatUsd(marginUsd)}`));
-    console.log(line(`  Leverage ${effectiveLeverage >= 10 ? Math.round(effectiveLeverage) : effectiveLeverage.toFixed(1)}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`));
+    console.log(line(`  Leverage ${leverage}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`));
     console.log(line(`  Strategy VinceSignalFollowing`));
     if (position?.liquidationPrice != null) {
       const liqStr = position.liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1256,7 +1244,7 @@ export class VincePaperTradingService extends Service {
     console.log("");
 
     logger.info(
-      `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${effectiveSizeUsd.toFixed(0)}, ${effectiveLeverage}x)`
+      `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${sizeUsd.toFixed(0)}, ${leverage}x)`
     );
 
     return position;
