@@ -46,6 +46,7 @@ import {
   MAX_SL_PCT_AGGRESSIVE,
   MIN_SL_ATR_MULTIPLIER_AGGRESSIVE,
   getPaperTradeAssets,
+  getAssetMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
 } from "../constants/paperTradingDefaults";
@@ -632,10 +633,12 @@ export class VincePaperTradingService extends Service {
         // Calculate position size
         const portfolio = positionManager.getPortfolio();
         const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
-        const leverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
+        // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x
+        const baseLeverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
+        const leverage = Math.min(baseLeverage, getAssetMaxLeverage(asset));
         let baseSizeUsd = aggressive
           ? (portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
-              ? AGGRESSIVE_MARGIN_USD * AGGRESSIVE_LEVERAGE
+              ? AGGRESSIVE_MARGIN_USD * leverage
               : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100))
           : portfolio.totalValue * 0.05;
         if (aggressive && baseSizeUsd > portfolio.totalValue * (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100)) {

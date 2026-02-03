@@ -284,6 +284,22 @@ export const TIMING = {
 // Assets
 // ==========================================
 
+/**
+ * Asset-specific max leverage.
+ * BTC: 40x (primary, most liquid). SOL, ETH, HYPE: 10x (higher volatility/risk).
+ */
+export const ASSET_MAX_LEVERAGE: Record<string, number> = {
+  BTC: 40,
+  ETH: 10,
+  SOL: 10,
+  HYPE: 10,
+};
+
+/** Get max leverage for an asset (defaults to AGGRESSIVE_LEVERAGE for unknown) */
+export function getAssetMaxLeverage(asset: string, aggressiveDefault: number = 40): number {
+  return ASSET_MAX_LEVERAGE[asset.toUpperCase()] ?? aggressiveDefault;
+}
+
 /** Assets available for paper trading */
 export const TRADEABLE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
 export type TradeableAsset = (typeof TRADEABLE_ASSETS)[number];
