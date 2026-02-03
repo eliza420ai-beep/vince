@@ -1,5 +1,6 @@
 import { type Project } from '@elizaos/core';
 import { vinceAgent } from './agents/vince.ts';
+import { elizaAgent } from './agents/eliza.ts';
 import logFilterPlugin from './plugins/plugin-log-filter/src/index.ts';
 
 const project: Project = {
@@ -8,9 +9,11 @@ const project: Project = {
       ...vinceAgent,
       plugins: [logFilterPlugin, ...(vinceAgent.plugins ?? [])],
     },
+    elizaAgent,
   ],
 };
 
 export { vinceAgent } from './agents/vince.ts';
+export { elizaAgent } from './agents/eliza.ts';
 
 export default project;
