@@ -271,7 +271,7 @@ flowchart TB
 | `VINCE_UPLOAD` | "upload:", "save this:", URLs | Knowledge ingestion |
 | `VINCE_GROK_EXPERT` | "grok pulse", "prompt of the day" | Daily research suggestions |
 
-**UPLOAD and [summarize](https://github.com/steipete/summarize):** When you send a URL or YouTube link (e.g. `upload: https://...`), VINCE can fetch and summarize it via the **summarize** CLI and save the result to `knowledge/`. Optional: install `bun install -g @steipete/summarize` (or rely on bunx); set `OPENAI_API_KEY` or `GEMINI_API_KEY` for summarize's model. YouTube uses transcript + summary (up to ~2 min); articles/PDFs use summary (up to ~90s). If summarize isn't available, the bot suggests installing it or pasting the content.
+**UPLOAD and [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize):** We use our fork of [steipete/summarize](https://github.com/steipete/summarize) to keep improving the `knowledge/` folder. When you send a URL or YouTube link (e.g. `upload: https://...`), VINCE runs the summarize CLI via bunx: transcript + summary for YouTube, summary for articles/PDFs, then saves to `knowledge/<category>/`. Install: `bun install -g @steipete/summarize` (or run from the [Ikigai fork](https://github.com/IkigaiLabsETH/summarize)); set `OPENAI_API_KEY` or `GEMINI_API_KEY` for the summarizer. If the CLI isn't available, the bot suggests installing it or pasting the content.
 
 #### Early Detection
 

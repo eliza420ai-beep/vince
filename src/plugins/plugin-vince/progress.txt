@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-03 (stale P&L bug fix + progress refresh)
+# Last updated: 2026-02-03 (UPLOAD + summarize + batch ingest + playbook)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -79,7 +79,7 @@ COMPLETED
 - vinceBotAction - Execute trade
 
 ## Actions - Utilities (5 actions) ✅
-- vinceUploadAction - Knowledge upload
+- vinceUploadAction - Knowledge upload; URLs/YouTube via [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) (bunx), saves to knowledge/<category>/ — keeps improving our knowledge base from any URL or video. Optional: VINCE_UPLOAD_EXTRACT_ONLY=true for extract-only (no LLM; saves cost).
 - vinceGrokExpertAction - Daily pulse + research suggestions
 - vinceMemeDeepDiveAction - Deep dive into specific meme
 - vinceWatchlistAction - Manage watchlist
@@ -124,6 +124,15 @@ COMPLETED
 - Root cause: (1) Unrealized P&L is computed from mark price in VincePositionManager; mark price is updated every 30s by the paper loop via marketData.getEnrichedContext(asset) → ctx.currentPrice. (2) currentPrice comes from CoinGecko (coingeckoService.getPrice). (3) getEnrichedContext() refreshed CoinGlass but never called coingeckoService.refreshData(), so it always read from cache. (4) CoinGecko cache was only refreshed at service init and in a few other paths; TTL was 5 minutes. Result: P&L could be up to 5 minutes stale during fast moves.
 - Fixes applied: (1) marketData.service.ts: call coingeckoService.refreshData() before getPrice(asset) in getEnrichedContext() so the paper loop gets a chance to refresh. (2) coingecko.service.ts: reduce CACHE_TTL_MS from 5 min to 1 min so the 30s loop gets fresher prices without hammering the API. (3) vinceContext.provider.ts: when user asks for bot status/portfolio/uPNL, call paperTrading.refreshMarkPrices() before building context so the reply shows current P&L. (4) vincePaperTrading.service.ts: added public refreshMarkPrices() for on-demand refresh. (5) Trigger words for status refresh include "upnl" and "pnl".
 - Doc: STALE_PNL_INVESTIGATION.md in plugin-vince root summarizes root cause and fixes.
+
+## Knowledge ingestion playbook (summarize) ✅
+- UPLOAD in chat: "upload: <url>" or YouTube link → summarize CLI (bunx) → knowledge/<category>/.
+- Batch: scripts/ingest-urls.ts — URLs from args or --file urls.txt; --extract for transcript-only; --youtube for YouTube; writes to knowledge/ with same category heuristics as UPLOAD.
+- Extract-only: VINCE_UPLOAD_EXTRACT_ONLY=true makes UPLOAD use summarize --extract only (no LLM summarization; cheaper).
+- Docs: scripts/README.md has "Knowledge ingestion playbook" and ingest-urls usage.
+
+## TypeScript / type alignment (2026-02-03) ✅
+- Fixed 13 TS errors in vincePaperTrading.service.ts and related types. Position: added realizedPnlPct to paperTrading.ts; VincePositionManager.closePosition now sets position.realizedPnlPct when closing. recordExecution: call fixed to recordExecution(decisionId, position, additionalDetails) with valid TradeExecutionFeatures (entryAtrPct, streakMultiplier, positionSizePct); removed invalid fillPrice. recordOutcome: outcome object aligned with feature store (exitPrice, realizedPnl, realizedPnlPct, exitReason, holdingPeriodMs, etc.); use position.closedAt/openedAt for holdingPeriodMs; removed profitable/durationMs. VinceMarketRegimeService: added getCurrentRegime(asset?) returning { marketRegime, volatilityRegime? }; signalAggregator and paper trading use await getCurrentRegime(asset). AggregatedTradeSignal: added toAggregatedTradeSignal(signal) in paper trading to build full type (conflictingCount, signals, reasons, sourceBreakdown) from AggregatedSignal; all logSignalRejection calls use it instead of unsafe casts. Build completes cleanly.
 
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
@@ -285,7 +294,7 @@ Product feedback → backlog:
 📋 MEMES: Fix bold styling in UI (quick fix; looks messy). Improve quality over time (not top priority).
 📋 BOT: Polish BOT command—easier on the eyes, consistent writing style with other actions.
 📋 INTEL: Address redundancy with GM / Aloha (merge or differentiate).
-📋 UPLOAD / knowledge: Improve upload flow for YouTube, long PDFs, long articles → RAG; high priority. Consider dedicated ClawdBot (Moltbot) for this.
+🟢 UPLOAD / knowledge: YouTube + article URLs use [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) (fork of steipete/summarize) via bunx; transcript/summary saved to knowledge/<category>/. This improves our workflow to keep growing the knowledge folder from URLs and videos. Manual test: bun run scripts/test-summarize.ts (example: https://www.youtube.com/watch?v=wGucOorJlvk). Remaining: batch scripts for feeds, long PDFs; optional ClawdBot (Moltbot) for heavy ingestion.
 📋 LIFESTYLE: More focus on curated local (hotel/restaurant/spa/health/fitness); may migrate to dedicated CLAWDBOT.
 📋 NFT: Continue improving floor/tracking; solid MVP, "thin floor" gems from iconic collections still valued.
 
@@ -405,6 +414,7 @@ SESSION NOTES
   trades BTC) added. Goal: more closed trades → more JSONL in .elizadb/vince-paper-bot/features
   → faster path to 90+ records for ONNX training and better ML script testing. See
   FEATURE-STORE.md “Aggressive paper trading” and “Paper bot: focus on one asset”; .env.example.
+- UPLOAD + summarize: VINCE_UPLOAD uses [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) (our fork of steipete/summarize) via bunx to keep improving the knowledge/ folder: (1) YouTube URLs → transcript + summary (--youtube auto, 120s); (2) single article/PDF URLs → summary (90s). Output is categorized and written to knowledge/<category>/ with source URL in frontmatter. Install: bun install -g @steipete/summarize (or use Ikigai fork from GitHub). Manual test: bun run scripts/test-summarize.ts (e.g. YouTube wGucOorJlvk; --extract validated 66k+ chars in ~3s). README and progress updated.
 - Strong-signal confirming override: We need more training data, so more trades (and higher
   leverage where appropriate). Bot was correctly requiring 3 confirming sources for BTC, but
   was blocking strong signals (e.g. 65% strength, 67% confidence) that had only 2 agreeing

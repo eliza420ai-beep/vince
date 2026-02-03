@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Manual smoke test for the summarize CLI (used by VINCE UPLOAD for URLs/YouTube).
+ * We use https://github.com/IkigaiLabsETH/summarize to keep improving our knowledge/ folder.
  *
  * Run with network so bunx can fetch the package and summarize can fetch the URL:
  *   bun run scripts/test-summarize.ts

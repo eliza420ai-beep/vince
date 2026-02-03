@@ -18,10 +18,11 @@
  *   "remember: [important info]"
  *
  * SUMMARIZE INTEGRATION (optional):
- * - If @steipete/summarize CLI is available (bunx or global), URLs and YouTube
- *   are fetched/summarized and the result is saved to knowledge.
+ * - Uses summarize CLI (e.g. https://github.com/IkigaiLabsETH/summarize) via bunx to
+ *   keep improving the knowledge/ folder from URLs and YouTube.
  * - Install: bun install -g @steipete/summarize (or use bunx; no install required).
  * - Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for summarize's model.
+ * - VINCE_UPLOAD_EXTRACT_ONLY=true: use --extract only (transcript/extract, no LLM; saves cost).
  *
  * STANDALONE MODE:
  * - Uses plugin-knowledge-ingestion if available (full categorization + LLM processing)
@@ -120,21 +121,23 @@ function extractSingleUrl(text: string): string | null {
 /**
  * Run steipete/summarize CLI to get transcript or summary for a URL.
  * Uses bunx (Bun) so no global install is required.
- * @see https://github.com/steipete/summarize
+ * @see https://github.com/IkigaiLabsETH/summarize (Ikigai fork); https://github.com/steipete/summarize (upstream)
+ *
+ * Extract-only mode: set VINCE_UPLOAD_EXTRACT_ONLY=true to skip LLM summarization and only
+ * fetch transcript/extracted content (saves cost; useful for bulk or transcript-first flows).
  */
 async function runSummarizeCli(
   url: string,
-  options: { isYouTube?: boolean; timeoutMs?: number } = {}
+  options: { isYouTube?: boolean; timeoutMs?: number; extractOnly?: boolean } = {}
 ): Promise<{ content: string; sourceUrl: string } | null> {
-  const { isYouTube = false, timeoutMs = isYouTube ? 120_000 : 90_000 } = options;
-  const args = [
-    "@steipete/summarize",
-    url,
-    "--length",
-    "long",
-    "--plain",
-    "--no-color",
-  ];
+  const { isYouTube = false, timeoutMs = isYouTube ? 120_000 : 90_000, extractOnly } = options;
+  const useExtractOnly = extractOnly ?? (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" || process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
+  const args = ["@steipete/summarize", url, "--plain", "--no-color"];
+  if (useExtractOnly) {
+    args.push("--extract");
+  } else {
+    args.push("--length", "long");
+  }
   if (isYouTube) {
     args.push("--youtube", "auto");
   }
