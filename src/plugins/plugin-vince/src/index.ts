@@ -80,6 +80,7 @@ import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
 import { vinceHIP3Action } from "./actions/hip3.action";
+import { vinceChatAction } from "./actions/chat.action";
 
 // Actions - Paper Trading Bot
 import { vinceBotStatusAction } from "./actions/vinceBotStatus.action";
@@ -180,6 +181,7 @@ export const vincePlugin: Plugin = {
     vinceIntelAction,
     vinceNewsAction,
     vinceHIP3Action,
+    vinceChatAction,
     // Paper Trading Bot
     vinceBotStatusAction,
     vinceBotPauseAction,

@@ -69,6 +69,7 @@ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature 
 - **Self-improving paper bot** – ML loop described above; no live execution, but every trade is stored, learnt from, and used to tighten thresholds.
 - **Teammate context** – USER/SOUL/TOOLS/MEMORY keep the responses in character.
 - **Knowledge ingestion** – the `VINCE_UPLOAD` action pipes long-form research through our fork of **summarize** (`IkigaiLabsETH/summarize`) so every PDF, podcast, or YouTube link we feed in ends up as structured knowledge under `knowledge/`. [1]
+- **Chat mode** – `chat: <question>` pulls directly from `knowledge/` and the trench frameworks so you can pressure-test an idea without leaving VINCE.
 - **Other actions** – still exposed, but they’re backlog fodder until they support ALOHA or the ML loop.
 
 ### Action status (trimmed-down reality)

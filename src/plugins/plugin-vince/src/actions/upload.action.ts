@@ -488,14 +488,14 @@ export const vinceUploadAction: Action = {
     "ADD_KNOWLEDGE",
     "STORE_KNOWLEDGE",
   ],
-  description: `Upload content to the knowledge base. Supports text, URLs, and YouTube videos.
+  description: `Feed VINCE more knowledge so the ML pipeline keeps getting smarter. Supports text, URLs, and YouTube videos.
 
 TRIGGERS:
 1. "upload:", "save this:", "ingest:", "remember:" - Saves content to knowledge base
 2. YouTube URLs - Transcribes video and saves to knowledge
 3. Long pasted content (1000+ chars) without conversational tone - Auto-ingests
 
-Use this action when the user wants to ADD content to knowledge, NOT for regular conversation.`,
+Use this action whenever you want to add long-form research to knowledge/.`,
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content?.text || "";
@@ -751,10 +751,10 @@ Use this action when the user wants to ADD content to knowledge, NOT for regular
 
 Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`
 
-This content is now available via RAG search across all VINCE queries.${fallbackNote}
+This content now powers ALOHA, OPTIONS, and PERPS via RAG.${fallbackNote}
 
 ---
-*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+Next moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`,
             actions: ["VINCE_UPLOAD"],
           });
         } else {
@@ -766,7 +766,7 @@ This content is now available via RAG search across all VINCE queries.${fallback
 Please try again or rephrase the content.
 
 ---
-*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
             actions: ["VINCE_UPLOAD"],
           });
         }
@@ -776,7 +776,7 @@ Please try again or rephrase the content.
       
       if (callback) {
         await callback({
-          text: `❌ An error occurred while uploading: ${String(error)}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+          text: `❌ An error occurred while uploading: ${String(error)}\n\n---\nNeed context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
           actions: ["VINCE_UPLOAD"],
         });
       }
@@ -789,7 +789,7 @@ Please try again or rephrase the content.
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle typically creates...\n**Category**: `bitcoin-maxi`\n**File**: `vince-upload-bitcoin-halving-cycle.md`\n**Word Count**: 48\n\nSaved to `knowledge/bitcoin-maxi/vince-upload-bitcoin-halving-cycle.md`\n\nThis content is now available via RAG search across all VINCE queries.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle typically creates...\n**Category**: `bitcoin-maxi`\n**File**: `vince-upload-bitcoin-halving-cycle.md`\n**Word Count**: 48\n\nSaved to `knowledge/bitcoin-maxi/vince-upload-bitcoin-halving-cycle.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },
@@ -799,7 +799,7 @@ Please try again or rephrase the content.
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: The best covered call strikes for BTC...\n**Category**: `options`\n**File**: `vince-upload-btc-covered-call-strategy.md`\n**Word Count**: 35\n\nSaved to `knowledge/options/vince-upload-btc-covered-call-strategy.md`\n\nThis content is now available via RAG search across all VINCE queries.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: The best covered call strikes for BTC...\n**Category**: `options`\n**File**: `vince-upload-btc-covered-call-strategy.md`\n**Word Count**: 35\n\nSaved to `knowledge/options/vince-upload-btc-covered-call-strategy.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },
@@ -809,7 +809,7 @@ Please try again or rephrase the content.
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Hyperliquid's points program is still live...\n**Category**: `grinding-the-trenches`\n**File**: `vince-upload-hyperliquid-airdrop-strategy.md`\n**Word Count**: 28\n\nSaved to `knowledge/grinding-the-trenches/vince-upload-hyperliquid-airdrop-strategy.md`\n\nThis content is now available via RAG search across all VINCE queries.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Hyperliquid's points program is still live...\n**Category**: `grinding-the-trenches`\n**File**: `vince-upload-hyperliquid-airdrop-strategy.md`\n**Word Count**: 28\n\nSaved to `knowledge/grinding-the-trenches/vince-upload-hyperliquid-airdrop-strategy.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },

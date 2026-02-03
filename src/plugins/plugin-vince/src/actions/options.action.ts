@@ -335,7 +335,7 @@ export const vinceOptionsAction: Action = {
       }
       sections.push("");
       sections.push("---");
-      sections.push("*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*");
+      sections.push("_Next steps_: `ALOHA` (macro vibe) · `PERPS` (execution plan) · `UPLOAD <url>` (stash research)");
 
       await callback({
         text: sections.join("\n"),

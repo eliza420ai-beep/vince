@@ -325,15 +325,14 @@ export const vincePerpsAction: Action = {
         "Deribit Put/Call Ratio",
       ];
 
+      const outro = "\n---\nPulse check done. Next moves: `ALOHA` (full vibe) · `OPTIONS` (O/I flows, greeks) · `UPLOAD <url>` (stash research)";
       const output = [
         `**Perps** _${time}_`,
         "",
         narrative,
         "",
         `*Source: ${allSources.join(", ")}*`,
-        "",
-        "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+        outro,
       ].join("\n");
 
       await callback({

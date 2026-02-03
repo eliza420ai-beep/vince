@@ -273,7 +273,7 @@ export const vinceAlohaAction: Action = {
       sections.push(`_${tweet.length}/280 chars_`);
       sections.push("");
       sections.push("---");
-      sections.push("*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*");
+      sections.push("_Keep digging_: `OPTIONS` (deep dive), `PERPS` (full dashboard), `UPLOAD <url>` (feed knowledge)");
 
       await callback({
         text: sections.join("\n"),

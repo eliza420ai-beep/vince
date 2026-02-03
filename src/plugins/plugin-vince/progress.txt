@@ -417,6 +417,9 @@ SESSION NOTES
   summarize fork ([IkigaiLabsETH/summarize](https://github.com/IkigaiLabsETH/summarize)), so every
   morning upload (YouTube, podcast, PDF, article) lands in `knowledge/` with clean front‑matter +
   source URL. Daily habit: feed quality content → run ALOHA informed by fresh research → retrain ML.
+- Added `VINCE_CHAT` action. Trigger with `chat: <question>` to get a free-form response that leans
+  on `knowledge/` (top 3 matching files) and trench frameworks. Makes it easy to pressure-test ideas
+  or recall playbooks without leaving the ALOHA/OPTIONS/PERPS workflow.
 - MCP / Eliza Cloud: New section “MCP / ELIZA CLOUD – LEVERAGE OPPORTUNITIES” in
   progress.txt with concrete suggestions: ElizaOS Cloud MCP (credits, memory,
   agent interaction), Time & Date (session/tz), Weather (Lifestyle), Crypto Price
