@@ -1,6 +1,12 @@
 # START.md — From Chaos to VINCE: A Vibe Coding Manifesto for ElizaOS Traders
 
-> **Quick Links:** [WHAT.md](./WHAT.md) (purpose/philosophy) | [WHY.md](./WHY.md) (framework decisions) | [HOW.md](./HOW.md) (hands-on development) | [CLAUDE.md](./CLAUDE.md) (AI assistant reference)
+**Purpose:** Full system reference for **vibe coding** plugin-vince: vocabulary (Actions, Services, Providers, Evaluators), the six domains, signal system, ML layer, and workflow so you can ship with AI. Use [HOW.md](./HOW.md) for step-by-step implementation; use [CLAUDE.md](./CLAUDE.md) as the AI operating manual.
+
+**When to read:** Before extending VINCE, when onboarding, or when AI keeps missing context—so you can describe intent in ElizaOS terms.
+
+> **Quick Links:** [WHAT.md](./WHAT.md) | [WHY.md](./WHY.md) | [HOW.md](./HOW.md) | [CLAUDE.md](./CLAUDE.md) | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) | [README.md](./README.md)
+
+**In this doc:** Part I Foundation (why you fail, doc-first) → Part II ElizaOS vocabulary (Actions, Services, Providers, Evaluators, State, Plugin) → Part III Six domains (Options, Perps, TradFi, Memes, Lifestyle, Art) → Part IV Signal system (aggregation, session multipliers, circuit breakers) → Part V ML layer (Thompson Sampling, feature store, ONNX) → Part VI–IX Workflow, patterns, philosophy.
 
 ---
 
@@ -77,8 +83,10 @@ For plugin-vince, we have a tailored documentation structure:
 | **HOW.md** | Hands-on development—adding actions, services, debugging, testing |
 | **CLAUDE.md** | AI operating manual—rules, constraints, patterns AI must follow |
 | **START.md** | This file—the complete system for understanding and extending VINCE |
+| **SIGNAL_SOURCES.md** | Which signal sources feed the aggregator, how to enable them, how to verify in logs |
+| **README.md** | Plugin overview, install, usage; links to WHAT/WHY/HOW |
 
-These docs cross-reference each other. WHAT defines the vision, WHY explains the architecture, HOW teaches implementation, and CLAUDE.md keeps AI aligned.
+These docs cross-reference each other. WHAT defines the vision, WHY explains the architecture, HOW teaches implementation, CLAUDE.md keeps AI aligned, and SIGNAL_SOURCES.md tells you how to get more factors per trade.
 
 #### The Session Files (Your Persistence Layer)
 
@@ -311,7 +319,7 @@ Signals for longs/shorts with paper execution. Key concepts:
 - Liquidation cascades
 - Top trader positioning
 
-Services: `VinceBinanceService`, `VinceCoinglass Service`, `VinceSignalAggregatorService`
+Services: `VinceBinanceService`, `VinceCoinGlassService`, `VinceSignalAggregatorService`
 Actions: `vincePerpsAction`, `vinceBotTradeAction`
 
 ### 11: TradFi
@@ -331,7 +339,7 @@ AI tokens in the $1M-$20M sweet spot. Key concepts:
 - Volume/marketcap ratios
 - Narrative momentum
 
-Services: `VinceDexScreenerService`, `VinceMeteora Service`
+Services: `VinceDexScreenerService`, `VinceMeteoraService`
 Actions: `vinceMemeAction`, `vinceMemeDeepDiveAction`
 
 ### 13: Lifestyle
@@ -358,7 +366,7 @@ Actions: `vinceNftFloorAction`
 
 ## Part IV: The Signal System
 
-This is the heart of VINCE.
+This is the heart of VINCE. To see **which sources exist, how to enable them, and how to confirm in logs** which contributed, see [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md).
 
 ### 15: Signal Aggregation
 
@@ -741,4 +749,14 @@ Go fucking build something today.
 
 ---
 
-*Reference: See [HOW.md](./HOW.md) for hands-on implementation details, [WHY.md](./WHY.md) for framework decisions, and [WHAT.md](./WHAT.md) for the VINCE philosophy.*
+---
+
+## Related docs
+
+- [WHAT.md](./WHAT.md) — Purpose and philosophy
+- [WHY.md](./WHY.md) — Framework decisions and migration
+- [HOW.md](./HOW.md) — Hands-on implementation, adding actions/services, debugging
+- [CLAUDE.md](./CLAUDE.md) — AI operating manual for plugin-vince
+- [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) — Signal sources and how to verify them in logs
+- [README.md](./README.md) — Plugin overview and usage
+- [../../FEATURE-STORE.md](../../FEATURE-STORE.md) — Paper bot feature storage and ML (project root)

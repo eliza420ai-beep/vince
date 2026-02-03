@@ -1,8 +1,16 @@
 # Signal Sources for the Paper Trading Bot
 
-The aggregator merges factors from multiple data sources. **"WHY THIS TRADE"** shows all factors (up to 12 in the log; full list in feature store). **"Confirming: N"** = number of **sources** that agree on direction, not total factor count.
+**Purpose:** Which data sources feed the signal aggregator, how to enable them, and how to verify in logs which sources contributed. For hands-on dev and debugging, see [HOW.md](./HOW.md). For feature-store and ML, see [../../FEATURE-STORE.md](../../FEATURE-STORE.md).
 
-To get more than a few factors per trade, ensure as many sources as possible are **available** and **returning data** for your assets (BTC, ETH, SOL, HYPE).
+**When to read:** You see few factors per trade, only one source in logs, or want to add/fix CoinGlass, Binance, Deribit, News, Sanbase, etc.
+
+---
+
+## At a glance
+
+- The aggregator merges **factors** from multiple **sources**. **"WHY THIS TRADE"** shows contributing factors (up to 12 in the log; full list in feature store). **"Confirming: N"** = number of **sources** agreeing on direction, not total factor count.
+- To get more factors: ensure sources are **registered**, **returning data** for your assets (BTC, ETH, SOL, HYPE), and **meeting thresholds** (see [How to verify which sources are active](#how-to-verify-which-sources-are-active)).
+- **Free (no key):** CoinGlass (fallback), Binance, BinanceLiquidations, Deribit (fallback), MarketRegime (uses other data). **Optional keys:** COINGLASS_API_KEY, SANBASE_API_KEY; TopTraders needs wallet config.
 
 ---
 
@@ -49,3 +57,12 @@ To get more than a few factors per trade, ensure as many sources as possible are
 
 - **CoinGlass** now emits **5–8 factors** (funding, L/S, OI, OI 24h, fear/greed) so even with only CoinGlass you see more than 3.
 - **Binance** (no key) and **MarketRegime** are the next easiest to get more factors; then News, Deribit, Sanbase, and liquidations as you add keys or fix config.
+
+---
+
+## Related docs
+
+- [HOW.md](./HOW.md) — Debugging (e.g. `LOG_LEVEL=debug`, grep SignalAggregator), paper bot state
+- [README.md](./README.md) — Plugin overview and signal pipeline
+- [CLAUDE.md](./CLAUDE.md) — Service list and technical reference
+- [../../FEATURE-STORE.md](../../FEATURE-STORE.md) — Where feature records (and decision drivers) are stored for ML
