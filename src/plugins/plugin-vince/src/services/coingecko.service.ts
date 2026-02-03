@@ -13,7 +13,8 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { ExchangeHealth } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (conservative rate limit)
+// Keep prices fresh for P&L/mark price updates (paper loop runs every 30s)
+const CACHE_TTL_MS = 60 * 1000; // 1 minute (was 5 min; caused stale uPNL on fast moves)
 
 interface CachedData {
   exchanges: Map<string, ExchangeHealth>;

@@ -153,11 +153,15 @@ export const vinceContextProvider: Provider = {
         userText.includes("bot") ||
         userText.includes("status") ||
         userText.includes("paper") ||
-        userText.includes("portfolio");
+        userText.includes("portfolio") ||
+        userText.includes("upnl") ||
+        userText.includes("pnl");
       if (isBotStatusQuery) {
         const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as VincePaperTradingService | null;
         const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
         if (paperTrading && positionManager) {
+          // Refresh mark prices so uPNL and P&L are current when user asks for status
+          await paperTrading.refreshMarkPrices?.();
           const status = paperTrading.getStatus();
           const portfolio = positionManager.getPortfolio();
           const positions = positionManager.getOpenPositions();

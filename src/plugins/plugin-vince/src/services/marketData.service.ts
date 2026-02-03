@@ -144,11 +144,14 @@ export class VinceMarketDataService extends Service {
     const coinglassService = this.runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
     const coingeckoService = this.runtime.getService("VINCE_COINGECKO_SERVICE") as VinceCoinGeckoService | null;
 
-    // Get price data
+    // Get price data (refresh so P&L and mark price stay current; avoids stale uPNL)
     let currentPrice = 0;
     let priceChange24h = 0;
     let volume24h = 0;
     if (coingeckoService) {
+      if (typeof coingeckoService.refreshData === "function") {
+        await coingeckoService.refreshData();
+      }
       const priceData = coingeckoService.getPrice(asset);
       if (priceData) {
         currentPrice = priceData.price;

@@ -1470,6 +1470,14 @@ export class VincePaperTradingService extends Service {
     }, TIMING.MARK_PRICE_UPDATE_MS);
   }
 
+  /**
+   * Refresh mark prices for all open positions (e.g. before showing status/uPNL).
+   * Call this on bot status / portfolio / uPNL requests so reported P&L is current.
+   */
+  async refreshMarkPrices(): Promise<void> {
+    await this.updateMarkPrices();
+  }
+
   private async updateMarkPrices(): Promise<void> {
     const positionManager = this.getPositionManager();
     const marketData = this.getMarketData();
