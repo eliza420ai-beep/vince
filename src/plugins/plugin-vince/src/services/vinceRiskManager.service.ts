@@ -92,18 +92,21 @@ export class VinceRiskManagerService extends Service {
   /**
    * Sync signal thresholds from dynamic config (self-improving architecture)
    * Called on startup and can be called periodically to pick up tuned values
+   * In aggressive mode, minConfirming = 2 to allow more trades for ML training
    */
   syncFromDynamicConfig(): void {
     const thresholds = dynamicConfig.getThresholds();
+    const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
     
     // Update limits with dynamic thresholds
     this.limits.minSignalStrength = thresholds.minStrength;
     this.limits.minSignalConfidence = thresholds.minConfidence;
-    this.limits.minConfirmingSignals = thresholds.minConfirming;
+    // Aggressive: 2 confirming (more trades for ML). Default: 3 (conservative).
+    this.limits.minConfirmingSignals = aggressive ? 2 : thresholds.minConfirming;
     
     logger.debug(
       `[VinceRiskManager] Synced from dynamic config: ` +
-      `strength=${thresholds.minStrength}, confidence=${thresholds.minConfidence}, confirming=${thresholds.minConfirming}`
+      `strength=${thresholds.minStrength}, confidence=${thresholds.minConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`
     );
   }
 

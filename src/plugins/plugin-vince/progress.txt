@@ -460,6 +460,10 @@ SESSION NOTES
   confirming signals instead of 3. Risk manager uses this in validateSignal(); HYPE still
   uses 2 always. Tuning this constant (or the strength/confidence bar) controls trade
   frequency vs. confluence. See vinceRiskManager.service.ts and paperTradingDefaults.ts.
+- Aggressive mode → 2 confirming: When VINCE_PAPER_AGGRESSIVE=true, syncFromDynamicConfig()
+  now sets minConfirmingSignals=2 (vs 3) so 2 agreeing sources are enough to trade. Fixes
+  "Only 2 confirming signals, need 3" blocks when CoinGlass + Binance agree but a third
+  source (TopTraders, Sanbase, News, etc.) doesn't. .env.example and progress.txt updated.
 - Paper trading aggressive preset – R:R and risk tuning: SL was ATR-based only, often giving
   poor R:R (0.4:1–0.5:1). We now set SL from target R:R so max loss = TP / TARGET_RR. Constants
   in paperTradingDefaults: TARGET_RR_AGGRESSIVE=2, TAKE_PROFIT_USD_AGGRESSIVE=280, MIN_SL_PCT_
