@@ -125,6 +125,31 @@ COMPLETED
 PRIORITY (real-time data for paper trading algo)
 ================================================================================
 
+🔴 FIX VINCEBINANCE HTTP 451 WARNINGS (Eliza Cloud / Container Logs)
+   Binance public endpoints often return HTTP 451 (Unavailable For Legal Reasons)
+   e.g. geo/region restrictions. These flood the Warnings filter on Eliza Cloud
+   and add no value when they repeat every poll.
+   - Endpoints affected: Top trader positions, Taker volume, L/S ratio,
+     OI history, Funding history (fapi.binance.com/futures/data/...).
+   - Actions: (1) Log 451 once per endpoint per cooldown (e.g. 5 min) with
+     context "451 = Unavailable For Legal Reasons (geo/restrictions)";
+     use debug for repeats. (2) Consider fallback or graceful degradation
+     when 451 (e.g. skip Binance intel in signal aggregator when 451 persists).
+   - Track in: src/plugins/plugin-vince/src/services/binance.service.ts
+
+🔴 IMPROVE LOGS FOR ELIZA CLOUD (https://www.elizacloud.ai/)
+   Align with Eliza Cloud Container Logs / Metrics UX: filterable levels,
+   structured context, less noise, high-signal summaries.
+   - Reduce INFO noise: high-frequency pulses (e.g. HyperliquidFallback
+     OPTIONS PULSE / CROSS-VENUE) already improved; keep only actionable
+     lines at INFO (bias change, arb opportunities).
+   - Warnings: Prioritize actionable warnings (e.g. VinceBinance 451 above);
+     avoid repetitive same-message warnings (use cooldown + debug for repeats).
+   - Structure: Include consistent context (source tag, optional agentId/roomId
+     when relevant) so Cloud log search/filter stays useful.
+   - Optional: Periodically log a single "dashboard-style" summary (e.g. health
+     of data sources, signal source counts) instead of many per-call lines.
+
 🔴 IMPROVE THE AMOUNT OF REAL-TIME DATA USED FOR THE PAPER TRADING ALGO
    We do not currently leverage all the data sources we already have available.
    - Ensure Binance, MarketRegime, News, Deribit, BinanceLiquidations, Sanbase,
@@ -144,6 +169,45 @@ IN PROGRESS
 🔄 Feature store needs 90+ trades for ONNX model training
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
+
+================================================================================
+MCP / ELIZA CLOUD – LEVERAGE OPPORTUNITIES
+================================================================================
+(Ref: https://www.elizacloud.ai/ MCP catalog – serverless, x402 micropayments, SSE/HTTP)
+
+📋 ElizaOS Cloud MCP (v1.0.0 – 20 tools) – Platform
+   Use for: credit management, AI generation, memory, conversations, agent interaction.
+   - VINCE relevance: Offload heavy or rate-limited calls (e.g. when Binance 451);
+     use Cloud memory/conversations for cross-session context; credit-based usage
+     fits cost visibility in logs/deploy (see “Improve logs for Eliza Cloud”).
+   - Action: Evaluate wiring plugin-vince to Cloud MCP for memory/credits when
+     deploying to Eliza Cloud; document credit impact of signal aggregator + HL/Binance.
+
+📋 Time & Date MCP (v2.0.0 – 5 tools) – Utilities
+   Use for: current time, timezone conversion, date calculations.
+   - VINCE relevance: Session filters (Asia/EU/US overlap) and day-of-week logic
+     (Lifestyle, paper trading confidence/size) already use local time; MCP could
+     provide canonical “market open” / timezone for multi-region users and logs.
+   - Action: Optional integration in VinceLifestyleService or signal aggregator
+     for time-aware summaries; single source of truth for “market session” in logs.
+
+📋 Weather MCP (v2.0.0 – 4 tools) – Data
+   Use for: real-time weather, 16-day forecast, location search (Open-Meteo).
+   - VINCE relevance: Lifestyle action (dining, hotel, activities); day-of-week
+     suggestions could be weather-aware (e.g. indoor vs outdoor by location).
+   - Action: Backlog – add Weather MCP as optional Lifestyle enrichment when
+     user shares location or for curated “today’s vibe” in GM/Aloha.
+
+📋 Crypto Price MCP (v2.0.0 – 3 tools) – Finance, Free
+   Use for: live prices, market cap, trending coins (CoinGecko).
+   - VINCE relevance: We already use CoinGecko (VinceCoinGeckoService), HIP-3,
+     Hyperliquid. MCP could be fallback or secondary source for “trending” and
+     simple price checks without maintaining our own rate limits.
+   - Action: Backlog – consider Crypto Price MCP as optional fallback for
+     meme/trending or for lightweight price context in actions (cost: free).
+
+General: Adopting MCPs can reduce in-plugin API surface and centralize credits/cost
+on Eliza Cloud; log MCP tool calls (tool name + credits if x402) for observability.
 
 ================================================================================
 NEXT / BACKLOG
@@ -217,10 +281,54 @@ Current prod:
      credit restoration for timed-out deployment (15 credits)
 
 ================================================================================
+BRANDING, CHANNELS & X (TWITTER)
+================================================================================
+
+Frontend / branding (Eliza Cloud):
+- The current frontend we have deployed through Eliza Cloud is fine for now but
+  is very much NOT on brand with IKIGAI LABS and IKIGAI STUDIO.
+- Intent: internal use only. Do NOT promote this deployment; it is for our team
+  and community ops, not as a public-facing product.
+
+Channel strategy – “where the community is”:
+- We are super bullish on being where the users are (in our case, the community).
+  Hence our focus order:
+  1. DISCORD FIRST: Primary channel. Connect Discord servers for AI-powered
+     automation (announcements, app updates, rich embeds, scheduled posts).
+     Eliza Cloud Settings → Discord Bot is the first integration we use.
+  2. TELEGRAM SECOND: Connect Telegram bot for automation (channels, auto-reply
+     in groups, welcome messages, /help and /about). Available in Eliza Cloud
+     Settings → Connections (Bot Token from @BotFather).
+- Upcoming features (Eliza Cloud) we may or may not use:
+  - Bluesky (Coming Soon) – cross-platform automation.
+  - LinkedIn (Coming Soon) – professional content automation.
+  - Meta Ads (Coming Soon) – Facebook & Instagram campaigns.
+  No commitment yet; evaluate when live.
+
+X (Twitter) integration – second thoughts:
+- X integration feels like the most important channel from a reach perspective,
+  but we have serious reservations due to backstory:
+  - Most ElizaOS bots got banned on X.
+  - The original ElizaOS (ai16z at the time) also got banned; they had to
+    rebrand (including due to lawsuit) – so the ecosystem has direct experience
+    with X enforcement against agent/bot accounts.
+- Outcome: We are not prioritizing X integration for now. Internal use and
+  community focus (Discord, then Telegram) avoid that risk. Revisit X only if
+  we have a clear, low-risk path (e.g. official partnerships or policy change).
+
+================================================================================
 SESSION NOTES
 ================================================================================
 
 2026-02-03:
+- MCP / Eliza Cloud: New section “MCP / ELIZA CLOUD – LEVERAGE OPPORTUNITIES” in
+  progress.txt with concrete suggestions: ElizaOS Cloud MCP (credits, memory,
+  agent interaction), Time & Date (session/tz), Weather (Lifestyle), Crypto Price
+  (fallback/trending). Each tied to plugin-vince use case and backlog action.
+- Eliza Cloud logs: PRIORITY added for (1) VinceBinance HTTP 451 warnings (Top trader,
+  Taker volume, L/S ratio, OI history, Funding history) – cooldown + 451 context
+  in binance.service.ts to reduce Warnings flood; (2) general log improvements
+  for elizacloud.ai (filterable levels, less noise, high-signal summaries).
 - Signal sources: startup log [VINCE] 📡 Signal sources available: N/8 (...); aggregator
   INFO logs list which sources contributed; DEBUG "tried but no contribution" for
   Binance, NewsSentiment, DeribitIVSkew, MarketRegime. See SIGNAL_SOURCES.md.

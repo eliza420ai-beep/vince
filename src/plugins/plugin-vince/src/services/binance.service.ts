@@ -30,6 +30,8 @@ import type {
 
 const CACHE_TTL = 60 * 1000; // 1 minute cache for real-time data
 const FEAR_GREED_CACHE_TTL = 60 * 60 * 1000; // 1 hour (updates daily)
+/** Cooldown before re-logging same HTTP error per endpoint (avoids flooding Eliza Cloud Warnings) */
+const HTTP_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheEntry<T> {
   data: T | null;
@@ -54,6 +56,8 @@ export class VinceBinanceService extends Service {
   private longShortCache: Map<string, CacheEntry<BinanceLongShortRatio>> = new Map();
   private crossFundingCache: Map<string, CacheEntry<CrossExchangeFunding>> = new Map();
   private fearGreedCache: CacheEntry<AlternativeFearGreed> = { data: null, timestamp: 0 };
+  /** Last time we logged a warn per endpoint (for cooldown to avoid log flood on Eliza Cloud) */
+  private lastHttpWarnByEndpoint: Map<string, number> = new Map();
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -86,6 +90,24 @@ export class VinceBinanceService extends Service {
     // Pre-fetch BTC data to validate connectivity and display dashboard
     const intel = await this.getIntelligence("BTC");
     this.printBinanceDashboard(intel);
+  }
+
+  /**
+   * Log HTTP error once per endpoint per cooldown to avoid flooding Eliza Cloud Warnings.
+   * 451 = Unavailable For Legal Reasons (e.g. geo-restriction); add context when used.
+   */
+  private logHttpWarn(endpoint: string, status: number): void {
+    const key = `${endpoint}:${status}`;
+    const now = Date.now();
+    const last = this.lastHttpWarnByEndpoint.get(key) ?? 0;
+    const onCooldown = now - last < HTTP_WARN_COOLDOWN_MS;
+    const hint451 = status === 451 ? " (Unavailable For Legal Reasons – check region/restrictions)" : "";
+    if (onCooldown) {
+      logger.debug(`[VinceBinance] ${endpoint} returned ${status}${hint451}`);
+    } else {
+      this.lastHttpWarnByEndpoint.set(key, now);
+      logger.warn(`[VinceBinance] ${endpoint} returned ${status}${hint451}`);
+    }
   }
 
   // =============================================================================
@@ -363,7 +385,7 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] Top trader positions returned ${response.status}`);
+        this.logHttpWarn("Top trader positions", response.status);
         return cached?.data ?? null;
       }
 
@@ -416,7 +438,7 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] Taker volume returned ${response.status}`);
+        this.logHttpWarn("Taker volume", response.status);
         return cached?.data ?? null;
       }
 
@@ -464,7 +486,7 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] L/S ratio returned ${response.status}`);
+        this.logHttpWarn("L/S ratio", response.status);
         return cached?.data ?? null;
       }
 
@@ -512,7 +534,7 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] OI history returned ${response.status}`);
+        this.logHttpWarn("OI history", response.status);
         return cached?.data ?? null;
       }
 
@@ -571,7 +593,7 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] Funding history returned ${response.status}`);
+        this.logHttpWarn("Funding history", response.status);
         return cached?.data ?? null;
       }
 

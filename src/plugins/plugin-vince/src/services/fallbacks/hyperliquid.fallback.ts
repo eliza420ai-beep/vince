@@ -493,13 +493,24 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         else if (avgFunding < -0.0001) overallBias = "bearish";
       }
 
-      logger.info(
+      // Full detail only at debug to avoid terminal noise
+      logger.debug(
         `[HyperliquidFallback] 📊 OPTIONS PULSE | Bias: ${overallBias} | ` +
         `BTC: ${assets.btc?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.btc?.crowdingLevel || "N/A"}) | ` +
         `ETH: ${assets.eth?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.eth?.crowdingLevel || "N/A"}) | ` +
         `SOL: ${assets.sol?.fundingAnnualized?.toFixed(2) || "N/A"}% | ` +
         `HYPE: ${assets.hype?.fundingAnnualized?.toFixed(2) || "N/A"}%`
       );
+      // One high-signal line at info only when bias is actionable (dashboard-style)
+      if (overallBias !== "neutral") {
+        const sym = overallBias === "bullish" ? "🟢" : "🔴";
+        const btc = assets.btc?.fundingAnnualized != null ? `${assets.btc.fundingAnnualized.toFixed(2)}%` : "—";
+        const eth = assets.eth?.fundingAnnualized != null ? `${assets.eth.fundingAnnualized.toFixed(2)}%` : "—";
+        const sol = assets.sol?.fundingAnnualized != null ? `${assets.sol.fundingAnnualized.toFixed(2)}%` : "—";
+        logger.info(
+          `[HyperliquidFallback] 📊 OPTIONS PULSE | ${sym} ${overallBias.toUpperCase()} | BTC ${btc} | ETH ${eth} | SOL ${sol}`
+        );
+      }
 
       return {
         overallBias,
@@ -586,10 +597,21 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         });
       }
 
-      logger.info(
-        `[HyperliquidFallback] 💱 CROSS-VENUE | Assets: ${assets.length} | ` +
-        `Arb opportunities: ${arbitrageOpportunities.length > 0 ? arbitrageOpportunities.join(", ") : "none"}`
+      // Never dump 70+ tickers. Full list only at debug.
+      const arbCount = arbitrageOpportunities.length;
+      logger.debug(
+        `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbCount > 0 ? arbitrageOpportunities.join(", ") : "none"}`
       );
+      // Info only when there are arb opportunities (actionable); otherwise quiet
+      if (arbCount > 0) {
+        const arbSummary =
+          arbCount <= 10
+            ? arbitrageOpportunities.join(", ")
+            : `${arbCount} assets`;
+        logger.info(
+          `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbSummary}`
+        );
+      }
 
       return {
         arbitrageOpportunities,
