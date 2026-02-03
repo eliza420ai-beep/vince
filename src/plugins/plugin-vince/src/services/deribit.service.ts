@@ -9,6 +9,7 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // Types
 export interface DeribitStrike {
@@ -145,47 +146,42 @@ export class VinceDeribitService extends Service {
   }
 
   /**
-   * Print dashboard with live data and actionable TLDR
+   * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDashboardWithData(ctx: OptionsContext): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📊 DERIBIT OPTIONS DASHBOARD                                   │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Spot & DVOL
     const spotStr = ctx.spotPrice ? `$${ctx.spotPrice.toLocaleString()}` : "N/A";
     const dvolStr = ctx.dvol ? `${ctx.dvol.toFixed(1)}%` : "N/A";
     const hvStr = ctx.historicalVolatility ? `${ctx.historicalVolatility.toFixed(1)}%` : "N/A";
-    console.log(`  │  ${ctx.currency} SPOT: ${spotStr.padEnd(12)} DVOL: ${dvolStr.padEnd(8)} HV: ${hvStr.padEnd(8)}│`);
-    
-    // IV Surface
+
+    startBox();
+    logLine("📊 DERIBIT OPTIONS DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine(`${ctx.currency} SPOT: ${spotStr}  DVOL: ${dvolStr}  HV: ${hvStr}`);
     if (ctx.ivSurface) {
       const atmStr = `ATM: ${ctx.ivSurface.atmIV.toFixed(1)}%`;
       const skewStr = `Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`;
-      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "⚠️" : 
-                        ctx.ivSurface.skewInterpretation === "bullish" ? "🟢" : "⚪";
-      console.log(`  │  IV Surface: ${atmStr.padEnd(14)} ${skewStr.padEnd(14)} ${skewEmoji}`.padEnd(66) + "│");
+      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "⚠️" : ctx.ivSurface.skewInterpretation === "bullish" ? "🟢" : "⚪";
+      logLine(`IV Surface: ${atmStr}  ${skewStr}  ${skewEmoji}`);
     }
-    
-    // Best Yields
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     if (ctx.bestCoveredCalls.length > 0) {
       const cc = ctx.bestCoveredCalls[0];
-      console.log(`  │  📈 Best Covered Call: ${cc.delta.toFixed(0)}D @ ${cc.strike}, ${cc.yield7Day.toFixed(2)}%/wk`.padEnd(66) + "│");
+      logLine(`📈 Best Covered Call: ${cc.delta.toFixed(0)}D @ ${cc.strike}, ${cc.yield7Day.toFixed(2)}%/wk`);
     }
     if (ctx.bestCashSecuredPuts.length > 0) {
       const csp = ctx.bestCashSecuredPuts[0];
-      console.log(`  │  📉 Best Cash-Secured Put: ${csp.delta.toFixed(0)}D @ ${csp.strike}, ${csp.yield7Day.toFixed(2)}%/wk`.padEnd(66) + "│");
+      logLine(`📉 Best Cash-Secured Put: ${csp.delta.toFixed(0)}D @ ${csp.strike}, ${csp.yield7Day.toFixed(2)}%/wk`);
     }
-    
-    // Actionable TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(ctx);
-    console.log(`  │  💡 ${tldr}`.padEnd(66) + "│");
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-    
+    logLine(`💡 ${tldr}`);
+    endBox();
     logger.info(`[VinceDeribit] ✅ Dashboard loaded - ${tldr}`);
   }
 
@@ -241,60 +237,47 @@ export class VinceDeribitService extends Service {
    */
   async printLiveDashboard(currency: DeribitCurrency = "BTC"): Promise<void> {
     const ctx = await this.getOptionsContext(currency);
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log(`  │  📊 DERIBIT ${currency} OPTIONS DASHBOARD                              │`);
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Volatility section
     const spotStr = ctx.spotPrice ? `$${ctx.spotPrice.toLocaleString()}` : "N/A";
     const dvolStr = ctx.dvol ? `${ctx.dvol.toFixed(1)}%` : "N/A";
     const hvStr = ctx.historicalVolatility ? `${ctx.historicalVolatility.toFixed(1)}%` : "N/A";
-    console.log(`  │  💰 SPOT: ${spotStr.padEnd(12)} DVOL: ${dvolStr.padEnd(8)} HV: ${hvStr.padEnd(8)}│`);
-    
-    // IV Surface
+
+    startBox();
+    logLine(`📊 DERIBIT ${currency} OPTIONS DASHBOARD`);
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine(`💰 SPOT: ${spotStr}  DVOL: ${dvolStr}  HV: ${hvStr}`);
     if (ctx.ivSurface) {
       const atmStr = `ATM: ${ctx.ivSurface.atmIV.toFixed(1)}%`;
-      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "📉" :
-                        ctx.ivSurface.skewInterpretation === "bullish" ? "📈" : "➡️";
-      const skewStr = `${skewEmoji} Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`;
-      console.log(`  │  📊 IV: ${atmStr.padEnd(15)} ${skewStr.padEnd(24)}│`);
+      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "📉" : ctx.ivSurface.skewInterpretation === "bullish" ? "📈" : "➡️";
+      logLine(`📊 IV: ${atmStr}  ${skewEmoji} Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`);
     }
-    
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Best Covered Calls
-    console.log("  │  🔵 BEST COVERED CALLS:                                         │");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("🔵 BEST COVERED CALLS:");
     if (ctx.bestCoveredCalls.length > 0) {
       for (const cc of ctx.bestCoveredCalls.slice(0, 2)) {
-        const ccStr = `${cc.delta.toFixed(0)}D $${cc.strike.toLocaleString()} → ${cc.yield7Day.toFixed(2)}%/wk`;
-        console.log(`  │     ${ccStr.padEnd(58)}│`);
+        logLine(`   ${cc.delta.toFixed(0)}D $${cc.strike.toLocaleString()} → ${cc.yield7Day.toFixed(2)}%/wk`);
       }
     } else {
-      console.log("  │     No data available                                          │");
+      logLine("   No data available");
     }
-    
-    // Best CSPs
-    console.log("  │  🟠 BEST CASH-SECURED PUTS:                                     │");
+    logLine("🟠 BEST CASH-SECURED PUTS:");
     if (ctx.bestCashSecuredPuts.length > 0) {
       for (const csp of ctx.bestCashSecuredPuts.slice(0, 2)) {
-        const cspStr = `${Math.abs(csp.delta).toFixed(0)}D $${csp.strike.toLocaleString()} → ${csp.yield7Day.toFixed(2)}%/wk`;
-        console.log(`  │     ${cspStr.padEnd(58)}│`);
+        logLine(`   ${Math.abs(csp.delta).toFixed(0)}D $${csp.strike.toLocaleString()} → ${csp.yield7Day.toFixed(2)}%/wk`);
       }
     } else {
-      console.log("  │     No data available                                          │");
+      logLine("   No data available");
     }
-    
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(ctx);
-    const tldrEmoji = tldr.includes("CHEAP") || tldr.includes("YIELD") ? "💡" :
-                      tldr.includes("RICH") || tldr.includes("HIGH") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    const tldrEmoji = tldr.includes("CHEAP") || tldr.includes("YIELD") ? "💡" : tldr.includes("RICH") || tldr.includes("HIGH") ? "⚠️" : "📋";
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   async stop(): Promise<void> {

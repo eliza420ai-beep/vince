@@ -14,6 +14,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { MarketSignal } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -112,58 +113,56 @@ export class VinceTopTradersService extends Service {
   }
 
   /**
-   * Print sexy terminal dashboard
+   * Print Whale Tracker dashboard (same box style as paper trade-opened banner).
    */
   private printDashboard(): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🐋 WHALE TRACKER DASHBOARD                                     │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
+    startBox();
+    logLine("🐋 WHALE TRACKER DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+
     const status = this.getStatus();
     const hasWallets = status.trackedCount > 0;
-    
+
     if (hasWallets) {
-      // Show tracked wallets
       const hlStr = `Hyperliquid: ${status.hyperliquidCount}`;
       const solStr = `Solana: ${status.solanaCount}`;
-      console.log(`  │  🔍 Tracking: ${hlStr.padEnd(18)} │ ${solStr.padEnd(22)}│`);
-      
-      // Recent signals section
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
+      logLine(`🔍 Tracking: ${hlStr} │ ${solStr}`);
+      logEmpty();
+      sep();
+      logEmpty();
       const signals = this.getRecentSignals(3);
       if (signals.length > 0) {
-        console.log("  │  📡 RECENT SIGNALS:                                             │");
+        logLine("📡 RECENT SIGNALS:");
         for (const sig of signals) {
           const emoji = sig.action.includes("long") || sig.action === "bought" ? "🟢" :
                         sig.action.includes("short") || sig.action === "sold" ? "🔴" : "⚪";
           const name = sig.traderName || sig.address.slice(0, 8);
           const action = sig.action.replace("_", " ").toUpperCase();
-          const sigStr = `${emoji} ${name}: ${action} ${sig.asset}`;
-          console.log(`  │  ${sigStr.padEnd(64)}│`);
+          logLine(`${emoji} ${name}: ${action} ${sig.asset}`);
         }
       } else {
-        console.log("  │  📡 No moves yet - watching for whale activity                 │");
+        logLine("📡 No moves yet - watching for whale activity");
       }
-      
-      // TLDR
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
+      logEmpty();
+      sep();
+      logEmpty();
       const tldr = this.getTLDR();
       const tldrEmoji = tldr.includes("BUYING") || tldr.includes("LONG") ? "💡" :
                         tldr.includes("SELLING") || tldr.includes("SHORT") ? "⚠️" : "📋";
-      console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
+      logLine(`${tldrEmoji} ${tldr}`);
     } else {
-      // No wallets configured - show free data sources
-      console.log("  │  📊 FREE DATA SOURCES:                                          │");
-      console.log("  │     • Hyperliquid Leaderboard (built-in, FREE)                  │");
-      console.log("  │     • Coinglass Whale Alerts (built-in, FREE)                   │");
-      console.log("  │     • Arkham Intel (manual, FREE tier)                          │");
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  💡 Add wallets to knowledge/trading/wallets.json to track      │");
+      logLine("📊 FREE DATA SOURCES:");
+      logLine("   • Hyperliquid Leaderboard (built-in, FREE)");
+      logLine("   • Coinglass Whale Alerts (built-in, FREE)");
+      logLine("   • Arkham Intel (manual, FREE tier)");
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("💡 Add wallets to knowledge/trading/wallets.json to track");
     }
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    endBox();
   }
 
   /**

@@ -13,6 +13,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { FundingData, LongShortRatio, OpenInterestData, FearGreedData, MarketSignal } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // Cache TTL
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
@@ -112,28 +113,26 @@ export class VinceCoinGlassService extends Service {
   }
 
   /**
-   * Print sexy CoinGlass dashboard to terminal
+   * Print CoinGlass dashboard (same box style as paper trade-opened banner).
    */
   private printCoinGlassDashboard(): void {
     const source = this.isAvailable ? "CoinGlass API (Hobbyist)" : "Free APIs (Binance)";
     const assets = ["BTC", "ETH", "SOL"];
 
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🔮 COINGLASS MARKET INTELLIGENCE                               │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    startBox();
+    logLine("🔮 COINGLASS MARKET INTELLIGENCE");
+    logEmpty();
+    sep();
+    logEmpty();
 
-    // Source indicator with timestamp
     const sourceEmoji = this.isAvailable ? "✅" : "🔄";
     const timeStr = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-    console.log(`  │  ${sourceEmoji} ${source.padEnd(45)} ${timeStr.padStart(8)}│`);
+    logLine(`${sourceEmoji} ${source} ${timeStr}`);
 
-    // ─────────────────────────────────────────────────────────────────
-    // FEAR & GREED - Top priority indicator
-    // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
+
     const fg = this.cache.fearGreed;
-    
     if (fg) {
       const emoji = fg.value <= 20 ? "😱" : fg.value <= 35 ? "😰" : fg.value <= 50 ? "😐" : fg.value <= 65 ? "😊" : fg.value <= 80 ? "🤑" : "🚀";
       const bar = this.buildFearGreedBar(fg.value);
@@ -146,18 +145,18 @@ export class VinceCoinGlassService extends Service {
         extreme_greed: "EXTREME GREED",
       };
       const label = labelMap[fg.classification] || fg.classification.toUpperCase();
-      console.log(`  │  ${emoji} FEAR & GREED: ${fg.value.toString().padStart(2)}/100  ${bar}  ${label.padEnd(14)}${signal.padEnd(12)}│`);
+      logLine(`${emoji} FEAR & GREED: ${fg.value}/100  ${bar}  ${label} ${signal}`);
     } else {
-      console.log("  │  😱 FEAR & GREED: Loading...                                    │");
+      logLine("😱 FEAR & GREED: Loading...");
     }
 
     // ─────────────────────────────────────────────────────────────────
     // FUNDING RATES - Leverage indicator
     // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  💰 FUNDING RATES (8h)              Longs Pay → │ ← Shorts Pay  │");
-    console.log("  │  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
-    
+    sep();
+    logEmpty();
+    logLine("💰 FUNDING RATES (8h)   Longs Pay → │ ← Shorts Pay");
+
     let highFundingAssets: string[] = [];
     let negFundingAssets: string[] = [];
     
@@ -168,104 +167,77 @@ export class VinceCoinGlassService extends Service {
         const rateStr = rate >= 0 ? `+${rate.toFixed(4)}%` : `${rate.toFixed(4)}%`;
         const bar = this.buildFundingBar(rate);
         const signal = rate > 0.05 ? "🔥 HIGH" : rate < -0.02 ? "❄️ NEG" : "";
-        console.log(`  │     ${asset.padEnd(4)} ${rateStr.padStart(10)}  ${bar}  ${signal.padEnd(10)}│`);
-        
+        logLine(`   ${asset} ${rateStr.padStart(10)}  ${bar}  ${signal}`);
         if (rate > 0.05) highFundingAssets.push(asset);
         if (rate < -0.02) negFundingAssets.push(asset);
       }
     }
     
-    if (this.cache.funding.size === 0) {
-      console.log("  │     (loading funding data...)                                  │");
-    }
-    
-    // Actionable insight
-    console.log("  │  ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
+    if (this.cache.funding.size === 0) logLine("   (loading funding data...)");
     if (highFundingAssets.length > 0) {
-      console.log(`  │  ⚠️  ${highFundingAssets.join(", ")}: Longs crowded, expensive to hold long     │`);
+      logLine(`⚠️  ${highFundingAssets.join(", ")}: Longs crowded, expensive to hold long`);
     } else if (negFundingAssets.length > 0) {
-      console.log(`  │  💡 ${negFundingAssets.join(", ")}: Shorts paying longs - bullish bias          │`);
+      logLine(`💡 ${negFundingAssets.join(", ")}: Shorts paying longs - bullish bias`);
     } else {
-      console.log("  │  ✅ Funding neutral - no extreme leverage detected              │");
+      logLine("✅ Funding neutral - no extreme leverage detected");
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // LONG/SHORT RATIOS - Crowding indicator
-    // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  ⚖️  LONG/SHORT RATIOS              Longs │ Shorts              │");
-    
+    sep();
+    logEmpty();
+    logLine("⚖️  LONG/SHORT RATIOS   Longs │ Shorts");
+
     for (const asset of assets) {
       const ls = this.cache.longShort.get(asset);
       if (ls) {
         const bar = this.buildLongShortBar(ls.longPercent);
         const crowdSignal = ls.longPercent > 60 ? "🔴 FADE" : ls.longPercent < 40 ? "🟢 FADE" : "";
-        console.log(`  │     ${asset.padEnd(4)} L:${ls.longPercent.toFixed(0).padStart(2)}% S:${ls.shortPercent.toFixed(0).padStart(2)}%  ${bar}  ${crowdSignal.padEnd(10)}│`);
+        logLine(`   ${asset} L:${ls.longPercent.toFixed(0).padStart(2)}% S:${ls.shortPercent.toFixed(0).padStart(2)}%  ${bar}  ${crowdSignal}`);
       }
     }
-    
-    if (this.cache.longShort.size === 0) {
-      console.log("  │     (loading L/S data...)                                      │");
-    }
+    if (this.cache.longShort.size === 0) logLine("   (loading L/S data...)");
 
-    // ─────────────────────────────────────────────────────────────────
-    // OPEN INTEREST - Volume indicator
-    // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  📊 OPEN INTEREST                   Value          24h Change   │");
-    
+    sep();
+    logEmpty();
+    logLine("📊 OPEN INTEREST   Value    24h Change");
+
     for (const asset of assets) {
       const oi = this.cache.openInterest.get(asset);
       if (oi) {
-        const valueStr = this.formatVolume(oi.value).padEnd(12);
-        // Handle null (no data) vs 0 (valid 0% change)
+        const valueStr = this.formatVolume(oi.value);
         const change = oi.change24h;
         const hasChange = change !== null;
-        const changeEmoji = !hasChange ? "➡️" : change > 3 ? "📈" : change < -3 ? "📉" : "➡️";
-        const changeStr = hasChange
-          ? `${change > 0 ? "+" : ""}${change.toFixed(1)}%` 
-          : "N/A";
-        console.log(`  │     ${asset.padEnd(4)} ${valueStr}           ${changeEmoji} ${changeStr.padEnd(10)}│`);
+        const changeEmoji = !hasChange ? "➡️" : change! > 3 ? "📈" : change! < -3 ? "📉" : "➡️";
+        const changeStr = hasChange ? `${change! > 0 ? "+" : ""}${change!.toFixed(1)}%` : "N/A";
+        logLine(`   ${asset} ${valueStr.padEnd(10)} ${changeEmoji} ${changeStr}`);
       }
     }
-    
-    if (this.cache.openInterest.size === 0) {
-      console.log("  │     (loading OI data...)                                       │");
-    }
+    if (this.cache.openInterest.size === 0) logLine("   (loading OI data...)");
 
-    // ─────────────────────────────────────────────────────────────────
-    // CONTRARIAN SIGNALS - Trading edges
-    // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  🎯 CONTRARIAN SIGNALS                                          │");
-    
+    sep();
+    logEmpty();
+    logLine("🎯 CONTRARIAN SIGNALS");
+
     const contrarianSignals = this.getContrarianSignals();
     if (contrarianSignals.length > 0) {
-      for (const signal of contrarianSignals.slice(0, 3)) {
-        console.log(`  │     ${signal.padEnd(62)}│`);
-      }
+      for (const signal of contrarianSignals.slice(0, 3)) logLine(`   ${signal}`);
     } else {
-      console.log("  │     ⚪ No extreme signals detected - market balanced           │");
+      logLine("   ⚪ No extreme signals detected - market balanced");
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // OVERALL MARKET BIAS
-    // ─────────────────────────────────────────────────────────────────
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const bias = this.calculateOverallBias();
     const biasEmoji = bias.direction === "bullish" ? "🟢" : bias.direction === "bearish" ? "🔴" : "⚪";
     const biasBar = this.buildBiasBar(bias.score);
-    console.log(`  │  ${biasEmoji} OVERALL BIAS: ${bias.direction.toUpperCase().padEnd(8)} ${biasBar}  Score: ${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0).padStart(3)}│`);
+    logLine(`${biasEmoji} OVERALL BIAS: ${bias.direction.toUpperCase()} ${biasBar}  Score: ${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)}`);
 
-    // TLDR - Actionable summary
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
     const tldrEmoji = tldr.includes("BUY") || tldr.includes("BULLISH") || tldr.includes("squeeze UP") ? "💡" :
                       tldr.includes("SELL") || tldr.includes("BEARISH") || tldr.includes("squeeze DOWN") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
 
     const dataCount = this.cache.funding.size + this.cache.longShort.size + this.cache.openInterest.size;
     logger.info(`[VinceCoinGlass] ✅ Dashboard: ${dataCount} data points | Bias: ${bias.direction} (${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)})`);

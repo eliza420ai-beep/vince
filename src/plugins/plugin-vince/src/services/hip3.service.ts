@@ -12,6 +12,7 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import {
   HIP3_COMMODITIES,
   HIP3_INDICES,
@@ -213,94 +214,89 @@ export class VinceHIP3Service extends Service {
     const sortedByVolume = [...allAssets].sort((a, b) => b.volume24h - a.volume24h);
     const volumeLeaders = sortedByVolume.slice(0, 3);
 
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📈 HIP-3 TRADFI DASHBOARD                                      │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Asset counts row
-    const commodityStr = `Commodities: ${pulse.commodities.length}`.padEnd(18);
-    const indicesStr = `Indices: ${pulse.indices.length}`.padEnd(14);
-    const stocksStr = `Stocks: ${pulse.stocks.length}`.padEnd(12);
-    const aiStr = `AI/Tech: ${pulse.aiPlays.length}`;
-    console.log(`  │  ${commodityStr}│ ${indicesStr}│ ${stocksStr}│ ${aiStr.padEnd(12)}│`);
-    
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  💰 ALL HIP-3 PRICES                                            │");
+    startBox();
+    logLine("📈 HIP-3 TRADFI DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine(`Commodities: ${pulse.commodities.length}  Indices: ${pulse.indices.length}  Stocks: ${pulse.stocks.length}  AI/Tech: ${pulse.aiPlays.length}`);
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("💰 ALL HIP-3 PRICES");
     
     // Commodities
     if (pulse.commodities.length > 0) {
-      console.log("  │  ┈┈ COMMODITIES ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
+      logLine("┈┈ COMMODITIES ┈┈");
       for (let i = 0; i < pulse.commodities.length; i += 2) {
         const c1 = pulse.commodities[i];
         const c2 = pulse.commodities[i + 1];
         const str1 = `${c1.symbol}: $${c1.price.toFixed(2)} (${this.formatChange(c1.change24h)})`.padEnd(32);
         const str2 = c2 ? `${c2.symbol}: $${c2.price.toFixed(2)} (${this.formatChange(c2.change24h)})` : "";
-        console.log(`  │  ${str1}${str2.padEnd(32)}│`);
+        logLine(`${str1}${str2.padEnd(32)}`);
       }
+      sep();
+      logEmpty();
     }
-    
     // Indices
     if (pulse.indices.length > 0) {
-      console.log("  │  ┈┈ INDICES ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
+      logLine("┈┈ INDICES ┈┈");
       for (let i = 0; i < pulse.indices.length; i += 2) {
         const idx1 = pulse.indices[i];
         const idx2 = pulse.indices[i + 1];
         const str1 = `${idx1.symbol}: $${idx1.price.toFixed(2)} (${this.formatChange(idx1.change24h)})`.padEnd(32);
         const str2 = idx2 ? `${idx2.symbol}: $${idx2.price.toFixed(2)} (${this.formatChange(idx2.change24h)})` : "";
-        console.log(`  │  ${str1}${str2.padEnd(32)}│`);
+        logLine(`${str1}${str2.padEnd(32)}`);
       }
+      sep();
+      logEmpty();
     }
-    
     // Stocks
     if (pulse.stocks.length > 0) {
-      console.log("  │  ┈┈ STOCKS ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
+      logLine("┈┈ STOCKS ┈┈");
       for (let i = 0; i < pulse.stocks.length; i += 2) {
         const s1 = pulse.stocks[i];
         const s2 = pulse.stocks[i + 1];
         const str1 = `${s1.symbol}: $${s1.price.toFixed(2)} (${this.formatChange(s1.change24h)})`.padEnd(32);
         const str2 = s2 ? `${s2.symbol}: $${s2.price.toFixed(2)} (${this.formatChange(s2.change24h)})` : "";
-        console.log(`  │  ${str1}${str2.padEnd(32)}│`);
+        logLine(`${str1}${str2.padEnd(32)}`);
       }
+      sep();
+      logEmpty();
     }
-    
-    // AI/Tech Plays
     if (pulse.aiPlays.length > 0) {
-      console.log("  │  ┈┈ AI/TECH ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈ │");
+      logLine("┈┈ AI/TECH ┈┈");
       for (let i = 0; i < pulse.aiPlays.length; i += 2) {
         const a1 = pulse.aiPlays[i];
         const a2 = pulse.aiPlays[i + 1];
         const str1 = `${a1.symbol}: $${a1.price.toFixed(2)} (${this.formatChange(a1.change24h)})`.padEnd(32);
         const str2 = a2 ? `${a2.symbol}: $${a2.price.toFixed(2)} (${this.formatChange(a2.change24h)})` : "";
-        console.log(`  │  ${str1}${str2.padEnd(32)}│`);
+        logLine(`${str1}${str2.padEnd(32)}`);
       }
     }
-    
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  🔥 TOP MOVERS                                                  │");
-    
+    sep();
+    logEmpty();
+    logLine("🔥 TOP MOVERS");
     for (const mover of topMovers) {
       const emoji = mover.change24h >= 0 ? "🟢" : "🔴";
       const symbol = mover.symbol.padEnd(10);
       const price = `$${mover.price.toFixed(2)}`.padEnd(12);
       const change = this.formatChange(mover.change24h).padEnd(10);
       const volume = `Vol: ${this.formatVolume(mover.volume24h)}`;
-      console.log(`  │  ${emoji} ${symbol} │ ${price} │ ${change} │ ${volume.padEnd(18)}│`);
+      logLine(`${emoji} ${symbol} ${price} ${change} ${volume}`);
     }
-    
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  📊 VOLUME LEADERS                                              │");
-    
+    sep();
+    logEmpty();
+    logLine("📊 VOLUME LEADERS");
     for (const leader of volumeLeaders) {
       const symbol = leader.symbol.padEnd(10);
       const volume = this.formatVolume(leader.volume24h).padEnd(12);
       const oi = `OI: ${this.formatVolume(leader.openInterest)}`.padEnd(18);
       const funding = `Fund: ${(leader.funding8h * 100).toFixed(4)}%`;
-      console.log(`  │  ${symbol} │ ${volume} │ ${oi} │ ${funding.padEnd(16)}│`);
+      logLine(`${symbol} ${volume} ${oi} ${funding}`);
     }
-    
-    // Sector heat
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const { sectorStats } = pulse;
     const sectors = [
       { name: "Commodities", avg: sectorStats.commodities.avgChange },
@@ -313,25 +309,20 @@ export class VinceHIP3Service extends Service {
     const hottestStr = `${hottestEmoji} HOTTEST: ${sectors[0].name} (${this.formatChange(sectors[0].avg)})`;
     const coldestEmoji = sectors[sectors.length - 1].avg >= 0 ? "📈" : "📉";
     const coldestStr = `${coldestEmoji} COLDEST: ${sectors[sectors.length - 1].name} (${this.formatChange(sectors[sectors.length - 1].avg)})`;
-    console.log(`  │  ${hottestStr.padEnd(32)} ${coldestStr.padEnd(30)}│`);
-    
-    // Overall bias
-    const biasEmoji = pulse.summary.overallBias === "bullish" ? "🟢" : 
+    logLine(`${hottestStr}  ${coldestStr}`);
+    const biasEmoji = pulse.summary.overallBias === "bullish" ? "🟢" :
                       pulse.summary.overallBias === "bearish" ? "🔴" : "⚪";
     const tradfiVsCrypto = pulse.summary.tradFiVsCrypto === "tradfi_outperforming" ? "TradFi > Crypto" :
                            pulse.summary.tradFiVsCrypto === "crypto_outperforming" ? "Crypto > TradFi" : "Neutral";
-    console.log(`  │  ${biasEmoji} Bias: ${pulse.summary.overallBias.toUpperCase().padEnd(10)} │ Rotation: ${tradfiVsCrypto.padEnd(22)}│`);
-    
-    // TLDR - Actionable summary
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logLine(`${biasEmoji} Bias: ${pulse.summary.overallBias.toUpperCase()}  Rotation: ${tradfiVsCrypto}`);
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(pulse);
     const tldrEmoji = tldr.includes("RISK-ON") || tldr.includes("rotate into") ? "💡" :
                       tldr.includes("RISK-OFF") || tldr.includes("reduce") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
 
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-    
     logger.info(`[VinceHIP3] ✅ Dashboard loaded: ${totalAssets} assets across 4 sectors`);
   }
 

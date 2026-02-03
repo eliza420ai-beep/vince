@@ -11,6 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { CORE_ASSETS, getSantimentSlug } from "../constants/targetAssets";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // Types
 export interface TimeseriesData {
@@ -120,31 +121,33 @@ export class VinceSanbaseService extends Service {
   }
 
   /**
-   * Print sexy terminal dashboard
+   * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDashboard(): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🔗 SANTIMENT ON-CHAIN DASHBOARD                                │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
+    startBox();
+    logLine("🔗 SANTIMENT ON-CHAIN DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
     if (!this.isConfigured()) {
-      console.log("  │  ⚠️ SANTIMENT_API_KEY not set - on-chain features disabled      │");
-      console.log("  │     Get free key: https://app.santiment.net/account             │");
+      logLine("⚠️ SANTIMENT_API_KEY not set - on-chain features disabled");
+      logLine("   Get free key: https://app.santiment.net/account");
     } else {
-      console.log("  │  ✅ API Key configured (1000 calls/month free tier)             │");
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  📊 AVAILABLE METRICS:                                          │");
-      console.log("  │     • Network Activity (active addresses, tx volume)            │");
-      console.log("  │     • Exchange Flows (inflow/outflow, accumulation)             │");
-      console.log("  │     • Whale Activity (large tx volume, count)                   │");
-      console.log("  │     • Dev Activity (commits, contributors)                      │");
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  ⚠️ Note: Some metrics have 30-day lag on free tier             │");
+      logLine("✅ API Key configured (1000 calls/month free tier)");
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("📊 AVAILABLE METRICS:");
+      logLine("   • Network Activity (active addresses, tx volume)");
+      logLine("   • Exchange Flows (inflow/outflow, accumulation)");
+      logLine("   • Whale Activity (large tx volume, count)");
+      logLine("   • Dev Activity (commits, contributors)");
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("⚠️ Note: Some metrics have 30-day lag on free tier");
     }
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    endBox();
   }
 
   /**
@@ -201,45 +204,36 @@ export class VinceSanbaseService extends Service {
    */
   async printLiveDashboard(asset: string = "BTC"): Promise<void> {
     const ctx = await this.getOnChainContext(asset);
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log(`  │  🔗 ${asset} ON-CHAIN DASHBOARD                                      │`);
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Network Activity
+    startBox();
+    logLine(`🔗 ${asset} ON-CHAIN DASHBOARD`);
+    logEmpty();
+    sep();
+    logEmpty();
     if (ctx.networkActivity) {
       const addrStr = ctx.networkActivity.activeAddresses?.toLocaleString() || "N/A";
       const trendEmoji = ctx.networkActivity.trend === "increasing" ? "📈" :
                          ctx.networkActivity.trend === "decreasing" ? "📉" : "➡️";
-      console.log(`  │  🌐 Network: ${addrStr} active addresses ${trendEmoji}`.padEnd(66) + "│");
+      logLine(`🌐 Network: ${addrStr} active addresses ${trendEmoji}`);
     }
-    
-    // Exchange Flows
     if (ctx.exchangeFlows) {
       const flowEmoji = ctx.exchangeFlows.sentiment === "accumulation" ? "🟢" :
                         ctx.exchangeFlows.sentiment === "distribution" ? "🔴" : "⚪";
       const netFlow = ctx.exchangeFlows.netFlow || 0;
       const flowDir = netFlow > 0 ? "inflow" : "outflow";
-      console.log(`  │  💱 Exchange: ${flowEmoji} ${ctx.exchangeFlows.sentiment.toUpperCase()} (net ${flowDir})`.padEnd(66) + "│");
+      logLine(`💱 Exchange: ${flowEmoji} ${ctx.exchangeFlows.sentiment.toUpperCase()} (net ${flowDir})`);
     }
-    
-    // Whale Activity
     if (ctx.whaleActivity) {
       const whaleEmoji = ctx.whaleActivity.sentiment === "bullish" ? "🐋" :
                          ctx.whaleActivity.sentiment === "bearish" ? "🔴" : "⚪";
-      console.log(`  │  ${whaleEmoji} Whales: ${ctx.whaleActivity.sentiment.toUpperCase()}`.padEnd(66) + "│");
+      logLine(`${whaleEmoji} Whales: ${ctx.whaleActivity.sentiment.toUpperCase()}`);
     }
-    
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(ctx);
     const tldrEmoji = tldr.includes("ACCUMULATION") || tldr.includes("bullish") ? "💡" :
                       tldr.includes("DISTRIBUTION") || tldr.includes("bearish") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   async stop(): Promise<void> {

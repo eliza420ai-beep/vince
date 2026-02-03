@@ -11,6 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { MeteoraPool } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -42,44 +43,39 @@ export class VinceMeteoraService extends Service {
   }
 
   /**
-   * Print sexy terminal dashboard
+   * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDashboard(): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🌊 METEORA LP DASHBOARD                                        │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
     const status = this.getStatus();
-    console.log(`  │  📊 Pools Tracked: ${status.poolCount.toString().padEnd(43)}│`);
-    
-    // Top Pools by TVL
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  💰 TOP POOLS BY TVL:                                           │");
-    
+    startBox();
+    logLine("🌊 METEORA LP DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine(`📊 Pools Tracked: ${status.poolCount}`);
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("💰 TOP POOLS BY TVL:");
     const topPools = this.getTopPools(5);
     if (topPools.length > 0) {
       for (const pool of topPools) {
         const tvlStr = `$${(pool.tvl / 1e6).toFixed(1)}M`;
         const apyPct = (pool.apy * 100).toFixed(1);
-        const apyStr = `${apyPct}%`;
         const binStr = pool.binWidth ? `${pool.binWidth}bp` : "";
-        const poolStr = `${pool.tokenA}/${pool.tokenB} │ ${tvlStr} TVL │ ${apyStr} APY ${binStr}`;
-        console.log(`  │     ${poolStr.padEnd(58)}│`);
+        logLine(`   ${pool.tokenA}/${pool.tokenB} │ ${tvlStr} TVL │ ${apyPct}% APY ${binStr}`);
       }
     } else {
-      console.log("  │     Loading pools...                                           │");
+      logLine("   Loading pools...");
     }
-    
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
     const tldrEmoji = tldr.includes("HOT") || tldr.includes("OPPORTUNITY") ? "💡" :
                       tldr.includes("CAUTION") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   /**

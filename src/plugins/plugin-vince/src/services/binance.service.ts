@@ -23,6 +23,7 @@ import type {
   AlternativeFearGreed,
   BinanceIntelligence,
 } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // =============================================================================
 // CACHE CONFIGURATION
@@ -133,115 +134,95 @@ export class VinceBinanceService extends Service {
   }
 
   /**
-   * Print sexy Binance dashboard to terminal
+   * Print Binance dashboard (same box style as paper trade-opened banner).
    */
   private printBinanceDashboard(intel: BinanceIntelligence): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📊 BINANCE INTELLIGENCE DASHBOARD                              │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    startBox();
+    logLine("📊 BINANCE INTELLIGENCE DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
 
-    // Top Traders section
     if (intel.topTraderPositions) {
       const { longPosition, shortPosition, longShortRatio } = intel.topTraderPositions;
       const emoji = longPosition > 55 ? "🟢" : longPosition < 45 ? "🔴" : "⚪";
       const bias = longPosition > 55 ? "BULLISH" : longPosition < 45 ? "BEARISH" : "NEUTRAL";
-      console.log("  │  🐋 TOP TRADERS (by size)                                       │");
-      const tradersStr = `${emoji} ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short │ Ratio: ${longShortRatio.toFixed(2)} │ ${bias}`;
-      console.log(`  │  ${tradersStr.padEnd(64)}│`);
+      logLine("🐋 TOP TRADERS (by size)");
+      logLine(`${emoji} ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short │ Ratio: ${longShortRatio.toFixed(2)} │ ${bias}`);
+      logEmpty();
     }
 
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
 
-    // Taker Flow section
     if (intel.takerVolume) {
       const { buySellRatio } = intel.takerVolume;
       const emoji = buySellRatio > 1.1 ? "🟢" : buySellRatio < 0.9 ? "🔴" : "⚪";
       const pressure = buySellRatio > 1.1 ? "BUYING PRESSURE" : buySellRatio < 0.9 ? "SELLING PRESSURE" : "BALANCED";
-      console.log("  │  📈 TAKER FLOW                                                  │");
-      const flowStr = `${emoji} Buy/Sell Ratio: ${buySellRatio.toFixed(3)} │ ${pressure}`;
-      console.log(`  │  ${flowStr.padEnd(64)}│`);
+      logLine("📈 TAKER FLOW");
+      logLine(`${emoji} Buy/Sell Ratio: ${buySellRatio.toFixed(3)} │ ${pressure}`);
+      logEmpty();
     }
 
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
 
-    // OI Trend section
     if (intel.oiTrend) {
       const { trend, changePercent, current } = intel.oiTrend;
       const emoji = trend === "rising" ? "📈" : trend === "falling" ? "📉" : "➡️";
       const conviction = trend === "rising" ? "conviction increasing" : trend === "falling" ? "positions closing" : "stable";
-      console.log("  │  📊 OPEN INTEREST                                               │");
-      const oiStr = `${emoji} ${this.formatVolume(current)} │ ${this.formatChange(changePercent)} │ ${conviction}`;
-      console.log(`  │  ${oiStr.padEnd(64)}│`);
-      
-      // OI actionable insight
+      logLine("📊 OPEN INTEREST");
+      logLine(`${emoji} ${this.formatVolume(current)} │ ${this.formatChange(changePercent)} │ ${conviction}`);
       let oiInsight = "";
-      if (trend === "rising" && changePercent > 3) {
-        oiInsight = "💡 New money entering - trend continuation likely";
-      } else if (trend === "falling" && changePercent < -3) {
-        oiInsight = "⚠️ Positions unwinding - volatility spike possible";
-      } else if (trend === "rising" && changePercent > 0) {
-        oiInsight = "📈 Leverage building - watch for breakout or squeeze";
-      } else if (trend === "falling") {
-        oiInsight = "📉 Deleveraging - price may stabilize after flush";
-      } else {
-        oiInsight = "➡️ Neutral OI - wait for directional signal";
-      }
-      console.log(`  │  ${oiInsight.padEnd(64)}│`);
+      if (trend === "rising" && changePercent > 3) oiInsight = "💡 New money entering - trend continuation likely";
+      else if (trend === "falling" && changePercent < -3) oiInsight = "⚠️ Positions unwinding - volatility spike possible";
+      else if (trend === "rising" && changePercent > 0) oiInsight = "📈 Leverage building - watch for breakout or squeeze";
+      else if (trend === "falling") oiInsight = "📉 Deleveraging - price may stabilize after flush";
+      else oiInsight = "➡️ Neutral OI - wait for directional signal";
+      logLine(oiInsight);
+      logEmpty();
     }
 
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
 
-    // Funding section
     if (intel.fundingTrend) {
       const { current, isExtreme, extremeDirection } = intel.fundingTrend;
       const fundingPct = (current * 100).toFixed(4);
       const emoji = isExtreme ? "⚠️" : current > 0 ? "🔵" : current < 0 ? "🟠" : "⚪";
-      console.log("  │  💰 FUNDING RATE                                                │");
+      logLine("💰 FUNDING RATE");
       let fundingStr = `${emoji} ${fundingPct}%`;
-      if (isExtreme) {
-        fundingStr += ` │ ${extremeDirection.replace("_", " ").toUpperCase()} │ Mean reversion signal`;
-      }
-      console.log(`  │  ${fundingStr.padEnd(64)}│`);
-      
-      // Funding actionable insight
+      if (isExtreme) fundingStr += ` │ ${extremeDirection.replace("_", " ").toUpperCase()} │ Mean reversion signal`;
+      logLine(fundingStr);
       let fundingInsight = "";
-      if (isExtreme && extremeDirection === "long_paying") {
-        fundingInsight = "⚠️ Longs paying high fees - squeeze risk, fade longs";
-      } else if (isExtreme && extremeDirection === "short_paying") {
-        fundingInsight = "💡 Shorts paying - bullish, longs get paid to hold";
-      } else if (current > 0.0005) {
-        fundingInsight = "🔵 Slight long bias - market leaning bullish";
-      } else if (current < -0.0001) {
-        fundingInsight = "🟠 Slight short bias - caution, bears in control";
-      } else {
-        fundingInsight = "⚪ Neutral funding - no leverage signal";
-      }
-      console.log(`  │  ${fundingInsight.padEnd(64)}│`);
+      if (isExtreme && extremeDirection === "long_paying") fundingInsight = "⚠️ Longs paying high fees - squeeze risk, fade longs";
+      else if (isExtreme && extremeDirection === "short_paying") fundingInsight = "💡 Shorts paying - bullish, longs get paid to hold";
+      else if (current > 0.0005) fundingInsight = "🔵 Slight long bias - market leaning bullish";
+      else if (current < -0.0001) fundingInsight = "🟠 Slight short bias - caution, bears in control";
+      else fundingInsight = "⚪ Neutral funding - no leverage signal";
+      logLine(fundingInsight);
+      logEmpty();
     }
 
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
 
-    // Fear & Greed section
     if (intel.fearGreed) {
       const { value, classification } = intel.fearGreed;
       const emoji = value < 25 ? "😱" : value < 45 ? "😰" : value < 55 ? "😐" : value < 75 ? "😊" : "🤑";
       const bar = this.buildFearGreedBar(value);
-      console.log("  │  😱 FEAR & GREED INDEX                                          │");
-      const fgStr = `${emoji} ${value}/100 (${classification}) ${bar}`;
-      console.log(`  │  ${fgStr.padEnd(64)}│`);
+      logLine("😱 FEAR & GREED INDEX");
+      logLine(`${emoji} ${value}/100 (${classification}) ${bar}`);
+      logEmpty();
     }
 
-    // TLDR - Actionable summary
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(intel);
     const tldrEmoji = tldr.includes("longs") || tldr.includes("LONG") || tldr.includes("UP") ? "💡" :
                       tldr.includes("shorts") || tldr.includes("SHORT") || tldr.includes("DOWN") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
     logger.info("[VinceBinance] ✅ Dashboard loaded - BTC intelligence ready");
   }
 

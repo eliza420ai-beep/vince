@@ -11,6 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { ExchangeHealth } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (conservative rate limit)
 
@@ -45,44 +46,42 @@ export class VinceCoinGeckoService extends Service {
   }
 
   /**
-   * Print sexy terminal dashboard
+   * Print terminal dashboard (same box style as paper trade-opened banner).
    */
   private printDashboard(): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🦎 COINGECKO MARKET DASHBOARD                                  │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Prices section
-    console.log("  │  💰 PRICES (24h):                                               │");
+    startBox();
+    logLine("🦎 COINGECKO MARKET DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("💰 PRICES (24h)");
+    logEmpty();
     const prices = this.getAllPrices();
     for (const [symbol, data] of prices) {
       const priceStr = `$${data.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
       const changeEmoji = data.change24h > 0 ? "📈" : data.change24h < 0 ? "📉" : "➡️";
       const changeStr = `${data.change24h > 0 ? "+" : ""}${data.change24h.toFixed(2)}%`;
-      console.log(`  │     ${symbol.padEnd(6)} ${priceStr.padEnd(14)} ${changeEmoji} ${changeStr}`.padEnd(66) + "│");
+      logLine(`    ${symbol.padEnd(6)} ${priceStr.padEnd(14)} ${changeEmoji} ${changeStr}`);
     }
-    
-    // Exchanges section
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  🏦 TOP EXCHANGES:                                              │");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("🏦 TOP EXCHANGES");
+    logEmpty();
     const exchanges = this.getTopExchanges(3);
     for (const ex of exchanges) {
       const volStr = `${(ex.volume24h / 1000).toFixed(1)}k BTC`;
       const trustStr = `Trust: ${ex.trustScore}/10`;
-      console.log(`  │     ${ex.exchange.padEnd(15)} ${volStr.padEnd(14)} ${trustStr}`.padEnd(66) + "│");
+      logLine(`    ${ex.exchange.padEnd(15)} ${volStr.padEnd(14)} ${trustStr}`);
     }
-    
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
     const tldrEmoji = tldr.includes("UP") || tldr.includes("GREEN") ? "💡" :
                       tldr.includes("DOWN") || tldr.includes("RED") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-    
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
     logger.info("[VinceCoinGecko] ✅ Dashboard loaded");
   }
 

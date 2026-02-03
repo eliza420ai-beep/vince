@@ -18,6 +18,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { MemeToken, TractionVerdict } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import {
   SERVICE_CONFIG,
   CACHE_TTLS,
@@ -168,7 +169,7 @@ export class VinceDexScreenerService extends Service {
   }
 
   /**
-   * Print sexy DexScreener dashboard to terminal
+   * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDexScreenerDashboard(): void {
     const tokens = this.trendingTokens;
@@ -176,66 +177,51 @@ export class VinceDexScreenerService extends Service {
     const baseTokens = tokens.filter(t => t.chain === "base");
     const apeTokens = tokens.filter(t => t.verdict === "APE");
 
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🔍 DEXSCREENER MEME SCANNER                                    │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-
-    // Chain counts section
-    console.log("  │  🔗 CHAINS SCANNED                                              │");
-    const solStr = `Solana: ${solanaTokens.length}`.padEnd(20);
-    const baseStr = `Base: ${baseTokens.length}`.padEnd(18);
-    const totalStr = `Total: ${tokens.length}`;
-    console.log(`  │  ${solStr}│ ${baseStr}│ ${totalStr.padEnd(20)}│`);
-
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-
-    // Hot tokens section (top 3 by vol/liq ratio)
-    console.log("  │  🔥 HOT TOKENS (by traction)                                    │");
+    startBox();
+    logLine("🔍 DEXSCREENER MEME SCANNER");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("🔗 CHAINS SCANNED");
+    logLine(`   Solana: ${solanaTokens.length}  │  Base: ${baseTokens.length}  │  Total: ${tokens.length}`);
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("🔥 HOT TOKENS (by traction)");
     const hotTokens = tokens.slice(0, 3);
     if (hotTokens.length === 0) {
-      console.log("  │  (no tokens found - data loading...)                           │");
+      logLine("   (no tokens found - data loading...)");
     } else {
       for (const token of hotTokens) {
         const verdictEmoji = token.verdict === "APE" ? "🦍" : token.verdict === "WATCH" ? "👀" : "⛔";
         const changeEmoji = token.priceChange24h >= 0 ? "🟢" : "🔴";
-        const symbol = token.symbol.substring(0, 8).padEnd(8);
+        const symbol = token.symbol.substring(0, 8);
         const chain = token.chain.substring(0, 3).toUpperCase();
-        const volLiq = `V/L: ${token.volumeLiquidityRatio.toFixed(1)}x`.padEnd(12);
-        const change = this.formatChange(token.priceChange24h).padEnd(10);
-        const mcap = token.marketCap ? this.formatVolume(token.marketCap).padEnd(10) : "N/A".padEnd(10);
-        console.log(`  │  ${changeEmoji} ${symbol} │ ${chain} │ ${volLiq} │ ${change} │ ${mcap}${verdictEmoji}│`);
+        const volLiq = `V/L: ${token.volumeLiquidityRatio.toFixed(1)}x`;
+        const mcap = token.marketCap ? this.formatVolume(token.marketCap) : "N/A";
+        logLine(`   ${changeEmoji} ${symbol} │ ${chain} │ ${volLiq} │ ${this.formatChange(token.priceChange24h)} │ ${mcap} ${verdictEmoji}`);
       }
     }
-
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-
-    // APE candidates section
-    console.log("  │  🦍 APE CANDIDATES                                              │");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("🦍 APE CANDIDATES");
     if (apeTokens.length === 0) {
-      console.log("  │  (no APE-worthy tokens found)                                  │");
+      logLine("   (no APE-worthy tokens found)");
     } else {
-      const topApes = apeTokens.slice(0, 3);
-      for (const token of topApes) {
-        const symbol = token.symbol.substring(0, 8).padEnd(8);
+      for (const token of apeTokens.slice(0, 3)) {
+        const symbol = token.symbol.substring(0, 8);
         const chain = token.chain.substring(0, 3).toUpperCase();
-        const liq = `Liq: ${this.formatVolume(token.liquidity)}`.padEnd(14);
-        const vol = `Vol: ${this.formatVolume(token.volume24h)}`.padEnd(14);
-        const change = this.formatChange(token.priceChange24h);
-        console.log(`  │  🔥 ${symbol} │ ${chain} │ ${liq} │ ${vol} │ ${change.padEnd(10)}│`);
+        logLine(`   🔥 ${symbol} │ ${chain} │ Liq: ${this.formatVolume(token.liquidity)} │ Vol: ${this.formatVolume(token.volume24h)} │ ${this.formatChange(token.priceChange24h)}`);
       }
     }
-
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-
-    // Market mood
+    logEmpty();
+    sep();
+    logEmpty();
     const { mood, summary } = this.getMarketMood();
     const moodEmoji = mood === "pumping" ? "🚀" : mood === "dumping" ? "💀" : mood === "choppy" ? "🌊" : "😴";
-    console.log(`  │  ${moodEmoji} MOOD: ${summary.padEnd(55)}│`);
-
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-
+    logLine(`${moodEmoji} MOOD: ${summary}`);
+    endBox();
     logger.info(`[VinceDexScreener] ✅ Dashboard loaded: ${tokens.length} tokens across 3 chains`);
   }
 

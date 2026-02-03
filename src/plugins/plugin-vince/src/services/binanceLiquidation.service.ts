@@ -11,6 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { LiquidationPressure, LiquidationCascade } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // =============================================================================
 // TYPES
@@ -75,26 +76,29 @@ export class VinceBinanceLiquidationService extends Service {
   }
 
   /**
-   * Print dashboard - only called when WebSocket is connected
+   * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDashboard(): void {
     const status = this.getStatus();
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  💥 BINANCE LIQUIDATION TRACKER                                 │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log(`  │  🟢 LIVE │ Watching: ${status.symbols.join(", ")}`.padEnd(66) + "│");
-    console.log("  │     Real-time futures liquidations (FREE WebSocket)             │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  📊 SIGNALS:                                                    │");
-    console.log("  │     • Long liquidations = shorts squeezing longs (bearish)      │");
-    console.log("  │     • Short liquidations = longs squeezing shorts (bullish)     │");
-    console.log("  │     • Cascade = 5+ liqs or $1M+ in 1 min = reversal likely      │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  💡 LIQS TRACKING: Stream active, watching for moves            │");
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    startBox();
+    logLine("💥 BINANCE LIQUIDATION TRACKER");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine(`🟢 LIVE │ Watching: ${status.symbols.join(", ")}`);
+    logLine("   Real-time futures liquidations (FREE WebSocket)");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("📊 SIGNALS:");
+    logLine("   • Long liquidations = shorts squeezing longs (bearish)");
+    logLine("   • Short liquidations = longs squeezing shorts (bullish)");
+    logLine("   • Cascade = 5+ liqs or $1M+ in 1 min = reversal likely");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("💡 LIQS TRACKING: Stream active, watching for moves");
+    endBox();
   }
 
   /**

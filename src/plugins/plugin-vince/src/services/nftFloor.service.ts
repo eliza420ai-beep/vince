@@ -11,6 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { NFTCollection, CuratedCollection, IOpenSeaService } from "../types/index";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { getOrCreateOpenSeaService } from "./fallbacks";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (match OpenSeaService cache)
@@ -69,63 +70,53 @@ export class VinceNFTFloorService extends Service {
    */
   private printDashboardWithData(): void {
     const floors = this.getAllFloors();
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🎨 NFT FLOOR DASHBOARD                                         │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
+    startBox();
+    logLine("🎨 NFT FLOOR DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
     if (floors.length === 0) {
-      console.log("  │  ⚠️ No floor data - set OPENSEA_API_KEY for NFT floors          │");
-      console.log("  └─────────────────────────────────────────────────────────────────┘");
-      console.log("");
+      logLine("⚠️ No floor data - set OPENSEA_API_KEY for NFT floors");
+      endBox();
       return;
     }
-    
     const formatChange = (nft: NFTCollection) =>
       nft.floorPriceChange24h !== 0
         ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
         : "—";
-
-    // Blue Chips
-    console.log("  │  💎 BLUE CHIPS:                                                 │");
+    logLine("💎 BLUE CHIPS:");
     const bluechips = this.getBlueChips().slice(0, 3);
     for (const nft of bluechips) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
       const changeStr = formatChange(nft);
       const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
+      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`);
     }
-
-    // Art Blocks
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  🖼️  ART BLOCKS:                                                 │");
-    const art = this.getGenerativeArt().slice(0, 4); // Include Meridian
+    sep();
+    logEmpty();
+    logLine("🖼️  ART BLOCKS:");
+    const art = this.getGenerativeArt().slice(0, 4);
     for (const nft of art) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
       const changeStr = formatChange(nft);
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
+      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
     }
-
-    // Photography
     const photos = this.getPhotography().slice(0, 3);
     if (photos.length > 0) {
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  📷 PHOTOGRAPHY:                                                │");
+      sep();
+      logEmpty();
+      logLine("📷 PHOTOGRAPHY:");
       for (const nft of photos) {
         const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
         const changeStr = formatChange(nft);
-        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
+        logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
       }
     }
-    
-    // Actionable TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
-    console.log(`  │  💡 ${tldr}`.padEnd(66) + "│");
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
-    
+    logLine(`💡 ${tldr}`);
+    endBox();
     logger.info(`[VinceNFTFloor] ✅ Dashboard loaded - ${tldr}`);
   }
 
@@ -172,58 +163,50 @@ export class VinceNFTFloorService extends Service {
   async printLiveDashboard(): Promise<void> {
     await this.refreshData();
     const floors = this.getAllFloors();
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  🎨 NFT FLOOR DASHBOARD (LIVE)                                  │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
+    startBox();
+    logLine("🎨 NFT FLOOR DASHBOARD (LIVE)");
+    logEmpty();
+    sep();
+    logEmpty();
     const formatChange = (nft: NFTCollection) =>
       nft.floorPriceChange24h !== 0
         ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
         : "—";
-
-    // Blue Chips
-    console.log("  │  💎 BLUE CHIPS:                                                 │");
+    logLine("💎 BLUE CHIPS:");
     const bluechips = this.getBlueChips().slice(0, 3);
     for (const nft of bluechips) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
       const changeStr = formatChange(nft);
       const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
+      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`);
     }
-
-    // Art Blocks
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  🖼️ ART BLOCKS:                                                 │");
-    const art = this.getGenerativeArt().slice(0, 4); // Include Meridian
+    sep();
+    logEmpty();
+    logLine("🖼️ ART BLOCKS:");
+    const art = this.getGenerativeArt().slice(0, 4);
     for (const nft of art) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
       const changeStr = formatChange(nft);
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
+      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
     }
-
-    // Photography
     const photos = this.getPhotography().slice(0, 3);
     if (photos.length > 0) {
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  📷 PHOTOGRAPHY:                                                │");
+      sep();
+      logEmpty();
+      logLine("📷 PHOTOGRAPHY:");
       for (const nft of photos) {
         const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
         const changeStr = formatChange(nft);
-        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
+        logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
       }
     }
-
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
     const tldrEmoji = tldr.includes("UP") || tldr.includes("momentum") ? "💡" :
                       tldr.includes("DOWN") || tldr.includes("THIN") || tldr.includes("risk") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   async stop(): Promise<void> {

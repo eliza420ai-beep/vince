@@ -16,6 +16,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { VinceMarketDataService } from "./marketData.service";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // ==========================================
 // Regime Types
@@ -86,19 +87,21 @@ export class VinceMarketRegimeService extends Service {
    * Print sexy terminal dashboard
    */
   private printDashboard(): void {
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📈 MARKET REGIME DASHBOARD                                     │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  📊 REGIME TYPES:                                               │");
-    console.log("  │     • TRENDING (ADX > 25): Ride momentum, wide stops            │");
-    console.log("  │     • RANGING (ADX < 20): Fade extremes, tight stops            │");
-    console.log("  │     • VOLATILE (DVOL > 85): Reduce size, buy options            │");
-    console.log("  │     • NEUTRAL: Standard sizing, mixed signals                   │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  💡 Regime data loads on first request                          │");
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    startBox();
+    logLine("📈 MARKET REGIME DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("📊 REGIME TYPES:");
+    logLine("   • TRENDING (ADX > 25): Ride momentum, wide stops");
+    logLine("   • RANGING (ADX < 20): Fade extremes, tight stops");
+    logLine("   • VOLATILE (DVOL > 85): Reduce size, buy options");
+    logLine("   • NEUTRAL: Standard sizing, mixed signals");
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("💡 Regime data loads on first request");
+    endBox();
   }
 
   /**
@@ -154,42 +157,37 @@ export class VinceMarketRegimeService extends Service {
    */
   async printLiveDashboard(): Promise<void> {
     const regimes = await this.getAllRegimes();
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📈 MARKET REGIME DASHBOARD (LIVE)                              │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
+    startBox();
+    logLine("📈 MARKET REGIME DASHBOARD (LIVE)");
+    logEmpty();
+    sep();
+    logEmpty();
     for (const r of regimes) {
       const emoji = r.regime === "trending" ? "📈" :
                     r.regime === "ranging" ? "↔️" :
                     r.regime === "volatile" ? "🌊" : "➡️";
       const adxStr = r.adx ? `ADX: ${r.adx.toFixed(0)}` : "ADX: N/A";
       const dvolStr = r.dvol ? `DVOL: ${r.dvol.toFixed(0)}` : "";
-      const regimeStr = `${emoji} ${r.asset}: ${r.regime.toUpperCase().padEnd(10)} ${adxStr.padEnd(10)} ${dvolStr}`;
-      console.log(`  │  ${regimeStr.padEnd(64)}│`);
+      const regimeStr = `${emoji} ${r.asset}: ${r.regime.toUpperCase()} ${adxStr} ${dvolStr}`;
+      logLine(regimeStr);
     }
-    
-    // Strategy recommendations
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const btc = regimes.find(r => r.asset === "BTC");
     if (btc) {
       const strategyEmoji = btc.preferMomentum ? "🏃" : btc.preferContrarian ? "🔄" : "⚖️";
       const strategy = btc.preferMomentum ? "MOMENTUM" : btc.preferContrarian ? "CONTRARIAN" : "NEUTRAL";
       const sizeStr = `Size: ${(btc.positionSizeMultiplier * 100).toFixed(0)}%`;
       const slStr = `SL: ${btc.stopLossMultiplier.toFixed(1)}x`;
-      console.log(`  │  ${strategyEmoji} Strategy: ${strategy.padEnd(12)} │ ${sizeStr.padEnd(12)} │ ${slStr}`.padEnd(66) + "│");
+      logLine(`${strategyEmoji} Strategy: ${strategy} ${sizeStr} ${slStr}`);
     }
-    
-    // TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    sep();
+    logEmpty();
     const tldr = this.getTLDR(regimes);
     const tldrEmoji = tldr.includes("TRENDING") ? "💡" :
                       tldr.includes("VOLATILE") ? "⚠️" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   async stop(): Promise<void> {

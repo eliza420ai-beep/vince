@@ -12,6 +12,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { PuppeteerBrowserService } from "./fallbacks/puppeteer.browser";
+import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 // ==========================================
 // Sentiment Analysis Constants
@@ -189,13 +190,13 @@ export class VinceNewsSentimentService extends Service {
       if (stats.hasData) {
         service.printDetailedDashboard();
       } else {
-        console.log("");
-        console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-        console.log("  │  📰 MANDOMINUTES NEWS DASHBOARD                                 │");
-        console.log("  ├─────────────────────────────────────────────────────────────────┤");
-        console.log("  │  ⏳ No cached data - fetching in background...                  │");
-        console.log("  └─────────────────────────────────────────────────────────────────┘");
-        console.log("");
+        startBox();
+        logLine("📰 MANDOMINUTES NEWS DASHBOARD");
+        logEmpty();
+        sep();
+        logEmpty();
+        logLine("⏳ No cached data - fetching in background...");
+        endBox();
         
         // Schedule background fetch after BrowserService has time to initialize
         setTimeout(async () => {
@@ -213,7 +214,9 @@ export class VinceNewsSentimentService extends Service {
       }
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
-      console.log(`  │  ⚠️  Initial fetch failed: ${err}`);
+      startBox();
+      logLine(`⚠️  Initial fetch failed: ${err}`);
+      endBox();
     }
     
     logger.info("[VinceNewsSentiment] Service initialized (MandoMinutes integration)");
@@ -222,71 +225,53 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
-   * Print detailed dashboard with headlines and risk events
+   * Print detailed dashboard (same box style as paper trade-opened banner).
    */
   private printDetailedDashboard(): void {
     const stats = this.getDebugStats();
     const sentiment = this.getOverallSentiment();
     const topHeadlines = this.getTopHeadlines(5);
     const riskEvents = this.getActiveRiskEvents();
-    
-    console.log("");
-    console.log("  ┌─────────────────────────────────────────────────────────────────┐");
-    console.log("  │  📰 MANDOMINUTES NEWS DASHBOARD                                 │");
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    
-    // Sentiment summary
-    const sentEmoji = sentiment.sentiment === "bullish" ? "🟢" : 
-                      sentiment.sentiment === "bearish" ? "🔴" : "⚪";
-    const sentStr = `${sentEmoji} ${sentiment.sentiment.toUpperCase()} (${Math.round(sentiment.confidence)}% confidence)`;
-    const countStr = `${stats.totalNews} articles (🟢${stats.bullishCount} 🔴${stats.bearishCount} ⚪${stats.neutralCount})`;
-    console.log(`  │  ${sentStr.padEnd(32)} │ ${countStr.padEnd(30)}│`);
-    
-    // Top Headlines
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
-    console.log("  │  📋 TOP HEADLINES:                                              │");
-    
+
+    startBox();
+    logLine("📰 MANDOMINUTES NEWS DASHBOARD");
+    logEmpty();
+    sep();
+    logEmpty();
+    const sentEmoji = sentiment.sentiment === "bullish" ? "🟢" : sentiment.sentiment === "bearish" ? "🔴" : "⚪";
+    logLine(`${sentEmoji} ${sentiment.sentiment.toUpperCase()} (${Math.round(sentiment.confidence)}% confidence)`);
+    logLine(`${stats.totalNews} articles (🟢${stats.bullishCount} 🔴${stats.bearishCount} ⚪${stats.neutralCount})`);
+    logEmpty();
+    sep();
+    logEmpty();
+    logLine("📋 TOP HEADLINES:");
     for (const news of topHeadlines) {
-      const emoji = news.sentiment === "bullish" ? "🟢" : 
-                    news.sentiment === "bearish" ? "🔴" : "⚪";
+      const emoji = news.sentiment === "bullish" ? "🟢" : news.sentiment === "bearish" ? "🔴" : "⚪";
       const impactTag = news.impact === "high" ? "❗" : "";
-      // Truncate headline to fit
-      const headline = news.headline.length > 55 
-        ? news.headline.substring(0, 52) + "..." 
-        : news.headline;
-      console.log(`  │  ${emoji}${impactTag} ${headline}`.padEnd(66) + "│");
+      const headline = (news.headline?.length ?? 0) > 55 ? (news.headline ?? "").substring(0, 52) + "..." : (news.headline ?? "");
+      logLine(`${emoji}${impactTag} ${headline}`);
     }
-    
-    // Risk Events (if any)
     if (riskEvents.length > 0) {
-      console.log("  ├─────────────────────────────────────────────────────────────────┤");
-      console.log("  │  ⚠️  ACTIVE RISK EVENTS:                                        │");
-      
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("⚠️  ACTIVE RISK EVENTS:");
       for (const event of riskEvents.slice(0, 3)) {
-        const sevEmoji = event.severity === "critical" ? "🚨" : 
-                         event.severity === "high" ? "⚠️" : "⚡";
-        const desc = event.description.length > 52 
-          ? event.description.substring(0, 49) + "..." 
-          : event.description;
-        console.log(`  │  ${sevEmoji} ${desc}`.padEnd(66) + "│");
-        
-        // Show affected assets if any
+        const sevEmoji = event.severity === "critical" ? "🚨" : event.severity === "high" ? "⚠️" : "⚡";
+        const desc = event.description.length > 52 ? event.description.substring(0, 49) + "..." : event.description;
+        logLine(`${sevEmoji} ${desc}`);
         if (event.affectedAssets.length > 0) {
-          const assetsStr = `     Affects: ${event.affectedAssets.slice(0, 5).join(", ")}`;
-          console.log(`  │  ${assetsStr}`.padEnd(66) + "│");
+          logLine(`   Affects: ${event.affectedAssets.slice(0, 5).join(", ")}`);
         }
       }
     }
-    
-    // Actionable TLDR
-    console.log("  ├─────────────────────────────────────────────────────────────────┤");
+    logEmpty();
+    sep();
+    logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("RISK") || tldr.includes("BEARISH") ? "⚠️" :
-                      tldr.includes("BULLISH") || tldr.includes("CATALYST") ? "💡" : "📋";
-    console.log(`  │  ${tldrEmoji} ${tldr.padEnd(62)}│`);
-    
-    console.log("  └─────────────────────────────────────────────────────────────────┘");
-    console.log("");
+    const tldrEmoji = tldr.includes("RISK") || tldr.includes("BEARISH") ? "⚠️" : tldr.includes("BULLISH") || tldr.includes("CATALYST") ? "💡" : "📋";
+    logLine(`${tldrEmoji} ${tldr}`);
+    endBox();
   }
 
   async stop(): Promise<void> {
@@ -351,20 +336,18 @@ export class VinceNewsSentimentService extends Service {
         return;
       }
 
-      // Log confirmation with headline summary
-      console.log("");
-      console.log("  ┌─────────────────────────────────────────────────────────────┐");
-      console.log(`  │  ✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE                  │`);
-      console.log("  ├─────────────────────────────────────────────────────────────┤");
-      
-      // Show all headlines (truncated to fit)
+      // Log confirmation with headline summary (same box style as other dashboards)
+      startBox();
+      logLine(`✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE`);
+      logEmpty();
+      sep();
+      logEmpty();
       for (let i = 0; i < cached.articles.length; i++) {
-        const title = cached.articles[i].title;
+        const title = cached.articles[i].title ?? "";
         const truncated = title.length > 55 ? title.substring(0, 52) + "..." : title;
-        console.log(`  │  ${(i + 1).toString().padStart(2, " ")}. ${truncated.padEnd(55, " ")} │`);
+        logLine(`${(i + 1).toString().padStart(2, " ")}. ${truncated}`);
       }
-      console.log("  └─────────────────────────────────────────────────────────────┘");
-      console.log("");
+      endBox();
       
       logger.info(`[VinceNewsSentiment] ✅ Processing ${cached.articles.length} articles from MandoMinutes cache`);
       this.lastMandoFetch = cached.timestamp;
