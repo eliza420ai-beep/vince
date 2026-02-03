@@ -84,23 +84,26 @@ export class VinceMarketRegimeService extends Service {
   }
 
   /**
-   * Print sexy terminal dashboard
+   * Print terminal dashboard with actionable copy
    */
   private printDashboard(): void {
     startBox();
-    logLine("📈 MARKET REGIME DASHBOARD");
+    logLine("📈 MARKET REGIME");
+    logEmpty();
+    logLine("What it does: Adjusts paper-trade sizing, stops, and strategy");
+    logLine("(momentum vs mean-reversion) using ADX + DVOL.");
     logEmpty();
     sep();
     logEmpty();
-    logLine("📊 REGIME TYPES:");
-    logLine("   • TRENDING (ADX > 25): Ride momentum, wide stops");
-    logLine("   • RANGING (ADX < 20): Fade extremes, tight stops");
-    logLine("   • VOLATILE (DVOL > 85): Reduce size, buy options");
-    logLine("   • NEUTRAL: Standard sizing, mixed signals");
+    logLine("📊 IF REGIME IS… THEN:");
+    logLine("   • TRENDING (ADX>25)  → Follow momentum, wider stops");
+    logLine("   • RANGING (ADX<20)   → Fade extremes, tight stops");
+    logLine("   • VOLATILE (DVOL>85) → Half size, consider options");
+    logLine("   • NEUTRAL            → Normal size, mixed approach");
     logEmpty();
     sep();
     logEmpty();
-    logLine("💡 Regime data loads on first request");
+    logLine("💡 Live regime loads when you ask: perps, gm, or bot status");
     endBox();
   }
 
