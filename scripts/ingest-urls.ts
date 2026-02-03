@@ -11,12 +11,18 @@
  *   bun run scripts/ingest-urls.ts "https://youtu.be/xxx" --youtube
  *
  * Options:
- *   --file <path>     Read URLs from file (one per line)
- *   --extract         Use summarize --extract only (no LLM; cheaper)
- *   --youtube         Treat URLs as YouTube (--youtube auto)
- *   --knowledge-dir   Base knowledge dir (default: ./knowledge)
- *   --dry-run         Print what would be done, no writes
+ *   --file <path>       Read URLs from file (one per line)
+ *   --extract           Use summarize --extract only (no LLM; cheaper). For web URLs adds --format md.
+ *   --youtube           Treat URLs as YouTube (--youtube auto)
+ *   --slides            For YouTube: extract slide screenshots (--slides); requires yt-dlp, ffmpeg
+ *   --slides-ocr        With --slides: run OCR on slides (requires tesseract)
+ *   --length <preset>   Summary length when not --extract: long|xl|xxl|medium|short (default: long)
+ *   --lang <code>       Output language (e.g. en, auto); summarize --lang
+ *   --firecrawl         Pass --firecrawl auto for web URLs (needs FIRECRAWL_API_KEY)
+ *   --knowledge-dir     Base knowledge dir (default: ./knowledge)
+ *   --dry-run           Print what would be done, no writes
  *
+ * Inputs: URLs (http(s)://) or local file paths (e.g. ./doc.pdf, /path/to/audio.mp3). Summarize supports PDF, audio, video, text.
  * Requires: bunx / npm install -g @steipete/summarize; API key for non-extract mode.
  */
 
@@ -71,15 +77,55 @@ function generateTitle(content: string): string {
   return first.length > 100 ? first.slice(0, 100) + "..." : first || "Untitled";
 }
 
+const LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const;
+
 function runSummarize(
-  url: string,
-  opts: { isYouTube?: boolean; extractOnly?: boolean; timeoutMs?: number }
+  input: string,
+  opts: {
+    isYouTube?: boolean;
+    extractOnly?: boolean;
+    timeoutMs?: number;
+    length?: string;
+    formatMdForExtract?: boolean;
+    slides?: boolean;
+    slidesOcr?: boolean;
+    slidesDir?: string;
+    firecrawl?: boolean;
+    lang?: string;
+  }
 ): Promise<{ content: string } | null> {
-  const { isYouTube = false, extractOnly = false, timeoutMs = isYouTube ? 120_000 : 90_000 } = opts;
-  const args = ["@steipete/summarize", url, "--plain", "--no-color"];
-  if (extractOnly) args.push("--extract");
-  else args.push("--length", "long");
+  const {
+    isYouTube = false,
+    extractOnly = false,
+    length: lengthOpt = "long",
+    formatMdForExtract = true,
+    slides = false,
+    slidesOcr = false,
+    slidesDir,
+    firecrawl: useFirecrawl = false,
+    lang: langOpt,
+  } = opts;
+  const len = LENGTH_PRESETS.includes(lengthOpt as (typeof LENGTH_PRESETS)[number]) ? lengthOpt : "long";
+  let timeoutMs = isYouTube ? 120_000 : 90_000;
+  if (slides) timeoutMs = 180_000;
+  const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
+  const timeoutArg = timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
+
+  const args = ["@steipete/summarize", input, "--plain", "--no-color", "--timeout", timeoutArg];
+  if (extractOnly) {
+    args.push("--extract");
+    if (formatMdForExtract && !isYouTube) args.push("--format", "md");
+  } else {
+    args.push("--length", len);
+  }
   if (isYouTube) args.push("--youtube", "auto");
+  if (slides) {
+    args.push("--slides");
+    if (slidesDir) args.push("--slides-dir", slidesDir);
+    if (slidesOcr) args.push("--slides-ocr");
+  }
+  if (useFirecrawl && !isYouTube) args.push("--firecrawl", "auto");
+  if (langOpt) args.push("--lang", langOpt);
 
   return new Promise((resolve) => {
     const child = spawn("bunx", args, {
@@ -92,19 +138,19 @@ function runSummarize(
     child.stderr?.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf-8"); });
     const timer = setTimeout(() => {
       child.kill("SIGTERM");
-      console.error(`[ingest-urls] Timeout: ${url}`);
+      console.error(`[ingest-urls] Timeout: ${input}`);
       resolve(null);
     }, timeoutMs);
     child.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        console.error(`[ingest-urls] summarize exited ${code} for ${url}: ${stderr.slice(0, 200)}`);
+        console.error(`[ingest-urls] summarize exited ${code} for ${input}: ${stderr.slice(0, 200)}`);
         resolve(null);
         return;
       }
       const content = stdout.trim();
       if (content.length < 50) {
-        console.error(`[ingest-urls] Too little content for ${url}`);
+        console.error(`[ingest-urls] Too little content for ${input}`);
         resolve(null);
         return;
       }
@@ -167,60 +213,108 @@ const args = process.argv.slice(2);
 const fileIdx = args.indexOf("--file");
 const extractOnly = args.includes("--extract");
 const youtube = args.includes("--youtube");
+const slides = args.includes("--slides");
+const slidesOcr = args.includes("--slides-ocr");
 const dryRun = args.includes("--dry-run");
 const knowledgeIdx = args.indexOf("--knowledge-dir");
 const knowledgeDir = knowledgeIdx >= 0 && args[knowledgeIdx + 1]
   ? args[knowledgeIdx + 1]
   : DEFAULT_KNOWLEDGE;
+const lengthIdx = args.indexOf("--length");
+const lengthPreset = lengthIdx >= 0 && args[lengthIdx + 1] ? args[lengthIdx + 1] : "long";
+const langIdx = args.indexOf("--lang");
+const langOpt = langIdx >= 0 && args[langIdx + 1] ? args[langIdx + 1] : undefined;
+const firecrawl = args.includes("--firecrawl");
+const slidesDir = slides ? path.join(knowledgeDir, ".slides") : undefined;
 
-const urls: string[] = [];
-if (fileIdx >= 0 && args[fileIdx + 1]) {
-  const filePath = path.resolve(args[fileIdx + 1]);
-  if (!fs.existsSync(filePath)) {
-    console.error(`File not found: ${filePath}`);
-    process.exit(1);
-  }
-  const lines = fs.readFileSync(filePath, "utf-8").split(/\n/);
-  for (const line of lines) {
-    const u = line.trim();
-    if (u && (u.startsWith("http://") || u.startsWith("https://"))) urls.push(u);
-  }
-} else {
-  for (const a of args) {
-    if (a.startsWith("http://") || a.startsWith("https://")) urls.push(a);
+function isUrl(s: string): boolean {
+  return s.startsWith("http://") || s.startsWith("https://");
+}
+function isLocalPath(s: string): boolean {
+  if (isUrl(s)) return false;
+  const resolved = path.resolve(s);
+  try {
+    return fs.existsSync(resolved) && fs.statSync(resolved).isFile();
+  } catch {
+    return false;
   }
 }
 
-if (urls.length === 0) {
+const inputs: string[] = [];
+if (fileIdx >= 0 && args[fileIdx + 1]) {
+  const listPath = path.resolve(args[fileIdx + 1]);
+  if (!fs.existsSync(listPath)) {
+    console.error(`File not found: ${listPath}`);
+    process.exit(1);
+  }
+  const lines = fs.readFileSync(listPath, "utf-8").split(/\n/);
+  for (const line of lines) {
+    const u = line.trim();
+    if (!u) continue;
+    if (isUrl(u)) inputs.push(u);
+    else if (isLocalPath(u)) inputs.push(path.resolve(u));
+  }
+} else {
+  const skipNext = new Set(["--file", "--length", "--lang", "--knowledge-dir"]);
+  for (let i = 0; i < args.length; i++) {
+    if (skipNext.has(args[i])) {
+      i++;
+      continue;
+    }
+    const a = args[i];
+    if (isUrl(a)) inputs.push(a);
+    else if (isLocalPath(a)) inputs.push(path.resolve(a));
+  }
+}
+
+if (inputs.length === 0) {
   console.log(`
 Usage:
-  bun run scripts/ingest-urls.ts <url> [url2 ...]
-  bun run scripts/ingest-urls.ts --file urls.txt [--extract] [--youtube] [--dry-run]
-  bun run scripts/ingest-urls.ts --knowledge-dir ./knowledge
+  bun run scripts/ingest-urls.ts <url|path> [url2 ...]
+  bun run scripts/ingest-urls.ts --file urls.txt [--extract] [--youtube] [--slides] [--dry-run]
+  bun run scripts/ingest-urls.ts ./doc.pdf /path/to/audio.mp3
+  bun run scripts/ingest-urls.ts --knowledge-dir ./knowledge --length xl --lang en
 
 Options:
-  --file <path>     One URL per line
-  --extract         summarize --extract only (no LLM)
-  --youtube         Pass --youtube auto to summarize
-  --knowledge-dir   Default: ./knowledge
-  --dry-run         No file writes
+  --file <path>       One URL or file path per line
+  --extract           summarize --extract only (no LLM); web URLs get --format md
+  --youtube           Pass --youtube auto to summarize (URLs only)
+  --slides            (YouTube) Extract slide screenshots; writes to <knowledge-dir>/.slides
+  --slides-ocr        With --slides: run OCR on slides (requires tesseract)
+  --length <preset>   long|xl|xxl|medium|short (default: long)
+  --lang <code>       Output language (e.g. en, auto)
+  --firecrawl         --firecrawl auto for web URLs (FIRECRAWL_API_KEY)
+  --knowledge-dir    Default: ./knowledge
+  --dry-run           No file writes
 `);
   process.exit(1);
 }
 
 async function main() {
-  console.log(`[ingest-urls] Processing ${urls.length} URL(s), extractOnly=${extractOnly}, youtube=${youtube}, dryRun=${dryRun}`);
+  console.log(`[ingest-urls] Processing ${inputs.length} input(s), extractOnly=${extractOnly}, youtube=${youtube}, slides=${slides}, length=${lengthPreset}, lang=${langOpt ?? "—"}, firecrawl=${firecrawl}, dryRun=${dryRun}`);
   let ok = 0;
   let fail = 0;
-  for (const url of urls) {
-    const result = await runSummarize(url, { isYouTube: youtube, extractOnly });
+  for (const input of inputs) {
+    const isYt = youtube && isUrl(input);
+    const result = await runSummarize(input, {
+      isYouTube: isYt,
+      extractOnly,
+      length: lengthPreset,
+      formatMdForExtract: true,
+      slides: isYt && slides,
+      slidesOcr: slidesOcr,
+      slidesDir,
+      firecrawl: firecrawl && isUrl(input),
+      lang: langOpt,
+    });
     if (!result) {
       fail++;
       continue;
     }
     const title = generateTitle(result.content);
     const category = detectCategory(result.content);
-    const written = writeKnowledgeFile(knowledgeDir, category, title, result.content, url, dryRun);
+    const sourceLabel = isUrl(input) ? input : `file://${path.resolve(input)}`;
+    const written = writeKnowledgeFile(knowledgeDir, category, title, result.content, sourceLabel, dryRun);
     if (written) ok++;
     else fail++;
   }

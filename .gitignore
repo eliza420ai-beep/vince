@@ -22,3 +22,6 @@ dist/
 
 # Optional: uncomment if you don't want to track knowledge build artifacts
 # knowledge/**/*.pdf
+
+# Summarize slide extraction output (images); remove to commit slides
+knowledge/.slides/

@@ -23,6 +23,9 @@
  * - Install: bun install -g @steipete/summarize (or use bunx; no install required).
  * - Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for summarize's model.
  * - VINCE_UPLOAD_EXTRACT_ONLY=true: use --extract only (transcript/extract, no LLM; saves cost).
+ * - VINCE_UPLOAD_SUMMARY_LENGTH=long|xl|xxl|medium|short: summary length (default long).
+ * - VINCE_UPLOAD_YOUTUBE_SLIDES=true: YouTube slide extraction (--slides); VINCE_UPLOAD_YOUTUBE_SLIDES_OCR=true for OCR.
+ * - VINCE_UPLOAD_FIRECRAWL=auto|always: web fallback (FIRECRAWL_API_KEY); VINCE_UPLOAD_LANG for --lang.
  *
  * STANDALONE MODE:
  * - Uses plugin-knowledge-ingestion if available (full categorization + LLM processing)
@@ -118,29 +121,58 @@ function extractSingleUrl(text: string): string | null {
   return url.length >= 10 ? url : null;
 }
 
+/** Allowed summary length presets (summarize --length). */
+const SUMMARY_LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const;
+
 /**
  * Run steipete/summarize CLI to get transcript or summary for a URL.
  * Uses bunx (Bun) so no global install is required.
  * @see https://github.com/IkigaiLabsETH/summarize (Ikigai fork); https://github.com/steipete/summarize (upstream)
  *
- * Extract-only mode: set VINCE_UPLOAD_EXTRACT_ONLY=true to skip LLM summarization and only
- * fetch transcript/extracted content (saves cost; useful for bulk or transcript-first flows).
+ * Env:
+ * - VINCE_UPLOAD_EXTRACT_ONLY=true: --extract only (no LLM; saves cost).
+ * - VINCE_UPLOAD_SUMMARY_LENGTH=long|xl|xxl|medium|short: summary length when not extract-only (default: long).
+ * - VINCE_UPLOAD_YOUTUBE_SLIDES=true: for YouTube, add --slides (and --slides-ocr); writes to knowledge/.slides/.
+ * - VINCE_UPLOAD_FIRECRAWL=auto|always: for web URLs, pass --firecrawl (needs FIRECRAWL_API_KEY when used).
+ * - VINCE_UPLOAD_LANG=<code>: output language (e.g. en, auto); passed as --lang.
+ * - CLI --timeout is set from our timeout so summarize doesn't exit early.
  */
 async function runSummarizeCli(
   url: string,
   options: { isYouTube?: boolean; timeoutMs?: number; extractOnly?: boolean } = {}
 ): Promise<{ content: string; sourceUrl: string } | null> {
-  const { isYouTube = false, timeoutMs = isYouTube ? 120_000 : 90_000, extractOnly } = options;
+  const { isYouTube = false, extractOnly } = options;
   const useExtractOnly = extractOnly ?? (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" || process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
-  const args = ["@steipete/summarize", url, "--plain", "--no-color"];
+  const youtubeSlides = isYouTube && (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
+  const lengthEnv = (process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "long").toLowerCase();
+  const length = SUMMARY_LENGTH_PRESETS.includes(lengthEnv as (typeof SUMMARY_LENGTH_PRESETS)[number]) ? lengthEnv : "long";
+  let timeoutMs = isYouTube ? 120_000 : 90_000;
+  if (youtubeSlides) timeoutMs = 180_000;
+  const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
+  const timeoutArg = timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
+
+  const args = ["@steipete/summarize", url, "--plain", "--no-color", "--timeout", timeoutArg];
   if (useExtractOnly) {
     args.push("--extract");
+    if (!isYouTube) args.push("--format", "md");
   } else {
-    args.push("--length", "long");
+    args.push("--length", length);
   }
   if (isYouTube) {
     args.push("--youtube", "auto");
   }
+  if (youtubeSlides) {
+    args.push("--slides", "--slides-dir", "./knowledge/.slides");
+    if (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "1") {
+      args.push("--slides-ocr");
+    }
+  }
+  const firecrawl = process.env.VINCE_UPLOAD_FIRECRAWL?.toLowerCase();
+  if (!isYouTube && (firecrawl === "auto" || firecrawl === "always")) {
+    args.push("--firecrawl", firecrawl);
+  }
+  const lang = process.env.VINCE_UPLOAD_LANG?.trim();
+  if (lang) args.push("--lang", lang);
 
   return new Promise((resolve) => {
     const child = spawn("bunx", args, {
@@ -157,7 +189,7 @@ async function runSummarizeCli(
     });
     const timer = setTimeout(() => {
       child.kill("SIGTERM");
-      logger.warn({ url, isYouTube }, "[VINCE_UPLOAD] summarize CLI timed out");
+      logger.warn({ url, isYouTube, timeoutMs }, "[VINCE_UPLOAD] summarize CLI timed out");
       resolve(null);
     }, timeoutMs);
     child.on("close", (code) => {

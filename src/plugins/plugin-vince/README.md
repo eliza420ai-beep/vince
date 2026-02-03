@@ -271,6 +271,10 @@ flowchart TB
 | `VINCE_UPLOAD` | "upload:", "save this:", URLs | Knowledge ingestion |
 | `VINCE_GROK_EXPERT` | "grok pulse", "prompt of the day" | Daily research suggestions |
 
+**Why knowledge is essential for VINCE**
+
+VINCE’s actions and services supply **current data** (prices, funding, signals, news). The **knowledge base** supplies **how to think**—frameworks, methodologies, and strategic patterns (see `knowledge/KNOWLEDGE-USAGE-GUIDELINES.md`). Without knowledge, responses would only echo numbers; with it, VINCE interprets live data through proven lenses: funding → strike distance, TVL red flags, meme lifecycle, options skew, lifestyle frameworks. The **trenchKnowledgeProvider** pulls relevant knowledge into context every turn so the LLM can reference these methodologies when answering OPTIONS, PERPS, MEMES, LIFESTYLE, and more. Knowledge is the “how,” APIs are the “what”—and UPLOAD + summarize keep growing the knowledge base from URLs, YouTube, and files so the agent improves as `knowledge/` grows.
+
 **UPLOAD and [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize):** We use our fork of [steipete/summarize](https://github.com/steipete/summarize) to keep improving the `knowledge/` folder. When you send a URL or YouTube link (e.g. `upload: https://...`), VINCE runs the summarize CLI via bunx: transcript + summary for YouTube, summary for articles/PDFs, then saves to `knowledge/<category>/`. Install: `bun install -g @steipete/summarize` (or run from the [Ikigai fork](https://github.com/IkigaiLabsETH/summarize)); set `OPENAI_API_KEY` or `GEMINI_API_KEY` for the summarizer. If the CLI isn't available, the bot suggests installing it or pasting the content.
 
 #### Early Detection
