@@ -15,6 +15,7 @@ import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { getOrCreateOpenSeaService } from "./fallbacks";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (match OpenSeaService cache)
+const MIN_GAP_TO_2ND_ETH = 0.21; // Dashboard only shows collections with gap to 2nd listing above this
 
 // Curated collections - Bluechips, Art Blocks, XCOPY, Photography
 const CURATED_COLLECTIONS: CuratedCollection[] = [
@@ -66,10 +67,11 @@ export class VinceNFTFloorService extends Service {
   }
 
   /**
-   * Print dashboard with live data and actionable TLDR
+   * Print dashboard with live data: only collections with thin floor (gap to 2nd > 0.21 ETH).
    */
   private printDashboardWithData(): void {
     const floors = this.getAllFloors();
+    const thinOnly = floors.filter(c => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH);
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD");
     logEmpty();
@@ -80,39 +82,21 @@ export class VinceNFTFloorService extends Service {
       endBox();
       return;
     }
-    const formatChange = (nft: NFTCollection) =>
-      nft.floorPriceChange24h !== 0
-        ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
-        : "—";
-    logLine("💎 BLUE CHIPS:");
-    const bluechips = this.getBlueChips().slice(0, 3);
-    for (const nft of bluechips) {
-      const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeStr = formatChange(nft);
-      const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`);
-    }
-    sep();
-    logEmpty();
-    logLine("🖼️  ART BLOCKS:");
-    const art = this.getGenerativeArt().slice(0, 4);
-    for (const nft of art) {
-      const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeStr = formatChange(nft);
-      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
-    }
-    const photos = this.getPhotography().slice(0, 3);
-    if (photos.length > 0) {
-      sep();
+    if (thinOnly.length === 0) {
+      logLine("No thin floors (gap to 2nd listing > 0.21 ETH) right now.");
       logEmpty();
-      logLine("📷 PHOTOGRAPHY:");
-      for (const nft of photos) {
-        const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-        const changeStr = formatChange(nft);
-        logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
-      }
+      const tldr = this.getTLDR();
+      logLine(`💡 ${tldr}`);
+      endBox();
+      logger.info(`[VinceNFTFloor] ✅ Dashboard loaded - ${tldr}`);
+      return;
     }
-    sep();
+    logLine("💡 THIN FLOOR (gap to 2nd > 0.21 ETH):");
+    logEmpty();
+    for (const nft of thinOnly) {
+      const gap = (nft.gaps?.to2nd ?? 0).toFixed(2);
+      logLine(`   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`);
+    }
     logEmpty();
     const tldr = this.getTLDR();
     logLine(`💡 ${tldr}`);
@@ -158,49 +142,38 @@ export class VinceNFTFloorService extends Service {
   }
 
   /**
-   * Print live NFT floor dashboard with data
+   * Print live NFT floor dashboard: only collections with thin floor (gap to 2nd > 0.21 ETH).
    */
   async printLiveDashboard(): Promise<void> {
     await this.refreshData();
     const floors = this.getAllFloors();
+    const thinOnly = floors.filter(c => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH);
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD (LIVE)");
     logEmpty();
     sep();
     logEmpty();
-    const formatChange = (nft: NFTCollection) =>
-      nft.floorPriceChange24h !== 0
-        ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
-        : "—";
-    logLine("💎 BLUE CHIPS:");
-    const bluechips = this.getBlueChips().slice(0, 3);
-    for (const nft of bluechips) {
-      const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeStr = formatChange(nft);
-      const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`);
+    if (floors.length === 0) {
+      logLine("⚠️ No floor data - set OPENSEA_API_KEY for NFT floors");
+      endBox();
+      return;
     }
-    sep();
-    logEmpty();
-    logLine("🖼️ ART BLOCKS:");
-    const art = this.getGenerativeArt().slice(0, 4);
-    for (const nft of art) {
-      const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeStr = formatChange(nft);
-      logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
-    }
-    const photos = this.getPhotography().slice(0, 3);
-    if (photos.length > 0) {
-      sep();
+    if (thinOnly.length === 0) {
+      logLine("No thin floors (gap to 2nd listing > 0.21 ETH) right now.");
       logEmpty();
-      logLine("📷 PHOTOGRAPHY:");
-      for (const nft of photos) {
-        const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-        const changeStr = formatChange(nft);
-        logLine(`   ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`);
-      }
+      const tldr = this.getTLDR();
+      const tldrEmoji = tldr.includes("UP") || tldr.includes("momentum") ? "💡" :
+                        tldr.includes("DOWN") || tldr.includes("THIN") || tldr.includes("risk") ? "⚠️" : "📋";
+      logLine(`${tldrEmoji} ${tldr}`);
+      endBox();
+      return;
     }
-    sep();
+    logLine("💡 THIN FLOOR (gap to 2nd > 0.21 ETH):");
+    logEmpty();
+    for (const nft of thinOnly) {
+      const gap = (nft.gaps?.to2nd ?? 0).toFixed(2);
+      logLine(`   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`);
+    }
     logEmpty();
     const tldr = this.getTLDR();
     const tldrEmoji = tldr.includes("UP") || tldr.includes("momentum") ? "💡" :
@@ -330,9 +303,8 @@ export class VinceNFTFloorService extends Service {
 
       this.floorCache.set(collection.slug, nftCollection);
 
-      // Only log collections worth displaying: gap to 2nd listing >= 0.21 ETH
-      const MIN_GAP_TO_2ND_ETH = 0.21;
-      if (thickness.gaps.to2nd >= MIN_GAP_TO_2ND_ETH) {
+      // Only log collections worth displaying: gap to 2nd listing > 0.21 ETH
+      if (thickness.gaps.to2nd > MIN_GAP_TO_2ND_ETH) {
         logger.info(`[VinceNFTFloor] ✅ ${collection.slug}: ${analysis.floorPrice.toFixed(2)} ETH | ${thickness.description} (score: ${thickness.score}) | Gap to 2nd: ${thickness.gaps.to2nd.toFixed(3)} ETH`);
       }
       

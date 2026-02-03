@@ -12,7 +12,9 @@
  * - Viral potential detection for 5-10x plays
  *
  * Uses DexScreener API (FREE)
- * Single API call for both chains - optimized for rate limits
+ * Separate API calls and boxes for Solana vs Base:
+ * - Solana: token-boosts/top/v1 (keep only solana)
+ * - Base: community-takeovers/latest/v1 (filter chainId === base) for dedicated Base coverage
  * Includes circuit breaker and retry logic for resilience
  */
 
@@ -39,6 +41,8 @@ import {
 } from "../constants/memes.constants";
 
 const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+// Dashboard "hot" tokens: only show tokens up at least this much (avoid showing -90% dumpers as "hot")
+const MIN_HOT_PRICE_CHANGE_PCT = 21;
 
 // AI-related keywords for detecting AI memes (MOLT-tier plays)
 const AI_KEYWORDS = [
@@ -104,7 +108,10 @@ export class VinceDexScreenerService extends Service {
   capabilityDescription = "DexScreener meme scanner: traction analysis, lifecycle stages, entry guidance, APE/WATCH/AVOID verdicts";
 
   private tokenCache: Map<string, MemeToken> = new Map();
+  /** Combined for backward compat (getMarketMood, getTrendingTokens, etc.) */
   private trendingTokens: MemeToken[] = [];
+  private trendingTokensSolana: MemeToken[] = [];
+  private trendingTokensBase: MemeToken[] = [];
   private lastUpdate = 0;
 
   // Circuit breaker state
@@ -169,60 +176,60 @@ export class VinceDexScreenerService extends Service {
   }
 
   /**
-   * Print dashboard (same box style as paper trade-opened banner).
+   * Print two separate dashboards: Solana meme scanner, then Base meme scanner.
    */
   private printDexScreenerDashboard(): void {
-    const tokens = this.trendingTokens;
-    const solanaTokens = tokens.filter(t => t.chain === "solana");
-    const baseTokens = tokens.filter(t => t.chain === "base");
-    const apeTokens = tokens.filter(t => t.verdict === "APE");
-
+    this.printChainBox("SOLANA", this.trendingTokensSolana);
+    this.printChainBox("BASE", this.trendingTokensBase);
+    const { mood, summary } = this.getMarketMood();
+    const moodEmoji = mood === "pumping" ? "🚀" : mood === "dumping" ? "💀" : mood === "choppy" ? "🌊" : "😴";
     startBox();
-    logLine("🔍 DEXSCREENER MEME SCANNER");
+    logLine(`${moodEmoji} MEME MOOD: ${summary}`);
+    endBox();
+    logger.info(`[VinceDexScreener] ✅ Dashboards loaded: SOL ${this.trendingTokensSolana.length} | BASE ${this.trendingTokensBase.length}`);
+  }
+
+  private printChainBox(chainLabel: string, tokens: MemeToken[]): void {
+    startBox();
+    logLine(`🔍 DEXSCREENER ${chainLabel} MEME SCANNER`);
     logEmpty();
     sep();
     logEmpty();
-    logLine("🔗 CHAINS SCANNED");
-    logLine(`   Solana: ${solanaTokens.length}  │  Base: ${baseTokens.length}  │  Total: ${tokens.length}`);
+    logLine(`📊 ${chainLabel}: ${tokens.length} tokens`);
     logEmpty();
     sep();
     logEmpty();
-    logLine("🔥 HOT TOKENS (by traction)");
-    const hotTokens = tokens.slice(0, 3);
-    if (hotTokens.length === 0) {
-      logLine("   (no tokens found - data loading...)");
+    logLine("🔥 HOT (by traction, up ≥21%)");
+    const hot = tokens
+      .filter(t => t.priceChange24h >= MIN_HOT_PRICE_CHANGE_PCT)
+      .slice(0, 3);
+    if (hot.length === 0) {
+      logLine("   (none up ≥21% right now - or data loading)");
     } else {
-      for (const token of hotTokens) {
+      for (const token of hot) {
         const verdictEmoji = token.verdict === "APE" ? "🦍" : token.verdict === "WATCH" ? "👀" : "⛔";
         const changeEmoji = token.priceChange24h >= 0 ? "🟢" : "🔴";
         const symbol = token.symbol.substring(0, 8);
-        const chain = token.chain.substring(0, 3).toUpperCase();
         const volLiq = `V/L: ${token.volumeLiquidityRatio.toFixed(1)}x`;
         const mcap = token.marketCap ? this.formatVolume(token.marketCap) : "N/A";
-        logLine(`   ${changeEmoji} ${symbol} │ ${chain} │ ${volLiq} │ ${this.formatChange(token.priceChange24h)} │ ${mcap} ${verdictEmoji}`);
+        logLine(`   ${changeEmoji} ${symbol.padEnd(8)} │ ${volLiq} │ ${this.formatChange(token.priceChange24h)} │ ${mcap} ${verdictEmoji}`);
       }
     }
     logEmpty();
     sep();
     logEmpty();
+    const apeTokens = tokens.filter(t => t.verdict === "APE");
     logLine("🦍 APE CANDIDATES");
     if (apeTokens.length === 0) {
-      logLine("   (no APE-worthy tokens found)");
+      logLine("   (none)");
     } else {
       for (const token of apeTokens.slice(0, 3)) {
         const symbol = token.symbol.substring(0, 8);
-        const chain = token.chain.substring(0, 3).toUpperCase();
-        logLine(`   🔥 ${symbol} │ ${chain} │ Liq: ${this.formatVolume(token.liquidity)} │ Vol: ${this.formatVolume(token.volume24h)} │ ${this.formatChange(token.priceChange24h)}`);
+        logLine(`   🔥 ${symbol} │ Liq: ${this.formatVolume(token.liquidity)} │ Vol: ${this.formatVolume(token.volume24h)} │ ${this.formatChange(token.priceChange24h)}`);
       }
     }
     logEmpty();
-    sep();
-    logEmpty();
-    const { mood, summary } = this.getMarketMood();
-    const moodEmoji = mood === "pumping" ? "🚀" : mood === "dumping" ? "💀" : mood === "choppy" ? "🌊" : "😴";
-    logLine(`${moodEmoji} MOOD: ${summary}`);
     endBox();
-    logger.info(`[VinceDexScreener] ✅ Dashboard loaded: ${tokens.length} tokens across 3 chains`);
   }
 
   // ============================================
@@ -337,42 +344,88 @@ export class VinceDexScreenerService extends Service {
     }
 
     try {
-      await this.fetchTrendingTokens();
+      this.tokenCache.clear();
+      this.trendingTokensSolana = [];
+      this.trendingTokensBase = [];
+      await Promise.all([
+        this.fetchTrendingSolana(),
+        this.fetchTrendingBase(),
+      ]);
+      this.mergeTrendingLists();
       this.lastUpdate = now;
     } catch (error) {
       logger.debug(`[VinceDexScreener] Refresh error: ${error}`);
     }
   }
 
-  /**
-   * Single API call to fetch trending tokens for all 3 chains
-   * Optimized to avoid duplicate requests (was previously 2 separate calls)
-   */
-  private async fetchTrendingTokens(): Promise<void> {
-    try {
-      const res = await fetch(
-        "https://api.dexscreener.com/token-boosts/top/v1"
-      );
+  /** Merge chain-specific lists into combined trendingTokens for getMarketMood / public API */
+  private mergeTrendingLists(): void {
+    this.trendingTokens = [
+      ...this.trendingTokensSolana,
+      ...this.trendingTokensBase,
+    ].sort((a, b) => b.volumeLiquidityRatio - a.volumeLiquidityRatio)
+     .slice(0, 30);
+  }
 
+  /**
+   * Solana: token-boosts/top/v1, keep only chainId === "solana".
+   */
+  private async fetchTrendingSolana(): Promise<void> {
+    try {
+      const res = await fetch("https://api.dexscreener.com/token-boosts/top/v1");
       if (!res.ok) {
-        logger.debug(`[VinceDexScreener] API error: ${res.status}`);
+        logger.debug(`[VinceDexScreener] Solana API error: ${res.status}`);
         return;
       }
-
       const data = await res.json();
-      if (Array.isArray(data)) {
-        // Process Solana and Base chains
-        for (const token of data) {
-          const chainId = token.chainId as string;
-          if (chainId === "solana" || chainId === "base") {
-            await this.processToken(token, chainId);
-          }
-        }
-        logger.debug(`[VinceDexScreener] Fetched ${data.length} tokens, processed ${this.tokenCache.size} for SOL/BASE`);
+      if (!Array.isArray(data)) return;
+      const solanaOnly = data.filter((t: { chainId?: string }) => (t.chainId as string) === "solana");
+      for (const token of solanaOnly) {
+        await this.processToken(token, "solana");
       }
+      this.trendingTokensSolana = this.getChainListFromCache("solana");
+      logger.debug(`[VinceDexScreener] Solana: ${solanaOnly.length} from boosts → ${this.trendingTokensSolana.length} processed`);
     } catch (error) {
-      logger.debug(`[VinceDexScreener] Fetch error: ${error}`);
+      logger.debug(`[VinceDexScreener] Solana fetch error: ${error}`);
     }
+  }
+
+  /**
+   * Base: three free DexScreener feeds (no GeckoTerminal — CoinGecko owns it, no free API).
+   * 1) token-boosts/top/v1 — filter chainId === "base"
+   * 2) community-takeovers/latest/v1 — filter base
+   * 3) ads/latest/v1 — filter base (promoted tokens)
+   */
+  private async fetchTrendingBase(): Promise<void> {
+    const feeds: [string, string][] = [
+      ["https://api.dexscreener.com/token-boosts/top/v1", "boosts"],
+      ["https://api.dexscreener.com/community-takeovers/latest/v1", "takeovers"],
+      ["https://api.dexscreener.com/ads/latest/v1", "ads"],
+    ];
+    try {
+      for (const [url, label] of feeds) {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        if (!Array.isArray(data)) continue;
+        const baseOnly = data.filter((t: { chainId?: string }) => (t.chainId as string) === "base");
+        for (const token of baseOnly) {
+          await this.processToken(token, "base");
+        }
+        logger.debug(`[VinceDexScreener] Base ${label}: ${baseOnly.length} tokens`);
+      }
+      this.trendingTokensBase = this.getChainListFromCache("base");
+      logger.debug(`[VinceDexScreener] Base: ${this.trendingTokensBase.length} processed (cache deduped)`);
+    } catch (error) {
+      logger.debug(`[VinceDexScreener] Base fetch error: ${error}`);
+    }
+  }
+
+  private getChainListFromCache(chain: "solana" | "base"): MemeToken[] {
+    return Array.from(this.tokenCache.values())
+      .filter(t => t.chain === chain)
+      .sort((a, b) => b.volumeLiquidityRatio - a.volumeLiquidityRatio)
+      .slice(0, 20);
   }
 
   private async processToken(
@@ -454,9 +507,6 @@ export class VinceDexScreenerService extends Service {
 
       this.tokenCache.set(address, memeToken);
 
-      // Update trending list
-      this.updateTrendingList();
-
     } catch (error) {
       logger.debug(`[VinceDexScreener] Token processing error: ${error}`);
     }
@@ -489,9 +539,9 @@ export class VinceDexScreenerService extends Service {
   }
 
   private updateTrendingList(): void {
-    this.trendingTokens = Array.from(this.tokenCache.values())
-      .sort((a, b) => b.volumeLiquidityRatio - a.volumeLiquidityRatio)
-      .slice(0, 20);
+    this.trendingTokensSolana = this.getChainListFromCache("solana");
+    this.trendingTokensBase = this.getChainListFromCache("base");
+    this.mergeTrendingLists();
   }
 
   // ============================================
