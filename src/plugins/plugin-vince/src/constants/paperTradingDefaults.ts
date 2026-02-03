@@ -180,17 +180,20 @@ export const TAKE_PROFIT_USD: number | null = null;
 export const TAKE_PROFIT_USD_AGGRESSIVE = 210;
 
 /**
- * Aggressive preset (e.g. Hyperliquid-style 10x + $210 TP): trade more often, close at $210 profit.
- * Use with runtime setting vince_paper_aggressive = true (or set limits/leverage in dynamicConfig).
+ * Aggressive preset (Hyperliquid-style): fixed margin, high leverage, $210 TP.
+ * Use with runtime setting vince_paper_aggressive = true.
+ * 40x + $1K margin = $40K notional → $210 at ~0.53% move. Liquidation ~2.25% away.
  */
-export const AGGRESSIVE_LEVERAGE = 10;
-/** Base position size as % of portfolio in aggressive mode; ~12% with 10x gives ~$210 at first TP (~2.2% move). */
+export const AGGRESSIVE_LEVERAGE = 40;
+/** Fixed margin per trade in aggressive mode (notional = margin × leverage = $40K). */
+export const AGGRESSIVE_MARGIN_USD = 1000;
+/** Fallback: base size as % of portfolio when not using fixed margin (e.g. if margin would exceed portfolio). */
 export const AGGRESSIVE_BASE_SIZE_PCT = 12;
 export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
   ...DEFAULT_RISK_LIMITS,
-  maxLeverage: 10,
-  maxPositionSizePct: 12,
-  maxTotalExposurePct: 40,
+  maxLeverage: 40,
+  maxPositionSizePct: 50,
+  maxTotalExposurePct: 60,
 };
 
 /** Slippage settings */

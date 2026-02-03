@@ -33,9 +33,12 @@ import {
   FEES,
   DEFAULT_LEVERAGE,
   AGGRESSIVE_LEVERAGE,
+  AGGRESSIVE_MARGIN_USD,
   AGGRESSIVE_BASE_SIZE_PCT,
+  AGGRESSIVE_RISK_LIMITS,
   DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
+  TAKE_PROFIT_USD_AGGRESSIVE,
   getPaperTradeAssets,
   TIMING,
   PERSISTENCE_DIR,
@@ -472,8 +475,14 @@ export class VincePaperTradingService extends Service {
         const portfolio = positionManager.getPortfolio();
         const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         const leverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
-        const baseSizePct = aggressive ? AGGRESSIVE_BASE_SIZE_PCT / 100 : 0.05;
-        let baseSizeUsd = portfolio.totalValue * baseSizePct;
+        let baseSizeUsd = aggressive
+          ? (portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
+              ? AGGRESSIVE_MARGIN_USD * AGGRESSIVE_LEVERAGE
+              : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100))
+          : portfolio.totalValue * 0.05;
+        if (aggressive && baseSizeUsd > portfolio.totalValue * (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100)) {
+          baseSizeUsd = portfolio.totalValue * (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100);
+        }
 
         // Apply correlation filter (reduce size for correlated positions)
         const correlationResult = riskManager.getCorrelationSizeMultiplier(
@@ -771,14 +780,23 @@ export class VincePaperTradingService extends Service {
     }
 
     const stopLossDistance = entryPrice * (stopLossPct / 100);
-    const stopLossPrice = direction === "long" 
-      ? entryPrice - stopLossDistance 
+    const stopLossPrice = direction === "long"
+      ? entryPrice - stopLossDistance
       : entryPrice + stopLossDistance;
 
-    const takeProfitPrices = DEFAULT_TAKE_PROFIT_TARGETS.map(multiplier => {
-      const tpDistance = stopLossDistance * multiplier;
-      return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
-    });
+    const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const takeProfitPrices: number[] = aggressive
+      ? (() => {
+          const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
+          const pctMove = (targetUsd / sizeUsd) * 100;
+          const tpDistance = entryPrice * (pctMove / 100);
+          const singleTp = direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+          return [singleTp];
+        })()
+      : DEFAULT_TAKE_PROFIT_TARGETS.map((multiplier) => {
+          const tpDistance = stopLossDistance * multiplier;
+          return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+        });
 
     // Open position with ATR stored for trailing stop calculations
     const position = positionManager.openPosition({
@@ -833,12 +851,20 @@ export class VincePaperTradingService extends Service {
     const slPct = Math.abs((stopLossPrice - entryPrice) / entryPrice * 100);
     const tp1Pct = takeProfitPrices[0] ? Math.abs((takeProfitPrices[0] - entryPrice) / entryPrice * 100) : 0;
     
+    const marginUsd = sizeUsd / leverage;
+    const liqPct = position?.liquidationPrice != null
+      ? Math.abs((position.liquidationPrice - entryPrice) / entryPrice * 100)
+      : (100 / leverage) * 0.9;
+
     console.log("");
     console.log("  ╔═══════════════════════════════════════════════════════════════╗");
     console.log(`  ║  📈 PAPER TRADE OPENED                                         ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log(`  ║  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"} ${asset.padEnd(6)} @ $${entryPrice.toFixed(2).padEnd(12)}                       ║`);
-    console.log(`  ║  Size: ${formatUsd(sizeUsd).padEnd(10)} · Leverage: ${leverage}x                          ║`);
+    console.log(`  ║  Notional: ${formatUsd(sizeUsd).padEnd(8)} (margin ≈${formatUsd(marginUsd)} @ ${leverage}x)              ║`);
+    if (position?.liquidationPrice != null) {
+      console.log(`  ║  Liquidation: $${position.liquidationPrice.toFixed(2).padEnd(10)} (~${liqPct.toFixed(1)}% away)              ║`);
+    }
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     const factorCount = signal.reasons?.length ?? 0;
     const sourceCount = signal.confirmingCount ?? 0;
