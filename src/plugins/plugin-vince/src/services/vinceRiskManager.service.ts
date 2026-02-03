@@ -11,7 +11,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { RiskLimits, RiskState, Position, AggregatedTradeSignal, LeverageRecommendation } from "../types/paperTrading";
-import { DEFAULT_RISK_LIMITS, SIGNAL_THRESHOLDS, TIMING, LEVERAGE_ADJUSTMENTS, DEFAULT_LEVERAGE } from "../constants/paperTradingDefaults";
+import { DEFAULT_RISK_LIMITS, AGGRESSIVE_RISK_LIMITS, SIGNAL_THRESHOLDS, TIMING, LEVERAGE_ADJUSTMENTS, DEFAULT_LEVERAGE } from "../constants/paperTradingDefaults";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceMarketDataService } from "./marketData.service";
 // V3: Dynamic Configuration (Self-Improving Architecture)
@@ -58,6 +58,11 @@ export class VinceRiskManagerService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceRiskManagerService> {
     const service = new VinceRiskManagerService(runtime);
+    const aggressive = runtime.getSetting?.("vince_paper_aggressive");
+    if (aggressive === true || aggressive === "true") {
+      service.limits = { ...AGGRESSIVE_RISK_LIMITS };
+      logger.info("[VinceRiskManager] ✅ Aggressive preset: max 10x leverage, higher exposure");
+    }
     // Initialize dynamic config and sync signal thresholds
     await initializeDynamicConfig();
     service.syncFromDynamicConfig();

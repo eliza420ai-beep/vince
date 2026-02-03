@@ -1,10 +1,11 @@
 /**
  * VINCE Paper Trading Configuration
- * 
+ *
  * Default configuration for the paper trading bot.
  * These values can be overridden via runtime settings.
  */
 
+import type { IAgentRuntime } from "@elizaos/core";
 import type { RiskLimits, TradingGoal } from "../types/paperTrading";
 
 // ==========================================
@@ -170,6 +171,26 @@ export const DEFAULT_TAKE_PROFIT_TARGETS = [1.5, 3, 5];
 /** Default leverage */
 export const DEFAULT_LEVERAGE = 3;
 
+/**
+ * Optional dollar take-profit: close position when unrealized P&L reaches this (e.g. $210 = half of $420/day).
+ * Default null = only price-based TPs. When aggressive preset is on, position manager uses TAKE_PROFIT_USD_AGGRESSIVE.
+ */
+export const TAKE_PROFIT_USD: number | null = null;
+/** Used when vince_paper_aggressive is true: take profit at $210 (half daily target). */
+export const TAKE_PROFIT_USD_AGGRESSIVE = 210;
+
+/**
+ * Aggressive preset (e.g. Hyperliquid-style 10x + $210 TP): trade more often, close at $210 profit.
+ * Use with runtime setting vince_paper_aggressive = true (or set limits/leverage in dynamicConfig).
+ */
+export const AGGRESSIVE_LEVERAGE = 10;
+export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
+  ...DEFAULT_RISK_LIMITS,
+  maxLeverage: 10,
+  maxPositionSizePct: 12,
+  maxTotalExposurePct: 40,
+};
+
 /** Slippage settings */
 export const SLIPPAGE = {
   /** Base slippage in basis points */
@@ -240,6 +261,26 @@ export const TIMING = {
 /** Assets available for paper trading */
 export const TRADEABLE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
 export type TradeableAsset = (typeof TRADEABLE_ASSETS)[number];
+
+/**
+ * Resolve which assets the paper bot trades from runtime setting.
+ * Set vince_paper_assets to "BTC" to focus only on BTC; "BTC,ETH,SOL,HYPE" or unset = all.
+ * Env: VINCE_PAPER_ASSETS (e.g. VINCE_PAPER_ASSETS=BTC).
+ */
+export function getPaperTradeAssets(runtime: IAgentRuntime): readonly TradeableAsset[] {
+  const raw = runtime.getSetting?.("vince_paper_assets");
+  if (raw === undefined || raw === null || String(raw).trim() === "") {
+    return TRADEABLE_ASSETS;
+  }
+  const list = String(raw)
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+  const valid = list.filter((a): a is TradeableAsset =>
+    (TRADEABLE_ASSETS as readonly string[]).includes(a)
+  );
+  return valid.length > 0 ? valid : TRADEABLE_ASSETS;
+}
 
 // ==========================================
 // Signal Source Weights

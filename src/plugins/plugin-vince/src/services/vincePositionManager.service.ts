@@ -16,7 +16,7 @@ import type {
   AggregatedTradeSignal,
   PositionSizingRecommendation,
 } from "../types/paperTrading";
-import { INITIAL_BALANCE, DEFAULT_STOP_LOSS_PCT, DEFAULT_LEVERAGE, DEFAULT_RISK_LIMITS } from "../constants/paperTradingDefaults";
+import { INITIAL_BALANCE, DEFAULT_STOP_LOSS_PCT, DEFAULT_LEVERAGE, DEFAULT_RISK_LIMITS, TAKE_PROFIT_USD, TAKE_PROFIT_USD_AGGRESSIVE } from "../constants/paperTradingDefaults";
 import { v4 as uuidv4 } from "uuid";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceRiskManagerService } from "./vinceRiskManager.service";
@@ -506,6 +506,13 @@ export class VincePositionManagerService extends Service {
 
       const { markPrice, direction, stopLossPrice, takeProfitPrices, liquidationPrice, trailingStopPrice, trailingStopActivated } = position;
       const positionAge = Date.now() - position.openedAt;
+
+      // Optional dollar take-profit (e.g. $210 when aggressive; close when unrealized P&L >= threshold)
+      const takeProfitUsd = this.runtime.getSetting?.("vince_paper_aggressive") ? TAKE_PROFIT_USD_AGGRESSIVE : TAKE_PROFIT_USD;
+      if (takeProfitUsd != null && position.unrealizedPnl >= takeProfitUsd) {
+        triggered.push({ position, trigger: "take_profit" });
+        continue;
+      }
 
       // Check max position age (48h)
       if (positionAge > this.MAX_POSITION_AGE_MS) {

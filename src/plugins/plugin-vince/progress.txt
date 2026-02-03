@@ -163,6 +163,7 @@ IN PROGRESS
 ================================================================================
 
 🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
+   → Use VINCE_PAPER_AGGRESSIVE=true ($210 TP, 10x) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
 🔄 Feature store: collect 90+ complete trades; then ONNX training runs automatically (or run script manually)
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
@@ -341,6 +342,11 @@ SESSION NOTES
   MandoMinutes dependency; MEMES/TREADFI/LIFESTYLE/NFT/INTEL/BOT/UPLOAD). Backlog items
   added for news plugin, MEMES UI bold fix, BOT polish, INTEL redundancy, UPLOAD/knowledge,
   LIFESTYLE→CLAWDBOT, NFT improvements.
+- More trades for ML: Aggressive paper-trading preset (VINCE_PAPER_AGGRESSIVE=true → $210
+  take profit, max leverage 10) and single-asset focus (VINCE_PAPER_ASSETS=BTC → bot only
+  trades BTC) added. Goal: more closed trades → more JSONL in .elizadb/vince-paper-bot/features
+  → faster path to 90+ records for ONNX training and better ML script testing. See
+  FEATURE-STORE.md “Aggressive paper trading” and “Paper bot: focus on one asset”; .env.example.
 
 2026-02-02:
 - Created progress.txt

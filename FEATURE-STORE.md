@@ -62,6 +62,24 @@ create index if not exists idx_vince_paper_bot_features_payload_asset
 
 4. **Verify**: After some paper trades, in Supabase Table Editor open `vince_paper_bot_features` – you should see rows with `id`, `created_at`, and `payload` (full feature record).
 
+## Aggressive paper trading ($210 take profit, 10x leverage)
+
+To close at ~$210 profit and use higher leverage (e.g. like Hyperliquid 10x):
+
+- **Env:** In `.env` set `VINCE_PAPER_AGGRESSIVE=true`, then restart.
+- **Or in code:** In `src/agents/vince.ts`, set `vince_paper_aggressive: true` in the character `settings` object.
+
+When enabled, the position manager uses `TAKE_PROFIT_USD_AGGRESSIVE` (210) and the risk manager uses `AGGRESSIVE_RISK_LIMITS` (max leverage 10).
+
+## Paper bot: focus on one asset (e.g. BTC only)
+
+To run the paper bot only on BTC (most sources and factors), then add ETH/SOL/HYPE later:
+
+- **Env:** In `.env` set `VINCE_PAPER_ASSETS=BTC`, then restart.
+- **Or in code:** In `src/agents/vince.ts`, set `vince_paper_assets: "BTC"` in the character `settings` object.
+
+Use a comma-separated list to add more later, e.g. `VINCE_PAPER_ASSETS=BTC,ETH`.
+
 ## When training runs (90+ trades)
 
 - **Automatic**: The plugin registers a recurring task `TRAIN_ONNX_WHEN_READY`. When the feature store has **90+ complete trades** (records with `outcome` and `labels`), the task runs the Python training script (at most once per 24h). Models are written to `.elizadb/vince-paper-bot/models/`; the ML Inference Service loads them on next use.

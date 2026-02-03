@@ -61,6 +61,10 @@ export const vinceCharacter: Character = {
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,
+    /** Paper trading: take profit at $210, max leverage 10 (set VINCE_PAPER_AGGRESSIVE=true or set this to true) */
+    vince_paper_aggressive: process.env.VINCE_PAPER_AGGRESSIVE === "true",
+    /** Paper trading: which assets to trade. "BTC" = BTC only; "BTC,ETH,SOL,HYPE" or unset = all. Set VINCE_PAPER_ASSETS=BTC to focus on BTC. */
+    vince_paper_assets: process.env.VINCE_PAPER_ASSETS || "BTC,ETH,SOL,HYPE",
   },
   knowledge: [
     // Teammate (USER, SOUL, TOOLS, MEMORY) is provider-only — not in knowledge to avoid RAG duplication

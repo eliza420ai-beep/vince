@@ -7,6 +7,7 @@ Python scripts for offline ML training used by the VINCE paper-trading ML pipeli
 | Script | Purpose |
 |--------|--------|
 | `train_models.py` | Trains XGBoost models (signal quality, position sizing, TP optimizer) on feature-store data and exports to ONNX for `VinceMLInferenceService`. |
+| `generate_synthetic_features.py` | Generates synthetic feature-store JSONL (same shape as real trades) so you can run `train_models.py` and test the ML pipeline before you have 90+ real trades. |
 
 **Input:** Path to a single JSONL file or to the feature directory (e.g. `.elizadb/vince-paper-bot/features`); the script loads all `features_*.jsonl` and `combined.jsonl` in that directory.  
 **Output:** ONNX models, `training_metadata.json`, `improvement_report.md`, and optional joblib backups.
@@ -47,7 +48,12 @@ From repo root (or plugin root), with a venv that has the training deps:
 python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 ```
 
-Ensure feature store has enough samples (script skips training if &lt; 100).
+Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`). To test without real data, generate synthetic records then train:
+
+```bash
+python src/plugins/plugin-vince/scripts/generate_synthetic_features.py --count 120 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
+python src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl --output .elizadb/vince-paper-bot/models --min-samples 90
+```
 
 ## Testing that training improves paper trading parameters
 

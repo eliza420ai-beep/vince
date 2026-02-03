@@ -28,13 +28,13 @@ import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "./weightBandit.service";
 import type { VinceSignalSimilarityService } from "./signalSimilarity.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
-import { 
-  SLIPPAGE, 
-  FEES, 
-  DEFAULT_LEVERAGE, 
-  DEFAULT_STOP_LOSS_PCT, 
+import {
+  SLIPPAGE,
+  FEES,
+  DEFAULT_LEVERAGE,
+  DEFAULT_STOP_LOSS_PCT,
   DEFAULT_TAKE_PROFIT_TARGETS,
-  TRADEABLE_ASSETS,
+  getPaperTradeAssets,
   TIMING,
   PERSISTENCE_DIR,
 } from "../constants/paperTradingDefaults";
@@ -416,7 +416,8 @@ export class VincePaperTradingService extends Service {
     // First, check pending entries for pullbacks
     await this.checkPendingEntries();
 
-    for (const asset of TRADEABLE_ASSETS) {
+    const assets = getPaperTradeAssets(this.runtime);
+    for (const asset of assets) {
       try {
         // Skip if we already have a position in this asset
         if (positionManager.hasOpenPosition(asset)) {
