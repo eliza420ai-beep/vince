@@ -93,6 +93,9 @@ export interface Position {
   /** Realized P&L (if closed) */
   realizedPnl?: number;
   
+  /** Realized P&L as percentage (if closed) */
+  realizedPnlPct?: number;
+  
   /** Close reason (if closed) */
   closeReason?: "stop_loss" | "take_profit" | "manual" | "signal_flip" | "liquidation" | "trailing_stop" | "partial_tp" | "max_age";
   

@@ -195,6 +195,30 @@ export class VinceMarketRegimeService extends Service {
   }
 
   /**
+   * Get current regime as a simple shape for ML/similarity (marketRegime + optional volatilityRegime).
+   * Used by signal aggregator and paper trading for regime-aware features.
+   */
+  async getCurrentRegime(asset: string = "BTC"): Promise<{ marketRegime: string; volatilityRegime?: "high" } | null> {
+    try {
+      const regime = await this.getRegime(asset);
+      const marketRegime =
+        regime.regime === "trending"
+          ? "bullish"
+          : regime.regime === "ranging"
+            ? "neutral"
+            : regime.regime === "volatile"
+              ? "volatile"
+              : "neutral";
+      return {
+        marketRegime,
+        ...(regime.regime === "volatile" ? { volatilityRegime: "high" as const } : {}),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Get current market regime for an asset
    */
   async getRegime(asset: string): Promise<MarketRegime> {

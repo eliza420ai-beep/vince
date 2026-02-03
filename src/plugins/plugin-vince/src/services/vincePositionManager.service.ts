@@ -362,9 +362,11 @@ export class VincePositionManagerService extends Service {
     const realizedPnl = (position.sizeUsd * pnlPercent) / 100;
 
     // Update position
+    const realizedPnlPct = pnlPercent * position.leverage;
     position.status = "closed";
     position.markPrice = exitPrice;
     position.realizedPnl = realizedPnl;
+    position.realizedPnlPct = realizedPnlPct;
     position.closedAt = Date.now();
     position.closeReason = reason;
     position.unrealizedPnl = 0;

@@ -1259,7 +1259,7 @@ export class VinceSignalAggregatorService extends Service {
           const regimeService = this.runtime.getService("VINCE_MARKET_REGIME_SERVICE") as VinceMarketRegimeService | null;
           
           const marketData = marketDataService ? await marketDataService.getEnrichedData(signal.asset) : null;
-          const regime = regimeService?.getCurrentRegime?.();
+          const regime = (await regimeService?.getCurrentRegime?.(signal.asset)) ?? null;
           
           // Prepare ML input
           const input: SignalQualityInput = {
@@ -1316,7 +1316,7 @@ export class VinceSignalAggregatorService extends Service {
         const similarityService = this.runtime.getService("VINCE_SIGNAL_SIMILARITY_SERVICE") as VinceSignalSimilarityService | null;
         if (similarityService?.isReady?.()) {
           const regimeService = this.runtime.getService("VINCE_MARKET_REGIME_SERVICE") as VinceMarketRegimeService | null;
-          const regime = regimeService?.getCurrentRegime?.();
+          const regime = (await regimeService?.getCurrentRegime?.(signal.asset)) ?? null;
 
           const similarityPrediction = await similarityService.predict({
             asset: signal.asset,

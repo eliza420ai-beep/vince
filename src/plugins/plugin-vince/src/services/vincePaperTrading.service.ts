@@ -275,6 +275,44 @@ export class VincePaperTradingService extends Service {
   // ==========================================
 
   /**
+   * Convert AggregatedSignal (from signal aggregator) to AggregatedTradeSignal (full type for logging/validation).
+   */
+  private toAggregatedTradeSignal(signal: AggregatedSignal): AggregatedTradeSignal {
+    const factors = signal.factors ?? [];
+    const sources = signal.sources ?? [];
+    return {
+      asset: signal.asset,
+      direction: signal.direction,
+      strength: signal.strength,
+      confidence: signal.confidence,
+      confirmingCount: signal.confirmingCount ?? factors.length,
+      conflictingCount: 0,
+      signals: factors.map((f, i) => ({
+        source: sources[i] ?? sources[0] ?? "signal_aggregator",
+        direction: signal.direction,
+        strength: signal.strength,
+        description: f,
+      })),
+      reasons: factors,
+      sourceBreakdown: (sources.length
+        ? sources.reduce(
+            (acc, src) => {
+              const k = src as keyof AggregatedTradeSignal["sourceBreakdown"];
+              (acc as Record<string, { count: number; avgStrength: number }>)[k] = {
+                count: ((acc as Record<string, { count: number; avgStrength: number }>)[k]?.count ?? 0) + 1,
+                avgStrength: signal.strength,
+              };
+              return acc;
+            },
+            {} as AggregatedTradeSignal["sourceBreakdown"]
+          )
+        : {}) as AggregatedTradeSignal["sourceBreakdown"],
+      timestamp: signal.timestamp,
+      session: (signal as { session?: string }).session,
+    };
+  }
+
+  /**
    * Log why a signal was rejected (didn't meet thresholds)
    */
   private logSignalRejection(
@@ -466,11 +504,7 @@ export class VincePaperTradingService extends Service {
               : null;
           if (threshold != null && (signal as AggregatedSignal).mlQualityScore! < threshold) {
             if (signal.direction !== "neutral" && signal.strength > 30) {
-              this.logSignalRejection(
-                asset,
-                { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
-                `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`
-              );
+              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`);
             }
             continue;
           }
@@ -481,19 +515,11 @@ export class VincePaperTradingService extends Service {
           const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
           const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
           if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(
-              asset,
-              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
-              `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`
-            );
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`);
             continue;
           }
           if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(
-              asset,
-              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
-              `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`
-            );
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`);
             continue;
           }
         }
@@ -502,11 +528,7 @@ export class VincePaperTradingService extends Service {
         const aggSignal = signal as AggregatedSignal;
         if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(
-              asset,
-              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
-              `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`
-            );
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`);
           }
           continue;
         }
@@ -526,11 +548,7 @@ export class VincePaperTradingService extends Service {
           extendedSnapshot
         );
         if (bookRejection.reject) {
-          this.logSignalRejection(
-            asset,
-            { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
-            bookRejection.reason!
-          );
+          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), bookRejection.reason!);
           continue;
         }
         let fundingRate = 0;
@@ -1327,8 +1345,8 @@ export class VincePaperTradingService extends Service {
       timestamp: signal.timestamp,
     };
 
-    // Get current regime
-    const regime = regimeService?.getCurrentRegime?.();
+    // Get current regime for similarity/ML (marketRegime + optional volatilityRegime)
+    const regime = (await regimeService?.getCurrentRegime?.(position.asset)) ?? null;
     const session = signalAggregator?.getSessionInfo?.()?.session || "unknown";
 
     // Record in feature store
@@ -1345,15 +1363,11 @@ export class VincePaperTradingService extends Service {
         // Link the trade to the decision
         await featureStore.linkTrade(decisionId, position.id);
         
-        // Record execution details
-        await featureStore.recordExecution(position.id, {
-          fillPrice: position.entryPrice,
-          slippagePct: 0, // Already applied to entry price
-          sizeUsd: position.sizeUsd,
-          leverage: position.leverage,
-          atrPct: entryATRPct,
+        // Record execution details (recordId, position, additionalDetails)
+        await featureStore.recordExecution(decisionId, position, {
+          entryAtrPct: entryATRPct ?? 2.5,
           streakMultiplier: streakInfo.multiplier,
-          positionSizeMultiplier: 1.0, // Can be enhanced with ML position sizing
+          positionSizePct: 0,
         });
         
         logger.debug(`[VincePaperTrading] ML features recorded for ${position.asset} trade`);
@@ -1390,7 +1404,7 @@ export class VincePaperTradingService extends Service {
     const similarityService = this.getSignalSimilarity();
     
     const pnl = position.realizedPnl || 0;
-    const pnlPct = position.realizedPnlPct || 0;
+    const pnlPct = position.realizedPnlPct ?? (position.realizedPnl != null && position.sizeUsd > 0 ? (position.realizedPnl / (position.sizeUsd / position.leverage)) * 100 : 0);
     const isWin = pnl > 0;
 
     // Calculate R-multiple (profit in units of risk)
@@ -1407,18 +1421,22 @@ export class VincePaperTradingService extends Service {
     // This would need to be tracked during trade - using 0 as placeholder
     const maxAdverseExcursion = 0;
 
+    const holdingPeriodMs = position.closedAt != null && position.openedAt != null ? position.closedAt - position.openedAt : 0;
+
     // Record in feature store
     if (featureStore) {
       try {
         await featureStore.recordOutcome(position.id, {
-          profitable: isWin,
-          pnlPct,
-          pnlUsd: pnl,
-          rMultiple,
-          durationMs: position.closeTime ? position.closeTime - position.openTime : 0,
+          exitPrice: position.markPrice,
+          realizedPnl: pnl,
+          realizedPnlPct: pnlPct,
           exitReason: closeReason || "manual",
-          maxAdverseExcursion,
-          maxFavorableExcursion: pnlPct > 0 ? pnlPct : 0, // Simplified
+          holdingPeriodMs,
+          maxUnrealizedProfit: position.maxUnrealizedProfit,
+          maxUnrealizedLoss: position.maxUnrealizedLoss,
+          partialProfitsTaken: position.partialProfitsTaken ?? 0,
+          trailingStopActivated: position.trailingStopActivated ?? false,
+          trailingStopPrice: position.trailingStopPrice ?? null,
         });
         
         logger.debug(`[VincePaperTrading] ML outcome recorded: ${isWin ? "WIN" : "LOSS"} ${pnlPct.toFixed(2)}%`);
