@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-02
+# Last updated: 2026-02-03
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -122,17 +122,35 @@ COMPLETED
 - Improvement journal: Empty (no suggestions yet)
 
 ================================================================================
+PRIORITY (real-time data for paper trading algo)
+================================================================================
+
+🔴 IMPROVE THE AMOUNT OF REAL-TIME DATA USED FOR THE PAPER TRADING ALGO
+   We do not currently leverage all the data sources we already have available.
+   - Ensure Binance, MarketRegime, News, Deribit, BinanceLiquidations, Sanbase,
+     Hyperliquid, etc. actually contribute factors (see SIGNAL_SOURCES.md).
+   - Confirm in logs: at startup [VINCE] 📡 Signal sources available: N/8 (...);
+     on each aggregation [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...
+   - Use LOG_LEVEL=debug to see "tried but no contribution" for sources that ran
+     but didn’t meet thresholds (e.g. taker ratio 0.7–1.3, neutral regime).
+   - Populate MandoMinutes cache for News; consider relaxing or tuning thresholds
+     so more sources contribute more often.
+
+================================================================================
 IN PROGRESS
 ================================================================================
 
 🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
 🔄 Feature store needs 90+ trades for ONNX model training
 🔄 No improvement suggestions generated yet (needs more trading data)
+🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
 
 ================================================================================
 NEXT / BACKLOG
 ================================================================================
 
+📋 Migrate prod to Supabase Postgres (POSTGRES_URL); then plugin_vince.paper_bot_features
+   lives in same DB as ElizaOS tables (agents, memories, entities, rooms). See FEATURE-STORE.md.
 📋 Train ONNX models when feature store reaches 90+ trades
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
@@ -141,6 +159,15 @@ NEXT / BACKLOG
 📋 Implement position sizing based on Kelly Criterion ML model
 📋 Add correlation-based position limits
 📋 Implement trailing stop-loss logic
+
+Product feedback → backlog:
+📋 NEWS: Build own news plugin + day report to reduce MandoMinutes dependency (likely X API ~$100/mo).
+📋 MEMES: Fix bold styling in UI (quick fix; looks messy). Improve quality over time (not top priority).
+📋 BOT: Polish BOT command—easier on the eyes, consistent writing style with other actions.
+📋 INTEL: Address redundancy with GM / Aloha (merge or differentiate).
+📋 UPLOAD / knowledge: Improve upload flow for YouTube, long PDFs, long articles → RAG; high priority. Consider dedicated ClawdBot (Moltbot) for this.
+📋 LIFESTYLE: More focus on curated local (hotel/restaurant/spa/health/fitness); may migrate to dedicated CLAWDBOT.
+📋 NFT: Continue improving floor/tracking; solid MVP, "thin floor" gems from iconic collections still valued.
 
 ================================================================================
 KNOWN ISSUES / LIMITATIONS
@@ -167,7 +194,14 @@ We added this clarification so it’s recorded in progress.txt:
 DEPLOYMENT (Eliza Cloud)
 ================================================================================
 
-2026-02-02 – vince2 deploy timeout:
+Current prod:
+- Repo pushed to prod with Eliza Cloud; everything works fine.
+- Still on PGLite (no POSTGRES_URL yet). Next step: migrate to Supabase Postgres
+  so ElizaOS tables (agents, memories, entities, rooms, etc.) and
+  plugin_vince.paper_bot_features live in the same Supabase DB. See FEATURE-STORE.md
+  for how feature-store jsonl fits with ElizaOS auto-generated tables.
+
+2026-02-02 – vince2 deploy timeout (historical):
 - Command: elizaos deploy --project-name vince2 (with ANTHROPIC, OPENAI, POSTGRES_URL)
 - Credits: 15 deducted when container was created (before health check)
 - Container created: 0983fab1-1756-4008-8f7c-c7592aa9c915
@@ -185,6 +219,22 @@ DEPLOYMENT (Eliza Cloud)
 ================================================================================
 SESSION NOTES
 ================================================================================
+
+2026-02-03:
+- Signal sources: startup log [VINCE] 📡 Signal sources available: N/8 (...); aggregator
+  INFO logs list which sources contributed; DEBUG "tried but no contribution" for
+  Binance, NewsSentiment, DeribitIVSkew, MarketRegime. See SIGNAL_SOURCES.md.
+- README (repo + plugin): Heart of VINCE, signal-source verification, improvement report.
+- FEATURE-STORE.md: current prod state (Eliza Cloud, PGLite); ElizaOS tables vs feature
+  store; jsonl lives in plugin_vince.paper_bot_features (same DB when Postgres), not
+  in core ElizaOS tables. Optional Supabase table for ML queries.
+- progress.txt: PRIORITY = improve real-time data for paper algo (leverage all sources);
+  deployment note (prod works, still PGLite; next Supabase Postgres); NEXT = migrate
+  to Supabase Postgres, then feature store in same DB as ElizaOS tables.
+- Product feedback: README "Action status (honest take)" added (OPTIONS/PERPS gold; NEWS
+  MandoMinutes dependency; MEMES/TREADFI/LIFESTYLE/NFT/INTEL/BOT/UPLOAD). Backlog items
+  added for news plugin, MEMES UI bold fix, BOT polish, INTEL redundancy, UPLOAD/knowledge,
+  LIFESTYLE→CLAWDBOT, NFT improvements.
 
 2026-02-02:
 - Created progress.txt

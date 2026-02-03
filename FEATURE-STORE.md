@@ -8,6 +8,22 @@ Feature records from vince-paper-bot trades are used for ML training (e.g. 500+ 
 | **PGLite / Postgres** | When using ElizaOS DB | Table `plugin_vince.paper_bot_features` – same DB as agent (PGLite or Postgres) |
 | **Supabase** | Optional (when keys set) | Table `vince_paper_bot_features` – query 500+ in one place for ML |
 
+## Current deployment state
+
+- **Prod (Eliza Cloud):** Repo is deployed to production with Eliza Cloud and everything works. The app is still using **PGLite** (no `POSTGRES_URL`), so runtime data and feature-store DB writes use the local PGLite instance in the container.
+- **Supabase Postgres:** Not yet in use. When you set `POSTGRES_URL` to your Supabase direct connection (port 5432), ElizaOS will use that for all framework tables (agents, cache, memories, entities, rooms, etc.). Plugin-vince’s runtime migrations will then create **`plugin_vince.paper_bot_features`** in that **same** database, so your jsonl training data lives alongside ElizaOS tables in one Postgres instance.
+
+## ElizaOS tables vs feature store (where to put jsonl training data)
+
+ElizaOS auto-creates tables in the main schema (e.g. `public`): `agents`, `cache`, `memories`, `entities`, `rooms`, `participants`, `relationships`, `tasks`, `worlds`, `embeddings`, `logs`, etc. Those are for **runtime** (conversations, agent memory, embeddings). They are not designed for bulk ML feature rows.
+
+We **do not** store feature-store jsonl rows inside those tables. Instead:
+
+- **Feature store** = one row per trading decision / closed trade, with a **payload** (JSONB) holding the full feature record for ML.
+- **Where it lives:** (1) Always: local `.elizadb/vince-paper-bot/features/*.jsonl`. (2) When the app has a DB: table **`plugin_vince.paper_bot_features`** in the **same** DB as ElizaOS (PGLite or Postgres). The plugin registers a Drizzle schema so runtime migrations create the `plugin_vince` schema and this table. (3) Optional: Supabase table **`vince_paper_bot_features`** (in `public`) when `SUPABASE_SERVICE_ROLE_KEY` is set, for querying 500+ rows for ML scripts.
+
+So the “combo” with ElizaOS tables is: **same database, different schema/table**. When you move to Supabase Postgres, set `POSTGRES_URL`; then both framework tables and `plugin_vince.paper_bot_features` live in that one Postgres. We have not found a clean way to store the same jsonl rows inside core ElizaOS tables (e.g. `memories`) without bending their schema; the plugin table is the right place.
+
 ## Current behavior
 
 - **Local**: Every flush (e.g. every 1 min) appends records to `features_YYYY-MM-DD_<ts>.jsonl` under `.elizadb/vince-paper-bot/features/`.

@@ -374,6 +374,9 @@ export class VinceSignalAggregatorService extends Service {
       }
     }
 
+    // Track which optional sources were tried but did not contribute (for DEBUG)
+    const triedNoContribution: string[] = [];
+
     // =========================================
     // 3. Binance Intelligence (FREE APIs)
     // =========================================
@@ -490,6 +493,9 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] Binance error: ${e}`);
       }
+      if (!sources.some((s) => s.startsWith("Binance"))) {
+        triedNoContribution.push("Binance");
+      }
     }
 
     // =========================================
@@ -574,8 +580,12 @@ export class VinceSignalAggregatorService extends Service {
             allFactors.push(`News sentiment bearish (${Math.round(sentiment.confidence)}% confidence)`);
           }
         }
+        if (!sources.includes("NewsSentiment")) {
+          triedNoContribution.push("NewsSentiment");
+        }
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] News sentiment error: ${e}`);
+        triedNoContribution.push("NewsSentiment");
       }
     }
 
@@ -616,8 +626,12 @@ export class VinceSignalAggregatorService extends Service {
               allFactors.push(`Options skew bullish (call premium elevated) - contrarian short`);
             }
           }
+          if (!sources.includes("DeribitIVSkew")) {
+            triedNoContribution.push("DeribitIVSkew");
+          }
         } catch (e) {
           logger.debug(`[VinceSignalAggregator] Deribit error: ${e}`);
+          triedNoContribution.push("DeribitIVSkew");
         }
       }
     }
@@ -659,8 +673,12 @@ export class VinceSignalAggregatorService extends Service {
             allFactors.push(`Market regime volatile (caution advised)`);
           }
         }
+        if (!sources.includes("MarketRegime")) {
+          triedNoContribution.push("MarketRegime");
+        }
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] MarketData error: ${e}`);
+        triedNoContribution.push("MarketRegime");
       }
     }
 
@@ -1178,7 +1196,21 @@ export class VinceSignalAggregatorService extends Service {
       aggregated = await this.applyMLEnhancement(aggregated, currentSession);
     }
 
-    // Log signal aggregation for debugging
+    // Log which sources contributed (INFO so operators can confirm without debug)
+    if (aggregated.sources.length > 0) {
+      logger.info(
+        `[VinceSignalAggregator] ${asset}: ${aggregated.sources.length} source(s) → ${allFactors.length} factors | ` +
+        `Sources: ${aggregated.sources.join(", ")}`
+      );
+    }
+    // DEBUG: which optional sources were tried but did not contribute (set LOG_LEVEL=debug)
+    if (triedNoContribution.length > 0) {
+      logger.debug(
+        `[VinceSignalAggregator] ${asset}: tried but no contribution this tick: ${triedNoContribution.join(", ")}`
+      );
+    }
+
+    // Debug: full aggregation detail
     if (signals.length > 0) {
       const sessionEmoji = currentSession === "eu_us_overlap" ? "🔥" : 
                            currentSession === "off_hours" ? "😴" : "📊";

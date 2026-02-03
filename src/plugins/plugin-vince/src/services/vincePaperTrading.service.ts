@@ -785,7 +785,7 @@ export class VincePaperTradingService extends Service {
       stopLossPrice,
       takeProfitPrices,
       strategyName: "VinceSignalFollowing",
-      triggerSignals: signal.reasons.slice(0, 3),
+      triggerSignals: (signal.reasons ?? []).slice(0, 15),
       metadata: {
         entryATRPct,
       },
@@ -835,18 +835,20 @@ export class VincePaperTradingService extends Service {
     console.log(`  ║  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"} ${asset.padEnd(6)} @ $${entryPrice.toFixed(2).padEnd(12)}                       ║`);
     console.log(`  ║  Size: ${formatUsd(sizeUsd).padEnd(10)} · Leverage: ${leverage}x                          ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log("  ║  WHY THIS TRADE:                                              ║");
-    
-    // Log the trigger signals (reasons)
-    const reasons = signal.reasons.slice(0, 3);
+    const factorCount = signal.reasons?.length ?? 0;
+    const sourceCount = signal.confirmingCount ?? 0;
+    console.log(`  ║  WHY THIS TRADE: ${factorCount} factors, ${sourceCount} sources agreeing                 ║`);
+    // Show all factors (up to 12 lines so log stays readable; full list is in feature store / journal)
+    const reasons = (signal.reasons ?? []).slice(0, 12);
     for (const reason of reasons) {
       const truncatedReason = reason.length > 55 ? reason.substring(0, 52) + "..." : reason;
       console.log(`  ║    • ${truncatedReason.padEnd(55)} ║`);
     }
-    
-    // Log signal metrics
+    if (factorCount > 12) {
+      console.log(`  ║    … +${factorCount - 12} more (see feature store / journal)                    ║`);
+    }
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${signal.confirmingCount}     ║`);
+    console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount} (sources)  ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log("  ║  RISK MANAGEMENT:                                             ║");
     const slLoss = sizeUsd * (slPct / 100);

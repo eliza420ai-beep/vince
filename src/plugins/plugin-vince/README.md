@@ -17,6 +17,7 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 
 ## Table of Contents
 
+- [Heart of VINCE: Signals → Trades → Learning](#heart-of-vince-signals--trades--learning)
 - [WHAT - The Plugin's Purpose](#what---the-plugins-purpose)
 - [HOW - Architecture and Implementation](#how---architecture-and-implementation)
 - [V4 - ML-Enhanced Paper Trading](#v4---ml-enhanced-paper-trading)
@@ -25,6 +26,27 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 - [Usage Examples](#usage-examples)
 - [File Structure](#file-structure)
 - [TODO - Future Improvements](#todo---future-improvements)
+
+---
+
+## Heart of VINCE: Signals → Trades → Learning
+
+The core of VINCE is a **sophisticated, multi-factor paper trading pipeline** that goes far beyond a few real-time data points:
+
+1. **Many signal sources, many factors**  
+   The [signal aggregator](src/services/signalAggregator.service.ts) pulls from **10+ sources** (CoinGlass, Binance taker flow, market regime, news sentiment, liquidations, Deribit skew, Sanbase flows, Hyperliquid bias, etc.). Each source can add one or more **factors** (e.g. “Funding negative”, “OI +5% (position buildup)”, “Strong taker buy pressure”).  
+   **“WHY THIS TRADE”** in the logs now shows **all contributing factors** (up to 12 in the banner; full list in the feature store and journal), plus **“N factors, M sources agreeing”** so you see exactly how many data points drove the decision.  
+   See **[SIGNAL_SOURCES.md](SIGNAL_SOURCES.md)** for which sources exist, how to enable them, and how to **confirm in logs** which sources contributed: at startup look for `[VINCE] 📡 Signal sources available: N/8 (...)`; on each aggregation look for `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. Use `LOG_LEVEL=debug` to see which sources were tried but didn’t contribute (e.g. thresholds not met).
+
+2. **Feature store and decision drivers**  
+   Every trading decision is recorded with **40+ features** (market, session, signal, regime, news, execution, outcome) and **decision drivers** (the human-readable reasons that influenced the open). Data is written to `.elizadb/vince-paper-bot/features/*.jsonl` and optionally Supabase/PGLite for ML.
+
+3. **Offline training and improvement report**  
+   [scripts/train_models.py](scripts/train_models.py) trains XGBoost models (signal quality, position sizing, TP/SL) on the feature-store JSONL and exports ONNX. It also produces an **improvement report** (`improvement_report.md` + `training_metadata.json`) with feature importances, suggested signal-quality threshold, TP performance, **decision drivers by direction**, and **suggested signal factors** (factors that are predictive but missing or mostly null in your data—so you know what to add next).  
+   You can pass the feature directory: `--data .elizadb/vince-paper-bot/features`. See [scripts/README.md](scripts/README.md) and [scripts/PARAMETER_IMPROVEMENT.md](scripts/PARAMETER_IMPROVEMENT.md).
+
+4. **Closed loop**  
+   Paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 the bot runs on rules; over time it leans on ML as enough data accumulates.
 
 ---
 

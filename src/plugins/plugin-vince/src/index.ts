@@ -331,6 +331,22 @@ export const vincePlugin: Plugin = {
     if (fallbackServices.length > 0) {
       console.log(`  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`);
     }
+    // Signal sources available for aggregator (see SIGNAL_SOURCES.md)
+    const signalSourceChecks: [string, string][] = [
+      ["VINCE_COINGLASS_SERVICE", "CoinGlass"],
+      ["VINCE_TOP_TRADERS_SERVICE", "TopTraders"],
+      ["VINCE_BINANCE_SERVICE", "Binance"],
+      ["VINCE_BINANCE_LIQUIDATION_SERVICE", "BinanceLiquidations"],
+      ["VINCE_NEWS_SENTIMENT_SERVICE", "NewsSentiment"],
+      ["VINCE_DERIBIT_SERVICE", "Deribit"],
+      ["VINCE_MARKET_DATA_SERVICE", "MarketRegime"],
+      ["VINCE_SANBASE_SERVICE", "Sanbase"],
+    ];
+    const availableSources = signalSourceChecks
+      .filter(([type]) => !!runtime.getService(type))
+      .map(([, label]) => label);
+    console.log(`  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`);
+    console.log(`  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`);
     // if (!xaiConfigured) {
     //   console.log(`  [VINCE] ⚠️  XAI not configured (add XAI_API_KEY for Grok Expert)`);
     // }

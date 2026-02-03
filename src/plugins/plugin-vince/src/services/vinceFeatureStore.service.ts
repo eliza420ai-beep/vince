@@ -260,6 +260,11 @@ export interface FeatureRecord {
   regime: RegimeFeatures;
   /** News features */
   news: NewsFeatures;
+  /**
+   * Human-readable reasons/factors that influenced the decision to open this long/short.
+   * Used for explainability and for the ML improvement report (which data points drove opens).
+   */
+  decisionDrivers?: string[];
   /** Trade execution (filled when trade opens) */
   execution?: TradeExecutionFeatures;
   /** Trade outcome (filled when trade closes) */
@@ -281,6 +286,11 @@ export interface FeatureStoreConfig {
   flushIntervalMs: number;
   /** Enabled flag */
   enabled: boolean;
+  /**
+   * If set (e.g. 90 or 180), delete features_*.jsonl files older than this many days on init.
+   * Leave unset/0 to never prune — lets training data accumulate (recommended until you have plenty).
+   */
+  retainJsonlDays?: number;
 }
 
 const DEFAULT_CONFIG: FeatureStoreConfig = {
@@ -288,6 +298,7 @@ const DEFAULT_CONFIG: FeatureStoreConfig = {
   maxRecordsPerFile: 1000,
   flushIntervalMs: 60000, // 1 minute
   enabled: true,
+  // No default pruning: 14 days is usually too little for ML; data accumulates until you set retainJsonlDays (e.g. 90).
 };
 
 // ==========================================
@@ -339,6 +350,12 @@ export class VinceFeatureStoreService extends Service {
       // Ensure data directory exists
       if (!fs.existsSync(this.storeConfig.dataDir)) {
         fs.mkdirSync(this.storeConfig.dataDir, { recursive: true });
+      }
+
+      // Prune old JSONL so new trades accumulate without clutter
+      const retainDays = this.storeConfig.retainJsonlDays;
+      if (typeof retainDays === "number" && retainDays > 0) {
+        this.pruneOldJsonl(retainDays);
       }
 
       // Optional Supabase dual-write for ML (500+ records queryable in one place)
@@ -417,6 +434,7 @@ export class VinceFeatureStoreService extends Service {
         signal: signalFeatures,
         regime,
         news,
+        decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
         execution: params.execution as TradeExecutionFeatures | undefined,
       };
 
@@ -889,6 +907,35 @@ export class VinceFeatureStoreService extends Service {
     } catch (error) {
       logger.error(`[VinceFeatureStore] Error flushing records: ${error}`);
       this.records.push(...toFlush);
+    }
+  }
+
+  /**
+   * Delete features_*.jsonl files older than retainDays (by file mtime).
+   * Keeps the folder manageable so new trades accumulate without clutter.
+   */
+  private pruneOldJsonl(retainDays: number): void {
+    const cutoff = Date.now() - retainDays * 24 * 60 * 60 * 1000;
+    try {
+      const files = fs.readdirSync(this.storeConfig.dataDir);
+      let deleted = 0;
+      for (const name of files) {
+        if (!name.startsWith("features_") || !name.endsWith(".jsonl")) continue;
+        const filepath = path.join(this.storeConfig.dataDir, name);
+        const stat = fs.statSync(filepath);
+        if (stat.mtimeMs < cutoff) {
+          fs.unlinkSync(filepath);
+          deleted++;
+          logger.debug(`[VinceFeatureStore] Pruned old JSONL: ${name}`);
+        }
+      }
+      if (deleted > 0) {
+        logger.info(
+          `[VinceFeatureStore] Pruned ${deleted} old JSONL file(s) (retain ${retainDays} days)`
+        );
+      }
+    } catch (error) {
+      logger.warn(`[VinceFeatureStore] pruneOldJsonl error: ${error}`);
     }
   }
 

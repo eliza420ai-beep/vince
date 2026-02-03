@@ -17,6 +17,12 @@
 | **Focus Areas** | OPTIONS, PERPS, HIP-3, MEMETICS, LIFESTYLE, ART |
 | **Core Assets** | BTC, ETH, SOL, HYPE + 34 HIP-3 assets |
 
+## Storage, feature store & deployment
+
+- **Feature store (ML training data):** Records are written to (1) local JSONL `.elizadb/vince-paper-bot/features/*.jsonl`, (2) table `plugin_vince.paper_bot_features` when the app has a DB (PGLite or Postgres), (3) optional Supabase table `vince_paper_bot_features` when `SUPABASE_SERVICE_ROLE_KEY` is set. See **FEATURE-STORE.md** (repo root) for how this fits with ElizaOS auto-generated tables (agents, memories, entities, rooms): we use a **separate plugin schema/table**, not core ElizaOS tables, for feature rows.
+- **Signal sources:** 10+ sources feed the aggregator (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.). Confirm which contribute in logs: startup `[VINCE] 📡 Signal sources available:`; per aggregation `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. See **SIGNAL_SOURCES.md** to enable or fix sources; priority is to leverage more real-time data for the paper trading algo.
+- **Current deploy:** Prod on Eliza Cloud works; still **PGLite** (no Supabase Postgres yet). Next: migrate to Supabase Postgres so `plugin_vince.paper_bot_features` lives in the same DB as ElizaOS tables.
+
 ## Architecture
 
 ```mermaid

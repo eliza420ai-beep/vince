@@ -835,32 +835,35 @@ export class VinceCoinGlassService extends Service {
   }
 
   /**
-   * Generate a market signal based on current data
+   * Generate a market signal based on current data.
+   * Emits multiple factors (not just 3) so "WHY THIS TRADE" and ML feature store get rich context.
    */
   generateSignal(asset: string): MarketSignal | null {
     const funding = this.cache.funding.get(asset);
     const ls = this.cache.longShort.get(asset);
+    const oi = this.cache.openInterest.get(asset);
     const fg = this.cache.fearGreed;
 
     if (!funding || !ls) return null;
 
-    // Calculate direction based on funding and L/S
     let direction: MarketSignal["direction"] = "neutral";
     let strength = 50;
     const factors: string[] = [];
 
-    // Funding rate bias
+    // --- Funding (always add one factor for context) ---
     if (funding.rate > 0.0001) {
       factors.push(`Funding elevated (${(funding.rate * 100).toFixed(4)}%)`);
-      direction = "short"; // Longs paying, potential for squeeze
+      direction = "short";
       strength += 10;
     } else if (funding.rate < -0.0001) {
       factors.push(`Funding negative (${(funding.rate * 100).toFixed(4)}%)`);
-      direction = "long"; // Shorts paying
+      direction = "long";
       strength += 10;
+    } else {
+      factors.push(`Funding neutral (${(funding.rate * 100).toFixed(4)}%)`);
     }
 
-    // L/S ratio bias
+    // --- L/S ratio (always add one factor) ---
     if (ls.ratio > 1.2) {
       factors.push(`Long-biased L/S (${ls.ratio.toFixed(2)})`);
       if (direction === "neutral") direction = "short";
@@ -869,9 +872,26 @@ export class VinceCoinGlassService extends Service {
       factors.push(`Short-biased L/S (${ls.ratio.toFixed(2)})`);
       if (direction === "neutral") direction = "long";
       strength += 5;
+    } else {
+      factors.push(`L/S balanced (${ls.ratio.toFixed(2)})`);
     }
 
-    // Fear/Greed adjustment
+    // --- Open Interest (level + 24h change when available) ---
+    if (oi) {
+      const oiStr = this.formatVolume(oi.value).replace(/^\$/, "");
+      factors.push(`OI ${oiStr}`);
+      if (oi.change24h !== null && oi.change24h !== undefined) {
+        if (oi.change24h > 2) {
+          factors.push(`OI +${oi.change24h.toFixed(1)}% (position buildup)`);
+        } else if (oi.change24h < -2) {
+          factors.push(`OI ${oi.change24h.toFixed(1)}% (position flush)`);
+        } else {
+          factors.push(`OI 24h ${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%`);
+        }
+      }
+    }
+
+    // --- Fear/Greed (always add one factor when available) ---
     if (fg) {
       if (fg.value <= 25) {
         factors.push(`Extreme fear (${fg.value})`);
@@ -881,6 +901,12 @@ export class VinceCoinGlassService extends Service {
         factors.push(`Extreme greed (${fg.value})`);
         if (direction === "neutral") direction = "short";
         strength += 10;
+      } else if (fg.value <= 45) {
+        factors.push(`Fear/Greed ${fg.value} (fear)`);
+      } else if (fg.value >= 55) {
+        factors.push(`Fear/Greed ${fg.value} (greed)`);
+      } else {
+        factors.push(`Fear/Greed neutral (${fg.value})`);
       }
     }
 
@@ -888,7 +914,7 @@ export class VinceCoinGlassService extends Service {
       asset,
       direction,
       strength: Math.min(100, strength),
-      confidence: factors.length * 20,
+      confidence: Math.min(100, factors.length * 20),
       source: "VinceCoinGlass",
       factors,
       timestamp: Date.now(),

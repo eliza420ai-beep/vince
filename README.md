@@ -2,6 +2,10 @@
 
 Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
 
+## Heart of VINCE: signals → trades → learning
+
+The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 40+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. See `src/plugins/plugin-vince/SIGNAL_SOURCES.md` to enable or fix Binance, MarketRegime, News, Deribit, and the rest.
+
 ## Star feature: self-improving paper trading bot
 
 The most novel piece in this repo is the **paper trading bot that gets better over time** using machine learning:
@@ -14,7 +18,7 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 **Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
 
-See `src/plugins/plugin-vince/` for the implementation (services: feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
+See `src/plugins/plugin-vince/` for the implementation (services: feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade). At startup, check `[VINCE] 📡 Signal sources available:` to confirm which signal sources are registered.
 
 ## Features
 
@@ -23,6 +27,20 @@ See `src/plugins/plugin-vince/` for the implementation (services: feature store,
 - **Teammate context** — USER/SOUL/TOOLS/MEMORY files loaded every session so the agent behaves like a teammate, not a generic chatbot
 - **Data sources** — Deribit, CoinGlass, Binance, DexScreener, Meteora, Nansen, Sanbase, OpenSea (with fallbacks when APIs are absent)
 - **ElizaOS** — Character-driven, plugin-based; Postgres/Supabase for production
+
+**Day reports:** We’re really stoked about the daily briefs. The **GM**, **OPTIONS**, and **PERPS** day reports are pure gold—they pull from all our signal sources and the quality is so good.
+
+### Action status (honest take)
+
+- **OPTIONS & PERPS day reports** — Pure gold; core value.
+- **NEWS** — Great when fresh, but heavily dependent on [MandoMinutes](https://www.mandominutes.com/Latest). When that source isn't updated, data gets stale. A big future feature: our own news plugin and day report (likely needs ~$100/mo X API).
+- **MEMES** — Not yet where we want it; not top priority. UI quick fix: bold styling looks messy and should be toned down.
+- **TREADFI** — We're betting on farming all major perps DEXes and love their market-making bots. Figuring out the right settings to actually make money is complex; it's a core feature we want to keep if we can be profitable beyond the airdrop era.
+- **LIFESTYLE** — Life is more than trading. The curated local hotel/restaurant/spa/health/fitness knowledge is worth more focus and improves IRL UX; we may migrate this to a dedicated CLAWDBOT.
+- **NFTs** — Few care anymore (maybe 1K true fans on CT); we've spent a decade curating digital art and still value spotting gems on the floor (thin floor) from iconic collections. Solid base MVP; needs more work.
+- **INTEL** — Solid output but feels redundant with what GM / Aloha already cover.
+- **BOT** — Not good enough yet: not easy on the eyes and not consistent with the writing style of our other actions.
+- **UPLOAD / knowledge folder** — We believe the knowledge base will become one of the most important parts of VINCE. Improving how we upload research (YouTube, long PDFs, long articles → RAG) deserves a lot of attention; it may also be a fit for a dedicated ClawdBot (Moltbot).
 
 ## Getting Started
 
@@ -57,6 +75,8 @@ elizaos test
 ```
 
 ## Production with Supabase (Postgres)
+
+Current prod (Eliza Cloud) runs and works; it still uses **PGLite** (no `POSTGRES_URL`). Migrating to Supabase Postgres is next so ElizaOS tables and the feature store (`plugin_vince.paper_bot_features`) share one DB. See [FEATURE-STORE.md](FEATURE-STORE.md).
 
 We use **Postgres/Supabase** for production so the app and deploy use the same DB.
 
