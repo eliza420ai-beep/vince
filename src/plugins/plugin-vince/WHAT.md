@@ -1,95 +1,75 @@
 # WHAT.md — The Trader's Compass in a Chaotic World
 
-VINCE started as a personal itch.
+**Purpose:** Define *what* plugin-vince is and does—scope, domains, and capabilities. For *why* we chose ElizaOS and design trade-offs, see [WHY.md](./WHY.md). For *how* to develop and extend it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
 
-I was paper trading BTC perps on Hyperliquid, scanning Solana memes on DexScreener, and occasionally dipping into options on Deribit—all while trying to remember if it was Thursday (pool day) or Friday (ritual vibes). The data was everywhere, but the context was missing.
+---
 
-Why chase a signal if it's off-hours and your head's not in it? Why ignore a hot meme if it aligns with whale moves but tanks your work-life flow?
+## At a Glance
 
-I wanted something that pulled it all together—not as a dashboard of doom-scrolling stats, but as a coherent voice saying, "Here's the play, and here's why it fits your life."
+| | |
+|---|---|
+| **What it is** | A quantitative trading assistant with a lifestyle overlay—unified data intelligence across options, perps, TradFi, memes, lifestyle, and art. |
+| **How you use it** | Chat with the VINCE agent: "gm", "perps", "options", "memes", "bot status", etc. One coherent voice instead of 15 browser tabs. |
+| **Technical shape** | ~30 services, 20 actions, 2 context providers, 1 trade-performance evaluator. Paper trading bot with ML enhancement (Thompson Sampling, feature store, ONNX). |
+| **Primary assets** | BTC, ETH, SOL, HYPE + 34 HIP-3 assets (gold, SPX, NVDA, etc.). |
+| **Docs** | [README.md](./README.md) · [CLAUDE.md](./CLAUDE.md) · [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) |
 
 ---
 
 ## What VINCE Actually Does
 
-At its core, VINCE is a trading assistant that blends six worlds into one seamless feed:
+VINCE started as a personal itch: paper trading BTC perps on Hyperliquid, scanning Solana memes on DexScreener, dipping into options on Deribit—and trying to remember if it was Thursday (pool day) or Friday (ritual vibes). The data was everywhere; the context wasn’t. I wanted one coherent voice: *"Here’s the play, and here’s why it fits your life."*
 
-- **Options** — covered calls on BTC via HYPERSURFACE
-- **Perps** — signals for longs/shorts with paper execution
-- **TradFi** — gold, NVDA, SPX via Hyperliquid HIP-3
-- **Memes** — AI tokens in that juicy $1M-$20M sweet spot
-- **Lifestyle** — day-of-week aware, because who trades well on an empty stomach
-- **Art** — NFT floors for thin-buy opportunities
+At its core, VINCE blends **six domains** into one feed:
 
-Primary assets: BTC, ETH, SOL, HYPE. Plus 34 HIP-3 assets for diversification.
+- **Options** — Covered calls on BTC via HYPERSURFACE (Deribit IV, Greeks, DVOL).
+- **Perps** — Long/short signals with paper execution; 10+ signal sources, weighted voting.
+- **TradFi** — Gold, NVDA, SPX via Hyperliquid HIP-3 (34 assets).
+- **Memes** — AI tokens in the $1M–$20M sweet spot (DexScreener, traction, liquidity).
+- **Lifestyle** — Day-of-week aware suggestions (dining, hotels, activities).
+- **Art** — NFT floor tracking for thin-buy opportunities (curated collections).
 
-Imagine waking up and saying "gm" to your bot. VINCE hits back with a briefing:
+Say **"gm"** and you get a briefing: options skew, perps funding, top memes, session context, lifestyle nudge, NFT floors. Not a dashboard—curated, one narrative.
 
-> IV skew on options looks put-heavy—maybe a 95K strike for covered calls. Perps funding is neutral, but top traders are mixed; no edge there. Three AI memes are bubbling—$MOLT's got traction, but watch the liquidity. Oh, and it's Thursday: hit the pool, grab sushi. CryptoPunks floor at 28.5 ETH—thin gap, could flip.
+The **paper trading bot** follows those signals with guardrails:
 
-Not overwhelming. Curated. Signals aggregated from 15+ sources, weighted by what's proven to work.
+- Kelly Criterion sizing, circuit breakers (e.g. $200 daily loss cap), goals ($420/day, $10K/month).
+- It learns from trades: Thompson Sampling adjusts signal weights; embeddings find similar past trades; optional ONNX models refine quality and sizing.
+- You can check bot status, deep-dive a meme, or pull "Grok Expert" prompts for research.
 
-Then there's the paper trading bot. It follows those signals automatically, with built-in guards:
-- Kelly Criterion for sizing positions
-- Circuit breakers at $200 daily loss
-- Goals like $420/day (because why not meme the targets)
-
-It learns from its trades—adjusting what signals to trust, spotting patterns in wins/losses—without needing you to babysit. You can deep-dive a meme, check bot status, or get "Grok Expert" prompts for daily research.
-
-A quant desk in your pocket, but one that remembers you're human.
+So: a quant desk in your pocket that still respects you’re human.
 
 ---
 
-## But Why Build This?
+## Self-Improving Edge (Without the Drama)
 
-Here's where it gets personal.
+Markets evolve; VINCE learns **parametrically**, not by rewriting code:
 
-VINCE isn't about cramming more tech into trading. It's about reclaiming sanity in a market that never sleeps.
+- **Thompson Sampling** — Signal source weights adapt from real wins/losses.
+- **Embeddings** — Similar past trades inform current decisions.
+- **Offline models** — ONNX (from feature-store JSONL) for signal quality and position sizing.
 
-Crypto's a beast—it lures you with moonshots but chews through your time, health, and perspective. I was tired of the silos. Why track perps in one tab and memes in another when they influence each other? A funding flip on BTC might signal a meme rotation. A whale dump on NVDA could ripple to AI tokens. Consolidation isn't lazy—it's essential for seeing the big picture.
-
-**Balance matters.** Trading's seductive, but it's not life. VINCE weaves in lifestyle because Fridays aren't just expiry days—they're ritual days. Thursdays? Lighter vibes, maybe dining out. It's day-of-week aware, pulling from a simple rules engine that says, "Hey, market's choppy, session's Asia—scale down and go live a bit."
-
-Art's in there too, because NFTs aren't just flips; they're cultural bets, reminders that value's more than charts.
-
-I've burned out chasing pure alpha, ignoring the "why" of it all. VINCE forces the question: Is this trade worth the energy? Does it align with your goals, or is it just FOMO?
+Timeline: **Day 1** rule-based → **~30 days** adaptive weights → **90+ days** full ML inference when data allows. If ML fails, rules take over. No auto-code edits, no external ML infra—just graceful degradation.
 
 ---
 
-## The Self-Improving Angle
+## Free-First, Optional Premium
 
-Markets evolve, so should your edge.
-
-But I didn't want some Frankenstein agent rewriting code on the fly—that's a recipe for headaches. Instead, VINCE learns parametrically:
-
-- **Thompson Sampling** tweaks signal weights based on real wins/losses
-- **Embeddings** spot similar past trades
-- **Offline models** (exported to ONNX) refine sizing and quality checks
-
-It starts rule-based (day one: solid but basic), gets smarter online (after 30 days: adaptive weights), and hits peak after enough data (90+ days: full ML inference).
-
-Why this way? Because complexity kills. I wanted 80% of the smarts with 20% of the risk—no external deps, no auto-code edits, just graceful growth. If the ML hiccups, rules take over. No drama.
+VINCE runs on **free** sources by default (Binance, Deribit, DexScreener, Hyperliquid, CoinGecko, etc.). Paid APIs (CoinGlass, Nansen, Sanbase) are **optional** boosts. Hobbyist-friendly: $0 to start; upgrade if you scale. Ensembles beat single sources; historical tracking culls weak ones.
 
 ---
 
-## Free-First Was Non-Negotiable
+## Philosophy in One Line
 
-Premium APIs like CoinGlass or Nansen are nice, but why gatekeep edge behind paywalls?
-
-VINCE leans on free sources (Binance, Deribit, DexScreener) with paid as optional boosts. It's hobbyist-friendly—$0 to start, upgrade if you scale.
-
-Trading's already unequal; tools shouldn't widen the gap. Plus, ensembles beat single sources: 15 voices outvote the noise, historical tracking culls the weak.
+**Trade well, live well.** Edge and equilibrium—crypto as a game, not a jail. Goals like $10K/month are enablers for better living, not the only point.
 
 ---
 
-## The Philosophy
+## Where to Go Next
 
-VINCE is my manifesto against fragmented, soul-sucking trading.
-
-It's for the trader who wants edge **and** equilibrium—who sees crypto as a game, not a jail. Goals like $10K/month aren't endpoints; they're enablers for better living.
-
-Trade well, live well. That's the why.
-
----
+- **Implement or extend:** [HOW.md](./HOW.md), [CLAUDE.md](./CLAUDE.md).
+- **Signal sources and debugging:** [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md).
+- **Why ElizaOS (and trade-offs):** [WHY.md](./WHY.md).
+- **Cost coverage and profitability context:** [TREASURY.md](../../TREASURY.md) (project root).
 
 

@@ -1,6 +1,18 @@
 # WHY: Framework Decision & Architecture Context
 
-This document explains why VINCE was built on ElizaOS and how it compares to alternatives like ClawdBot. It serves as reference material for future maintainers considering migration or architectural changes.
+**Purpose:** Explain *why* VINCE was built on ElizaOS and how it compares to alternatives (e.g. ClawdBot). For *what* the plugin does, see [WHAT.md](./WHAT.md). For *how* to develop it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
+
+**When to re-read:** Before migrating to another framework, adding a new platform (e.g. full computer control), or debating local-first vs server-based deployment.
+
+---
+
+## Summary
+
+| Decision | Rationale |
+|----------|-----------|
+| **ElizaOS over ClawdBot** | Providers aggregate 15+ signal sources in parallel; evaluators learn from trade outcomes; native Discord/Telegram; character system keeps one persona across options, perps, memes, lifestyle, art. |
+| **Trade-offs we accepted** | No computer control (human executes trades); no self-healing code; server-based by default. |
+| **What transfers** | Domain logic (weights, thresholds, session filters, circuit breakers), constants, knowledge files—the IP is the thinking, not the TypeScript. |
 
 ---
 
@@ -122,7 +134,7 @@ ElizaOS is a multi-agent framework for building AI agents with persistent person
 
 ## Why ElizaOS for plugin-vince
 
-VINCE is a quantitative trading assistant with 24 services, 20 actions, and a paper trading bot. Here's why ElizaOS was the right choice:
+VINCE is a quantitative trading assistant with ~30 services, 20 actions, and a paper trading bot. Here's why ElizaOS was the right choice:
 
 ### 1. Multi-Source Signal Aggregation
 
@@ -345,4 +357,11 @@ The domain logic—signal weights, funding thresholds, session filters, circuit 
 
 ---
 
-*Reference: [INSTRUCTIONS-CLAWDBOT-BRIEF.md](../../docs/INSTRUCTIONS-CLAWDBOT-BRIEF.md) for full migration context.*
+## Related Docs
+
+- [WHAT.md](./WHAT.md) — What the plugin does and covers.
+- [HOW.md](./HOW.md) — Development workflow, adding actions/services, debugging.
+- [CLAUDE.md](./CLAUDE.md) — Full technical reference for the plugin.
+- [TREASURY.md](../../TREASURY.md) — Cost coverage and profitability context (project root).
+
+*Reference: [INSTRUCTIONS-CLAWDBOT-BRIEF.md](../../docs/INSTRUCTIONS-CLAWDBOT-BRIEF.md) for full migration context (if present).*

@@ -1,8 +1,10 @@
 # HOW.md — plugin-vince Development Guide
 
-This is the hands-on development guide for working with plugin-vince. It covers practical workflows, debugging techniques, and patterns for extending the plugin.
+This is the **hands-on development guide** for plugin-vince: workflows, adding actions/services, testing, debugging, and common patterns.
 
-> **Quick Links:** [WHAT.md](./WHAT.md) (purpose/philosophy) | [WHY.md](./WHY.md) (framework decisions) | [CLAUDE.md](./CLAUDE.md) (AI assistant reference)
+**When to use this doc:** Adding or changing an action/service, debugging signal aggregation or the paper bot, writing tests, or looking up where state lives. For a full technical catalog (services, actions, constants), use [CLAUDE.md](./CLAUDE.md). For purpose and scope, use [WHAT.md](./WHAT.md); for framework rationale, [WHY.md](./WHY.md).
+
+> **Quick Links:** [WHAT.md](./WHAT.md) | [WHY.md](./WHY.md) | [CLAUDE.md](./CLAUDE.md) | [README.md](./README.md) | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md)
 
 ---
 
@@ -18,6 +20,21 @@ This is the hands-on development guide for working with plugin-vince. It covers 
 8. [Debugging Techniques](#debugging-techniques)
 9. [Common Patterns](#common-patterns)
 10. [Troubleshooting](#troubleshooting)
+
+---
+
+## Where Things Live (Quick Map)
+
+| I want to… | Look here |
+|------------|-----------|
+| Add a user-facing command | `src/actions/*.action.ts` → register in `src/index.ts` |
+| Add a data source or bot component | `src/services/*.service.ts` → register in `src/index.ts` |
+| Change what context the LLM sees | `src/providers/vinceContext.provider.ts`, `trenchKnowledge.provider.ts` |
+| Change signal weights or thresholds | `src/constants/paperTradingDefaults.ts`, `src/config/dynamicConfig.ts` |
+| See which signal sources contributed | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md); logs: `[VinceSignalAggregator]` |
+| Inspect paper bot / ML state | `.elizadb/vince-paper-bot/` (see [Data Persistence Paths](#data-persistence-paths) below) |
+| Train ONNX models from features | `scripts/train_models.py`, [scripts/README.md](scripts/README.md) |
+| Understand cost/profitability mandate | [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) (project root) |
 
 ---
 
@@ -767,6 +784,8 @@ On startup, check which services are external vs fallback:
 
 ### Monitor Signal Aggregation
 
+See **[SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md)** for which sources exist, how to enable them, and how to confirm in logs which sources contributed (e.g. `[VINCE] 📡 Signal sources available: N/8`, `[VinceSignalAggregator] ASSET: N source(s) → M factors`).
+
 ```bash
 LOG_LEVEL=debug elizaos start 2>&1 | grep SignalAggregator
 
@@ -1124,5 +1143,14 @@ cat .elizadb/vince-paper-bot/weight-bandit-state.json | jq '.sources | to_entrie
 ```
 
 ---
+
+## Related Docs
+
+- [WHAT.md](./WHAT.md) — Purpose, scope, philosophy.
+- [WHY.md](./WHY.md) — Why ElizaOS; framework trade-offs and migration.
+- [CLAUDE.md](./CLAUDE.md) — Full plugin reference (services, actions, constants, testing).
+- [README.md](./README.md) — User-facing overview and installation.
+- [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) — Signal sources and debugging.
+- [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) — Cost coverage and feature store (project root).
 
 *Last updated: February 2026*
