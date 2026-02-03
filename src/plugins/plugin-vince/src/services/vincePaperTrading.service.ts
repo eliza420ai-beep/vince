@@ -42,6 +42,7 @@ import {
   TARGET_RR_AGGRESSIVE,
   MIN_SL_PCT_AGGRESSIVE,
   MAX_SL_PCT_AGGRESSIVE,
+  MIN_SL_ATR_MULTIPLIER_AGGRESSIVE,
   getPaperTradeAssets,
   TIMING,
   PERSISTENCE_DIR,
@@ -805,6 +806,11 @@ export class VincePaperTradingService extends Service {
       const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
       const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
       stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
+      if (entryATRPct != null) {
+        const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
+        stopLossPct = Math.max(stopLossPct, atrFloorPct);
+        stopLossPct = Math.min(stopLossPct, MAX_SL_PCT_AGGRESSIVE);
+      }
       stopLossDistance = entryPrice * (stopLossPct / 100);
       stopLossPrice = direction === "long"
         ? entryPrice - stopLossDistance
@@ -915,15 +921,19 @@ export class VincePaperTradingService extends Service {
     const entryStr = entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     console.log(line(`  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"}  ${asset}  @  $${entryStr}`));
     console.log(line(`  Entry    ${entryTimeUtc}`));
-    console.log(line(`  Notional ${formatUsd(sizeUsd)}  ·  margin ${formatUsd(marginUsd)}  ·  ${leverage}x`));
-    console.log(line(`  ~$${pnlPer1Pct.toFixed(0)}/1%  ·  VinceSignalFollowing`));
+    console.log(line(`  Notional ${formatUsd(sizeUsd)}`));
+    console.log(line(`  Margin   ${formatUsd(marginUsd)}`));
+    console.log(line(`  Leverage ${leverage}x`));
+    console.log(line(`  ~$${pnlPer1Pct.toFixed(0)}/1%`));
+    console.log(line(`  Strategy VinceSignalFollowing`));
     if (position?.liquidationPrice != null) {
       const liqStr = position.liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       console.log(line(`  Liq      $${liqStr}  (~${liqPct.toFixed(1)}%)`));
     }
     if (entryATRPct != null) {
+      console.log(line(`  ATR(14)  ${(entryATRPct).toFixed(2)}%`));
       const slNote = isSingleTpAggressive ? `${TARGET_RR_AGGRESSIVE}:1 R:R target` : "1.5× ATR";
-      console.log(line(`  ATR(14)  ${(entryATRPct).toFixed(2)}%  ·  SL ${stopLossPct.toFixed(2)}% (${slNote})`));
+      console.log(line(`  SL       ${stopLossPct.toFixed(2)}% (${slNote})`));
     }
     if (sessionLabel) {
       console.log(line(`  Session  ${sessionLabel}`));
@@ -962,7 +972,7 @@ export class VincePaperTradingService extends Service {
     console.log(line(`  Stop-Loss    $${pad(slStr, 14)}  ${slPct.toFixed(1)}%  →  -$${slLoss.toFixed(0)}`));
     if (takeProfitPrices.length > 0) {
       const tp1Str = takeProfitPrices[0].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const tp1Suffix = isSingleTpAggressive ? "  [$210]" : "";
+      const tp1Suffix = isSingleTpAggressive ? `  [$${TAKE_PROFIT_USD_AGGRESSIVE}]` : "";
       console.log(line(`  Take-Profit  $${pad(tp1Str, 14)}  ${tp1Pct.toFixed(1)}%  →  +$${tp1Profit.toFixed(0)}${tp1Suffix}`));
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);

@@ -163,7 +163,7 @@ IN PROGRESS
 ================================================================================
 
 🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
-   → Use VINCE_PAPER_AGGRESSIVE=true ($210 TP, 10x) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
+   → Use VINCE_PAPER_AGGRESSIVE=true ($280 TP, 2:1 R:R, 40x, no cooldown) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
 🔄 Feature store: collect 90+ complete trades; then ONNX training runs automatically (or run script manually)
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
@@ -355,6 +355,16 @@ SESSION NOTES
   confirming signals instead of 3. Risk manager uses this in validateSignal(); HYPE still
   uses 2 always. Tuning this constant (or the strength/confidence bar) controls trade
   frequency vs. confluence. See vinceRiskManager.service.ts and paperTradingDefaults.ts.
+- Paper trading aggressive preset – R:R and risk tuning: SL was ATR-based only, often giving
+  poor R:R (0.4:1–0.5:1). We now set SL from target R:R so max loss = TP / TARGET_RR. Constants
+  in paperTradingDefaults: TARGET_RR_AGGRESSIVE=2, TAKE_PROFIT_USD_AGGRESSIVE=280, MIN_SL_PCT_
+  AGGRESSIVE=0.35, MAX_SL_PCT_AGGRESSIVE=1.5, MIN_SL_ATR_MULTIPLIER_AGGRESSIVE=0.5. Logic in
+  vincePaperTrading.service.ts openTrade(): (1) Aggressive single-TP: SL% = (TP/2)/sizeUsd*100
+  clamped to [0.35%, 1.5%]; (2) volatility floor: if ATR available, SL% = max(SL%, 0.5×ATR) then
+  cap at 1.5% so we never put the stop inside normal chop; (3) banner shows R:R quality label
+  (Good/OK/Weak/Poor) and TP as [$280]. Result: 2:1 R:R, $280 TP, $140 risk; fewer trades
+  needed for daily target; no cooldown after loss in aggressive (AGGRESSIVE_RISK_LIMITS.cooldownAfterLossMs=0).
+  Trade-opened banner was also cleaned up (fixed-width lines, section labels, spacing).
 
 2026-02-02:
 - Created progress.txt
