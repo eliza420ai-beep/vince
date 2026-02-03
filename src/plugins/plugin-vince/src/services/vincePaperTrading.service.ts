@@ -548,7 +548,7 @@ export class VincePaperTradingService extends Service {
         );
         baseSizeUsd = baseSizeUsd * correlationResult.multiplier;
         if (correlationResult.reason) {
-          logger.info(`[VincePaperTrading] ${asset}: ${correlationResult.reason}`);
+          logger.debug(`[VincePaperTrading] ${asset}: ${correlationResult.reason}`);
         }
 
         // Apply DVOL-adjusted sizing (reduce size in high volatility)
@@ -558,11 +558,11 @@ export class VincePaperTradingService extends Service {
             if (dvol > 85) {
               // Extreme volatility: 50% size
               baseSizeUsd = baseSizeUsd * 0.5;
-              logger.info(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>85): size reduced 50%`);
+              logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>85): size reduced 50%`);
             } else if (dvol > 70) {
               // High volatility: 70% size
               baseSizeUsd = baseSizeUsd * 0.7;
-              logger.info(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>70): size reduced 30%`);
+              logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>70): size reduced 30%`);
             }
           }
         }
@@ -575,7 +575,7 @@ export class VincePaperTradingService extends Service {
             regime = await regimeService.getRegime(asset);
             if (regime.positionSizeMultiplier !== 1.0) {
               baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
-              logger.info(
+              logger.debug(
                 `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`
               );
             }
@@ -588,7 +588,7 @@ export class VincePaperTradingService extends Service {
         const timeModifiers = riskManager.getTimeModifiers();
         if (timeModifiers.sizeMultiplier !== 1.0) {
           baseSizeUsd = baseSizeUsd * timeModifiers.sizeMultiplier;
-          logger.info(
+          logger.debug(
             `[VincePaperTrading] ${asset} session (${timeModifiers.session.session}): size ${timeModifiers.sizeMultiplier}x`
           );
         }
@@ -598,7 +598,7 @@ export class VincePaperTradingService extends Service {
         if (streakInfo.multiplier !== 1.0) {
           baseSizeUsd = baseSizeUsd * streakInfo.multiplier;
           if (streakInfo.reason) {
-            logger.info(`[VincePaperTrading] ${asset}: ${streakInfo.reason}`);
+            logger.debug(`[VincePaperTrading] ${asset}: ${streakInfo.reason}`);
           }
         }
 
@@ -625,7 +625,7 @@ export class VincePaperTradingService extends Service {
             const mlMultiplier = Math.max(0.5, Math.min(2.0, sizePred.value));
             baseSizeUsd = baseSizeUsd * mlMultiplier;
             if (mlMultiplier !== 1.0) {
-              logger.info(
+              logger.debug(
                 `[VincePaperTrading] ${asset} ML position sizing: ${mlMultiplier.toFixed(2)}x (quality=${(positionInput.signalQualityScore * 100).toFixed(0)}% winRate=${recentWinRate.toFixed(0)}%)`
               );
             }

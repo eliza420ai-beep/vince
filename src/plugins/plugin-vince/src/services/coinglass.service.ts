@@ -242,7 +242,7 @@ export class VinceCoinGlassService extends Service {
     endBox();
 
     const dataCount = this.cache.funding.size + this.cache.longShort.size + this.cache.openInterest.size;
-    logger.info(`[VinceCoinGlass] ✅ Dashboard: ${dataCount} data points | Bias: ${bias.direction} (${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)})`);
+    logger.debug(`[VinceCoinGlass] ✅ Dashboard: ${dataCount} data points | Bias: ${bias.direction} (${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)})`);
   }
 
   /**

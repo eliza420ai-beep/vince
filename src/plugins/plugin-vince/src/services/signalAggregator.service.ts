@@ -1196,9 +1196,9 @@ export class VinceSignalAggregatorService extends Service {
       aggregated = await this.applyMLEnhancement(aggregated, currentSession);
     }
 
-    // Log which sources contributed (INFO so operators can confirm without debug)
+    // Log which sources contributed (DEBUG to reduce Eliza Cloud noise; set LOG_LEVEL=debug to see)
     if (aggregated.sources.length > 0) {
-      logger.info(
+      logger.debug(
         `[VinceSignalAggregator] ${asset}: ${aggregated.sources.length} source(s) → ${allFactors.length} factors | ` +
         `Sources: ${aggregated.sources.join(", ")}`
       );

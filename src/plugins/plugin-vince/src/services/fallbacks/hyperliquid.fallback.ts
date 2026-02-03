@@ -501,13 +501,13 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         `SOL: ${assets.sol?.fundingAnnualized?.toFixed(2) || "N/A"}% | ` +
         `HYPE: ${assets.hype?.fundingAnnualized?.toFixed(2) || "N/A"}%`
       );
-      // One high-signal line at info only when bias is actionable (dashboard-style)
+      // Dashboard-style line at debug to reduce Eliza Cloud INFO noise (set LOG_LEVEL=debug to see)
       if (overallBias !== "neutral") {
         const sym = overallBias === "bullish" ? "🟢" : "🔴";
         const btc = assets.btc?.fundingAnnualized != null ? `${assets.btc.fundingAnnualized.toFixed(2)}%` : "—";
         const eth = assets.eth?.fundingAnnualized != null ? `${assets.eth.fundingAnnualized.toFixed(2)}%` : "—";
         const sol = assets.sol?.fundingAnnualized != null ? `${assets.sol.fundingAnnualized.toFixed(2)}%` : "—";
-        logger.info(
+        logger.debug(
           `[HyperliquidFallback] 📊 OPTIONS PULSE | ${sym} ${overallBias.toUpperCase()} | BTC ${btc} | ETH ${eth} | SOL ${sol}`
         );
       }
@@ -602,14 +602,14 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       logger.debug(
         `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbCount > 0 ? arbitrageOpportunities.join(", ") : "none"}`
       );
-      // Info only when there are arb opportunities (actionable); otherwise quiet
+      // INFO only when there are arb opportunities (actionable for operators)
       if (arbCount > 0) {
         const arbSummary =
           arbCount <= 10
             ? arbitrageOpportunities.join(", ")
             : `${arbCount} assets`;
         logger.info(
-          `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbSummary}`
+          `[HyperliquidFallback] 💱 CROSS-VENUE ARB | ${assets.length} assets | ${arbSummary}`
         );
       }
 
