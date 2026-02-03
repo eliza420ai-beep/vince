@@ -82,28 +82,31 @@ export class VinceNFTFloorService extends Service {
       return;
     }
     
+    const formatChange = (nft: NFTCollection) =>
+      nft.floorPriceChange24h !== 0
+        ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
+        : "—";
+
     // Blue Chips
     console.log("  │  💎 BLUE CHIPS:                                                 │");
     const bluechips = this.getBlueChips().slice(0, 3);
     for (const nft of bluechips) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-      const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
+      const changeStr = formatChange(nft);
       const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
+      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
     }
-    
+
     // Art Blocks
     console.log("  ├─────────────────────────────────────────────────────────────────┤");
     console.log("  │  🖼️  ART BLOCKS:                                                 │");
     const art = this.getGenerativeArt().slice(0, 4); // Include Meridian
     for (const nft of art) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-      const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr}`.padEnd(66) + "│");
+      const changeStr = formatChange(nft);
+      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
     }
-    
+
     // Photography
     const photos = this.getPhotography().slice(0, 3);
     if (photos.length > 0) {
@@ -111,9 +114,8 @@ export class VinceNFTFloorService extends Service {
       console.log("  │  📷 PHOTOGRAPHY:                                                │");
       for (const nft of photos) {
         const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-        const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-        const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
-        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr}`.padEnd(66) + "│");
+        const changeStr = formatChange(nft);
+        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
       }
     }
     
@@ -176,28 +178,31 @@ export class VinceNFTFloorService extends Service {
     console.log("  │  🎨 NFT FLOOR DASHBOARD (LIVE)                                  │");
     console.log("  ├─────────────────────────────────────────────────────────────────┤");
     
+    const formatChange = (nft: NFTCollection) =>
+      nft.floorPriceChange24h !== 0
+        ? `${nft.floorPriceChange24h > 0 ? "📈" : "📉"}${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`
+        : "—";
+
     // Blue Chips
     console.log("  │  💎 BLUE CHIPS:                                                 │");
     const bluechips = this.getBlueChips().slice(0, 3);
     for (const nft of bluechips) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-      const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
+      const changeStr = formatChange(nft);
       const thicknessEmoji = nft.floorThickness === "thick" ? "🟢" : nft.floorThickness === "thin" ? "🔴" : "⚪";
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
+      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr.padEnd(8)} ${thicknessEmoji}`.padEnd(66) + "│");
     }
-    
+
     // Art Blocks
     console.log("  ├─────────────────────────────────────────────────────────────────┤");
     console.log("  │  🖼️ ART BLOCKS:                                                 │");
     const art = this.getGenerativeArt().slice(0, 4); // Include Meridian
     for (const nft of art) {
       const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-      const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-      const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
-      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr}`.padEnd(66) + "│");
+      const changeStr = formatChange(nft);
+      console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
     }
-    
+
     // Photography
     const photos = this.getPhotography().slice(0, 3);
     if (photos.length > 0) {
@@ -205,12 +210,11 @@ export class VinceNFTFloorService extends Service {
       console.log("  │  📷 PHOTOGRAPHY:                                                │");
       for (const nft of photos) {
         const priceStr = `${nft.floorPrice.toFixed(2)} ETH`;
-        const changeEmoji = nft.floorPriceChange24h > 0 ? "📈" : nft.floorPriceChange24h < 0 ? "📉" : "➡️";
-        const changeStr = `${nft.floorPriceChange24h > 0 ? "+" : ""}${nft.floorPriceChange24h.toFixed(1)}%`;
-        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeEmoji}${changeStr}`.padEnd(66) + "│");
+        const changeStr = formatChange(nft);
+        console.log(`  │     ${nft.name.padEnd(15)} ${priceStr.padEnd(12)} ${changeStr}`.padEnd(66) + "│");
       }
     }
-    
+
     // TLDR
     console.log("  ├─────────────────────────────────────────────────────────────────┤");
     const tldr = this.getTLDR();
