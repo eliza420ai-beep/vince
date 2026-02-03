@@ -856,14 +856,15 @@ export class VincePaperTradingService extends Service {
     console.log(`  ║  Signal Strength: ${signal.strength.toFixed(0)}%  Confidence: ${signal.confidence.toFixed(0)}%  Confirming: ${sourceCount} (sources)  ║`);
     console.log("  ╠═══════════════════════════════════════════════════════════════╣");
     console.log("  ║  RISK MANAGEMENT:                                             ║");
-    const slLoss = sizeUsd * leverage * (slPct / 100);
+    // sizeUsd = notional (position value); PnL = notional * (price_move_pct/100), same as position manager
+    const slLoss = sizeUsd * (slPct / 100);
     console.log(`  ║    Stop-Loss:   $${stopLossPrice.toFixed(2).padEnd(10)} (${slPct.toFixed(1)}% → -$${slLoss.toFixed(0)})              ║`);
     if (takeProfitPrices.length > 0) {
-      const tp1Profit = sizeUsd * leverage * (tp1Pct / 100);
+      const tp1Profit = sizeUsd * (tp1Pct / 100);
       console.log(`  ║    Take-Profit: $${takeProfitPrices[0].toFixed(2).padEnd(10)} (${tp1Pct.toFixed(1)}% → +$${tp1Profit.toFixed(0)})             ║`);
       if (takeProfitPrices.length > 1) {
         const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
-        const tp2Profit = sizeUsd * leverage * (tp2Pct / 100);
+        const tp2Profit = sizeUsd * (tp2Pct / 100);
         console.log(`  ║                 $${takeProfitPrices[1].toFixed(2).padEnd(10)} (${tp2Pct.toFixed(1)}% → +$${tp2Profit.toFixed(0)})             ║`);
       }
     }
