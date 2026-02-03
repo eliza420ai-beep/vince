@@ -493,6 +493,19 @@ export class VincePaperTradingService extends Service {
           }
         }
 
+        // Hard-filter when similarity says "avoid" (ALGO_ML_IMPROVEMENTS #5)
+        const aggSignal = signal as AggregatedSignal;
+        if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
+          if (signal.direction !== "neutral" && signal.strength > 30) {
+            this.logSignalRejection(
+              asset,
+              { ...signal, confirmingCount: signal.confirmingCount ?? signal.factors.length } as AggregatedTradeSignal,
+              `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`
+            );
+          }
+          continue;
+        }
+
         // Convert to AggregatedTradeSignal format
         // Now using the proper confirmingCount from multi-source aggregation
         const tradeSignal: AggregatedTradeSignal = {
@@ -971,6 +984,9 @@ export class VincePaperTradingService extends Service {
       stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
     }
 
+    // Contributing source names for bandit outcome feedback (weight optimization)
+    const contributingSources = Object.keys(signal.sourceBreakdown ?? {}).filter(Boolean);
+
     // Open position with ATR stored for trailing stop calculations
     const position = positionManager.openPosition({
       asset,
@@ -984,6 +1000,7 @@ export class VincePaperTradingService extends Service {
       triggerSignals: (signal.reasons ?? []).slice(0, 15),
       metadata: {
         entryATRPct,
+        contributingSources,
       },
     });
 
@@ -1356,20 +1373,16 @@ export class VincePaperTradingService extends Service {
       }
     }
 
-    // Record in weight bandit for source weight optimization
+    // Record in weight bandit for source weight optimization (actual source names from open)
     if (weightBandit) {
       try {
-        // Get the sources that contributed to this trade
-        const sources = position.triggerSignals?.map(s => {
-          // Extract source name from signal description
-          // This is a simplified extraction - in production, store sources explicitly
-          return "signal_source";
-        }) || [];
-        
-        // Record combo outcome
-        if (sources.length > 0) {
-          await weightBandit.recordComboOutcome(sources, isWin, pnlPct);
-        }
+        const sources = (position.metadata?.contributingSources as string[] | undefined) ?? [];
+        const sourcesToReport = sources.length > 0 ? sources : ["signal_aggregator"];
+        await weightBandit.recordOutcome({
+          sources: sourcesToReport,
+          profitable: isWin,
+          pnlPct,
+        });
       } catch (e) {
         logger.debug(`[VincePaperTrading] Could not record bandit outcome: ${e}`);
       }

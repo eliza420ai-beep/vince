@@ -103,6 +103,8 @@
 
 ### 5. Stronger similarity-based filter (medium impact)
 
+**Status:** ✅ Implemented in `evaluateAndTrade()`. When `mlSimilarityPrediction.recommendation === "avoid"`, the trade is skipped (with log) before converting to `AggregatedTradeSignal`.
+
 **Idea:** When similarity says **"avoid"**, treat it like a hard filter (e.g. skip trade) in addition to the current confidence penalty.
 
 **Where:** In `evaluateAndTrade()`, after `getSignal()`: if `signal.mlSimilarityPrediction?.recommendation === "avoid"`, skip this asset (or require an extra “override” condition to still trade).
@@ -112,6 +114,8 @@
 ---
 
 ### 6. Bandit feedback loop (ongoing)
+
+**Status:** ✅ Implemented. On open: `contributingSources` (from `signal.sourceBreakdown`) stored in `position.metadata.contributingSources`. On close: `weightBandit.recordOutcome({ sources, profitable, pnlPct })` with those names so arms get PnL-weighted updates.
 
 **Idea:** Ensure weight bandit is updated from **trade outcomes** (win/loss, PnL), not only from signal presence.
 
@@ -148,10 +152,33 @@
 | 2 | ML TP/SL in openTrade | High | Medium | ✅ Done |
 | 3 | Block trade when ML quality &lt; threshold | Medium | Low | ✅ Done |
 | 4 | Consume improvement report (thresholds, TP level, weights) | Medium | Medium | ✅ Done |
-| 5 | Hard-filter on similarity "avoid" | Medium | Low | Pending |
-| 6 | Bandit reward from trade outcomes | Ongoing | Medium | Pending |
+| 5 | Hard-filter on similarity "avoid" | Medium | Low | ✅ Done |
+| 6 | Bandit reward from trade outcomes | Ongoing | Medium | ✅ Done |
 
 Doing **1** and **2** uses the models you already train (position_sizing, tp_optimizer, sl_optimizer) and makes the algo directly data-driven. **3** and **5** are small code changes that reduce bad trades. **4** and **6** make the system self-tune from the same training and outcome data you already have.
+
+---
+
+## Further ML flow improvements
+
+Ideas to improve the end-to-end ML pipeline beyond the table above:
+
+1. **Training data & labels**
+   - Ensure every closed trade writes `labels` (profitable, r_multiple, tp_level_hit, sl_hit) and that `train_models.py` uses them (e.g. TP optimizer target = which level was hit; SL optimizer can use maxAdverseExcursion).
+   - Add optional labels: `session`, `regime_at_entry`, `source_combo` for stratified analysis or future models.
+
+2. **Model calibration**
+   - Signal quality output is used as a threshold; consider calibrating so 0.6 really means ~60% historical win rate in that score band (e.g. Platt scaling or isotonic regression post-train).
+   - Position sizing / TP / SL outputs are multipliers; log actual vs predicted (e.g. in improvement report) to detect drift.
+
+3. **Retrain cadence & triggers**
+   - Keep TRAIN_ONNX_WHEN_READY (90+ trades, max once per 24h). Optionally trigger retrain when win rate or Sharpe over last N trades drops below a bound (e.g. “retrain when last 50 trades &lt; 45% win rate”).
+
+4. **Feature store → training alignment**
+   - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare*Features). Document the mapping in FEATURE-STORE.md or this file.
+
+5. **A/B or shadow mode**
+   - Optional: log “what would ML have done?” alongside rule-based decision (e.g. ML size vs actual size) without changing behavior, then analyze correlation of ML-overrule with better outcomes before tightening the loop.
 
 ---
 
