@@ -98,6 +98,33 @@ We use **Postgres/Supabase** for production so the app and deploy use the same D
 2. **Run locally:** `bun start` — the start script runs the migration bootstrap (creates `migrations` schema) when `POSTGRES_URL` is set, then starts the app.
 3. **Deploy:** Use the same `POSTGRES_URL` (direct 5432) in your deploy env. See [DEPLOY.md](DEPLOY.md).
 
+### ML on Eliza Cloud (ONNX models)
+
+For the **paper trading bot**, ONNX models (signal quality, position sizing, TP/SL) are loaded from `.elizadb/vince-paper-bot/models/`. That directory is **gitignored**, so a fresh deploy has no models and the bot uses **rule-based fallbacks** until you ship them.
+
+**To make ML active on Cloud:**
+
+1. **Train locally** (after 90+ closed trades or synthetic data):
+   ```bash
+   python3 src/plugins/plugin-vince/scripts/train_models.py \
+     --data .elizadb/vince-paper-bot/features \
+     --output .elizadb/vince-paper-bot/models \
+     --min-samples 90
+   ```
+2. **Copy the built models into the repo** so the Docker image includes them:
+   ```bash
+   cp .elizadb/vince-paper-bot/models/signal_quality.onnx    src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/position_sizing.onnx   src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/tp_optimizer.onnx      src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/sl_optimizer.onnx      src/plugins/plugin-vince/models/
+   cp .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
+   git add src/plugins/plugin-vince/models/*.onnx src/plugins/plugin-vince/models/training_metadata.json
+   git commit -m "chore: ship ONNX models for Cloud ML"
+   ```
+3. **Deploy.** The Dockerfile copies `src/plugins/plugin-vince/models/` into `.elizadb/vince-paper-bot/models/` at build time, so the container loads the four ONNX models and ML is active.
+
+If the `models/` folder has no `.onnx` files (only the README), deploy still works; the bot runs with rule-based behavior until you add and commit the files above. See [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) and [DEPLOY.md](DEPLOY.md#ml-onnx-on-eliza-cloud--will-it-be-active) for details.
+
 ## Testing
 
 ElizaOS employs a dual testing strategy:
@@ -189,6 +216,7 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 | [CLAUDE.md](CLAUDE.md) | ElizaOS project dev guide (character, plugins, env, testing) |
 | [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
 | [src/plugins/plugin-vince/README.md](src/plugins/plugin-vince/README.md) | Plugin overview; [WHAT.md](src/plugins/plugin-vince/WHAT.md) / [WHY.md](src/plugins/plugin-vince/WHY.md) / [HOW.md](src/plugins/plugin-vince/HOW.md) / [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for purpose, framework rationale, and development |
+| [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) | Ship ONNX models for Eliza Cloud (copy trained `.onnx` + `training_metadata.json` into this folder, then deploy) |
 
 ## Troubleshooting
 

@@ -133,6 +133,17 @@ COMPLETED
 - ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
 - Tests: test_train_models.py (6 tests) and generate_synthetic_features.py verified; pytest optional.
 
+## ML on Eliza Cloud ✅
+- Why Cloud had no ML: .elizadb/ is gitignored, so the deploy image never contained ONNX files; the bot fell back to rule-based signal quality, sizing, and TP/SL.
+- Fix: We ship models in the repo so the image includes them at build time.
+  - Folder: src/plugins/plugin-vince/models/ (README + the four .onnx files + training_metadata.json). This path is in the repo and not gitignored.
+  - Dockerfile: After "bun run build", the image runs: mkdir -p /app/.elizadb/vince-paper-bot/models && cp -r src/plugins/plugin-vince/models/. into it. At runtime the ML Inference Service loads from .elizadb/vince-paper-bot/models/ and finds the ONNX files.
+- Flow to make ML active (and to refresh after retraining):
+  1. Train locally: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+  2. Copy into repo: cp .elizadb/vince-paper-bot/models/{signal_quality,position_sizing,tp_optimizer,sl_optimizer}.onnx .elizadb/vince-paper-bot/models/training_metadata.json src/plugins/plugin-vince/models/
+  3. Commit and deploy. Next Cloud deploy will have ML active.
+- Docs: README.md has "ML on Eliza Cloud" subsection with the same steps; DEPLOY.md has the full "ML (ONNX) on Eliza Cloud" section; plugin-vince/models/README.md has copy-paste commands.
+
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
 ================================================================================
@@ -384,7 +395,7 @@ SESSION NOTES
 - progress.txt: This file updated to reflect completed ONNX export (onnxmltools, f0/f1 feature names), synthetic data (--append, --count), and test_train_models.py (6 tests). ML inference service uses session.run({ input: tensor }) and results.output; ONNX models exported by train_models use default onnxmltools input/output names (compatible).
 - Eliza Cloud logs: INFO noise reduced. Signal aggregator (per-asset contribution), Coinglass dashboard, Hyperliquid OPTIONS PULSE → debug. Paper trading sizing details (correlation, DVOL, regime, session, streak, ML) → debug. CROSS-VENUE arb stays INFO when arb opportunities. .env.example: tip added for VINCE_PAPER_AGGRESSIVE + VINCE_PAPER_ASSETS=BTC to get more trades for ML.
 - ML flow: (1) Similarity "avoid" → hard filter in evaluateAndTrade (skip trade with log). (2) Bandit: store contributingSources on position.metadata at open (from signal.sourceBreakdown); on close call weightBandit.recordOutcome({ sources, profitable, pnlPct }) so source weights learn from actual trade outcomes. (3) ALGO_ML_IMPROVEMENTS.md: #5 and #6 marked done; added "Further ML flow improvements" (labels, calibration, retrain triggers, feature alignment, A/B shadow).
-- ML active on Cloud: Added src/plugins/plugin-vince/models/ (README + copy of ONNX and training_metadata.json from .elizadb). Dockerfile copies this folder into .elizadb/vince-paper-bot/models at build time so Eliza Cloud deploy loads the 4 ONNX models. DEPLOY.md updated with copy-then-deploy steps. Next deploy will have ML active if models/ is committed.
+- ML active on Cloud: see "ML on Eliza Cloud" subsection below.
 
 2026-02-02:
 - Created progress.txt
