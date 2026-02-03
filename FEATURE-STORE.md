@@ -62,6 +62,18 @@ create index if not exists idx_vince_paper_bot_features_payload_asset
 
 4. **Verify**: After some paper trades, in Supabase Table Editor open `vince_paper_bot_features` – you should see rows with `id`, `created_at`, and `payload` (full feature record).
 
+## When training runs (90+ trades)
+
+- **Automatic**: The plugin registers a recurring task `TRAIN_ONNX_WHEN_READY`. When the feature store has **90+ complete trades** (records with `outcome` and `labels`), the task runs the Python training script (at most once per 24h). Models are written to `.elizadb/vince-paper-bot/models/`; the ML Inference Service loads them on next use.
+- **Manual**: From repo root:
+  ```bash
+  python3 src/plugins/plugin-vince/scripts/train_models.py \
+    --data .elizadb/vince-paper-bot/features \
+    --output .elizadb/vince-paper-bot/models \
+    --min-samples 90
+  ```
+- **Requires**: Python 3, `pip install -r src/plugins/plugin-vince/scripts/requirements.txt` (xgboost, skl2onnx, onnx, etc.).
+
 ## ML script (500+ records)
 
 Query Supabase for training data:

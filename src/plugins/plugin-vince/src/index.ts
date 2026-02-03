@@ -104,8 +104,9 @@ import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
 
-// Tasks (Grok Expert commented out - low value)
+// Tasks
 // import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
+import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -380,6 +381,13 @@ export const vincePlugin: Plugin = {
     // } catch (e) {
     //   logger.warn("[VINCE] Failed to register Grok Expert task:", e);
     // }
+
+    // ONNX training: when feature store has 90+ complete trades, train models (runs on schedule, max once per 24h)
+    try {
+      await registerTrainOnnxTask(runtime);
+    } catch (e) {
+      logger.warn("[VINCE] Failed to register ONNX training task:", e);
+    }
   },
 };
 

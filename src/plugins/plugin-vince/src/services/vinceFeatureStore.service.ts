@@ -1037,6 +1037,15 @@ export class VinceFeatureStoreService extends Service {
   }
 
   /**
+   * Count records that have outcome + labels (closed trades suitable for ML training).
+   * Used to decide when to run ONNX training (e.g. when >= 90).
+   */
+  async getCompleteRecordCount(daysBack: number = 365): Promise<number> {
+    const records = await this.loadRecords(daysBack);
+    return records.filter((r) => r.outcome && r.labels).length;
+  }
+
+  /**
    * Get statistics about collected data
    */
   getStats(): {

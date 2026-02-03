@@ -14,8 +14,11 @@ Models trained:
 Usage:
     python train_models.py --data ./features.jsonl --output ./models/
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+    python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
 
   --data can be a single JSONL file or a directory (loads all features_*.jsonl and combined.jsonl).
+  When the feature store has 90+ complete trades (with outcome), the plugin can run this automatically
+  via the TRAIN_ONNX_WHEN_READY task (max once per 24h).
 
 Requirements:
     pip install -r requirements.txt  (xgboost scikit-learn pandas numpy onnx skl2onnx joblib; scipy optional for outlier handling)
@@ -791,7 +794,7 @@ def main():
     parser = argparse.ArgumentParser(description="Train VINCE ML models")
     parser.add_argument("--data", type=str, required=True, help="Path to features.jsonl or directory of features_*.jsonl (e.g. .elizadb/vince-paper-bot/features)")
     parser.add_argument("--output", type=str, default="./models", help="Output directory for models")
-    parser.add_argument("--min-samples", type=int, default=100, help="Minimum samples required to train")
+    parser.add_argument("--min-samples", type=int, default=90, help="Minimum trades with outcome required to train (default 90)")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging to train.log")
     args = parser.parse_args()
 

@@ -163,7 +163,7 @@ IN PROGRESS
 ================================================================================
 
 🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
-🔄 Feature store needs 90+ trades for ONNX model training
+🔄 Feature store: collect 90+ complete trades; then ONNX training runs automatically (or run script manually)
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
 
@@ -212,7 +212,7 @@ NEXT / BACKLOG
 
 📋 Migrate prod to Supabase Postgres (POSTGRES_URL); then plugin_vince.paper_bot_features
    lives in same DB as ElizaOS tables (agents, memories, entities, rooms). See FEATURE-STORE.md.
-📋 Train ONNX models when feature store reaches 90+ trades
+🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. Manual: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
@@ -329,6 +329,7 @@ SESSION NOTES
   INFO logs list which sources contributed; DEBUG "tried but no contribution" for
   Binance, NewsSentiment, DeribitIVSkew, MarketRegime; extended to BinanceLiquidations,
   Sanbase, Hyperliquid when they run but don’t add a factor (signalAggregator). See SIGNAL_SOURCES.md.
+- ONNX training when 90+ trades: getCompleteRecordCount() on feature store; TRAIN_ONNX_WHEN_READY task runs on schedule (12h), max once per 24h; spawns train_models.py --min-samples 90. FEATURE-STORE.md updated.
 - README (repo + plugin): Heart of VINCE, signal-source verification, improvement report.
 - FEATURE-STORE.md: current prod state (Eliza Cloud, PGLite); ElizaOS tables vs feature
   store; jsonl lives in plugin_vince.paper_bot_features (same DB when Postgres), not
