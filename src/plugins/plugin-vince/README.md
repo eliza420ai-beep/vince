@@ -42,7 +42,7 @@ The pipeline is a **sophisticated, multi-factor paper trading system** that goes
    See **[SIGNAL_SOURCES.md](SIGNAL_SOURCES.md)** for which sources exist, how to enable them, and how to **confirm in logs** which sources contributed: at startup look for `[VINCE] 📡 Signal sources available: N/8 (...)`; on each aggregation look for `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. Use `LOG_LEVEL=debug` to see which sources were tried but didn’t contribute (e.g. thresholds not met).
 
 2. **Feature store and decision drivers**  
-   Every trading decision is recorded with **40+ features** (market, session, signal, regime, news, execution, outcome) and **decision drivers** (the human-readable reasons that influenced the open). Data is written to `.elizadb/vince-paper-bot/features/*.jsonl` and optionally Supabase/PGLite for ML.
+   Every trading decision is recorded with **50+ features** and **decision drivers** (the human-readable reasons that influenced the open). Market features include not only price, funding, OI, and L/S ratio but **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance** and **bid-ask spread** (Binance futures depth), and **price vs SMA20** (rolling window). News features include **sentiment score/direction** and **risk event severity**; signal features include **factor-derived sentiment** when sources don’t provide it. Data is written to `.elizadb/vince-paper-bot/features/*.jsonl` and optionally Supabase/PGLite for ML. See **[DATA_LEVERAGE.md](DATA_LEVERAGE.md)** for what’s wired and what’s next.
 
 3. **Offline training and improvement report**  
    [scripts/train_models.py](scripts/train_models.py) trains XGBoost models (signal quality, position sizing, TP/SL) on the feature-store JSONL and exports ONNX. It also produces an **improvement report** (`improvement_report.md` + `training_metadata.json`) with feature importances, suggested signal-quality threshold, TP performance, **decision drivers by direction**, and **suggested signal factors** (factors that are predictive but missing or mostly null in your data—so you know what to add next).  
@@ -88,6 +88,7 @@ VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle a
 - **Grok Expert Daily Pulse:** Automated research suggestions and prompt-of-the-day generation
 - **Early Detection System:** Watchlist management and multi-source alert aggregation
 - **V4 ML at the Core:** ONNX models (signal quality, position sizing, TP/SL) wired into every trade; improvement report (threshold, TP level skip, min strength/confidence) consumed automatically; Thompson Sampling bandit and similarity lookup for online adaptation
+- **Data leverage:** 50+ features per decision including funding 8h delta, OI 24h change, DVOL, RSI, order-book imbalance, bid-ask spread, price vs SMA20, news sentiment/risk, and factor-derived signal sentiment—so ML and the improvement report see the full picture. See [DATA_LEVERAGE.md](DATA_LEVERAGE.md) and progress.txt § “Things to do next (high impact)”.
 
 ---
 

@@ -233,6 +233,30 @@ General: Adopting MCPs can reduce in-plugin API surface and centralize credits/c
 on Eliza Cloud; log MCP tool calls (tool name + credits if x402) for observability.
 
 ================================================================================
+THINGS TO DO NEXT (high impact – leverage data we have, not yet used in algo)
+================================================================================
+
+These use data we already collect (or can add with one small integration) but don’t yet feed into trading decisions. Doing them will have the most impact per unit effort.
+
+1. **Use new market features in the trading algo (not just the feature store)**
+   - We record bookImbalance, priceVsSma20, fundingDelta, dvol, rsi14. The signal aggregator and evaluateAndTrade don’t use them yet.
+   - High impact: (a) In aggregator or evaluateAndTrade: skip or downweight LONG when bookImbalance < -0.2 (order book favors sellers); ditto SHORT when bookImbalance > 0.2. (b) Boost confidence when priceVsSma20 sign aligns with signal direction (trend confirmation). (c) Add a “funding reversal” factor when |fundingDelta| is large and opposite to current funding sign. (d) In risk manager or position sizing: cap size or reduce max leverage when dvol > threshold (e.g. 70) so we size down in high vol. See DATA_LEVERAGE.md; implement in signalAggregator.service.ts and/or vincePaperTrading.service.ts.
+
+2. **Add NASDAQ 24h (and optionally macro/ETF) to news features**
+   - Slots exist: news.nasdaqChange, news.etfFlowBtc, news.etfFlowEth, news.macroRiskEnvironment. Currently 0% populated.
+   - High impact: Add one free or cheap macro/equity source (e.g. Yahoo Finance, Alpha Vantage, or HIP-3 index if we have NDX) and set news.nasdaqChange in collectNewsFeatures(). Optionally add ETF flow API or scrape so ML can use risk-on/risk-off. See DATA_LEVERAGE.md “Data still 0%”.
+
+3. **Use improvement report to tune aggregator weights**
+   - training_metadata.json has feature_importances and suggested_signal_factors. When a factor we now populate (e.g. “Order book imbalance”) drops from suggested_signal_factors, we know we’re good.
+   - High impact: Periodically (or after each train) read suggested_signal_factors and feature_importances; log which sources/factors are top for signal quality; optionally align dynamicConfig source weights with importances so high-importance sources aren’t downweighted. See ALGO_ML_IMPROVEMENTS.md § “Consume improvement report”.
+
+4. **Retrain and ship ONNX after new features have enough samples**
+   - Once 90+ (ideally 200+) records have non-null fundingDelta, bookImbalance, priceVsSma20, run train_models.py; then copy ONNX + training_metadata.json into src/plugins/plugin-vince/models/ and deploy so Cloud uses the new models. Ensures ML actually uses the extra data we now collect.
+
+5. **Optional: DVOL/regime in position cap**
+   - We already have dvol and volatilityRegime. In position sizing or risk manager, reduce max leverage or cap position size when dvol > 70 (or volatilityRegime === 'high') so the algo explicitly uses the data for risk. Small code change, reuses existing fields.
+
+================================================================================
 NEXT / BACKLOG
 ================================================================================
 
@@ -396,6 +420,7 @@ SESSION NOTES
 - Eliza Cloud logs: INFO noise reduced. Signal aggregator (per-asset contribution), Coinglass dashboard, Hyperliquid OPTIONS PULSE → debug. Paper trading sizing details (correlation, DVOL, regime, session, streak, ML) → debug. CROSS-VENUE arb stays INFO when arb opportunities. .env.example: tip added for VINCE_PAPER_AGGRESSIVE + VINCE_PAPER_ASSETS=BTC to get more trades for ML.
 - ML flow: (1) Similarity "avoid" → hard filter in evaluateAndTrade (skip trade with log). (2) Bandit: store contributingSources on position.metadata at open (from signal.sourceBreakdown); on close call weightBandit.recordOutcome({ sources, profitable, pnlPct }) so source weights learn from actual trade outcomes. (3) ALGO_ML_IMPROVEMENTS.md: #5 and #6 marked done; added "Further ML flow improvements" (labels, calibration, retrain triggers, feature alignment, A/B shadow).
 - ML active on Cloud: see "ML on Eliza Cloud" subsection below.
+- Leverage more data points: (1) Funding 8h delta: per-asset funding history cache in feature store; delta = current − rate from ~8h ago. (2) Price vs SMA20: rolling window of last 20 prices per asset. (3) Order book: Binance futures depth (BTC/ETH/SOL/HYPE) → bookImbalance and bidAskSpread. (4) News: sentimentScore (±confidence) and sentimentDirection from getOverallSentiment; hasActiveRiskEvents/highestRiskSeverity from getActiveRiskEvents. (5) Signal avgSentiment from keyword scan over signal.factors; train script uses signal.avgSentiment as signal_avg_sentiment. DATA_LEVERAGE.md and ALGO_ML_IMPROVEMENTS.md updated.
 
 2026-02-02:
 - Created progress.txt

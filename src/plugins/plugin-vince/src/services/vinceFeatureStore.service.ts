@@ -122,6 +122,8 @@ export interface SignalFeatures {
   hasWhaleSignal: boolean;
   /** Highest weight source */
   highestWeightSource: string;
+  /** Derived sentiment from factors (-100 to +100, null if no factors) */
+  avgSentiment?: number | null;
 }
 
 /**
@@ -328,6 +330,14 @@ export class VinceFeatureStoreService extends Service {
   private flushTimer: NodeJS.Timeout | null = null;
   private initialized = false;
   private supabase: SupabaseClient | null = null;
+  /** Funding history per asset for 8h delta: { rate, ts }[], keep last 24h */
+  private fundingHistoryByAsset: Map<string, { rate: number; ts: number }[]> = new Map();
+  /** Price history per asset for SMA20: last 20 closes */
+  private priceHistoryByAsset: Map<string, number[]> = new Map();
+  private static readonly FUNDING_HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  private static readonly FUNDING_DELTA_WINDOW_MS = 8 * 60 * 60 * 1000;
+  private static readonly PRICE_HISTORY_LEN = 20;
+  private static readonly BINANCE_DEPTH_TIMEOUT_MS = 5000;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -585,7 +595,7 @@ export class VinceFeatureStoreService extends Service {
     let longShortRatio = 1.0;
     let fearGreedIndex: number | null = null;
 
-    // Get market data
+    // Get market data (single call for price, funding, L/S, volumeRatio, optional volume24h)
     if (marketDataService) {
       try {
         const context = await marketDataService.getEnrichedContext(asset);
@@ -596,22 +606,83 @@ export class VinceFeatureStoreService extends Service {
           longShortRatio = context.longShortRatio;
           fearGreedIndex = context.fearGreedValue;
           volumeRatio = context.volumeRatio;
+          const v = (context as { volume24h?: number }).volume24h;
+          if (typeof v === "number") volume24h = v;
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] Market data error: ${e}`);
       }
     }
 
-    // Get CoinGlass data
+    // CoinGlass / OI: use getOpenInterest (has value + change24h)
+    let oiChange24h = 0;
     if (coinglassService) {
       try {
-        const data = coinglassService.getCachedData(asset);
-        if (data) {
-          if (data.openInterest) openInterest = data.openInterest;
-          if (data.volume24h) volume24h = data.volume24h;
+        const oi = coinglassService.getOpenInterest(asset);
+        if (oi) {
+          openInterest = oi.value;
+          if (oi.change24h != null && !Number.isNaN(oi.change24h)) oiChange24h = oi.change24h;
         }
+        // Volume from funding/OI path if we don't have it yet (Binance free path may set it)
+        const funding = coinglassService.getFunding(asset);
       } catch (e) {
         logger.debug(`[VinceFeatureStore] CoinGlass error: ${e}`);
+      }
+    }
+
+    // Funding 8h delta: cache current rate, find rate from ~8h ago
+    let fundingDelta: number | null = null;
+    const now = Date.now();
+    if (coinglassService && typeof fundingRate === "number") {
+      let hist = this.fundingHistoryByAsset.get(asset) ?? [];
+      hist.push({ rate: fundingRate, ts: now });
+      hist = hist.filter((e) => now - e.ts < VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS);
+      this.fundingHistoryByAsset.set(asset, hist);
+      const targetTs = now - VinceFeatureStoreService.FUNDING_DELTA_WINDOW_MS;
+      const closest = hist.reduce((best, e) =>
+        Math.abs(e.ts - targetTs) < Math.abs((best?.ts ?? 0) - targetTs) ? e : best
+      );
+      if (closest && Math.abs(closest.ts - targetTs) < 2 * 60 * 60 * 1000) {
+        fundingDelta = fundingRate - closest.rate;
+          }
+    }
+
+    // Price SMA20: rolling window of closes
+    let priceVsSma20: number | null = null;
+    if (price > 0) {
+      let prices = this.priceHistoryByAsset.get(asset) ?? [];
+      prices.push(price);
+      if (prices.length > VinceFeatureStoreService.PRICE_HISTORY_LEN) {
+        prices = prices.slice(-VinceFeatureStoreService.PRICE_HISTORY_LEN);
+      }
+      this.priceHistoryByAsset.set(asset, prices);
+      if (prices.length >= VinceFeatureStoreService.PRICE_HISTORY_LEN) {
+        const sma = prices.reduce((a, b) => a + b, 0) / prices.length;
+        priceVsSma20 = sma > 0 ? ((price - sma) / sma) * 100 : null;
+      }
+    }
+
+    // Binance order book (depth) for book imbalance and bid-ask spread
+    const { bookImbalance, bidAskSpread } = await this.fetchBinanceDepth(asset);
+
+    // DVOL (Deribit) and RSI estimate from market data service
+    let dvol: number | null = null;
+    let rsi14: number | null = null;
+    let atrPct = this.getDefaultAtrPct(asset);
+    if (marketDataService) {
+      try {
+        if (typeof (marketDataService as any).getDVOL === "function") {
+          dvol = await (marketDataService as any).getDVOL(asset);
+        }
+        if (typeof (marketDataService as any).estimateRSI === "function") {
+          const rsiOut = await (marketDataService as any).estimateRSI(asset);
+          if (rsiOut?.rsi != null) rsi14 = rsiOut.rsi;
+        }
+        if (typeof (marketDataService as any).getATRPercent === "function") {
+          atrPct = await (marketDataService as any).getATRPercent(asset);
+        }
+      } catch (e) {
+        logger.debug(`[VinceFeatureStore] MarketData DVOL/RSI/ATR error: ${e}`);
       }
     }
 
@@ -623,18 +694,65 @@ export class VinceFeatureStoreService extends Service {
       volumeRatio,
       fundingRate,
       fundingPercentile: this.calculateFundingPercentile(fundingRate),
-      fundingDelta: null, // Would need historical tracking
+      fundingDelta,
       openInterest,
-      oiChange24h: 0, // Would need historical tracking
+      oiChange24h,
       longShortRatio,
       fearGreedIndex,
-      bookImbalance: null, // Not available from current services
-      bidAskSpread: null, // Not available
-      dvol: null, // Could get from Deribit service
-      atrPct: this.getDefaultAtrPct(asset),
-      rsi14: null, // Would need calculation
-      priceVsSma20: null, // Would need calculation
+      bookImbalance,
+      bidAskSpread,
+      dvol,
+      atrPct,
+      rsi14,
+      priceVsSma20,
     };
+  }
+
+  /**
+   * Fetch Binance futures depth and compute book imbalance (-1..1) and bid-ask spread %.
+   * Public API, no key required. Returns nulls on error or unsupported asset.
+   */
+  private async fetchBinanceDepth(asset: string): Promise<{
+    bookImbalance: number | null;
+    bidAskSpread: number | null;
+  }> {
+    const symbol =
+      asset === "BTC"
+        ? "BTCUSDT"
+        : asset === "ETH"
+          ? "ETHUSDT"
+          : asset === "SOL"
+            ? "SOLUSDT"
+            : asset === "HYPE"
+              ? "HYPEUSDT"
+              : null;
+    if (!symbol) return { bookImbalance: null, bidAskSpread: null };
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), VinceFeatureStoreService.BINANCE_DEPTH_TIMEOUT_MS);
+      const res = await fetch(
+        `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}&limit=10`,
+        { signal: controller.signal }
+      );
+      clearTimeout(t);
+      if (!res.ok) return { bookImbalance: null, bidAskSpread: null };
+      const data = (await res.json()) as { bids?: [string, string][]; asks?: [string, string][] };
+      const bids = data.bids ?? [];
+      const asks = data.asks ?? [];
+      if (bids.length === 0 || asks.length === 0) return { bookImbalance: null, bidAskSpread: null };
+      const bidVol = bids.reduce((sum, [p, q]) => sum + parseFloat(p) * parseFloat(q), 0);
+      const askVol = asks.reduce((sum, [p, q]) => sum + parseFloat(p) * parseFloat(q), 0);
+      const total = bidVol + askVol;
+      const bookImbalance = total > 0 ? (bidVol - askVol) / total : null;
+      const bestBid = parseFloat(bids[0][0]);
+      const bestAsk = parseFloat(asks[0][0]);
+      const mid = (bestBid + bestAsk) / 2;
+      const bidAskSpread = mid > 0 ? ((bestAsk - bestBid) / mid) * 100 : null;
+      return { bookImbalance, bidAskSpread };
+    } catch (e) {
+      logger.debug(`[VinceFeatureStore] Binance depth error: ${e}`);
+      return { bookImbalance: null, bidAskSpread: null };
+    }
   }
 
   private collectSessionFeatures(): SessionFeatures {
@@ -707,6 +825,24 @@ export class VinceFeatureStoreService extends Service {
       }
     }
 
+    // Derive avgSentiment from factors so ML gets a numeric sentiment when sources don't provide it
+    const factors = signal.factors ?? [];
+    let avgSentiment: number | null = null;
+    if (factors.length > 0) {
+      const bullishWords = /long|bullish|negative funding|funding negative|fear|oversold|short liquidat|squeeze|inflow|accumulation|buy/gi;
+      const bearishWords = /short|bearish|elevated funding|funding elevated|greed|overbought|long liquidat|flush|outflow|distribution|sell/gi;
+      let score = 0;
+      for (const f of factors) {
+        const text = String(f);
+        const b = text.match(bullishWords)?.length ?? 0;
+        const s = text.match(bearishWords)?.length ?? 0;
+        score += b - s;
+      }
+      if (score !== 0) {
+        avgSentiment = Math.max(-100, Math.min(100, score * 25));
+      }
+    }
+
     return {
       direction: signal.direction,
       strength: signal.strength,
@@ -720,6 +856,7 @@ export class VinceFeatureStoreService extends Service {
       hasFundingExtreme,
       hasWhaleSignal,
       highestWeightSource,
+      avgSentiment: avgSentiment ?? undefined,
     };
   }
 
@@ -797,8 +934,23 @@ export class VinceFeatureStoreService extends Service {
       try {
         const sentiment = newsService.getOverallSentiment?.();
         if (sentiment) {
-          result.sentimentScore = sentiment.score ?? null;
           result.sentimentDirection = sentiment.sentiment ?? null;
+          const conf = typeof sentiment.confidence === "number" ? sentiment.confidence : 0;
+          result.sentimentScore =
+            sentiment.sentiment === "bullish"
+              ? conf
+              : sentiment.sentiment === "bearish"
+                ? -conf
+                : 0;
+        }
+        const events = newsService.getActiveRiskEvents?.();
+        if (Array.isArray(events) && events.length > 0) {
+          result.hasActiveRiskEvents = true;
+          const severities = events.map((e: { severity?: string }) => e.severity).filter(Boolean);
+          if (severities.includes("critical")) result.highestRiskSeverity = "critical";
+          else if (severities.includes("high")) result.highestRiskSeverity = "high";
+          else if (severities.includes("medium")) result.highestRiskSeverity = "medium";
+          else result.highestRiskSeverity = "low";
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] News sentiment error: ${e}`);

@@ -182,6 +182,42 @@ Ideas to improve the end-to-end ML pipeline beyond the table above:
 
 ---
 
+## Leverage more data points
+
+**Yes — we have many more data points available than are currently used** in both the trading algo and the feature store. The training script's improvement report (`training_metadata.json` → `suggested_signal_factors`) explicitly lists fields that are **present in the schema but 0% or low % non-null** (i.e. not populated at record time).
+
+### Already wired (as of this update)
+
+| Data point | Source | Where |
+|------------|--------|--------|
+| **OI 24h change** | CoinGlass `getOpenInterest(asset).change24h` | Feature store `collectMarketFeatures` → `market.oiChange24h` |
+| **DVOL** | MarketData `getDVOL(asset)` (Deribit) | Feature store → `market.dvol` |
+| **RSI (estimate)** | MarketData `estimateRSI(asset)` | Feature store → `market.rsi14` |
+| **ATR %** | MarketData `getATRPercent(asset)` (Deribit when available) | Feature store → `market.atrPct` (was default only; now live when Deribit available) |
+
+Training script (`train_models.py`) now **includes** `market_dvol`, `market_rsi14`, `market_oiChange24h` (and for position sizing, `market_atrPct`) in the feature lists when those columns exist, so new JSONL with these populated will improve signal quality, position sizing, TP, and SL models.
+
+### Now wired (latest)
+
+| Data point | Where |
+|------------|--------|
+| **Funding 8h delta** | Feature store: per-asset funding history cache; delta = current − rate from ~8h ago. |
+| **Order book imbalance** | Feature store: Binance futures depth (BTC/ETH/SOL/HYPE); (bidVol − askVol) / total. |
+| **Bid-ask spread** | Same depth; (bestAsk − bestBid) / mid × 100. |
+| **Price vs SMA20** | Feature store: rolling window of last 20 prices per asset; (price − SMA) / SMA × 100. |
+| **News sentiment** | `getOverallSentiment()` → sentimentScore (±confidence), sentimentDirection; `getActiveRiskEvents()` → hasActiveRiskEvents, highestRiskSeverity. |
+| **Signal sentiment** | Keyword scan over `signal.factors` → `signal.avgSentiment`; train script uses it as `signal_avg_sentiment` when present. |
+
+### Still optional (macro / ETF)
+
+| Data point | How to add |
+|------------|------------|
+| **NASDAQ 24h / ETF flow / macro** | Add macro/ETF API and set `news.nasdaqChange`, `news.etfFlowBtc`, `news.etfFlowEth`, `news.macroRiskEnvironment` in the feature record. |
+
+See **DATA_LEVERAGE.md** in this plugin for a short checklist and mapping from "suggested signal factors" to code paths.
+
+---
+
 ## Train & Deploy Checklist
 
 Use this after you have **90+ closed trades** (or enough for a meaningful train set) and when you want to refresh models.

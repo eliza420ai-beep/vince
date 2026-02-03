@@ -139,6 +139,8 @@ def load_features(filepath: str) -> pd.DataFrame:
         if sources and isinstance(sources[0], dict):
             sents = [s.get('sentiment', 0) for s in sources if isinstance(s.get('sentiment'), (int, float))]
             flat['signal_avg_sentiment'] = float(np.mean(sents)) if sents else 0.0
+        elif signal.get('avgSentiment') is not None:
+            flat['signal_avg_sentiment'] = float(signal['avgSentiment'])
         for k, v in r.get('regime', {}).items():
             flat[f'regime_{k}'] = v
         news = r.get('news', {})
@@ -216,6 +218,17 @@ def prepare_signal_quality_features(
         "signal_hasWhaleSignal", "session_isWeekend", "session_isOpenWindow",
         "session_utcHour",
     ]
+    for opt in (
+        "market_dvol",
+        "market_rsi14",
+        "market_oiChange24h",
+        "market_fundingDelta",
+        "market_bookImbalance",
+        "market_bidAskSpread",
+        "market_priceVsSma20",
+    ):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
@@ -263,6 +276,18 @@ def prepare_position_sizing_features(
         "signal_strength", "signal_confidence", "signal_source_count",
         "session_isWeekend", "exec_streakMultiplier",
     ]
+    for opt in (
+        "market_dvol",
+        "market_rsi14",
+        "market_oiChange24h",
+        "market_atrPct",
+        "market_fundingDelta",
+        "market_bookImbalance",
+        "market_bidAskSpread",
+        "market_priceVsSma20",
+    ):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
@@ -305,6 +330,17 @@ def prepare_tp_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
+    for opt in (
+        "market_dvol",
+        "market_rsi14",
+        "market_oiChange24h",
+        "market_fundingDelta",
+        "market_bookImbalance",
+        "market_bidAskSpread",
+        "market_priceVsSma20",
+    ):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
@@ -357,6 +393,17 @@ def prepare_sl_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
+    for opt in (
+        "market_dvol",
+        "market_rsi14",
+        "market_oiChange24h",
+        "market_fundingDelta",
+        "market_bookImbalance",
+        "market_bidAskSpread",
+        "market_priceVsSma20",
+    ):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
