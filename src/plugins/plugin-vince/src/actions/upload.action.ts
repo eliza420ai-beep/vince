@@ -32,7 +32,7 @@
  * - Falls back to simple file storage if plugin-knowledge-ingestion is not available
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type { Action, IAgentRuntime, Memory, State, HandlerCallback, UUID } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { spawn } from "child_process";
 import * as fs from "fs";
@@ -49,6 +49,13 @@ import type {
 const MIN_TEXT_LENGTH = 50;
 const AUTO_INGEST_LENGTH = 500;
 const LONG_DUMP_LENGTH = 1000;
+
+/** When current message is short and matches these, we use the previous user message as content (avoids truncation from client). */
+const UPLOAD_THAT_PATTERNS = [
+  /^(upload|save|ingest|remember|add to knowledge|store)\s+(that|the above|the previous|it|this)\s*\.?$/i,
+  /^(upload|save|ingest|remember)\s*:\s*that\s*\.?$/i,
+];
+const MAX_REFERENCE_MESSAGE_LENGTH = 120;
 
 /**
  * Intent keywords that trigger upload
@@ -280,7 +287,7 @@ function looksPastedNotConversational(text: string): boolean {
  */
 function extractContent(text: string): string {
   const lowerText = text.toLowerCase();
-  
+
   for (const keyword of UPLOAD_INTENT_KEYWORDS) {
     const idx = lowerText.indexOf(keyword);
     if (idx !== -1) {
@@ -289,8 +296,43 @@ function extractContent(text: string): string {
       return content;
     }
   }
-  
+
   return text;
+}
+
+/** True if text looks like "upload that" / "save the above" (short reference to previous message). */
+function looksLikeUploadThat(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length > MAX_REFERENCE_MESSAGE_LENGTH) return false;
+  return UPLOAD_THAT_PATTERNS.some((p) => p.test(trimmed));
+}
+
+/**
+ * Get content from the most recent user message before the current one (for "upload that" flow).
+ * Returns null if not found or not long enough.
+ */
+async function getPreviousUserMessageContent(
+  runtime: IAgentRuntime,
+  roomId: UUID,
+  currentMessageId: string | undefined,
+  minLength: number = MIN_TEXT_LENGTH
+): Promise<string | null> {
+  try {
+    const memories = await runtime.getMemories({
+      roomId,
+      count: 15,
+      tableName: "messages",
+    });
+    const userMessages = memories.filter((m) => m.entityId !== runtime.agentId);
+    const byNewest = [...userMessages].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    const idx = currentMessageId ? byNewest.findIndex((m) => m.id === currentMessageId) : -1;
+    const prev = idx === 0 ? byNewest[1] : byNewest[0];
+    const content = prev?.content?.text?.trim();
+    if (content && content.length >= minLength) return content;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -682,6 +724,20 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             });
           }
           return;
+        }
+      }
+
+      // --- "Upload that" / "save that": use previous user message as content (avoids client truncation) ---
+      if (content.length <= MAX_REFERENCE_MESSAGE_LENGTH && looksLikeUploadThat(text)) {
+        const previousContent = await getPreviousUserMessageContent(
+          runtime,
+          message.roomId,
+          message.id,
+          MIN_TEXT_LENGTH
+        );
+        if (previousContent) {
+          content = previousContent;
+          logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Using previous message (upload that)");
         }
       }
 

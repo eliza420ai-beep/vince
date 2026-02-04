@@ -8,9 +8,9 @@
  * she's built to expand the corpus and answer from it.
  *
  * - 24/7 research on the knowledge base; brainstorm ideas and frameworks.
- * - YouTube (and articles/PDFs): paste a link → Eliza runs UPLOAD (transcript
- *   + summary) and saves to the right folder. You can suggest content manually
- *   whenever something is worth ingesting.
+ * - UPLOAD: Same pipeline as VINCE. Paste a URL or YouTube link → runs the
+ *   summarize CLI (Ikigai Labs fork) → transcript + summary for video, full
+ *   content/summary for articles/PDFs → saves to knowledge/<category>/.
  * - Same DNA as VINCE: trade well, live well; edge and equilibrium. Execution
  *   and live data → VINCE.
  *
@@ -35,7 +35,7 @@ const buildPlugins = (): Plugin[] => [
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
-  logger.info("[Eliza] ✅ 24/7 research & knowledge expansion ready — YouTube + UPLOAD; execution → VINCE");
+  logger.info("[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE); execution → VINCE");
 };
 
 const elizaAgent: ProjectAgent = {
