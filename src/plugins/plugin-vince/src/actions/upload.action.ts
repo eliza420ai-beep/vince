@@ -449,9 +449,30 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
   if (lowerContent.includes("lifestyle") || lowerContent.includes("travel") || lowerContent.includes("hotel") || lowerContent.includes("restaurant")) {
     return "the-good-life";
   }
-  // art-collections: require real art/nft/collect context, not the word "article"
-  const artLike = lowerContent.includes("nft") || lowerContent.includes("collect") ||
-    (lowerContent.includes("art") && !/\barticle\b/.test(lowerContent));
+  // Framework / philosophy / essay-style synthesis (before art so "The Art of X" books don't hit art-collections)
+  if (
+    lowerContent.includes("framework") ||
+    lowerContent.includes("synthesis") ||
+    lowerContent.includes("latticework") ||
+    lowerContent.includes("mental model") ||
+    lowerContent.includes("munger") ||
+    lowerContent.includes("taleb") ||
+    lowerContent.includes("bostrom") ||
+    lowerContent.includes("decision-making") ||
+    (lowerContent.includes("philosophy") && (lowerContent.includes("trading") || lowerContent.includes("investment") || lowerContent.includes("economics")))
+  ) {
+    return "substack-essays";
+  }
+  // art-collections: require real art/NFT/collectibles context, not bare "art" (e.g. "The Art of Manipulation")
+  const artLike =
+    lowerContent.includes("nft") ||
+    lowerContent.includes("collectibles") ||
+    lowerContent.includes("cryptopunk") ||
+    lowerContent.includes("opensea") ||
+    lowerContent.includes("generative art") ||
+    lowerContent.includes("physical art") ||
+    lowerContent.includes("art market") ||
+    (lowerContent.includes("collect") && (lowerContent.includes("art") || lowerContent.includes("nft")));
   if (artLike) {
     return "art-collections";
   }
