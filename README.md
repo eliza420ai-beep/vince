@@ -15,7 +15,15 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 
 ---
 
-## 🎯 Current focus (Feb 2026)
+## North Star
+
+**You never have to "chat" with VINCE — he pings you.** The goal is a proactive agent that sends what you need on **Discord or Slack**: day report (ALOHA), his trades and reasoning, close results and overall PnL, and optionally thin-floor NFT alerts. Chat remains for deep dives; the default experience is push, not pull. Full vision and gap vs today: [knowledge/internal-docs/vince-north-star.md](knowledge/internal-docs/vince-north-star.md).
+
+**Why we built this:** Stay in the game without 12+ hours on screens—treat crypto to live well, not be consumed. [Mindset (why VINCE + Eliza)](knowledge/internal-docs/why-vince-eliza-mindset.md).
+
+---
+
+## 🎯 Current focus (Feb 2026)
 
 - **ALOHA day report** – our primary action. One command delivers the daily “vibe check”: market temperature, PERPS posture, OPTIONS positioning, and whether the bot should even be trading.
 - **Machine-learning paper trading** – every engineering sprint feeds the paper bot more signal coverage, cleaner feature collection, faster training, and better ONNX models. Everything else is backlog polish.
@@ -68,7 +76,7 @@ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature 
 - **ALOHA** – single command; returns vibe check + PERPS pulse + OPTIONS posture + “should we even trade today?” judgment. This is the action we run every morning.
 - **Self-improving paper bot** – ML loop described above; no live execution, but every trade is stored, learnt from, and used to tighten thresholds.
 - **Teammate context** – USER/SOUL/TOOLS/MEMORY keep the responses in character.
-- **Knowledge ingestion** – the `VINCE_UPLOAD` action pipes long-form research through our fork of **summarize** (`IkigaiLabsETH/summarize`) so every PDF, podcast, or YouTube link we feed in ends up as structured knowledge under `knowledge/`. [1]
+- **Knowledge ingestion** – the `VINCE_UPLOAD` action pipes long-form research through our fork of **summarize** (`IkigaiLabsETH/summarize`) so every PDF, podcast, or YouTube link we feed in ends up as structured knowledge under `knowledge/`. [1]
 - **Chat mode** – `chat: <question>` pulls directly from `knowledge/` and the trench frameworks so you can pressure-test an idea without leaving VINCE.
 - **Other actions** – still exposed, but they’re backlog fodder until they support ALOHA or the ML loop.
 
