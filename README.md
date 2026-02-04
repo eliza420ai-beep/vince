@@ -37,6 +37,10 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 
 ---
 
+```
+  ◆  NORTH STAR
+```
+
 ## North Star
 
 **You never have to "chat" with VINCE — he pings you.** The goal is a proactive agent that sends what you need on **Discord or Slack**: day report (ALOHA), his trades and reasoning, close results and overall PnL, and optionally thin-floor NFT alerts. Chat remains for deep dives; the default experience is push, not pull. Full vision and gap vs today: [knowledge/internal-docs/vince-north-star.md](knowledge/internal-docs/vince-north-star.md).
@@ -44,6 +48,10 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 **Why we built this:** Stay in the game without 12+ hours on screens—treat crypto to live well, not be consumed. [Mindset (why VINCE + Eliza)](knowledge/internal-docs/why-vince-eliza-mindset.md).
 
 ---
+
+```
+  🎯  CURRENT FOCUS (Feb 2026)
+```
 
 ## 🎯 Current focus (Feb 2026)
 
@@ -54,6 +62,10 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 If you only remember one thing: _ALOHA in, better ML out._
 
 ---
+
+```
+  🚀  MILESTONE: Full ML loop on Eliza Cloud (no redeploy tax)
+```
 
 ## 🚀 Milestone: Full ML loop on Eliza Cloud (no redeploy tax)
 
@@ -180,6 +192,10 @@ We use **Postgres/Supabase** for production so the app and deploy use the same D
 
 **Alternative: ship models in the repo.** Train locally, copy `.onnx` + `training_metadata.json` into `src/plugins/plugin-vince/models/`, commit, and deploy; the Dockerfile copies that folder into the container. See [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) and [DEPLOY.md](DEPLOY.md#ml-onnx-on-eliza-cloud--will-it-be-active).
 
+```
+  ▶  TESTING
+```
+
 ## Testing
 
 ElizaOS employs a dual testing strategy:
@@ -256,6 +272,10 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 
 [1]: https://github.com/IkigaiLabsETH/summarize
 
+```
+  ▶  CONFIGURATION  ·  DOCUMENTATION  ·  TROUBLESHOOTING
+```
+
 ## Configuration
 
 | What | Where |
@@ -274,6 +294,10 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 | [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
 | [src/plugins/plugin-vince/README.md](src/plugins/plugin-vince/README.md) | Plugin overview; [WHAT.md](src/plugins/plugin-vince/WHAT.md) / [WHY.md](src/plugins/plugin-vince/WHY.md) / [HOW.md](src/plugins/plugin-vince/HOW.md) / [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for purpose, framework rationale, and development |
 | [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) | Ship ONNX models for Eliza Cloud (copy trained `.onnx` + `training_metadata.json` into this folder, then deploy) |
+
+```
+  ⚠  TROUBLESHOOTING
+```
 
 ## Troubleshooting
 
