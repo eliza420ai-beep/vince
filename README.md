@@ -15,6 +15,28 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 
 ---
 
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  CONTENTS                                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  North Star          →  Proactive agent, push not pull                       │
+│  Current focus       →  ALOHA, ML paper trading (Feb 2026)                  │
+│  Milestone           →  Full ML loop on Eliza Cloud                          │
+│  Heart of VINCE      →  Signals → trades → learning                         │
+│  Star feature        →  Self-improving paper bot                            │
+│  Features            →  What actually matters + action status               │
+│  Getting started     →  Install, dev, production                             │
+│  Development         →  Commands, testing                                    │
+│  Production          →  Supabase, ML on Cloud                                │
+│  Testing             →  Component + E2E                                      │
+│  Configuration       →  Where things live                                    │
+│  Documentation       →  Doc index                                            │
+│  Troubleshooting     →  DB migration, SSL                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## North Star
 
 **You never have to "chat" with VINCE — he pings you.** The goal is a proactive agent that sends what you need on **Discord or Slack**: day report (ALOHA), his trades and reasoning, close results and overall PnL, and optionally thin-floor NFT alerts. Chat remains for deep dives; the default experience is push, not pull. Full vision and gap vs today: [knowledge/internal-docs/vince-north-star.md](knowledge/internal-docs/vince-north-star.md).
@@ -39,7 +61,6 @@ If you only remember one thing: _ALOHA in, better ML out._
 
 | What | How |
 |------|-----|
-
 | **Feature store** | Paper trade features dual-write to Supabase table `vince_paper_bot_features`. Data **persists across redeploys** — no more losing history when the container is recreated. |
 | **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container** (Dockerfile: Python + xgboost, onnxmltools, etc.). No local train-and-copy. |
 | **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** so new thresholds apply **immediately**. Next redeploy: app pulls latest from the bucket — **updated ML without another deploy**. |
@@ -49,9 +70,17 @@ If you only remember one thing: _ALOHA in, better ML out._
 
 ---
 
+```
+  ═══  HEART OF VINCE: signals → trades → learning  ═══
+```
+
 ## Heart of VINCE: signals → trades → learning
 
 The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 50+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). The feature store and training script are aligned with the expanded signal set: **hasFundingExtreme** covers Binance and Hyperliquid funding extremes, **hasOICap** records Hyperliquid perps-at-OI-cap; the training script uses optional **signal_hasOICap** when present, and synthetic data (`generate_synthetic_features.py`) uses a 10-source pool so ML sees the same variety as production. Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. To enable or fix sources, see [plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md).
+
+```
+  ★  STAR FEATURE: self-improving paper trading bot  ★
+```
 
 ## Star feature: self-improving paper trading bot
 
@@ -71,6 +100,10 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
+```
+  ───  FEATURES (what actually matters)  ───
+```
+
 ## Features (what actually matters)
 
 - **ALOHA** – single command; returns vibe check + PERPS pulse + OPTIONS posture + “should we even trade today?” judgment. This is the action we run every morning.
@@ -86,6 +119,10 @@ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature 
 - **VINCE_PERPS / VINCE_OPTIONS** – Used inside ALOHA; still callable directly, but treated as subcomponents not standalone experiences.
 - **Everything else (NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD)** – kept for heritage, lightly maintained, not a product focus right now.
 
+```
+  ▶  GETTING STARTED
+```
+
 ## Getting started
 
 ```bash
@@ -98,6 +135,10 @@ elizaos dev
 
 # Or start once (uses Postgres when POSTGRES_URL is set)
 bun start
+```
+
+```
+  ▶  DEVELOPMENT
 ```
 
 ## Development
@@ -113,6 +154,10 @@ bun start
 
 # Test the project
 elizaos test
+```
+
+```
+  ▶  PRODUCTION (Supabase / Postgres)
 ```
 
 ## Production with Supabase (Postgres)

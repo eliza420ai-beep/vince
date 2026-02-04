@@ -1,9 +1,5 @@
 # plugin-vince
 
-**Unified Data Intelligence for the VINCE Agent**
-
-A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
-
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
@@ -13,7 +9,17 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
+**Unified Data Intelligence for the VINCE Agent**
+
+> A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
+
 ---
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  📑 TABLE OF CONTENTS                                    │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## Table of Contents
 
@@ -30,6 +36,12 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 - [TODO - Future Improvements](#todo---future-improvements)
 
 ---
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+  📡 HEART OF VINCE: SIGNALS → TRADES → LEARNING
+═══════════════════════════════════════════════════════════════════════════════
+```
 
 ## Heart of VINCE: Signals → Trades → Learning
 
@@ -53,6 +65,12 @@ The pipeline is a **sophisticated, multi-factor paper trading system** that goes
    Paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 the bot runs on rules; over time it leans on ML as enough data accumulates.
 
 ---
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  🎯 WHAT — THE PLUGIN'S PURPOSE                          │
+└─────────────────────────────────────────────────────────┘
+```
 
 ## WHAT - The Plugin's Purpose
 
@@ -92,6 +110,12 @@ VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle a
 - **Data leverage:** 50+ features per decision including funding 8h delta, OI 24h change, DVOL, RSI, order-book imbalance, bid-ask spread, price vs SMA20, news sentiment/risk, and factor-derived signal sentiment—so ML and the improvement report see the full picture. See [DATA_LEVERAGE.md](DATA_LEVERAGE.md) and progress.txt § “Things to do next (high impact)”.
 
 ---
+
+```
+═══════════════════════════════════════════════════════════════════════════════
+  🏗️  HOW — ARCHITECTURE AND IMPLEMENTATION
+═══════════════════════════════════════════════════════════════════════════════
+```
 
 ## HOW - Architecture and Implementation
 
