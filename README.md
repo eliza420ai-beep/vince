@@ -9,9 +9,18 @@
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
+> **Push, not pull.** Unified data intelligence for options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
 
-**Docs:** [FEATURE-STORE.md](FEATURE-STORE.md) (ML / paper bot storage) · [DEPLOY.md](DEPLOY.md) (Eliza Cloud deploy) · [CLAUDE.md](CLAUDE.md) (dev guide) · [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (plugin README, WHAT/WHY/HOW, CLAUDE)
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  QUICK LINKS                                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [FEATURE-STORE](FEATURE-STORE.md)   ML & paper bot · feature store          │
+│  [DEPLOY](DEPLOY.md)                 Eliza Cloud · env · troubleshooting     │
+│  [CLAUDE](CLAUDE.md)                 Dev guide (character, plugins, tests)   │
+│  [plugin-vince/](src/plugins/plugin-vince/)  README · WHAT · WHY · HOW       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -19,21 +28,23 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  CONTENTS                                                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  North Star          →  Proactive agent, push not pull                       │
-│  Current focus       →  ALOHA, ML paper trading (Feb 2026)                  │
-│  Milestone           →  Full ML loop on Eliza Cloud                          │
-│  Heart of VINCE      →  Signals → trades → learning                         │
-│  Star feature        →  Self-improving paper bot                            │
-│  Features            →  What actually matters + action status               │
-│  Getting started     →  Install, dev, production                             │
-│  Development         →  Commands, testing                                    │
-│  Production          →  Supabase, ML on Cloud                                │
-│  Testing             →  Component + E2E                                      │
-│  Configuration       →  Where things live                                    │
-│  Documentation       →  Doc index                                            │
-│  Troubleshooting     →  DB migration, SSL                                    │
+│  [North Star](#north-star)             Proactive agent, push not pull        │
+│  [Current focus](#-current-focus-feb-2026)   ALOHA, ML paper trading         │
+│  [Milestone](#-milestone-full-ml-loop-on-eliza-cloud-no-redeploy-tax)  Shipped │
+│  [Heart of VINCE](#heart-of-vince-signals--trades--learning)  Pipeline      │
+│  [Star feature](#star-feature-self-improving-paper-trading-bot)  ML bot      │
+│  [Features](#features-what-actually-matters)  What matters + actions          │
+│  [Getting started](#getting-started)  Install, dev, production               │
+│  [Development](#development)          Commands, testing                      │
+│  [Production](#production-with-supabase-postgres)  Supabase, ML on Cloud      │
+│  [Testing](#testing)                   Component + E2E                        │
+│  [Configuration](#configuration)       Where things live                      │
+│  [Documentation](#documentation)        Doc index                             │
+│  [Troubleshooting](#troubleshooting)   DB migration, SSL                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + “trade today?”. Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** `elizaos dev` to run.
 
 ---
 
@@ -59,7 +70,7 @@ Unified data intelligence agent for ElizaOS: options, perps, memes, airdrops, De
 - **Machine-learning paper trading** – every engineering sprint feeds the paper bot more signal coverage, cleaner feature collection, faster training, and better ONNX models. Everything else is backlog polish.
 - **Other actions** – still present, but treated as supporting cast. If it doesn’t improve the paper strategy or the daily ALOHA briefing, it’s deliberately low priority.
 
-If you only remember one thing: _ALOHA in, better ML out._
+> **If you only remember one thing:** _ALOHA in, better ML out._
 
 ---
 
@@ -76,9 +87,9 @@ If you only remember one thing: _ALOHA in, better ML out._
 | **Feature store** | Paper trade features dual-write to Supabase table `vince_paper_bot_features`. Data **persists across redeploys** — no more losing history when the container is recreated. |
 | **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container** (Dockerfile: Python + xgboost, onnxmltools, etc.). No local train-and-copy. |
 | **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** so new thresholds apply **immediately**. Next redeploy: app pulls latest from the bucket — **updated ML without another deploy**. |
-| **One-time setup** | Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase; create Storage bucket `vince-ml-models`. Set `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`, then `bun run deploy:cloud` and you’re set. See [DEPLOY.md](DEPLOY.md) and [FEATURE-STORE.md](FEATURE-STORE.md).
+| **One-time setup** | Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase; create Storage bucket `vince-ml-models`. Set `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`, then `bun run deploy:cloud` and you’re set. See [DEPLOY.md](DEPLOY.md) and [FEATURE-STORE.md](FEATURE-STORE.md). |
 
-**TL;DR:** One deploy. Features and models live in Supabase. Training runs on Cloud. New models take effect **without** another $15 redeploy.
+> **TL;DR:** One deploy. Features and models live in Supabase. Training runs on Cloud. New models take effect **without** another $15 redeploy.
 
 ---
 
@@ -130,6 +141,12 @@ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature 
 - **ALOHA (includes PERPS & OPTIONS insights)** – ⭐ Core value.
 - **VINCE_PERPS / VINCE_OPTIONS** – Used inside ALOHA; still callable directly, but treated as subcomponents not standalone experiences.
 - **Everything else (NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD)** – kept for heritage, lightly maintained, not a product focus right now.
+
+---
+
+```
+  ─ ─ ─  RUN IT  ─ ─ ─   Getting started · Development · Production · Testing  ─ ─ ─
+```
 
 ```
   ▶  GETTING STARTED
@@ -273,6 +290,10 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 [1]: https://github.com/IkigaiLabsETH/summarize
 
 ```
+  ─ ─ ─  REFERENCE  ─ ─ ─   Configuration · Documentation · Troubleshooting  ─ ─ ─
+```
+
+```
   ▶  CONFIGURATION  ·  DOCUMENTATION  ·  TROUBLESHOOTING
 ```
 
@@ -321,3 +342,15 @@ Then run **`bun start`** — the start script runs the migration bootstrap first
 See [DEPLOY.md](DEPLOY.md) for full deploy options, bootstrap SQL, and troubleshooting.
 
 **Quick deploy (PGLite, minimal env):** `bun run deploy:cloud` or the minimal command in [DEPLOY.md](DEPLOY.md#minimal-required-only--pglite-no-postgres).
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────────────╮
+│  QUICK REFERENCE                                                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Run locally    elizaos dev          │  Deploy       bun run deploy:cloud    │
+│  Test           elizaos test         │  Postgres     port 5432 (not 6543)   │
+│  Feature store  vince_paper_bot_features  │  ML bucket   vince-ml-models     │
+╰─────────────────────────────────────────────────────────────────────────────╯
+```
