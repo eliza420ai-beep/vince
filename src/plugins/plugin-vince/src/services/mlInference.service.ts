@@ -337,16 +337,23 @@ export class VinceMLInferenceService extends Service {
   }
 
   private async loadModel(name: string, filename: string): Promise<void> {
+    if (!this.ort) return;
     const modelPath = path.join(ML_CONFIG.modelsDir, filename);
-    
+
     if (!fs.existsSync(modelPath)) {
       logger.debug(`[MLInference] Model not found: ${filename}`);
       return;
     }
 
     try {
-      const session = await this.ort.InferenceSession.create(modelPath);
-      
+      // Explicitly use CPU execution provider to avoid "no available backend found"
+      // on some platforms (e.g. macOS ARM) where default backend detection can fail.
+      const sessionOptions: { executionProviders?: string[] } = {};
+      if (typeof this.ort.InferenceSession?.create === "function") {
+        sessionOptions.executionProviders = ["cpu"];
+      }
+      const session = await this.ort.InferenceSession.create(modelPath, sessionOptions);
+
       // Store session
       switch (name) {
         case "signalQuality":
@@ -377,6 +384,16 @@ export class VinceMLInferenceService extends Service {
 
       logger.info(`[MLInference] Loaded model: ${name}`);
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes("no available backend found")) {
+        // ONNX runtime has no usable backend on this platform; disable and use rule-based fallbacks.
+        this.ort = null;
+        logger.info(
+          "[MLInference] ONNX backend not available on this platform - using rule-based fallbacks. " +
+            "Install/build onnxruntime-node for your OS/arch for ML inference."
+        );
+        return;
+      }
       logger.error(`[MLInference] Failed to load ${name}: ${error}`);
     }
   }
