@@ -12,9 +12,8 @@
  * - Viral potential detection for 5-10x plays
  *
  * Uses DexScreener API (FREE)
- * Separate API calls and boxes for Solana vs Base:
+ * Solana only (Base abandoned: DexScreener Base feeds consistently failed to return data).
  * - Solana: token-boosts/top/v1 (keep only solana)
- * - Base: community-takeovers/latest/v1 (filter chainId === base) for dedicated Base coverage
  * Includes circuit breaker and retry logic for resilience
  */
 
@@ -176,17 +175,16 @@ export class VinceDexScreenerService extends Service {
   }
 
   /**
-   * Print two separate dashboards: Solana meme scanner, then Base meme scanner.
+   * Print Solana meme scanner dashboard only (Base abandoned).
    */
   private printDexScreenerDashboard(): void {
     this.printChainBox("SOLANA", this.trendingTokensSolana);
-    this.printChainBox("BASE", this.trendingTokensBase);
     const { mood, summary } = this.getMarketMood();
     const moodEmoji = mood === "pumping" ? "🚀" : mood === "dumping" ? "💀" : mood === "choppy" ? "🌊" : "😴";
     startBox();
     logLine(`${moodEmoji} MEME MOOD: ${summary}`);
     endBox();
-    logger.info(`[VinceDexScreener] ✅ Dashboards loaded: SOL ${this.trendingTokensSolana.length} | BASE ${this.trendingTokensBase.length}`);
+    logger.info(`[VinceDexScreener] ✅ Dashboard loaded: SOL ${this.trendingTokensSolana.length} tokens`);
   }
 
   private printChainBox(chainLabel: string, tokens: MemeToken[]): void {
@@ -346,11 +344,8 @@ export class VinceDexScreenerService extends Service {
     try {
       this.tokenCache.clear();
       this.trendingTokensSolana = [];
-      this.trendingTokensBase = [];
-      await Promise.all([
-        this.fetchTrendingSolana(),
-        this.fetchTrendingBase(),
-      ]);
+      this.trendingTokensBase = []; // Base fetch abandoned - DexScreener Base feeds failed consistently
+      await this.fetchTrendingSolana();
       this.mergeTrendingLists();
       this.lastUpdate = now;
     } catch (error) {
