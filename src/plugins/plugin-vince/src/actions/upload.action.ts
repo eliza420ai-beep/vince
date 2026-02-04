@@ -18,8 +18,8 @@
  *   "remember: [important info]"
  *
  * SUMMARIZE INTEGRATION (optional):
- * - Uses summarize CLI (e.g. https://github.com/IkigaiLabsETH/summarize) via bunx to
- *   keep improving the knowledge/ folder from URLs and YouTube.
+ * - Uses summarize CLI via bunx: we invoke @steipete/summarize (upstream npm).
+ *   Alternative: Ikigai fork https://github.com/IkigaiLabsETH/summarize (install from GitHub if desired).
  * - Install: bun install -g @steipete/summarize (or use bunx; no install required).
  * - Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GEMINI_API_KEY for summarize's model.
  * - VINCE_UPLOAD_EXTRACT_ONLY=true: use --extract only (transcript/extract, no LLM; saves cost).
@@ -49,6 +49,9 @@ import type {
 const MIN_TEXT_LENGTH = 50;
 const AUTO_INGEST_LENGTH = 500;
 const LONG_DUMP_LENGTH = 1000;
+
+/** Below this word count we warn that chat may have truncated; suggest sending the URL instead. */
+const LOW_WORD_COUNT_WARN_THRESHOLD = 400;
 
 /** When current message is short and matches these, we use the previous user message as content (avoids truncation from client). */
 const UPLOAD_THAT_PATTERNS = [
@@ -120,6 +123,13 @@ function extractYouTubeUrl(text: string): string | null {
 /** Match a single http(s) URL in text (for article/PDF links) */
 const GENERIC_URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/i;
 
+/** X/Twitter URLs: we don't have X API; summarize can't fetch tweet/post content. Don't call summarize for these. */
+const X_TWITTER_HOST_PATTERN = /^https?:\/\/(www\.)?(x\.com|twitter\.com)\//i;
+
+function isXOrTwitterUrl(url: string): boolean {
+  return X_TWITTER_HOST_PATTERN.test(url.trim());
+}
+
 function extractSingleUrl(text: string): string | null {
   const trimmed = text.trim();
   const match = trimmed.match(GENERIC_URL_REGEX);
@@ -130,6 +140,19 @@ function extractSingleUrl(text: string): string | null {
 
 /** Allowed summary length presets (summarize --length). */
 const SUMMARY_LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const;
+
+/** Resolve summarize CLI: use local node_modules/.bin/summarize if present, else bunx. */
+function getSummarizeCommand(cliArgs: string[]): { command: string; args: string[] } {
+  const cwd = process.cwd();
+  const binDir = path.join(cwd, "node_modules", ".bin");
+  const localBin = path.join(binDir, "summarize");
+  const localBinWin = path.join(binDir, "summarize.cmd");
+  if (fs.existsSync(localBin) || (process.platform === "win32" && fs.existsSync(localBinWin))) {
+    const cmd = process.platform === "win32" && fs.existsSync(localBinWin) ? localBinWin : localBin;
+    return { command: cmd, args: cliArgs };
+  }
+  return { command: "bunx", args: ["@steipete/summarize", ...cliArgs] };
+}
 
 /** Result from summarize: success with content, or failure with optional stderr for user feedback */
 type SummarizeResult =
@@ -163,32 +186,34 @@ async function runSummarizeCli(
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
   const timeoutArg = timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
 
-  const args = ["@steipete/summarize", url, "--plain", "--no-color", "--timeout", timeoutArg];
+  const cliArgs = [url, "--plain", "--no-color", "--timeout", timeoutArg];
   if (useExtractOnly) {
-    args.push("--extract");
-    if (!isYouTube) args.push("--format", "md");
+    cliArgs.push("--extract");
+    if (!isYouTube) cliArgs.push("--format", "md");
   } else {
-    args.push("--length", length);
+    cliArgs.push("--length", length);
   }
   if (isYouTube) {
-    args.push("--youtube", "auto");
+    cliArgs.push("--youtube", "auto");
   }
   if (youtubeSlides) {
-    args.push("--slides", "--slides-dir", "./knowledge/.slides");
+    cliArgs.push("--slides", "--slides-dir", "./knowledge/.slides");
     if (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "1") {
-      args.push("--slides-ocr");
+      cliArgs.push("--slides-ocr");
     }
   }
   const firecrawl = process.env.VINCE_UPLOAD_FIRECRAWL?.toLowerCase();
   if (!isYouTube && (firecrawl === "auto" || firecrawl === "always")) {
-    args.push("--firecrawl", firecrawl);
+    cliArgs.push("--firecrawl", firecrawl);
   }
   const lang = process.env.VINCE_UPLOAD_LANG?.trim();
-  if (lang) args.push("--lang", lang);
+  if (lang) cliArgs.push("--lang", lang);
+
+  const { command: summarizeCommand, args: summarizeArgs } = getSummarizeCommand(cliArgs);
 
   const runOne = (): Promise<SummarizeResult | null> =>
     new Promise((resolve) => {
-      const child = spawn("bunx", args, {
+      const child = spawn(summarizeCommand, summarizeArgs, {
         stdio: ["ignore", "pipe", "pipe"],
         shell: process.platform === "win32",
       });
@@ -307,28 +332,42 @@ function looksLikeUploadThat(text: string): boolean {
   return UPLOAD_THAT_PATTERNS.some((p) => p.test(trimmed));
 }
 
+/** Max recent user messages to combine when building paste content (captures multi-message dumps). */
+const MAX_RECENT_USER_MESSAGES_TO_COMBINE = 10;
+
 /**
- * Get content from the most recent user message before the current one (for "upload that" flow).
- * Returns null if not found or not long enough.
+ * Get content from recent user messages, concatenated oldest-first.
+ * Used for "upload that" and to capture pastes split across multiple messages (no X API).
+ * Returns null if no usable content.
  */
-async function getPreviousUserMessageContent(
+async function getRecentUserMessagesContent(
   runtime: IAgentRuntime,
   roomId: UUID,
   currentMessageId: string | undefined,
-  minLength: number = MIN_TEXT_LENGTH
+  options: { minLength?: number; maxMessages?: number } = {}
 ): Promise<string | null> {
+  const { minLength = MIN_TEXT_LENGTH, maxMessages = MAX_RECENT_USER_MESSAGES_TO_COMBINE } = options;
   try {
     const memories = await runtime.getMemories({
       roomId,
-      count: 15,
+      count: 25,
       tableName: "messages",
     });
     const userMessages = memories.filter((m) => m.entityId !== runtime.agentId);
     const byNewest = [...userMessages].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-    const idx = currentMessageId ? byNewest.findIndex((m) => m.id === currentMessageId) : -1;
-    const prev = idx === 0 ? byNewest[1] : byNewest[0];
-    const content = prev?.content?.text?.trim();
-    if (content && content.length >= minLength) return content;
+    let startIdx = 0;
+    if (currentMessageId) {
+      const idx = byNewest.findIndex((m) => m.id === currentMessageId);
+      if (idx === 0) startIdx = 1;
+    }
+    const toCombine = byNewest.slice(startIdx, startIdx + maxMessages);
+    const parts: string[] = [];
+    for (const m of toCombine.reverse()) {
+      const text = m?.content?.text?.trim();
+      if (text) parts.push(text);
+    }
+    const content = parts.join("\n\n").trim();
+    if (content.length >= minLength) return content;
     return null;
   } catch {
     return null;
@@ -409,10 +448,13 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
   if (lowerContent.includes("lifestyle") || lowerContent.includes("travel") || lowerContent.includes("hotel") || lowerContent.includes("restaurant")) {
     return "the-good-life";
   }
-  if (lowerContent.includes("nft") || lowerContent.includes("art") || lowerContent.includes("collect")) {
+  // art-collections: require real art/nft/collect context, not the word "article"
+  const artLike = lowerContent.includes("nft") || lowerContent.includes("collect") ||
+    (lowerContent.includes("art") && !/\barticle\b/.test(lowerContent));
+  if (artLike) {
     return "art-collections";
   }
-  
+
   return "uncategorized";
 }
 
@@ -666,10 +708,19 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         return;
       }
 
-      // --- Single URL (article/PDF): run summarize then save ---
+      // --- Single URL (article/PDF): run summarize then save (skip X/twitter — no API, summarize can't get post content) ---
       let content = extractContent(text);
       const singleUrl = content.trim().length < 500 && extractSingleUrl(content);
       if (singleUrl && hasUploadIntent(text)) {
+        if (isXOrTwitterUrl(singleUrl)) {
+          if (callback) {
+            await callback({
+              text: `⚠️ **X (Twitter) links can't be fetched here**\n\nWe don't have the X API, so I can't pull the post/thread content from that link. Summarize only gets the page shell (hence the 14-word “article” you saw).\n\n**What works:** Paste the thread or article text into chat (in one or more messages), then say **\"upload that\"** and I'll combine those messages and save them to knowledge so we keep most or all of the content.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          }
+          return;
+        }
         const urlContent = content.trim();
         if (urlContent === singleUrl || (urlContent.startsWith(singleUrl) && urlContent.length < singleUrl.length + 50)) {
           if (callback) {
@@ -727,17 +778,34 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         }
       }
 
-      // --- "Upload that" / "save that": use previous user message as content (avoids client truncation) ---
+      // --- "Upload that" / "save that": use recent user messages combined (captures full dumps split across messages; no X API) ---
       if (content.length <= MAX_REFERENCE_MESSAGE_LENGTH && looksLikeUploadThat(text)) {
-        const previousContent = await getPreviousUserMessageContent(
+        const combinedContent = await getRecentUserMessagesContent(
           runtime,
           message.roomId,
           message.id,
-          MIN_TEXT_LENGTH
+          { minLength: MIN_TEXT_LENGTH, maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE }
         );
-        if (previousContent) {
-          content = previousContent;
-          logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Using previous message (upload that)");
+        if (combinedContent) {
+          content = combinedContent;
+          logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Using combined recent user messages (upload that)");
+        }
+      }
+
+      // --- Plain text / pasted content: prepend recent user messages so multi-message dumps are captured (no X API) ---
+      if (content.length >= MIN_TEXT_LENGTH) {
+        const previousBlock = await getRecentUserMessagesContent(
+          runtime,
+          message.roomId,
+          message.id,
+          { minLength: 100, maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE }
+        );
+        if (previousBlock && previousBlock.length > 0 && !previousBlock.includes(content.trim().slice(0, 200))) {
+          const combined = `${previousBlock}\n\n${content}`.trim();
+          if (combined.length > content.length) {
+            content = combined;
+            logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Prepended recent user messages to capture full dump");
+          }
         }
       }
 
@@ -804,20 +872,25 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       if (callback) {
         if (fileResult.success && fileResult.file) {
           const processingTime = Date.now() - startTime;
+          const wordCount = fileResult.file.metadata.wordCount ?? 0;
           const fallbackNote = usedFallback ? "\n\n_Using simple categorization (install plugin-knowledge-ingestion for LLM-powered categorization)_" : "";
-          
+          const truncationWarning =
+            wordCount > 0 && wordCount < LOW_WORD_COUNT_WARN_THRESHOLD
+              ? `\n\n⚠️ **Only ${wordCount} words were received.** If you pasted a long article or thread, the chat may have truncated it. **Tip:** split the dump into 2–3 messages (paste chunk 1, send; paste chunk 2, send; then say \`upload that\`) so we combine them into one file.`
+              : "";
+
           await callback({
             text: `✅ **Knowledge Uploaded!**
 
 **Title**: ${title}
 **Category**: \`${fileResult.file.category}\`
 **File**: \`${fileResult.file.filename}\`
-**Word Count**: ${fileResult.file.metadata.wordCount}
+**Word Count**: ${wordCount}
 **Processing Time**: ${processingTime}ms
 
 Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`
 
-This content now powers ALOHA, OPTIONS, and PERPS via RAG.${fallbackNote}
+This content now powers ALOHA, OPTIONS, and PERPS via RAG.${truncationWarning}${fallbackNote}
 
 ---
 Next moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`,

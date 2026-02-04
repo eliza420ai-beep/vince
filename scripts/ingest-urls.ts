@@ -24,7 +24,7 @@
  *   --dry-run           Print what would be done, no writes
  *
  * Inputs: URLs (http(s)://) or local file paths (e.g. ./doc.pdf, /path/to/audio.mp3). Summarize supports PDF, audio, video, text.
- * Requires: bunx / npm install -g @steipete/summarize; API key for non-extract mode.
+ * Requires: @steipete/summarize in devDependencies (or bunx); API key for non-extract mode.
  */
 
 import { spawn } from "child_process";
@@ -32,6 +32,19 @@ import * as fs from "fs";
 import * as path from "path";
 
 const DEFAULT_KNOWLEDGE = "./knowledge";
+
+/** Use local node_modules/.bin/summarize if present, else bunx. */
+function getSummarizeCommand(cliArgs: string[]): { command: string; args: string[] } {
+  const cwd = process.cwd();
+  const binDir = path.join(cwd, "node_modules", ".bin");
+  const localBin = path.join(binDir, "summarize");
+  const localBinWin = path.join(binDir, "summarize.cmd");
+  if (fs.existsSync(localBin) || (process.platform === "win32" && fs.existsSync(localBinWin))) {
+    const cmd = process.platform === "win32" && fs.existsSync(localBinWin) ? localBinWin : localBin;
+    return { command: cmd, args: cliArgs };
+  }
+  return { command: "bunx", args: ["@steipete/summarize", ...cliArgs] };
+}
 
 type Category =
   | "perps-trading"
@@ -112,24 +125,26 @@ function runSummarize(
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
   const timeoutArg = timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
 
-  const args = ["@steipete/summarize", input, "--plain", "--no-color", "--timeout", timeoutArg];
+  const cliArgs = [input, "--plain", "--no-color", "--timeout", timeoutArg];
   if (extractOnly) {
-    args.push("--extract");
-    if (formatMdForExtract && !isYouTube) args.push("--format", "md");
+    cliArgs.push("--extract");
+    if (formatMdForExtract && !isYouTube) cliArgs.push("--format", "md");
   } else {
-    args.push("--length", len);
+    cliArgs.push("--length", len);
   }
-  if (isYouTube) args.push("--youtube", "auto");
+  if (isYouTube) cliArgs.push("--youtube", "auto");
   if (slides) {
-    args.push("--slides");
-    if (slidesDir) args.push("--slides-dir", slidesDir);
-    if (slidesOcr) args.push("--slides-ocr");
+    cliArgs.push("--slides");
+    if (slidesDir) cliArgs.push("--slides-dir", slidesDir);
+    if (slidesOcr) cliArgs.push("--slides-ocr");
   }
-  if (useFirecrawl && !isYouTube) args.push("--firecrawl", "auto");
-  if (langOpt) args.push("--lang", langOpt);
+  if (useFirecrawl && !isYouTube) cliArgs.push("--firecrawl", "auto");
+  if (langOpt) cliArgs.push("--lang", langOpt);
+
+  const { command: summarizeCommand, args: summarizeArgs } = getSummarizeCommand(cliArgs);
 
   return new Promise((resolve) => {
-    const child = spawn("bunx", args, {
+    const child = spawn(summarizeCommand, summarizeArgs, {
       stdio: ["ignore", "pipe", "pipe"],
       shell: process.platform === "win32",
     });

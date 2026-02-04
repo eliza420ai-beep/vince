@@ -18,7 +18,7 @@ We use [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) to gr
 | **YouTube slides** | Set `VINCE_UPLOAD_YOUTUBE_SLIDES=true` (optionally `VINCE_UPLOAD_YOUTUBE_SLIDES_OCR=true`) for slide extraction; or use `--slides` / `--slides-ocr` in the batch script. Slides go to `knowledge/.slides/` (gitignored by default). |
 | **Longer summaries** | Set `VINCE_UPLOAD_SUMMARY_LENGTH=xl` or `xxl`; or pass `--length xl` to the batch script. |
 
-- **Install summarize**: `bun install -g @steipete/summarize` or rely on `bunx` (no install).
+- **Summarize**: Pinned in devDependencies (`@steipete/summarize`). UPLOAD and ingest use the local binary from `node_modules/.bin/summarize` when present; otherwise they fall back to `bunx @steipete/summarize`.
 - **API keys**: For summaries (non-extract), set one of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` for summarize.
 - **PDFs / podcasts**: Summarize supports PDF URLs and podcast pages (Apple, Spotify, RSS); same upload or batch flow.
 - **Local files**: Ingest script accepts local paths (e.g. `./doc.pdf`, `/path/to/audio.mp3`); summarize supports PDF, audio, video, text.

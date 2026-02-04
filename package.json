@@ -47,6 +47,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@steipete/summarize": "^0.10.0",
     "bun-types": "latest",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.0.4",
