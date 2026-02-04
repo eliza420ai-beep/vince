@@ -889,9 +889,22 @@ export class VinceSignalAggregatorService extends Service {
             });
             sources.push("HyperliquidBias");
             allFactors.push(`Hyperliquid perps bias bearish (shorts paying)`);
+          } else {
+            // Neutral: weak factor so HL still appears in source list (minimal vote impact)
+            signals.push({
+              asset,
+              direction: "long",
+              strength: 50,
+              confidence: 48,
+              source: "HyperliquidBias",
+              factors: [`Hyperliquid perps funding neutral`],
+              timestamp: Date.now(),
+            });
+            sources.push("HyperliquidBias");
+            allFactors.push(`Hyperliquid perps funding neutral`);
           }
 
-          // Per-asset crowding (contrarian signal)
+          // Per-asset crowding (contrarian signal) – include long/short, not only extreme
           const assetKey = asset.toLowerCase() as "btc" | "eth" | "sol" | "hype";
           const assetPulse = optionsPulse.assets[assetKey];
           if (assetPulse) {
@@ -920,6 +933,30 @@ export class VinceSignalAggregatorService extends Service {
               });
               sources.push("HyperliquidCrowding");
               allFactors.push(`${asset} extreme short crowding on Hyperliquid - squeeze risk`);
+            } else if (assetPulse.crowdingLevel === "long") {
+              signals.push({
+                asset,
+                direction: "short", // Contrarian
+                strength: 54,
+                confidence: 50,
+                source: "HyperliquidCrowding",
+                factors: [`${asset} long crowding on Hyperliquid (longs paying)`],
+                timestamp: Date.now(),
+              });
+              sources.push("HyperliquidCrowding");
+              allFactors.push(`${asset} long crowding on Hyperliquid (longs paying)`);
+            } else if (assetPulse.crowdingLevel === "short") {
+              signals.push({
+                asset,
+                direction: "long", // Contrarian
+                strength: 54,
+                confidence: 50,
+                source: "HyperliquidCrowding",
+                factors: [`${asset} short crowding on Hyperliquid (shorts paying)`],
+                timestamp: Date.now(),
+              });
+              sources.push("HyperliquidCrowding");
+              allFactors.push(`${asset} short crowding on Hyperliquid (shorts paying)`);
             }
 
             // Squeeze risk
@@ -1392,7 +1429,27 @@ export class VinceSignalAggregatorService extends Service {
           
           const marketData = marketDataService ? await marketDataService.getEnrichedData(signal.asset) : null;
           const regime = (await regimeService?.getCurrentRegime?.(signal.asset)) ?? null;
-          
+
+          // News features from HIP-3 (nasdaq 24h + macro risk) for ML when model has 20 inputs
+          let newsNasdaqChange: number | undefined;
+          let newsMacroRiskOn: number | undefined;
+          let newsMacroRiskOff: number | undefined;
+          const hip3Service = this.runtime.getService("VINCE_HIP3_SERVICE") as { getHIP3Pulse?: () => Promise<{ indices?: { symbol: string; change24h: number }[]; summary?: { tradFiVsCrypto?: string } } | null> } | null;
+          if (hip3Service?.getHIP3Pulse) {
+            const pulse = await withTimeout(SOURCE_FETCH_TIMEOUT_MS, "HIP3-pulse", hip3Service.getHIP3Pulse());
+            if (pulse?.indices?.length) {
+              const us500 = pulse.indices.find((i) => i.symbol === "US500");
+              const infotech = pulse.indices.find((i) => i.symbol === "INFOTECH");
+              const indexAsset = us500 ?? infotech ?? pulse.indices[0];
+              if (typeof indexAsset?.change24h === "number") newsNasdaqChange = indexAsset.change24h;
+            }
+            if (pulse?.summary?.tradFiVsCrypto) {
+              const tfc = pulse.summary.tradFiVsCrypto;
+              newsMacroRiskOn = tfc === "crypto_outperforming" ? 1 : 0;
+              newsMacroRiskOff = tfc === "tradfi_outperforming" ? 1 : 0;
+            }
+          }
+
           // Prepare ML input
           const input: SignalQualityInput = {
             priceChange24h: marketData?.priceChange?.day ?? 0,
@@ -1403,8 +1460,12 @@ export class VinceSignalAggregatorService extends Service {
             confidence: signal.confidence,
             sourceCount: signal.sources.length,
             hasCascadeSignal: signal.sources.includes("LiquidationCascade") ? 1 : 0,
-            hasFundingExtreme: signal.sources.includes("BinanceFundingExtreme") ? 1 : 0,
+            hasFundingExtreme: (signal.sources.includes("BinanceFundingExtreme") || signal.sources.includes("HyperliquidFundingExtreme")) ? 1 : 0,
             hasWhaleSignal: signal.sources.includes("SanbaseWhales") ? 1 : 0,
+            hasOICap: signal.sources.includes("HyperliquidOICap") ? 1 : 0,
+            ...(newsNasdaqChange !== undefined && { newsNasdaqChange }),
+            ...(newsMacroRiskOn !== undefined && { newsMacroRiskOn }),
+            ...(newsMacroRiskOff !== undefined && { newsMacroRiskOff }),
             isWeekend: session === "weekend" ? 1 : 0,
             isOpenWindow: signal.openWindowBoost && signal.openWindowBoost > 0 ? 1 : 0,
             utcHour: new Date().getUTCHours() / 24,

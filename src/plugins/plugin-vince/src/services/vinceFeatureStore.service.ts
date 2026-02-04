@@ -120,6 +120,8 @@ export interface SignalFeatures {
   hasFundingExtreme: boolean;
   /** Has whale/smart money signal */
   hasWhaleSignal: boolean;
+  /** Has OI cap signal (e.g. Hyperliquid perps at open interest cap) */
+  hasOICap?: boolean;
   /** Highest weight source */
   highestWeightSource: string;
   /** Derived sentiment from factors (-100 to +100, null if no factors) */
@@ -462,7 +464,7 @@ export class VinceFeatureStoreService extends Service {
       const session = this.collectSessionFeatures();
       const signalFeatures = this.collectSignalFeatures(params.signal);
       const regime = await this.collectRegimeFeatures(params.asset);
-      const news = this.collectNewsFeatures();
+      const news = await this.collectNewsFeatures();
 
       const record: FeatureRecord = {
         id: recordId,
@@ -837,7 +839,10 @@ export class VinceFeatureStoreService extends Service {
     const hasCascadeSignal = sources.some(
       (s) => s === "LiquidationCascade" || s === "LiquidationPressure"
     );
-    const hasFundingExtreme = sources.some((s) => s === "BinanceFundingExtreme");
+    const hasFundingExtreme = sources.some(
+      (s) => s === "BinanceFundingExtreme" || s === "HyperliquidFundingExtreme"
+    );
+    const hasOICap = sources.some((s) => s === "HyperliquidOICap");
     // NOTE: Only BinanceTopTraders provides real whale data
     // TopTraders requires wallet config, SanbaseWhales has 30-day lag on free tier
     const hasWhaleSignal = sources.some(
@@ -851,6 +856,8 @@ export class VinceFeatureStoreService extends Service {
       LiquidationCascade: 2.0,
       LiquidationPressure: 1.6,
       BinanceFundingExtreme: 1.5,
+      HyperliquidFundingExtreme: 1.35,
+      HyperliquidOICap: 1.2,
       TopTraders: 0.0,        // DISABLED - no wallet addresses configured
       BinanceTopTraders: 1.0, // Real data from public Binance API
       SanbaseWhales: 0.0,     // DISABLED - 30-day lag on free tier
@@ -896,6 +903,7 @@ export class VinceFeatureStoreService extends Service {
       hasCascadeSignal,
       hasFundingExtreme,
       hasWhaleSignal,
+      hasOICap,
       highestWeightSource,
       avgSentiment: avgSentiment ?? undefined,
     };
@@ -955,12 +963,12 @@ export class VinceFeatureStoreService extends Service {
     };
   }
 
-  private collectNewsFeatures(): NewsFeatures {
+  private async collectNewsFeatures(): Promise<NewsFeatures> {
     const newsService = this.runtime.getService(
       "VINCE_NEWS_SENTIMENT_SERVICE"
     ) as VinceNewsSentimentService | null;
 
-    let result: NewsFeatures = {
+    const result: NewsFeatures = {
       etfFlowBtc: null,
       etfFlowEth: null,
       macroRiskEnvironment: null,
@@ -995,6 +1003,32 @@ export class VinceFeatureStoreService extends Service {
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] News sentiment error: ${e}`);
+      }
+    }
+
+    const hip3Service = this.runtime.getService("VINCE_HIP3_SERVICE") as {
+      getHIP3Pulse?: () => Promise<{
+        indices?: { symbol: string; change24h: number }[];
+        summary?: { tradFiVsCrypto?: string };
+      } | null>;
+    } | null;
+    if (hip3Service?.getHIP3Pulse) {
+      try {
+        const pulse = await hip3Service.getHIP3Pulse();
+        if (pulse?.indices && pulse.indices.length > 0) {
+          const us500 = pulse.indices.find((i) => i.symbol === "US500");
+          const infotech = pulse.indices.find((i) => i.symbol === "INFOTECH");
+          const indexAsset = us500 ?? infotech ?? pulse.indices[0];
+          result.nasdaqChange = typeof indexAsset.change24h === "number" ? indexAsset.change24h : null;
+        }
+        if (pulse?.summary?.tradFiVsCrypto) {
+          const tfc = pulse.summary.tradFiVsCrypto;
+          if (tfc === "crypto_outperforming") result.macroRiskEnvironment = "risk_on";
+          else if (tfc === "tradfi_outperforming") result.macroRiskEnvironment = "risk_off";
+          else result.macroRiskEnvironment = "neutral";
+        }
+      } catch (e) {
+        logger.debug(`[VinceFeatureStore] HIP-3 news features error: ${e}`);
       }
     }
 

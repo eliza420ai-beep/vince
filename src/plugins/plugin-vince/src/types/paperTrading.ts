@@ -465,6 +465,11 @@ export interface AggregatedTradeSignal {
 
   /** Trading session at signal time (e.g. eu_us_overlap, asia) */
   session?: string;
+
+  /** ML signal quality score 0–1 (when available); shown in WHY THIS TRADE banner */
+  mlQualityScore?: number;
+  /** Open-window boost % (when trend aligned at session open); shown in WHY THIS TRADE banner */
+  openWindowBoost?: number;
 }
 
 // ==========================================

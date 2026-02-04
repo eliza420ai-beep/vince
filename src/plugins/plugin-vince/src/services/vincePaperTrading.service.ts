@@ -612,6 +612,8 @@ export class VincePaperTradingService extends Service {
           }, {} as Record<string, number>) || {},
           timestamp: Date.now(),
           session: (signal as { session?: string }).session,
+          mlQualityScore: (signal as AggregatedSignal).mlQualityScore,
+          openWindowBoost: (signal as AggregatedSignal).openWindowBoost,
         };
 
         // Log extended market snapshot when available (DATA_LEVERAGE debugging)
@@ -1162,11 +1164,14 @@ export class VincePaperTradingService extends Service {
     const sourceCount = signal.confirmingCount ?? 0;
     const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const reasons = (signal.reasons ?? []).slice(0, 14);
-    const thesisParts = reasons.slice(0, 8).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 4).join(" "));
-    const unique = [...new Set(thesisParts)].slice(0, 6);
+    const maxReasonsShown = 20;
+    const reasons = (signal.reasons ?? []).slice(0, maxReasonsShown);
+    const thesisParts = reasons.slice(0, 12).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 5).join(" "));
+    const unique = [...new Set(thesisParts)].slice(0, 8);
     const thesisLine = `${direction.toUpperCase()} because: ${unique.join(", ")}`;
     const maxReasonLen = 56;
+    const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
+    const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
     const W = 63;
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
@@ -1228,6 +1233,13 @@ export class VincePaperTradingService extends Service {
     for (const chunk of sourcesWrapped) {
       console.log(line(`  ${chunk}`));
     }
+    if (typeof mlQualityScore === "number") {
+      const mlPct = (mlQualityScore * 100).toFixed(0);
+      console.log(line(`  ML Quality  ${mlPct}%`));
+    }
+    if (typeof openWindowBoost === "number" && openWindowBoost > 0) {
+      console.log(line(`  Open window  +${openWindowBoost.toFixed(0)}% boost`));
+    }
     const thesisWrapped = wrapToWidth(thesisLine, W - 11);
     console.log(line(`  Thesis   ${thesisWrapped[0]}`));
     for (let i = 1; i < thesisWrapped.length; i++) {
@@ -1242,13 +1254,15 @@ export class VincePaperTradingService extends Service {
       }
       return text;
     });
-    const mid = Math.ceil(reasonParts.length / 2);
-    const line1 = `  • ${reasonParts.slice(0, mid).join("  • ")}`;
-    const line2 = `  • ${reasonParts.slice(mid).join("  • ")}`;
-    console.log(line(line1));
-    if (line2.trim() !== "•") console.log(line(line2));
-    if (factorCount > 14) {
-      console.log(line(`    … +${factorCount - 14} more (see feature store)`));
+    const perLine = 7;
+    const linesOfReasons: string[] = [];
+    for (let i = 0; i < reasonParts.length; i += perLine) {
+      const chunk = reasonParts.slice(i, i + perLine);
+      if (chunk.length) linesOfReasons.push(`  • ${chunk.join("  • ")}`);
+    }
+    for (const l of linesOfReasons) console.log(line(l));
+    if (factorCount > maxReasonsShown) {
+      console.log(line(`    … +${factorCount - maxReasonsShown} more (see feature store)`));
     }
     console.log(empty);
     console.log(sep);

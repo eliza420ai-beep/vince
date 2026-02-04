@@ -176,6 +176,7 @@ Ideas to improve the end-to-end ML pipeline beyond the table above:
 
 4. **Feature store → training alignment**
    - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare*Features). Document the mapping in FEATURE-STORE.md or this file.
+   - **New signal flags (more data sources):** `hasFundingExtreme` is true for either Binance or Hyperliquid funding extreme; `hasOICap` is set when `HyperliquidOICap` contributed. Training script uses `signal_hasOICap` as an optional feature when present. After retraining with data that includes `signal_hasOICap`, add this input to `SignalQualityInput` and `prepareSignalQualityFeatures()` in `mlInference.service.ts` so the ONNX input dimension matches the new model.
 
 5. **A/B or shadow mode**
    - Optional: log “what would ML have done?” alongside rule-based decision (e.g. ML size vs actual size) without changing behavior, then analyze correlation of ML-overrule with better outcomes before tightening the loop.

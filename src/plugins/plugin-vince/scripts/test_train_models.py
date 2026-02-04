@@ -61,6 +61,7 @@ def _synthetic_record(
             "hasCascadeSignal": i % 3 == 0,
             "hasFundingExtreme": i % 5 == 0,
             "hasWhaleSignal": i % 4 == 0,
+            "hasOICap": i % 7 == 0,
             "direction": "long" if i % 2 == 0 else "short",
         },
         "regime": {

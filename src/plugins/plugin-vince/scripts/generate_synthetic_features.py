@@ -57,13 +57,28 @@ def one_record(
     # SL optimizer needs outcome.maxAdverseExcursion (train_models maps it to label_maxAdverseExcursion)
     mae_abs = abs(mae)
 
-    sources: list[str] | list[dict] = ["CoinGlass", "BinanceTakerFlow", "MarketRegime"]
-    if include_sentiment_sources:
-        sources = [
-            {"name": "CoinGlass", "sentiment": random.uniform(-0.5, 0.5)},
-            {"name": "BinanceTakerFlow", "sentiment": random.uniform(-0.3, 0.3)},
-            {"name": "MarketRegime", "sentiment": random.uniform(-0.2, 0.2)},
-        ]
+    SOURCE_POOL = [
+        "CoinGlass",
+        "BinanceTakerFlow",
+        "MarketRegime",
+        "BinanceFundingExtreme",
+        "HyperliquidFundingExtreme",
+        "HyperliquidOICap",
+        "HyperliquidBias",
+        "HyperliquidCrowding",
+        "BinanceOIFlush",
+        "BinanceLongShort",
+    ]
+    n_sources = random.randint(2, 6)
+    chosen = random.sample(SOURCE_POOL, min(n_sources, len(SOURCE_POOL)))
+    sources = chosen if not include_sentiment_sources else [
+        {"name": n, "sentiment": random.uniform(-0.3, 0.3)} for n in chosen
+    ]
+    source_names = chosen if isinstance(sources[0], str) else [s["name"] for s in sources]
+    has_funding_extreme = "BinanceFundingExtreme" in source_names or "HyperliquidFundingExtreme" in source_names
+    has_oi_cap = "HyperliquidOICap" in source_names
+    has_cascade = any(s in source_names for s in ("LiquidationCascade", "LiquidationPressure"))
+    has_whale = any(s in source_names for s in ("BinanceTopTraders", "SanbaseExchangeFlows"))
 
     return {
         "id": str(uuid.uuid4()),
@@ -96,15 +111,16 @@ def one_record(
             "direction": direction,
             "strength": strength,
             "confidence": confidence,
-            "sourceCount": random.randint(2, 8),
+            "sourceCount": len(source_names),
             "sources": sources,
             "strategyName": "momentum",
             "openWindowBoost": random.uniform(0, 10),
             "conflictingCount": random.randint(0, 2),
-            "hasCascadeSignal": random.random() < 0.1,
-            "hasFundingExtreme": random.random() < 0.15,
-            "hasWhaleSignal": random.random() < 0.2,
-            "highestWeightSource": "CoinGlass",
+            "hasCascadeSignal": has_cascade,
+            "hasFundingExtreme": has_funding_extreme,
+            "hasWhaleSignal": has_whale,
+            "hasOICap": has_oi_cap,
+            "highestWeightSource": source_names[0] if source_names else "CoinGlass",
         },
         "regime": {
             "volatilityRegime": random.choice(REGIMES_VOL),

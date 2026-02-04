@@ -46,12 +46,31 @@ Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h`
 
 ---
 
+## FREE data points we’re overlooking
+
+All of these use **no new API keys** and either existing services or free public APIs.
+
+| Data point | Where it lives / how to get it | Feature store / algo impact |
+|------------|--------------------------------|-----------------------------|
+| **Index 24h (SPX / INFOTECH proxy)** | **VinceHIP3Service** already has `getPulse()` → `pulse.indices` with `change24h` (US500, INFOTECH, etc.). No new API. | Set `news.nasdaqChange` from e.g. SPX or INFOTECH 24h % in `collectNewsFeatures()` (inject HIP-3 when building news features). Gives ML a risk-on/risk-off macro input. |
+| **Macro risk (risk_on / risk_off)** | Same HIP-3 pulse: `pulse.summary.tradFiVsCrypto`, indices vs gold. Indices up + gold down → risk_on; opposite → risk_off. | Set `news.macroRiskEnvironment` in `collectNewsFeatures()` from HIP-3. FREE. |
+| **Signal sentiment (higher % non-null)** | Already derived from `signal.factors` keyword scan; often 20% non-null. | Ensure every aggregated signal has at least one factor string; optionally add per-source sentiment where aggregator has it. No new API—just logic so `signal_avg_sentiment` is populated more often. |
+| **Fear & Greed** | Already in market context (CoinGlass/Binance); `market.fearGreedIndex` in feature store. | Confirm it’s in the training optional list and that CoinGlass/Binance path always sets it so ML can use it. |
+| **CoinGecko (as weak factor)** | **VinceCoinGeckoService** – exchange health, liquidity, prices; used by MarketData but not a named aggregator source. | Optionally add a single “market breadth” or “exchange health” factor to the aggregator (e.g. “Exchange health OK” / “Liquidity tight”) so it appears in Sources and in feature store. FREE. |
+| **ETF flow (BTC/ETH)** | **FREE options:** Farside Investors publishes flow data; some free dashboards or CSV. Or defer and leave null until a free/cheap API is chosen. | Set `news.etfFlowBtc`, `news.etfFlowEth` (millions USD) in `collectNewsFeatures()` when you have a source. |
+| **Multi-venue funding** | Bybit and OKX have **free public** funding-rate endpoints. We already use Binance + Hyperliquid. | Optional: add “funding extreme” from Bybit/OKX as one more confirming source so “extreme funding” is cross-venue. Improves robustness; still FREE. |
+
+**Highest impact, zero cost:** Wire **HIP-3 index 24h** and **macro risk** into `collectNewsFeatures()` (get `VINCE_HIP3_SERVICE`, call `getPulse()`, set `news.nasdaqChange` and `news.macroRiskEnvironment`). Then retrain so `suggested_signal_factors` can drop “NASDAQ 24h” and “Macro risk environment” from the “consider adding” list.
+
+---
+
 ## Quick checklist
 
 - [ ] Run paper bot so new feature records get **market.oiChange24h**, **market.dvol**, **market.rsi14**, **market.atrPct** (Deribit must be available for dvol/atr on BTC/ETH).
 - [ ] Retrain with updated JSONL; confirm `suggested_signal_factors` drops or reduces “OI change 24h”, “DVOL”, “RSI”, “Price vs SMA20” if you add SMA.
 - [ ] Add one of: funding 8h cache, order-book provider, or price history (SMA20) and wire into `collectMarketFeatures`.
-- [ ] Optionally add NASDAQ/ETF/macro to news service and set `news.*` in `collectNewsFeatures()`.
+- [ ] **FREE:** Use HIP-3 for index 24h and macro: in `collectNewsFeatures()` get `VINCE_HIP3_SERVICE`, call `getPulse()`, set `news.nasdaqChange` from `pulse.indices` (e.g. SPX/INFOTECH) `change24h` and `news.macroRiskEnvironment` from `pulse.summary.tradFiVsCrypto` (risk_on / risk_off / neutral).
+- [ ] Optionally add ETF flow source (e.g. Farside) and set `news.etfFlowBtc` / `news.etfFlowEth` in `collectNewsFeatures()`.
 - [ ] Improve signal sentiment coverage so `signal_avg_sentiment` is non-null more often (e.g. from factor text or source-level scores).
 
 See **ALGO_ML_IMPROVEMENTS.md** (§ “Leverage more data points”) for the same summary and links to code.

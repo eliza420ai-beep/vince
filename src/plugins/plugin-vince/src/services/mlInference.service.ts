@@ -26,7 +26,8 @@ import type { MarketFeatures, SessionFeatures, SignalFeatures, RegimeFeatures } 
 // ==========================================
 
 /**
- * Input features for signal quality model
+ * Input features for signal quality model.
+ * Optional fields (hasOICap, news*) are used when the ONNX model was trained with them (see training_metadata.signal_quality_input_dim).
  */
 export interface SignalQualityInput {
   // Market features (normalized)
@@ -34,7 +35,7 @@ export interface SignalQualityInput {
   volumeRatio: number;
   fundingPercentile: number;
   longShortRatio: number;
-  
+
   // Signal features
   strength: number;
   confidence: number;
@@ -42,12 +43,21 @@ export interface SignalQualityInput {
   hasCascadeSignal: number; // 0 or 1
   hasFundingExtreme: number; // 0 or 1
   hasWhaleSignal: number; // 0 or 1
-  
+  /** 0 or 1; used when model has 17+ inputs (trained with signal_hasOICap). */
+  hasOICap?: number;
+
+  /** Nasdaq/index 24h % change (HIP-3); used when model has 20 inputs. Normalized 0–1 in builder. */
+  newsNasdaqChange?: number;
+  /** 0 or 1; risk_on (crypto outperforming); used when model has 20 inputs. */
+  newsMacroRiskOn?: number;
+  /** 0 or 1; risk_off (tradfi outperforming); used when model has 20 inputs. */
+  newsMacroRiskOff?: number;
+
   // Session features
   isWeekend: number; // 0 or 1
   isOpenWindow: number; // 0 or 1
   utcHour: number; // Normalized 0-1
-  
+
   // Regime features
   volatilityRegimeHigh: number; // 0 or 1
   marketRegimeBullish: number; // 0 or 1
@@ -141,6 +151,7 @@ const ML_CONFIG = {
   /** Feature normalization bounds */
   normalization: {
     priceChange: { min: -20, max: 20 },
+    nasdaqChange: { min: -5, max: 5 },
     volumeRatio: { min: 0, max: 5 },
     strength: { min: 0, max: 100 },
     confidence: { min: 0, max: 100 },
@@ -165,6 +176,8 @@ export class VinceMLInferenceService extends Service {
   private suggestedSignalQualityThreshold: number | null = null;
   /** Cached improvement report for TP level preference and optional tuning. */
   private improvementReport: ImprovementReportTuning | null = null;
+  /** Signal quality model input dimension (from training_metadata); 16 = legacy, 17 = with hasOICap. */
+  private signalQualityInputDim: number = 16;
 
   // ONNX runtime session placeholders
   // These will be populated if onnxruntime-node is available
@@ -236,10 +249,17 @@ export class VinceMLInferenceService extends Service {
       const resolved = path.resolve(metadataPath);
       if (!fs.existsSync(resolved)) return;
       const raw = fs.readFileSync(resolved, "utf-8");
-      const meta = JSON.parse(raw) as { improvement_report?: ImprovementReportTuning };
+      const meta = JSON.parse(raw) as {
+        improvement_report?: ImprovementReportTuning;
+        signal_quality_input_dim?: number;
+      };
       const report = meta.improvement_report;
+      if (report) this.improvementReport = report;
+      if (typeof meta.signal_quality_input_dim === "number" && meta.signal_quality_input_dim > 0) {
+        this.signalQualityInputDim = meta.signal_quality_input_dim;
+        logger.info(`[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`);
+      }
       if (!report) return;
-      this.improvementReport = report;
       const t = report.suggested_signal_quality_threshold;
       if (typeof t === "number" && t >= 0 && t <= 1) {
         this.suggestedSignalQualityThreshold = t;
@@ -549,8 +569,12 @@ export class VinceMLInferenceService extends Service {
 
   private prepareSignalQualityFeatures(input: SignalQualityInput): Float32Array {
     const norm = ML_CONFIG.normalization;
-    
-    return new Float32Array([
+    const hasOICap = input.hasOICap ?? 0;
+    const newsNasdaq = input.newsNasdaqChange ?? 0;
+    const newsMacroOn = input.newsMacroRiskOn ?? 0;
+    const newsMacroOff = input.newsMacroRiskOff ?? 0;
+    // Order must match train_models.py: base 13, optional signal_hasOICap, optional news_nasdaqChange + news_macro_risk_on/off, then regime 3.
+    const base = [
       this.normalize(input.priceChange24h, norm.priceChange.min, norm.priceChange.max),
       this.normalize(input.volumeRatio, norm.volumeRatio.min, norm.volumeRatio.max),
       input.fundingPercentile / 100,
@@ -564,10 +588,21 @@ export class VinceMLInferenceService extends Service {
       input.isWeekend,
       input.isOpenWindow,
       input.utcHour / 24,
+    ];
+    const regime = [
       input.volatilityRegimeHigh,
       input.marketRegimeBullish,
       input.marketRegimeBearish,
-    ]);
+    ];
+    const dim = this.signalQualityInputDim;
+    if (dim >= 20) {
+      const nasdaqNorm = this.normalize(newsNasdaq, norm.nasdaqChange.min, norm.nasdaqChange.max);
+      return new Float32Array([...base, hasOICap, nasdaqNorm, newsMacroOn, newsMacroOff, ...regime]);
+    }
+    if (dim >= 17) {
+      return new Float32Array([...base, hasOICap, ...regime]);
+    }
+    return new Float32Array([...base, ...regime]);
   }
 
   private preparePositionSizingFeatures(input: PositionSizingInput): Float32Array {
@@ -620,7 +655,10 @@ export class VinceMLInferenceService extends Service {
     if (input.hasCascadeSignal) score += 0.1;
     if (input.hasFundingExtreme) score += 0.08;
     if (input.hasWhaleSignal) score += 0.05;
-    
+    if (input.hasOICap) score += 0.05;
+    if (input.newsMacroRiskOn) score += 0.03;
+    if (input.newsMacroRiskOff) score -= 0.02;
+
     // Penalties
     if (input.isWeekend) score -= 0.1;
     if (input.volatilityRegimeHigh) score -= 0.05;

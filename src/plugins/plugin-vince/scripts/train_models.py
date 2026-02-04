@@ -226,6 +226,7 @@ def prepare_signal_quality_features(
         "market_bookImbalance",
         "market_bidAskSpread",
         "market_priceVsSma20",
+        "signal_hasOICap",
     ):
         if opt in df_trades.columns:
             feature_cols.append(opt)
@@ -233,6 +234,13 @@ def prepare_signal_quality_features(
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
+    for opt in ("news_nasdaqChange",):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    if "news_macroRiskEnvironment" in df_trades.columns:
+        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
 
     if "regime_volatilityRegime" in df_trades.columns:
         df_trades["regime_volatility_high"] = (df_trades["regime_volatilityRegime"] == "high").astype(int)
@@ -292,6 +300,13 @@ def prepare_position_sizing_features(
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
+    for opt in ("news_nasdaqChange",):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    if "news_macroRiskEnvironment" in df_trades.columns:
+        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
     if "regime_volatilityRegime" in df_trades.columns:
         df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
             {"low": 0, "normal": 1, "high": 2}
@@ -728,6 +743,8 @@ CANDIDATE_SIGNAL_FACTORS = [
     {"name": "Macro risk environment", "description": "risk_on / risk_off / neutral.", "hint": "news_macroRiskEnvironment"},
     {"name": "Signal source sentiment", "description": "Per-source sentiment from aggregator.", "hint": "signal_avg_sentiment"},
     {"name": "Recent win/loss streak", "description": "Cold/hot streak for position sizing.", "hint": "exec_streakMultiplier"},
+    {"name": "Hyperliquid OI cap", "description": "Perps at open interest cap (contrarian).", "hint": "signal_hasOICap"},
+    {"name": "Hyperliquid funding extreme", "description": "Extreme funding regime (mean reversion).", "hint": "signal_hasFundingExtreme"},
 ]
 
 
@@ -1027,6 +1044,8 @@ def main():
         "models_fit": models_fit,
         "improvement_report": improvement_report,
     }
+    if improvement_entries.get("signal_quality", {}).get("feature_importances"):
+        metadata["signal_quality_input_dim"] = len(improvement_entries["signal_quality"]["feature_importances"])
     with open(output_dir / "training_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 

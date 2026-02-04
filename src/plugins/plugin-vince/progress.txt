@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-04 (Hyperliquid: perpsAtOICap + fundingHistory → HyperliquidOICap, HyperliquidFundingExtreme signals)
+# Last updated: 2026-02-04 (ML inference 16/17/20-dim + news features; WHY THIS TRADE banner expanded)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -164,6 +164,21 @@ COMPLETED
 - New endpoints in hyperliquid.fallback.ts: (1) getPerpsAtOpenInterestCap() – type "perpsAtOpenInterestCap", returns list of perps at OI cap (cache 60s). (2) getFundingHistory(coin, startTime, endTime?) – type "fundingHistory". (3) getFundingRegime(coin, currentFunding8h, lookbackSamples?) – uses getFundingHistory and computes percentile (0–100), isExtremeLong (≥90), isExtremeShort (≤10).
 - New signals in signal aggregator: HyperliquidOICap (asset in perpsAtOICap → contrarian signal, strength 52, fade overallBias). HyperliquidFundingExtreme (getFundingRegime → mean reversion when HL funding in top/bottom 10% of last 30 intervals; strength 58, confidence 54).
 - Phase 1 fetch: perpsAtOICap added to Promise.all; section 9 calls getFundingRegime(asset, optionsPulse.funding8h) with timeout when HL pulse has funding for asset. IHyperliquidService extended with getPerpsAtOpenInterestCap?, getFundingRegime? (external-services.ts). dynamicConfig: HyperliquidFundingExtreme 1.35, HyperliquidOICap 1.2. SIGNAL_SOURCES.md and getStatus() updated. HYPERLIQUID_ENDPOINTS.md documents all HL endpoints in use and algo impact; summary updated to show perpsAtOpenInterestCap and fundingHistory now in use.
+
+## ML pipeline alignment with new data sources (2026-02-04) ✅
+- Feature store (vinceFeatureStore.service.ts): hasFundingExtreme now true for either BinanceFundingExtreme or HyperliquidFundingExtreme. New hasOICap true when HyperliquidOICap in sources. SignalFeatures interface and collectSignalFeatures() return hasOICap; sourceWeights include HyperliquidFundingExtreme and HyperliquidOICap for highestWeightSource.
+- train_models.py: Optional feature signal_hasOICap in signal-quality prepare list when column present. CANDIDATE_SIGNAL_FACTORS extended with "Hyperliquid OI cap" (hint signal_hasOICap) and "Hyperliquid funding extreme" (hint signal_hasFundingExtreme) for improvement report.
+- generate_synthetic_features.py: Source pool expanded to 10 names (CoinGlass, BinanceTakerFlow, MarketRegime, BinanceFundingExtreme, HyperliquidFundingExtreme, HyperliquidOICap, HyperliquidBias, HyperliquidCrowding, BinanceOIFlush, BinanceLongShort). Each record picks 2–6 sources at random; hasFundingExtreme, hasOICap, hasCascadeSignal, hasWhaleSignal derived from chosen sources; sourceCount and highestWeightSource set from selection.
+- test_train_models.py: Synthetic record shape includes hasOICap (e.g. i % 7 == 0) so test data matches feature store.
+- ALGO_ML_IMPROVEMENTS.md: Note under feature alignment that after retraining with data containing signal_hasOICap, mlInference.service.ts must add that input to SignalQualityInput and prepareSignalQualityFeatures() so ONNX input dimension matches (inference currently 15 inputs; new model may have 16).
+- Verified: All 6 ML tests pass; generate → train on 100 synthetic records produces ONNX + improvement_report.md; signal_hasOICap appears in feature importances (e.g. signal_quality top features).
+
+## ML inference + news features (2026-02-04) ✅
+- mlInference.service.ts: SignalQualityInput extended with hasOICap, newsNasdaqChange, newsMacroRiskOn, newsMacroRiskOff. prepareSignalQualityFeatures() builds 16/17/20-dim vector from training_metadata.signal_quality_input_dim; nasdaq normalized -5..5; fallback uses hasOICap and macro risk. training_metadata.json now includes signal_quality_input_dim when signal-quality model is trained.
+- signalAggregator: hasFundingExtreme includes HyperliquidFundingExtreme; hasOICap set when HyperliquidOICap in sources; ML input built with HIP-3 pulse (withTimeout): newsNasdaqChange from indices US500/INFOTECH change24h, newsMacroRiskOn/Off from summary.tradFiVsCrypto (crypto_outperforming → risk_on, tradfi_outperforming → risk_off). News fields passed to inference when HIP-3 available.
+
+## WHY THIS TRADE banner expansion (2026-02-04) ✅
+- When a paper trade is opened, the ASCII banner "WHY THIS TRADE" section is expanded: (1) Up to 20 factors shown (was 14), in multiple bullet lines (7 per line). (2) Optional "ML Quality XX%" line when signal has mlQualityScore. (3) Optional "Open window +X% boost" when openWindowBoost > 0. (4) Richer thesis: up to 12 reason snippets, 8 unique parts, 5 words each. (5) "… +N more" uses maxReasonsShown=20. AggregatedTradeSignal (paperTrading.ts) extended with optional mlQualityScore and openWindowBoost; tradeSignal in evaluateAndTrade passes these from AggregatedSignal so the open banner shows ML and session context.
 
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
@@ -428,6 +443,14 @@ SESSION NOTES
   when getOverallSentiment() returns neutral and confidence >= 40, we add a neutral-direction
   factor “News sentiment neutral (X% confidence)” so NewsSentiment appears in “Sources:” more
   often and MandoMinutes cache shows up in aggregator logs (more real-time data visible).
+- ML pipeline aligned with new data sources: Feature store hasFundingExtreme includes
+  HyperliquidFundingExtreme; hasOICap added for HyperliquidOICap. train_models.py uses
+  signal_hasOICap as optional feature and CANDIDATE_SIGNAL_FACTORS for HL OI cap/funding
+  extreme. Synthetic data: 10-source pool, derived has* from chosen sources; test record
+  includes hasOICap. All 6 test_train_models.py tests pass; full train on 100 synthetic
+  records produces ONNX and improvement report with signal_hasOICap in importances.
+  After next retrain with real data containing signal_hasOICap, add that input to
+  mlInference.service.ts (see ALGO_ML_IMPROVEMENTS.md).
 
 2026-02-03:
 - Risk manager & sizing now treat exposure **by margin**, not by notional. `position.marginUsd`
