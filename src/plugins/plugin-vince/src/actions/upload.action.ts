@@ -314,7 +314,17 @@ function generateTitle(content: string): string {
  */
 function detectSimpleCategory(content: string): KnowledgeCategory {
   const lowerContent = content.toLowerCase();
-  
+
+  // Bots, frameworks, internal tools (check before generic "option" catches OpenClaw/etc.)
+  if (
+    lowerContent.includes("openclaw") ||
+    lowerContent.includes("clawdbot") ||
+    lowerContent.includes("claw bot") ||
+    lowerContent.includes("claw framework")
+  ) {
+    return "internal-docs";
+  }
+
   // Trading & Markets
   if (lowerContent.includes("perp") || lowerContent.includes("funding") || lowerContent.includes("liquidat")) {
     return "perps-trading";

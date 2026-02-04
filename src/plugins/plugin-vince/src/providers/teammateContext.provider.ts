@@ -25,7 +25,8 @@ const TEAMMATE_DIR = "teammate";
 /** USER, SOUL, TOOLS only. Identity = Character in ElizaOS. */
 const TEAMMATE_FILES = ["USER.md", "SOUL.md", "TOOLS.md"] as const;
 const MEMORY_DIR = "MEMORY";
-const MAX_MEMORY_FILES = 3;
+const LONG_TERM_FILENAME = "LONG-TERM.md";
+const MAX_DAILY_MEMORY_FILES = 2;
 
 function getTeammateBasePath(): string {
   const cwd = process.cwd();
@@ -48,9 +49,12 @@ function readFileSafe(filePath: string): string | null {
   }
 }
 
-function getRecentMemoryFiles(memoryDir: string): string[] {
+/** Returns [longTermPath?] and paths of up to MAX_DAILY_MEMORY_FILES most recent daily logs (excluding LONG-TERM and README). */
+function getMemoryFiles(memoryDir: string): { longTerm: string | null; dailyLogs: string[] } {
   try {
-    if (!fs.existsSync(memoryDir)) return [];
+    if (!fs.existsSync(memoryDir)) return { longTerm: null, dailyLogs: [] };
+    const longTermPath = path.join(memoryDir, LONG_TERM_FILENAME);
+    const longTerm = fs.existsSync(longTermPath) ? longTermPath : null;
     const entries = fs.readdirSync(memoryDir, { withFileTypes: true });
     const mdFiles = entries
       .filter(
@@ -58,14 +62,16 @@ function getRecentMemoryFiles(memoryDir: string): string[] {
           e.isFile() &&
           e.name.endsWith(".md") &&
           e.name !== ".gitkeep" &&
-          e.name.toLowerCase() !== "readme.md"
+          e.name.toLowerCase() !== "readme.md" &&
+          e.name !== LONG_TERM_FILENAME
       )
       .map((e) => path.join(memoryDir, e.name));
     const stats = mdFiles.map((f) => ({ path: f, mtime: fs.statSync(f).mtime.getTime() }));
     stats.sort((a, b) => b.mtime - a.mtime);
-    return stats.slice(0, MAX_MEMORY_FILES).map((s) => s.path);
+    const dailyLogs = stats.slice(0, MAX_DAILY_MEMORY_FILES).map((s) => s.path);
+    return { longTerm, dailyLogs };
   } catch {
-    return [];
+    return { longTerm: null, dailyLogs: [] };
   }
 }
 
@@ -106,20 +112,33 @@ export const teammateContextProvider: Provider = {
     }
 
     const memoryDir = path.join(basePath, MEMORY_DIR);
-    const recentMemoryPaths = getRecentMemoryFiles(memoryDir);
-    if (recentMemoryPaths.length > 0) {
+    const { longTerm: longTermPath, dailyLogs: dailyLogPaths } = getMemoryFiles(memoryDir);
+    const allMemoryPaths: string[] = [];
+    if (longTermPath) {
+      const content = readFileSafe(longTermPath);
+      if (content) {
+        parts.push("## LONG-TERM MEMORY (curated persistent context)");
+        parts.push(content);
+        parts.push("");
+        allMemoryPaths.push(longTermPath);
+      }
+    }
+    if (dailyLogPaths.length > 0) {
       parts.push("## RECENT MEMORY (daily logs)");
-      for (const filePath of recentMemoryPaths) {
+      for (const filePath of dailyLogPaths) {
         const content = readFileSafe(filePath);
         if (content) {
           const name = path.basename(filePath, ".md");
           parts.push(`### ${name}`);
           parts.push(content);
           parts.push("");
+          allMemoryPaths.push(filePath);
         }
       }
-      values.teammate_memory_count = recentMemoryPaths.length;
-      data.teammate_memory_files = recentMemoryPaths.map((p) => path.basename(p));
+    }
+    if (allMemoryPaths.length > 0) {
+      values.teammate_memory_count = allMemoryPaths.length;
+      data.teammate_memory_files = allMemoryPaths.map((p) => path.basename(p));
     }
 
     const text = parts.length > 0 ? parts.join("\n") : "";
