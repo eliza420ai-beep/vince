@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-04 (ML inference 16/17/20-dim + news features; WHY THIS TRADE banner expanded)
+# Last updated: 2026-02-04 (Dynamic signal-quality feature vector from training_metadata; ML inference tests)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -179,6 +179,14 @@ COMPLETED
 
 ## WHY THIS TRADE banner expansion (2026-02-04) ✅
 - When a paper trade is opened, the ASCII banner "WHY THIS TRADE" section is expanded: (1) Up to 20 factors shown (was 14), in multiple bullet lines (7 per line). (2) Optional "ML Quality XX%" line when signal has mlQualityScore. (3) Optional "Open window +X% boost" when openWindowBoost > 0. (4) Richer thesis: up to 12 reason snippets, 8 unique parts, 5 words each. (5) "… +N more" uses maxReasonsShown=20. AggregatedTradeSignal (paperTrading.ts) extended with optional mlQualityScore and openWindowBoost; tradeSignal in evaluateAndTrade passes these from AggregatedSignal so the open banner shows ML and session context.
+
+## Dynamic signal-quality feature vector (2026-02-04) ✅
+- mlInference.service.ts now builds the signal-quality input vector from training_metadata.signal_quality_feature_names when present, so inference works with any model size (e.g. 31 or 33 features) after retraining. No more dimension mismatch when new features (OI cap, news, asset dummies, optional market columns) are added in Python.
+- loadImprovementReport(): reads signal_quality_feature_names (string[]) and stores in signalQualityFeatureNames; logs "Signal quality feature names: N (dynamic vector)".
+- getSignalQualityFeatureValue(name, input): returns normalized value for each training column name; unknown names (e.g. market_dvol, signal_avg_sentiment) → 0; asset_* → 1 when input.assetTicker matches, else 0.
+- prepareSignalQualityFeatures(): if signalQualityFeatureNames set, builds Float32Array by iterating over names; else keeps legacy 16/17/20-dim logic for backward compatibility.
+- SignalQualityInput: optional assetTicker (e.g. "BTC", "ETH") for asset dummies. signalAggregator passes assetTicker: signal.asset when building ML input.
+- Tests: src/__tests__/mlInference.service.test.ts — 6 tests (dynamic 23-feature, full 33-feature, asset tickers BTC/ETH/SOL/HYPE, legacy 16-dim no names, getSignalQualityThreshold). Mock fs so .onnx paths don't exist → no ONNX load attempts, no "invalid model" logs or Bun crash; Supabase download mocked.
 
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
@@ -451,6 +459,12 @@ SESSION NOTES
   records produces ONNX and improvement report with signal_hasOICap in importances.
   After next retrain with real data containing signal_hasOICap, add that input to
   mlInference.service.ts (see ALGO_ML_IMPROVEMENTS.md).
+- Dynamic signal-quality feature vector: Inference builds the input from
+  training_metadata.signal_quality_feature_names when present (any model size, e.g. 33 features).
+  getSignalQualityFeatureValue(name, input) maps each training column to a value; unknown/optional
+  features get 0; asset_* dummies use assetTicker. Legacy 16/17/20-dim path kept when no names.
+  Tests: mlInference.service.test.ts (6 tests) for dynamic 23/33-feature, legacy 16-dim, asset
+  tickers, threshold; fs mock avoids ONNX load and Bun crash.
 
 2026-02-03:
 - Risk manager & sizing now treat exposure **by margin**, not by notional. `position.marginUsd`

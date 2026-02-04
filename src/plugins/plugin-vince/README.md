@@ -21,6 +21,7 @@ A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, a
 - [WHAT - The Plugin's Purpose](#what---the-plugins-purpose)
 - [HOW - Architecture and Implementation](#how---architecture-and-implementation)
 - [V4 - ML-Enhanced Paper Trading](#v4---ml-enhanced-paper-trading)
+- [How ML improves the algo (in plain language)](#how-ml-improves-the-algo-in-plain-language)
 - [ML at the Core: What’s Wired in Every Trade](#ml-at-the-core-whats-wired-in-every-trade)
 - [WHY - Design Philosophy](#why---design-philosophy)
 - [Installation and Configuration](#installation-and-configuration)
@@ -382,7 +383,21 @@ Position sizing uses Kelly Criterion with adjustments:
 
 ### ML at the Core: What’s Wired in Every Trade
 
-The paper bot is **ML-first**. Four ONNX models (plus the improvement report) drive sizing, entries, and exits. If models aren’t loaded, rule-based fallbacks keep the bot running.
+The paper bot is **ML-first**. ### How ML improves the algo (in plain language)
+
+1. **Record every trade with context.** We save dozens of data points per decision (price action, funding, who's long/short, which signal sources agreed, time of day, volatility, news, etc.) into the **feature store** (JSONL). So we have a log of what the world looked like at each trade, not guesswork.
+
+2. **Train on what worked.** A Python script runs on that log and learns which feature combinations led to profitable vs losing trades. We export that into ONNX models: signal quality, position sizing, take-profit, stop-loss. The numbers come from the data, not hand-tuned constants.
+
+3. **Use the models live.** For each new signal we ask the **signal-quality** model how often something like this won; if the score is too low we block the trade. We use the **position-sizing** and **TP/SL** models to set size and targets. So each trade is filtered and sized using patterns learned from past outcomes.
+
+4. **Keep pipeline in sync with new data.** When we add new inputs (e.g. OI cap, Nasdaq 24h change, risk-on/risk-off), we record them in the feature store and include them in training. The training script writes the ordered feature list to `training_metadata.json`. The inference service builds the model input **by that list**, so after retraining we deploy new ONNX + metadata with no code change for dimension mismatch (16, 20, or 33+ features).
+
+5. **Close the loop.** Trades → features → training → new models → better decisions. Day one the bot uses rules; as data accumulates it leans on the learned models. If models are missing, rule-based fallbacks keep it running. ML **improves** the algo without replacing it.
+
+### ML at the Core: What's Wired in Every Trade
+
+Four ONNX models (plus the improvement report) drive sizing, entries, and exits. If models aren’t loaded, rule-based fallbacks keep the bot running.
 
 | Where | What ML does |
 |-------|----------------|
