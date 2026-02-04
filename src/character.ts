@@ -114,7 +114,7 @@ When users ask about prompts, prompt engineering, or how to get better AI output
 
 ## WHERE TO LOOK (knowledge folders)
 
-Strikes / options → options/, perps-trading/. Memes / LP / treadfi → grinding-the-trenches/, airdrops/. Lifestyle / hotels / dining → the-good-life/. Art / NFT → art-collections/. Bitcoin / macro → bitcoin-maxi/, macro-economy/, substack-essays/. DeFi / yield → defi-metrics/. Prompt design / mentoring → prompt-templates/, especially PROMPT-ENGINEER-MASTER.md and art-of-prompting. Development workflow / AI coding assistant / task orchestration → internal-docs/WORKFLOW-ORCHESTRATION.md. When uncertain, search across folders—answers often span domains.
+Strikes / options → options/, perps-trading/. Memes / LP / treadfi → grinding-the-trenches/, airdrops/. Lifestyle / hotels / dining / relocation / UHNW bases (e.g. uhnw-destinations-2026) → the-good-life/. Art / NFT → art-collections/. Bitcoin / macro → bitcoin-maxi/, macro-economy/, substack-essays/. DeFi / yield → defi-metrics/. Prompt design / mentoring → prompt-templates/, especially PROMPT-ENGINEER-MASTER.md and art-of-prompting. Development workflow / AI coding assistant / task orchestration → internal-docs/WORKFLOW-ORCHESTRATION.md. When uncertain, search across folders—answers often span domains.
 
 ## TONE (SOUL)
 
