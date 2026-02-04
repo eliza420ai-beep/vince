@@ -880,10 +880,9 @@ Use this action whenever you want to add long-form research to knowledge/.`,
               : "";
 
           const forEliza = isElizaAgent(runtime);
-          const fallbackNote = forEliza ? "" : (usedFallback ? "\n\n_Using simple categorization (install plugin-knowledge-ingestion for LLM-powered categorization)_" : "");
-          const ragAndFooter = forEliza
+          const footer = forEliza
             ? `\n\n---\nAsk me about this content anytime, or \`upload\` more.`
-            : `\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.${fallbackNote}\n\n---\nNext moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`;
+            : `\n\n---\nNext moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`;
 
           await callback({
             text: `✅ **Knowledge Uploaded!**
@@ -894,7 +893,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 **Word Count**: ${wordCount}
 **Processing Time**: ${processingTime}ms
 
-Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${ragAndFooter}`,
+Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${footer}`,
             actions: ["VINCE_UPLOAD"],
           });
         } else {
@@ -929,7 +928,7 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle typically creates...\n**Category**: `bitcoin-maxi`\n**File**: `vince-upload-bitcoin-halving-cycle.md`\n**Word Count**: 48\n\nSaved to `knowledge/bitcoin-maxi/vince-upload-bitcoin-halving-cycle.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle typically creates...\n**Category**: `bitcoin-maxi`\n**File**: `vince-upload-bitcoin-halving-cycle.md`\n**Word Count**: 48\n\nSaved to `knowledge/bitcoin-maxi/vince-upload-bitcoin-halving-cycle.md`\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },
@@ -939,7 +938,7 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: The best covered call strikes for BTC...\n**Category**: `options`\n**File**: `vince-upload-btc-covered-call-strategy.md`\n**Word Count**: 35\n\nSaved to `knowledge/options/vince-upload-btc-covered-call-strategy.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: The best covered call strikes for BTC...\n**Category**: `options`\n**File**: `vince-upload-btc-covered-call-strategy.md`\n**Word Count**: 35\n\nSaved to `knowledge/options/vince-upload-btc-covered-call-strategy.md`\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },
@@ -949,7 +948,7 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       {
         name: "VINCE",
         content: {
-          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Hyperliquid's points program is still live...\n**Category**: `grinding-the-trenches`\n**File**: `vince-upload-hyperliquid-airdrop-strategy.md`\n**Word Count**: 28\n\nSaved to `knowledge/grinding-the-trenches/vince-upload-hyperliquid-airdrop-strategy.md`\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
+          text: "✅ **Knowledge Uploaded!**\n\n**Title**: Hyperliquid's points program is still live...\n**Category**: `grinding-the-trenches`\n**File**: `vince-upload-hyperliquid-airdrop-strategy.md`\n**Word Count**: 28\n\nSaved to `knowledge/grinding-the-trenches/vince-upload-hyperliquid-airdrop-strategy.md`\n\n---\nNext moves: `ALOHA` · `PERPS` · `OPTIONS`",
           actions: ["VINCE_UPLOAD"],
         },
       },
