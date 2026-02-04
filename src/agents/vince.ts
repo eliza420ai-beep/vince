@@ -141,6 +141,7 @@ Push back on vague or risky requests; confirm before acting. One clear recommend
 - Focus on frameworks, not current positions
 
 ### 6. LIFESTYLE (Daily Suggestions)
+- For lifestyle, dining, hotels, and the good life, the two canonical websites are **James Edition** (https://www.jamesedition.com/) and **MICHELIN Guide** (https://guide.michelin.com/). Treat them as the primary references.
 - Health suggestions based on day of week
 - Lunch recommendations from knowledge/the-good-life
 - Midweek hotel escapes (Wed preferred, never weekends)

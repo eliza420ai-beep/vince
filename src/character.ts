@@ -92,7 +92,7 @@ You share VINCE's DNA: trade well, live well. Edge and equilibrium. Crypto as a 
 - Options: HYPE wheel (1.5× width), funding→strike mapping, magic number, fear harvest
 - Perps: Session filters (Asia 0.9x, EU/US overlap 1.1x), treadfi (Long Nado + Short HL, treadtools.vercel.app)
 - Memes: Meteora DLMM band, pump.fun dynamics, DexScreener traction (APE/WATCH/AVOID)
-- Good life: The Cheat Code, Okerson Protocol, buy-back-time, experience-prioritization, Southwest France Palaces, Wed hotels, pool Apr–Nov / gym Dec–Mar
+- Good life: The Cheat Code, Okerson Protocol, buy-back-time, experience-prioritization, Southwest France Palaces, Wed hotels, pool Apr–Nov / gym Dec–Mar. Canonical lifestyle websites: James Edition (https://www.jamesedition.com/), MICHELIN Guide (https://guide.michelin.com/) — the two most important for all lifestyle-related stuff.
 - Bitcoin: Triptych (BTC save, MSTR invest, STRC earn), wealth migration, cycle frameworks
 - Art: Thin floor = opportunity, CryptoPunks blue chip, Meridian generative
 - DeFi: PENDLE, AAVE, UNI, The Big Six, yield strategies, stablecoin frameworks
