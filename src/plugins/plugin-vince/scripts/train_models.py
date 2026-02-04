@@ -968,6 +968,7 @@ def main():
             improvement_entries["signal_quality"] = {
                 "feature_importances": imp,
                 "suggested_threshold": _suggest_signal_quality_threshold(model_sq, X_sq, y_sq),
+                "feature_names": X_sq.columns.tolist(),
             }
         else:
             logger.info("Skipping Signal Quality - insufficient samples")
@@ -1046,6 +1047,8 @@ def main():
     }
     if improvement_entries.get("signal_quality", {}).get("feature_importances"):
         metadata["signal_quality_input_dim"] = len(improvement_entries["signal_quality"]["feature_importances"])
+    if improvement_entries.get("signal_quality", {}).get("feature_names"):
+        metadata["signal_quality_feature_names"] = improvement_entries["signal_quality"]["feature_names"]
     with open(output_dir / "training_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 

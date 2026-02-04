@@ -68,6 +68,10 @@ def _synthetic_record(
             "volatilityRegime": ["low", "normal", "high"][i % 3],
             "marketRegime": ["bearish", "neutral", "bullish"][i % 3],
         },
+        "news": {
+            "nasdaqChange": -2 + (i % 5) * 1.0,
+            "macroRiskEnvironment": ["risk_off", "neutral", "risk_on"][i % 3],
+        },
         "execution": {
             "streakMultiplier": 1.0 + (i % 3) * 0.1,
         },
@@ -89,11 +93,11 @@ def _synthetic_record(
 
 def generate_synthetic_jsonl(
     path: str,
-    num_records: int = 120,
+    num_records: int = 150,
     assets: list[str] | None = None,
     include_sl_label: bool = False,
 ) -> None:
-    """Write synthetic feature records to a JSONL file."""
+    """Write synthetic feature records to a JSONL file (default 150 for richer tests)."""
     assets = assets or ["BTC"]
     with open(path, "w") as f:
         for i in range(num_records):
@@ -157,7 +161,7 @@ class TestTrainModels(unittest.TestCase):
             data_path = os.path.join(tmp, "features.jsonl")
             output_dir = os.path.join(tmp, "models")
 
-            generate_synthetic_jsonl(data_path, num_records=120)
+            generate_synthetic_jsonl(data_path, num_records=150)
 
             result = run_train_models(data_path, output_dir, min_samples=30)
             self.assertEqual(result.returncode, 0, (
@@ -171,8 +175,8 @@ class TestTrainModels(unittest.TestCase):
                 metadata = json.load(f)
 
             self.assertIn("trained_at", metadata)
-            self.assertEqual(metadata["total_records"], 120)
-            self.assertEqual(metadata["trades_with_outcomes"], 120)
+            self.assertEqual(metadata["total_records"], 150)
+            self.assertEqual(metadata["trades_with_outcomes"], 150)
             # models_fit = proof that training ran and learned (even if ONNX export failed)
             models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
             self.assertGreaterEqual(len(models_fit), 1, (
@@ -203,7 +207,7 @@ class TestTrainModels(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             data_path = os.path.join(tmp, "features.jsonl")
-            generate_synthetic_jsonl(data_path, num_records=100)
+            generate_synthetic_jsonl(data_path, num_records=120)
 
             df = load_features(data_path)
             X, y = prepare_signal_quality_features(df)
@@ -261,7 +265,7 @@ class TestTrainModels(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             data_path = os.path.join(tmp, "features_sl.jsonl")
-            generate_synthetic_jsonl(data_path, num_records=120, include_sl_label=True)
+            generate_synthetic_jsonl(data_path, num_records=150, include_sl_label=True)
 
             df = load_features(data_path)
             self.assertIn("label_maxAdverseExcursion", df.columns, "load_features should create label_maxAdverseExcursion")
@@ -285,7 +289,7 @@ class TestTrainModels(unittest.TestCase):
             data_path = os.path.join(tmp, "synthetic_from_generator.jsonl")
             output_dir = os.path.join(tmp, "models")
 
-            gen_result = run_generate_synthetic_features(data_path, count=150)
+            gen_result = run_generate_synthetic_features(data_path, count=200)
             self.assertEqual(gen_result.returncode, 0, (
                 f"generate_synthetic_features.py failed: stdout={gen_result.stdout!r} stderr={gen_result.stderr!r}"
             ))
@@ -308,6 +312,9 @@ class TestTrainModels(unittest.TestCase):
             self.assertGreaterEqual(len(models_fit), 1, (
                 "At least one model should be fit when training on generate_synthetic_features.py output"
             ))
+            # When news features present, signal_quality_input_dim can be 20
+            if "signal_quality_input_dim" in metadata:
+                self.assertGreaterEqual(metadata["signal_quality_input_dim"], 16)
 
     def test_multi_asset_uses_asset_dummies(self):
         """When multiple assets are present, prepare_signal_quality_features includes asset_* dummy columns."""
@@ -318,7 +325,7 @@ class TestTrainModels(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             data_path = os.path.join(tmp, "features_multi_asset.jsonl")
-            generate_synthetic_jsonl(data_path, num_records=80, assets=["BTC", "ETH"])
+            generate_synthetic_jsonl(data_path, num_records=100, assets=["BTC", "ETH"])
 
             df = load_features(data_path)
             self.assertGreater(df["asset"].nunique(), 1, "Data should contain multiple assets")

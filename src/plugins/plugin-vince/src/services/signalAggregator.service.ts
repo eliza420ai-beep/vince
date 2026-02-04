@@ -1450,7 +1450,7 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
 
-          // Prepare ML input
+          // Prepare ML input (assetTicker for asset_* dummies when model has signal_quality_feature_names)
           const input: SignalQualityInput = {
             priceChange24h: marketData?.priceChange?.day ?? 0,
             volumeRatio: marketData?.volumeRatio ?? 1,
@@ -1466,6 +1466,7 @@ export class VinceSignalAggregatorService extends Service {
             ...(newsNasdaqChange !== undefined && { newsNasdaqChange }),
             ...(newsMacroRiskOn !== undefined && { newsMacroRiskOn }),
             ...(newsMacroRiskOff !== undefined && { newsMacroRiskOff }),
+            ...(signal.asset && { assetTicker: signal.asset }),
             isWeekend: session === "weekend" ? 1 : 0,
             isOpenWindow: signal.openWindowBoost && signal.openWindowBoost > 0 ? 1 : 0,
             utcHour: new Date().getUTCHours() / 24,

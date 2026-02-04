@@ -53,6 +53,9 @@ export interface SignalQualityInput {
   /** 0 or 1; risk_off (tradfi outperforming); used when model has 20 inputs. */
   newsMacroRiskOff?: number;
 
+  /** Asset symbol for asset dummies (e.g. "BTC", "ETH"); used when model has asset_* features. */
+  assetTicker?: string;
+
   // Session features
   isWeekend: number; // 0 or 1
   isOpenWindow: number; // 0 or 1
@@ -178,6 +181,8 @@ export class VinceMLInferenceService extends Service {
   private improvementReport: ImprovementReportTuning | null = null;
   /** Signal quality model input dimension (from training_metadata); 16 = legacy, 17 = with hasOICap. */
   private signalQualityInputDim: number = 16;
+  /** Ordered feature names for signal quality (from training_metadata); when set, feature vector is built from these. */
+  private signalQualityFeatureNames: string[] | null = null;
 
   // ONNX runtime session placeholders
   // These will be populated if onnxruntime-node is available
@@ -252,12 +257,19 @@ export class VinceMLInferenceService extends Service {
       const meta = JSON.parse(raw) as {
         improvement_report?: ImprovementReportTuning;
         signal_quality_input_dim?: number;
+        signal_quality_feature_names?: string[];
       };
       const report = meta.improvement_report;
       if (report) this.improvementReport = report;
       if (typeof meta.signal_quality_input_dim === "number" && meta.signal_quality_input_dim > 0) {
         this.signalQualityInputDim = meta.signal_quality_input_dim;
         logger.info(`[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`);
+      }
+      if (Array.isArray(meta.signal_quality_feature_names) && meta.signal_quality_feature_names.length > 0) {
+        this.signalQualityFeatureNames = meta.signal_quality_feature_names;
+        logger.info(`[MLInference] Signal quality feature names: ${this.signalQualityFeatureNames.length} (dynamic vector)`);
+      } else {
+        this.signalQualityFeatureNames = null;
       }
       if (!report) return;
       const t = report.suggested_signal_quality_threshold;
@@ -567,7 +579,82 @@ export class VinceMLInferenceService extends Service {
   // Feature Preparation
   // ==========================================
 
+  /**
+   * Returns the normalized value for a single signal-quality feature name (training column name).
+   * Used when building the feature vector from signal_quality_feature_names. Unknown names return 0.
+   */
+  private getSignalQualityFeatureValue(name: string, input: SignalQualityInput): number {
+    const norm = ML_CONFIG.normalization;
+    const n = (v: number, min: number, max: number) => this.normalize(v, min, max);
+    switch (name) {
+      case "market_priceChange24h":
+        return n(input.priceChange24h, norm.priceChange.min, norm.priceChange.max);
+      case "market_volumeRatio":
+        return n(input.volumeRatio, norm.volumeRatio.min, norm.volumeRatio.max);
+      case "market_fundingPercentile":
+        return input.fundingPercentile / 100;
+      case "market_longShortRatio":
+        return n(input.longShortRatio, 0.5, 2.0);
+      case "signal_strength":
+        return input.strength / 100;
+      case "signal_confidence":
+        return input.confidence / 100;
+      case "signal_source_count":
+        return Math.min(1, input.sourceCount / 5);
+      case "signal_hasCascadeSignal":
+        return input.hasCascadeSignal;
+      case "signal_hasFundingExtreme":
+        return input.hasFundingExtreme;
+      case "signal_hasWhaleSignal":
+        return input.hasWhaleSignal;
+      case "session_isWeekend":
+        return input.isWeekend;
+      case "session_isOpenWindow":
+        return input.isOpenWindow;
+      case "session_utcHour":
+        return input.utcHour / 24;
+      case "market_dvol":
+      case "market_rsi14":
+      case "market_oiChange24h":
+      case "market_fundingDelta":
+      case "market_bookImbalance":
+      case "market_bidAskSpread":
+      case "market_priceVsSma20":
+      case "signal_avg_sentiment":
+      case "news_avg_sentiment":
+        return 0;
+      case "signal_hasOICap":
+        return input.hasOICap ?? 0;
+      case "news_nasdaqChange":
+        return n(input.newsNasdaqChange ?? 0, norm.nasdaqChange.min, norm.nasdaqChange.max);
+      case "news_macro_risk_on":
+        return input.newsMacroRiskOn ?? 0;
+      case "news_macro_risk_off":
+        return input.newsMacroRiskOff ?? 0;
+      case "regime_volatility_high":
+        return input.volatilityRegimeHigh;
+      case "regime_bullish":
+        return input.marketRegimeBullish;
+      case "regime_bearish":
+        return input.marketRegimeBearish;
+      default:
+        if (name.startsWith("asset_")) {
+          const ticker = (input.assetTicker ?? "").toUpperCase();
+          const asset = name.replace(/^asset_/, "");
+          return ticker === asset ? 1 : 0;
+        }
+        return 0;
+    }
+  }
+
   private prepareSignalQualityFeatures(input: SignalQualityInput): Float32Array {
+    if (this.signalQualityFeatureNames && this.signalQualityFeatureNames.length > 0) {
+      const arr = new Float32Array(this.signalQualityFeatureNames.length);
+      for (let i = 0; i < this.signalQualityFeatureNames.length; i++) {
+        arr[i] = this.getSignalQualityFeatureValue(this.signalQualityFeatureNames[i], input);
+      }
+      return arr;
+    }
     const norm = ML_CONFIG.normalization;
     const hasOICap = input.hasOICap ?? 0;
     const newsNasdaq = input.newsNasdaqChange ?? 0;

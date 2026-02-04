@@ -134,6 +134,8 @@ def one_record(
             "sentimentScore": random.uniform(-30, 30),
             "sentimentDirection": random.choice(["bullish", "bearish", "neutral"]),
             "hasActiveRiskEvents": random.random() < 0.2,
+            "nasdaqChange": random.uniform(-3, 3),
+            "macroRiskEnvironment": random.choice(["risk_on", "risk_off", "neutral"]),
         },
         "decisionDrivers": ["Funding neutral", "Session overlap", "Strength > 50"],
         "execution": {
