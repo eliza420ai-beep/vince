@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-04 (progress: market features #1/#5 DONE; News contributes when neutral)
+# Last updated: 2026-02-04 (Hyperliquid: perpsAtOICap + fundingHistory → HyperliquidOICap, HyperliquidFundingExtreme signals)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -108,6 +108,9 @@ COMPLETED
 - CLAUDE.md - AI operating manual
 - START.md - Complete vibe coding manifesto
 - README.md - Project overview
+- IMPROVEMENT_WEIGHTS_AND_TUNING.md - Improvement report weights, Binance 451, threshold tunables
+- BINANCE_DATA_IMPROVEMENTS.md - How to get better data from Binance free endpoints (percentile funding, L/S signal, multi-period, proxy)
+- HYPERLIQUID_ENDPOINTS.md - Which HL info endpoints we use, algo impact (perpsAtOICap, fundingHistory, userFunding), suggested order
 - progress.txt - This file
 
 ## Configuration ✅
@@ -150,6 +153,18 @@ COMPLETED
 ## TypeScript / type alignment (2026-02-03) ✅
 - Fixed 13 TS errors in vincePaperTrading.service.ts and related types. Position: added realizedPnlPct to paperTrading.ts; VincePositionManager.closePosition now sets position.realizedPnlPct when closing. recordExecution: call fixed to recordExecution(decisionId, position, additionalDetails) with valid TradeExecutionFeatures (entryAtrPct, streakMultiplier, positionSizePct); removed invalid fillPrice. recordOutcome: outcome object aligned with feature store (exitPrice, realizedPnl, realizedPnlPct, exitReason, holdingPeriodMs, etc.); use position.closedAt/openedAt for holdingPeriodMs; removed profitable/durationMs. VinceMarketRegimeService: added getCurrentRegime(asset?) returning { marketRegime, volatilityRegime? }; signalAggregator and paper trading use await getCurrentRegime(asset). AggregatedTradeSignal: added toAggregatedTradeSignal(signal) in paper trading to build full type (conflictingCount, signals, reasons, sourceBreakdown) from AggregatedSignal; all logSignalRejection calls use it instead of unsafe casts. Build completes cleanly.
 
+## Improvement report weights + Binance 451 + thresholds (2026-02-04) ✅
+- Improvement report → aggregator weights: improvementReportWeights.ts reads training_metadata.json (feature_importances.signal_quality), maps features to source names, logs top features/sources; when VINCE_APPLY_IMPROVEMENT_WEIGHTS=true, nudges dynamicConfig source weights (0.5–2.0) so weights stay data-driven after retrains. See IMPROVEMENT_WEIGHTS_AND_TUNING.md.
+- Script: scripts/run-improvement-weights.ts (bun run improvement-weights from plugin-vince) for dry-run or apply. Unit test: src/__tests__/improvementReportWeights.test.ts.
+- Binance 451: consecutive 451s tracked in binance.service.ts; after 3, isDegraded() true and signal aggregator skips Binance (graceful degradation). Recovery on first 2xx.
+- Threshold tuning: Binance Top Traders (long >62 / short <38), Taker Volume (ratio >1.25 / <0.75) so more sources contribute; see IMPROVEMENT_WEIGHTS_AND_TUNING.md for tunables (451 threshold, nudge strength).
+- Binance data improvements (2026-02-04): (1) Funding "extreme" now percentile-based (top/bottom 10% of last 30 rates). (2) Binance L/S ratio → BinanceLongShort (ratio >1.5 / <0.67). (3) BINANCE_DATA_IMPROVEMENTS.md doc. (4) Implemented: base URL from VINCE_BINANCE_BASE_URL (proxy for 451); validation/clamping (longPosition 0–100, buySellRatio 0.1–10, L/S and funding); more history + smoothing (top trader and taker limit=5, avg of last 3); OI flush as weak signal BinanceOIFlush when OI falling <-5%. See .env.example for VINCE_BINANCE_BASE_URL.
+
+## Hyperliquid API expansion (2026-02-04) ✅
+- New endpoints in hyperliquid.fallback.ts: (1) getPerpsAtOpenInterestCap() – type "perpsAtOpenInterestCap", returns list of perps at OI cap (cache 60s). (2) getFundingHistory(coin, startTime, endTime?) – type "fundingHistory". (3) getFundingRegime(coin, currentFunding8h, lookbackSamples?) – uses getFundingHistory and computes percentile (0–100), isExtremeLong (≥90), isExtremeShort (≤10).
+- New signals in signal aggregator: HyperliquidOICap (asset in perpsAtOICap → contrarian signal, strength 52, fade overallBias). HyperliquidFundingExtreme (getFundingRegime → mean reversion when HL funding in top/bottom 10% of last 30 intervals; strength 58, confidence 54).
+- Phase 1 fetch: perpsAtOICap added to Promise.all; section 9 calls getFundingRegime(asset, optionsPulse.funding8h) with timeout when HL pulse has funding for asset. IHyperliquidService extended with getPerpsAtOpenInterestCap?, getFundingRegime? (external-services.ts). dynamicConfig: HyperliquidFundingExtreme 1.35, HyperliquidOICap 1.2. SIGNAL_SOURCES.md and getStatus() updated. HYPERLIQUID_ENDPOINTS.md documents all HL endpoints in use and algo impact; summary updated to show perpsAtOpenInterestCap and fundingHistory now in use.
+
 ## Algo ML Improvements ✅
 - ALGO_ML_IMPROVEMENTS.md: roadmap for using ML more (position sizing, TP/SL wiring, block low ML quality, improvement report, similarity filter, bandit feedback). Implemented: ML position sizing in paper trading (evaluateAndTrade) – base size multiplied by predictPositionSize (0.5–2x) using signal quality, strength, confidence, volatility regime, drawdown, recent win rate, streak.
 - ONNX export: train_models.py uses onnxmltools (not skl2onnx) for XGBoost → ONNX; booster feature names temporarily set to f0, f1, … for converter compatibility. All four models (signal_quality, position_sizing, tp_optimizer, sl_optimizer) export to .onnx when pip3 install onnx onnxmltools. Docs/scripts use pip3 (Mac).
@@ -159,7 +174,7 @@ COMPLETED
 
 ## Fetch Performance (Timeouts + Parallelization) ✅
 - Coinglass: 10s timeout on every fetch; refreshData() runs BTC/ETH/SOL + Fear/Greed in parallel; per-asset OI/funding/Binance L/S in parallel; fetchFreeData() runs price/funding/LS/OI in one Promise.all.
-- Signal aggregator: SOURCE_FETCH_TIMEOUT_MS (12s) and withTimeout(ms, label, promise) so one slow source returns null and does not block. Phase 1: Binance, Deribit IV, MarketData, Sanbase, Hyperliquid (options pulse + cross-venue), Deribit comprehensive + DVOL fetched in a single Promise.all; sections 3–10 use pre-fetched results. Phase 2: getTakerVolume, getRSIAdjustment, getOpenWindowInfo wrapped in withTimeout. getAllSignals() uses Promise.all(assets.map(getSignal)) so multi-asset aggregation runs in parallel.
+- Signal aggregator: SOURCE_FETCH_TIMEOUT_MS (12s) and withTimeout(ms, label, promise) so one slow source returns null and does not block. Phase 1: Binance, Deribit IV, MarketData, Sanbase, Hyperliquid (options pulse + cross-venue + perpsAtOICap), Deribit comprehensive + DVOL fetched in a single Promise.all; sections 3–10 use pre-fetched results; section 9 adds HyperliquidOICap (asset at OI cap) and HyperliquidFundingExtreme (getFundingRegime per asset). Phase 2: getTakerVolume, getRSIAdjustment, getOpenWindowInfo wrapped in withTimeout. getAllSignals() uses Promise.all(assets.map(getSignal)) so multi-asset aggregation runs in parallel.
 
 ## ML Learning State ✅
 - Feature store: 21+ feature/synthetic files in .elizadb/vince-paper-bot/features (features_*.jsonl, synthetic_*.jsonl). 1250+ completed trades for training.
@@ -182,12 +197,11 @@ COMPLETED
 PRIORITY (real-time data for paper trading algo)
 ================================================================================
 
-🟢 VINCEBINANCE HTTP 451 – (1) DONE. (2) BACKLOG
-   (1) DONE: binance.service.ts has logHttpWarn() with 5-min cooldown per endpoint,
-   logs 451 with context "Unavailable For Legal Reasons – check region/restrictions",
-   and uses logger.debug for repeats. No more 451 flood on Eliza Cloud Warnings.
-   (2) BACKLOG: Consider skipping Binance in signal aggregator when 451 persists
-   (e.g. after N consecutive 451s) for graceful degradation.
+🟢 VINCEBINANCE HTTP 451 – DONE ✅
+   (1) DONE: logHttpWarn() with 5-min cooldown, 451 context, debug for repeats.
+   (2) DONE: Binance tracks consecutive 451s; when >= 3, isDegraded() returns true and
+   signal aggregator skips Binance (no getIntelligence call). Recovery when any fetch
+   returns 2xx (recordSuccess()). See binance.service.ts and signalAggregator Phase 1.
 
 🟢 IMPROVE LOGS FOR ELIZA CLOUD (https://www.elizacloud.ai/) – PARTIAL ✅
    Align with Eliza Cloud Container Logs / Metrics UX: filterable levels,

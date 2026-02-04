@@ -8,7 +8,8 @@
     "test": "vitest run --dir=.",
     "test:unit": "vitest run src/__tests__/bullBearCase.test.ts --dir=.",
     "test:e2e": "vitest run src/__tests__/realData.e2e.test.ts --dir=.",
-    "test:watch": "vitest --dir=."
+    "test:watch": "vitest --dir=.",
+    "improvement-weights": "bun run scripts/run-improvement-weights.ts"
   },
   "keywords": [
     "elizaos",

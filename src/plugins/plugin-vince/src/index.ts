@@ -347,6 +347,13 @@ export const vincePlugin: Plugin = {
       .filter(([type]) => !!runtime.getService(type))
       .map(([, label]) => label);
     console.log(`  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`);
+
+    // Improvement report → aggregator weights (THINGS TO DO #3): log top features, optionally align weights
+    const { logAndApplyImprovementReportWeights } = await import("./utils/improvementReportWeights");
+    const applyWeights = runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === true || runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === "true";
+    logAndApplyImprovementReportWeights(applyWeights).catch((e) =>
+      logger.debug(`[VINCE] Improvement report weights: ${e}`)
+    );
     console.log(`  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`);
     // if (!xaiConfigured) {
     //   console.log(`  [VINCE] ⚠️  XAI not configured (add XAI_API_KEY for Grok Expert)`);

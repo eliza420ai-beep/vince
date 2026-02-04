@@ -1162,18 +1162,31 @@ export class VincePaperTradingService extends Service {
     const sourceCount = signal.confirmingCount ?? 0;
     const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const maxSourcesLen = 26;
-    const sourcesDisplay = sourcesStr.length > maxSourcesLen ? sourcesStr.slice(0, maxSourcesLen - 1) + "…" : sourcesStr;
     const reasons = (signal.reasons ?? []).slice(0, 14);
-    const thesisParts = reasons.slice(0, 4).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 3).join(" "));
-    const unique = [...new Set(thesisParts)].slice(0, 3);
+    const thesisParts = reasons.slice(0, 8).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 4).join(" "));
+    const unique = [...new Set(thesisParts)].slice(0, 6);
     const thesisLine = `${direction.toUpperCase()} because: ${unique.join(", ")}`;
-    const maxThesisLen = 58;
-    const thesisDisplay = thesisLine.length > maxThesisLen ? thesisLine.slice(0, maxThesisLen - 1) + "…" : thesisLine;
     const maxReasonLen = 56;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
     const W = 63;
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
+    const wrapToWidth = (text: string, width: number): string[] => {
+      if (text.length <= width) return [text];
+      const out: string[] = [];
+      let rest = text;
+      while (rest.length > 0) {
+        if (rest.length <= width) {
+          out.push(rest);
+          break;
+        }
+        const chunk = rest.slice(0, width + 1);
+        const lastSpace = chunk.lastIndexOf(" ");
+        const breakAt = lastSpace > width / 2 ? lastSpace : width;
+        out.push(rest.slice(0, breakAt).trim());
+        rest = rest.slice(breakAt).trim();
+      }
+      return out;
+    };
     const sep = "  ╟" + "─".repeat(W + 2) + "╢";
     const empty = line("");
 
@@ -1210,8 +1223,16 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(line("  WHY THIS TRADE"));
     console.log(empty);
-    console.log(line(`  ${factorCount} factors  ·  ${sourceCount} sources  ·  ${sourcesDisplay}`));
-    console.log(line(`  Thesis   ${thesisDisplay}`));
+    console.log(line(`  ${factorCount} factors  ·  ${sourceCount} sources`));
+    const sourcesWrapped = wrapToWidth(sourcesStr, W - 2);
+    for (const chunk of sourcesWrapped) {
+      console.log(line(`  ${chunk}`));
+    }
+    const thesisWrapped = wrapToWidth(thesisLine, W - 11);
+    console.log(line(`  Thesis   ${thesisWrapped[0]}`));
+    for (let i = 1; i < thesisWrapped.length; i++) {
+      console.log(line(`           ${thesisWrapped[i]}`));
+    }
     console.log(empty);
     const reasonParts = reasons.map((r) => {
       let text = r;

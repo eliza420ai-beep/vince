@@ -23,6 +23,59 @@
 
 ---
 
+## Data we have vs what feeds the algo
+
+When you see **"2 sources"** in WHY THIS TRADE, that means only **2 distinct source names** contributed factors *that tick* (e.g. CoinGlass + DeribitIVSkew). Many more *can* contribute; they only add a factor when their thresholds are met (e.g. taker ratio &gt; 1.25, skew fearful, etc.).
+
+### Sources that DO feed the paper trading algo (can appear in "N sources")
+
+These are the only names that count as "sources" in the aggregator. If a source is available but its thresholds aren’t met this tick, it won’t show up.
+
+| Source name | Service | When it contributes |
+|-------------|---------|--------------------|
+| **CoinGlass** | VinceCoinGlassService | Funding, L/S, OI, fear/greed in range → almost always at least one factor |
+| **TopTraders** | VinceTopTradersService | HL whale positions cross threshold (needs wallet config) |
+| **BinanceTopTraders** | VinceBinanceService | Top trader long % &gt;62 or &lt;38 |
+| **BinanceTakerFlow** | VinceBinanceService | Taker buy/sell ratio &gt;1.25 or &lt;0.75 |
+| **BinanceOIFlush** | VinceBinanceService | OI trend falling &lt;−5% |
+| **BinanceLongShort** | VinceBinanceService | L/S ratio &gt;1.5 or &lt;0.67 |
+| **BinanceFundingExtreme** | VinceBinanceService | Funding in top/bottom 10% of recent |
+| **LiquidationCascade** | VinceBinanceLiquidationService | Cascade detected |
+| **LiquidationPressure** | VinceBinanceLiquidationService | Per-symbol pressure |
+| **NewsSentiment** | VinceNewsSentimentService | Sentiment bullish/bearish/neutral (confidence ≥40) |
+| **DeribitIVSkew** | VinceDeribitService | IV skew fearful or bullish (BTC/ETH/SOL) |
+| **DeribitPutCallRatio** | VinceDeribitService | P/C ratio extreme |
+| **MarketRegime** | VinceMarketDataService + VinceMarketRegimeService | Regime not neutral |
+| **SanbaseExchangeFlows** | VinceSanbaseService | In/out flows (needs SANBASE_API_KEY) |
+| **SanbaseWhales** | VinceSanbaseService | Whale activity (needs key) |
+| **HyperliquidBias** | Hyperliquid fallback | Perps bias long/short |
+| **HyperliquidCrowding** | Hyperliquid fallback | Crowding signal |
+| **HyperliquidOICap** | Hyperliquid fallback | Perp at OI cap (max crowding, contrarian) |
+| **HyperliquidFundingExtreme** | Hyperliquid fallback | HL funding in top/bottom 10% of history (mean reversion) |
+| **CrossVenueFunding** | Hyperliquid + Binance/Bybit | Funding arb opportunity |
+
+So **"2 sources"** = 2 of the above had at least one factor this time. To get more sources: fix config (e.g. Sanbase key), relax thresholds (see IMPROVEMENT_WEIGHTS_AND_TUNING.md), or add new sources below.
+
+### Data we have that do NOT yet influence the trading bot
+
+These services exist and return data, but they are **not** wired into the signal aggregator for the paper trading algo. They are used for other actions (memes, NFT, lifestyle, alerts, etc.) or for context only.
+
+| Service | What it provides | Why it doesn’t feed the algo (yet) |
+|---------|------------------|------------------------------------|
+| **VinceNansenService** | Smart money, flow (100 credits) | Not connected to signal aggregator; could be added as a source. |
+| **VinceCoinGeckoService** | Exchange health, liquidity, prices | Used by MarketData/context; not a named aggregator source. |
+| **VinceDexScreenerService** | Hot memes SOLANA + BASE | Memes action only; not perps. |
+| **VinceMeteoraService** | LP pool discovery | DCA / memes; not perps signals. |
+| **VinceNFTFloorService** | NFT floor prices | NFT action only. |
+| **VinceLifestyleService** | Daily suggestions | Lifestyle action only. |
+| **VinceHIP3Service** | Stocks, commodities, indices | TradFi; not crypto perps. |
+| **VinceWatchlistService** | Early detection watchlist | Not used as an aggregator source; could filter or add weak signal. |
+| **VinceAlertService** | Price/signal alerts | Alerts only; not voting in aggregator. |
+
+**DVOL** (Deribit volatility index) is used for position sizing / regime (e.g. cap size when vol is high) but does not appear as its own **source** name in "N sources"; it’s part of context/ML.
+
+---
+
 ## Sources (in aggregator order)
 
 | # | Source | What it adds | Enabling / config |
@@ -35,7 +88,7 @@
 | 6 | **Deribit** | IV skew (fear/greed from options). | **VINCE_DERIBIT_SERVICE** – registered; may use fallback. Contributes for BTC/ETH/SOL when skew is fearful or bullish. |
 | 7 | **MarketRegime** | Bullish/bearish/volatile from 24h price + sentiment. | **VINCE_MARKET_DATA_SERVICE** (enriched context). Uses CoinGlass/CoinGecko. Contributes when regime is not neutral. |
 | 8 | **Sanbase** | Exchange flows, whale activity. | **VINCE_SANBASE_SERVICE** + **isConfigured()**. Needs **SANBASE_API_KEY** (or similar). If not configured, skipped. |
-| 9 | **Hyperliquid** | Perps bias, crowding, cross-venue funding. | Via `getOrCreateHyperliquidService(runtime)` (fallback). Contributes when HL data available. |
+| 9 | **Hyperliquid** | Perps bias, crowding, OI cap, funding extreme (history-based), cross-venue funding. | Via `getOrCreateHyperliquidService(runtime)` (fallback). Uses `perpsAtOpenInterestCap` and `fundingHistory` APIs. Contributes when HL data available. |
 | 10 | **Deribit** (P/C, DVOL) | Put/call ratio, DVOL. | Same Deribit service; adds factors when data available. |
 
 ---

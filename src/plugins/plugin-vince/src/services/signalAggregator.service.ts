@@ -416,6 +416,11 @@ export class VinceSignalAggregatorService extends Service {
     const isRateLimited = hyperliquidService?.isRateLimited?.() ?? false;
 
     // Phase 1: fetch all async sources in parallel with per-source timeout
+    // Skip Binance when 451 persists (graceful degradation – PRIORITY #5)
+    const binanceDegraded = binanceService?.isDegraded?.() === true;
+    if (binanceDegraded) {
+      logger.debug(`[VinceSignalAggregator] Skipping Binance (451 degraded)`);
+    }
     const [
       binanceIntelligence,
       deribitIVSurface,
@@ -423,10 +428,11 @@ export class VinceSignalAggregatorService extends Service {
       sanbaseContext,
       optionsPulse,
       crossVenue,
+      perpsAtOICap,
       comprehensiveData,
       dvol,
     ] = await Promise.all([
-      binanceService
+      binanceService && !binanceDegraded
         ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "Binance", binanceService.getIntelligence(asset))
         : Promise.resolve(null),
       deribitService && currency
@@ -444,6 +450,9 @@ export class VinceSignalAggregatorService extends Service {
       hyperliquidService && !isRateLimited
         ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "HLCrossVenue", hyperliquidService.getCrossVenueFunding())
         : Promise.resolve(null),
+      hyperliquidService && !isRateLimited && hyperliquidService.getPerpsAtOpenInterestCap
+        ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "HLPerpsAtOICap", hyperliquidService.getPerpsAtOpenInterestCap())
+        : Promise.resolve(null as string[] | null),
       deribitPluginService && currency
         ? withTimeout(SOURCE_FETCH_TIMEOUT_MS, "DeribitComp", deribitPluginService.getComprehensiveData(currency as "BTC" | "ETH" | "SOL"))
         : Promise.resolve(null),
@@ -458,11 +467,11 @@ export class VinceSignalAggregatorService extends Service {
     if (binanceIntelligence) {
       try {
         const intel = binanceIntelligence;
-        // 3a. Top Trader Positions by SIZE (what big money is doing)
+        // 3a. Top Trader Positions by SIZE (what big money is doing) – relaxed 65/35 → 62/38 so more contribution
         if (intel.topTraderPositions) {
             const { longPosition } = intel.topTraderPositions;
             // Contrarian: extreme positioning suggests reversal
-            if (longPosition > 65) {
+            if (longPosition > 62) {
               signals.push({
                 asset,
                 direction: "short", // Contrarian - too many longs
@@ -474,11 +483,11 @@ export class VinceSignalAggregatorService extends Service {
               });
               sources.push("BinanceTopTraders");
               allFactors.push(`Binance top traders ${longPosition.toFixed(0)}% long (crowded)`);
-            } else if (longPosition < 35) {
+            } else if (longPosition < 38) {
               signals.push({
                 asset,
                 direction: "long", // Contrarian - shorts crowded
-                strength: 55 + Math.min(15, (35 - longPosition) / 2),
+                strength: 55 + Math.min(15, (38 - longPosition) / 2),
                 confidence: 55,
                 source: "BinanceTopTraders",
                 factors: [`Binance top traders only ${longPosition.toFixed(0)}% long (shorts crowded)`],
@@ -489,10 +498,10 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
 
-          // 3b. Taker Buy/Sell Volume (order flow)
+          // 3b. Taker Buy/Sell Volume (order flow) – relaxed 1.3/0.7 → 1.25/0.75 so more contribution
           if (intel.takerVolume) {
             const { buySellRatio } = intel.takerVolume;
-            if (buySellRatio > 1.3) {
+            if (buySellRatio > 1.25) {
               signals.push({
                 asset,
                 direction: "long",
@@ -504,7 +513,7 @@ export class VinceSignalAggregatorService extends Service {
               });
               sources.push("BinanceTakerFlow");
               allFactors.push(`Strong taker buy pressure ${buySellRatio.toFixed(2)}x`);
-            } else if (buySellRatio < 0.7) {
+            } else if (buySellRatio < 0.75) {
               signals.push({
                 asset,
                 direction: "short",
@@ -519,18 +528,57 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
 
-          // 3c. OI Trend (divergence detection)
+          // 3c. OI Trend (divergence detection) + weak OI-flush signal
           if (intel.oiTrend) {
             const { trend, changePercent } = intel.oiTrend;
-            // Rising OI with price = trend confirmation
-            // Falling OI = position closing, potential reversal
             if (trend === "falling" && changePercent < -5) {
-              // Major position closing - could signal bottom
-              allFactors.push(`OI dropping ${changePercent.toFixed(1)}% (position flush)`);
+              // Weak long bias: flush often precedes bounce (BINANCE_DATA_IMPROVEMENTS)
+              const oiFlushFactor = `OI flush ${changePercent.toFixed(1)}% (positions closing)`;
+              signals.push({
+                asset,
+                direction: "long",
+                strength: 46 + Math.min(6, Math.abs(changePercent) / 5),
+                confidence: 42,
+                source: "BinanceOIFlush",
+                factors: [oiFlushFactor],
+                timestamp: Date.now(),
+              });
+              sources.push("BinanceOIFlush");
+              allFactors.push(oiFlushFactor);
             }
           }
 
-          // 3d. Funding Rate Extremes (contrarian mean-reversion)
+          // 3d. Long/Short Ratio (all accounts) – contrarian when extreme
+          if (intel.longShortRatio) {
+            const ratio = intel.longShortRatio.longShortRatio;
+            if (ratio > 1.5) {
+              signals.push({
+                asset,
+                direction: "short",
+                strength: 52 + Math.min(10, (ratio - 1.5) * 10),
+                confidence: 48,
+                source: "BinanceLongShort",
+                factors: [`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded long)`],
+                timestamp: Date.now(),
+              });
+              sources.push("BinanceLongShort");
+              allFactors.push(`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded long)`);
+            } else if (ratio < 0.67) {
+              signals.push({
+                asset,
+                direction: "long",
+                strength: 52 + Math.min(10, (1 / ratio - 1.5) * 10),
+                confidence: 48,
+                source: "BinanceLongShort",
+                factors: [`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded short)`],
+                timestamp: Date.now(),
+              });
+              sources.push("BinanceLongShort");
+              allFactors.push(`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded short)`);
+            }
+          }
+
+          // 3e. Funding Rate Extremes (contrarian mean-reversion)
           if (intel.fundingTrend && intel.fundingTrend.isExtreme) {
             const { extremeDirection, current } = intel.fundingTrend;
             
@@ -567,7 +615,7 @@ export class VinceSignalAggregatorService extends Service {
       }
     }
     if (!sources.some((s) => s.startsWith("Binance"))) {
-      triedNoContribution.push("Binance");
+      triedNoContribution.push(binanceDegraded ? "Binance (451 degraded)" : "Binance");
     }
 
     // =========================================
@@ -882,7 +930,69 @@ export class VinceSignalAggregatorService extends Service {
           }
       }
 
-      // 9b. Cross-Venue Funding (HL vs Binance/Bybit)
+      // 9a. Perps at OI cap (max crowding – contrarian)
+      if (perpsAtOICap && perpsAtOICap.includes(asset)) {
+        const bias = optionsPulse?.overallBias;
+        const direction: "long" | "short" = bias === "bearish" ? "long" : "short"; // Fade: at cap + bullish => short
+        signals.push({
+          asset,
+          direction,
+          strength: 52,
+          confidence: 48,
+          source: "HyperliquidOICap",
+          factors: [`${asset} at open-interest cap on Hyperliquid - max crowding, contrarian`],
+          timestamp: Date.now(),
+        });
+        sources.push("HyperliquidOICap");
+        allFactors.push(`${asset} at OI cap on Hyperliquid - max crowding`);
+      }
+
+      // 9b. HL funding extreme (regime from fundingHistory – mean reversion)
+      const assetKey = asset.toLowerCase() as "btc" | "eth" | "sol" | "hype";
+      const assetPulseForRegime = optionsPulse?.assets[assetKey];
+      if (
+        hyperliquidService &&
+        !isRateLimited &&
+        hyperliquidService.getFundingRegime &&
+        assetPulseForRegime?.funding8h != null
+      ) {
+        try {
+          const regime = await withTimeout(
+            SOURCE_FETCH_TIMEOUT_MS,
+            "HLFundingRegime",
+            hyperliquidService.getFundingRegime(asset, assetPulseForRegime.funding8h)
+          );
+          if (regime?.isExtremeLong) {
+            signals.push({
+              asset,
+              direction: "short",
+              strength: 58,
+              confidence: 54,
+              source: "HyperliquidFundingExtreme",
+              factors: [`HL funding in top 10% (longs crowded) - mean reversion short`],
+              timestamp: Date.now(),
+            });
+            sources.push("HyperliquidFundingExtreme");
+            allFactors.push(`HL funding extreme long (percentile ${regime.percentile.toFixed(0)}) - mean reversion`);
+          } else if (regime?.isExtremeShort) {
+            signals.push({
+              asset,
+              direction: "long",
+              strength: 58,
+              confidence: 54,
+              source: "HyperliquidFundingExtreme",
+              factors: [`HL funding in bottom 10% (shorts crowded) - squeeze long`],
+              timestamp: Date.now(),
+            });
+            sources.push("HyperliquidFundingExtreme");
+            allFactors.push(`HL funding extreme short (percentile ${regime.percentile.toFixed(0)}) - squeeze long`);
+          }
+        } catch (_e) {
+          // Timeout or error: skip HL funding extreme this round
+        }
+      }
+
+      // 9c. Cross-Venue Funding (HL vs Binance/Bybit)
       if (crossVenue && crossVenue.arbitrageOpportunities.length > 0) {
           // Check if current asset has arbitrage opportunity
           const assetCrossVenue = crossVenue.assets.find(a => a.coin === asset);
@@ -916,7 +1026,16 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
         }
-    if (hyperliquidService && !sources.some((s) => s === "HyperliquidBias" || s === "HyperliquidCrowding" || s === "CrossVenueFunding")) {
+    if (
+      hyperliquidService &&
+      !sources.some((s) =>
+        s === "HyperliquidBias" ||
+        s === "HyperliquidCrowding" ||
+        s === "CrossVenueFunding" ||
+        s === "HyperliquidOICap" ||
+        s === "HyperliquidFundingExtreme"
+      )
+    ) {
       triedNoContribution.push("Hyperliquid");
     }
 
@@ -1415,6 +1534,8 @@ export class VinceSignalAggregatorService extends Service {
       { name: "SanbaseWhales", available: !!(sanbaseService && sanbaseService.isConfigured()) },
       { name: "HyperliquidBias", available: !!hyperliquidService },
       { name: "HyperliquidCrowding", available: !!hyperliquidService },
+      { name: "HyperliquidOICap", available: !!hyperliquidService },
+      { name: "HyperliquidFundingExtreme", available: !!hyperliquidService },
       { name: "CrossVenueFunding", available: !!hyperliquidService },
       { name: "DeribitPutCallRatio", available: !!deribitPluginService },
       { name: "DeribitDVOL", available: !!deribitPluginService },

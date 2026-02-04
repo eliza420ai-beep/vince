@@ -35,8 +35,10 @@ const REQUEST_TIMEOUT_MS = 15000;
 const CACHE_TTLS = {
   metaAndAssetCtxs: 60 * 1000,    // 60s - funding data
   predictedFundings: 60 * 1000,   // 60s - cross-venue data
-  optionsPulse: 2 * 60 * 1000,    // 2 min - aggregated pulse
+  optionsPulse: 2 * 60 * 1000,   // 2 min - aggregated pulse
   crossVenue: 2 * 60 * 1000,      // 2 min - aggregated cross-venue
+  perpsAtOICap: 60 * 1000,       // 60s - OI cap list
+  fundingHistory: 60 * 1000,     // 60s per asset - funding history for percentile
 };
 
 // Threshold for identifying arbitrage opportunities (0.01% = 0.0001)
@@ -115,6 +117,22 @@ type MetaAndAssetCtxsResponse = [HyperliquidMeta, HyperliquidAssetCtx[]];
 type VenueFunding = [string, { fundingRate: string; nextFundingTime: number }];
 type CoinPredictedFunding = [string, VenueFunding[]];
 type PredictedFundingsResponse = CoinPredictedFunding[];
+
+// fundingHistory response: array of { coin, fundingRate, premium?, time }
+interface FundingHistoryEntry {
+  coin: string;
+  fundingRate: string;
+  premium?: string;
+  time: number;
+}
+type FundingHistoryResponse = FundingHistoryEntry[];
+
+// Funding regime from history (percentile of current rate vs recent history)
+export interface HyperliquidFundingRegime {
+  percentile: number;   // 0–100, where 100 = current is highest
+  isExtremeLong: boolean;   // percentile >= 90 (longs crowded)
+  isExtremeShort: boolean;  // percentile <= 10 (shorts crowded)
+}
 
 export class HyperliquidFallbackService implements IHyperliquidService {
   private cache: Map<string, CacheEntry<unknown>> = new Map();
@@ -657,6 +675,81 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       logger.error(`[HyperliquidFallback] getCrossVenueFunding error: ${error}`);
       return null;
     }
+  }
+
+  /**
+   * Get list of perp symbols currently at open-interest cap (max crowding).
+   * Used for contrarian signal: at cap = crowded, consider fading or reducing size.
+   */
+  async getPerpsAtOpenInterestCap(): Promise<string[] | null> {
+    try {
+      const data = await this.postHyperliquid<string[]>(
+        { type: "perpsAtOpenInterestCap" },
+        CACHE_TTLS.perpsAtOICap
+      );
+      if (!data || !Array.isArray(data)) return null;
+      return data.filter((s): s is string => typeof s === "string");
+    } catch (error) {
+      logger.debug(`[HyperliquidFallback] getPerpsAtOpenInterestCap error: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Fetch funding history for a coin (8h funding intervals).
+   * startTime/endTime in ms; endTime defaults to now.
+   */
+  async getFundingHistory(
+    coin: string,
+    startTime: number,
+    endTime?: number
+  ): Promise<FundingHistoryEntry[] | null> {
+    const body: { type: string; coin: string; startTime: number; endTime?: number } = {
+      type: "fundingHistory",
+      coin,
+      startTime,
+    };
+    if (endTime != null) body.endTime = endTime;
+    try {
+      const data = await this.postHyperliquid<FundingHistoryResponse>(body, CACHE_TTLS.fundingHistory);
+      if (!data || !Array.isArray(data)) return null;
+      return data;
+    } catch (error) {
+      logger.debug(`[HyperliquidFallback] getFundingHistory(${coin}) error: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Compute funding regime for a coin: percentile of current 8h funding vs recent history.
+   * Returns percentile (0–100), and flags for extreme long (≥90) / extreme short (≤10).
+   * Used for mean-reversion / HyperliquidFundingExtreme signal.
+   */
+  async getFundingRegime(
+    coin: string,
+    currentFunding8h: number,
+    lookbackSamples: number = 30
+  ): Promise<HyperliquidFundingRegime | null> {
+    const now = Date.now();
+    // HL funding every 8h; lookbackSamples * 8h in ms. Omit endTime so cache key is stable (API defaults to now).
+    const startTime = now - lookbackSamples * 8 * 60 * 60 * 1000;
+    const history = await this.getFundingHistory(coin, startTime);
+    if (!history || history.length === 0) {
+      return null;
+    }
+    const rates = history
+      .map((e) => parseFloat(e.fundingRate))
+      .filter((r) => Number.isFinite(r));
+    if (rates.length === 0) return null;
+    // Percentile = share of (history + current) that are strictly below current (0–100)
+    const all = [...rates, currentFunding8h];
+    const countBelow = all.filter((r) => r < currentFunding8h).length;
+    const percentile = (countBelow / all.length) * 100;
+    return {
+      percentile,
+      isExtremeLong: percentile >= 90,
+      isExtremeShort: percentile <= 10,
+    };
   }
 
   /**

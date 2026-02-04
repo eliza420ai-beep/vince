@@ -33,6 +33,8 @@ const CACHE_TTL = 60 * 1000; // 1 minute cache for real-time data
 const FEAR_GREED_CACHE_TTL = 60 * 60 * 1000; // 1 hour (updates daily)
 /** Cooldown before re-logging same HTTP error per endpoint (avoids flooding Eliza Cloud Warnings) */
 const HTTP_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+/** Default Binance Futures API base (override with VINCE_BINANCE_BASE_URL for proxy in 451 regions) */
+const DEFAULT_BINANCE_BASE = "https://fapi.binance.com";
 
 interface CacheEntry<T> {
   data: T | null;
@@ -59,6 +61,9 @@ export class VinceBinanceService extends Service {
   private fearGreedCache: CacheEntry<AlternativeFearGreed> = { data: null, timestamp: 0 };
   /** Last time we logged a warn per endpoint (for cooldown to avoid log flood on Eliza Cloud) */
   private lastHttpWarnByEndpoint: Map<string, number> = new Map();
+  /** Consecutive 451 count across endpoints; when >= CONSECUTIVE_451_DEGRADE, aggregator skips Binance (graceful degradation) */
+  private consecutive451Count = 0;
+  private static readonly CONSECUTIVE_451_DEGRADE = 3;
 
   constructor(runtime: IAgentRuntime) {
     super();
@@ -93,6 +98,13 @@ export class VinceBinanceService extends Service {
     this.printBinanceDashboard(intel);
   }
 
+  /** Base URL for Binance Futures API (env/proxy for 451 regions). */
+  private getBaseUrl(): string {
+    const url = this.runtime?.getSetting?.("VINCE_BINANCE_BASE_URL") ?? process.env.VINCE_BINANCE_BASE_URL;
+    if (url && typeof url === "string") return String(url).replace(/\/$/, "");
+    return DEFAULT_BINANCE_BASE;
+  }
+
   /**
    * Log HTTP error once per endpoint per cooldown to avoid flooding Eliza Cloud Warnings.
    * 451 = Unavailable For Legal Reasons (e.g. geo-restriction); add context when used.
@@ -103,12 +115,26 @@ export class VinceBinanceService extends Service {
     const last = this.lastHttpWarnByEndpoint.get(key) ?? 0;
     const onCooldown = now - last < HTTP_WARN_COOLDOWN_MS;
     const hint451 = status === 451 ? " (Unavailable For Legal Reasons – check region/restrictions)" : "";
+    if (status === 451) this.record451();
     if (onCooldown) {
       logger.debug(`[VinceBinance] ${endpoint} returned ${status}${hint451}`);
     } else {
       this.lastHttpWarnByEndpoint.set(key, now);
       logger.warn(`[VinceBinance] ${endpoint} returned ${status}${hint451}`);
     }
+  }
+
+  private record451(): void {
+    this.consecutive451Count++;
+  }
+
+  private recordSuccess(): void {
+    this.consecutive451Count = 0;
+  }
+
+  /** True when 451 has occurred CONSECUTIVE_451_DEGRADE times; signal aggregator should skip Binance for graceful degradation. */
+  isDegraded(): boolean {
+    return this.consecutive451Count >= VinceBinanceService.CONSECUTIVE_451_DEGRADE;
   }
 
   // =============================================================================
@@ -359,8 +385,9 @@ export class VinceBinanceService extends Service {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
+      const limit = 5; // use last 3 for smoothing (BINANCE_DATA_IMPROVEMENTS)
       const response = await fetch(
-        `https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=1`,
+        `${this.getBaseUrl()}/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=${limit}`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);
@@ -369,16 +396,23 @@ export class VinceBinanceService extends Service {
         this.logHttpWarn("Top trader positions", response.status);
         return cached?.data ?? null;
       }
+      this.recordSuccess();
 
       const json = await response.json() as Array<{ longShortRatio: string; longAccount: string; shortAccount: string; timestamp: number }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
 
-      const latest = json[0];
-      const ratio = parseFloat(latest.longShortRatio || "1");
-      const longPct = (ratio / (1 + ratio)) * 100;
+      const toUse = json.slice(0, 3);
+      let sumLongPct = 0;
+      for (const row of toUse) {
+        const ratio = parseFloat(row.longShortRatio || "1");
+        sumLongPct += (ratio / (1 + ratio)) * 100;
+      }
+      const longPct = Math.max(0, Math.min(100, sumLongPct / toUse.length));
       const shortPct = 100 - longPct;
+      const ratio = longPct / (shortPct || 0.01);
+      const latest = json[0];
 
       const result: BinanceTopTraderPositions = {
         symbol,
@@ -412,8 +446,9 @@ export class VinceBinanceService extends Service {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
+      const limit = 5;
       const response = await fetch(
-        `https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${symbol}&period=${period}&limit=1`,
+        `${this.getBaseUrl()}/futures/data/takerlongshortRatio?symbol=${symbol}&period=${period}&limit=${limit}`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);
@@ -422,18 +457,26 @@ export class VinceBinanceService extends Service {
         this.logHttpWarn("Taker volume", response.status);
         return cached?.data ?? null;
       }
+      this.recordSuccess();
 
       const json = await response.json() as Array<{ buyVol: string; sellVol: string; buySellRatio: string; timestamp: number }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
 
+      const toUse = json.slice(0, 3);
+      let sumRatio = 0;
+      for (const row of toUse) {
+        sumRatio += parseFloat(row.buySellRatio || "1");
+      }
+      const rawRatio = sumRatio / toUse.length;
+      const buySellRatio = Math.max(0.1, Math.min(10, rawRatio));
       const latest = json[0];
       const result: BinanceTakerVolume = {
         symbol,
         buyVol: parseFloat(latest.buyVol || "0.5"),
         sellVol: parseFloat(latest.sellVol || "0.5"),
-        buySellRatio: parseFloat(latest.buySellRatio || "1"),
+        buySellRatio,
         timestamp: latest.timestamp || Date.now(),
       };
 
@@ -461,7 +504,7 @@ export class VinceBinanceService extends Service {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
-        `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
+        `${this.getBaseUrl()}/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);
@@ -470,6 +513,7 @@ export class VinceBinanceService extends Service {
         this.logHttpWarn("L/S ratio", response.status);
         return cached?.data ?? null;
       }
+      this.recordSuccess();
 
       const json = await response.json() as Array<{ longShortRatio: string; longAccount: string; shortAccount: string; timestamp: number }>;
       if (!Array.isArray(json) || json.length === 0) {
@@ -477,11 +521,15 @@ export class VinceBinanceService extends Service {
       }
 
       const latest = json[0];
+      const rawRatio = parseFloat(latest.longShortRatio || "1");
+      const longShortRatio = Math.max(0.1, Math.min(10, rawRatio));
+      const longAccount = Math.max(0, Math.min(100, parseFloat(latest.longAccount || "0.5") * 100));
+      const shortAccount = Math.max(0, Math.min(100, parseFloat(latest.shortAccount || "0.5") * 100));
       const result: BinanceLongShortRatio = {
         symbol,
-        longShortRatio: parseFloat(latest.longShortRatio || "1"),
-        longAccount: parseFloat(latest.longAccount || "0.5") * 100,
-        shortAccount: parseFloat(latest.shortAccount || "0.5") * 100,
+        longShortRatio,
+        longAccount,
+        shortAccount,
         timestamp: latest.timestamp || Date.now(),
       };
 
@@ -509,7 +557,7 @@ export class VinceBinanceService extends Service {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
-        `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`,
+        `${this.getBaseUrl()}/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);
@@ -518,6 +566,7 @@ export class VinceBinanceService extends Service {
         this.logHttpWarn("OI history", response.status);
         return cached?.data ?? null;
       }
+      this.recordSuccess();
 
       const json = await response.json() as Array<{ sumOpenInterestValue: string; timestamp: number }>;
       if (!Array.isArray(json) || json.length === 0) {
@@ -557,7 +606,10 @@ export class VinceBinanceService extends Service {
   // FUNDING RATE TREND
   // =============================================================================
 
-  async getFundingTrend(symbol: string = "BTCUSDT", limit: number = 10): Promise<BinanceFundingTrend | null> {
+  /** Percentile threshold for "extreme" funding (top/bottom of recent distribution). */
+  private static readonly FUNDING_EXTREME_PERCENTILE = 0.1;
+
+  async getFundingTrend(symbol: string = "BTCUSDT", limit: number = 30): Promise<BinanceFundingTrend | null> {
     const cached = this.fundingTrendCache.get(symbol);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -568,7 +620,7 @@ export class VinceBinanceService extends Service {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
-        `https://fapi.binance.com/fapi/v1/fundingRate?symbol=${symbol}&limit=${limit}`,
+        `${this.getBaseUrl()}/fapi/v1/fundingRate?symbol=${symbol}&limit=${limit}`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);
@@ -577,20 +629,29 @@ export class VinceBinanceService extends Service {
         this.logHttpWarn("Funding history", response.status);
         return cached?.data ?? null;
       }
+      this.recordSuccess();
 
       const json = await response.json() as Array<{ fundingRate: string; fundingTime: number }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
 
-      const rates = json.map((item) => parseFloat(item.fundingRate || "0"));
-      const current = rates[rates.length - 1] || 0; // Most recent is last
+      const rates = json.map((item) => {
+        const r = parseFloat(item.fundingRate || "0");
+        return Math.max(-0.005, Math.min(0.005, r)); // clamp ±0.5% for 8h (sanity)
+      });
+      const current = rates[rates.length - 1] ?? 0; // Most recent is last
       const average = rates.reduce((a, b) => a + b, 0) / rates.length;
       const max = Math.max(...rates);
       const min = Math.min(...rates);
 
-      const isExtreme = Math.abs(current) > 0.001; // > 0.1%
-      const extremeDirection = current > 0.001 ? "long_paying" : current < -0.001 ? "short_paying" : "neutral";
+      // Extreme = current in top or bottom 10% of recent (adaptive to regime)
+      const below = rates.filter((r) => r < current).length;
+      const pctBelow = rates.length > 0 ? below / rates.length : 0.5;
+      const topTail = pctBelow >= 1 - VinceBinanceService.FUNDING_EXTREME_PERCENTILE;   // few below = high rate
+      const bottomTail = pctBelow <= VinceBinanceService.FUNDING_EXTREME_PERCENTILE;   // many below = low rate
+      const isExtreme = topTail || bottomTail;
+      const extremeDirection = topTail ? "long_paying" : bottomTail ? "short_paying" : "neutral";
 
       const result: BinanceFundingTrend = {
         symbol,
@@ -676,7 +737,7 @@ export class VinceBinanceService extends Service {
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
-        `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`,
+        `${this.getBaseUrl()}/fapi/v1/premiumIndex?symbol=${symbol}`,
         { signal: controller.signal }
       );
       clearTimeout(timeout);

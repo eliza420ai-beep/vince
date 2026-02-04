@@ -122,6 +122,20 @@ export interface IHyperliquidService {
   getRateLimitStatus?(): { isLimited: boolean; backoffUntil: number; circuitOpen?: boolean };
 
   /**
+   * Get list of perp symbols at open-interest cap (optional - fallback implements)
+   */
+  getPerpsAtOpenInterestCap?(): Promise<string[] | null>;
+
+  /**
+   * Get funding regime (percentile vs history) for mean-reversion signal (optional - fallback implements)
+   */
+  getFundingRegime?(
+    coin: string,
+    currentFunding8h: number,
+    lookbackSamples?: number
+  ): Promise<{ percentile: number; isExtremeLong: boolean; isExtremeShort: boolean } | null>;
+
+  /**
    * Clear the cache (optional)
    */
   clearCache?(): void;

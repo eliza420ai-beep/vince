@@ -75,6 +75,8 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   BinanceFundingExtreme: 1.5,
   DeribitPutCallRatio: 1.4,
   HyperliquidCrowding: 1.4,
+  HyperliquidFundingExtreme: 1.35,  // HL funding in top/bottom 10% (history-based)
+  HyperliquidOICap: 1.2,            // Perp at OI cap = max crowding, contrarian
   
   // Smart money / whale activity
   // NOTE: TopTraders disabled - wallets.json has no real addresses configured
@@ -91,6 +93,8 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   // Market data signals (1.0x - baseline)
   CoinGlass: 1.0,
   BinanceTakerFlow: 1.0,
+  BinanceLongShort: 0.9,  // All-accounts L/S from Binance (contrarian)
+  BinanceOIFlush: 0.7,    // Weak: OI dropping sharply (position flush, often precedes bounce)
   DeribitIVSkew: 1.0,
   HyperliquidBias: 1.0,
   MarketRegime: 1.0,
