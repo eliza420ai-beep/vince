@@ -40,6 +40,7 @@
 │  [Testing](#testing)                   Component + E2E                        │
 │  [Configuration](#configuration)       Where things live                      │
 │  [Documentation](#documentation)        Doc index                             │
+│  [Alternatives: Honcho](#alternatives-considered-honcho)  Why we don’t use it │
 │  [Troubleshooting](#troubleshooting)   DB migration, SSL                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -315,6 +316,24 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 | [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
 | [src/plugins/plugin-vince/README.md](src/plugins/plugin-vince/README.md) | Plugin overview; [WHAT.md](src/plugins/plugin-vince/WHAT.md) / [WHY.md](src/plugins/plugin-vince/WHY.md) / [HOW.md](src/plugins/plugin-vince/HOW.md) / [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for purpose, framework rationale, and development |
 | [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) | Ship ONNX models for Eliza Cloud (copy trained `.onnx` + `training_metadata.json` into this folder, then deploy) |
+
+```
+  ◇  ALTERNATIVES CONSIDERED: HONCHO
+```
+
+## Alternatives considered: Honcho
+
+**[Honcho](https://docs.honcho.dev)** is an open-source memory library for stateful agents (Peers, Sessions, representations from reasoning over messages). We evaluated it for VINCE and **do not use it**; this section records why and when it might be relevant.
+
+| Honcho | VINCE / ElizaOS today |
+|--------|------------------------|
+| Peers + Sessions | Entities, rooms, participants |
+| Representations (reasoning over messages) | Evaluators (facts, reflection) + memory |
+| Managed or self-hosted memory service | DB adapter (Postgres/PGLite) + Supabase feature store |
+
+**Why we don’t add Honcho here:** Eliza already gives us memories, embeddings, search, evaluators (facts/reflection), entities, and relationships. The paper bot and ML pipeline use the **feature store** (Supabase); that’s the right place for trading state. Adding Honcho would duplicate “what we know” and add sync/maintenance cost without a clear gap being filled.
+
+**When Honcho could make sense:** (1) You need formal reasoning over conversations (premises → conclusions → representations) beyond what our evaluators do, (2) you want a managed memory service for a new product, or (3) you’re prototyping a separate agent and want to try Honcho from scratch. For those cases, the [Honcho agent skills](https://docs.honcho.dev/v3/documentation/introduction/vibecoding#agent-skills) (e.g. `honcho-integration`) are useful; we’d still keep them out of the main VINCE runtime unless we have a concrete use case.
 
 ```
   ⚠  TROUBLESHOOTING
