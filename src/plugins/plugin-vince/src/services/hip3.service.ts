@@ -13,6 +13,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 import {
   HIP3_COMMODITIES,
   HIP3_INDICES,
@@ -149,10 +150,9 @@ export class VinceHIP3Service extends Service {
   static async start(runtime: IAgentRuntime): Promise<VinceHIP3Service> {
     const service = new VinceHIP3Service(runtime);
     logger.info("[VinceHIP3] Service initialized");
-    
-    // Run async verification in background (non-blocking)
-    service.runStartupVerification().catch(() => {});
-    
+    if (isVinceAgent(runtime)) {
+      service.runStartupVerification().catch(() => {});
+    }
     return service;
   }
 

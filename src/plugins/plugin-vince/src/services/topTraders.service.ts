@@ -15,6 +15,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { MarketSignal } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -104,10 +105,9 @@ export class VinceTopTradersService extends Service {
     } catch (error) {
       logger.warn(`[VinceTopTraders] Initialization error (service still available): ${error}`);
     }
-    
-    // Print dashboard
-    service.printDashboard();
-    
+    if (isVinceAgent(runtime)) {
+      service.printDashboard();
+    }
     logger.info("[VinceTopTraders] ✅ Service started");
     return service;
   }

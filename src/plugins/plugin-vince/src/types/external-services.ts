@@ -102,6 +102,16 @@ export interface IHyperliquidService {
   getCrossVenueFunding(): Promise<IHyperliquidCrossVenueFunding | null>;
 
   /**
+   * Get mark price for an asset (BTC, ETH, SOL, HYPE). Used when HL is primary or as fallback.
+   */
+  getMarkPrice?(symbol: string): Promise<number | null>;
+
+  /**
+   * Get mark price and 24h change for an asset. Preferred for core assets (BTC, ETH, SOL, HYPE).
+   */
+  getMarkPriceAndChange?(symbol: string): Promise<{ price: number; change24h: number } | null>;
+
+  /**
    * Check if we're in a rate-limited state (optional - for fallback compatibility)
    */
   isRateLimited?(): boolean;

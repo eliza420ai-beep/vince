@@ -13,6 +13,7 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { NFTCollection, CuratedCollection, IOpenSeaService } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { getOrCreateOpenSeaService } from "./fallbacks";
+import { isVinceAgent } from "../utils/dashboard";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (match OpenSeaService cache)
 const MIN_GAP_TO_2ND_ETH = 0.21; // Dashboard only shows collections with gap to 2nd listing above this
@@ -50,18 +51,16 @@ export class VinceNFTFloorService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceNFTFloorService> {
     const service = new VinceNFTFloorService(runtime);
-    
-    // Fetch data in background and print dashboard with live data
-    // Give OpenSeaService a moment to initialize
-    setTimeout(async () => {
-      try {
-        await service.refreshData();
-        service.printDashboardWithData();
-      } catch (err) {
-        logger.warn(`[VinceNFTFloor] Failed to load floor data: ${err}`);
-      }
-    }, 3000); // Wait 3s for OpenSeaService to be ready
-    
+    if (isVinceAgent(runtime)) {
+      setTimeout(async () => {
+        try {
+          await service.refreshData();
+          service.printDashboardWithData();
+        } catch (err) {
+          logger.warn(`[VinceNFTFloor] Failed to load floor data: ${err}`);
+        }
+      }, 3000); // Wait 3s for OpenSeaService to be ready
+    }
     logger.debug("[VinceNFTFloor] Service started (loading floor data...)");
     return service;
   }

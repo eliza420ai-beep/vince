@@ -12,6 +12,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { CORE_ASSETS, getSantimentSlug } from "../constants/targetAssets";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // Types
 export interface TimeseriesData {
@@ -88,10 +89,9 @@ export class VinceSanbaseService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceSanbaseService> {
     const service = new VinceSanbaseService(runtime);
-    
-    // Print dashboard
-    service.printDashboard();
-    
+    if (isVinceAgent(runtime)) {
+      service.printDashboard();
+    }
     // Verify API with a test query
     if (service.isConfigured()) {
       try {

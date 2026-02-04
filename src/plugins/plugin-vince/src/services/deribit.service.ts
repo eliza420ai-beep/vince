@@ -10,6 +10,7 @@
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // Types
 export interface DeribitStrike {
@@ -135,13 +136,14 @@ export class VinceDeribitService extends Service {
   static async start(runtime: IAgentRuntime): Promise<VinceDeribitService> {
     const service = new VinceDeribitService(runtime);
     
-    // Fetch BTC context and print dashboard with live data
-    service.getOptionsContext("BTC").then(ctx => {
-      service.printDashboardWithData(ctx);
-    }).catch((err) => {
-      logger.warn(`[VinceDeribit] Failed to load options data: ${err}`);
-    });
-    
+    // Fetch BTC context and print dashboard with live data (only for VINCE agent to avoid duplicate)
+    if (isVinceAgent(runtime)) {
+      service.getOptionsContext("BTC").then((ctx) => {
+        service.printDashboardWithData(ctx);
+      }).catch((err) => {
+        logger.warn(`[VinceDeribit] Failed to load options data: ${err}`);
+      });
+    }
     return service;
   }
 

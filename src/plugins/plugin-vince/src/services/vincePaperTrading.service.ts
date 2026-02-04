@@ -96,6 +96,10 @@ export class VincePaperTradingService extends Service {
   private recentTradeOutcomes: boolean[] = []; // true = win, false = loss
   private readonly MAX_STREAK_HISTORY = 5;
 
+  // Throttle "Could not get entry price" to once per asset per minute (avoids log spam when CoinGecko is slow)
+  private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
+  private static readonly ENTRY_PRICE_WARN_THROTTLE_MS = 60_000;
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
@@ -942,7 +946,14 @@ export class VincePaperTradingService extends Service {
       const ctx = marketData ? await (marketData as any).getEnrichedContext(asset) : null;
       entryPrice = ctx?.currentPrice;
       if (!entryPrice) {
-        logger.warn(`[VincePaperTrading] Could not get entry price for ${asset}`);
+        const now = Date.now();
+        const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
+        if (now - lastWarn >= VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS) {
+          logger.warn(`[VincePaperTrading] Could not get entry price for ${asset}`);
+          this.lastEntryPriceWarnByAsset.set(asset, now);
+        } else {
+          logger.debug(`[VincePaperTrading] Could not get entry price for ${asset} (throttled)`);
+        }
         return null;
       }
     } catch (error) {

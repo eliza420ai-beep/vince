@@ -17,6 +17,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { VinceMarketDataService } from "./marketData.service";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // ==========================================
 // Regime Types
@@ -75,10 +76,9 @@ export class VinceMarketRegimeService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceMarketRegimeService> {
     const service = new VinceMarketRegimeService(runtime);
-    
-    // Print initial dashboard
-    service.printDashboard();
-    
+    if (isVinceAgent(runtime)) {
+      service.printDashboard();
+    }
     logger.info("[VinceMarketRegime] ✅ Service initialized");
     return service;
   }

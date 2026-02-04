@@ -12,6 +12,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { ExchangeHealth } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // Keep prices fresh for P&L/mark price updates (paper loop runs every 30s)
 const CACHE_TTL_MS = 60 * 1000; // 1 minute (was 5 min; caused stale uPNL on fast moves)
@@ -39,10 +40,9 @@ export class VinceCoinGeckoService extends Service {
   static async start(runtime: IAgentRuntime): Promise<VinceCoinGeckoService> {
     const service = new VinceCoinGeckoService(runtime);
     await service.initialize();
-    
-    // Print dashboard
-    service.printDashboard();
-    
+    if (isVinceAgent(runtime)) {
+      service.printDashboard();
+    }
     return service;
   }
 

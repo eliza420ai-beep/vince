@@ -2,25 +2,27 @@
  * VINCE Market Data Service
  *
  * Aggregates market context from multiple sources:
+ * - Prices: Hyperliquid first for BTC, ETH, SOL, HYPE (perps venue); CoinGecko as fallback.
  * - CoinGlass (funding, L/S, OI)
- * - CoinGecko (prices)
- * - Hyperliquid (via plugin-hyperliquid)
+ * - CoinGecko (prices for non-core assets, and fallback when HL unavailable)
  *
  * Provides enriched context for trading decisions.
- * 
- * V2: Added volume ratio tracking and daily open price for Open Window Trend Spotting.
+ * V2: Volume ratio tracking and daily open price for Open Window Trend Spotting.
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { VinceCoinGlassService } from "./coinglass.service";
 import type { VinceCoinGeckoService } from "./coingecko.service";
-import { getOrCreateDeribitService } from "./fallbacks";
+import { getOrCreateDeribitService, getOrCreateHyperliquidService } from "./fallbacks";
 import {
   buildOpenWindowInfo,
   DEFAULT_OPEN_WINDOW_CONFIG,
   type OpenWindowInfo,
   type OpenWindowConfig,
 } from "../utils/sessionFilters";
+
+// Core assets: we prefer Hyperliquid (perps venue) for price, CoinGecko as fallback
+const CORE_PRICE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
 
 // ATR estimation based on volatility indices and historical data
 const DEFAULT_ATR_PCT: Record<string, number> = {
@@ -144,11 +146,27 @@ export class VinceMarketDataService extends Service {
     const coinglassService = this.runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
     const coingeckoService = this.runtime.getService("VINCE_COINGECKO_SERVICE") as VinceCoinGeckoService | null;
 
-    // Get price data (refresh so P&L and mark price stay current; avoids stale uPNL)
+    // Price data: Hyperliquid first for core assets (BTC, ETH, SOL, HYPE), CoinGecko as fallback
     let currentPrice = 0;
     let priceChange24h = 0;
     let volume24h = 0;
-    if (coingeckoService) {
+    const hlService = getOrCreateHyperliquidService(this.runtime);
+    const isCoreAsset = CORE_PRICE_ASSETS.includes(asset as (typeof CORE_PRICE_ASSETS)[number]);
+
+    if (isCoreAsset && hlService?.getMarkPriceAndChange) {
+      try {
+        const hlData = await hlService.getMarkPriceAndChange(asset);
+        if (hlData != null && hlData.price > 0) {
+          currentPrice = hlData.price;
+          priceChange24h = hlData.change24h;
+          logger.debug(`[VinceMarketData] Price from Hyperliquid: ${asset} $${currentPrice.toFixed(2)} (24h: ${priceChange24h.toFixed(2)}%)`);
+        }
+      } catch {
+        // Fall through to CoinGecko
+      }
+    }
+
+    if (currentPrice <= 0 && coingeckoService) {
       if (typeof coingeckoService.refreshData === "function") {
         await coingeckoService.refreshData();
       }
@@ -156,8 +174,23 @@ export class VinceMarketDataService extends Service {
       if (priceData) {
         currentPrice = priceData.price;
         priceChange24h = priceData.change24h;
-        // Try to get volume if available on price data
         volume24h = (priceData as any).volume24h || 0;
+        if (isCoreAsset) {
+          logger.debug(`[VinceMarketData] Price from CoinGecko (fallback): ${asset} $${currentPrice.toFixed(2)}`);
+        }
+      }
+    }
+
+    // Fallback for non-core assets or when both HL and CoinGecko missed: try HL getMarkPrice
+    if (currentPrice <= 0 && hlService?.getMarkPrice) {
+      try {
+        const fallbackPrice = await hlService.getMarkPrice(asset);
+        if (fallbackPrice != null && fallbackPrice > 0) {
+          currentPrice = fallbackPrice;
+          logger.debug(`[VinceMarketData] Price from Hyperliquid (fallback): ${asset} $${fallbackPrice.toFixed(2)}`);
+        }
+      } catch {
+        // Keep currentPrice 0
       }
     }
 

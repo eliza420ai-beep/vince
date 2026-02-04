@@ -428,6 +428,42 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   // ============================================================================
 
   /**
+   * Get mark price for an asset (BTC, ETH, SOL, HYPE). Used when HL is primary or as fallback.
+   */
+  async getMarkPrice(symbol: string): Promise<number | null> {
+    const result = await this.getMarkPriceAndChange(symbol);
+    return result?.price ?? null;
+  }
+
+  /**
+   * Get mark price and 24h change for an asset (uses prevDayPx for change). Preferred for core assets.
+   */
+  async getMarkPriceAndChange(symbol: string): Promise<{ price: number; change24h: number } | null> {
+    try {
+      const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
+        { type: "metaAndAssetCtxs" },
+        CACHE_TTLS.metaAndAssetCtxs
+      );
+      if (!data || !Array.isArray(data) || data.length < 2) return null;
+      const [meta, assetCtxs] = data;
+      const upper = symbol.toUpperCase();
+      const idx = meta.universe.findIndex((u) => u.name.toUpperCase() === upper);
+      if (idx < 0 || idx >= assetCtxs.length) return null;
+      const ctx = assetCtxs[idx];
+      const markPx = ctx?.markPx ?? ctx?.midPx;
+      if (markPx == null || markPx === "") return null;
+      const price = parseFloat(String(markPx));
+      if (!Number.isFinite(price) || price <= 0) return null;
+      const prevDayPx = parseFloat(String(ctx?.prevDayPx ?? "0"));
+      const change24h =
+        prevDayPx > 0 ? ((price - prevDayPx) / prevDayPx) * 100 : 0;
+      return { price, change24h };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Get overall options pulse with per-asset crowding and funding
    */
   async getOptionsPulse(): Promise<IHyperliquidOptionsPulse | null> {
