@@ -1407,10 +1407,26 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(line("  P&L  (stop loss limits loss; % below is vs margin)"));
     console.log(empty);
-    console.log(line(`  ${pnlIcon}  ${pnlStr}`));
+    console.log(line(`  ${pnlIcon}  Nominal P&L: ${pnlStr}`));
     console.log(line(`  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`));
     if (closeReason === "stop_loss") {
       console.log(line(`  ✓ Stop loss limited loss to ${Math.abs(priceMovePct).toFixed(2)}% price move.`));
+      // Learning block: signals that led to the trade, sources, and what went against us
+      const signals = (closedPosition.triggerSignals ?? []).slice(0, 10);
+      const sources = (closedPosition.metadata?.contributingSources as string[] | undefined) ?? [];
+      const maxContent = W - 12; // leave room for "  Label: "
+      const signalsStr = signals.length ? signals.join(", ").slice(0, maxContent) : "—";
+      const sourcesStr = sources.length ? sources.join(", ").slice(0, maxContent) : "—";
+      const againstUs =
+        `Price moved ${Math.abs(priceMovePct).toFixed(2)}% against our ${closedPosition.direction.toUpperCase()}.`;
+      console.log(empty);
+      console.log(sep);
+      console.log(empty);
+      console.log(line("  LEARNING (stop loss)"));
+      console.log(empty);
+      console.log(line(`  Signals: ${signalsStr}`));
+      console.log(line(`  Sources: ${sourcesStr}`));
+      console.log(line(`  Against us: ${againstUs}`));
     }
     console.log(line(`  Close Reason: ${closeReason}`));
     console.log(empty);
