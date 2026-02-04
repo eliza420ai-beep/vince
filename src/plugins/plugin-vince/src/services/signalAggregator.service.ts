@@ -653,6 +653,19 @@ export class VinceSignalAggregatorService extends Service {
             });
             sources.push("NewsSentiment");
             allFactors.push(`News sentiment bearish (${Math.round(sentiment.confidence)}% confidence)`);
+          } else if (sentiment.sentiment === "neutral" && sentiment.confidence >= 40) {
+            // PRIORITY: Let News contribute when neutral so more sources show in logs and real-time data is visible
+            signals.push({
+              asset,
+              direction: "neutral",
+              strength: 45,
+              confidence: Math.round(sentiment.confidence * 0.6),
+              source: "NewsSentiment",
+              factors: [`News sentiment neutral (${Math.round(sentiment.confidence)}% confidence)`],
+              timestamp: Date.now(),
+            });
+            sources.push("NewsSentiment");
+            allFactors.push(`News sentiment neutral (${Math.round(sentiment.confidence)}% confidence)`);
           }
         }
         if (!sources.includes("NewsSentiment")) {

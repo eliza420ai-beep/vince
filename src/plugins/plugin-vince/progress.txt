@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-03 (Supabase dual-write + ML training on Eliza Cloud, no redeploy)
+# Last updated: 2026-02-04 (progress: market features #1/#5 DONE; News contributes when neutral)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -216,6 +216,10 @@ PRIORITY (real-time data for paper trading algo)
      triedNoContribution when they run but don’t add a factor (see signalAggregator).
    - Populate MandoMinutes cache for News; consider relaxing or tuning thresholds
      so more sources contribute more often.
+   - ✅ 2026-02-04: News now contributes when sentiment is neutral (confidence >= 40):
+     aggregator adds a neutral-direction factor "News sentiment neutral (X% confidence)"
+     so NewsSentiment appears in "Sources:" more often and real-time news is visible in logs.
+     THINGS TO DO #1 and #5 marked DONE (market features + DVOL in paper trading; see above).
 
 ================================================================================
 IN PROGRESS
@@ -272,9 +276,9 @@ THINGS TO DO NEXT (high impact – leverage data we have, not yet used in algo)
 
 These use data we already collect (or can add with one small integration) but don’t yet feed into trading decisions. Doing them will have the most impact per unit effort.
 
-1. **Use new market features in the trading algo (not just the feature store)**
-   - We record bookImbalance, priceVsSma20, fundingDelta, dvol, rsi14. The signal aggregator and evaluateAndTrade don’t use them yet.
-   - High impact: (a) In aggregator or evaluateAndTrade: skip or downweight LONG when bookImbalance < -0.2 (order book favors sellers); ditto SHORT when bookImbalance > 0.2. (b) Boost confidence when priceVsSma20 sign aligns with signal direction (trend confirmation). (c) Add a “funding reversal” factor when |fundingDelta| is large and opposite to current funding sign. (d) In risk manager or position sizing: cap size or reduce max leverage when dvol > threshold (e.g. 70) so we size down in high vol. See DATA_LEVERAGE.md; implement in signalAggregator.service.ts and/or vincePaperTrading.service.ts.
+1. **Use new market features in the trading algo (not just the feature store)** – DONE in paper trading ✅
+   - (a) Book imbalance: evaluateAndTrade uses getBookImbalanceRejection(); skips LONG when bookImbalance < -0.2 (or -0.4 aggressive), SHORT when > 0.2/0.4. (b) SMA20: getAdjustedConfidence() applies getSma20ConfidenceBoost(); trend alignment boosts confidence. (c) Funding reversal: getFundingReversalConfidenceBoost() in getAdjustedConfidence(). (d) DVOL: position size reduced 50% when dvol>85, 30% when dvol>70 (vincePaperTrading.service.ts). Logic in extendedSnapshotLogic.ts; feature store populates bookImbalance, priceVsSma20, fundingDelta, dvol.
+   - Optional backlog: Add book/sma20/funding as factors in signal aggregator (richer narrative in aggregated signal text).
 
 2. **Add NASDAQ 24h (and optionally macro/ETF) to news features**
    - Slots exist: news.nasdaqChange, news.etfFlowBtc, news.etfFlowEth, news.macroRiskEnvironment. Currently 0% populated.
@@ -287,8 +291,8 @@ These use data we already collect (or can add with one small integration) but do
 4. **Retrain and ship ONNX after new features have enough samples**
    - Once 90+ (ideally 200+) records have non-null fundingDelta, bookImbalance, priceVsSma20, run train_models.py; then copy ONNX + training_metadata.json into src/plugins/plugin-vince/models/ and deploy so Cloud uses the new models. Ensures ML actually uses the extra data we now collect.
 
-5. **Optional: DVOL/regime in position cap**
-   - We already have dvol and volatilityRegime. In position sizing or risk manager, reduce max leverage or cap position size when dvol > 70 (or volatilityRegime === 'high') so the algo explicitly uses the data for risk. Small code change, reuses existing fields.
+5. **Optional: DVOL/regime in position cap** – DONE ✅
+   - Paper trading already reduces size when dvol > 70 (30%) or > 85 (50%); regime-based sizing multiplier applied from MarketRegimeService. See vincePaperTrading.service.ts evaluateAndTrade().
 
 ================================================================================
 NEXT / BACKLOG
@@ -400,6 +404,16 @@ X (Twitter) integration – second thoughts:
 ================================================================================
 SESSION NOTES
 ================================================================================
+
+2026-02-04:
+- progress.txt: THINGS TO DO #1 “Use new market features in the trading algo” marked DONE in paper
+  trading (book imbalance filter, SMA20/funding reversal confidence boost, DVOL size cap in
+  vincePaperTrading.service.ts). Optional backlog: add book/sma20/funding as factors in signal
+  aggregator. Item #5 “DVOL/regime in position cap” marked DONE (already implemented).
+- PRIORITY real-time data: News now contributes when sentiment is neutral. In signalAggregator,
+  when getOverallSentiment() returns neutral and confidence >= 40, we add a neutral-direction
+  factor “News sentiment neutral (X% confidence)” so NewsSentiment appears in “Sources:” more
+  often and MandoMinutes cache shows up in aggregator logs (more real-time data visible).
 
 2026-02-03:
 - Risk manager & sizing now treat exposure **by margin**, not by notional. `position.marginUsd`
