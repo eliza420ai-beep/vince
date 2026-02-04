@@ -24,6 +24,8 @@ import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
+import openrouterPlugin from "@elizaos/plugin-openrouter";
+import webSearchPlugin from "@elizaos/plugin-web-search";
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
 const buildPlugins = (): Plugin[] => [
@@ -31,11 +33,14 @@ const buildPlugins = (): Plugin[] => [
   bootstrapPlugin,
   ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
   ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+  ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
+  ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
   vincePlugin, // UPLOAD + knowledge actions so Eliza can expand the corpus; execution/live data → VINCE
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
-  logger.info("[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE); execution → VINCE");
+  const webSearch = process.env.TAVILY_API_KEY?.trim() ? " web search when corpus is limited;" : "";
+  logger.info(`[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE);${webSearch} execution → VINCE`);
 };
 
 const elizaAgent: ProjectAgent = {
