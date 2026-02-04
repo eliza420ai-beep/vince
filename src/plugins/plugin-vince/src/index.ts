@@ -105,6 +105,7 @@ import { vinceAlertsAction } from "./actions/alerts.action";
 import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
+import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 
 // Tasks
 // import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
@@ -201,6 +202,7 @@ export const vincePlugin: Plugin = {
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
   providers: [
     teammateContextProvider,
+    protocolWriteupProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
   ],
@@ -465,6 +467,7 @@ export { vinceAlertsAction } from "./actions/alerts.action";
 export { vinceContextProvider } from "./providers/vinceContext.provider";
 export { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 export { teammateContextProvider } from "./providers/teammateContext.provider";
+export { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 
 // ==========================================
 // Analysis Exports

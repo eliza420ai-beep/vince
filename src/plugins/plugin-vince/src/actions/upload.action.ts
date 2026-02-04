@@ -35,6 +35,7 @@
 import type { Action, IAgentRuntime, Memory, State, HandlerCallback, UUID } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { spawn } from "child_process";
+import { isElizaAgent } from "../utils/dashboard";
 import * as fs from "fs";
 import * as path from "path";
 import type {
@@ -873,11 +874,16 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         if (fileResult.success && fileResult.file) {
           const processingTime = Date.now() - startTime;
           const wordCount = fileResult.file.metadata.wordCount ?? 0;
-          const fallbackNote = usedFallback ? "\n\n_Using simple categorization (install plugin-knowledge-ingestion for LLM-powered categorization)_" : "";
           const truncationWarning =
             wordCount > 0 && wordCount < LOW_WORD_COUNT_WARN_THRESHOLD
               ? `\n\n⚠️ **Only ${wordCount} words were received.** If you pasted a long article or thread, the chat may have truncated it. **Tip:** split the dump into 2–3 messages (paste chunk 1, send; paste chunk 2, send; then say \`upload that\`) so we combine them into one file.`
               : "";
+
+          const forEliza = isElizaAgent(runtime);
+          const fallbackNote = forEliza ? "" : (usedFallback ? "\n\n_Using simple categorization (install plugin-knowledge-ingestion for LLM-powered categorization)_" : "");
+          const ragAndFooter = forEliza
+            ? `\n\n---\nAsk me about this content anytime, or \`upload\` more.`
+            : `\n\nThis content now powers ALOHA, OPTIONS, and PERPS via RAG.${fallbackNote}\n\n---\nNext moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`;
 
           await callback({
             text: `✅ **Knowledge Uploaded!**
@@ -888,12 +894,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 **Word Count**: ${wordCount}
 **Processing Time**: ${processingTime}ms
 
-Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`
-
-This content now powers ALOHA, OPTIONS, and PERPS via RAG.${truncationWarning}${fallbackNote}
-
----
-Next moves: \`ALOHA\` (vibe check) · \`PERPS\` (apply it) · \`OPTIONS\` (strike work)`,
+Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${ragAndFooter}`,
             actions: ["VINCE_UPLOAD"],
           });
         } else {
