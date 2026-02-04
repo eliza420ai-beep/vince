@@ -12,7 +12,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { MeteoraPool } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
-import { isVinceAgent } from "../utils/dashboard";
+import { isVinceAgent, isElizaAgent } from "../utils/dashboard";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -30,10 +30,12 @@ export class VinceMeteoraService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceMeteoraService> {
     const service = new VinceMeteoraService(runtime);
-    try {
-      await service.initialize();
-    } catch (error) {
-      logger.warn(`[VinceMeteora] Initialization error (service still available): ${error}`);
+    if (!isElizaAgent(runtime)) {
+      try {
+        await service.initialize();
+      } catch (error) {
+        logger.warn(`[VinceMeteora] Initialization error (service still available): ${error}`);
+      }
     }
     if (isVinceAgent(runtime)) {
       service.printDashboard();

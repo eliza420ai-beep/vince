@@ -12,7 +12,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { CORE_ASSETS, getSantimentSlug } from "../constants/targetAssets";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
-import { isVinceAgent } from "../utils/dashboard";
+import { isVinceAgent, isElizaAgent } from "../utils/dashboard";
 
 // Types
 export interface TimeseriesData {
@@ -92,17 +92,14 @@ export class VinceSanbaseService extends Service {
     if (isVinceAgent(runtime)) {
       service.printDashboard();
     }
-    // Verify API with a test query
-    if (service.isConfigured()) {
+    if (!isElizaAgent(runtime) && service.isConfigured()) {
       try {
         const testData = await service.getNetworkActivity("BTC");
         if (testData?.activeAddresses) {
           logger.info(`[VinceSanbaseService] ✅ API verified - BTC active addresses: ${testData.activeAddresses.toLocaleString()}`);
         } else if (testData) {
-          // Got response but no active addresses - might have other data
           logger.info(`[VinceSanbaseService] ✅ API connected - network trend: ${testData.trend}`);
         } else {
-          // Try dev activity as fallback (no lag restrictions)
           const devData = await service.getDevActivity("BTC");
           if (devData?.activity) {
             logger.info(`[VinceSanbaseService] ✅ API verified via dev activity: ${devData.activity.toFixed(0)} commits`);
@@ -113,10 +110,9 @@ export class VinceSanbaseService extends Service {
       } catch (err) {
         logger.warn(`[VinceSanbaseService] API verification failed: ${err}`);
       }
-    } else {
+    } else if (!service.isConfigured()) {
       logger.debug("[VinceSanbaseService] No API key - Sanbase features disabled");
     }
-    
     return service;
   }
 

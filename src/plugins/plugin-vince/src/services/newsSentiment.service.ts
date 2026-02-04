@@ -13,6 +13,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { PuppeteerBrowserService } from "./fallbacks/puppeteer.browser";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent, isElizaAgent } from "../utils/dashboard";
 
 // ==========================================
 // Sentiment Analysis Constants
@@ -181,31 +182,40 @@ export class VinceNewsSentimentService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceNewsSentimentService> {
     const service = new VinceNewsSentimentService(runtime);
-    
-    // Try to load initial data from cache first (fast)
+    const shouldPrint = isVinceAgent(runtime);
+    const skipHeavyInit = isElizaAgent(runtime);
+
+    if (skipHeavyInit) {
+      logger.info("[VinceNewsSentiment] Service initialized (Eliza - no startup fetch)");
+      return service;
+    }
+
     try {
       await service.fetchFromMandoMinutes();
-      
       const stats = service.getDebugStats();
-      if (stats.hasData) {
-        service.printDetailedDashboard();
-      } else {
-        startBox();
-        logLine("📰 MANDOMINUTES NEWS DASHBOARD");
-        logEmpty();
-        sep();
-        logEmpty();
-        logLine("⏳ No cached data - fetching in background...");
-        endBox();
-        
-        // Schedule background fetch after BrowserService has time to initialize
+      if (shouldPrint) {
+        if (stats.hasData) {
+          service.printDetailedDashboard();
+        } else {
+          startBox();
+          logLine("📰 MANDOMINUTES NEWS DASHBOARD");
+          logEmpty();
+          sep();
+          logEmpty();
+          logLine("⏳ No cached data - fetching in background...");
+          endBox();
+        }
+      }
+      if (!stats.hasData) {
         setTimeout(async () => {
           try {
             logger.info("[VinceNewsSentiment] Background fetch starting...");
             await service.fetchFromMandoMinutes();
-            const bgStats = service.getDebugStats();
-            if (bgStats.hasData) {
-              service.printDetailedDashboard();
+            if (shouldPrint) {
+              const bgStats = service.getDebugStats();
+              if (bgStats.hasData) {
+                service.printDetailedDashboard();
+              }
             }
           } catch (bgErr) {
             logger.debug(`[VinceNewsSentiment] Background fetch failed: ${bgErr}`);
@@ -214,13 +224,14 @@ export class VinceNewsSentimentService extends Service {
       }
     } catch (e) {
       const err = e instanceof Error ? e.message : String(e);
-      startBox();
-      logLine(`⚠️  Initial fetch failed: ${err}`);
-      endBox();
+      if (shouldPrint) {
+        startBox();
+        logLine(`⚠️  Initial fetch failed: ${err}`);
+        endBox();
+      }
     }
-    
+
     logger.info("[VinceNewsSentiment] Service initialized (MandoMinutes integration)");
-    
     return service;
   }
 
@@ -338,19 +349,19 @@ export class VinceNewsSentimentService extends Service {
         return;
       }
 
-      // Log confirmation with headline summary (same box style as other dashboards)
-      startBox();
-      logLine(`✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE`);
-      logEmpty();
-      sep();
-      logEmpty();
-      for (let i = 0; i < cached.articles.length; i++) {
-        const title = cached.articles[i].title ?? "";
-        const truncated = title.length > 55 ? title.substring(0, 52) + "..." : title;
-        logLine(`${(i + 1).toString().padStart(2, " ")}. ${truncated}`);
+      if (isVinceAgent(this.runtime)) {
+        startBox();
+        logLine(`✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE`);
+        logEmpty();
+        sep();
+        logEmpty();
+        for (let i = 0; i < cached.articles.length; i++) {
+          const title = cached.articles[i].title ?? "";
+          const truncated = title.length > 55 ? title.substring(0, 52) + "..." : title;
+          logLine(`${(i + 1).toString().padStart(2, " ")}. ${truncated}`);
+        }
+        endBox();
       }
-      endBox();
-      
       logger.info(`[VinceNewsSentiment] ✅ Processing ${cached.articles.length} articles from MandoMinutes cache`);
       this.lastMandoFetch = cached.timestamp;
 
