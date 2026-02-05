@@ -56,7 +56,7 @@
 flowchart LR
   Task[Daily / News / Lifestyle / Research task]
   Notif[VinceNotificationService.push]
-  Filter[roomNameContains: daily|news|lifestyle|research]
+  Filter["roomNameContains: daily, news, lifestyle, research"]
   Rooms[Discord & Slack rooms]
   Task --> Notif --> Filter --> Rooms
 ```
