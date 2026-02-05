@@ -43,6 +43,11 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
+// Only load Discord on VINCE when he has his own bot (different app than Eliza). Same app ID = same token = only one can connect; not loading here avoids "Send handler not found" spam.
+const vinceHasOwnDiscord =
+  !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+  (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+
 // ==========================================
 // Character Definition
 // ==========================================
@@ -55,8 +60,7 @@ export const vinceCharacter: Character = {
     "@elizaos/plugin-bootstrap",
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
-    // Push notifications: Discord only when VINCE has its own token (no fallback to DISCORD_* so we don't share Eliza's token)
-    ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() ? ["@elizaos/plugin-discord"] : []),
+    ...(vinceHasOwnDiscord ? ["@elizaos/plugin-discord"] : []),
     ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
     ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
   ],
