@@ -30,8 +30,7 @@ describe('PanelComponent Tests', () => {
 
       cy.mount(<PanelComponent agentId={testAgentId} />);
 
-      // Note: The component has a typo "Helllo" instead of "Hello"
-      cy.contains(`Helllo ${testAgentId}!`).should('be.visible');
+      cy.contains(`VINCE ${testAgentId}`).should('be.visible');
     });
 
     it('should handle different agent IDs', () => {
@@ -39,13 +38,13 @@ describe('PanelComponent Tests', () => {
 
       agentIds.forEach((agentId) => {
         cy.mount(<PanelComponent agentId={agentId} />);
-        cy.contains(`Helllo ${agentId}!`).should('be.visible');
+        cy.contains(`VINCE ${agentId}`).should('be.visible');
       });
     });
 
     it('should render without crashing with empty agent ID', () => {
       cy.mount(<PanelComponent agentId="" />);
-      cy.contains('Helllo !').should('be.visible');
+      cy.contains('VINCE').should('be.visible');
     });
   });
 });
