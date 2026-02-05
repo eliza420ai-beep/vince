@@ -322,10 +322,11 @@ Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATI
 
 </div>
 
-1. **`.env`** — `POSTGRES_URL` (port 5432), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` (required if using pooler)
+1. **`.env`** — `POSTGRES_URL` (port 5432, direct), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` (required if using pooler)
 2. **Bootstrap SQL** — `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql` in Supabase SQL Editor
-3. **Run** — `bun start`
-4. **Deploy** — `bun run deploy:cloud` passes vars from `.env` → [DEPLOY.md](DEPLOY.md)
+3. **Verify** — `bun run db:check` (tests the migration query; we've run this successfully)
+4. **Run** — `bun start`
+5. **Deploy** — `bun run deploy:cloud` passes vars from `.env` → [DEPLOY.md](DEPLOY.md)
 
 ### ML on Eliza Cloud
 
@@ -442,11 +443,14 @@ If you're looking for more coding-agent simplicity, the target is **Eliza + Pi p
 
 ### Database migration failed
 
+If you see:
+
 ```
 Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 ```
 
-**Fix:** `POSTGRES_URL` to **direct** connection (port 5432, not 6543). Add `?sslmode=verify-full`. Run `bun start` (runs bootstrap).  
+**Verify first:** `bun run db:check` — if it succeeds, migrations are fine; if it fails, it prints the real error (e.g. SSL, wrong port).  
+**Fix:** `POSTGRES_URL` to **direct** connection (port 5432, not 6543). Add `?sslmode=verify-full`. With Supabase: use the **direct** connection string from Dashboard → Settings → Database (port 5432), not the pooler (6543). Then `bun start` (runs bootstrap).  
 **Local-only:** Leave `POSTGRES_URL` empty → PGLite.  
 **SSL error:** `POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in).
 

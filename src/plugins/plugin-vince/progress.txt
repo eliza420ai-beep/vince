@@ -463,9 +463,9 @@ DEPLOYMENT (Eliza Cloud)
 
 Current prod:
 - Repo pushed to prod with Eliza Cloud; everything works fine.
-- Still on PGLite (no POSTGRES_URL yet). Next step: migrate to Supabase Postgres
-  so ElizaOS tables (agents, memories, entities, rooms, etc.) and
-  plugin_vince.paper_bot_features live in the same Supabase DB. See FEATURE-STORE.md
+- Migrated to Supabase Postgres (POSTGRES_URL + SUPABASE_* in .env). ElizaOS tables
+  (agents, memories, entities, rooms, etc.) and plugin_vince.paper_bot_features
+  live in the same Supabase DB. Migration tested and working. See FEATURE-STORE.md
   for how feature-store jsonl fits with ElizaOS auto-generated tables.
 
 2026-02-02 – vince2 deploy timeout (historical):
