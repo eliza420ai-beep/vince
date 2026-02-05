@@ -105,13 +105,6 @@ async function main() {
     }
   }
 
-  const server = new AgentServer();
-  await server.initialize({
-    clientPath,
-    dataDir: process.env.PGLITE_DATA_DIR || path.resolve(rootDir, ".eliza/.elizadb"),
-    postgresUrl: postgresUrl || undefined,
-  });
-
   const projectPath = path.resolve(rootDir, "dist/index.js");
   if (!fs.existsSync(projectPath)) {
     try {
@@ -125,20 +118,29 @@ async function main() {
   const project = await import(pathToFileURL(projectPath).href);
   const projectModule = project.default || project;
 
-  if (projectModule.agents && Array.isArray(projectModule.agents)) {
-    const agents = projectModule.agents.map((a) => ({
-      character: a.character,
-      plugins: a.plugins,
-      init: a.init,
-    }));
-    await server.startAgents(agents);
-    console.log(" Started", agents.length, "agent(s)");
-  } else {
+  if (!projectModule.agents || !Array.isArray(projectModule.agents)) {
     throw new Error("No agents found in project");
   }
+  const agents = projectModule.agents.map((a) => ({
+    character: a.character,
+    plugins: a.plugins,
+    init: a.init,
+  }));
 
   const port = parseInt(process.env.SERVER_PORT || "3000", 10);
-  await server.start({ port });
+  const dataDir = process.env.PGLITE_DATA_DIR || path.resolve(rootDir, ".eliza/.elizadb");
+
+  // Start server with single start(): HTTP server is brought up first, then agents.
+  // This order is required so MessageBusService fetch to localhost succeeds when using central/cloud messaging.
+  const server = new AgentServer();
+  await server.start({
+    port,
+    agents,
+    clientPath,
+    dataDir,
+    postgresUrl: postgresUrl || undefined,
+  });
+  console.log(" Started", agents.length, "agent(s)");
   console.log("\n Server with Otaku-style UI: http://localhost:" + port + "\n");
 }
 
