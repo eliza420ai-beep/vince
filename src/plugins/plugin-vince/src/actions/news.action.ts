@@ -19,7 +19,7 @@ import type { VinceNewsSentimentService } from "../services/newsSentiment.servic
 // Build data context for LLM
 // ==========================================
 
-interface NewsDataContext {
+export interface NewsDataContext {
   overallSentiment: string;
   overallConfidence: number;
   riskEvents: { severity: string; description: string; assets: string[] }[];
@@ -28,7 +28,7 @@ interface NewsDataContext {
   stats: { total: number; bullish: number; bearish: number; neutral: number };
 }
 
-function buildNewsDataContext(ctx: NewsDataContext): string {
+export function buildNewsDataContext(ctx: NewsDataContext): string {
   const lines: string[] = [];
 
   lines.push("=== MARKET NEWS SUMMARY ===");
@@ -72,7 +72,7 @@ function buildNewsDataContext(ctx: NewsDataContext): string {
 // Generate human briefing via LLM
 // ==========================================
 
-async function generateNewsHumanBriefing(
+export async function generateNewsHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string
 ): Promise<string> {

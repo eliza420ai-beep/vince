@@ -15,6 +15,7 @@ import { logger, ModelType } from "@elizaos/core";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { Position } from "../types/paperTrading";
+import { BOT_FOOTER } from "../constants/botFormat";
 
 // ==========================================
 // Data Context Types
@@ -322,10 +323,8 @@ export const vinceWhyTradeAction: Action = {
         "",
         briefing,
         "",
-        "*Source: Paper Trading Bot*",
-        "",
-        "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+        "*Paper Trading Bot*",
+        BOT_FOOTER,
       ].join("\n");
 
       await callback({
@@ -349,7 +348,7 @@ export const vinceWhyTradeAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**Trade Briefing**\n\nI'm long BTC from 80,340, about 3 and a half hours in. Position's up 85 bucks, roughly 0.85% on a $5k size at 3x leverage.\n\nThe thesis here is pretty straightforward - funding went negative at -0.015% which means shorts are paying longs to maintain their positions. When you see that, it usually means shorts are crowded and getting uncomfortable. Add in the L/S ratio unwinding - the crowded side is capitulating - and you've got squeeze potential.\n\nI got in via the signal following strategy. Two confirming signals from different sources, both pointing the same direction. That's the kind of confluence I look for.\n\nRisk is defined. Stop is at 79,100 which is about 1.5% below entry - tight but gives it room to breathe through normal volatility. First target is 81,500 where I'll take partial, second at 83k for the rest.\n\nRight now mark price is at 81,025 so we're in the money and the thesis is playing out. Shorts are still paying, nothing has changed to invalidate the setup. Holding with conviction until either my stop or my targets get hit.\n\n*Source: Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**Trade Briefing**\n\nI'm long BTC from 80,340, about 3 and a half hours in. Position's up 85 bucks, roughly 0.85% on a $5k size at 3x leverage.\n\nThe thesis here is pretty straightforward - funding went negative at -0.015% which means shorts are paying longs to maintain their positions. When you see that, it usually means shorts are crowded and getting uncomfortable. Add in the L/S ratio unwinding - the crowded side is capitulating - and you've got squeeze potential.\n\nI got in via the signal following strategy. Two confirming signals from different sources, both pointing the same direction. That's the kind of confluence I look for.\n\nRisk is defined. Stop is at 79,100 which is about 1.5% below entry - tight but gives it room to breathe through normal volatility. First target is 81,500 where I'll take partial, second at 83k for the rest.\n\nRight now mark price is at 81,025 so we're in the money and the thesis is playing out. Shorts are still paying, nothing has changed to invalidate the setup. Holding with conviction until either my stop or my targets get hit.\n\n*Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
           actions: ["VINCE_WHY_TRADE"],
         },
       },
@@ -359,7 +358,7 @@ export const vinceWhyTradeAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**Trade Briefing**\n\nNo positions right now. The signals are leaning short but not convincingly enough to put money on.\n\nLooking at BTC specifically - direction is short, which is fine, I can trade either way. The problem is strength is only at 52% and I need it above 60 to pull the trigger. That 8% gap matters because at 52% you're basically saying \"slightly more bearish than not\" which isn't a trade, it's a coin flip with bad odds.\n\nConfidence is even worse at 48%. That means the signals that are pointing short aren't doing so with much conviction. One confirming signal when I need two isn't helping either.\n\nWhat would flip this? A whale opening a short would add 20-30% to signal strength immediately. That's the highest weight single signal. Or if funding goes extreme positive - meaning longs are crowded and paying premiums - that's another strong short signal. Either of those plus an extreme fear reading would get me over the threshold.\n\nFor now I'm sitting. The setup isn't there. Markets spend most of their time in these ambiguous zones where the right trade is no trade. I'd rather miss a move than force something that isn't there.\n\n*Source: Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**Trade Briefing**\n\nNo positions right now. The signals are leaning short but not convincingly enough to put money on.\n\nLooking at BTC specifically - direction is short, which is fine, I can trade either way. The problem is strength is only at 52% and I need it above 60 to pull the trigger. That 8% gap matters because at 52% you're basically saying \"slightly more bearish than not\" which isn't a trade, it's a coin flip with bad odds.\n\nConfidence is even worse at 48%. That means the signals that are pointing short aren't doing so with much conviction. One confirming signal when I need two isn't helping either.\n\nWhat would flip this? A whale opening a short would add 20-30% to signal strength immediately. That's the highest weight single signal. Or if funding goes extreme positive - meaning longs are crowded and paying premiums - that's another strong short signal. Either of those plus an extreme fear reading would get me over the threshold.\n\nFor now I'm sitting. The setup isn't there. Markets spend most of their time in these ambiguous zones where the right trade is no trade. I'd rather miss a move than force something that isn't there.\n\n*Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
           actions: ["VINCE_WHY_TRADE"],
         },
       },
@@ -369,7 +368,7 @@ export const vinceWhyTradeAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**Trade Briefing**\n\nI've got two positions running right now, both in profit.\n\nThe main one is a long on ETH from 3,420, about 6 hours old. Up 2.1% on it, roughly $210 on a $10k position at 2x. The setup was a combination of extreme fear on the sentiment index plus a whale accumulating. When you see smart money buying into fear, that's usually the play. Stop is set at 3,320 - below the recent swing low - and I'm targeting 3,600 first, then 3,750.\n\nSecond position is a smaller SOL long from 142, running about 2 hours. Only up 0.6% so far but the thesis is similar - funding negative, shorts paying, L/S ratio suggesting crowded shorts. This one's more speculative, smaller size at $2k with 2x. Stop at 138, target 148 then 152.\n\nBoth trades are thesis intact. ETH fear has already started reversing which validates the entry. SOL funding is still negative so shorts are still paying me to hold. Nothing to do but let them run and manage the risk.\n\nIf either hits stop, I'm out no questions. But right now both are working exactly as expected.\n\n*Source: Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3*",
+          text: "**Trade Briefing**\n\nI've got two positions running right now, both in profit.\n\nThe main one is a long on ETH from 3,420, about 6 hours old. Up 2.1% on it, roughly $210 on a $10k position at 2x. The setup was a combination of extreme fear on the sentiment index plus a whale accumulating. When you see smart money buying into fear, that's usually the play. Stop is set at 3,320 - below the recent swing low - and I'm targeting 3,600 first, then 3,750.\n\nSecond position is a smaller SOL long from 142, running about 2 hours. Only up 0.6% so far but the thesis is similar - funding negative, shorts paying, L/S ratio suggesting crowded shorts. This one's more speculative, smaller size at $2k with 2x. Stop at 138, target 148 then 152.\n\nBoth trades are thesis intact. ETH fear has already started reversing which validates the entry. SOL funding is still negative so shorts are still paying me to hold. Nothing to do but let them run and manage the risk.\n\nIf either hits stop, I'm out no questions. But right now both are working exactly as expected.\n\n*Paper Trading Bot*\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
           actions: ["VINCE_WHY_TRADE"],
         },
       },

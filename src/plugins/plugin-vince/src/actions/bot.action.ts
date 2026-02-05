@@ -36,6 +36,7 @@ import type { VinceSignalAggregatorService } from "../services/signalAggregator.
 import type { VinceTopTradersService } from "../services/topTraders.service";
 import type { VinceRiskManagerService } from "../services/vinceRiskManager.service";
 import type { AggregatedTradeSignal } from "../types/paperTrading";
+import { BOT_FOOTER } from "../constants/botFormat";
 
 // ==========================================
 // Hybrid Strategy Configuration
@@ -422,72 +423,49 @@ function formatTradeTriggered(
   entryPrice: number
 ): string {
   const dirIcon = signal.direction === "long" ? "🟢" : "🔴";
+  const sizeUsd = (100000 * signal.positionSizePct / 100).toLocaleString();
   const lines: string[] = [];
 
-  lines.push(`**${asset} Paper Trade Triggered**`);
+  lines.push(`**${asset} Trade Opened**`);
   lines.push("");
-  lines.push(`${dirIcon} **${signal.direction.toUpperCase()} ${asset}** @ $${entryPrice.toLocaleString()} (${signal.leverage}x leverage)`);
-  lines.push(`Position: $${(100000 * signal.positionSizePct / 100).toLocaleString()} | Stop: $${signal.stopLoss.toLocaleString()} | TP1: $${signal.takeProfits[0]?.toLocaleString() || "N/A"}`);
+  lines.push(`${dirIcon} **${signal.direction.toUpperCase()} ${asset}** @ $${entryPrice.toLocaleString()} · $${sizeUsd} · ${signal.leverage}x`);
+  lines.push(`SL $${signal.stopLoss.toLocaleString()} · TP1 $${signal.takeProfits[0]?.toLocaleString() || "—"}`);
   lines.push("");
-
-  lines.push("**THE THESIS**");
+  lines.push("**Thesis**");
   for (const reason of signal.reasoning.slice(0, 3)) {
     lines.push(reason);
   }
   lines.push("");
-
-  lines.push("**SIGNAL BREAKDOWN**");
-  for (const factor of signal.factors.slice(0, 6)) {
-    lines.push(`• ${factor}`);
+  lines.push(`**Signals** ${signal.strength}% · ${signal.confidence}%`);
+  for (const f of signal.factors.slice(0, 4)) {
+    lines.push(`• ${f.replace(/^[•·]\s*/, "")}`);
   }
-  lines.push(`• **Total: ${signal.strength}% strength, ${signal.confidence}% confidence**`);
-  lines.push("");
-  lines.push("---");
-  lines.push("*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*");
 
-  return lines.join("\n");
+  return lines.join("\n") + BOT_FOOTER;
 }
 
 function formatNoTrade(asset: string, signal: HybridSignal): string {
   const lines: string[] = [];
 
-  lines.push(`**${asset} Analysis - No Trade**`);
+  lines.push(`**${asset} — No Trade**`);
   lines.push("");
-  lines.push(`Current Signal: **${signal.direction.toUpperCase()}** (strength: ${signal.strength}%, confidence: ${signal.confidence}%)`);
+  lines.push(`Signal: **${signal.direction.toUpperCase()}** (${signal.strength}% strength · ${signal.confidence}% confidence)`);
   lines.push("");
-
-  lines.push("**WHAT'S MISSING**");
-  for (const reason of signal.whyNotTrade) {
-    lines.push(`• ${reason}`);
-  }
-  lines.push("");
-
-  lines.push("**WHAT WOULD TRIGGER**");
-  if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH) {
-    const needed = HYBRID_CONFIG.MIN_STRENGTH - signal.strength;
-    lines.push(`• +${needed}% strength could come from:`);
-    lines.push(`   - Whale opening position (+${HYBRID_CONFIG.WHALE_SIGNAL_BOOST}% weight)`);
-    lines.push(`   - Volume spike above ${HYBRID_CONFIG.VOLUME_SPIKE_THRESHOLD}x (+${HYBRID_CONFIG.VOLUME_SPIKE_BOOST}%)`);
-  }
-  if (signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE) {
-    lines.push(`• More confirming signals needed:`);
-    lines.push(`   - Extreme funding (>0.03% or <-0.03%)`);
-    lines.push(`   - RSI reaching extreme (<25 or >75)`);
-  }
-  lines.push("");
-
-  if (signal.factors.length > 0) {
-    lines.push("**CURRENT FACTORS**");
-    for (const factor of signal.factors.slice(0, 4)) {
-      lines.push(`• ${factor}`);
-    }
+  lines.push("**Missing**");
+  lines.push(signal.whyNotTrade.slice(0, 5).join(" · "));
+  if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH || signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE) {
+    const triggers: string[] = [];
+    if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH) triggers.push(`Whale (+${HYBRID_CONFIG.WHALE_SIGNAL_BOOST}%) or volume spike`);
+    if (signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE) triggers.push("extreme funding or RSI");
     lines.push("");
+    lines.push(`**Would trigger** ${triggers.join("; ")}`);
+  }
+  if (signal.factors.length > 0) {
+    lines.push("");
+    lines.push(signal.factors.slice(0, 3).map(f => f.replace(/^[•·]\s*/, "")).join(" · "));
   }
 
-  lines.push("---");
-  lines.push("*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*");
-
-  return lines.join("\n");
+  return lines.join("\n") + BOT_FOOTER;
 }
 
 // ==========================================

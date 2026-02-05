@@ -160,6 +160,8 @@ interface MandoCacheData {
     publishedAt?: string;
   }>;
   timestamp: number;
+  /** Inferred publish date from page (ISO string) - set when we do direct fetch */
+  inferredPublishDate?: string;
 }
 
 // ==========================================
@@ -175,8 +177,12 @@ export class VinceNewsSentimentService extends Service {
   private priceSnapshots: Array<{ asset: string; changePct: number; timestamp: number }> = [];
   private lastUpdate = 0;
   private lastMandoFetch = 0;
+  private lastMandoWarnTime = 0;
+  /** Inferred Mando publish date (ISO) - used for freshness gate on daily push */
+  private lastInferredMandoDate: string | null = null;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   private readonly MANDO_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes (match plugin-web-search)
+  private readonly MANDO_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 min - avoid repetitive MandoMinutes warn spam
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -298,16 +304,17 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
-   * Refresh data from MandoMinutes shared cache
+   * Refresh data from MandoMinutes shared cache.
+   * @param forceDirectFetch - When true, bypass cache and fetch directly (for freshness check / date extraction). Use for daily push.
    */
-  async refreshData(): Promise<void> {
+  async refreshData(forceDirectFetch = false): Promise<void> {
     const now = Date.now();
-    if (now - this.lastUpdate < this.CACHE_TTL_MS) {
+    if (!forceDirectFetch && now - this.lastUpdate < this.CACHE_TTL_MS) {
       return;
     }
 
-    // Fetch from MandoMinutes cache
-    await this.fetchFromMandoMinutes();
+    // Fetch from MandoMinutes cache (or direct if forceDirectFetch)
+    await this.fetchFromMandoMinutes(forceDirectFetch);
     
     // Clear old entries (older than 24 hours)
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
@@ -321,27 +328,31 @@ export class VinceNewsSentimentService extends Service {
    * Fetch news from the shared MandoMinutes cache
    * This cache is populated by plugin-web-search's MANDO_MINUTES action
    * Falls back to direct browser fetch if cache is empty
+   * @param forceDirect - When true, skip cache and always fetch directly (for freshness/date extraction)
    */
-  private async fetchFromMandoMinutes(): Promise<void> {
+  private async fetchFromMandoMinutes(forceDirect = false): Promise<void> {
     try {
-      // Try all known cache keys
       let cached: MandoCacheData | null = null;
-      
-      for (const cacheKey of MANDO_CACHE_KEYS) {
-        const result = await this.runtime.getCache<MandoCacheData>(cacheKey);
-        if (result && result.articles && result.articles.length > 0) {
-          // Check if cache is fresh enough
-          if (Date.now() - result.timestamp <= this.MANDO_CACHE_TTL_MS * 2) {
-            cached = result;
-            const ageMinutes = Math.round((Date.now() - result.timestamp) / 60000);
-            logger.info(`[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`);
-            break;
+
+      if (!forceDirect) {
+        for (const cacheKey of MANDO_CACHE_KEYS) {
+          const result = await this.runtime.getCache<MandoCacheData>(cacheKey);
+          if (result && result.articles && result.articles.length > 0) {
+            if (Date.now() - result.timestamp <= this.MANDO_CACHE_TTL_MS * 2) {
+              cached = result;
+              const ageMinutes = Math.round((Date.now() - result.timestamp) / 60000);
+              logger.info(`[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`);
+              break;
+            }
           }
         }
       }
-      
-      // If no cache, try direct browser fetch
-      if (!cached || !cached.articles || cached.articles.length === 0) {
+
+      // If no cache or force direct, fetch via browser
+      if (forceDirect || !cached || !cached.articles || cached.articles.length === 0) {
+        if (forceDirect) {
+          logger.info("[VinceNewsSentiment] Force direct fetch for freshness check");
+        }
         logger.debug("[VinceNewsSentiment] MandoMinutes cache empty - attempting direct fetch");
         cached = await this.fetchDirectFromBrowser();
         
@@ -353,6 +364,10 @@ export class VinceNewsSentimentService extends Service {
       // Don't re-process if we already have this data
       if (cached.timestamp === this.lastMandoFetch) {
         return;
+      }
+
+      if (cached.inferredPublishDate) {
+        this.lastInferredMandoDate = cached.inferredPublishDate;
       }
 
       if (isVinceAgent(this.runtime)) {
@@ -457,24 +472,50 @@ export class VinceNewsSentimentService extends Service {
       
       if (!navResult.success) {
         const errMsg = navResult.error?.split('\n')[0] || 'Unknown error';
-        logger.warn(`[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`);
+        const now = Date.now();
+        if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+          this.lastMandoWarnTime = now;
+          logger.warn(`[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`);
+        } else {
+          logger.debug(`[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`);
+        }
         return null;
       }
-      
+
       const pageContent = await browser.getPageContent();
-      
+
       if (!pageContent || pageContent.length < 200) {
-        logger.warn(`[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`);
+        const now = Date.now();
+        if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+          this.lastMandoWarnTime = now;
+          logger.warn(`[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`);
+        } else {
+          logger.debug(`[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`);
+        }
         return null;
       }
       
       logger.debug(`[VinceNewsSentiment] Got MandoMinutes content: ${pageContent.length} chars`);
 
+      const inferredDate = this.extractMandoPublishDate(pageContent);
+      if (inferredDate) {
+        this.lastInferredMandoDate = inferredDate;
+        logger.info(`[VinceNewsSentiment] Inferred Mando publish date: ${inferredDate}`);
+      } else {
+        logger.debug("[VinceNewsSentiment] Could not infer Mando publish date from page");
+      }
+
       // Parse the content to extract headlines
       const articles = this.parseMandoMinutesContent(pageContent);
       
       if (articles.length === 0) {
-        logger.warn("[VinceNewsSentiment] No articles parsed from MandoMinutes");
+        const now = Date.now();
+        if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+          this.lastMandoWarnTime = now;
+          logger.warn("[VinceNewsSentiment] No articles parsed from MandoMinutes");
+        } else {
+          logger.debug("[VinceNewsSentiment] No articles parsed from MandoMinutes");
+        }
         return null;
       }
 
@@ -484,6 +525,7 @@ export class VinceNewsSentimentService extends Service {
       const cacheData: MandoCacheData = {
         articles,
         timestamp: Date.now(),
+        ...(inferredDate && { inferredPublishDate: inferredDate }),
       };
       
       await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
@@ -492,12 +534,86 @@ export class VinceNewsSentimentService extends Service {
 
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      logger.warn(`[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`);
+      const now = Date.now();
+      if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
+        this.lastMandoWarnTime = now;
+        logger.warn(`[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`);
+      } else {
+        logger.debug(`[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`);
+      }
       return null;
     } finally {
       // Always close browser to free resources
       await browser.close();
     }
+  }
+
+  /**
+   * Extract publish date from MandoMinutes page content.
+   * Tries common patterns: "Feb 5", "February 5, 2025", "2025-02-05", "5 Feb 2025".
+   * Returns ISO date string (YYYY-MM-DD) or null if not found.
+   * Used for freshness gate: daily push only when Mando has updated.
+   */
+  private extractMandoPublishDate(content: string): string | null {
+    if (!content || content.length < 50) return null;
+    const fullText = content;
+
+    const patterns: Array<{ regex: RegExp; parse: (m: RegExpExecArray) => string | null }> = [
+      // ISO: 2025-02-05
+      {
+        regex: /\b(20\d{2})-(\d{2})-(\d{2})\b/,
+        parse: (m) => `${m[1]}-${m[2]}-${m[3]}`,
+      },
+      // Feb 5, 2025 or February 5, 2025 (month name + day + year)
+      {
+        regex: /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2}),?\s+(20\d{2})\b/i,
+        parse: (m) => {
+          const mon: Record<string, string> = {
+            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+          };
+          const month = mon[m[1].toLowerCase().slice(0, 3)];
+          const day = m[2].padStart(2, "0");
+          return month ? `${m[3]}-${month}-${day}` : null;
+        },
+      },
+      // 5 Feb 2025 or 5 February 2025 (day + month + year)
+      {
+        regex: /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(20\d{2})\b/i,
+        parse: (m) => {
+          const mon: Record<string, string> = {
+            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+          };
+          const month = mon[m[2].toLowerCase().slice(0, 3)];
+          const day = m[1].padStart(2, "0");
+          return month ? `${m[3]}-${month}-${day}` : null;
+        },
+      },
+      // Feb 5 or February 5 (no year - assume current year)
+      {
+        regex: /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})\b(?!\s*,\s*20\d{2})/i,
+        parse: (m) => {
+          const mon: Record<string, string> = {
+            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+          };
+          const month = mon[m[1].toLowerCase().slice(0, 3)];
+          const day = m[2].padStart(2, "0");
+          const year = new Date().getFullYear().toString();
+          return month ? `${year}-${month}-${day}` : null;
+        },
+      },
+    ];
+
+    for (const { regex, parse } of patterns) {
+      const m = regex.exec(fullText);
+      if (m) {
+        const iso = parse(m);
+        if (iso) return iso;
+      }
+    }
+    return null;
   }
 
   /**
@@ -1123,6 +1239,44 @@ export class VinceNewsSentimentService extends Service {
    */
   hasData(): boolean {
     return this.newsCache.length > 0;
+  }
+
+  /**
+   * Freshness info for daily push gate.
+   * Skip news push when we can't confirm Mando has updated (he doesn't update every day).
+   * Set VINCE_NEWS_PUSH_REQUIRE_FRESH=false to push anyway when date can't be inferred.
+   */
+  getMandoFreshnessInfo(): {
+    hasData: boolean;
+    inferredPublishDate: string | null;
+    isLikelyFresh: boolean;
+  } {
+    const requireFresh = process.env.VINCE_NEWS_PUSH_REQUIRE_FRESH !== "false";
+    const hasData = this.newsCache.length > 0;
+    const inferred = this.lastInferredMandoDate;
+
+    if (!requireFresh) {
+      return { hasData, inferredPublishDate: inferred, isLikelyFresh: hasData };
+    }
+
+    if (!hasData || !inferred) {
+      return { hasData, inferredPublishDate: inferred, isLikelyFresh: false };
+    }
+
+    const pubDate = new Date(inferred);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const pubDay = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
+    const isTodayOrYesterday =
+      pubDay.getTime() === today.getTime() || pubDay.getTime() === yesterday.getTime();
+
+    return {
+      hasData,
+      inferredPublishDate: inferred,
+      isLikelyFresh: isTodayOrYesterday,
+    };
   }
 
   /**

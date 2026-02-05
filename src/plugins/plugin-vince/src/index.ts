@@ -44,6 +44,7 @@ import { VinceBinanceService } from "./services/binance.service";
 import { VinceBinanceLiquidationService } from "./services/binanceLiquidation.service";
 import { VinceHIP3Service } from "./services/hip3.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
+import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
 
 // Fallback services factory (for external service source tracking)
@@ -113,6 +114,9 @@ import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 // Tasks
 // import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
+import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
+import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
+import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -160,6 +164,7 @@ export const vincePlugin: Plugin = {
     VinceHIP3Service,
     // Early Detection System
     VinceWatchlistService,
+    VinceNotificationService,
     VinceAlertService,
     // Paper Trading Bot (order matters - dependencies first)
     VinceRiskManagerService,
@@ -499,6 +504,39 @@ export const vincePlugin: Plugin = {
       };
       setImmediate(() => tryRegister());
     }
+
+    // Daily report: ALOHA + OPTIONS + PERPS + HIP-3 pushed to Discord/Slack (channels with "daily" in name)
+    if (isVinceAgent(runtime)) {
+      setImmediate(async () => {
+        try {
+          await registerDailyReportTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register daily report task:", e);
+        }
+      });
+    }
+
+    // Lifestyle daily: dining, hotel, health, fitness pushed to Discord/Slack (channels with "lifestyle" in name)
+    if (isVinceAgent(runtime)) {
+      setImmediate(async () => {
+        try {
+          await registerLifestyleDailyTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register lifestyle daily task:", e);
+        }
+      });
+    }
+
+    // News daily: MandoMinutes briefing pushed to Discord/Slack - only when Mando has updated (channels with "news" in name)
+    if (isVinceAgent(runtime)) {
+      setImmediate(async () => {
+        try {
+          await registerNewsDailyTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register news daily task:", e);
+        }
+      });
+    }
   },
 };
 
@@ -536,6 +574,7 @@ export { VinceTradeJournalService } from "./services/vinceTradeJournal.service";
 export { VinceGoalTrackerService } from "./services/goalTracker.service";
 export { VinceHIP3Service } from "./services/hip3.service";
 export { VinceWatchlistService } from "./services/watchlist.service";
+export { VinceNotificationService } from "./services/notification.service";
 export { VinceAlertService } from "./services/alert.service";
 export { VinceParameterTunerService } from "./services/parameterTuner.service";
 export { VinceImprovementJournalService } from "./services/improvementJournal.service";

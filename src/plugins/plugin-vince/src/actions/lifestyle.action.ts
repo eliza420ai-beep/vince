@@ -16,10 +16,10 @@ import { logger, ModelType } from "@elizaos/core";
 import type { VinceLifestyleService } from "../services/lifestyle.service";
 
 // ==========================================
-// Build data context for LLM
+// Build data context for LLM (exported for daily push task)
 // ==========================================
 
-interface LifestyleDataContext {
+export interface LifestyleDataContext {
   day: string;
   date: string;
   season: "pool" | "gym";
@@ -29,9 +29,12 @@ interface LifestyleDataContext {
   dining: { suggestion: string; reason: string; daySpecific: boolean }[];
   hotel: { suggestion: string; reason: string }[];
   activity: { suggestion: string; reason: string }[];
+  /** Curated places open today — ONLY suggest from these lists */
+  curatedRestaurants: string[];
+  curatedHotels: string[];
 }
 
-function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
+export function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   const lines: string[] = [];
 
   lines.push(`=== LIFESTYLE (${ctx.day}, ${ctx.date}) ===`);
@@ -64,7 +67,13 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
     lines.push("");
   }
 
-  if (ctx.dining.length > 0) {
+  if (ctx.curatedRestaurants.length > 0) {
+    lines.push("DINING (curated, open today — suggest ONLY from this list):");
+    for (const r of ctx.curatedRestaurants) {
+      lines.push(`- ${r}`);
+    }
+    lines.push("");
+  } else if (ctx.dining.length > 0) {
     lines.push("DINING:");
     for (const d of ctx.dining) {
       lines.push(`${d.suggestion}`);
@@ -73,7 +82,12 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
     lines.push("");
   }
 
-  if (ctx.hotel.length > 0) {
+  if (ctx.curatedHotels.length > 0) {
+    lines.push("HOTELS (curated, open this season — suggest ONLY from this list):");
+    for (const h of ctx.curatedHotels) {
+      lines.push(`- ${h}`);
+    }
+  } else if (ctx.hotel.length > 0) {
     lines.push("HOTELS:");
     for (const h of ctx.hotel) {
       lines.push(`${h.suggestion}`);
@@ -88,7 +102,7 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
 // Generate human briefing via LLM
 // ==========================================
 
-async function generateLifestyleHumanBriefing(
+export async function generateLifestyleHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string
 ): Promise<string> {
@@ -101,10 +115,11 @@ ${dataContext}
 Write a lifestyle briefing that:
 1. Start with the day's vibe - what kind of day is it? Pool day, gym day, Friday ritual?
 2. Connect trading and lifestyle naturally - "After you set those strikes, hit the pool" not as separate categories
-3. Give specific recommendations when available - name the restaurant, the hotel, the activity
-4. If it's Friday, make the strike selection ritual prominent
-5. Season matters - pool season is for rooftops and swimming, gym season is for indoor workouts
-6. End with a specific suggestion for the day
+3. CRITICAL: For DINING and HOTELS, suggest ONLY from the curated lists provided. These are places open today / this season. Do not invent or recommend places not on the list.
+4. Give specific recommendations — name the restaurant, the hotel, the activity from the data.
+5. If it's Friday, make the strike selection ritual prominent
+6. Season matters - pool season is for rooftops and swimming, gym season is for indoor workouts
+7. End with a specific suggestion for the day
 
 STYLE RULES:
 - Write like a friend helping plan the day
@@ -175,6 +190,7 @@ export const vinceLifestyleAction: Action = {
 
       const briefing = lifestyleService.getDailyBriefing();
       const season = lifestyleService.getCurrentSeason();
+      const curated = lifestyleService.getCuratedOpenContext?.() ?? null;
 
       const ctx: LifestyleDataContext = {
         day: briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1),
@@ -194,6 +210,8 @@ export const vinceLifestyleAction: Action = {
         activity: briefing.suggestions
           .filter(s => s.category === "activity")
           .map(s => ({ suggestion: s.suggestion, reason: s.reason })),
+        curatedRestaurants: curated?.restaurants ?? [],
+        curatedHotels: curated?.hotels ?? [],
       };
 
       // Generate briefing

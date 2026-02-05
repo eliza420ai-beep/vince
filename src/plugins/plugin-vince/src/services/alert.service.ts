@@ -360,6 +360,13 @@ export class VinceAlertService extends Service {
     }
 
     logger.info(`[VinceAlert] New alert: ${alert.title}`);
+
+    // Push to Discord/Slack/Telegram when connected
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    if (notif?.push) {
+      const text = `${alert.title}\n${alert.message}`;
+      notif.push(text).catch((e) => logger.debug(`[VinceAlert] Push failed: ${e}`));
+    }
   }
 
   // ==========================================

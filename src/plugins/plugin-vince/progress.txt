@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (Supabase migration, retrain, MandoMinutes #5, real-time thresholds)
+# Last updated: 2026-02-05 (Daily report task, Eliza Cloud logs, channel structure)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -31,7 +31,8 @@ COMPLETED
 - VinceMarketRegimeService - Trending/ranging/choppy detection
 - VinceHIP3Service - Stocks, commodities, indices (34 assets)
 - VinceWatchlistService - Early detection watchlist
-- VinceAlertService - Price and signal alerts
+- VinceNotificationService - Push to Discord/Slack/Telegram (alerts, paper trades, daily report)
+- VinceAlertService - Price and signal alerts (pushes to channels when new alert)
 
 ## Services - Paper Trading Bot (5 services) ✅
 - VincePaperTradingService - Bot orchestration
@@ -226,20 +227,11 @@ PRIORITY (real-time data for paper trading algo)
    signal aggregator skips Binance (no getIntelligence call). Recovery when any fetch
    returns 2xx (recordSuccess()). See binance.service.ts and signalAggregator Phase 1.
 
-🟢 IMPROVE LOGS FOR ELIZA CLOUD (https://www.elizacloud.ai/) – PARTIAL ✅
-   Align with Eliza Cloud Container Logs / Metrics UX: filterable levels,
-   structured context, less noise, high-signal summaries.
-   - ✅ Reduce INFO noise: Signal aggregator per-asset "N source(s) → M factors"
-     → debug. Coinglass dashboard line → debug. Hyperliquid OPTIONS PULSE
-     (non-neutral) → debug; CROSS-VENUE stays INFO only when arb opportunities.
-     Paper trading: correlation/DVOL/regime/session/streak/ML sizing → debug.
-     Trade open/close, trigger hit, pause/resume, cascade/liquidations stay INFO.
-   - Warnings: Prioritize actionable warnings (e.g. VinceBinance 451 above);
-     avoid repetitive same-message warnings (use cooldown + debug for repeats).
-   - Structure: Include consistent context (source tag, optional agentId/roomId
-     when relevant) so Cloud log search/filter stays useful.
-   - Optional: Periodically log a single "dashboard-style" summary (e.g. health
-     of data sources, signal source counts) instead of many per-call lines.
+🟢 IMPROVE LOGS FOR ELIZA CLOUD (https://www.elizacloud.ai/) – DONE ✅
+   - ✅ Reduce INFO noise (aggregator, Coinglass, Hyperliquid → debug).
+   - ✅ Warnings: VinceBinance 451 cooldown; MandoMinutes 5-min cooldown (warn once, debug repeats);
+     VinceNotification: single aggregated warn for push failures.
+   - ✅ Structure: All logs use [Source] prefix for Cloud filter (e.g. [VinceBinance], [VinceNewsSentiment]).
 
 🟢 IMPROVE THE AMOUNT OF REAL-TIME DATA USED FOR THE PAPER TRADING ALGO — DONE ✅ (2026-02-05)
    Relaxed thresholds: Binance L/S 1.4/0.72, News conf ≥45, Liq pressure >35, Deribit skew+P/C neutral/1.2/0.82, MarketRegime neutral+volatile, Sanbase neutral. See IMPROVEMENT_WEIGHTS_AND_TUNING.md.
@@ -420,6 +412,7 @@ NEXT / BACKLOG
 
 🟢 Migrate prod to Supabase Postgres — DONE ✅ (2026-02-05)
    POSTGRES_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL in .env. plugin_vince.paper_bot_features and public.vince_paper_bot_features in same Supabase DB as ElizaOS tables. Added: scripts/sync-jsonl-to-supabase.ts (backfill), SUPABASE_MIGRATION.md (checklist), getSupabaseUrl() supports pooler URL. See FEATURE-STORE.md, DEPLOY.md.
+🟢 Daily report task: VINCE_DAILY_REPORT runs at VINCE_DAILY_REPORT_HOUR (default 18:00 UTC); pushes ALOHA + OPTIONS + PERPS + HIP-3 to channels with "daily" in name. Set VINCE_DAILY_REPORT_ENABLED=false to disable. NOTIFICATIONS.md has channel structure (e.g. #vince-daily-reports, #vince-alerts).
 🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual: pip3 install -r scripts/requirements.txt && python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
@@ -437,7 +430,7 @@ NEXT / BACKLOG
 Product feedback → backlog:
 📋 NEWS: Build own news plugin + day report to reduce MandoMinutes dependency (likely X API ~$100/mo).
 📋 MEMES: Fix bold styling in UI (quick fix; looks messy). Improve quality over time (not top priority).
-📋 BOT: Polish BOT command—easier on the eyes, consistent writing style with other actions.
+📋 BOT: Polish BOT command — DONE ✅ (compact layout, shared footer, KPI/positions condensed)
 📋 INTEL: Address redundancy with GM / Aloha (merge or differentiate).
 🟢 UPLOAD / knowledge: YouTube + article URLs use [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) (fork of steipete/summarize) via bunx; transcript/summary saved to knowledge/<category>/. This improves our workflow to keep growing the knowledge folder from URLs and videos. Manual test: bun run scripts/test-summarize.ts (example: https://www.youtube.com/watch?v=wGucOorJlvk). Remaining: batch scripts for feeds, long PDFs; optional ClawdBot (Moltbot) for heavy ingestion.
 📋 LIFESTYLE: More focus on curated local (hotel/restaurant/spa/health/fitness); may migrate to dedicated CLAWDBOT.

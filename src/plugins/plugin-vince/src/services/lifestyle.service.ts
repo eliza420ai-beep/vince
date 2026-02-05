@@ -4,16 +4,27 @@
  * Daily suggestions based on:
  * - Day of week (trading rhythm)
  * - Season (pool vs gym)
- * - Knowledge base (the-good-life)
+ * - Knowledge base (the-good-life) — curated restaurants open today, hotels by season
  *
  * Focus areas:
  * - Health (swimming, gym, wellness)
- * - Dining (lunch recommendations)
- * - Hotels (midweek escapes - Wed preferred)
+ * - Dining (lunch — ONLY curated places open today)
+ * - Hotels (midweek escapes — ONLY those open this season)
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import * as fs from "fs";
+import * as path from "path";
 import type { DayOfWeek, LifestyleSuggestion, DailyBriefing } from "../types/index";
+
+const CURATED_SCHEDULE_PATH = "knowledge/the-good-life/curated-open-schedule.md";
+
+export interface CuratedOpenContext {
+  restaurants: string[];
+  hotels: string[];
+  fitnessNote: string;
+  rawSection: string;
+}
 
 export class VinceLifestyleService extends Service {
   static serviceType = "VINCE_LIFESTYLE_SERVICE";
@@ -31,6 +42,73 @@ export class VinceLifestyleService extends Service {
 
   async stop(): Promise<void> {
     logger.info("[VinceLifestyle] Service stopped");
+  }
+
+  /**
+   * Load curated restaurants and hotels open today from knowledge base.
+   * Source: knowledge/the-good-life/curated-open-schedule.md
+   */
+  getCuratedOpenContext(day?: DayOfWeek): CuratedOpenContext | null {
+    const d = day ?? this.getDayOfWeek();
+    const month = this.getMonth();
+    const isWinter = month <= 2;
+
+    const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
+    if (!fs.existsSync(fullPath)) {
+      logger.debug("[VinceLifestyle] Curated schedule not found");
+      return null;
+    }
+
+    try {
+      const content = fs.readFileSync(fullPath, "utf-8");
+      const dayCapitalized = d.charAt(0).toUpperCase() + d.slice(1);
+      const daySection = this.extractSection(content, `### ${dayCapitalized}`);
+      const hotelSection = isWinter
+        ? this.extractSection(content, "### Winter (January–February)")
+        : this.extractSection(content, "### March–November");
+      const fitnessSection = this.extractSection(content, "## Fitness / Health");
+
+      const restaurants = this.parseRestaurantLines(daySection);
+      const hotels = this.parseHotelLines(hotelSection);
+
+      return {
+        restaurants,
+        hotels,
+        fitnessNote: fitnessSection?.split("\n").slice(0, 4).join(" ").trim() || "",
+        rawSection: [daySection, hotelSection].filter(Boolean).join("\n\n"),
+      };
+    } catch (e) {
+      logger.debug(`[VinceLifestyle] Error loading curated schedule: ${e}`);
+      return null;
+    }
+  }
+
+  private extractSection(content: string, header: string): string {
+    const start = content.indexOf(header);
+    if (start === -1) return "";
+    const afterHeader = content.slice(start + header.length);
+    const nextH2 = afterHeader.search(/\n## /);
+    const nextH3 = afterHeader.search(/\n### /);
+    const end = nextH2 === -1 && nextH3 === -1
+      ? afterHeader.length
+      : Math.min(nextH2 === -1 ? Infinity : nextH2, nextH3 === -1 ? Infinity : nextH3);
+    return afterHeader.slice(0, end).trim();
+  }
+
+  private parseRestaurantLines(section: string): string[] {
+    const lines = section.split("\n").filter((l) => l.trim().startsWith("- **"));
+    return lines.map((l) => {
+      const match = l.match(/^- \*\*([^*]+)\*\* \| (.+)$/);
+      return match ? `${match[1]} | ${match[2]}` : l.replace(/^-\s*\*\*|\*\*/g, "").trim();
+    });
+  }
+
+  private parseHotelLines(section: string): string[] {
+    const lines = section.split("\n").filter((l) => {
+      const t = l.trim();
+      return t.startsWith("- ") && t.includes("|") && !t.startsWith("- **");
+    });
+    return lines.map((l) => l.replace(/^-\s*/, "").trim());
   }
 
   // ==========================================

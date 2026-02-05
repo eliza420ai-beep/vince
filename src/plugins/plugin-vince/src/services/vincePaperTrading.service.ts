@@ -1322,6 +1322,17 @@ export class VincePaperTradingService extends Service {
       `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${sizeUsd.toFixed(0)}, ${leverage}x)`
     );
 
+    // Push to Discord/Slack/Telegram when connected
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    if (notif?.push) {
+      const dirIcon = direction === "long" ? "🟢" : "🔴";
+      const thesis = totalSourceCount > 0
+        ? `${sourceCount} of ${totalSourceCount} sources agreed`
+        : `${factorCount} factors`;
+      const msg = `📈 **PAPER TRADE OPENED**\n${dirIcon} ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)}\nNotional ${formatUsd(sizeUsd)} · ${leverage}x · ${thesis}`;
+      notif.push(msg).catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
+    }
+
     return position;
   }
 
@@ -1457,6 +1468,13 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log("  ╚" + "═".repeat(W + 2) + "╝");
     console.log("");
+
+    // Push to Discord/Slack/Telegram when connected
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    if (notif?.push) {
+      const msg = `💰 **PAPER TRADE CLOSED** – ${resultText}\n${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset} · P&L ${pnlStr} · ${closeReason}`;
+      notif.push(msg).catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
+    }
 
     return closedPosition;
   }

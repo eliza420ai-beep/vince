@@ -40,6 +40,7 @@
 | [**FEATURE-STORE**](FEATURE-STORE.md) | ML & paper bot · feature store |
 | [**SUPABASE_MIGRATION**](SUPABASE_MIGRATION.md) | Production persistence checklist |
 | [**DEPLOY**](DEPLOY.md) | Eliza Cloud · env · troubleshooting |
+| [**DISCORD**](DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
 | [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
@@ -391,6 +392,7 @@ elizaos test e2e          # E2E only
 | [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage, training |
 | [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) | Production persistence checklist |
 | [DEPLOY.md](DEPLOY.md) | Eliza Cloud, env, troubleshooting |
+| [DISCORD.md](DISCORD.md) | Channel structure (IKIGAI, LiveTheLifeTV, Slack) |
 | [CLAUDE.md](CLAUDE.md) | ElizaOS dev guide |
 | [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |

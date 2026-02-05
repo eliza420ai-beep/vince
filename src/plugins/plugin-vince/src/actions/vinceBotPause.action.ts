@@ -9,6 +9,7 @@
 import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
+import { BOT_FOOTER } from "../constants/botFormat";
 
 export const vinceBotPauseAction: Action = {
   name: "VINCE_BOT_PAUSE",
@@ -61,7 +62,7 @@ export const vinceBotPauseAction: Action = {
         paperTrading.pause("Manual pause requested");
         
         await callback({
-          text: "⏸️ **Bot Paused**\n\nPaper trading has been paused. The bot will not open new positions until resumed.\n\nExisting positions will continue to be monitored for stop-loss and take-profit triggers.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "⏸️ **Bot Paused**\n\nPaper trading paused. No new positions until you resume.\nExisting positions still monitored for SL/TP." + BOT_FOOTER,
           actions: ["VINCE_BOT_PAUSE"],
         });
         
@@ -83,7 +84,7 @@ export const vinceBotPauseAction: Action = {
         paperTrading.resume();
         
         await callback({
-          text: "🟢 **Bot Resumed**\n\nPaper trading has been resumed. The bot will now evaluate signals and open positions when conditions are met.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "🟢 **Bot Resumed**\n\nPaper trading active. Evaluating signals and opening positions when conditions are met." + BOT_FOOTER,
           actions: ["VINCE_BOT_PAUSE"],
         });
         
@@ -112,7 +113,7 @@ export const vinceBotPauseAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "⏸️ **Bot Paused**\n\nPaper trading has been paused. The bot will not open new positions until resumed.\n\nExisting positions will continue to be monitored for stop-loss and take-profit triggers.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "⏸️ **Bot Paused**\n\nPaper trading paused. No new positions until you resume.\nExisting positions still monitored for SL/TP.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
           actions: ["VINCE_BOT_PAUSE"],
         },
       },
@@ -122,7 +123,7 @@ export const vinceBotPauseAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "🟢 **Bot Resumed**\n\nPaper trading has been resumed. The bot will now evaluate signals and open positions when conditions are met.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+          text: "🟢 **Bot Resumed**\n\nPaper trading active. Evaluating signals and opening positions when conditions are met.\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
           actions: ["VINCE_BOT_PAUSE"],
         },
       },
