@@ -310,6 +310,11 @@ elizaos test         # Run tests
 | `bun run db:bootstrap` | Run DB bootstrap (Postgres) |
 | `bun run scripts/ingest-urls.ts --file urls.txt` | Batch ingest URLs/YouTube into `knowledge/` |
 
+### Web UI (Otaku-style frontend)
+
+- **`bun start`** starts the API (port 3000) and the VINCE chat/dashboard UI (port **5173**). **Open http://localhost:5173** for the full UI (sidebar, chat, Quick Start).
+- If you see the **"Invite code" / "Gated access"** screen, you're on the default ElizaOS dashboard (e.g. from `elizaos start` or port 3000 before the custom UI is built). Use **http://localhost:5173** after `bun start`, or run `bun run start:static` and use port 3000 after building the frontend.
+
 ---
 
 ## ☁ Production (Supabase / Postgres)
