@@ -12,6 +12,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 |--------------|---------|------------------|
 | `#vince-daily-reports` | Scheduled daily report | ALOHA + OPTIONS + PERPS + HIP-3 summary (once/day at 18:00 UTC) |
 | `#vince-alerts` | High-signal events | Alerts (watchlist, wallet, token), paper trade open/close |
+| `#vince-upload-youtube` | Curated YouTube → knowledge | You paste YouTube links; VINCE ingests (transcript + summary). No need to watch — save to knowledge instead. |
 
 ### Option B: Single channel
 

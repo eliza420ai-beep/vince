@@ -11,6 +11,12 @@ Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designe
 | `lifestyle` | Dining, hotel, health (08:00 UTC) |
 | `alerts` | Alerts, paper trades (real-time) |
 
+**Knowledge ingestion (you post, bot ingests):**
+
+| Channel | Purpose |
+|---------|---------|
+| `#vince-upload-youtube` or `#youtube-knowledge` | Paste curated YouTube links; VINCE ingests to knowledge (transcript + summary). No need to watch — save to knowledge instead. Say `upload:` or just paste the URL. |
+
 ---
 
 ## Agent Capabilities
@@ -53,6 +59,7 @@ All VINCE automated feeds in one place. Invite VINCE to these channels.
 | `#vince-news` | News briefing | "news" | MandoMinutes 07:00 UTC |
 | `#vince-lifestyle` | Lifestyle suggestions | "lifestyle" | Dining, hotel, health 08:00 UTC |
 | `#vince-alerts` | High-signal events | "alerts" | Alerts, paper trades |
+| `#vince-upload-youtube` | Curated YouTube → knowledge | — | You paste YouTube links; VINCE ingests (transcript + summary). No watching. |
 | `#general-gm` | General chat with VINCE | — | On-demand: GM, ALOHA, OPTIONS, etc. |
 
 **Channel purpose (copy-paste):**
@@ -61,6 +68,7 @@ All VINCE automated feeds in one place. Invite VINCE to these channels.
 #vince-news: MandoMinutes. Ask: NEWS, MANDO
 #vince-lifestyle: Dining, hotels, health, fitness. Ask: LIFESTYLE
 #vince-alerts: Watchlist alerts, paper trades. Ask: ALERTS, BOT
+#vince-upload-youtube: Paste curated YouTube links; VINCE ingests to knowledge (transcript + summary). No need to watch.
 #general-gm: Chat with VINCE. GM, ALOHA, OPTIONS, PERPS, NEWS, LIFESTYLE, BOT, UPLOAD
 ```
 

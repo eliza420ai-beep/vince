@@ -9,10 +9,12 @@
 | Goal | What we do | Success = |
 |------|------------|-----------|
 | **Slack & Discord** | Configure bots, create channels, set env; use existing push routing for research. | Daily report (18:00 UTC), news (07:00), lifestyle (08:00) land in correct channels; research digests can go to `#vince-research`. |
+| **Step one: Knowledge tests & improvement** | Extensive tests for current knowledge (structure, coverage, methodology); script to automate health report and safe improvements. | CI passes; health report clean or review-queue defined; new content meets same bar. |
 | **Knowledge quality** | Enforce methodology-over-data; frontmatter; clawdbot as playbooks; prompt templates for research/X. | Every ingested doc has source/category; agents cite frameworks, not stale numbers. |
 | **Deep research** | Re-enable Grok Expert; add research-daily task; optional research-queue processor. | One research brief or Grok pulse per day → channel and/or `knowledge/`. |
 | **X → knowledge** | **No X API** (too expensive). **Clawdbot is the key:** dedicated X account + curated follow list (decade of curation) + Birdy → surface threads/URLs → VINCE knowledge pipeline. | Thread/link URLs from OpenClaw feed into `knowledge/`; X remains main source without API cost. |
-| **Expansion loop** | UPLOAD + queue + (later) X → ingest → categorize → write → notify. | New content in `knowledge/` with optional “Added: …” in `#vince-research`. |
+| **Curated YouTube** | Paste links in `#vince-upload-youtube`; VINCE ingests (transcript + summary). Manual curation, no watching. | YouTube backlog becomes knowledge without watching. |
+| **Expansion loop** | UPLOAD + curated YouTube channel + queue + (later) X → ingest → categorize → write → notify. | New content in `knowledge/` with optional “Added: …” in `#vince-research`. |
 
 **Key insight:** `VinceNotificationService` already supports any keyword via `roomNameContains`. Create a channel whose name contains `research` (e.g. `#vince-research`) and call `push(text, { roomNameContains: "research" })` — no service code change needed.
 
@@ -20,6 +22,8 @@
 
 | Change | Files |
 |--------|--------|
+| **Step one: Knowledge tests** | Extend `src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts`; add `knowledge.structure.test.ts` (frontmatter, knowledge note, quality rules). Run `knowledgeQuality.e2e.test.ts` for A/B. |
+| **Step one: Automate improvement** | New: `scripts/knowledge-health.ts` — scan `knowledge/**/*.md`, report + optional safe auto-fix; optional `knowledge/internal-docs/knowledge-review-queue.md`. |
 | Register new task | `src/plugins/plugin-vince/src/index.ts` (add `registerResearchDailyTask` / `registerGrokExpertTask` in init). |
 | Research daily task | New: `src/plugins/plugin-vince/src/tasks/researchDaily.tasks.ts`. |
 | Grok → knowledge file | `src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts` (add file write + push with `roomNameContains: "research"`). |
@@ -114,6 +118,44 @@ Agent loads Discord/Slack only when the corresponding token is set (`src/agents/
 ---
 
 ## 2. Knowledge base improvement
+
+### 2.0 Step one: Knowledge tests & automated improvement (Phase 0)
+
+**Before** scaling Slack/Discord and new automation, the foundation is: **extensive tests for current knowledge** and **a way to automate improving it where needed**. This is Phase 0.
+
+#### 2.0.1 Extensive tests for current knowledge
+
+- **Structure tests**
+  - Required frontmatter: `source` or `title`, `category` (or infer from path), `created` or `ingestedWith` where applicable.
+  - Standard **knowledge note block** at top (methodology/framework, numbers illustrative; see KNOWLEDGE-USAGE-GUIDELINES.md).
+  - Clear `##` section headers for RAG chunking; no empty or near-empty files.
+- **Domain coverage tests** (extend existing)
+  - Per-domain keyword presence (options: strike, IV, funding; perps: funding, liquidation; etc.) — already in `knowledge.integration.test.ts`.
+  - Minimum file counts per domain; no directories that should have content are empty.
+- **Quality / methodology tests**
+  - Files contain methodology/framework language (e.g. “framework”, “when to”, “how to interpret”) and are not purely data/narrative.
+  - Autatable parts of **KNOWLEDGE-QUALITY-CHECKLIST**: e.g. “Methodology and Framework” section present, relative thresholds (not absolute prices) where applicable, red-flag patterns (e.g. “BTC is at $X” as sole content) flagged.
+- **Integration / E2E tests**
+  - Existing: `knowledge.integration.test.ts` (structure, coverage, retrieval); `knowledgeQuality.e2e.test.ts` (A/B with/without knowledge, Knowledge Integration score).
+  - Extend: more domains, more queries that explicitly ask for “framework from knowledge”; regression tests when adding new knowledge.
+
+**Location:** Extend `src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts` and add (or extend) a **knowledge structure/quality** test file (e.g. `knowledge.structure.test.ts`) that runs over all `knowledge/**/*.md` and checks frontmatter, knowledge note, and checklist-derived rules. Run in CI (e.g. `bun test` in plan).
+
+#### 2.0.2 Automate improving knowledge where needed
+
+- **Detection (script or task)**
+  - Scan all `knowledge/**/*.md`; report or write a **knowledge health report**: missing frontmatter, missing knowledge note, wrong/missing category, files that fail structure/quality rules, duplicate or near-duplicate titles/URLs.
+  - Optionally: severity (blocking vs suggestion). Output: markdown report or JSON for tooling.
+- **Auto-fix where safe**
+  - Add **standard knowledge note block** to files that lack it (with a clear marker so we don’t double-add).
+  - Infer and add **category** from path or content when missing.
+  - Add minimal **frontmatter** (e.g. `title`, `category`, `created`) when missing; leave existing frontmatter intact.
+- **Review queue**
+  - Files that can’t be auto-fixed (e.g. no methodology section, too data-heavy) go into a **review list** (e.g. `knowledge/internal-docs/knowledge-review-queue.md` or a script output). Humans or a later “improvement” pass (e.g. LLM-assisted rewrite with prompt from KNOWLEDGE-QUALITY-GUIDE) address them.
+- **CI gate**
+  - Phase 0 success = structure tests pass and health report has no “blocking” issues (or count below threshold). New ingest (UPLOAD, ingest-urls) can optionally run the same checks before merge.
+
+**Deliverables for Phase 0:** (1) Extended/new test suite that runs in CI. (2) Script `scripts/knowledge-health.ts` (or similar) that scans knowledge, produces a health report, and optionally applies safe auto-fixes. (3) Document or update KNOWLEDGE-QUALITY-CHECKLIST with “automated” vs “manual” checks. (4) Optional: `knowledge-review-queue.md` format and a way to tick off items as improved.
 
 ### 2.1 Principles (already in KNOWLEDGE-USAGE-GUIDELINES.md)
 
@@ -234,6 +276,15 @@ So: **Clawdbot is the key feature** — it gives us “X as primary source” wi
 - **Batch ingest:** `bun run scripts/ingest-urls.ts --file urls.txt` (and options: `--extract`, `--youtube`, `--firecrawl`).
 - **Scheduled tasks:** Daily report, news, lifestyle already push to channels; no task yet that **writes** to knowledge on a schedule.
 
+**Curated YouTube:** We have a highly curated YouTube backlog but can barely keep up watching. We manually curate links and paste them into a dedicated **upload YouTube knowledge** channel (e.g. `#vince-upload-youtube` or `#youtube-knowledge`) instead of spending half the day watching. VINCE_UPLOAD already handles YouTube URLs (transcript + summary → knowledge). See §5.1.1.
+
+### 5.1.1 Curated YouTube → knowledge (paste in channel, no watching)
+
+- **Channel:** Create `#vince-upload-youtube` or `#youtube-knowledge`. Invite VINCE (or Eliza). Purpose: paste curated YouTube links; bot ingests to knowledge (transcript + summary) so we don’t have to watch.
+- **Paste:** Paste a YouTube URL (optionally prefix with `upload:`). VINCE_UPLOAD detects YouTube and runs summarize `--youtube auto` → `knowledge/<category>/`.
+- **Batch:** For many links, use `knowledge/internal-docs/youtube-queue.txt` and run `bun run scripts/ingest-urls.ts --file youtube-queue.txt --youtube` (optionally `--length xl`). Mark processed URLs to avoid re-ingest.
+- **Env (optional):** `VINCE_UPLOAD_YOUTUBE_SLIDES=true` for slide extraction; `VINCE_UPLOAD_SUMMARY_LENGTH=xl` for longer summaries.
+
 ### 5.2 New automation ideas
 
 | Automation | Description | Owner |
@@ -243,6 +294,7 @@ So: **Clawdbot is the key feature** — it gives us “X as primary source” wi
 | **Grok pulse → knowledge** | Re-enable Grok Expert; write output to `knowledge/.../grok-pulse-<date>.md` and optionally push summary to Slack/Discord. | Re-enable + small file write in grokExpert.tasks. |
 | **X thread → knowledge** | Phase 1: UPLOAD handles pasted thread URLs. Phase 2 (primary): **OpenClaw + Birdy + curated follows** → surface URLs → research queue / Discord → VINCE ingest. No X API. | UPLOAD + Clawdbot X agent (see knowledge/clawdbot/x-research-agent-curated-follows.md). |
 | **RSS → queue** | Script or task: parse RSS feeds (e.g. key Substacks), append new article URLs to research-queue; another task processes queue. | New script `scripts/rss-to-queue.ts` + research-queue processor. |
+| **Curated YouTube → channel** | Manually curate YouTube links; paste in `#vince-upload-youtube` (or `#youtube-knowledge`). VINCE_UPLOAD ingests (transcript + summary) so we don’t have to watch. Batch: `ingest-urls.ts --file youtube-queue.txt --youtube`. | UPLOAD (existing); channel + docs. |
 
 ### 5.3 Knowledge expansion “loop”
 
@@ -250,6 +302,7 @@ So: **Clawdbot is the key feature** — it gives us “X as primary source” wi
 flowchart LR
   subgraph Inputs
     UPLOAD[UPLOAD in Slack/Discord]
+    YouTube[Curated YouTube: paste in upload-youtube channel]
     RSS[RSS → queue]
     Clawdbot[OpenClaw X agent: curated follows → URLs]
     X[Pasted thread URLs]
@@ -265,6 +318,7 @@ flowchart LR
     Notify["#vince-research: Added …"]
   end
   UPLOAD --> Ingest
+  YouTube --> Ingest
   RSS --> Ingest
   Clawdbot --> Ingest
   X --> Ingest
@@ -273,7 +327,7 @@ flowchart LR
   Write --> Notify
 ```
 
-1. **Inputs:** User UPLOADs in Slack/Discord; RSS adds URLs to queue; **OpenClaw X agent** (curated follows, no API) surfaces thread/link URLs into queue or Discord; pasted thread URLs; deep research task suggests URLs.
+1. **Inputs:** User UPLOADs in Slack/Discord; **curated YouTube** (paste links in `#vince-upload-youtube` or `#youtube-knowledge` → ingest without watching); RSS adds URLs to queue; **OpenClaw X agent** (curated follows, no API) surfaces thread/link URLs; pasted thread URLs; deep research task suggests URLs.
 2. **Process:** Ingest (summarize / extract) → categorize (LLM or rules) → write to `knowledge/<category>/` with frontmatter and knowledge-note block.
 3. **Output:** New files in knowledge; optional notification in `#vince-research`: “Added: macro-economy/ingest-xyz-123.md from <url>”.
 4. **Quality:** Periodic review (manual or script): dedupe, tag, or archive low-value ingest; ensure KNOWLEDGE-USAGE-GUIDELINES are respected in prompts.
@@ -281,6 +335,15 @@ flowchart LR
 ---
 
 ## 6. Implementation order & checklist
+
+### Phase 0: Knowledge tests & automated improvement (Step one)
+
+- [ ] **Extensive tests:** Extend `knowledge.integration.test.ts`; add `knowledge.structure.test.ts` (or equivalent) that checks all `knowledge/**/*.md` for: frontmatter (source/title, category, created where applicable), standard knowledge note block, `##` headers, non-empty content, domain keywords and min file counts.
+- [ ] **Quality rules:** Encode automatable parts of KNOWLEDGE-QUALITY-CHECKLIST (methodology section, relative vs absolute numbers, red-flag patterns); run in test suite.
+- [ ] **Health script:** Implement `scripts/knowledge-health.ts` (or similar): scan knowledge, report missing frontmatter/note, wrong category, quality failures; optional safe auto-fix (add knowledge note, infer category, minimal frontmatter).
+- [ ] **Review queue:** Define format for `knowledge/internal-docs/knowledge-review-queue.md` (or script output) for files needing manual improvement; document “automated vs manual” in KNOWLEDGE-QUALITY-CHECKLIST.
+- [ ] **CI:** Ensure `bun test` runs knowledge tests; optionally gate on health report (no blocking issues or count below threshold).
+- **Success:** All knowledge structure/coverage tests pass; health script runs and produces a report; safe auto-fixes applied where desired; review queue used for non-auto-fixable files.
 
 ### Phase A: Slack & Discord (immediate)
 
@@ -290,6 +353,7 @@ flowchart LR
 - [ ] Set `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`.
 - [ ] Restart VINCE; verify daily report (18:00 UTC) → `#vince-daily-reports`, news (07:00) → `#vince-news`, lifestyle (08:00) → `#vince-lifestyle`.
 - [ ] (Optional) Add `#vince-research` and document in DISCORD.md / NOTIFICATIONS.md for future research pushes.
+- [ ] Add **`#vince-upload-youtube`** (or `#youtube-knowledge`): paste curated YouTube links; VINCE ingests to knowledge so we don’t have to watch. Document in DISCORD.md (done).
 
 ### Phase B: Knowledge hygiene & structure
 
@@ -419,6 +483,10 @@ For `researchDaily.tasks.ts` or Grok pulse, target output shape:
 | **src/plugins/plugin-vince/src/index.ts** | Task registration ~L509–537 (daily, lifestyle, news); add research/Grok here. |
 | **knowledge/prompt-templates/x-thread-to-methodology.md** | Prompt template for X thread → methodology summary (§8.3). |
 | **knowledge/internal-docs/RESEARCH-QUEUE-AND-RSS.md** | Format and flow for research-queue.txt and rss-feeds.txt. |
+| **knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md** | Pre-flight and domain checks; automatable vs manual. |
+| **knowledge/internal-docs/KNOWLEDGE-QUALITY-GUIDE.md** | Methodology over data; structure; essay-aware chunking. |
+| **src/plugins/plugin-vince/src/__tests__/knowledge.integration.test.ts** | Domain coverage, structure, retrieval tests. |
+| **src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts** | A/B with/without knowledge; Knowledge Integration score. |
 | **FEATURE-STORE.md** | Paper bot features; separate from knowledge. |
 
 ---
@@ -427,6 +495,7 @@ For `researchDaily.tasks.ts` or Grok pulse, target output shape:
 
 | What | Where / how |
 |------|--------------|
+| **Step one: Knowledge** | Run `bun test` (knowledge.integration + knowledge.structure + knowledgeQuality.e2e); run `scripts/knowledge-health.ts` for report and optional auto-fix. |
 | Add a push target | Create channel whose name contains keyword; use `push(text, { roomNameContains: "keyword" })`. |
 | Disable scheduled push | `VINCE_DAILY_REPORT_ENABLED=false` etc.; or remove task registration in plugin index. |
 | Ingest a URL to knowledge | `bun run scripts/ingest-urls.ts <url>` or UPLOAD in Slack/Discord. |
