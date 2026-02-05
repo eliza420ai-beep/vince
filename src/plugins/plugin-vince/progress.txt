@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (real-time signal thresholds, MandoMinutes TLDR, news sentiment fix, NASDAQ/macro)
+# Last updated: 2026-02-05 (Retrain + improvement weights, MandoMinutes #5, real-time thresholds, TLDR, NASDAQ/macro)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -362,10 +362,9 @@ and algo input):
    - Extract 5–7 highest-impact items (price moves, flows, major macro/reg)
      and show in a dedicated block at top for quick scan.
 
-5. Wire MandoMinutes into aggregator and paper bot
-   - Ensure MandoMinutes feeds into VinceSignalAggregatorService as a clear
-     "news" factor; summarize TLDR + top themes for paper bot context (not all
-     37 headlines); contribute to regime/context (e.g. "Headlines: risk-off").
+5. Wire MandoMinutes into aggregator and paper bot — DONE ✅ (2026-02-05)
+   - getVibeCheck() now flows into signal aggregator as "Headlines: {vibeCheck}"
+     factor when news has data. Appears in WHY THIS TRADE and paper bot context.
 
 6. Structured themes for RAG
    - Extract themes (regulatory, vitalik_eth, quantum_fears, macro_risk_off)
@@ -405,12 +404,12 @@ These use data we already collect (or can add with one small integration) but do
    - Slots exist: news.nasdaqChange, news.etfFlowBtc, news.etfFlowEth, news.macroRiskEnvironment. Currently 0% populated.
    - High impact: Add one free or cheap macro/equity source (e.g. Yahoo Finance, Alpha Vantage, or HIP-3 index if we have NDX) and set news.nasdaqChange in collectNewsFeatures(). Optionally add ETF flow API or scrape so ML can use risk-on/risk-off. See DATA_LEVERAGE.md “Data still 0%”.
 
-3. **Use improvement report to tune aggregator weights**
+3. **Use improvement report to tune aggregator weights** — DONE ✅ (2026-02-05)
    - training_metadata.json has feature_importances and suggested_signal_factors. When a factor we now populate (e.g. “Order book imbalance”) drops from suggested_signal_factors, we know we’re good.
    - High impact: Periodically (or after each train) read suggested_signal_factors and feature_importances; log which sources/factors are top for signal quality; optionally align dynamicConfig source weights with importances so high-importance sources aren’t downweighted. See ALGO_ML_IMPROVEMENTS.md § “Consume improvement report”.
 
-4. **Retrain and ship ONNX after new features have enough samples**
-   - Once 90+ (ideally 200+) records have non-null fundingDelta, bookImbalance, priceVsSma20, run train_models.py; then copy ONNX + training_metadata.json into src/plugins/plugin-vince/models/ and deploy so Cloud uses the new models. Ensures ML actually uses the extra data we now collect.
+4. **Retrain and ship ONNX after new features have enough samples** — DONE ✅ (2026-02-05)
+   - Ran train_models.py on 1250 trades (1514 records, 175 files). news_nasdaqChange now top-5 signal_quality feature (5.2%). Copied ONNX + training_metadata to plugin-vince/models. Improvement weights applied: NewsSentiment 0.60→0.69, CoinGlass 1.00→1.13, MarketRegime 1.00→1.07. FEATURE_TO_SOURCE extended with news_nasdaqChange, news_macro_risk_on/off.
 
 5. **Optional: DVOL/regime in position cap** – DONE ✅
    - Paper trading already reduces size when dvol > 70 (30%) or > 85 (50%); regime-based sizing multiplier applied from MarketRegimeService. See vincePaperTrading.service.ts evaluateAndTrade().
@@ -532,6 +531,8 @@ SESSION NOTES
 ================================================================================
 
 2026-02-05:
+- Retrain + improvement weights (THINGS TO DO #3, #4): (1) Ran train_models.py on 1250 trades, 1514 records, 175 files. news_nasdaqChange top-5 signal_quality (5.2%); position_sizing: news_macro_risk_on/off 8.1%/7.4%. (2) FEATURE_TO_SOURCE extended: news_nasdaqChange, news_macro_risk_on, news_macro_risk_off → NewsSentiment. (3) run-improvement-weights.ts VINCE_APPLY_IMPROVEMENT_WEIGHTS=true: NewsSentiment 0.60→0.69, CoinGlass 1.00→1.13, MarketRegime 1.00→1.07, BinanceTopTraders 1.00→0.93, BinanceFundingExtreme 1.50→1.37, LiquidationCascade 2.00→1.70. tuned-config.json persisted. (4) Copied ONNX + training_metadata to plugin-vince/models for Cloud deploy.
+- MandoMinutes #5: Wire getVibeCheck into paper bot. Signal aggregator adds "Headlines: {vibeCheck}" factor when news has data. Flows to WHY THIS TRADE and paper bot context. See signalAggregator.service.ts (News section).
 - Real-time signal thresholds (PRIORITY): Binance L/S 1.4/0.72, News conf ≥45, Liq pressure >35, Deribit skew neutral + P/C 1.2/0.82, MarketRegime neutral+volatile, Sanbase flows/whales neutral. More sources contribute more often. IMPROVEMENT_WEIGHTS_AND_TUNING.md, SIGNAL_SOURCES.md updated.
 - MandoMinutes TLDR at top (MANDOMINUTES #1): getVibeCheck() returns 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases from headlines + Themes). Shown at top of printDetailedDashboard() and formatForBriefing(). Phrases: crypto selloff, gains erased, Vitalik ETH, gold up, ETF outflow, regulatory, security. Unit test for empty cache. See newsSentiment.service.ts getVibeCheck(), formatForBriefing().
 - NASDAQ 24h + macro news features (THINGS TO DO #2): HIP-3 primary for nasdaqChange (US500, INFOTECH, MAG7, SEMIS, XYZ100) and macroRiskEnvironment (tradFiVsCrypto). 6s timeout. Yahoo Finance ^IXIC fallback when HIP-3 has no index data. See vinceFeatureStore.service.ts collectNewsFeatures(), fetchYahooNasdaqChange().

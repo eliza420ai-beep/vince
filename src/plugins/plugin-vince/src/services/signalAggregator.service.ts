@@ -732,6 +732,16 @@ export class VinceSignalAggregatorService extends Service {
             allFactors.push(`News sentiment neutral (${confidence}% confidence)`);
           }
         }
+        // Headlines vibe check for paper bot context (TLDR + themes)
+        if (newsService.hasData()) {
+          const vibeCheck = newsService.getVibeCheck();
+          if (vibeCheck !== "No news data yet.") {
+            allFactors.push(`Headlines: ${vibeCheck}`);
+            if (!sources.includes("NewsSentiment")) {
+              sources.push("NewsSentiment");
+            }
+          }
+        }
         if (!sources.includes("NewsSentiment")) {
           triedNoContribution.push("NewsSentiment");
         }
