@@ -45,11 +45,16 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 ## Setup
 
-### Discord
+### Discord (for VINCE day report / push)
 
-1. Create channels, e.g. `#vince-daily-reports` and `#vince-alerts`.
-2. Invite the bot to the server and grant it access to these channels.
-3. Set `DISCORD_APPLICATION_ID` and `DISCORD_API_TOKEN` in `.env`.
+1. Create channels, e.g. `#vince-daily-reports` and `#vince-alerts`. The **day report (ALOHA)** is only sent to channels whose name contains `"daily"`.
+2. Create a **separate Discord application** for VINCE at [discord.com/developers/applications](https://discord.com/developers/applications) (so VINCE has his own bot and send handler).
+3. Invite **VINCE’s bot** to the server and grant it access to those channels.
+4. In `.env` set:
+   - `VINCE_DISCORD_ENABLED=true`
+   - `VINCE_DISCORD_APPLICATION_ID=<your VINCE app’s application id>`
+   - `VINCE_DISCORD_API_TOKEN=<your VINCE app’s bot token>`
+   If you also run Eliza with Discord, use a different app for VINCE (different `VINCE_DISCORD_APPLICATION_ID` from `ELIZA_DISCORD_APPLICATION_ID`), or VINCE will not get a send handler and you’ll see "Send handler not found".
 
 ### Slack
 

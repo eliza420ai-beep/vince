@@ -57,7 +57,10 @@ export class VinceNotificationService extends Service {
     }
 
     const isNoSendHandler = (err: unknown): boolean =>
-      String(err).includes("No send handler registered") || String((err as Error)?.message).includes("No send handler registered");
+      String(err).includes("No send handler registered") ||
+      String(err).includes("Send handler not found") ||
+      String((err as Error)?.message).includes("No send handler registered") ||
+      String((err as Error)?.message).includes("Send handler not found");
 
     let sent = 0;
     let skippedNoHandler = 0;
@@ -89,10 +92,15 @@ export class VinceNotificationService extends Service {
   }
 
   private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
-    const sources = (options?.sources as readonly string[] | undefined) ?? PUSH_SOURCES;
+    const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
+    // When VINCE has no Discord app, never include Discord in default sources so we never add Discord rooms (avoids "Send handler not found" from core when it also tries to deliver to those rooms).
+    const defaultSources: readonly string[] =
+      isVince && process.env.VINCE_DISCORD_ENABLED !== "true"
+        ? (["slack", "telegram"] as const)
+        : PUSH_SOURCES;
+    const sources = (options?.sources as readonly string[] | undefined) ?? defaultSources;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
-    const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
 
     const matchesRoomName = (room: { name?: string }): boolean => {
       if (!nameContains) return true;
