@@ -23,6 +23,12 @@ describe("VinceNewsSentimentService", () => {
       expect(service.getSentimentForHeadline("SOL reversed gains amid volatility")).toBe("bearish");
     });
 
+    it("classifies 'BTC erases gains since Trump's election win' as bearish (not bullish)", () => {
+      // Regression: "erases gains" + "gains"/"win" must not override; NEGATIVE_GAINS wins
+      expect(service.getSentimentForHeadline("BTC erases gains since Trump's election win")).toBe("bearish");
+      expect(service.getSentimentForHeadline("BTC erases gains since Trump\u2019s election win")).toBe("bearish");
+    });
+
     it("does not classify positive 'gains' headlines as bearish when no loss phrase", () => {
       expect(service.getSentimentForHeadline("BTC posts gains on ETF inflows")).toBe("bullish");
       expect(service.getSentimentForHeadline("Crypto gains momentum")).toBe("bullish");

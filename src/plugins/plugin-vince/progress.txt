@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-04 (MandoMinutes sentiment for trading bot — major update)
+# Last updated: 2026-02-05 (News sentiment "erases gains" bug fix)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -273,7 +273,7 @@ DEBUG LOG FOCUS (from LOG_LEVEL=debug) – things to fix or improve
 --------------------------------------------------------------------------------
 Run with LOG_LEVEL=debug to see these; address to reduce noise and fix misclassifications.
 
-1. **News sentiment still bullish when it shouldn’t**
+1. **News sentiment still bullish when it shouldn’t** — FIXED ✅
    - Debug log shows: "Bullish sample: BTC erases gains since Trump's election win | … Bearish sample: ." and "weighted bullish=5.9 bearish=0.0 (confidence 100%)".
    - We added NEGATIVE_GAINS_PHRASES ("erases gains", etc.) and bearish keywords (slide, retreats, probes). If "BTC erases gains…" still appears as bullish sample, either: (a) cache wasn’t cleared / re-fetch so old classifications persist, (b) phrase match fails (e.g. "Trump's" vs "Trump", or different wording in MandoMinutes). **Focus:** Verify phrase matching (normalize apostrophes?); ensure news cache is re-processed after deploy (or clear cache on startup when sentiment logic version changes); add unit test with "BTC erases gains since Trump's election win" → must be bearish.
 
@@ -429,8 +429,7 @@ NEXT / BACKLOG
 📋 Implement position sizing based on Kelly Criterion ML model
 📋 Add correlation-based position limits
 📋 Implement trailing stop-loss logic
-📋 Debug log: Verify news sentiment "erases gains" phrase match and cache re-process so bearish
-   headlines classify correctly (see DEBUG LOG FOCUS #1); add unit test for "BTC erases gains…".
+🟢 Debug log: News sentiment "erases gains" bug — FIXED (2026-02-05); see DEBUG LOG FOCUS #1.
 📋 Debug log: Reduce "Service not found (HYPERLIQUID_SERVICE/DERIBIT_SERVICE)" noise – dedupe or
    register fallback as the named service (see DEBUG LOG FOCUS #2).
 📋 Debug log: Sanbase "API response keys: errors" – log once per cooldown when response is errors only.
@@ -531,6 +530,9 @@ X (Twitter) integration – second thoughts:
 ================================================================================
 SESSION NOTES
 ================================================================================
+
+2026-02-05:
+- News sentiment "erases gains" bug fix (DEBUG LOG FOCUS #1): (1) NEGATIVE_GAINS_PHRASES now returns "bearish" immediately (override; bullish keywords like "gains"/"win" no longer override). (2) normalizeForSentiment() normalizes unicode (NFKC), fancy apostrophes (U+2019 → ASCII), whitespace. (3) news cache: on re-fetch we UPDATE existing items' sentiment (not skip), so logic changes apply on next refresh. (4) Added singular variants (erases gain, gain erased). (5) Unit test: "BTC erases gains since Trump's election win" and "Trump\u2019s" (fancy apostrophe) both → bearish. See newsSentiment.service.ts, newsSentiment.service.test.ts.
 
 2026-02-04:
 - MandoMinutes sentiment for trading bot (completeness): (1) Asset-specific sentiment via getTradingSentiment(asset). (2) Risk-event dampener: block bullish when critical/warning, boost bearish. (3) Price-embedded headlines parsed and merged. (4) Phrase overrides expanded. (5) Category weighting per asset. (6) Confidence calibration (score+headcount blend). (7) Macro vs crypto via category weights. See "MandoMinutes sentiment for trading bot — DONE" above.

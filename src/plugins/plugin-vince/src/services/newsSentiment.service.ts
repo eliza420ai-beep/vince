@@ -394,21 +394,23 @@ export class VinceNewsSentimentService extends Service {
         // Determine category
         const category = article.categories?.[0] || "crypto";
 
-        // Add to cache (avoid duplicates)
-        const exists = this.newsCache.some(n => 
-          n.title.toLowerCase() === article.title.toLowerCase()
+        // Add or update in cache (update sentiment so re-fetches fix misclassifications after logic changes)
+        const existingIdx = this.newsCache.findIndex(
+          (n) => this.normalizeForSentiment(n.title) === this.normalizeForSentiment(article.title)
         );
-        
-        if (!exists) {
-          this.newsCache.push({
-            title: article.title,
-            source,
-            sentiment,
-            impact,
-            assets,
-            category,
-            timestamp: cached.timestamp,
-          });
+        const item = {
+          title: article.title,
+          source,
+          sentiment,
+          impact,
+          assets,
+          category,
+          timestamp: cached.timestamp,
+        };
+        if (existingIdx >= 0) {
+          this.newsCache[existingIdx] = item;
+        } else {
+          this.newsCache.push(item);
         }
 
         // Check for risk events
@@ -648,7 +650,7 @@ export class VinceNewsSentimentService extends Service {
    * Phrases that mean "gains are being lost" — treat as bearish even though "gains" is a bullish word
    */
   private static readonly NEGATIVE_GAINS_PHRASES = [
-    "erases gains", "gains erased", "erase gains", "erasing gains",
+    "erases gains", "erases gain", "gains erased", "gain erased", "erase gains", "erase gain", "erasing gains",
     "give up gains", "gave up gains", "giving up gains", "gives up gains",
     "wiped gains", "wiping out gains", "gains wiped", "wipes out gains",
     "reverses gains", "reversing gains", "reversed gains",
@@ -667,18 +669,31 @@ export class VinceNewsSentimentService extends Service {
   };
 
   /**
+   * Normalize text for sentiment matching: unicode (apostrophes, spaces), trim.
+   * Handles MandoMinutes encoding quirks (e.g. "Trump's" vs "Trump\u2019s").
+   */
+  private normalizeForSentiment(text: string): string {
+    return text
+      .normalize("NFKC")
+      .replace(/[\u2018\u2019\u201A\u201B\u2032]/g, "'") // fancy apostrophes → ASCII
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  /**
    * Analyze sentiment of a headline using keyword matching
    */
   private analyzeSentiment(text: string): "bullish" | "bearish" | "neutral" {
-    const lower = text.toLowerCase();
+    const lower = this.normalizeForSentiment(text);
     let bullishScore = 0;
     let bearishScore = 0;
 
-    // Override: "erases gains", "gains wiped" etc. are bearish (gains being lost)
+    // Override: "erases gains", "gains wiped" etc. are bearish (gains being lost).
+    // Return immediately — these phrases trump bullish keywords like "gains" or "win".
     for (const phrase of VinceNewsSentimentService.NEGATIVE_GAINS_PHRASES) {
       if (lower.includes(phrase)) {
-        bearishScore += 2;
-        break;
+        return "bearish";
       }
     }
 
