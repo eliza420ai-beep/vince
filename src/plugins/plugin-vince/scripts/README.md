@@ -76,6 +76,17 @@ python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-p
 
 Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records), `--seed 123` (reproducibility).
 
+### Real vs synthetic: when to use which
+
+- **Synthetic data** is for pipeline testing and development (e.g. before you have 90+ real trades, or to stress-test with `--count 400`). Models trained only on synthetic data learn the generator’s distribution, not the market—do not rely on them for production.
+- **Production:** Once you have enough real trades (e.g. 90+), train on real data. Use `--real-only` so the script loads only `features_*.jsonl` and `combined.jsonl` and excludes `synthetic_*.jsonl`:
+
+```bash
+python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only
+```
+
+- **Mixed runs** (default, no `--real-only`): The script loads both real and synthetic files from the directory. Use for dev or when you intentionally want to blend data; for production models, prefer `--real-only` when you have enough real samples.
+
 ## Testing that training improves paper trading parameters
 
 To prove that `train_models.py` learns and improves paper trading algo parameters/weights:

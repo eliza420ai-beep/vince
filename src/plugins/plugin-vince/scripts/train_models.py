@@ -15,8 +15,10 @@ Usage:
     python train_models.py --data ./features.jsonl --output ./models/
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+    python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only   # production: exclude synthetic
 
   --data can be a single JSONL file or a directory (loads all features_*.jsonl, synthetic_*.jsonl, and combined.jsonl).
+  --real-only: load only features_*.jsonl and combined.jsonl (exclude synthetic_*.jsonl); use when you have enough real trades.
   When the feature store has 90+ complete trades (with outcome), the plugin can run this automatically
   via the TRAIN_ONNX_WHEN_READY task (max once per 24h).
 
@@ -83,25 +85,26 @@ def setup_logging_to_file(output_dir: Path, verbose: bool = False) -> None:
 # Feature Engineering
 # ==========================================
 
-def _jsonl_paths(data_path: str) -> List[str]:
-    """Resolve --data to a list of JSONL file paths (single file or directory of features_*.jsonl)."""
+def _jsonl_paths(data_path: str, real_only: bool = False) -> List[str]:
+    """Resolve --data to a list of JSONL file paths (single file or directory of features_*.jsonl).
+    When real_only=True, only features_*.jsonl and combined.jsonl are loaded; synthetic_*.jsonl are excluded (for production)."""
     p = Path(data_path)
     if p.is_file():
         return [str(p)]
     if p.is_dir():
-        files = (
-            sorted(p.glob("features_*.jsonl"))
-            + sorted(p.glob("synthetic_*.jsonl"))
-            + ([p / "combined.jsonl"] if (p / "combined.jsonl").exists() else [])
-        )
+        files = sorted(p.glob("features_*.jsonl"))
+        if not real_only:
+            files = files + sorted(p.glob("synthetic_*.jsonl"))
+        if (p / "combined.jsonl").exists():
+            files = files + [p / "combined.jsonl"]
         return [str(f) for f in files]
     return []
 
 
-def load_features(filepath: str) -> pd.DataFrame:
+def load_features(filepath: str, real_only: bool = False) -> pd.DataFrame:
     """Load feature records from JSONL file(s) exported by FeatureStore (one JSON object per line).
-    If filepath is a directory, loads all features_*.jsonl and combined.jsonl inside it."""
-    paths = _jsonl_paths(filepath)
+    If filepath is a directory, loads features_*.jsonl and combined.jsonl; optionally exclude synthetic_*.jsonl when real_only=True."""
+    paths = _jsonl_paths(filepath, real_only=real_only)
     if not paths:
         logger.warning("No JSONL files found at %s", filepath)
         return pd.DataFrame()
@@ -1107,6 +1110,7 @@ def main():
     parser.add_argument("--recency-decay", type=float, default=0.0, help="Recency sample weight decay (e.g. 0.01 upweights recent rows); 0 = off")
     parser.add_argument("--balance-assets", action="store_true", help="Balance sample weights by asset so one symbol does not dominate")
     parser.add_argument("--tune-hyperparams", action="store_true", help="Run GridSearchCV over max_depth, learning_rate, n_estimators with TimeSeriesSplit (slower)")
+    parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -1117,9 +1121,11 @@ def main():
     logger.info("VINCE ML Model Training")
     logger.info("Data: %s", args.data)
     logger.info("Output: %s", args.output)
+    if getattr(args, "real_only", False):
+        logger.info("Real-only: excluding synthetic_*.jsonl (production mode)")
     logger.info("=" * 60)
 
-    df = load_features(args.data)
+    df = load_features(args.data, real_only=getattr(args, "real_only", False))
     if df.empty:
         logger.warning("No data loaded. Exiting.")
         return
