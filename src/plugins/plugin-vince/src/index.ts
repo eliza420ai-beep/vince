@@ -22,7 +22,7 @@
  * @module @elizaos/plugin-vince
  */
 
-import type { Plugin, IAgentRuntime } from "@elizaos/core";
+import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 
@@ -228,11 +228,21 @@ export const vincePlugin: Plugin = {
   
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
-    // Normalize sendMessageToTarget source to lowercase so "Discord" from DB matches handler key "discord"
+    // Guard + normalize sendMessageToTarget so we never call core with discord when VINCE has no Discord handler (stops "Send handler not found" spam)
     if (isVinceAgent(runtime) && typeof runtime.sendMessageToTarget === "function") {
+      const vinceHasOwnDiscord =
+        process.env.VINCE_DISCORD_ENABLED === "true" &&
+        !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+        !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
+        (process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || !process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
       const original = runtime.sendMessageToTarget.bind(runtime);
-      (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: { source?: string; [k: string]: unknown }, content: unknown) => {
-        const normalized = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
+      (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: TargetInfo, content: Content) => {
+        const normalized: TargetInfo = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
+        const src = normalized?.source ?? "";
+        if (src === "discord" && !vinceHasOwnDiscord) {
+          logger.debug("[VINCE] Skipping sendMessageToTarget(discord) — VINCE has no Discord handler (set VINCE_DISCORD_* for a second bot).");
+          return;
+        }
         return original(normalized, content);
       };
     }
