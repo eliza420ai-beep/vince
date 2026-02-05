@@ -93,6 +93,9 @@ export class VinceNotificationService extends Service {
     const shouldIncludeSource = (src: string): boolean => {
       if (!sources.includes(src)) return false;
       if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
+      if (isVince && src === "discord" && !process.env.VINCE_DISCORD_API_TOKEN?.trim()) return false;
+      if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim()) return false;
+      if (isVince && src === "telegram" && !process.env.TELEGRAM_BOT_TOKEN?.trim()) return false;
       return true;
     };
 
