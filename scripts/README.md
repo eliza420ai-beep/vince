@@ -1,5 +1,16 @@
 # Scripts
 
+## Supabase migration (production persistence)
+
+See **[SUPABASE_MIGRATION.md](../SUPABASE_MIGRATION.md)** for the full checklist. In short: run `supabase-migrations-bootstrap.sql` and `supabase-feature-store-bootstrap.sql` in Supabase SQL Editor, set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`, then `bun start` and `bun run deploy:cloud`.
+
+**Backfill local JSONL to Supabase** (one-off):
+
+```bash
+bun run scripts/sync-jsonl-to-supabase.ts --dry-run   # preview
+bun run scripts/sync-jsonl-to-supabase.ts             # sync
+```
+
 ## Supabase feature store (paper-bot dual-write)
 
 To persist paper-bot features across redeploys and query them for ML, run **once** in Supabase Dashboard → SQL Editor the script **`scripts/supabase-feature-store-bootstrap.sql`**. Then set `SUPABASE_SERVICE_ROLE_KEY` (and optionally `SUPABASE_URL`) in `.env`. The deploy script (`deploy-cloud.sh`) passes these to Cloud when set. See [FEATURE-STORE.md](../FEATURE-STORE.md) and [DEPLOY.md](../DEPLOY.md).

@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (Retrain + improvement weights, MandoMinutes #5, real-time thresholds, TLDR, NASDAQ/macro)
+# Last updated: 2026-02-05 (Supabase migration, retrain, MandoMinutes #5, real-time thresholds)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -418,8 +418,8 @@ These use data we already collect (or can add with one small integration) but do
 NEXT / BACKLOG
 ================================================================================
 
-📋 Migrate prod to Supabase Postgres (POSTGRES_URL); then plugin_vince.paper_bot_features
-   lives in same DB as ElizaOS tables (agents, memories, entities, rooms). See FEATURE-STORE.md.
+🟢 Migrate prod to Supabase Postgres — DONE ✅ (2026-02-05)
+   POSTGRES_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL in .env. plugin_vince.paper_bot_features and public.vince_paper_bot_features in same Supabase DB as ElizaOS tables. Added: scripts/sync-jsonl-to-supabase.ts (backfill), SUPABASE_MIGRATION.md (checklist), getSupabaseUrl() supports pooler URL. See FEATURE-STORE.md, DEPLOY.md.
 🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual: pip3 install -r scripts/requirements.txt && python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
@@ -531,6 +531,7 @@ SESSION NOTES
 ================================================================================
 
 2026-02-05:
+- Supabase migration (NEXT/BACKLOG): (1) Added SUPABASE_MIGRATION.md with checklist (bootstrap SQL, .env, backfill, verify, deploy). (2) scripts/sync-jsonl-to-supabase.ts for one-off JSONL→Supabase backfill. (3) getSupabaseUrl() in vinceFeatureStore.service.ts now derives SUPABASE_URL from pooler URLs (postgres.PROJECT_REF:...) so SUPABASE_URL optional when using pooler. (4) Updated FEATURE-STORE.md, DEPLOY.md, scripts/README.md. Migration ready for prod.
 - Retrain + improvement weights (THINGS TO DO #3, #4): (1) Ran train_models.py on 1250 trades, 1514 records, 175 files. news_nasdaqChange top-5 signal_quality (5.2%); position_sizing: news_macro_risk_on/off 8.1%/7.4%. (2) FEATURE_TO_SOURCE extended: news_nasdaqChange, news_macro_risk_on, news_macro_risk_off → NewsSentiment. (3) run-improvement-weights.ts VINCE_APPLY_IMPROVEMENT_WEIGHTS=true: NewsSentiment 0.60→0.69, CoinGlass 1.00→1.13, MarketRegime 1.00→1.07, BinanceTopTraders 1.00→0.93, BinanceFundingExtreme 1.50→1.37, LiquidationCascade 2.00→1.70. tuned-config.json persisted. (4) Copied ONNX + training_metadata to plugin-vince/models for Cloud deploy.
 - MandoMinutes #5: Wire getVibeCheck into paper bot. Signal aggregator adds "Headlines: {vibeCheck}" factor when news has data. Flows to WHY THIS TRADE and paper bot context. See signalAggregator.service.ts (News section).
 - Real-time signal thresholds (PRIORITY): Binance L/S 1.4/0.72, News conf ≥45, Liq pressure >35, Deribit skew neutral + P/C 1.2/0.82, MarketRegime neutral+volatile, Sanbase flows/whales neutral. More sources contribute more often. IMPROVEMENT_WEIGHTS_AND_TUNING.md, SIGNAL_SOURCES.md updated.

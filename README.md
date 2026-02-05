@@ -16,6 +16,7 @@
 │  QUICK LINKS                                                                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  [FEATURE-STORE](FEATURE-STORE.md)   ML & paper bot · feature store          │
+│  [SUPABASE_MIGRATION](SUPABASE_MIGRATION.md)  Production persistence checklist │
 │  [DEPLOY](DEPLOY.md)                 Eliza Cloud · env · troubleshooting     │
 │  [CLAUDE](CLAUDE.md)                 Dev guide (character, plugins, tests)   │
 │  [plugin-vince/](src/plugins/plugin-vince/)  README · WHAT · WHY · HOW       │
@@ -45,7 +46,7 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + “trade today?”. Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** `elizaos dev` to run.
+**At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + “trade today?”. Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** Supabase Postgres for production persistence. `elizaos dev` to run.
 
 ---
 
@@ -102,7 +103,7 @@
 
 The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 50+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). The feature store and training script are aligned with the expanded signal set: **hasFundingExtreme** covers Binance and Hyperliquid funding extremes, **hasOICap** records Hyperliquid perps-at-OI-cap; the training script uses optional **signal_hasOICap** when present, and synthetic data (`generate_synthetic_features.py`) uses a 10-source pool so ML sees the same variety as production.
 
-**News sentiment (MandoMinutes) is now trading-bot ready:** asset-specific sentiment (e.g. "Vitalik sells ETH" affects ETH more than BTC), risk-event dampening (block bullish when critical/warning events, boost bearish), price-embedded headlines parsed ("BTC: 75.2k (-4%)"), category weighting (macro vs crypto vs leftcurve per asset), and headcount-calibrated confidence. See `progress.txt` § MandoMinutes sentiment for trading bot.
+**News sentiment (MandoMinutes) is now trading-bot ready:** asset-specific sentiment, risk-event dampening, price-embedded headlines, category weighting, and headcount-calibrated confidence. **getVibeCheck()** — a 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases) — is wired into the paper bot context and "WHY THIS TRADE" so headlines flow into every decision. **NASDAQ 24h + macro** features (HIP-3 primary, Yahoo fallback) now feed the feature store; `news_nasdaqChange` is a top-5 signal-quality feature. **Real-time thresholds** relaxed (Binance L/S, News confidence, Deribit skew/P/C, MarketRegime, Sanbase) so more sources contribute more often. **Improvement weights** aligned with training metadata (NewsSentiment↑, CoinGlass↑, MarketRegime↑). See `progress.txt` § MandoMinutes, THINGS TO DO.
 
 Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. To enable or fix sources, see [plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md).
 
@@ -124,7 +125,7 @@ The most novel piece in this repo is the **paper trading bot that gets better ov
 
 **Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
 
-**Paper trading algo: improvements we can claim.** We improved the paper trading algo by (1) wiring more market data into both the live logic and the ML feature store—order-book imbalance, price vs SMA20, funding 8h delta, DVOL—(2) adding a book-imbalance filter (reject long when book favors sellers, short when it favors buyers), (3) boosting confidence when trend (SMA20) and funding reversal align, (4) capping size in high DVOL, (5) **upgrading MandoMinutes news sentiment** (asset-specific, risk dampening, price-embedded parsing, category weighting, confidence calibration), and (6) covering that logic with unit tests (23 tests, 100% coverage on the extended-snapshot util; news sentiment tests for phrase overrides and getTradingSentiment). The training script and feature store include these fields so ML can use them after retrain. We do **not** yet claim improved P&L or win rate; that requires backtest or live results over time.
+**Paper trading algo: improvements we can claim.** (1) Market data wired into live logic and ML feature store: order-book imbalance, price vs SMA20, funding 8h delta, DVOL, **NASDAQ 24h + macro** (news_nasdaqChange, news_macro_risk_on/off). (2) Book-imbalance filter, SMA20/funding confidence boost, DVOL size cap. (3) **MandoMinutes getVibeCheck()** wired to paper bot ("Headlines: {vibe}" in WHY THIS TRADE). (4) **Real-time thresholds** relaxed so Binance L/S, News, Deribit, MarketRegime, Sanbase contribute more often. (5) **Improvement weights** from training metadata: NewsSentiment, CoinGlass, MarketRegime boosted; weights persisted in tuned-config.json. (6) **Retrain pipeline** — train_models.py, run-improvement-weights.ts, FEATURE_TO_SOURCE mapping for news/macro features. Unit tests for extended-snapshot, news sentiment, phrase overrides. We do **not** yet claim improved P&L or win rate; that requires backtest or live results over time.
 
 Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
 
@@ -196,9 +197,7 @@ elizaos test
 
 ## Production with Supabase (Postgres)
 
-Current prod (Eliza Cloud) runs and works; it still uses **PGLite** (no `POSTGRES_URL`). Migrating to Supabase Postgres is next so ElizaOS tables and the feature store (`plugin_vince.paper_bot_features`) share one DB. See [FEATURE-STORE.md](FEATURE-STORE.md).
-
-We use **Postgres/Supabase** for production so the app and deploy use the same DB.
+**Supabase migration is ready.** Set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`; ElizaOS tables and `plugin_vince.paper_bot_features` share one Supabase DB. Data **persists across redeploys**. Full checklist: [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md). Backfill local JSONL: `bun run sync:supabase`.
 
 1. **In `.env`** set `POSTGRES_URL` to the **direct** Supabase connection (not the pooler):
    - Use **port 5432** (direct), not 6543 (pooler). Migrations fail on the pooler.
@@ -315,6 +314,7 @@ The test utilities in `__tests__/utils/` provide helper functions to simplify wr
 | Doc | Purpose |
 |-----|---------|
 | [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage (JSONL, PGLite/Postgres, Supabase), training, env flags |
+| [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) | Production persistence checklist, bootstrap SQL, backfill script |
 | [DEPLOY.md](DEPLOY.md) | Deploy to Eliza Cloud (PGLite vs Postgres), env vars, troubleshooting |
 | [CLAUDE.md](CLAUDE.md) | ElizaOS project dev guide (character, plugins, env, testing) |
 | [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
@@ -373,7 +373,8 @@ See [DEPLOY.md](DEPLOY.md) for full deploy options, bootstrap SQL, and troublesh
 │  QUICK REFERENCE                                                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Run locally    elizaos dev          │  Deploy       bun run deploy:cloud    │
-│  Test           elizaos test         │  Postgres     port 5432 (not 6543)   │
-│  Feature store  vince_paper_bot_features  │  ML bucket   vince-ml-models     │
+│  Test           elizaos test         │  Supabase     See SUPABASE_MIGRATION  │
+│  Backfill JSONL bun run sync:supabase│  ML bucket    vince-ml-models         │
+│  Feature store  vince_paper_bot_features │  Postgres    port 5432 (not 6543)  │
 ╰─────────────────────────────────────────────────────────────────────────────╯
 ```

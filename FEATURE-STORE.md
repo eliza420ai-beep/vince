@@ -130,12 +130,14 @@ Or use the Supabase client / REST API and filter by `payload->>'asset'`, `payloa
 
 ## Sync existing local JSONL to Supabase
 
-If you already have many `.jsonl` files locally and want them in Supabase, run a one-off script that:
+If you already have many `.jsonl` files locally and want them in Supabase:
 
-1. Reads each `features_*.jsonl` under `.elizadb/vince-paper-bot/features/`.
-2. Parses each line as JSON and upserts into `vince_paper_bot_features` (id, created_at from timestamp, payload = full object).
+```bash
+bun run scripts/sync-jsonl-to-supabase.ts --dry-run   # preview
+bun run scripts/sync-jsonl-to-supabase.ts             # upsert to vince_paper_bot_features
+```
 
-Use the same `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` as above.
+Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env`. Run `supabase-feature-store-bootstrap.sql` first.
 
 ---
 

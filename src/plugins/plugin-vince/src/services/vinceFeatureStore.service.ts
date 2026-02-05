@@ -314,9 +314,13 @@ const SUPABASE_FEATURES_TABLE = "vince_paper_bot_features";
 
 function getSupabaseUrl(postgresUrl: string | null): string | null {
   if (!postgresUrl || typeof postgresUrl !== "string") return null;
-  const match = postgresUrl.match(/@db\.([a-z0-9]+)\.supabase\.co/);
-  if (!match) return null;
-  return `https://${match[1]}.supabase.co`;
+  // Direct: postgres:PASSWORD@db.PROJECT_REF.supabase.co
+  const direct = postgresUrl.match(/@db\.([a-z0-9]+)\.supabase\.co/);
+  if (direct) return `https://${direct[1]}.supabase.co`;
+  // Pooler: postgres.PROJECT_REF:PASSWORD@...pooler.supabase.com
+  const pooler = postgresUrl.match(/postgres\.([a-z0-9]+):/);
+  if (pooler) return `https://${pooler[1]}.supabase.co`;
+  return null;
 }
 
 export class VinceFeatureStoreService extends Service {

@@ -86,7 +86,8 @@
     "deploy:cloud": "bash scripts/deploy-cloud.sh",
     "pdf-to-md": "bun run scripts/pdf-to-md.ts",
     "db:check": "node scripts/check-db-migrations.js",
-    "db:bootstrap": "node scripts/db-bootstrap.js"
+    "db:bootstrap": "node scripts/db-bootstrap.js",
+    "sync:supabase": "bun run scripts/sync-jsonl-to-supabase.ts"
   },
   "publishConfig": {
     "access": "public"
