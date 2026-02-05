@@ -56,12 +56,17 @@ export const vinceCharacter: Character = {
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     // Push notifications: Discord, Slack, Telegram (enable when tokens configured)
-    ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() ? ["@elizaos/plugin-discord"] : []),
+    ...((process.env.VINCE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()) ? ["@elizaos/plugin-discord"] : []),
     ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
     ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
   ],
   settings: {
-    secrets: {},
+    secrets: {
+      ...(process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && { DISCORD_APPLICATION_ID: process.env.VINCE_DISCORD_APPLICATION_ID }),
+      ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() && { DISCORD_API_TOKEN: process.env.VINCE_DISCORD_API_TOKEN }),
+      ...(process.env.DISCORD_APPLICATION_ID?.trim() && !process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && { DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID }),
+      ...(process.env.DISCORD_API_TOKEN?.trim() && !process.env.VINCE_DISCORD_API_TOKEN?.trim() && { DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN }),
+    },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,

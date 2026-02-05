@@ -45,11 +45,13 @@ export class VinceNotificationService extends Service {
   /**
    * Push a text message to connected channels.
    * No-op when no Discord/Slack/Telegram rooms exist.
+   * Only VINCE has Discord (and typically Slack/Telegram) send handlers; other agents skip push targets for those sources to avoid "No send handler" errors.
    */
   async push(text: string, options?: PushOptions): Promise<number> {
     if (!text?.trim()) return 0;
 
     const targets = await this.getPushTargets(options);
+    if (targets.length === 0) return 0;
     if (targets.length === 0) {
       logger.debug("[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping");
       return 0;
@@ -80,11 +82,18 @@ export class VinceNotificationService extends Service {
     const sources = (options?.sources as readonly string[] | undefined) ?? PUSH_SOURCES;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
+    const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
 
     const matchesRoomName = (room: { name?: string }): boolean => {
       if (!nameContains) return true;
       const name = (room.name ?? "").toLowerCase();
       return name.includes(nameContains);
+    };
+
+    const shouldIncludeSource = (src: string): boolean => {
+      if (!sources.includes(src)) return false;
+      if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
+      return true;
     };
 
     const targets: Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }> = [];
@@ -96,7 +105,7 @@ export class VinceNotificationService extends Service {
         const rooms = await this.runtime.getRooms(world.id);
         for (const room of rooms) {
           const src = (room.source ?? "").toLowerCase();
-          if (!sources.includes(src)) continue;
+          if (!shouldIncludeSource(src)) continue;
           if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
           if (!room.id) continue;
           if (!matchesRoomName(room)) continue;
@@ -114,7 +123,7 @@ export class VinceNotificationService extends Service {
         const fallbackRooms = await this.runtime.getRooms(ZERO_UUID);
         for (const room of fallbackRooms) {
           const src = (room.source ?? "").toLowerCase();
-          if (!sources.includes(src)) continue;
+          if (!shouldIncludeSource(src)) continue;
           if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
           if (!matchesRoomName(room)) continue;
           targets.push({
