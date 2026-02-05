@@ -56,7 +56,7 @@ export const vinceCharacter: Character = {
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     // Push notifications: Discord, Slack, Telegram (enable when tokens configured)
-    ...(process.env.DISCORD_API_TOKEN?.trim() ? ["@elizaos/plugin-discord"] : []),
+    ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() ? ["@elizaos/plugin-discord"] : []),
     ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
     ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
   ],
