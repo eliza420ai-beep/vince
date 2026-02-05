@@ -91,7 +91,7 @@
     "db:check": "node scripts/check-db-migrations.js",
     "db:bootstrap": "node scripts/db-bootstrap.js",
     "sync:supabase": "bun run scripts/sync-jsonl-to-supabase.ts",
-    "train-models": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90"
+    "train-models": "python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 \"$@\""
   },
   "publishConfig": {
     "access": "public"

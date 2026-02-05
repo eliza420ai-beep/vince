@@ -85,6 +85,12 @@ Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_s
 python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only
 ```
 
+Or from **repo root** with bun (extra args after `--` are passed to the Python script):
+
+```bash
+bun run train-models -- --real-only
+```
+
 - **Mixed runs** (default, no `--real-only`): The script loads both real and synthetic files from the directory. Use for dev or when you intentionally want to blend data; for production models, prefer `--real-only` when you have enough real samples.
 
 ## Testing that training improves paper trading parameters

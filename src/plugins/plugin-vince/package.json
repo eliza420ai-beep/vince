@@ -10,7 +10,7 @@
     "test:e2e": "vitest run src/__tests__/realData.e2e.test.ts --dir=.",
     "test:watch": "vitest --dir=.",
     "improvement-weights": "bun run scripts/run-improvement-weights.ts",
-    "train-models": "cd ../../.. && python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90"
+    "train-models": "cd ../../.. && python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 \"$@\""
   },
   "keywords": [
     "elizaos",
