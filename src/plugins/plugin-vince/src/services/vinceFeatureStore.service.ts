@@ -1156,8 +1156,14 @@ export class VinceFeatureStoreService extends Service {
   private async flush(): Promise<void> {
     if (this.records.length === 0) return;
 
-    const toFlush = [...this.records];
-    this.records = [];
+    // Only flush records that already have outcomes (or were never linked to a position).
+    // Records still in pendingOutcomes stay in memory until the trade closes, so we can
+    // write them with outcome/labels on the next flush and training gets "trades with outcomes".
+    const pendingRecordIds = new Set(this.pendingOutcomes.values());
+    const toFlush = this.records.filter((r) => !pendingRecordIds.has(r.id));
+    this.records = this.records.filter((r) => pendingRecordIds.has(r.id));
+
+    if (toFlush.length === 0) return;
 
     try {
       const filename = `features_${new Date().toISOString().split("T")[0]}_${Date.now()}.jsonl`;

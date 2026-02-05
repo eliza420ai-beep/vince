@@ -58,7 +58,11 @@ bun run train-models
 
 This runs the same command from repo root (paths are resolved automatically). Requires Python 3 and `pip3 install -r scripts/requirements.txt`.
 
-Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).
+Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).  
+**"0 trades with outcomes"** means every record in the feature store was written when a trade was **opened**, but none have **outcome/labels** yet. Outcomes are written when trades **close**; the feature store now keeps open-trade records in memory until close, then flushes them with outcome/labels. So you need the paper bot to **close** at least 90 trades (TP/SL/max_age/manual) for training to see them.
+
+To **reset the feature store** and start from a clean slate (e.g. after fixing outcome flushing):  
+`rm -f .elizadb/vince-paper-bot/features/features_*.jsonl .elizadb/vince-paper-bot/features/combined.jsonl .elizadb/vince-paper-bot/features/synthetic_*.jsonl` (from repo root).
 
 ### Synthetic data (no real trades yet)
 
