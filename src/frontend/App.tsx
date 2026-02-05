@@ -381,17 +381,32 @@ function App() {
     initAuth();
   }, [isInitialized, isSignedIn, userEmail, userName, currentUser]); // Re-run when CDP state changes
 
-  // Fetch the agent list first to get the ID
-  const { data: agentsData } = useQuery({
+  // Fetch the agent list first to get the ID (retry when empty so we wait for backend to register agents)
+  const {
+    data: agentsData,
+    isFetching: isFetchingAgents,
+    failureCount: agentsFailureCount,
+  } = useQuery({
     queryKey: ["agents"],
     queryFn: async () => {
       const result = await elizaClient.agents.listAgents();
-      return result.agents;
+      const agents = result?.agents ?? [];
+      if (agents.length === 0) {
+        throw new Error("NO_AGENTS_YET"); // Trigger retry so we wait for backend to start agents
+      }
+      return agents;
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    retry: 8, // Retry up to 8 times (e.g. every 2s = ~16s wait for backend)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
+    retryOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const agentId = agentsData?.[0]?.id;
+  const isWaitingForAgents =
+    (isFetchingAgents || (agentsFailureCount > 0 && agentsFailureCount < 8)) &&
+    !agentsData?.length;
 
   // Sync user entity whenever userId or agent changes (skip when CDP not configured / guest mode)
   useEffect(() => {
@@ -565,11 +580,12 @@ function App() {
 
   // Connect to socket
   useEffect(() => {
-    if (!userId) return; // Wait for userId to be initialized
+    if (!userId) return;
 
     console.log(" Connecting socket with userId:", userId);
-    // Pass username if available from userProfile
     const socket = socketManager.connect(userId, userProfile?.displayName);
+
+    if (!socket) return;
 
     socket.on("connect", () => {
       setConnected(true);
@@ -583,7 +599,7 @@ function App() {
 
     return () => {
       console.log(" Cleaning up socket connection");
-      setConnected(false); // Set to false BEFORE disconnecting to prevent race conditions
+      setConnected(false);
       socketManager.disconnect();
     };
   }, [userId]); // Re-connect when userId changes
@@ -828,14 +844,20 @@ function App() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isWaitingForAgents) {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground uppercase tracking-wider text-sm font-mono">
-            Loading agent...
+            {isWaitingForAgents ? "Waiting for agent to start…" : "Loading agent..."}
           </p>
+          {isWaitingForAgents && (
+            <p className="text-xs text-muted-foreground mt-2 font-mono max-w-sm mx-auto">
+              Backend may still be starting. If this persists, ensure you ran{" "}
+              <code className="bg-muted px-1 rounded">bun start</code> and use the URL it prints (e.g. :5173).
+            </p>
+          )}
         </div>
       </div>
     );
@@ -844,12 +866,17 @@ function App() {
   if (!agent) {
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md px-4">
           <p className="text-xl text-foreground font-mono uppercase tracking-wider">
             No agent available
           </p>
           <p className="text-sm text-muted-foreground mt-2 font-mono">
-            Please start the server with an agent configured.
+            Start the server with an agent: run <code className="bg-muted px-1 rounded">bun start</code> (or{" "}
+            <code className="bg-muted px-1 rounded">bun run start:custom-ui</code>) and open the URL it prints.
+          </p>
+          <p className="text-xs text-muted-foreground mt-3 font-mono">
+            If the backend is already running, run <code className="bg-muted px-1 rounded">bun run build</code> once so{" "}
+            <code className="bg-muted px-1 rounded">dist/index.js</code> exists, then restart.
           </p>
         </div>
       </div>
@@ -1035,17 +1062,13 @@ function AppContent({
               <div className="min-h-0 flex-1 flex flex-col gap-8 md:gap-14 px-3 lg:px-6 pt-10 md:pt-6 ring-2 ring-pop bg-background">
                 {userId && !isLoadingChannels && (activeChannelId || isNewChatMode) ? (
                     <div className="flex-1 min-h-0">
-                      {!connected && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Connecting…
-                        </p>
-                      )}
                       <ChatInterface
                         agent={agent}
                         userId={userId}
                         serverId={userId} // Use userId as serverId for Socket.IO-level isolation
                         channelId={activeChannelId}
                         isNewChatMode={isNewChatMode}
+                        connected={connected}
                         onChannelCreated={(channelId, channelName) => {
                           // Add new channel to the list and set it as active
                           const now = Date.now();

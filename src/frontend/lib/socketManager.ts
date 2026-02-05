@@ -17,31 +17,35 @@ class SocketManager {
   private activeChannels: Set<string> = new Set();
 
   connect(userId: string, userName?: string) {
+    // Server requires a valid UUID entityId in auth; don't connect until we have it
+    const validUserId = userId?.trim();
+    if (!validUserId) {
+      console.warn('Socket connect skipped: userId is required for server auth (entityId)');
+      return this.socket ?? null;
+    }
+
     if (this.socket?.connected) {
       console.log('Socket already connected');
-      // Update username if provided (allows updating after initial connect)
-      if (userName) {
-        this.userName = userName;
-      }
+      if (userName) this.userName = userName;
       return this.socket;
     }
-    
-    this.userId = userId;
+
+    this.userId = validUserId;
     this.userName = userName || null;
-    
-    // Get auth token from localStorage for Socket.IO authentication
+
     const token = localStorage.getItem('auth-token');
     if (!token) {
       console.warn('No auth token found for socket connection');
     }
-    
+
     this.socket = io(window.location.origin + '/', {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       auth: {
-        token, // Pass JWT for server-side authentication
+        token,
+        entityId: validUserId, // Required by server; used for channel access checks
       },
     });
 

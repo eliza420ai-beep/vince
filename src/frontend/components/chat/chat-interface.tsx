@@ -126,6 +126,7 @@ interface ChatInterfaceProps {
   serverId: string
   channelId: string | null
   isNewChatMode?: boolean
+  connected?: boolean
   onChannelCreated?: (channelId: string, channelName: string) => void
   onActionCompleted?: () => void // Callback when agent completes an action
 }
@@ -144,7 +145,7 @@ const AnimatedDots = () => {
   return <span>{'.'.repeat(dotCount)}</span>
 }
 
-export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMode = false, onChannelCreated, onActionCompleted }: ChatInterfaceProps) {
+export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMode = false, connected = false, onChannelCreated, onActionCompleted }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
@@ -152,6 +153,7 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
   const [selectedPlugin, setSelectedPlugin] = useState<keyof typeof PLUGIN_ACTIONS | null>(null)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [connectionCheck, setConnectionCheck] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [showDummyToolGroup, setShowDummyToolGroup] = useState(false)
   const [showPromptsModal, setShowPromptsModal] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -402,14 +404,20 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
       setIsTyping(true)
       
       try {
-        // STEP 1: Generate title from user's message
-        console.log(' Generating title from user message:', inputValue)
-        const titleResponse = await elizaClient.messaging.generateChannelTitle(
-          inputValue, // Pass the message as string
-          agent.id as UUID
-        )
-        const generatedTitle = titleResponse.title || inputValue.substring(0, 50)
-        console.log(' Generated title:', generatedTitle)
+        // STEP 1: Try to generate title from user's message (server may not have this endpoint)
+        const fallbackTitle = inputValue.trim().substring(0, 50) || 'New chat'
+        let generatedTitle = fallbackTitle
+        try {
+          const titleResponse = await elizaClient.messaging.generateChannelTitle(
+            inputValue,
+            agent.id as UUID
+          )
+          if (titleResponse?.title?.trim()) generatedTitle = titleResponse.title.trim()
+        } catch (titleErr: any) {
+          // 404 / "API endpoint not found" is expected when server has no POST /generate-title
+          console.log(' Title API unavailable, using message preview:', titleErr?.message ?? '')
+        }
+        console.log(' Using title:', generatedTitle)
 
         // STEP 2: Create channel in DB with the generated title
         console.log(' Creating channel with title:', generatedTitle)
@@ -523,17 +531,20 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
       setIsTyping(true)
       
       try {
-        // STEP 1: Generate title from user's message
-        console.log(' Generating title from user message:', message)
-        const titleResponse = await elizaClient.messaging.generateChannelTitle(
-          message, // Pass the message as string
-          agent.id as UUID
-        )
-        const generatedTitle = titleResponse.title || message.substring(0, 50)
-        console.log(' Generated title:', generatedTitle)
+        // STEP 1: Try to generate title (server may not have POST /generate-title)
+        const fallbackTitle = message.trim().substring(0, 50) || 'New chat'
+        let generatedTitle = fallbackTitle
+        try {
+          const titleResponse = await elizaClient.messaging.generateChannelTitle(
+            message,
+            agent.id as UUID
+          )
+          if (titleResponse?.title?.trim()) generatedTitle = titleResponse.title.trim()
+        } catch (titleErr: any) {
+          console.log(' Title API unavailable, using message preview:', titleErr?.message ?? '')
+        }
 
         // STEP 2: Create channel in DB with the generated title
-        console.log(' Creating channel with title:', generatedTitle)
         const now = Date.now()
         const newChannel = await elizaClient.messaging.createGroupChannel({
           name: generatedTitle,
@@ -555,7 +566,6 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
 
         // STEP 4: Send the message (channel is now created and will be set as active)
         setTimeout(() => {
-          console.log(' Sending initial message to new channel:', newChannel.id)
           socketManager.sendMessage(newChannel.id, message, serverId, {
             userId,
             isDm: true,
@@ -624,6 +634,12 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
         <CardContent className="h-full p-0">
           <div ref={messagesContainerRef} className="h-full overflow-y-auto p-6 pb-2">
             <div className="space-y-4 h-full flex flex-col">
+            {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}
+            {!connected && (!error || !error.toLowerCase().includes('endpoint not found')) && (
+              <p className="text-sm text-muted-foreground mb-2">
+                Connecting…
+              </p>
+            )}
             {/* Messages */}
             <div className="flex-1 space-y-4">
               {groupedMessages.map((item, groupIndex) => {
@@ -794,22 +810,56 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
               {error && (
                 <div className="flex flex-col gap-1 items-center">
                   <div className="max-w-[90%] rounded-lg px-4 py-3 bg-destructive/10 border border-destructive/20 text-destructive break-words whitespace-pre-wrap">
-                    <div className="flex items-start gap-2">
+                    <div className="flex flex-col gap-2">
                       <span className="text-sm font-medium"> {error}</span>
-                    </div>
                     {error.toLowerCase().includes('endpoint not found') && (
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        Make sure the API is running (e.g. use <code className="px-1 rounded bg-muted">bun start</code> and open the URL it prints, usually http://localhost:5173).
-                      </p>
+                      <>
+                        <ol className="mt-2 text-xs text-muted-foreground list-decimal list-inside space-y-1">
+                          <li>From the project root, run: <code className="px-1 rounded bg-muted">bun start</code></li>
+                          <li>Wait until the terminal prints a URL (e.g. <code className="px-1 rounded bg-muted">http://localhost:5173</code>).</li>
+                          <li>Open <strong>that exact URL</strong> in your browser (not only port 3000).</li>
+                          <li>If it still fails, run <code className="px-1 rounded bg-muted">bun run build</code> once, then <code className="px-1 rounded bg-muted">bun start</code> again.</li>
+                        </ol>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          You're on: <code className="px-1 rounded bg-muted">{typeof window !== 'undefined' ? window.location.origin : '?'}</code>
+                        </p>
+                        {connectionCheck === 'idle' && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              setConnectionCheck('checking')
+                              try {
+                                await elizaClient.server.checkHealth()
+                                setConnectionCheck('ok')
+                              } catch {
+                                setConnectionCheck('fail')
+                              }
+                            }}
+                            className="mt-2 text-xs underline hover:no-underline text-left"
+                          >
+                            Check if backend is reachable
+                          </button>
+                        )}
+                        {connectionCheck === 'checking' && (
+                          <span className="mt-2 text-xs text-muted-foreground">Checking…</span>
+                        )}
+                        {connectionCheck === 'ok' && (
+                          <span className="mt-2 text-xs text-green-600 dark:text-green-400">Backend is reachable. If the error persists, check the browser Network tab for the failing request.</span>
+                        )}
+                        {connectionCheck === 'fail' && (
+                          <span className="mt-2 text-xs text-amber-600 dark:text-amber-400">Backend not reachable. Start it with <code className="px-1 rounded bg-muted">bun start</code> from the project root.</span>
+                        )}
+                      </>
                     )}
                     <button
-                      onClick={() => setError(null)}
-                      className="mt-2 text-xs underline hover:no-underline"
+                      onClick={() => { setError(null); setConnectionCheck('idle') }}
+                      className="mt-2 text-xs underline hover:no-underline self-start"
                     >
                       Dismiss
                     </button>
                   </div>
                 </div>
+              </div>
               )}
               
               <div ref={messagesEndRef} />

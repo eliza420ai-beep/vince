@@ -202,9 +202,10 @@ export class MessagingService extends BaseApiClient {
    * Add agent to server (associates agent with a server so it can receive messages)
    */
   async addAgentToServer(serverId: UUID, agentId: UUID): Promise<{ success: boolean }> {
-    return this.post<{ success: boolean }>(`/api/messaging/servers/${serverId}/agents`, {
-      agentId,
-    });
+    return this.post<{ success: boolean }>(
+      `/api/messaging/message-servers/${serverId}/agents`,
+      { agentId }
+    );
   }
 
   /**
@@ -212,7 +213,7 @@ export class MessagingService extends BaseApiClient {
    */
   async removeAgentFromServer(serverId: UUID, agentId: UUID): Promise<{ success: boolean }> {
     return this.delete<{ success: boolean }>(
-      `/api/messaging/servers/${serverId}/agents/${agentId}`
+      `/api/messaging/message-servers/${serverId}/agents/${agentId}`
     );
   }
 
@@ -277,23 +278,31 @@ export class MessagingService extends BaseApiClient {
    * List all message servers
    */
   async listServers(): Promise<{ servers: MessageServer[] }> {
-    return this.get<{ servers: MessageServer[] }>('/api/messaging/central-servers');
+    const data = await this.get<{ messageServers?: MessageServer[]; servers?: MessageServer[] }>(
+      '/api/messaging/message-servers'
+    );
+    return { servers: data.messageServers ?? data.servers ?? [] };
   }
 
   /**
    * Get server channels
    */
   async getServerChannels(serverId: UUID): Promise<{ channels: MessageChannel[] }> {
-    return this.get<{ channels: MessageChannel[] }>(
-      `/api/messaging/central-servers/${serverId}/channels`
+    const data = await this.get<{ channels: MessageChannel[] }>(
+      `/api/messaging/message-servers/${serverId}/channels`
     );
+    return { channels: data.channels ?? [] };
   }
 
   /**
    * Create a new server
    */
   async createServer(params: ServerCreateParams): Promise<MessageServer> {
-    return this.post<MessageServer>('/api/messaging/servers', params);
+    const data = await this.post<{ server: MessageServer }>(
+      '/api/messaging/message-servers',
+      params
+    );
+    return (data as { server?: MessageServer }).server ?? (data as unknown as MessageServer);
   }
 
   /**
@@ -301,7 +310,7 @@ export class MessagingService extends BaseApiClient {
    */
   async syncServerChannels(serverId: UUID, params: ServerSyncParams): Promise<{ synced: number }> {
     return this.post<{ synced: number }>(
-      `/api/messaging/servers/${serverId}/sync-channels`,
+      `/api/messaging/message-servers/${serverId}/sync-channels`,
       params
     );
   }
@@ -310,7 +319,9 @@ export class MessagingService extends BaseApiClient {
    * Delete a server
    */
   async deleteServer(serverId: UUID): Promise<{ success: boolean }> {
-    return this.delete<{ success: boolean }>(`/api/messaging/servers/${serverId}`);
+    return this.delete<{ success: boolean }>(
+      `/api/messaging/message-servers/${serverId}`
+    );
   }
 
   /**
@@ -327,7 +338,10 @@ export class MessagingService extends BaseApiClient {
   }
 
   /**
-   * Generate channel title from a user message
+   * Generate channel title from a user message.
+   * Note: Many servers only support title generation per channel (POST /channels/:channelId/generate-title).
+   * This endpoint (POST /generate-title with userMessage) may return 404; callers should fall back to
+   * a truncated userMessage or "New chat" when unavailable.
    */
   async generateChannelTitle(userMessage: string, agentId: UUID): Promise<{ title: string }> {
     return this.post<{ title: string }>(
