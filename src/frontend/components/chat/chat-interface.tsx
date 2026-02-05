@@ -306,9 +306,18 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
     if (!channelId) return undefined
 
     const handleNewMessage = (data: any) => {
-      console.log(' New message received:', data)
-      console.log(' agentIdRef.current', agentIdRef.current);
-      
+      const payloadChannelId = data.channelId ?? data.roomId ?? data.channel_id ?? data.room_id
+      if (payloadChannelId && payloadChannelId !== channelId) {
+        console.log('[Chat] Ignoring message for different channel', { payloadChannelId, currentChannelId: channelId })
+        return
+      }
+      console.log('[Chat] New message received', {
+        id: data.id,
+        hasContent: !!(data.content ?? data.text ?? data.message),
+        senderId: data.senderId,
+        channelId: payloadChannelId || '(none in payload)',
+      })
+
       const messageId = data.id || crypto.randomUUID()
       const newMessage: Message = {
         id: messageId,
@@ -344,34 +353,22 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
         return updated.sort((a, b) => a.createdAt - b.createdAt)
       })
       
-      // Stop typing indicator only for final summary messages or error messages
+      // Stop typing indicator when we receive any agent reply (single-step e.g. VINCE_BOT_STATUS, or multi-step summary)
       if (newMessage.isAgent) {
-        console.log(' newMessage.isAgent', newMessage.isAgent);
         // Hide dummy tool group when agent message arrives
         setShowDummyToolGroup(false)
-        
-        // Check if this is a multi-step summary message
+        setIsTyping(false)
+        setTimeout(() => scrollToBottom('smooth'), 0)
+
         const actions = newMessage.rawMessage?.actions || newMessage.metadata?.actions || []
         const isSummaryMessage = actions.includes('MULTI_STEP_SUMMARY')
         const isErrorMessage = newMessage.content.startsWith(' Error:')
-        
-        // Only stop typing for summary or error messages
-        if (isSummaryMessage || isErrorMessage) {
-          setIsTyping(false)
-          // Wait for DOM to update before scrolling
-          setTimeout(() => scrollToBottom('smooth'), 0)
-          
-          // If it's a summary message, trigger wallet refresh
-          if (isSummaryMessage && onActionCompleted) {
-            console.log(' Agent action completed - triggering wallet refresh')
-            onActionCompleted()
-          }
-          
-          // If it's an error message, also clear the local error state
-          if (isErrorMessage) {
-            // The error is already shown in the message, so clear any pending local errors
-            setError(null)
-          }
+
+        if (isSummaryMessage && onActionCompleted) {
+          onActionCompleted()
+        }
+        if (isErrorMessage) {
+          setError(null)
         }
       }
     }
