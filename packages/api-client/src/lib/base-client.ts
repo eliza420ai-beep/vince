@@ -130,12 +130,22 @@ export abstract class BaseApiClient {
 
       // Handle error responses
       if (!response.ok) {
-        // Try to extract error information from response
-        const error = jsonData?.error || {
-          code: 'HTTP_ERROR',
-          message: `HTTP ${response.status}: ${response.statusText}`,
-        };
-        throw new ApiError(error.code, error.message, error.details, response.status);
+        const raw = jsonData?.error;
+        const code =
+          typeof raw === 'object' && raw !== null && 'code' in raw
+            ? String((raw as { code?: string }).code)
+            : 'HTTP_ERROR';
+        const message =
+          typeof raw === 'string'
+            ? raw
+            : typeof raw === 'object' && raw !== null && 'message' in raw
+              ? String((raw as { message?: string }).message)
+              : `HTTP ${response.status}: ${response.statusText}`;
+        const details =
+          typeof raw === 'object' && raw !== null && 'details' in raw
+            ? (raw as { details?: string }).details
+            : undefined;
+        throw new ApiError(code, message, details, response.status);
       }
 
       // Handle successful responses
@@ -143,14 +153,22 @@ export abstract class BaseApiClient {
       if (jsonData && typeof jsonData === 'object' && 'success' in jsonData) {
         const apiResponse = jsonData as ApiResponse<T>;
         if (!apiResponse.success) {
-          const error =
-            'error' in apiResponse
-              ? apiResponse.error
-              : {
-                  code: 'UNKNOWN_ERROR',
-                  message: 'An unknown error occurred',
-                };
-          throw new ApiError(error.code, error.message, error.details, response.status);
+          const raw = 'error' in apiResponse ? apiResponse.error : null;
+          const code =
+            typeof raw === 'object' && raw !== null && 'code' in raw
+              ? String((raw as { code?: string }).code)
+              : 'UNKNOWN_ERROR';
+          const message =
+            typeof raw === 'string'
+              ? raw
+              : typeof raw === 'object' && raw !== null && 'message' in raw
+                ? String((raw as { message?: string }).message)
+                : 'An unknown error occurred';
+          const details =
+            typeof raw === 'object' && raw !== null && 'details' in raw
+              ? (raw as { details?: string }).details
+              : undefined;
+          throw new ApiError(code, message, details, response.status);
         }
         return apiResponse.data;
       } else {

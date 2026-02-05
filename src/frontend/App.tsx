@@ -188,6 +188,7 @@ function App() {
   const [totalBalance, setTotalBalance] = useState(0);
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [isNewChatMode, setIsNewChatMode] = useState(false); // Track if we're in "new chat" mode (no channel yet)
+  const [messageServerId, setMessageServerId] = useState<string | null>(null); // Actual message server id from API (backend generates it; required for channel FK)
 
   /**
    * Sign out handler - revokes JWT token on server before signing out from CDP
@@ -651,6 +652,7 @@ function App() {
     console.log(" User ID changed, refreshing chat content...");
     setChannels([]);
     setActiveChannelId(null);
+    setMessageServerId(null);
     setIsLoadingChannels(true);
     hasInitialized.current = false; // Allow auto-create for new user
 
@@ -664,9 +666,9 @@ function App() {
         // STEP 1: Create message server FIRST (before any channels)
         // This ensures the server_id exists for the foreign key constraint
         console.log(" Creating message server for user:", userId);
+        let serverIdForQuery: string = userId;
         try {
           const serverResult = await elizaClient.messaging.createServer({
-            id: userId as UUID,
             name: `${userId.substring(0, 8)}'s Server`,
             sourceType: "custom_ui",
             sourceId: userId,
@@ -676,33 +678,51 @@ function App() {
               userType: "chat_user",
             },
           });
-          console.log(" Message server created/ensured:", serverResult.id);
+          const sid = serverResult?.id ?? (serverResult as any)?.server?.id;
+          if (sid) {
+            serverIdForQuery = sid;
+            setMessageServerId(sid);
+            console.log(" Message server created/ensured:", sid);
+          }
 
           // STEP 1.5: Associate agent with the user's server
-          // This is CRITICAL - without this, the agent won't process messages from this server
-          console.log(" Associating agent with user server...");
-          try {
-            await elizaClient.messaging.addAgentToServer(
-              userId as UUID,
-              agent.id as UUID,
-            );
-            console.log(" Agent associated with user server:", userId);
-          } catch (assocError: any) {
-            console.warn(
-              " Failed to associate agent with server (may already be associated):",
-              assocError.message,
-            );
+          if (sid) {
+            try {
+              await elizaClient.messaging.addAgentToServer(
+                sid as UUID,
+                agent.id as UUID,
+              );
+              console.log(" Agent associated with message server:", sid);
+            } catch (assocError: any) {
+              console.warn(
+                " Failed to associate agent with server (may already be associated):",
+                assocError.message,
+              );
+            }
           }
         } catch (serverError: any) {
-          // Server might already exist - that's fine
           console.log(
             " Server creation failed (may already exist):",
             serverError.message,
           );
+          try {
+            const { servers } = await elizaClient.messaging.listServers();
+            const existing = servers?.find(
+              (s: any) =>
+                s.sourceId === userId ||
+                s.metadata?.userId === userId
+            );
+            if (existing?.id) {
+              serverIdForQuery = existing.id;
+              setMessageServerId(existing.id);
+              console.log(" Using existing message server:", existing.id);
+            }
+          } catch (_) {
+            // ignore
+          }
         }
 
-        // STEP 2: Now load channels from the user-specific server
-        const serverIdForQuery = userId;
+        // STEP 2: Load channels from the message server (use actual server id for FK)
         console.log(
           " Loading channels from user-specific server:",
           serverIdForQuery,
@@ -888,6 +908,7 @@ function App() {
       <AppContent
         agent={agent}
         userId={userId}
+        messageServerId={messageServerId}
         connected={connected}
         channels={channels}
         activeChannelId={activeChannelId}
@@ -918,6 +939,7 @@ function App() {
 function AppContent({
   agent,
   userId,
+  messageServerId,
   connected,
   channels,
   activeChannelId,
@@ -1065,7 +1087,7 @@ function AppContent({
                       <ChatInterface
                         agent={agent}
                         userId={userId}
-                        serverId={userId} // Use userId as serverId for Socket.IO-level isolation
+                        serverId={messageServerId ?? userId}
                         channelId={activeChannelId}
                         isNewChatMode={isNewChatMode}
                         connected={connected}

@@ -83,7 +83,7 @@ class SocketManager {
       payload: {
         channelId,
         entityId: this.userId,
-        serverId, // Pass userId as serverId for user-specific world isolation
+        message_server_id: serverId,
         metadata,
       },
     });
@@ -99,22 +99,23 @@ class SocketManager {
     if (!this.socket) {
       throw new Error('Socket not connected');
     }
-    
-    // Use stored username or fallback to a short-form identifier
-    const senderName = this.userName || `User-${this.userId?.substring(0, 8) || 'Unknown'}`;
-    
+    if (!this.userId) {
+      throw new Error('Socket sendMessage: userId (entityId) is required for author_id');
+    }
+    // Server requires: channelId, messageServerId (or message_server_id), senderId (or author_id), message
+    const senderName = this.userName || `User-${this.userId.substring(0, 8)}`;
     const payload = {
-      senderId: this.userId,
-      senderName,
-      message,
       channelId,
-      serverId,
+      messageServerId: serverId,
+      message_server_id: serverId,
+      senderId: this.userId,
+      author_id: this.userId,
+      message,
+      senderName,
       source: 'custom_ui',
       metadata,
     };
-    
     console.log(' [SocketManager] Emitting SEND_MESSAGE:', payload);
-    
     this.socket.emit('message', {
       type: SOCKET_MESSAGE_TYPE.SEND_MESSAGE,
       payload,

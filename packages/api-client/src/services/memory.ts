@@ -148,7 +148,7 @@ export class MemoryService extends BaseApiClient {
    */
   async deleteGroupMemory(serverId: UUID, memoryId: UUID): Promise<{ success: boolean }> {
     return this.delete<{ success: boolean }>(
-      `/api/messaging/central-channels/${serverId}/messages/${memoryId}`
+      `/api/messaging/channels/${serverId}/messages/${memoryId}`
     );
   }
 
@@ -157,7 +157,7 @@ export class MemoryService extends BaseApiClient {
    */
   async clearGroupChat(serverId: UUID): Promise<{ success: boolean }> {
     return this.delete<{ success: boolean }>(
-      `/api/messaging/central-channels/${serverId}/messages`
+      `/api/messaging/channels/${serverId}/messages`
     );
   }
 }
