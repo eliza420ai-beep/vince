@@ -74,4 +74,10 @@ describe("VinceNewsSentimentService", () => {
       expect(result.hasHighRiskEvent).toBe(false);
     });
   });
+
+  describe("getVibeCheck", () => {
+    it("returns fallback when no news cache", () => {
+      expect(service.getVibeCheck()).toBe("No news data yet.");
+    });
+  });
 });

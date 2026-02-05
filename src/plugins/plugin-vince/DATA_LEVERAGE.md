@@ -69,7 +69,7 @@ All of these use **no new API keys** and either existing services or free public
 - [ ] Run paper bot so new feature records get **market.oiChange24h**, **market.dvol**, **market.rsi14**, **market.atrPct** (Deribit must be available for dvol/atr on BTC/ETH).
 - [ ] Retrain with updated JSONL; confirm `suggested_signal_factors` drops or reduces “OI change 24h”, “DVOL”, “RSI”, “Price vs SMA20” if you add SMA.
 - [ ] Add one of: funding 8h cache, order-book provider, or price history (SMA20) and wire into `collectMarketFeatures`.
-- [ ] **FREE:** Use HIP-3 for index 24h and macro: in `collectNewsFeatures()` get `VINCE_HIP3_SERVICE`, call `getPulse()`, set `news.nasdaqChange` from `pulse.indices` (e.g. SPX/INFOTECH) `change24h` and `news.macroRiskEnvironment` from `pulse.summary.tradFiVsCrypto` (risk_on / risk_off / neutral).
+- [x] **FREE:** Use HIP-3 for index 24h and macro: in `collectNewsFeatures()` get `VINCE_HIP3_SERVICE`, call `getHIP3Pulse()`, set `news.nasdaqChange` from `pulse.indices` (US500, INFOTECH, MAG7, SEMIS, XYZ100) `change24h` and `news.macroRiskEnvironment` from `pulse.summary.tradFiVsCrypto` (risk_on / risk_off / neutral). **DONE (2026-02-05):** Added 6s timeout, broader index fallback, Yahoo Finance ^IXIC fallback when HIP-3 has no index data.
 - [ ] Optionally add ETF flow source (e.g. Farside) and set `news.etfFlowBtc` / `news.etfFlowEth` in `collectNewsFeatures()`.
 - [ ] Improve signal sentiment coverage so `signal_avg_sentiment` is non-null more often (e.g. from factor text or source-level scores).
 

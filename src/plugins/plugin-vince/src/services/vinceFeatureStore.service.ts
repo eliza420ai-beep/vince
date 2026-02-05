@@ -342,6 +342,8 @@ export class VinceFeatureStoreService extends Service {
   private static readonly BINANCE_DEPTH_TIMEOUT_MS = 5000;
   /** Max wait per external fetch so one slow API doesn't block feature collection */
   private static readonly FEATURE_FETCH_TIMEOUT_MS = 6_000;
+  /** Timeout for HIP-3 / Yahoo macro fetch in collectNewsFeatures */
+  private static readonly NEWS_MACRO_TIMEOUT_MS = 6_000;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -963,6 +965,34 @@ export class VinceFeatureStoreService extends Service {
     };
   }
 
+  /**
+   * Fetch NASDAQ (^IXIC) 24h % change from Yahoo Finance chart API.
+   * Fallback when HIP-3 has no index data. No API key required; may be rate-limited.
+   */
+  private async fetchYahooNasdaqChange(): Promise<number | null> {
+    try {
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 4_000);
+      const res = await fetch(
+        "https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=5d",
+        { signal: controller.signal, headers: { "User-Agent": "Vince/1.0" } }
+      );
+      clearTimeout(t);
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        chart?: { result?: Array<{ indicators?: { quote?: Array<{ close?: number[] }> } }> };
+      };
+      const closes = data.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
+      if (!Array.isArray(closes) || closes.length < 2) return null;
+      const prev = closes[closes.length - 2];
+      const curr = closes[closes.length - 1];
+      if (typeof prev !== "number" || typeof curr !== "number" || prev <= 0) return null;
+      return ((curr - prev) / prev) * 100;
+    } catch {
+      return null;
+    }
+  }
+
   private async collectNewsFeatures(): Promise<NewsFeatures> {
     const newsService = this.runtime.getService(
       "VINCE_NEWS_SENTIMENT_SERVICE"
@@ -1006,6 +1036,7 @@ export class VinceFeatureStoreService extends Service {
       }
     }
 
+    // HIP-3: index 24h (US500/INFOTECH proxy for Nasdaq) + macro risk (tradfi vs crypto)
     const hip3Service = this.runtime.getService("VINCE_HIP3_SERVICE") as {
       getHIP3Pulse?: () => Promise<{
         indices?: { symbol: string; change24h: number }[];
@@ -1014,21 +1045,42 @@ export class VinceFeatureStoreService extends Service {
     } | null;
     if (hip3Service?.getHIP3Pulse) {
       try {
-        const pulse = await hip3Service.getHIP3Pulse();
+        const pulse = await Promise.race([
+          hip3Service.getHIP3Pulse(),
+          new Promise<null>((_, reject) =>
+            setTimeout(() => reject(new Error("HIP-3 timeout")), VinceFeatureStoreService.NEWS_MACRO_TIMEOUT_MS)
+          ),
+        ]);
         if (pulse?.indices && pulse.indices.length > 0) {
-          const us500 = pulse.indices.find((i) => i.symbol === "US500");
-          const infotech = pulse.indices.find((i) => i.symbol === "INFOTECH");
-          const indexAsset = us500 ?? infotech ?? pulse.indices[0];
-          result.nasdaqChange = typeof indexAsset.change24h === "number" ? indexAsset.change24h : null;
+          const nasdaqProxies = ["US500", "INFOTECH", "MAG7", "SEMIS", "XYZ100"] as const;
+          const indexAsset =
+            nasdaqProxies
+              .map((s) => pulse.indices!.find((i) => i.symbol === s))
+              .find(Boolean) ?? pulse.indices[0];
+          const change = typeof indexAsset?.change24h === "number" ? indexAsset.change24h : null;
+          if (change != null) {
+            result.nasdaqChange = change;
+            logger.debug(`[VinceFeatureStore] nasdaqChange=${change.toFixed(2)}% from HIP-3 (${indexAsset?.symbol ?? "index"})`);
+          }
         }
         if (pulse?.summary?.tradFiVsCrypto) {
           const tfc = pulse.summary.tradFiVsCrypto;
           if (tfc === "crypto_outperforming") result.macroRiskEnvironment = "risk_on";
           else if (tfc === "tradfi_outperforming") result.macroRiskEnvironment = "risk_off";
           else result.macroRiskEnvironment = "neutral";
+          logger.debug(`[VinceFeatureStore] macroRiskEnvironment=${result.macroRiskEnvironment} from HIP-3`);
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] HIP-3 news features error: ${e}`);
+      }
+    }
+
+    // Fallback: Yahoo Finance ^IXIC when HIP-3 has no index data
+    if (result.nasdaqChange == null) {
+      const yahooChange = await this.fetchYahooNasdaqChange();
+      if (yahooChange != null) {
+        result.nasdaqChange = yahooChange;
+        logger.debug(`[VinceFeatureStore] nasdaqChange=${yahooChange.toFixed(2)}% from Yahoo Finance fallback`);
       }
     }
 

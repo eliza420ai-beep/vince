@@ -554,10 +554,10 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
 
-          // 3d. Long/Short Ratio (all accounts) – contrarian when extreme
+          // 3d. Long/Short Ratio (all accounts) – contrarian when extreme (relaxed 1.5/0.67 → 1.4/0.72)
           if (intel.longShortRatio) {
             const ratio = intel.longShortRatio.longShortRatio;
-            if (ratio > 1.5) {
+            if (ratio > 1.4) {
               signals.push({
                 asset,
                 direction: "short",
@@ -569,11 +569,11 @@ export class VinceSignalAggregatorService extends Service {
               });
               sources.push("BinanceLongShort");
               allFactors.push(`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded long)`);
-            } else if (ratio < 0.67) {
+            } else if (ratio < 0.72) {
               signals.push({
                 asset,
                 direction: "long",
-                strength: 52 + Math.min(10, (1 / ratio - 1.5) * 10),
+                strength: 52 + Math.min(10, Math.max(0, (1 / ratio - 1.4) * 12)),
                 confidence: 48,
                 source: "BinanceLongShort",
                 factors: [`Binance L/S ratio ${ratio.toFixed(2)} (accounts crowded short)`],
@@ -653,7 +653,7 @@ export class VinceSignalAggregatorService extends Service {
         // Check ongoing liquidation pressure
         const symbol = `${asset}USDT`;
         const pressure = liqService.getLiquidationPressure(symbol);
-        if (pressure.intensity > 40 && pressure.direction !== "neutral") {
+        if (pressure.intensity > 35 && pressure.direction !== "neutral") {
           const reversalDir = pressure.direction === "long_liquidations" ? "long" : "short";
           signals.push({
             asset,
@@ -682,7 +682,7 @@ export class VinceSignalAggregatorService extends Service {
     if (newsService) {
       try {
         const { sentiment, confidence, hasHighRiskEvent } = newsService.getTradingSentiment(asset);
-        if (confidence > 50) {
+        if (confidence >= 45) {
           const discount = Math.round(confidence * 0.8);
           const strength = 52 + Math.min(15, confidence / 6);
           if (sentiment === "bullish") {
@@ -769,6 +769,18 @@ export class VinceSignalAggregatorService extends Service {
         });
         sources.push("DeribitIVSkew");
         allFactors.push(`Options skew bullish (call premium elevated) - contrarian short`);
+      } else if (deribitIVSurface.skewInterpretation === "neutral") {
+        signals.push({
+          asset,
+          direction: "neutral",
+          strength: 42,
+          confidence: 40,
+          source: "DeribitIVSkew",
+          factors: [`Options skew neutral (balanced put/call)`],
+          timestamp: Date.now(),
+        });
+        sources.push("DeribitIVSkew");
+        allFactors.push(`Options skew neutral (balanced put/call)`);
       }
     }
     if (!sources.includes("DeribitIVSkew") && currency) {
@@ -778,7 +790,7 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     // 7. Market Data Service (market regime) - use pre-fetched result
     // =========================================
-    if (marketContext?.marketRegime && marketContext.marketRegime !== "neutral") {
+    if (marketContext?.marketRegime) {
       if (marketContext.marketRegime === "bullish") {
         signals.push({
           asset,
@@ -804,7 +816,29 @@ export class VinceSignalAggregatorService extends Service {
         sources.push("MarketRegime");
         allFactors.push(`Market regime bearish (weak 24h price action + sentiment)`);
       } else if (marketContext.marketRegime === "volatile") {
+        signals.push({
+          asset,
+          direction: "neutral",
+          strength: 48,
+          confidence: 45,
+          source: "MarketRegime",
+          factors: [`Market regime volatile (caution advised)`],
+          timestamp: Date.now(),
+        });
+        sources.push("MarketRegime");
         allFactors.push(`Market regime volatile (caution advised)`);
+      } else if (marketContext.marketRegime === "neutral") {
+        signals.push({
+          asset,
+          direction: "neutral",
+          strength: 42,
+          confidence: 40,
+          source: "MarketRegime",
+          factors: [`Market regime neutral/ranging (mixed price action)`],
+          timestamp: Date.now(),
+        });
+        sources.push("MarketRegime");
+        allFactors.push(`Market regime neutral/ranging (mixed price action)`);
       }
     }
     if (!sources.includes("MarketRegime")) {
@@ -841,6 +875,18 @@ export class VinceSignalAggregatorService extends Service {
           });
           sources.push("SanbaseExchangeFlows");
           allFactors.push(`On-chain distribution (exchange inflows > outflows)`);
+        } else if (sentiment === "neutral") {
+          signals.push({
+            asset,
+            direction: "neutral",
+            strength: 42,
+            confidence: 40,
+            source: "SanbaseExchangeFlows",
+            factors: [`On-chain flows neutral (balanced exchange in/out)`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseExchangeFlows");
+          allFactors.push(`On-chain flows neutral (balanced exchange in/out)`);
         }
       }
       if (sanbaseContext.whaleActivity) {
@@ -869,6 +915,18 @@ export class VinceSignalAggregatorService extends Service {
           });
           sources.push("SanbaseWhales");
           allFactors.push(`On-chain whale activity bearish (large transactions distributing)`);
+        } else if (sentiment === "neutral") {
+          signals.push({
+            asset,
+            direction: "neutral",
+            strength: 42,
+            confidence: 40,
+            source: "SanbaseWhales",
+            factors: [`On-chain whale activity neutral`],
+            timestamp: Date.now(),
+          });
+          sources.push("SanbaseWhales");
+          allFactors.push(`On-chain whale activity neutral`);
         }
       }
     }
@@ -1097,30 +1155,30 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     const pcRatio = comprehensiveData?.optionsSummary?.putCallRatio;
     if (currency && pcRatio !== undefined) {
-      if (pcRatio > 1.3) {
+      if (pcRatio > 1.2) {
         signals.push({
           asset,
           direction: "long",
           strength: 58,
           confidence: 55,
           source: "DeribitPutCallRatio",
-          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`],
+          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.2 = fear/hedging) - contrarian long`],
           timestamp: Date.now(),
         });
         sources.push("DeribitPutCallRatio");
-        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.3 = fear/hedging) - contrarian long`);
-      } else if (pcRatio < 0.7) {
+        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (>1.2 = fear/hedging) - contrarian long`);
+      } else if (pcRatio < 0.82) {
         signals.push({
           asset,
           direction: "short",
           strength: 58,
           confidence: 55,
           source: "DeribitPutCallRatio",
-          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`],
+          factors: [`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.82 = greed) - contrarian short`],
           timestamp: Date.now(),
         });
         sources.push("DeribitPutCallRatio");
-        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.7 = greed) - contrarian short`);
+        allFactors.push(`${asset} options put/call ratio ${pcRatio.toFixed(2)} (<0.82 = greed) - contrarian short`);
       }
     }
     if (dvol?.current !== undefined) {

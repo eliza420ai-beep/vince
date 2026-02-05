@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (News sentiment "erases gains" bug fix)
+# Last updated: 2026-02-05 (real-time signal thresholds, MandoMinutes TLDR, news sentiment fix, NASDAQ/macro)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -241,8 +241,8 @@ PRIORITY (real-time data for paper trading algo)
    - Optional: Periodically log a single "dashboard-style" summary (e.g. health
      of data sources, signal source counts) instead of many per-call lines.
 
-🔴 IMPROVE THE AMOUNT OF REAL-TIME DATA USED FOR THE PAPER TRADING ALGO
-   We do not currently leverage all the data sources we already have available.
+🟢 IMPROVE THE AMOUNT OF REAL-TIME DATA USED FOR THE PAPER TRADING ALGO — DONE ✅ (2026-02-05)
+   Relaxed thresholds: Binance L/S 1.4/0.72, News conf ≥45, Liq pressure >35, Deribit skew+P/C neutral/1.2/0.82, MarketRegime neutral+volatile, Sanbase neutral. See IMPROVEMENT_WEIGHTS_AND_TUNING.md.
    - Ensure Binance, MarketRegime, News, Deribit, BinanceLiquidations, Sanbase,
      Hyperliquid, etc. actually contribute factors (see SIGNAL_SOURCES.md).
    - Confirm in logs: at startup [VINCE] 📡 Signal sources available: N/8 (...);
@@ -266,7 +266,7 @@ IN PROGRESS
    → Use VINCE_PAPER_AGGRESSIVE=true ($280 TP, 2:1 R:R, 40x, no cooldown) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
 🔄 Feature store: 90+ trades available; ONNX training runs automatically (TRAIN_ONNX_WHEN_READY) or manually: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Install: pip3 install onnx onnxmltools.
 🔄 No improvement suggestions generated yet (needs more trading data)
-🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
+🟢 Increase real-time signal factors — DONE ✅ (2026-02-05); thresholds relaxed.
 
 --------------------------------------------------------------------------------
 DEBUG LOG FOCUS (from LOG_LEVEL=debug) – things to fix or improve
@@ -343,7 +343,7 @@ it now.
 To-dos (leverage the 37-headline MandoMinutes display for better market vibe
 and algo input):
 
-1. Add TLDR / Summary at top
+1. Add TLDR / Summary at top — DONE ✅ (2026-02-05)
    - One- to two-line "vibe check" derived from headlines (e.g. "Risk-off:
      crypto selloff, Trump gains erased, gold/silver up. Themes: regulatory
      scrutiny, Vitalik ETH sales, quantum fears."). Display at top of box.
@@ -401,7 +401,7 @@ These use data we already collect (or can add with one small integration) but do
    - (a) Book imbalance: evaluateAndTrade uses getBookImbalanceRejection(); skips LONG when bookImbalance < -0.2 (or -0.4 aggressive), SHORT when > 0.2/0.4. (b) SMA20: getAdjustedConfidence() applies getSma20ConfidenceBoost(); trend alignment boosts confidence. (c) Funding reversal: getFundingReversalConfidenceBoost() in getAdjustedConfidence(). (d) DVOL: position size reduced 50% when dvol>85, 30% when dvol>70 (vincePaperTrading.service.ts). Logic in extendedSnapshotLogic.ts; feature store populates bookImbalance, priceVsSma20, fundingDelta, dvol.
    - Optional backlog: Add book/sma20/funding as factors in signal aggregator (richer narrative in aggregated signal text).
 
-2. **Add NASDAQ 24h (and optionally macro/ETF) to news features**
+2. **Add NASDAQ 24h (and optionally macro/ETF) to news features** — DONE ✅ (2026-02-05)
    - Slots exist: news.nasdaqChange, news.etfFlowBtc, news.etfFlowEth, news.macroRiskEnvironment. Currently 0% populated.
    - High impact: Add one free or cheap macro/equity source (e.g. Yahoo Finance, Alpha Vantage, or HIP-3 index if we have NDX) and set news.nasdaqChange in collectNewsFeatures(). Optionally add ETF flow API or scrape so ML can use risk-on/risk-off. See DATA_LEVERAGE.md “Data still 0%”.
 
@@ -532,6 +532,9 @@ SESSION NOTES
 ================================================================================
 
 2026-02-05:
+- Real-time signal thresholds (PRIORITY): Binance L/S 1.4/0.72, News conf ≥45, Liq pressure >35, Deribit skew neutral + P/C 1.2/0.82, MarketRegime neutral+volatile, Sanbase flows/whales neutral. More sources contribute more often. IMPROVEMENT_WEIGHTS_AND_TUNING.md, SIGNAL_SOURCES.md updated.
+- MandoMinutes TLDR at top (MANDOMINUTES #1): getVibeCheck() returns 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases from headlines + Themes). Shown at top of printDetailedDashboard() and formatForBriefing(). Phrases: crypto selloff, gains erased, Vitalik ETH, gold up, ETF outflow, regulatory, security. Unit test for empty cache. See newsSentiment.service.ts getVibeCheck(), formatForBriefing().
+- NASDAQ 24h + macro news features (THINGS TO DO #2): HIP-3 primary for nasdaqChange (US500, INFOTECH, MAG7, SEMIS, XYZ100) and macroRiskEnvironment (tradFiVsCrypto). 6s timeout. Yahoo Finance ^IXIC fallback when HIP-3 has no index data. See vinceFeatureStore.service.ts collectNewsFeatures(), fetchYahooNasdaqChange().
 - News sentiment "erases gains" bug fix (DEBUG LOG FOCUS #1): (1) NEGATIVE_GAINS_PHRASES now returns "bearish" immediately (override; bullish keywords like "gains"/"win" no longer override). (2) normalizeForSentiment() normalizes unicode (NFKC), fancy apostrophes (U+2019 → ASCII), whitespace. (3) news cache: on re-fetch we UPDATE existing items' sentiment (not skip), so logic changes apply on next refresh. (4) Added singular variants (erases gain, gain erased). (5) Unit test: "BTC erases gains since Trump's election win" and "Trump\u2019s" (fancy apostrophe) both → bearish. See newsSentiment.service.ts, newsSentiment.service.test.ts.
 
 2026-02-04:

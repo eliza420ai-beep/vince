@@ -251,6 +251,10 @@ export class VinceNewsSentimentService extends Service {
     logEmpty();
     sep();
     logEmpty();
+    const vibeCheck = this.getVibeCheck();
+    const vibeEmoji = vibeCheck.includes("Risk-off") || vibeCheck.includes("⚠️") ? "⚠️" : vibeCheck.includes("Risk-on") ? "💡" : "📋";
+    logLine(`${vibeEmoji} ${vibeCheck}`);
+    logEmpty();
     const sentEmoji = sentiment.sentiment === "bullish" ? "🟢" : sentiment.sentiment === "bearish" ? "🔴" : "⚪";
     logLine(`${sentEmoji} ${sentiment.sentiment.toUpperCase()} (${Math.round(sentiment.confidence)}% confidence)`);
     logLine(`${stats.totalNews} articles (🟢${stats.bullishCount} 🔴${stats.bearishCount} ⚪${stats.neutralCount})`);
@@ -1079,7 +1083,12 @@ export class VinceNewsSentimentService extends Service {
     const topNews = this.getTopHeadlines(limit);
     const sentiment = this.getOverallSentiment();
     const riskEvents = this.getCriticalRiskEvents();
-    
+
+    // Vibe check at top (1-2 line summary)
+    if (this.hasData()) {
+      lines.push(`📋 ${this.getVibeCheck()}`);
+    }
+
     // Overall sentiment
     const sentimentEmoji = sentiment.sentiment === "bullish" ? "📈" 
                          : sentiment.sentiment === "bearish" ? "📉" 
@@ -1570,6 +1579,45 @@ export class VinceNewsSentimentService extends Service {
     }
     
     return [...new Set(found)].slice(0, 3); // Max 3 entities
+  }
+
+  /**
+   * One- to two-line "vibe check" derived from headlines.
+   * Display at top of news box for quick scan (e.g. "Risk-off: crypto selloff, gains erased. Themes: regulatory, Vitalik ETH.").
+   */
+  getVibeCheck(): string {
+    if (this.newsCache.length === 0) return "No news data yet.";
+    const sentiment = this.getOverallSentiment();
+    const themed = this.groupByTheme();
+    const topHeadlines = this.getTopHeadlines(8);
+    const criticalRisks = this.getCriticalRiskEvents();
+    const vibe =
+      sentiment.sentiment === "bearish" ? "Risk-off" :
+      sentiment.sentiment === "bullish" ? "Risk-on" : "Mixed";
+    const phrases: string[] = [];
+    for (const n of topHeadlines.slice(0, 5)) {
+      const t = (n.title ?? "").toLowerCase();
+      if (t.includes("selloff") || t.includes("sell-off")) phrases.push("crypto selloff");
+      else if (t.includes("erases gains") || t.includes("gains erased")) phrases.push("gains erased");
+      else if (t.includes("vitalik") && t.includes("eth")) phrases.push("Vitalik ETH");
+      else if (t.includes("gold") && (t.includes("up") || t.includes("rally"))) phrases.push("gold up");
+      else if (t.includes("etf outflow")) phrases.push("ETF outflow");
+      else if (t.includes("sec") || t.includes("regulation")) phrases.push("regulatory");
+      else if (t.includes("hack") || t.includes("exploit")) phrases.push("security");
+    }
+    const uniquePhrases = [...new Set(phrases)].slice(0, 4);
+    const themeNames = themed
+      .filter((t) => t.articles.length >= 1)
+      .sort((a, b) => b.articles.length - a.articles.length)
+      .slice(0, 4)
+      .map((t) => t.theme);
+    const themeStr = themeNames.length > 0 ? `. Themes: ${themeNames.join(", ")}` : "";
+    const phraseStr = uniquePhrases.length > 0 ? ` ${uniquePhrases.join(", ")}` : "";
+    if (criticalRisks.length > 0) {
+      return `${vibe} ⚠️ Risk event active${phraseStr}${themeStr}`.slice(0, 120);
+    }
+    const tail = phraseStr || themeStr ? `:${phraseStr}${themeStr}` : "";
+    return (vibe + tail).slice(0, 120) || vibe;
   }
 
   /**

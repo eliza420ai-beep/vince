@@ -38,16 +38,16 @@ These are the only names that count as "sources" in the aggregator. If a source 
 | **BinanceTopTraders** | VinceBinanceService | Top trader long % &gt;62 or &lt;38 |
 | **BinanceTakerFlow** | VinceBinanceService | Taker buy/sell ratio &gt;1.25 or &lt;0.75 |
 | **BinanceOIFlush** | VinceBinanceService | OI trend falling &lt;−5% |
-| **BinanceLongShort** | VinceBinanceService | L/S ratio &gt;1.5 or &lt;0.67 |
+| **BinanceLongShort** | VinceBinanceService | L/S ratio &gt;1.4 or &lt;0.72 |
 | **BinanceFundingExtreme** | VinceBinanceService | Funding in top/bottom 10% of recent |
 | **LiquidationCascade** | VinceBinanceLiquidationService | Cascade detected |
 | **LiquidationPressure** | VinceBinanceLiquidationService | Per-symbol pressure |
 | **NewsSentiment** | VinceNewsSentimentService | Sentiment bullish/bearish/neutral (confidence ≥40) |
-| **DeribitIVSkew** | VinceDeribitService | IV skew fearful or bullish (BTC/ETH/SOL) |
-| **DeribitPutCallRatio** | VinceDeribitService | P/C ratio extreme |
-| **MarketRegime** | VinceMarketDataService + VinceMarketRegimeService | Regime not neutral |
-| **SanbaseExchangeFlows** | VinceSanbaseService | In/out flows (needs SANBASE_API_KEY) |
-| **SanbaseWhales** | VinceSanbaseService | Whale activity (needs key) |
+| **DeribitIVSkew** | VinceDeribitService | IV skew fearful, bullish, or neutral (BTC/ETH/SOL) |
+| **DeribitPutCallRatio** | VinceDeribitService | P/C ratio &gt;1.2 or &lt;0.82 |
+| **MarketRegime** | VinceMarketDataService + VinceMarketRegimeService | Regime (bullish/bearish/volatile/neutral) |
+| **SanbaseExchangeFlows** | VinceSanbaseService | In/out flows or neutral (needs SANBASE_API_KEY) |
+| **SanbaseWhales** | VinceSanbaseService | Whale activity or neutral (needs key) |
 | **HyperliquidBias** | Hyperliquid fallback | Perps bias long/short |
 | **HyperliquidCrowding** | Hyperliquid fallback | Crowding signal |
 | **HyperliquidOICap** | Hyperliquid fallback | Perp at OI cap (max crowding, contrarian) |
@@ -96,7 +96,7 @@ These services exist and return data, but they are **not** wired into the signal
 ## Quick checklist to maximize factors
 
 1. **CoinGlass** – No key needed (Binance fallback). With key, more stable. **Already emits 5–8 factors** (funding, L/S, OI, OI change, fear/greed).
-2. **Binance** – No key. Ensure **VINCE_BINANCE_SERVICE** is started (it is in the plugin). If you only see CoinGlass factors, check logs for `[VinceSignalAggregator] Binance error` or that thresholds (e.g. taker ratio 1.3 / 0.7) are being hit.
+2. **Binance** – No key. Ensure **VINCE_BINANCE_SERVICE** is started (it is in the plugin). If you only see CoinGlass factors, check logs for `[VinceSignalAggregator] Binance error` or that thresholds (e.g. taker ratio 1.25 / 0.75, L/S 1.4 / 0.72) are being hit.
 3. **Market regime** – Depends on **VINCE_MARKET_DATA_SERVICE** and enriched context. If CoinGlass/Binance have price and sentiment, regime can add a factor.
 4. **News** – Ensure MandoMinutes (or whatever feeds news sentiment) is running and cache has recent data.
 5. **Deribit** – For BTC/ETH/SOL, if Deribit service is up and returns IV surface, skew factors can appear.

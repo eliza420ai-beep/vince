@@ -49,10 +49,17 @@ Relaxed so more sources contribute factors more often:
 
 | Source              | Threshold (before → after) |
 |---------------------|----------------------------|
-| Binance Top Traders | long position long: > 65 → **> 62**; short: < 35 → **< 38** |
-| Binance Taker Volume| buy/sell ratio long: > 1.3 → **> 1.25**; short: < 0.7 → **< 0.75** |
+| Binance Top Traders | long: > 65 → **> 62**; short: < 35 → **< 38** |
+| Binance Taker Volume| long: > 1.3 → **> 1.25**; short: < 0.7 → **< 0.75** |
+| Binance L/S Ratio   | long crowded: > 1.5 → **> 1.4**; short crowded: < 0.67 → **< 0.72** |
+| News (bullish/bearish) | confidence > 50 → **≥ 45** |
+| Liquidation Pressure | intensity > 40 → **> 35** |
+| Deribit IV Skew     | fearful/bullish only → **+ neutral** (weak factor when skew neutral) |
+| Deribit Put/Call    | > 1.3 / < 0.7 → **> 1.2 / < 0.82** |
+| MarketRegime        | non-neutral only → **+ neutral + volatile** (weak factors so regime always contributes) |
+| Sanbase Flows/Whales| accumulation/distribution, bullish/bearish only → **+ neutral** (weak factor) |
 
-Defined in `signalAggregator.service.ts` (Binance Top Traders and Taker Volume sections). News already contributes when sentiment is neutral with confidence ≥ 40.
+Defined in `signalAggregator.service.ts`. News contributes when sentiment is neutral with confidence ≥ 40.
 
 ---
 
