@@ -22,6 +22,8 @@ import type {
   IHyperliquidCrossVenueFunding,
   IHyperliquidAssetPulse,
   IHyperliquidCrossVenueAsset,
+  IHyperliquidCryptoPulse,
+  IHyperliquidCryptoAsset,
 } from "../../types/external-services";
 
 // ============================================================================
@@ -505,7 +507,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         assetMap.set(name, assetCtxs[i]);
       }
 
-      // Build asset pulses for BTC, ETH, SOL, HYPE
+      // Build asset pulses for BTC, ETH, SOL, HYPE (openInterest + volume24h from same metaAndAssetCtxs)
       const buildAssetPulse = (symbol: string): IHyperliquidAssetPulse | undefined => {
         const ctx = assetMap.get(symbol);
         if (!ctx) return undefined;
@@ -514,12 +516,17 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         const fundingAnnualized = funding8h * 3 * 365 * 100; // Convert to annualized %
         const crowdingLevel = this.determineCrowdingLevel(funding8h);
         const squeezeRisk = this.determineSqueezeRisk(crowdingLevel);
+        const openInterest = parseFloat(ctx.openInterest || "0") || undefined;
+        const dayNtl = parseFloat(ctx.dayNtlVlm || "0");
+        const volume24h = dayNtl > 0 ? dayNtl : undefined;
 
         return {
           funding8h,
           fundingAnnualized,
           crowdingLevel,
           squeezeRisk,
+          ...(openInterest != null && openInterest > 0 && { openInterest }),
+          ...(volume24h != null && volume24h > 0 && { volume24h }),
         };
       };
 
@@ -572,6 +579,104 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       };
     } catch (error) {
       logger.error(`[HyperliquidFallback] getOptionsPulse error: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get full crypto pulse: all perp assets with price, change, funding, OI, volume.
+   * Used for HIP-3 style dashboard (TOP MOVERS, VOLUME LEADERS, TLDR).
+   */
+  async getAllCryptoPulse(): Promise<IHyperliquidCryptoPulse | null> {
+    try {
+      const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
+        { type: "metaAndAssetCtxs" },
+        CACHE_TTLS.metaAndAssetCtxs
+      );
+      if (!data || !Array.isArray(data) || data.length < 2) return null;
+      const [meta, assetCtxs] = data;
+
+      const assets: IHyperliquidCryptoAsset[] = [];
+      for (let i = 0; i < meta.universe.length && i < assetCtxs.length; i++) {
+        const name = meta.universe[i].name;
+        const sym = name.toUpperCase();
+        const ctx = assetCtxs[i];
+        if (!ctx) continue;
+
+        const price = parseFloat(ctx.markPx || ctx.midPx || "0");
+        const prevDayPx = parseFloat(ctx.prevDayPx || "0");
+        const change24h = prevDayPx > 0 ? ((price - prevDayPx) / prevDayPx) * 100 : 0;
+        const funding8h = parseFloat(ctx.funding || "0");
+        const fundingAnnualized = funding8h * 3 * 365 * 100;
+        const openInterest = parseFloat(ctx.openInterest || "0") || 0;
+        const volume24h = parseFloat(ctx.dayNtlVlm || "0") || 0;
+        const crowdingLevel = this.determineCrowdingLevel(funding8h);
+
+        if (!Number.isFinite(price) || price <= 0) continue;
+
+        assets.push({
+          symbol: sym,
+          price,
+          change24h,
+          funding8h,
+          fundingAnnualized,
+          openInterest,
+          volume24h,
+          crowdingLevel,
+        });
+      }
+
+      // Skip HIP-3 prefixed symbols (tradfi on other dexes) - main dex is crypto only
+      const cryptoAssets = assets.filter((a) => !a.symbol.includes(":"));
+
+      const sortedByAbsChange = [...cryptoAssets].sort((a, b) => Math.abs(b.change24h) - Math.abs(a.change24h));
+      const topMovers = sortedByAbsChange.slice(0, 5).map((a) => ({
+        symbol: a.symbol,
+        change24h: a.change24h,
+        volume24h: a.volume24h,
+      }));
+
+      const sortedByVolume = [...cryptoAssets].sort((a, b) => b.volume24h - a.volume24h);
+      const volumeLeaders = sortedByVolume.slice(0, 5).map((a) => ({
+        symbol: a.symbol,
+        volume24h: a.volume24h,
+        openInterest: a.openInterest,
+        funding8h: a.funding8h,
+      }));
+
+      const top10ByVol = sortedByVolume.slice(0, 10);
+      const hottestAvg = top10ByVol.length > 0
+        ? top10ByVol.reduce((s, a) => s + a.change24h, 0) / top10ByVol.length
+        : 0;
+      const worstByChange = [...cryptoAssets].sort((a, b) => a.change24h - b.change24h).slice(0, 5);
+      const coldestAvg = worstByChange.length > 0
+        ? worstByChange.reduce((s, a) => s + a.change24h, 0) / worstByChange.length
+        : 0;
+
+      const majors = cryptoAssets.filter((a) => ["BTC", "ETH", "SOL"].includes(a.symbol));
+      let totalFunding = 0;
+      let count = 0;
+      for (const m of majors) {
+        totalFunding += m.funding8h;
+        count++;
+      }
+      let overallBias: IHyperliquidCryptoPulse["overallBias"] = "neutral";
+      if (count > 0) {
+        const avgFunding = totalFunding / count;
+        if (avgFunding > 0.0001) overallBias = "bullish";
+        else if (avgFunding < -0.0001) overallBias = "bearish";
+      }
+
+      return {
+        assets: cryptoAssets,
+        topMovers,
+        volumeLeaders,
+        overallBias,
+        hottestAvg,
+        coldestAvg,
+      };
+    } catch (error) {
+      logger.error(`[HyperliquidFallback] getAllCryptoPulse error: ${error}`);
       return null;
     }
   }

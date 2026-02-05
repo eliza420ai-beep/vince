@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-04 (Dynamic signal-quality feature vector from training_metadata; ML inference tests)
+# Last updated: 2026-02-04 (MandoMinutes sentiment for trading bot — major update)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -18,7 +18,7 @@ COMPLETED
 - VinceMarketDataService - Enriched context (RSI, volatility, regime)
 - VinceSignalAggregatorService - Weighted voting across 15+ sources
 - VinceTopTradersService - Whale wallet tracking via Hyperliquid
-- VinceNewsSentimentService - MandoMinutes sentiment
+- VinceNewsSentimentService - MandoMinutes sentiment (asset-specific, risk-aware, price-embedded, category-weighted)
 - VinceDexScreenerService - Hot memes on SOLANA + BASE
 - VinceMeteoraService - LP pool discovery for DCA strategy
 - VinceNFTFloorService - Floor tracking for ~12 curated collections
@@ -268,6 +268,31 @@ IN PROGRESS
 🔄 No improvement suggestions generated yet (needs more trading data)
 🔄 Increase real-time signal factors: get more sources contributing (see PRIORITY above)
 
+--------------------------------------------------------------------------------
+DEBUG LOG FOCUS (from LOG_LEVEL=debug) – things to fix or improve
+--------------------------------------------------------------------------------
+Run with LOG_LEVEL=debug to see these; address to reduce noise and fix misclassifications.
+
+1. **News sentiment still bullish when it shouldn’t**
+   - Debug log shows: "Bullish sample: BTC erases gains since Trump's election win | … Bearish sample: ." and "weighted bullish=5.9 bearish=0.0 (confidence 100%)".
+   - We added NEGATIVE_GAINS_PHRASES ("erases gains", etc.) and bearish keywords (slide, retreats, probes). If "BTC erases gains…" still appears as bullish sample, either: (a) cache wasn’t cleared / re-fetch so old classifications persist, (b) phrase match fails (e.g. "Trump's" vs "Trump", or different wording in MandoMinutes). **Focus:** Verify phrase matching (normalize apostrophes?); ensure news cache is re-processed after deploy (or clear cache on startup when sentiment logic version changes); add unit test with "BTC erases gains since Trump's election win" → must be bearish.
+
+2. **Service not found spam** — FIXED
+   - Repeated every tick: "[AGENT] Service not found (serviceName=HYPERLIQUID_SERVICE)" and "(serviceName=DERIBIT_SERVICE)". **Fix applied:** In plugin init we register DeribitServiceAlias and HyperliquidServiceAlias when external plugins are not loaded, so getService("DERIBIT_SERVICE")/("HYPERLIQUID_SERVICE") return our fallbacks and core no longer logs "Service not found". See services/fallbacks/aliasServices.ts.
+
+3. **Sanbase API errors every tick** — FIXED
+   - When response contains only "errors" (rate limit/key), log once per 5‑min cooldown. See lastApiErrorLogTime and ERROR_LOG_COOLDOWN_MS in sanbase.service.ts.
+4. **HIP-3 allPerpMetas parsing** — FIXED
+   - Replaced per-item "Item X is not a valid tuple" logs with a single summary: "allPerpMetas: X of Y items invalid (not tuples or bad structure)" when invalid count > 0. Strategy 2 (metaAndAssetCtxs) still falls back when allPerpMetas returns no valid DEXes.
+
+5. **WHY THIS TRADE layout**
+   - Supporting/Conflicting sections and "N of M sources agreed (K disagreed)" are working; News correctly appears in Conflicting for SHORT and Supporting for LONG. Remaining fix is sentiment classification so "News sentiment bullish (100% confidence)" reflects reality when headlines are bearish (see #1).
+
+6. **Useful debug lines to keep**
+   - "[VinceNewsSentiment] Overall X: weighted bullish=… bearish=… (confidence …%). Bullish sample: … Bearish sample: …" – keep for investigation.
+   - "[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: …" and "tried but no contribution: …" – keep for verifying which sources contribute.
+   - Session/off_hours and ML thresholds in "SIGNAL EVALUATED - NO TRADE" – good visibility.
+
 ================================================================================
 MCP / ELIZA CLOUD – LEVERAGE OPPORTUNITIES
 ================================================================================
@@ -308,6 +333,65 @@ General: Adopting MCPs can reduce in-plugin API surface and centralize credits/c
 on Eliza Cloud; log MCP tool calls (tool name + credits if x402) for observability.
 
 ================================================================================
+MANDOMINUTES INSIGHTS – IMPROVEMENT IDEAS
+================================================================================
+
+North star (mid-term, do NOT focus yet): Build our very own news curator to
+reduce dependence on MandoMinutes. That is the mid-term goal; do not prioritize
+it now.
+
+To-dos (leverage the 37-headline MandoMinutes display for better market vibe
+and algo input):
+
+1. Add TLDR / Summary at top
+   - One- to two-line "vibe check" derived from headlines (e.g. "Risk-off:
+     crypto selloff, Trump gains erased, gold/silver up. Themes: regulatory
+     scrutiny, Vitalik ETH sales, quantum fears."). Display at top of box.
+
+2. Categorize headlines by theme
+   - Group into: Prices, Flows, Macro, Regulatory, Protocol, Geopolitical,
+     Memes/NFTs. Section headers in display (┈┈ PRICES ┈┈, etc.).
+
+3. Per-headline sentiment
+   - Use NewsSentimentService to score each headline; show aggregate
+     (e.g. "15 bearish | 12 neutral | 10 bullish"); optional color-code lines.
+   - Surface "sentiment vs price" dissonance when headlines say one thing but
+     price action says another.
+
+4. Top 5 Must-Know
+   - Extract 5–7 highest-impact items (price moves, flows, major macro/reg)
+     and show in a dedicated block at top for quick scan.
+
+5. Wire MandoMinutes into aggregator and paper bot
+   - Ensure MandoMinutes feeds into VinceSignalAggregatorService as a clear
+     "news" factor; summarize TLDR + top themes for paper bot context (not all
+     37 headlines); contribute to regime/context (e.g. "Headlines: risk-off").
+
+6. Structured themes for RAG
+   - Extract themes (regulatory, vitalik_eth, quantum_fears, macro_risk_off)
+     with metadata; store so agent can answer "What's regulatory sentiment?"
+     or "Any Vitalik/ETH news?" from memory.
+
+7. Optional UI tweaks
+   - Section headers, 🔥 HOT / ⚠️ RISK badges on high-impact items; single
+     "narrative bias" line (Narrative: bearish | Flow: mixed | Price: selling).
+
+## MandoMinutes sentiment for trading bot — DONE ✅ (2026-02-04)
+- Asset-specific sentiment: signal aggregator uses getTradingSentiment(asset) which prefers
+  getAssetSentiment(asset) when newsCount >= 2, else getOverallSentiment(). Asset-specific
+  (e.g. "Vitalik sells ETH") now affects ETH more than BTC.
+- Risk-event dampener: when hasHighRiskEvent (critical or warning), bullish news signal is
+  blocked; bearish signal gets +8 strength and "risk event active" in factor text.
+- Price-embedded headlines: parsePriceSnapshotsFromTitle extracts "BTC: 75.2k (-4%)" etc from
+  MandoMinutes; merged into sentiment as priceSentiment contribution (~2 headline equiv).
+- Phrase overrides: NEGATIVE_GAINS_PHRASES expanded (continues to slide, touches $, etf outflow,
+  probing/probes, sanctions evasion).
+- Category weighting: CATEGORY_WEIGHTS per asset (BTC macro 1.5x, SOL leftcurve 1.3x, etc).
+- Confidence calibration: blendConfidence blends score-based and headcount-based (60/40).
+- Macro vs crypto: category weights implement macro vs crypto vs leftcurve weighting per asset.
+- Tests: newsSentiment.service.test.ts — expanded phrase tests, getTradingSentiment.
+
+================================================================================
 THINGS TO DO NEXT (high impact – leverage data we have, not yet used in algo)
 ================================================================================
 
@@ -345,6 +429,12 @@ NEXT / BACKLOG
 📋 Implement position sizing based on Kelly Criterion ML model
 📋 Add correlation-based position limits
 📋 Implement trailing stop-loss logic
+📋 Debug log: Verify news sentiment "erases gains" phrase match and cache re-process so bearish
+   headlines classify correctly (see DEBUG LOG FOCUS #1); add unit test for "BTC erases gains…".
+📋 Debug log: Reduce "Service not found (HYPERLIQUID_SERVICE/DERIBIT_SERVICE)" noise – dedupe or
+   register fallback as the named service (see DEBUG LOG FOCUS #2).
+📋 Debug log: Sanbase "API response keys: errors" – log once per cooldown when response is errors only.
+📋 HIP-3: Fix or skip allPerpMetas parsing when response shape is invalid (DEBUG LOG FOCUS #4).
 
 Product feedback → backlog:
 📋 NEWS: Build own news plugin + day report to reduce MandoMinutes dependency (likely X API ~$100/mo).
@@ -443,6 +533,9 @@ SESSION NOTES
 ================================================================================
 
 2026-02-04:
+- MandoMinutes sentiment for trading bot (completeness): (1) Asset-specific sentiment via getTradingSentiment(asset). (2) Risk-event dampener: block bullish when critical/warning, boost bearish. (3) Price-embedded headlines parsed and merged. (4) Phrase overrides expanded. (5) Category weighting per asset. (6) Confidence calibration (score+headcount blend). (7) Macro vs crypto via category weights. See "MandoMinutes sentiment for trading bot — DONE" above.
+- MandoMinutes insights: New section "MANDOMINUTES INSIGHTS – IMPROVEMENT IDEAS" with 7 to-dos (TLDR, categorization, per-headline sentiment, top 5 must-know, wire to aggregator, structured themes for RAG, optional UI). North star (mid-term): own news curator to reduce MandoMinutes dependence; do not focus on that yet.
+- HL Crypto dashboard: printHlCryptoDashboard exported; startup async block in plugin init fetches getAllCryptoPulse and prints to terminal (HIP-3 style for all HL crypto perps).
 - progress.txt: THINGS TO DO #1 “Use new market features in the trading algo” marked DONE in paper
   trading (book imbalance filter, SMA20/funding reversal confidence boost, DVOL size cap in
   vincePaperTrading.service.ts). Optional backlog: add book/sma20/funding as factors in signal
@@ -465,6 +558,20 @@ SESSION NOTES
   features get 0; asset_* dummies use assetTicker. Legacy 16/17/20-dim path kept when no names.
   Tests: mlInference.service.test.ts (6 tests) for dynamic 23/33-feature, legacy 16-dim, asset
   tickers, threshold; fs mock avoids ONNX load and Bun crash.
+- WHY THIS TRADE banner: (1) Aggregator now exposes supportingFactors vs conflictingFactors (and
+  conflictingCount) so the banner shows "Supporting (N):" and "Conflicting (M):" with correct
+  split. (2) Decision line: "SHORT — 4 of 7 sources agreed (3 disagreed)." (3) Sources list, ML/Open
+  window, then "All factors" with 3 per line. Paper trading receives supportingReasons/conflictingReasons
+  and displays them; news sentiment correctly appears under Conflicting when we go SHORT.
+- News sentiment classification: (1) NEGATIVE_GAINS_PHRASES so "erases gains", "gains wiped", etc.
+  count as bearish. (2) Removed bare "record" from BULLISH; added "record high", "record inflow".
+  (3) Bearish keywords: slide, sell off, probes, retreat(s), sunset(s), fell, fall. (4) getOverallSentiment
+  logs at debug: weighted bullish/bearish, confidence, and sample headlines (bullish/bearish) for
+  investigation. If "BTC erases gains" still shows as bullish sample after deploy, see progress
+  "DEBUG LOG FOCUS" (cache re-process, phrase match, unit test).
+- progress.txt: New "DEBUG LOG FOCUS" section from LOG_LEVEL=debug: news sentiment verification,
+  Service not found spam (HYPERLIQUID_SERVICE, DERIBIT_SERVICE), Sanbase errors, HIP-3 allPerpMetas
+  parsing, WHY THIS TRADE layout, and which debug lines to keep.
 
 2026-02-03:
 - Risk manager & sizing now treat exposure **by margin**, not by notional. `position.marginUsd`

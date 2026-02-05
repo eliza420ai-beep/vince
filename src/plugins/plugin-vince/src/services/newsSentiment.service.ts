@@ -27,21 +27,22 @@ const BULLISH_KEYWORDS = [
   // Institutional
   "etf inflow", "inflows", "accumulation", "accumulating", "buying",
   "institutional", "adoption", "approval", "approved", "launch",
-  // Positive news
+  // Positive news ("record" removed - ambiguous: "record outflows" is bearish)
   "bullish", "optimistic", "upgrade", "partnership", "milestone",
-  "record", "expansion", "growth", "success", "breakthrough",
+  "record high", "record inflow", "expansion", "growth", "success", "breakthrough",
 ];
 
 /** Keywords that indicate bearish sentiment */
 const BEARISH_KEYWORDS = [
   // Price action
-  "crash", "dump", "plunge", "selloff", "sell-off", "decline", "drop",
-  "falls", "sinks", "tumbles", "slides", "correction", "capitulation",
+  "crash", "dump", "plunge", "selloff", "sell-off", "sell off", "decline", "drop",
+  "falls", "fell", "fall", "sinks", "tumbles", "slides", "slide", "correction", "capitulation",
   // Negative events
   "hack", "hacked", "exploit", "exploited", "rug", "rugged", "scam",
-  "sec", "lawsuit", "investigation", "ban", "banned", "crackdown",
-  // Outflows
+  "sec", "lawsuit", "investigation", "probes", "ban", "banned", "crackdown",
+  // Outflows / pullbacks
   "etf outflow", "outflows", "distribution", "selling", "liquidation",
+  "retreat", "retreats", "retreating", "sunset", "sunsets",
   "bearish", "pessimistic", "downgrade", "failure", "collapse",
 ];
 
@@ -171,6 +172,7 @@ export class VinceNewsSentimentService extends Service {
 
   private newsCache: NewsItem[] = [];
   private riskEvents: RiskEvent[] = [];
+  private priceSnapshots: Array<{ asset: string; changePct: number; timestamp: number }> = [];
   private lastUpdate = 0;
   private lastMandoFetch = 0;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -366,8 +368,16 @@ export class VinceNewsSentimentService extends Service {
       this.lastMandoFetch = cached.timestamp;
 
       // Convert and analyze each article
+      this.priceSnapshots = [];
       for (const article of cached.articles) {
         if (!article.title || article.title.length < 10) continue;
+
+        // Parse price-embedded lines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)")
+        const priceSnaps = this.parsePriceSnapshotsFromTitle(article.title, cached.timestamp);
+        if (priceSnaps.length > 0) {
+          this.priceSnapshots.push(...priceSnaps);
+          continue;
+        }
 
         // Analyze sentiment
         const sentiment = this.analyzeSentiment(article.title);
@@ -530,6 +540,27 @@ export class VinceNewsSentimentService extends Service {
   }
   
   /**
+   * Parse price-embedded headlines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)")
+   * Returns array of { asset, changePct } for trading sentiment.
+   */
+  private parsePriceSnapshotsFromTitle(
+    title: string,
+    timestamp: number
+  ): Array<{ asset: string; changePct: number; timestamp: number }> {
+    const results: Array<{ asset: string; changePct: number; timestamp: number }> = [];
+    const regex = /([A-Z]{2,5}):\s*\$?[\d,.]+[kmb]?\s*\(([+-]?\d+\.?\d*)%?\)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(title)) !== null) {
+      const asset = m[1].toUpperCase();
+      const changePct = parseFloat(m[2]);
+      if (!Number.isNaN(changePct) && TRACKED_ASSETS.includes(asset)) {
+        results.push({ asset, changePct, timestamp });
+      }
+    }
+    return results;
+  }
+
+  /**
    * Add a parsed article with deduplication
    */
   private addParsedArticle(
@@ -614,26 +645,55 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
+   * Phrases that mean "gains are being lost" — treat as bearish even though "gains" is a bullish word
+   */
+  private static readonly NEGATIVE_GAINS_PHRASES = [
+    "erases gains", "gains erased", "erase gains", "erasing gains",
+    "give up gains", "gave up gains", "giving up gains", "gives up gains",
+    "wiped gains", "wiping out gains", "gains wiped", "wipes out gains",
+    "reverses gains", "reversing gains", "reversed gains",
+    "lose gains", "losing gains", "lost gains", "loses gains",
+    "continues to slide", "continues to fall", "touches $",
+    "etf outflow", "etf outflows", "withdrawals", "probing", "probes",
+    "sanctions evasion", "sanctions probe",
+  ];
+
+  /** Category weights per asset for trading algo (macro vs crypto vs leftcurve) */
+  private static readonly CATEGORY_WEIGHTS: Record<string, Record<string, number>> = {
+    BTC: { crypto: 1.0, macro: 1.5, leftcurve: 0.7 },
+    ETH: { crypto: 1.0, macro: 1.2, leftcurve: 0.8 },
+    SOL: { crypto: 1.0, macro: 0.9, leftcurve: 1.3 },
+    HYPE: { crypto: 1.0, macro: 0.8, leftcurve: 1.2 },
+  };
+
+  /**
    * Analyze sentiment of a headline using keyword matching
    */
   private analyzeSentiment(text: string): "bullish" | "bearish" | "neutral" {
     const lower = text.toLowerCase();
-    
     let bullishScore = 0;
     let bearishScore = 0;
-    
+
+    // Override: "erases gains", "gains wiped" etc. are bearish (gains being lost)
+    for (const phrase of VinceNewsSentimentService.NEGATIVE_GAINS_PHRASES) {
+      if (lower.includes(phrase)) {
+        bearishScore += 2;
+        break;
+      }
+    }
+
     for (const keyword of BULLISH_KEYWORDS) {
       if (lower.includes(keyword)) {
         bullishScore++;
       }
     }
-    
+
     for (const keyword of BEARISH_KEYWORDS) {
       if (lower.includes(keyword)) {
         bearishScore++;
       }
     }
-    
+
     // Need a clear signal to classify
     if (bullishScore > bearishScore && bullishScore >= 1) {
       return "bullish";
@@ -641,8 +701,16 @@ export class VinceNewsSentimentService extends Service {
     if (bearishScore > bullishScore && bearishScore >= 1) {
       return "bearish";
     }
-    
+
     return "neutral";
+  }
+
+  /**
+   * Public API for testing and callers: get sentiment for a single headline.
+   * Uses the same keyword + NEGATIVE_GAINS_PHRASES logic as analyzeSentiment.
+   */
+  getSentimentForHeadline(text: string): "bullish" | "bearish" | "neutral" {
+    return this.analyzeSentiment(text);
   }
 
   /**
@@ -831,59 +899,53 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
-   * Get overall market sentiment from news
+   * Get price-based sentiment contribution from snapshots (avg change < 0 → bearish, > 0 → bullish).
+   * Weight ~2 headlines so it doesn't dominate keyword sentiment.
    */
-  getOverallSentiment(): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number } {
-    if (this.newsCache.length === 0) {
-      return { sentiment: "neutral", confidence: 0 };
-    }
-
-    // Weight by recency and impact
-    let bullishScore = 0;
-    let bearishScore = 0;
-    const now = Date.now();
-
-    for (const news of this.newsCache) {
-      const ageHours = (now - news.timestamp) / (60 * 60 * 1000);
-      const recencyWeight = Math.max(0.1, 1 - ageHours / 24); // Decay over 24 hours
-      const impactWeight = news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
-      const weight = recencyWeight * impactWeight;
-
-      if (news.sentiment === "bullish") {
-        bullishScore += weight;
-      } else if (news.sentiment === "bearish") {
-        bearishScore += weight;
-      }
-    }
-
-    const totalScore = bullishScore + bearishScore;
-    if (totalScore === 0) {
-      return { sentiment: "neutral", confidence: 0 };
-    }
-
-    const sentiment = bullishScore > bearishScore * 1.2 ? "bullish" 
-                    : bearishScore > bullishScore * 1.2 ? "bearish" 
-                    : "neutral";
-    const confidence = Math.min(100, Math.abs(bullishScore - bearishScore) / totalScore * 100);
-
-    return { sentiment, confidence };
+  private getPriceSentimentContribution(
+    snapshots: Array<{ asset: string; changePct: number }>,
+    assetFilter?: string
+  ): { bullishAdd: number; bearishAdd: number } {
+    const filtered = assetFilter
+      ? snapshots.filter((s) => s.asset === assetFilter)
+      : snapshots;
+    if (filtered.length === 0) return { bullishAdd: 0, bearishAdd: 0 };
+    const avgChange = filtered.reduce((s, x) => s + x.changePct, 0) / filtered.length;
+    if (Math.abs(avgChange) < 0.5) return { bullishAdd: 0, bearishAdd: 0 };
+    const contrib = Math.min(3, Math.abs(avgChange) / 2);
+    return avgChange > 0 ? { bullishAdd: contrib, bearishAdd: 0 } : { bullishAdd: 0, bearishAdd: contrib };
   }
 
   /**
-   * Get sentiment for a specific asset
+   * Blend score-based and headcount-based confidence for better calibration.
    */
-  getAssetSentiment(asset: string): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number; newsCount: number } {
-    const assetNews = this.getNewsByAsset(asset);
-    
-    if (assetNews.length === 0) {
-      return { sentiment: "neutral", confidence: 0, newsCount: 0 };
-    }
+  private blendConfidence(
+    scoreConfidence: number,
+    bullishCount: number,
+    bearishCount: number,
+    totalRelevant: number
+  ): number {
+    const headcountConfidence =
+      totalRelevant > 0
+        ? Math.min(100, (Math.abs(bullishCount - bearishCount) / Math.max(1, totalRelevant)) * 100)
+        : 0;
+    return Math.round(0.6 * scoreConfidence + 0.4 * headcountConfidence);
+  }
 
+  /**
+   * Get overall market sentiment from news
+   * Uses keyword counts per headline, weighted by recency and impact; includes price snapshots and headcount calibration.
+   */
+  getOverallSentiment(): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number } {
     let bullishScore = 0;
     let bearishScore = 0;
+    let bullishCount = 0;
+    let bearishCount = 0;
     const now = Date.now();
+    const bullishExamples: string[] = [];
+    const bearishExamples: string[] = [];
 
-    for (const news of assetNews) {
+    for (const news of this.newsCache) {
       const ageHours = (now - news.timestamp) / (60 * 60 * 1000);
       const recencyWeight = Math.max(0.1, 1 - ageHours / 24);
       const impactWeight = news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
@@ -891,22 +953,107 @@ export class VinceNewsSentimentService extends Service {
 
       if (news.sentiment === "bullish") {
         bullishScore += weight;
+        bullishCount++;
+        if (bullishExamples.length < 3) bullishExamples.push(news.title.slice(0, 60));
       } else if (news.sentiment === "bearish") {
         bearishScore += weight;
+        bearishCount++;
+        if (bearishExamples.length < 3) bearishExamples.push(news.title.slice(0, 60));
       }
     }
 
+    const priceContrib = this.getPriceSentimentContribution(this.priceSnapshots);
+    bullishScore += priceContrib.bullishAdd;
+    bearishScore += priceContrib.bearishAdd;
+
     const totalScore = bullishScore + bearishScore;
-    if (totalScore === 0) {
-      return { sentiment: "neutral", confidence: 0, newsCount: assetNews.length };
+    if (totalScore === 0 && this.newsCache.length === 0) {
+      return { sentiment: "neutral", confidence: 0 };
     }
 
-    const sentiment = bullishScore > bearishScore * 1.2 ? "bullish" 
-                    : bearishScore > bullishScore * 1.2 ? "bearish" 
-                    : "neutral";
-    const confidence = Math.min(100, Math.abs(bullishScore - bearishScore) / totalScore * 100);
+    const sentiment =
+      bullishScore > bearishScore * 1.2
+        ? "bullish"
+        : bearishScore > bullishScore * 1.2
+          ? "bearish"
+          : "neutral";
+    const scoreConf = totalScore > 0 ? Math.min(100, (Math.abs(bullishScore - bearishScore) / totalScore) * 100) : 0;
+    const confidence = this.blendConfidence(scoreConf, bullishCount, bearishCount, bullishCount + bearishCount);
 
-    return { sentiment, confidence: Math.round(confidence), newsCount: assetNews.length };
+    logger.debug(
+      `[VinceNewsSentiment] Overall ${sentiment}: weighted bullish=${bullishScore.toFixed(1)} bearish=${bearishScore.toFixed(1)} ` +
+        `(confidence ${confidence}%). Bullish sample: ${bullishExamples.join(" | ")}. Bearish sample: ${bearishExamples.join(" | ")}.`
+    );
+
+    return { sentiment, confidence };
+  }
+
+  /**
+   * Get sentiment for a specific asset with category weighting and macro vs crypto split.
+   * Crypto+leftcurve weighted for perps; macro weighted higher for BTC.
+   */
+  getAssetSentiment(asset: string): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number; newsCount: number } {
+    const assetNews = this.getNewsByAsset(asset);
+    const catWeights = VinceNewsSentimentService.CATEGORY_WEIGHTS[asset] ?? { crypto: 1, macro: 1, leftcurve: 1 };
+    const now = Date.now();
+    let bullishScore = 0;
+    let bearishScore = 0;
+    let bullishCount = 0;
+    let bearishCount = 0;
+
+    for (const news of assetNews) {
+      const ageHours = (now - news.timestamp) / (60 * 60 * 1000);
+      const recencyWeight = Math.max(0.1, 1 - ageHours / 24);
+      const impactWeight = news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
+      const cat = (news.category || "crypto") as "crypto" | "macro" | "leftcurve";
+      const catWeight = catWeights[cat] ?? 1;
+      const weight = recencyWeight * impactWeight * catWeight;
+
+      if (news.sentiment === "bullish") {
+        bullishScore += weight;
+        bullishCount++;
+      } else if (news.sentiment === "bearish") {
+        bearishScore += weight;
+        bearishCount++;
+      }
+    }
+
+    const priceContrib = this.getPriceSentimentContribution(this.priceSnapshots, asset);
+    bullishScore += priceContrib.bullishAdd;
+    bearishScore += priceContrib.bearishAdd;
+
+    const totalScore = bullishScore + bearishScore;
+    if (totalScore === 0 && assetNews.length === 0) {
+      return { sentiment: "neutral", confidence: 0, newsCount: 0 };
+    }
+
+    const sentiment =
+      bullishScore > bearishScore * 1.2 ? "bullish" : bearishScore > bullishScore * 1.2 ? "bearish" : "neutral";
+    const scoreConf = totalScore > 0 ? Math.min(100, (Math.abs(bullishScore - bearishScore) / totalScore) * 100) : 0;
+    const confidence = this.blendConfidence(scoreConf, bullishCount, bearishCount, bullishCount + bearishCount);
+
+    return { sentiment, confidence, newsCount: assetNews.length };
+  }
+
+  /**
+   * Get sentiment for trading algo: prefers asset-specific when newsCount >= 2, else overall.
+   * Also returns hasHighRiskEvent for risk dampening.
+   */
+  getTradingSentiment(asset: string): {
+    sentiment: "bullish" | "bearish" | "neutral";
+    confidence: number;
+    hasHighRiskEvent: boolean;
+  } {
+    const assetSent = this.getAssetSentiment(asset);
+    const overall = this.getOverallSentiment();
+    const activeEvents = this.getActiveRiskEvents();
+    const hasHighRiskEvent = activeEvents.some((e) => e.severity === "critical" || e.severity === "warning");
+
+    const useAsset = assetSent.newsCount >= 2;
+    const sentiment = useAsset ? assetSent.sentiment : overall.sentiment;
+    const confidence = useAsset ? assetSent.confidence : overall.confidence;
+
+    return { sentiment, confidence, hasHighRiskEvent };
   }
 
   /**

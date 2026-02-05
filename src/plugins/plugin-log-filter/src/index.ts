@@ -92,6 +92,41 @@ const SUPPRESS_INFO_PATTERNS = [
   /after recovery attempt/i,
 ];
 
+/** Routine startup / init Info logs – keep terminal focused on boxes, warnings, errors. Set VINCE_QUIET=false to show. */
+const SUPPRESS_ROUTINE_INFO_PATTERNS = [
+  /\[TrainONNX\]/i,
+  /\[PLUGIN:SQL\].*Migration|Initializing migration|No changes detected|Migration completed|All migrations|Skipping RLS|DatabaseMigrationService/i,
+  /\[PLUGIN:SQL\]\s*(Initializing|Starting|Migration)/i,
+  /\[PLUGIN:BOOTSTRAP:SERVICE:EMBEDDING\]/i,
+  /\[HyperliquidFallback\].*initialized/i,
+  /\[VinceCoinGecko\].*Dashboard loaded/i,
+  /\[VinceSignalAggregator\].*initialized|Service initialized/i,
+  /\[VinceTopTraders\].*Loaded.*wallets/i,
+  /\[VinceNewsSentiment\].*initialized|Service initialized/i,
+  /\[VinceMeteora\].*started|✅/i,
+  /\[VinceBinanceLiq\].*Connecting/i,
+  /\[VinceMarketRegime\].*initialized/i,
+  /\[VinceHIP3\].*initialized/i,
+  /\[VinceWatchlist\].*Loaded|started/i,
+  /\[VinceAlert\].*started/i,
+  /\[VinceTradeJournal\].*started/i,
+  /\[VinceGoalTracker\].*started|Daily Target/i,
+  /\[VincePositionManager\].*started/i,
+  /\[VincePaperTrading\].*State restored|started/i,
+  /\[VinceImprovementJournal\].*Found|started/i,
+  /\[VinceFeatureStore\].*Supabase|Initialized|storing features/i,
+  /\[WeightBandit\].*Thompson Sampling|initialized/i,
+  /\[SignalSimilarity\].*Embedding-based|initialized/i,
+  /\[VINCE\].*Agent initialized|Plugin initialized/i,
+  /\[Eliza\].*24\/7 research|ready/i,
+  /\[VinceParameterTuner\].*started/i,
+  /\[AGENT\].*Successfully registered|Auto-associated/i,
+  /\[SERVICE:MESSAGE-BUS\].*Subscribing|Fetched channels|Loaded valid channel|Agent subscribed/i,
+  /\[LogFilter\].*Logger filter active/i,
+  // Pino may prefix with agent context
+  /#(VINCE|Eliza)\s+\[PLUGIN:BOOTSTRAP:SERVICE:EMBEDDING\]/i,
+];
+
 // Patterns to suppress (case-insensitive) - comprehensive list
 const SUPPRESS_PATTERNS = [
     // CoinGecko MCP tool messages - catch ALL get_* patterns
@@ -141,12 +176,22 @@ const SUPPRESS_PATTERNS = [
     /^Info:/i,
 ];
 
+/** Quiet mode: suppress routine startup/info noise. Default true. Set VINCE_QUIET=false for verbose. */
+function isQuietMode(): boolean {
+  return process.env.VINCE_QUIET !== 'false';
+}
+
 // Check if a log message should be suppressed
 function shouldSuppress(message: string): boolean {
     // Only suppress info-level verbose documentation
     // Keep errors, warnings, and important info
     if (!message || message.length < 20) return false;
-    
+
+    // Routine startup/info noise – keep terminal focused on boxes, warnings, errors
+    if (isQuietMode() && SUPPRESS_ROUTINE_INFO_PATTERNS.some((p) => p.test(message))) {
+        return true;
+    }
+
     // Check for server ownership info patterns (direct client noise)
     if (SUPPRESS_INFO_PATTERNS.some(pattern => pattern.test(message))) {
         return true;

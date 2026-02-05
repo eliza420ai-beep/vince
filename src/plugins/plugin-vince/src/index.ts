@@ -48,7 +48,9 @@ import { VinceAlertService } from "./services/alert.service";
 
 // Fallback services factory (for external service source tracking)
 import { initializeFallbackServices, getServiceSources, clearServiceSources, getOrCreateHyperliquidService } from "./services/fallbacks";
+import { DeribitServiceAlias, HyperliquidServiceAlias } from "./services/fallbacks/aliasServices";
 import { startBox, endBox, logLine, logEmpty, sep } from "./utils/boxLogger";
+import { isVinceAgent } from "./utils/dashboard";
 
 // Services - Paper Trading Bot
 import { VincePaperTradingService } from "./services/vincePaperTrading.service";
@@ -80,6 +82,7 @@ import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
 import { vinceHIP3Action } from "./actions/hip3.action";
+import { vinceHlCryptoAction, printHlCryptoDashboard } from "./actions/hlCrypto.action";
 import { vinceChatAction } from "./actions/chat.action";
 
 // Actions - Paper Trading Bot
@@ -132,7 +135,12 @@ export const vincePlugin: Plugin = {
   schema: paperTradesSchema,
 
   // Services - all data sources
+  // DeribitServiceAlias/HyperliquidServiceAlias: register under DERIBIT_SERVICE/HYPERLIQUID_SERVICE so
+  // runtime.getService() never returns null when external plugins aren't loaded. Must be in services
+  // array (not init registerService) to avoid blocking initPromise → 30s timeout deadlock.
   services: [
+    DeribitServiceAlias,
+    HyperliquidServiceAlias,
     VinceCoinGlassService,
     VinceCoinGeckoService,
     VinceMarketDataService,
@@ -182,6 +190,7 @@ export const vincePlugin: Plugin = {
     vinceIntelAction,
     vinceNewsAction,
     vinceHIP3Action,
+    vinceHlCryptoAction,
     vinceChatAction,
     // Paper Trading Bot
     vinceBotStatusAction,
@@ -212,10 +221,13 @@ export const vincePlugin: Plugin = {
     tradePerformanceEvaluator,
   ],
   
-  // Plugin initialization with live market data dashboard
+  // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
-    // Fetch live prices for dashboard
+    // Banner + MARKET PULSE: only for VINCE (Eliza also loads this plugin → would print twice)
+    if (isVinceAgent(runtime)) {
+    // Fetch live prices and 24h change from CoinGecko
     let prices: { btc?: number; eth?: number; sol?: number; hype?: number } = {};
+    let changes: { btc?: number; eth?: number; sol?: number; hype?: number } = {};
     try {
       const res = await fetch(
         "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,hyperliquid&vs_currencies=usd&include_24hr_change=true",
@@ -229,9 +241,29 @@ export const vincePlugin: Plugin = {
           sol: data.solana?.usd,
           hype: data.hyperliquid?.usd,
         };
+        changes = {
+          btc: data.bitcoin?.usd_24h_change,
+          eth: data.ethereum?.usd_24h_change,
+          sol: data.solana?.usd_24h_change,
+          hype: data.hyperliquid?.usd_24h_change,
+        };
       }
     } catch {
       // Silent fallback - prices will show as "..."
+    }
+
+    // Fetch Hyperliquid options pulse (funding, crowding, OI, vol) — HIP-3 style overview
+    let optionsPulse: Awaited<ReturnType<NonNullable<ReturnType<typeof getOrCreateHyperliquidService>>["getOptionsPulse"]>> = null;
+    try {
+      const hlService = getOrCreateHyperliquidService(runtime);
+      if (hlService && typeof hlService.getOptionsPulse === "function") {
+        optionsPulse = await Promise.race([
+          hlService.getOptionsPulse(),
+          new Promise<null>((r) => setTimeout(() => r(null), 5000)),
+        ]);
+      }
+    } catch {
+      // Silent fallback
     }
 
     const formatPrice = (p: number | undefined) => {
@@ -239,11 +271,50 @@ export const vincePlugin: Plugin = {
       if (p >= 1000) return `$${(p / 1000).toFixed(1)}K`;
       return `$${p.toFixed(2)}`;
     };
+    const formatChange = (c: number | undefined) => {
+      if (c == null || Number.isNaN(c)) return "";
+      const s = c >= 0 ? `+${c.toFixed(2)}` : c.toFixed(2);
+      return ` (${s}%)`;
+    };
+    const formatFunding = (f: number | undefined) => (f != null ? `${f >= 0 ? "+" : ""}${f.toFixed(2)}%` : "-");
+    const formatOI = (v: number | undefined) => {
+      if (v == null || v <= 0) return "";
+      if (v >= 1e6) return ` OI ${(v / 1e6).toFixed(2)}M`;
+      if (v >= 1e3) return ` OI ${(v / 1e3).toFixed(1)}k`;
+      return "";
+    };
 
-    const btcStr = formatPrice(prices.btc);
-    const ethStr = formatPrice(prices.eth);
-    const solStr = formatPrice(prices.sol);
-    const hypeStr = formatPrice(prices.hype);
+    const assets = [
+      { key: "btc" as const, symbol: "BTC", price: prices.btc, change: changes.btc },
+      { key: "eth" as const, symbol: "ETH", price: prices.eth, change: changes.eth },
+      { key: "sol" as const, symbol: "SOL", price: prices.sol, change: changes.sol },
+      { key: "hype" as const, symbol: "HYPE", price: prices.hype, change: changes.hype },
+    ];
+    const assetLines: string[] = [];
+    for (const a of assets) {
+      const pulse = optionsPulse?.assets?.[a.key];
+      const fund = pulse?.fundingAnnualized != null ? formatFunding(pulse.fundingAnnualized) : "";
+      const crowd = pulse?.crowdingLevel && pulse.crowdingLevel !== "neutral" ? ` ${pulse.crowdingLevel.replace("extreme_", "ext ")}` : "";
+      const oi = pulse?.openInterest != null ? formatOI(pulse.openInterest) : "";
+      const parts = [`${a.symbol}: ${formatPrice(a.price)}${formatChange(a.change)}`];
+      if (fund || crowd || oi) parts.push(` | fund ${fund}${crowd}${oi}`);
+      assetLines.push("   ├─ " + parts.join(""));
+    }
+    const bias = optionsPulse?.overallBias?.toUpperCase() ?? "—";
+    const crowded: string[] = [];
+    for (const a of assets) {
+      const c = optionsPulse?.assets?.[a.key]?.crowdingLevel;
+      if (c === "extreme_long" || c === "long") crowded.push(`${a.symbol} longs`);
+      if (c === "extreme_short" || c === "short") crowded.push(`${a.symbol} shorts`);
+    }
+    const leader = assets.reduce<{ sym: string; ch: number } | null>((best, a) => {
+      const ch = a.change ?? 0;
+      if (best == null || ch > best.ch) return { sym: a.symbol, ch };
+      return best;
+    }, null);
+    const tldrParts: string[] = [`Bias: ${bias}`];
+    if (crowded.length) tldrParts.push(`Crowded: ${crowded.slice(0, 2).join(", ")}`);
+    if (leader && Math.abs(leader.ch) > 0.1) tldrParts.push(`${leader.ch >= 0 ? "Leading" : "Dragging"}: ${leader.sym}`);
 
     // Banner (same box style as paper trade-opened and dashboards)
     startBox();
@@ -258,9 +329,9 @@ export const vincePlugin: Plugin = {
     logEmpty();
     sep();
     logEmpty();
-    logLine("   MARKET PULSE");
-    logLine(`   ├─ BTC: ${btcStr}  ETH: ${ethStr}  SOL: ${solStr}`);
-    logLine(`   └─ HYPE: ${hypeStr}`);
+    logLine("   MARKET PULSE (HL perps: BTC, ETH, SOL, HYPE)");
+    for (const ln of assetLines) logLine(ln);
+    logLine("   └─ TLDR: " + tldrParts.join(" | "));
     logEmpty();
     sep();
     logEmpty();
@@ -290,8 +361,12 @@ export const vincePlugin: Plugin = {
     logLine("   ├─ Nansen      Smart money (100 credits)");
     logLine("   └─ Sanbase     On-chain analytics (1K/mo)");
     endBox();
-    
+    }
+
     logger.info("[VINCE] Plugin initialized successfully");
+
+    // DeribitServiceAlias / HyperliquidServiceAlias are in services array (not registered here) to
+    // avoid blocking initPromise and causing 30s registration timeouts.
 
     // Initialize fallback services and log which are external vs built-in
     clearServiceSources(); // Clear any previous state
@@ -327,10 +402,10 @@ export const vincePlugin: Plugin = {
     // const xaiConfigured = serviceSources.find((s) => s.name === "xai") !== undefined;
 
     if (externalServices.length > 0) {
-      console.log(`  [VINCE] ✅ Using external plugins: ${externalServices.join(", ")}`);
+      logger.debug(`  [VINCE] ✅ Using external plugins: ${externalServices.join(", ")}`);
     }
     if (fallbackServices.length > 0) {
-      console.log(`  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`);
+      logger.debug(`  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`);
     }
     // Signal sources available for aggregator (see SIGNAL_SOURCES.md)
     const signalSourceChecks: [string, string][] = [
@@ -346,7 +421,7 @@ export const vincePlugin: Plugin = {
     const availableSources = signalSourceChecks
       .filter(([type]) => !!runtime.getService(type))
       .map(([, label]) => label);
-    console.log(`  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`);
+    logger.debug(`  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`);
 
     // Improvement report → aggregator weights (THINGS TO DO #3): log top features, optionally align weights
     const { logAndApplyImprovementReportWeights } = await import("./utils/improvementReportWeights");
@@ -354,32 +429,49 @@ export const vincePlugin: Plugin = {
     logAndApplyImprovementReportWeights(applyWeights).catch((e) =>
       logger.debug(`[VINCE] Improvement report weights: ${e}`)
     );
-    console.log(`  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`);
-    // if (!xaiConfigured) {
-    //   console.log(`  [VINCE] ⚠️  XAI not configured (add XAI_API_KEY for Grok Expert)`);
-    // }
-    console.log("");
+    logger.debug(`  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`);
 
-    // Verify Hyperliquid API connection (async, non-blocking)
+    // Verify Hyperliquid API + HL Crypto dashboard: VINCE only (Eliza shares plugin, skip duplicate output)
+    if (isVinceAgent(runtime)) {
     (async () => {
       try {
         const hlService = getOrCreateHyperliquidService(runtime);
         if (hlService && typeof (hlService as any).testConnection === "function") {
           const testResult = await (hlService as any).testConnection();
           if (testResult.success) {
-            console.log(`  [VINCE] 🔗 Hyperliquid API: ${testResult.message}`);
+            logger.debug(`  [VINCE] 🔗 Hyperliquid API: ${testResult.message}`);
             if (testResult.data) {
               const { btcFunding8h, ethFunding8h } = testResult.data;
-              console.log(`  [VINCE]    BTC funding: ${btcFunding8h !== null ? (btcFunding8h * 100).toFixed(4) + "%" : "N/A"} | ETH: ${ethFunding8h !== null ? (ethFunding8h * 100).toFixed(4) + "%" : "N/A"}`);
+              logger.debug(`  [VINCE]    BTC funding: ${btcFunding8h !== null ? (btcFunding8h * 100).toFixed(4) + "%" : "N/A"} | ETH: ${ethFunding8h !== null ? (ethFunding8h * 100).toFixed(4) + "%" : "N/A"}`);
             }
           } else {
-            console.log(`  [VINCE] ⚠️  Hyperliquid API: ${testResult.message}`);
+            logger.warn(`  [VINCE] ⚠️  Hyperliquid API: ${testResult.message}`);
           }
         }
       } catch (e) {
-        console.log(`  [VINCE] ⚠️  Hyperliquid API test failed: ${e}`);
+        logger.warn(`  [VINCE] ⚠️  Hyperliquid API test failed: ${e}`);
       }
     })();
+
+    // HL Crypto dashboard (HIP-3 style for all HL crypto perps) — async, non-blocking
+    (async () => {
+      try {
+        const hlService = getOrCreateHyperliquidService(runtime);
+        if (hlService && typeof (hlService as any).getAllCryptoPulse === "function") {
+          const pulse = await Promise.race([
+            (hlService as any).getAllCryptoPulse(),
+            new Promise<null>((r) => setTimeout(() => r(null), 8000)),
+          ]);
+          if (pulse?.assets?.length) {
+            const dashboard = printHlCryptoDashboard(pulse);
+            dashboard.split("\n").forEach((line) => console.log(line));
+          }
+        }
+      } catch {
+        // Silent — HL crypto dashboard is best-effort
+      }
+    })();
+    }
 
     // Register Grok Expert daily task (commented out - low value)
     // try {
@@ -390,10 +482,22 @@ export const vincePlugin: Plugin = {
     // }
 
     // ONNX training: when feature store has 90+ complete trades, train models (runs on schedule, max once per 24h)
-    try {
-      await registerTrainOnnxTask(runtime);
-    } catch (e) {
-      logger.warn("[VINCE] Failed to register ONNX training task:", e);
+    // Only for VINCE; defer so db adapter is ready (SQL plugin may not have set it yet during parallel agent init)
+    if (isVinceAgent(runtime)) {
+      const tryRegister = async (attempt = 0) => {
+        try {
+          await registerTrainOnnxTask(runtime);
+        } catch (e) {
+          const msg = String((e as Error)?.message ?? e);
+          const adapterMissing = /adapter|undefined is not an object/i.test(msg);
+          if (adapterMissing && attempt < 3) {
+            setTimeout(() => tryRegister(attempt + 1), 500 * (attempt + 1));
+          } else {
+            logger.warn("[VINCE] Failed to register ONNX training task:", e);
+          }
+        }
+      };
+      setImmediate(() => tryRegister());
     }
   },
 };

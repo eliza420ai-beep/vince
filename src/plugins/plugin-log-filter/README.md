@@ -33,6 +33,16 @@ export const myCharacter: Character = {
 
 ## Configuration
 
+### Quiet Mode (default: on)
+
+Routine startup/info logs are suppressed so the terminal stays focused on **boxes** (VINCE banner, MARKET PULSE, HL Crypto dashboard), **warnings**, and **errors**. Set `VINCE_QUIET=false` to see all init logs:
+
+```bash
+VINCE_QUIET=false bun start
+```
+
+For maximum quiet, also set `LOG_LEVEL=warn` in `.env` to suppress all Info-level logs globally.
+
 ### Disable Filtering
 
 To disable the log filter entirely:
@@ -67,12 +77,14 @@ The filter suppresses logs matching these patterns:
 
 ## What Stays
 
-- ✅ Errors and warnings are **never** filtered
-- ✅ Important info messages remain
-- ✅ Short messages (<20 chars) are never filtered
-- ✅ Agent initialization messages
-- ✅ Service status messages
+- ✅ **Boxes** (VINCE banner, MARKET PULSE, HL Crypto dashboard) — `console.log`
+- ✅ **MLInference** — heartbeat (paper bot, ONNX, signal quality) — never suppressed
+- ✅ **Major assets / HIP-3 / Hyperliquid** — market data and insights
+- ✅ **Paper trading bot** — trades, signals, vibes for the day
+- ✅ **Warnings** and **errors** — never filtered
 - ✅ Error messages and stack traces
+
+When `VINCE_QUIET=true` (default): routine init info (SQL migrations, “service started”, etc.) is suppressed. Set `VINCE_QUIET=false` to see it.
 
 ## How It Works
 

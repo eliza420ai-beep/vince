@@ -48,17 +48,27 @@ describe("Hyperliquid API Verification", () => {
     if (optionsPulse?.assets) {
       const { btc, eth, sol, hype } = optionsPulse.assets;
       
+      const fmtOi = (v: number) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : v >= 1e3 ? `${(v / 1e3).toFixed(1)}k` : String(v));
+      const fmtVol = (v: number) => (v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : `$${(v / 1e3).toFixed(1)}k`);
       if (btc) {
-        console.log(`   BTC: ${btc.fundingAnnualized?.toFixed(2)}% annualized, ${btc.crowdingLevel} crowding, ${btc.squeezeRisk} squeeze risk`);
+        const oi = btc.openInterest != null ? ` OI: ${fmtOi(btc.openInterest)} contracts` : "";
+        const vol = btc.volume24h != null ? ` Vol24h: ${fmtVol(btc.volume24h)}` : "";
+        console.log(`   BTC: ${btc.fundingAnnualized?.toFixed(2)}% annualized, ${btc.crowdingLevel} crowding, ${btc.squeezeRisk} squeeze risk${oi}${vol}`);
       }
       if (eth) {
-        console.log(`   ETH: ${eth.fundingAnnualized?.toFixed(2)}% annualized, ${eth.crowdingLevel} crowding, ${eth.squeezeRisk} squeeze risk`);
+        const oi = eth.openInterest != null ? ` OI: ${fmtOi(eth.openInterest)} contracts` : "";
+        const vol = eth.volume24h != null ? ` Vol24h: ${fmtVol(eth.volume24h)}` : "";
+        console.log(`   ETH: ${eth.fundingAnnualized?.toFixed(2)}% annualized, ${eth.crowdingLevel} crowding, ${eth.squeezeRisk} squeeze risk${oi}${vol}`);
       }
       if (sol) {
-        console.log(`   SOL: ${sol.fundingAnnualized?.toFixed(2)}% annualized, ${sol.crowdingLevel} crowding`);
+        const oi = sol.openInterest != null ? ` OI: ${fmtOi(sol.openInterest)} contracts` : "";
+        const vol = sol.volume24h != null ? ` Vol24h: ${fmtVol(sol.volume24h)}` : "";
+        console.log(`   SOL: ${sol.fundingAnnualized?.toFixed(2)}% annualized, ${sol.crowdingLevel} crowding${oi}${vol}`);
       }
       if (hype) {
-        console.log(`   HYPE: ${hype.fundingAnnualized?.toFixed(2)}% annualized, ${hype.crowdingLevel} crowding`);
+        const oi = hype.openInterest != null ? ` OI: ${fmtOi(hype.openInterest)} contracts` : "";
+        const vol = hype.volume24h != null ? ` Vol24h: ${fmtVol(hype.volume24h)}` : "";
+        console.log(`   HYPE: ${hype.fundingAnnualized?.toFixed(2)}% annualized, ${hype.crowdingLevel} crowding${oi}${vol}`);
       }
     }
     

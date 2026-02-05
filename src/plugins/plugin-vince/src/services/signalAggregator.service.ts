@@ -204,14 +204,20 @@ export interface AggregatedSignal {
   sources: string[];
   factors: string[];
   confirmingCount: number; // Number of sources that agree on direction
+  /** Number of sources that voted the opposite direction (for WHY THIS TRADE) */
+  conflictingCount?: number;
+  /** Factors from sources that agreed with the net direction */
+  supportingFactors?: string[];
+  /** Factors from sources that voted the opposite direction */
+  conflictingFactors?: string[];
   timestamp: number;
-  
+
   // V2: Session and Open Window info
   session?: TradingSession;
   sessionInfo?: string;
   openWindowBoost?: number;
   shouldTrade?: boolean; // False if session filter blocked trading
-  
+
   // V4: ML Enhancement info
   mlQualityScore?: number; // 0-1, signal quality from ML model
   mlSimilarityPrediction?: SimilarityPrediction; // From similar trade lookup
@@ -670,50 +676,60 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
-    // 5. News Sentiment (MandoMinutes)
+    // 5. News Sentiment (MandoMinutes) — asset-specific, risk-aware
     // =========================================
     const newsService = this.runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
     if (newsService) {
       try {
-        const sentiment = newsService.getOverallSentiment();
-        if (sentiment.confidence > 50) {
-          if (sentiment.sentiment === "bullish") {
-            signals.push({
-              asset,
-              direction: "long",
-              strength: 52 + Math.min(15, sentiment.confidence / 6),
-              confidence: Math.round(sentiment.confidence * 0.8), // Discount news slightly
-              source: "NewsSentiment",
-              factors: [`News sentiment bullish (${Math.round(sentiment.confidence)}% confidence)`],
-              timestamp: Date.now(),
-            });
-            sources.push("NewsSentiment");
-            allFactors.push(`News sentiment bullish (${Math.round(sentiment.confidence)}% confidence)`);
-          } else if (sentiment.sentiment === "bearish") {
+        const { sentiment, confidence, hasHighRiskEvent } = newsService.getTradingSentiment(asset);
+        if (confidence > 50) {
+          const discount = Math.round(confidence * 0.8);
+          const strength = 52 + Math.min(15, confidence / 6);
+          if (sentiment === "bullish") {
+            if (hasHighRiskEvent) {
+              // Risk-event dampener: block bullish news signal when critical/warning events active
+              triedNoContribution.push("NewsSentiment(blocked:risk)");
+            } else {
+              signals.push({
+                asset,
+                direction: "long",
+                strength,
+                confidence: discount,
+                source: "NewsSentiment",
+                factors: [`News sentiment bullish (${confidence}% confidence)`],
+                timestamp: Date.now(),
+              });
+              sources.push("NewsSentiment");
+              allFactors.push(`News sentiment bullish (${confidence}% confidence)`);
+            }
+          } else if (sentiment === "bearish") {
             signals.push({
               asset,
               direction: "short",
-              strength: 52 + Math.min(15, sentiment.confidence / 6),
-              confidence: Math.round(sentiment.confidence * 0.8),
+              strength: hasHighRiskEvent ? Math.min(70, strength + 8) : strength,
+              confidence: discount,
               source: "NewsSentiment",
-              factors: [`News sentiment bearish (${Math.round(sentiment.confidence)}% confidence)`],
+              factors: hasHighRiskEvent
+                ? [`News sentiment bearish (${confidence}%) + risk event active`]
+                : [`News sentiment bearish (${confidence}% confidence)`],
               timestamp: Date.now(),
             });
             sources.push("NewsSentiment");
-            allFactors.push(`News sentiment bearish (${Math.round(sentiment.confidence)}% confidence)`);
-          } else if (sentiment.sentiment === "neutral" && sentiment.confidence >= 40) {
-            // PRIORITY: Let News contribute when neutral so more sources show in logs and real-time data is visible
+            allFactors.push(
+              hasHighRiskEvent ? `News bearish (${confidence}%) + risk event` : `News sentiment bearish (${confidence}% confidence)`
+            );
+          } else if (sentiment === "neutral" && confidence >= 40) {
             signals.push({
               asset,
               direction: "neutral",
               strength: 45,
-              confidence: Math.round(sentiment.confidence * 0.6),
+              confidence: Math.round(confidence * 0.6),
               source: "NewsSentiment",
-              factors: [`News sentiment neutral (${Math.round(sentiment.confidence)}% confidence)`],
+              factors: [`News sentiment neutral (${confidence}% confidence)`],
               timestamp: Date.now(),
             });
             sources.push("NewsSentiment");
-            allFactors.push(`News sentiment neutral (${Math.round(sentiment.confidence)}% confidence)`);
+            allFactors.push(`News sentiment neutral (${confidence}% confidence)`);
           }
         }
         if (!sources.includes("NewsSentiment")) {
@@ -1339,6 +1355,17 @@ export class VinceSignalAggregatorService extends Service {
     // Apply open window boost to confidence as well
     const finalConfidence = Math.min(100, avgConfidence * sessionMultiplier + openWindowBoost);
 
+    // Split factors by whether the source agreed with net direction (for WHY THIS TRADE banner)
+    const supportingFactors =
+      direction !== "neutral"
+        ? signals.filter((s) => s.direction === direction).flatMap((s) => s.factors)
+        : [];
+    const conflictingFactors =
+      direction !== "neutral"
+        ? signals.filter((s) => s.direction !== direction && s.direction !== "neutral").flatMap((s) => s.factors)
+        : [];
+    const conflictingCount = direction === "long" ? shortCount : direction === "short" ? longCount : 0;
+
     let aggregated: AggregatedSignal = {
       asset,
       direction,
@@ -1347,6 +1374,9 @@ export class VinceSignalAggregatorService extends Service {
       sources: [...new Set(sources)], // Deduplicate
       factors: allFactors,
       confirmingCount,
+      conflictingCount,
+      supportingFactors,
+      conflictingFactors,
       timestamp: Date.now(),
       // V2: Session and Open Window info
       session: currentSession,

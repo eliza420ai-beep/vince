@@ -441,13 +441,19 @@ export interface AggregatedTradeSignal {
   /** Number of confirming signals */
   confirmingCount: number;
   
-  /** Number of conflicting signals */
+  /** Number of conflicting signals (sources that voted the opposite direction) */
   conflictingCount: number;
-  
+
+  /** Factors from sources that agreed with the trade direction (for WHY THIS TRADE) */
+  supportingReasons?: string[];
+
+  /** Factors from sources that disagreed (for WHY THIS TRADE) */
+  conflictingReasons?: string[];
+
   /** Individual signals */
   signals: TradeSignalDetail[];
-  
-  /** Reasons for the signal */
+
+  /** Reasons for the signal (all factors) */
   reasons: string[];
   
   /** Source breakdown */

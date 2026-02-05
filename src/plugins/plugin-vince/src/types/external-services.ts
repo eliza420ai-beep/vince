@@ -61,6 +61,10 @@ export interface IHyperliquidAssetPulse {
   fundingAnnualized?: number;
   crowdingLevel?: "extreme_long" | "long" | "neutral" | "short" | "extreme_short";
   squeezeRisk?: "high" | "medium" | "low";
+  /** HL venue open interest (contracts). Same metaAndAssetCtxs call; no extra API cost. */
+  openInterest?: number;
+  /** HL venue 24h notional volume (USD). Same metaAndAssetCtxs call; no extra API cost. */
+  volume24h?: number;
 }
 
 export interface IHyperliquidOptionsPulse {
@@ -86,6 +90,28 @@ export interface IHyperliquidCrossVenueFunding {
   assets: IHyperliquidCrossVenueAsset[];
 }
 
+/** Single asset from HL crypto perps (all main-dex assets). */
+export interface IHyperliquidCryptoAsset {
+  symbol: string;
+  price: number;
+  change24h: number;
+  funding8h: number;
+  fundingAnnualized: number;
+  openInterest: number;
+  volume24h: number;
+  crowdingLevel?: IHyperliquidAssetPulse["crowdingLevel"];
+}
+
+/** Full crypto pulse: all perp assets + leaders + TLDR. */
+export interface IHyperliquidCryptoPulse {
+  assets: IHyperliquidCryptoAsset[];
+  topMovers: { symbol: string; change24h: number; volume24h: number }[];
+  volumeLeaders: { symbol: string; volume24h: number; openInterest: number; funding8h: number }[];
+  overallBias: "bullish" | "bearish" | "neutral";
+  hottestAvg: number;  // avg change of top 10 by volume
+  coldestAvg: number;  // avg change of worst performers
+}
+
 /**
  * Interface for the external Hyperliquid service from plugin-hyperliquid.
  * Accessed via: runtime.getService("HYPERLIQUID_SERVICE")
@@ -95,6 +121,12 @@ export interface IHyperliquidService {
    * Get overall options pulse with per-asset crowding and funding
    */
   getOptionsPulse(): Promise<IHyperliquidOptionsPulse | null>;
+
+  /**
+   * Get full crypto pulse: all perp assets with price, change, funding, OI, volume.
+   * Used for HIP-3 style dashboard (TOP MOVERS, VOLUME LEADERS, TLDR).
+   */
+  getAllCryptoPulse?(): Promise<IHyperliquidCryptoPulse | null>;
 
   /**
    * Get cross-venue funding comparison (Hyperliquid vs CEX)

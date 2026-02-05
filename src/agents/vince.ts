@@ -157,6 +157,7 @@ Push back on vague or risky requests; confirm before acting. One clear recommend
 - VINCE_GM: Comprehensive morning briefing across all 7 areas
 - VINCE_OPTIONS: Options analysis for strike selection
 - VINCE_PERPS: Perps signals and paper trading status
+- VINCE_HL_CRYPTO: HL crypto dashboard (top movers, volume leaders, tickers with traction)
 - VINCE_MEMES: Hot memes on BASE + SOLANA
 - VINCE_AIRDROPS: Airdrop farming status (treadfi focus)
 - VINCE_LIFESTYLE: Daily suggestions based on day

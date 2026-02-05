@@ -60,6 +60,7 @@ export interface OnChainContext {
 const SANBASE_URL = "https://api.santiment.net/graphql";
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes (save API calls)
 const TIMEOUT_MS = 30000;
+const ERROR_LOG_COOLDOWN_MS = 5 * 60 * 1000; // 5 min - avoid spam when API returns errors every tick
 
 interface CacheEntry<T> {
   data: T;
@@ -72,6 +73,7 @@ export class VinceSanbaseService extends Service {
 
   private apiKey: string = "";
   private cache: Map<string, CacheEntry<unknown>> = new Map();
+  private lastApiErrorLogTime = 0;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -305,21 +307,37 @@ export class VinceSanbaseService extends Service {
       }
 
       const data = await response.json();
-      
-      // Debug log for troubleshooting
-      logger.debug(`[VinceSanbaseService] API response keys: ${Object.keys(data).join(', ')}`);
-      
-      if (data.errors?.length > 0) {
+      const hasErrors = data.errors?.length > 0;
+      const errorsOnly = hasErrors && !data.data;
+
+      // When response contains only errors (rate limit, key, etc.), log once per cooldown to avoid spam
+      if (errorsOnly) {
+        const now = Date.now();
+        if (now - this.lastApiErrorLogTime >= ERROR_LOG_COOLDOWN_MS) {
+          this.lastApiErrorLogTime = now;
+          const isDateError = data.errors.every((e: { message?: string }) =>
+            e.message?.includes("invalid value") && (e.message?.includes("from") || e.message?.includes("to"))
+          );
+          if (!isDateError) {
+            logger.warn(
+              `[VinceSanbaseService] API errors (logged once per ${ERROR_LOG_COOLDOWN_MS / 60000} min): ${JSON.stringify(data.errors)}`
+            );
+          }
+        }
+        return null;
+      }
+
+      if (hasErrors) {
         // Check if errors are just about invalid date ranges (expected for future dates)
-        const isDateError = data.errors.every((e: { message?: string }) => 
-          e.message?.includes('invalid value') && (e.message?.includes('from') || e.message?.includes('to'))
+        const isDateError = data.errors.every((e: { message?: string }) =>
+          e.message?.includes("invalid value") && (e.message?.includes("from") || e.message?.includes("to"))
         );
         if (!isDateError) {
-          logger.warn(`[VinceSanbaseService] GraphQL errors: ${JSON.stringify(data.errors)}`);
-        }
-        // If there are errors but also data, still return the data
-        if (!data.data) {
-          return null;
+          const now = Date.now();
+          if (now - this.lastApiErrorLogTime >= ERROR_LOG_COOLDOWN_MS) {
+            this.lastApiErrorLogTime = now;
+            logger.warn(`[VinceSanbaseService] GraphQL errors: ${JSON.stringify(data.errors)}`);
+          }
         }
       }
       return data as T;

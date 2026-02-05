@@ -564,20 +564,21 @@ export class VinceHIP3Service extends Service {
 
     // Parse response - it's an array of [meta, assetCtxs] tuples
     const results: HyperliquidMetaAndAssetCtxs[] = [];
+    let invalidCount = 0;
     for (let i = 0; i < data.length; i++) {
       const item = data[i];
       if (!Array.isArray(item) || item.length < 2) {
-        logger.debug(`[VinceHIP3] Item ${i} is not a valid tuple`);
+        invalidCount++;
         continue;
       }
 
       const [meta, assetCtxs] = item;
       if (!meta?.universe || !Array.isArray(meta.universe)) {
-        logger.debug(`[VinceHIP3] Item ${i} has invalid meta.universe`);
+        invalidCount++;
         continue;
       }
       if (!Array.isArray(assetCtxs)) {
-        logger.debug(`[VinceHIP3] Item ${i} has invalid assetCtxs`);
+        invalidCount++;
         continue;
       }
 
@@ -589,6 +590,9 @@ export class VinceHIP3Service extends Service {
       results.push([meta, assetCtxs]);
     }
 
+    if (invalidCount > 0) {
+      logger.debug(`[VinceHIP3] allPerpMetas: ${invalidCount} of ${data.length} items invalid (not tuples or bad structure)`);
+    }
     logger.debug(`[VinceHIP3] Parsed ${results.length} valid DEX results from ${data.length} items`);
     return results.length > 0 ? results : null;
   }

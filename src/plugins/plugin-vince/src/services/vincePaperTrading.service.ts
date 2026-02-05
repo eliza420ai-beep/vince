@@ -291,7 +291,9 @@ export class VincePaperTradingService extends Service {
       strength: signal.strength,
       confidence: signal.confidence,
       confirmingCount: signal.confirmingCount ?? factors.length,
-      conflictingCount: 0,
+      conflictingCount: signal.conflictingCount ?? 0,
+      supportingReasons: signal.supportingFactors,
+      conflictingReasons: signal.conflictingFactors,
       signals: factors.map((f, i) => ({
         source: sources[i] ?? sources[0] ?? "signal_aggregator",
         direction: signal.direction,
@@ -592,13 +594,16 @@ export class VincePaperTradingService extends Service {
 
         // Convert to AggregatedTradeSignal format (use adjustedConfidence so SMA20/funding boosts apply)
         // Now using the proper confirmingCount from multi-source aggregation
+        const agg = signal as AggregatedSignal;
         const tradeSignal: AggregatedTradeSignal = {
           asset,
           direction: signal.direction,
           strength: signal.strength,
           confidence: adjustedConfidence,
           confirmingCount: signal.confirmingCount ?? signal.factors.length, // Use new field, fallback to factors
-          conflictingCount: 0,
+          conflictingCount: agg.conflictingCount ?? 0,
+          supportingReasons: agg.supportingFactors,
+          conflictingReasons: agg.conflictingFactors,
           signals: signal.factors.map((f, i) => ({
             source: signal.sources?.[i] || signal.sources?.[0] || "signal_aggregator",
             direction: signal.direction,
@@ -1162,13 +1167,14 @@ export class VincePaperTradingService extends Service {
 
     const factorCount = signal.reasons?.length ?? 0;
     const sourceCount = signal.confirmingCount ?? 0;
+    const conflictingCount = signal.conflictingCount ?? 0;
+    const totalSourceCount = [...new Set((signal.signals ?? []).map((s) => s.source))].length;
     const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
+    const supporting = (signal.supportingReasons ?? []).slice(0, 10);
+    const conflicting = (signal.conflictingReasons ?? []).slice(0, 6);
     const maxReasonsShown = 20;
     const reasons = (signal.reasons ?? []).slice(0, maxReasonsShown);
-    const thesisParts = reasons.slice(0, 12).map((r) => r.replace(/\s*[(\-].*$/, "").trim().split(/\s+/).slice(0, 5).join(" "));
-    const unique = [...new Set(thesisParts)].slice(0, 8);
-    const thesisLine = `${direction.toUpperCase()} because: ${unique.join(", ")}`;
     const maxReasonLen = 56;
     const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
     const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
@@ -1228,8 +1234,40 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(line("  WHY THIS TRADE"));
     console.log(empty);
-    console.log(line(`  ${factorCount} factors  ·  ${sourceCount} sources`));
-    const sourcesWrapped = wrapToWidth(sourcesStr, W - 2);
+    const decisionStr =
+      totalSourceCount > 0
+        ? `${direction.toUpperCase()} — ${sourceCount} of ${totalSourceCount} sources agreed` +
+          (conflictingCount > 0 ? ` (${conflictingCount} disagreed).` : ".")
+        : `${direction.toUpperCase()} — ${factorCount} factors from ${sourceCount} sources.`;
+    const decisionWrapped = wrapToWidth(decisionStr, W - 2);
+    for (const chunk of decisionWrapped) {
+      console.log(line(`  ${chunk}`));
+    }
+    console.log(empty);
+    const trunc = (t: string, len: number) =>
+      t.length <= len ? t : (t.slice(0, len + 1).lastIndexOf(" ") > 24 ? t.slice(0, t.slice(0, len + 1).lastIndexOf(" ")) : t.slice(0, len)) + "…";
+    if (supporting.length > 0) {
+      console.log(line(`  Supporting (${supporting.length}):`));
+      for (const f of supporting.slice(0, 8)) {
+        const txt = trunc(f, maxReasonLen);
+        for (const w of wrapToWidth(txt, W - 6)) {
+          console.log(line(`    • ${w}`));
+        }
+      }
+      console.log(empty);
+    }
+    if (conflicting.length > 0) {
+      console.log(line(`  Conflicting (${conflicting.length}):`));
+      for (const f of conflicting) {
+        const txt = trunc(f, maxReasonLen);
+        for (const w of wrapToWidth(txt, W - 6)) {
+          console.log(line(`    • ${w}`));
+        }
+      }
+      console.log(empty);
+    }
+    console.log(line("  Sources:"));
+    const sourcesWrapped = wrapToWidth(sourcesStr, W - 4);
     for (const chunk of sourcesWrapped) {
       console.log(line(`  ${chunk}`));
     }
@@ -1240,29 +1278,16 @@ export class VincePaperTradingService extends Service {
     if (typeof openWindowBoost === "number" && openWindowBoost > 0) {
       console.log(line(`  Open window  +${openWindowBoost.toFixed(0)}% boost`));
     }
-    const thesisWrapped = wrapToWidth(thesisLine, W - 11);
-    console.log(line(`  Thesis   ${thesisWrapped[0]}`));
-    for (let i = 1; i < thesisWrapped.length; i++) {
-      console.log(line(`           ${thesisWrapped[i]}`));
-    }
     console.log(empty);
-    const reasonParts = reasons.map((r) => {
-      let text = r;
-      if (text.length > maxReasonLen) {
-        const lastSpace = text.slice(0, maxReasonLen + 1).lastIndexOf(" ");
-        text = (lastSpace > 24 ? text.slice(0, lastSpace) : text.slice(0, maxReasonLen)) + "…";
-      }
-      return text;
-    });
-    const perLine = 7;
-    const linesOfReasons: string[] = [];
+    console.log(line(`  All factors (${reasons.length}):`));
+    const reasonParts = reasons.map((r) => trunc(r, maxReasonLen));
+    const perLine = 3;
     for (let i = 0; i < reasonParts.length; i += perLine) {
       const chunk = reasonParts.slice(i, i + perLine);
-      if (chunk.length) linesOfReasons.push(`  • ${chunk.join("  • ")}`);
+      if (chunk.length) console.log(line(`  • ${chunk.join("  • ")}`));
     }
-    for (const l of linesOfReasons) console.log(line(l));
     if (factorCount > maxReasonsShown) {
-      console.log(line(`    … +${factorCount - maxReasonsShown} more (see feature store)`));
+      console.log(line(`  … +${factorCount - maxReasonsShown} more (feature store)`));
     }
     console.log(empty);
     console.log(sep);
