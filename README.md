@@ -1,3 +1,5 @@
+<div align="center">
+
 # VINCE
 
 ```
@@ -9,372 +11,478 @@
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-> **Push, not pull.** Unified data intelligence for options, perps, memes, airdrops, DeFi, lifestyle, and NFT floors — with a **self-improving paper trading bot** at the core.
+### *Push, not pull.*
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  QUICK LINKS                                                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  [FEATURE-STORE](FEATURE-STORE.md)   ML & paper bot · feature store          │
-│  [SUPABASE_MIGRATION](SUPABASE_MIGRATION.md)  Production persistence checklist │
-│  [DEPLOY](DEPLOY.md)                 Eliza Cloud · env · troubleshooting     │
-│  [CLAUDE](CLAUDE.md)                 Dev guide (character, plugins, tests)   │
-│  [plugin-vince/](src/plugins/plugin-vince/)  README · WHAT · WHY · HOW       │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+**Unified data intelligence** for options · perps · memes · airdrops · DeFi · lifestyle · NFT floors
+
+*with a **self-improving paper trading bot** at the core*
 
 ---
 
+<p>
+  <strong>⚡ ALOHA</strong> → vibe check · <strong>📊 PERPS</strong> → signals · <strong>📈 OPTIONS</strong> → posture · <strong>🤖 PAPER BOT</strong> → ML loop
+</p>
+
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  CONTENTS                                                                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  [North Star](#north-star)             Proactive agent, push not pull        │
-│  [Current focus](#-current-focus-feb-2026)   ALOHA, ML paper trading         │
-│  [Milestone](#-milestone-full-ml-loop-on-eliza-cloud-no-redeploy-tax)  Shipped │
-│  [Heart of VINCE](#heart-of-vince-signals--trades--learning)  Pipeline      │
-│  [Star feature](#star-feature-self-improving-paper-trading-bot)  ML bot      │
-│  [Features](#features-what-actually-matters)  What matters + actions          │
-│  [Getting started](#getting-started)  Install, dev, production               │
-│  [Development](#development)          Commands, testing                      │
-│  [Production](#production-with-supabase-postgres)  Supabase, ML on Cloud      │
-│  [Testing](#testing)                   Component + E2E                        │
-│  [Configuration](#configuration)       Where things live                      │
-│  [Documentation](#documentation)        Doc index                             │
-│  [Alternatives: Honcho](#alternatives-considered-honcho)  Why we don’t use it │
-│  [Troubleshooting](#troubleshooting)   DB migration, SSL                      │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│  🚀 elizaos dev     │  📦 bun run deploy:cloud     │  💾 bun run sync:supabase    │
+└──────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + “trade today?”. Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** Supabase Postgres for production persistence. `elizaos dev` to run.
+</div>
 
 ---
 
-```
-  ◆  NORTH STAR
-```
+## 📑 Quick Links
 
-## North Star
-
-**You never have to "chat" with VINCE — he pings you.** The goal is a proactive agent that sends what you need on **Discord or Slack**: day report (ALOHA), his trades and reasoning, close results and overall PnL, and optionally thin-floor NFT alerts. Chat remains for deep dives; the default experience is push, not pull. Full vision and gap vs today: [knowledge/internal-docs/vince-north-star.md](knowledge/internal-docs/vince-north-star.md).
-
-**Why we built this:** Stay in the game without 12+ hours on screens—treat crypto to live well, not be consumed. [Mindset (why VINCE + Eliza)](knowledge/internal-docs/why-vince-eliza-mindset.md).
-
----
-
-```
-  🎯  CURRENT FOCUS (Feb 2026)
-```
-
-## 🎯 Current focus (Feb 2026)
-
-- **ALOHA day report** – our primary action. One command delivers the daily “vibe check”: market temperature, PERPS posture, OPTIONS positioning, and whether the bot should even be trading.
-- **Machine-learning paper trading** – every engineering sprint feeds the paper bot more signal coverage, cleaner feature collection, faster training, and better ONNX models. Everything else is backlog polish.
-- **Other actions** – still present, but treated as supporting cast. If it doesn’t improve the paper strategy or the daily ALOHA briefing, it’s deliberately low priority.
-
-> **If you only remember one thing:** _ALOHA in, better ML out._
+| | |
+|:---|:---|
+| [**FEATURE-STORE**](FEATURE-STORE.md) | ML & paper bot · feature store |
+| [**SUPABASE_MIGRATION**](SUPABASE_MIGRATION.md) | Production persistence checklist |
+| [**DEPLOY**](DEPLOY.md) | Eliza Cloud · env · troubleshooting |
+| [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
+| [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
+| [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 
 ---
 
-```
-  🚀  MILESTONE: Full ML loop on Eliza Cloud (no redeploy tax)
-```
+## 📖 Contents
 
-## 🚀 Milestone: Full ML loop on Eliza Cloud (no redeploy tax)
+| Section | |
+|:---|:---|
+| [North Star](#-north-star) | Proactive agent, push not pull |
+| [Current Focus](#-current-focus-feb-2026) | ALOHA, ML paper trading |
+| [Milestone](#-milestone-full-ml-loop) | Shipped · no redeploy tax |
+| [Heart of VINCE](#-heart-of-vince) | signals → trades → learning |
+| [Star Feature](#-star-feature) | Self-improving paper bot |
+| [Features](#-features) | What matters + actions |
+| [Getting Started](#-getting-started) | Install · dev · production |
+| [Production](#-production) | Supabase · ML on Cloud |
+| [Configuration](#-configuration) | Env · keys · paths |
+| [Documentation](#-documentation) | Doc index |
+| [Troubleshooting](#-troubleshooting) | DB · SSL · limits |
 
-**We shipped it.** The paper bot now runs a **complete ML lifecycle in production** without paying $15 per model update:
-
-| What | How |
-|------|-----|
-| **Feature store** | Paper trade features dual-write to Supabase table `vince_paper_bot_features`. Data **persists across redeploys** — no more losing history when the container is recreated. |
-| **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container** (Dockerfile: Python + xgboost, onnxmltools, etc.). No local train-and-copy. |
-| **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** so new thresholds apply **immediately**. Next redeploy: app pulls latest from the bucket — **updated ML without another deploy**. |
-| **One-time setup** | Run `scripts/supabase-feature-store-bootstrap.sql` in Supabase; create Storage bucket `vince-ml-models`. Set `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`, then `bun run deploy:cloud` and you’re set. See [DEPLOY.md](DEPLOY.md) and [FEATURE-STORE.md](FEATURE-STORE.md). |
-
-> **TL;DR:** One deploy. Features and models live in Supabase. Training runs on Cloud. New models take effect **without** another $15 redeploy.
-
----
-
-```
-  ═══  HEART OF VINCE: signals → trades → learning  ═══
-```
-
-## Heart of VINCE: signals → trades → learning
-
-The core of VINCE is a **multi-factor paper trading pipeline**: 10+ signal sources (CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid, etc.) feed the aggregator; every decision is stored with 50+ features and **decision drivers** (“WHY THIS TRADE”); and a Python training pipeline (`plugin-vince/scripts/train_models.py`) produces ONNX models plus an **improvement report** (feature importances, suggested signal factors). The feature store and training script are aligned with the expanded signal set: **hasFundingExtreme** covers Binance and Hyperliquid funding extremes, **hasOICap** records Hyperliquid perps-at-OI-cap; the training script uses optional **signal_hasOICap** when present, and synthetic data (`generate_synthetic_features.py`) uses a 10-source pool so ML sees the same variety as production.
-
-**News sentiment (MandoMinutes) is now trading-bot ready:** asset-specific sentiment, risk-event dampening, price-embedded headlines, category weighting, and headcount-calibrated confidence. **getVibeCheck()** — a 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases) — is wired into the paper bot context and "WHY THIS TRADE" so headlines flow into every decision. **NASDAQ 24h + macro** features (HIP-3 primary, Yahoo fallback) now feed the feature store; `news_nasdaqChange` is a top-5 signal-quality feature. **Real-time thresholds** relaxed (Binance L/S, News confidence, Deribit skew/P/C, MarketRegime, Sanbase) so more sources contribute more often. **Improvement weights** aligned with training metadata (NewsSentiment↑, CoinGlass↑, MarketRegime↑). See `progress.txt` § MandoMinutes, THINGS TO DO.
-
-Confirm which sources contribute in logs: at startup see `[VINCE] 📡 Signal sources available:`; on each aggregation see `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. To enable or fix sources, see [plugin-vince/SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md).
-
-```
-  ★  STAR FEATURE: self-improving paper trading bot  ★
-```
-
-## Star feature: self-improving paper trading bot
-
-The most novel piece in this repo is the **paper trading bot that gets better over time** using machine learning:
-
-1. **Paper trading** — Runs simulated perpetuals (Hyperliquid-style) with real signals, risk limits, session filters, and goal tracking ($/day, $/month).
-2. **Feature store** — Records **50+ features** per decision: market (price, funding, OI, **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance**, **bid-ask spread**, **price vs SMA20**), session, signal (with **factor-derived sentiment**, **hasFundingExtreme** from Binance/Hyperliquid, **hasOICap** from Hyperliquid perps-at-OI-cap), regime, news (**sentiment score/direction**, **risk events**), execution, outcome. Data to JSONL and **Supabase** (dual-write to `vince_paper_bot_features`) so it **persists across redeploys**. See [plugin-vince/DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md).
-3. **Online adaptation** — Thompson Sampling (weight bandit) and signal-similarity lookup adjust behavior from live outcomes; a Bayesian parameter tuner refines thresholds.
-4. **Offline ML** — A Python script (`plugin-vince/scripts/train_models.py`) trains XGBoost models (signal quality, position sizing, TP/SL) and exports to ONNX.
-5. **ONNX at runtime** — The bot loads ONNX models for signal-quality and sizing decisions, with rule-based fallbacks when models aren’t trained yet.
-
-**Data leverage:** We use funding history (8h delta), a rolling price window (SMA20), Binance futures depth (book imbalance & spread), Deribit DVOL/ATR/RSI, and **MandoMinutes news** (asset-specific sentiment, price-embedded headlines, risk events, category-weighted) so ML and the improvement report see the full picture—not just a few bars. See [plugin-vince/ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md) (§ Leverage more data points).
-
-**Closed loop:** paper trades → feature collection → Python training → ONNX deployment → online bandit/tuner/similarity. Day 1 it runs on rules; over time it leans on ML as enough data accumulates.
-
-**Paper trading algo: improvements we can claim.** (1) Market data wired into live logic and ML feature store: order-book imbalance, price vs SMA20, funding 8h delta, DVOL, **NASDAQ 24h + macro** (news_nasdaqChange, news_macro_risk_on/off). (2) Book-imbalance filter, SMA20/funding confidence boost, DVOL size cap. (3) **MandoMinutes getVibeCheck()** wired to paper bot ("Headlines: {vibe}" in WHY THIS TRADE). (4) **Real-time thresholds** relaxed so Binance L/S, News, Deribit, MarketRegime, Sanbase contribute more often. (5) **Improvement weights** from training metadata: NewsSentiment, CoinGlass, MarketRegime boosted; weights persisted in tuned-config.json. (6) **Retrain pipeline** — train_models.py, run-improvement-weights.ts, FEATURE_TO_SOURCE mapping for news/macro features. Unit tests for extended-snapshot, news sentiment, phrase overrides. We do **not** yet claim improved P&L or win rate; that requires backtest or live results over time.
-
-Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/) (feature store, weight bandit, signal similarity, ML inference, parameter tuner; actions: bot status, pause, trade, why-trade).
-
-```
-  ───  FEATURES (what actually matters)  ───
-```
-
-## Features (what actually matters)
-
-- **ALOHA** – single command; returns vibe check + PERPS pulse + OPTIONS posture + “should we even trade today?” judgment. This is the action we run every morning.
-- **Self-improving paper bot** – ML loop described above; no live execution, but every trade is stored, learnt from, and used to tighten thresholds.
-- **Teammate context** – USER/SOUL/TOOLS/MEMORY keep the responses in character.
-- **Knowledge ingestion** – the `VINCE_UPLOAD` action pipes long-form research through our fork of **summarize** (`IkigaiLabsETH/summarize`) so every PDF, podcast, or YouTube link we feed in ends up as structured knowledge under `knowledge/`. [1]
-- **Chat mode** – `chat: <question>` pulls directly from `knowledge/` and the trench frameworks so you can pressure-test an idea without leaving VINCE.
-- **Other actions** – still exposed, but they’re backlog fodder until they support ALOHA or the ML loop.
-
-### Action status (trimmed-down reality)
-
-- **ALOHA (includes PERPS & OPTIONS insights)** – ⭐ Core value.
-- **VINCE_PERPS / VINCE_OPTIONS** – Used inside ALOHA; still callable directly, but treated as subcomponents not standalone experiences.
-- **Everything else (NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD)** – kept for heritage, lightly maintained, not a product focus right now.
+> **At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + "trade today?". Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** Supabase Postgres for production persistence.
 
 ---
 
-```
-  ─ ─ ─  RUN IT  ─ ─ ─   Getting started · Development · Production · Testing  ─ ─ ─
-```
+## ◆ North Star
+
+<div align="center">
+
+*You never have to "chat" with VINCE — he pings you.*
+
+</div>
+
+The goal is a **proactive agent** that sends what you need on **Discord or Slack**: day report (ALOHA), trades and reasoning, close results and PnL, optionally thin-floor NFT alerts. Chat remains for deep dives; the default experience is **push, not pull**.
+
+**Why we built this:** Stay in the game without 12+ hours on screens—treat crypto to live well, not be consumed.
+
+→ [Full vision & gap](knowledge/internal-docs/vince-north-star.md) · [Mindset (VINCE + Eliza)](knowledge/internal-docs/why-vince-eliza-mindset.md)
+
+---
+
+## 🎯 Current Focus (Feb 2026)
+
+<table>
+<tr>
+<td width="50%">
+
+**☀️ ALOHA day report**
+
+Our primary action. One command delivers the daily "vibe check": market temperature, PERPS posture, OPTIONS positioning, and whether the bot should even be trading.
+
+</td>
+<td width="50%">
+
+**🤖 Machine-learning paper trading**
+
+Every sprint feeds the paper bot more signal coverage, cleaner features, faster training, better ONNX. **Shipped:** Supabase Postgres migration, retrain + improvement weights, getVibeCheck → paper bot, NASDAQ 24h + macro, relaxed real-time thresholds.
+
+</td>
+</tr>
+</table>
+
+- **Other actions** — still present, supporting cast. If it doesn't improve the paper strategy or ALOHA briefing, it's deliberately low priority.
+
+<div align="center">
+
+> ***If you only remember one thing:*** *ALOHA in, better ML out.*
+
+</div>
+
+---
+
+## 🚀 Milestone: Full ML Loop
+
+<div align="center">
+
+**We shipped it.** The paper bot runs a **complete ML lifecycle in production** without paying $15 per model update.
+
+</div>
+
+| | What | How |
+|:---:|---|---|
+| 🗄️ | **Supabase Postgres** | Set `POSTGRES_URL` in `.env`; ElizaOS tables + `plugin_vince.paper_bot_features` live in one DB. Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) |
+| 📦 | **Feature store** | Dual-write to `vince_paper_bot_features` (Supabase) and `plugin_vince.paper_bot_features` (Postgres). JSONL backup always kept. Backfill: `bun run sync:supabase` |
+| 🐍 | **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container**. No local train-and-copy. |
+| ☁️ | **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** immediately. Next redeploy: app pulls latest — **updated ML without another deploy**. |
+| ⚖️ | **Improvement weights** | `run-improvement-weights.ts` (with `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`) aligns aggregator source weights with `training_metadata.json`. Weights in `tuned-config.json`. |
+| 🔧 | **One-time setup** | Run `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql`; create bucket `vince-ml-models`; set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`. → [DEPLOY.md](DEPLOY.md) · [FEATURE-STORE.md](FEATURE-STORE.md) |
+
+<div align="center">
+
+**TL;DR** · One deploy. Features and models live in Supabase. Training runs on Cloud. New models take effect **without** another $15 redeploy.
+
+</div>
+
+---
+
+## ═══ Heart of VINCE
 
 ```
-  ▶  GETTING STARTED
+  signals  ──►  trades  ──►  learning  ──►  (repeat)
 ```
 
-## Getting started
+The core is a **multi-factor paper trading pipeline**:
+
+- **15+ signal sources** — CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid OI cap/funding extreme
+- **50+ features per decision** — stored with **decision drivers** ("WHY THIS TRADE")
+- **Python training pipeline** — `train_models.py` → ONNX + improvement report (feature importances, suggested signal factors)
+
+Feature store and training script aligned: **hasFundingExtreme** (Binance + Hyperliquid), **hasOICap** (Hyperliquid perps-at-OI-cap); synthetic data uses a 10-source pool so ML sees production variety.
+
+```mermaid
+flowchart LR
+    subgraph Inputs
+        MM[MandoMinutes]
+        HIP[HIP-3 / Macro]
+        HL[Hyperliquid]
+    end
+    subgraph Agg
+        SA[Signal Aggregator]
+    end
+    subgraph Output
+        PB[Paper Bot]
+        FS[Feature Store]
+    end
+    MM --> SA
+    HIP --> SA
+    HL --> SA
+    SA --> PB
+    SA --> FS
+```
+
+### MandoMinutes · News Sentiment
+
+| | Capability |
+|---|:---|
+| ✅ | Asset-specific sentiment ("Vitalik sells ETH" affects ETH more than BTC) |
+| ✅ | Risk-event dampening (block bullish when critical/warning, boost bearish) |
+| ✅ | Price-embedded headlines ("BTC: 75.2k (-4%)") |
+| ✅ | Category weighting, headcount-calibrated confidence |
+| ✅ | **getVibeCheck()** — 1–2 line vibe (Risk-off/Risk-on/Mixed + salient phrases) at top of dashboard and briefing |
+| ✅ | Wired into paper bot context and "WHY THIS TRADE" |
+| ✅ | "erases gains" and similar → bearish (NEGATIVE_GAINS_PHRASES override) |
+| ✅ | **NASDAQ 24h + macro** (HIP-3 primary, Yahoo fallback) — `news_nasdaqChange` top-5 signal-quality feature |
+| ✅ | **Real-time thresholds** relaxed — more sources contribute more often |
+| ✅ | **Improvement weights** — NewsSentiment↑, CoinGlass↑, MarketRegime↑ |
+
+→ Logs: `[VINCE] 📡 Signal sources available:` · `[VinceSignalAggregator] ASSET: N source(s) → M factors` · [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md)
+
+---
+
+## ★ Star Feature: Self-Improving Paper Bot
+
+<div align="center">
+
+*The most novel piece in this repo*
+
+</div>
+
+**Plugin-vince:** 27 services · 20 actions · 2 providers · 1 evaluator — 18 data-source services, 7 fallbacks, 4 ML services (feature store, weight bandit, signal similarity, ONNX inference).
+
+### The Loop
+
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐    ┌──────────────┐
+│ Paper trade │ ─► │ Feature store │ ─► │ Python train │ ─► │ ONNX deploy  │
+└─────────────┘    └──────────────┘    └─────────────┘    └──────────────┘
+       ▲                                                                 │
+       └──────────────────── bandit · similarity · tuner ◄───────────────┘
+```
+
+| # | Component | Details |
+|:---:|---|:---|
+| 1 | **Paper trading** | Simulated perpetuals (Hyperliquid-style), risk limits, session filters. Goals: $420/day, $10K/month. Targets: BTC, ETH, SOL, HYPE + 34 HIP-3 tradFi assets. |
+| 2 | **Feature store** | **50+ features** per decision: market (price, funding, OI, funding 8h delta, OI 24h change, DVOL, RSI, order-book imbalance, bid-ask spread, price vs SMA20), session, signal (factor-derived sentiment, hasFundingExtreme, hasOICap), regime, news (sentiment, risk events, NASDAQ 24h, macro risk-on/off), execution, outcome. → JSONL + Supabase. [DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md) |
+| 3 | **Online adaptation** | Thompson Sampling gets PnL-weighted updates per source on each closed trade. Signal-similarity k-NN: "avoid" → hard filter (trade skipped). Bayesian parameter tuner. |
+| 4 | **Offline ML** | `train_models.py` trains XGBoost for **signal quality**, **position sizing**, **TP optimizer**, **SL optimizer** → exports all four to ONNX. |
+| 5 | **ONNX at runtime** | Bot loads ONNX for signal-quality and sizing; rule-based fallbacks when models aren't trained. |
+
+### Why Knowledge Matters
+
+Actions supply *current* data (prices, signals). The knowledge base supplies *how to think* — frameworks, strike-selection logic, meme lifecycle. `trenchKnowledgeProvider` pulls relevant knowledge so the LLM interprets through proven lenses, not just echoes numbers.
+
+### Data Leverage
+
+Funding history (8h delta) · rolling SMA20 · Binance depth (book imbalance, spread) · Deribit DVOL/ATR/RSI · **MandoMinutes news** (asset-specific sentiment, price-embedded, risk events, category-weighted). → [ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md)
+
+### Improvements We Claim
+
+1. Market data wired: order-book, SMA20, funding 8h delta, DVOL, **NASDAQ 24h + macro**
+2. Book-imbalance filter · SMA20/funding confidence boost · DVOL size cap
+3. **getVibeCheck()** → "Headlines: {vibe}" in WHY THIS TRADE
+4. **Real-time thresholds** relaxed
+5. **Improvement weights** from training metadata
+6. **Retrain pipeline** — train_models.py, run-improvement-weights.ts, FEATURE_TO_SOURCE
+
+*We do **not** yet claim improved P&L or win rate—that requires backtest or live results.*
+
+### WHY THIS TRADE Banner
+
+Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML Quality % · Open window boost · up to 20 factors. News sentiment under Conflicting when going SHORT.
+
+### Resilience
+
+- **Binance 451** — After 3 consecutive 451s, aggregator skips Binance; recovery on 2xx. Use `VINCE_BINANCE_BASE_URL` for proxy.
+- **Fetch timeouts** — 12s; one slow source does not block aggregation.
+
+→ Implementation: [src/plugins/plugin-vince/](src/plugins/plugin-vince/)
+
+---
+
+## 📌 Features
+
+| | Feature | |
+|:---:|---|:---|
+| ☀️ | **ALOHA** | Single command → vibe check + PERPS pulse + OPTIONS posture + "should we trade today?" |
+| 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
+| 👤 | **Teammate context** | USER/SOUL/TOOLS/MEMORY keep responses in character |
+| 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
+| 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
+| 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |
+
+### Action Status
+
+| Priority | Action |
+|:---:|---|
+| ⭐ | **ALOHA** (includes PERPS & OPTIONS) — Core value |
+| 📊 | **VINCE_PERPS / VINCE_OPTIONS** — Used inside ALOHA; subcomponents |
+| 📋 | **Everything else** — Heritage, not product focus |
+
+---
+
+## ▶ Getting Started
 
 ```bash
 bun install
 bun run build
-cp .env.example .env   # add API keys (see .env.example)
+cp .env.example .env   # add API keys
 
 # Development (hot-reload)
 elizaos dev
 
-# Or start once (uses Postgres when POSTGRES_URL is set)
+# Or start once (uses Postgres when POSTGRES_URL set)
 bun start
 ```
 
-```
-  ▶  DEVELOPMENT
-```
+---
 
-## Development
+## 🛠 Development
 
 ```bash
-# Start development with hot-reloading (recommended)
-elizaos dev
-
-# OR start without hot-reloading (uses Postgres when POSTGRES_URL is set)
-bun start
-# Note: When using 'start', you need to rebuild after changes:
-# bun run build
-
-# Test the project
-elizaos test
+elizaos dev          # Hot-reload (recommended)
+bun start            # Production start (migration bootstrap when POSTGRES_URL set)
+elizaos test         # Run tests
 ```
 
-```
-  ▶  PRODUCTION (Supabase / Postgres)
-```
+### Key Scripts
 
-## Production with Supabase (Postgres)
+| Script | Purpose |
+|:---|:---|
+| `elizaos dev` | Hot-reload development |
+| `bun start` | Production start (runs migration bootstrap when `POSTGRES_URL` set) |
+| `bun run deploy:cloud` | Deploy to Eliza Cloud |
+| `bun run sync:supabase` | Backfill local JSONL features to Supabase |
+| `bun run db:check` | Verify DB migrations |
+| `bun run db:bootstrap` | Run DB bootstrap (Postgres) |
+| `bun run scripts/ingest-urls.ts --file urls.txt` | Batch ingest URLs/YouTube into `knowledge/` |
 
-**Supabase migration is ready.** Set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`; ElizaOS tables and `plugin_vince.paper_bot_features` share one Supabase DB. Data **persists across redeploys**. Full checklist: [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md). Backfill local JSONL: `bun run sync:supabase`.
+---
 
-1. **In `.env`** set `POSTGRES_URL` to the **direct** Supabase connection (not the pooler):
-   - Use **port 5432** (direct), not 6543 (pooler). Migrations fail on the pooler.
-   - Add `?sslmode=verify-full` to avoid SSL warnings.
-   - Example:  
-     `POSTGRES_URL=postgresql://postgres:YOUR_PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`
-2. **Run locally:** `bun start` — the start script runs the migration bootstrap (creates `migrations` schema) when `POSTGRES_URL` is set, then starts the app.
-3. **Deploy:** Use the same `POSTGRES_URL` (direct 5432) in your deploy env. See [DEPLOY.md](DEPLOY.md).
+## ☁ Production (Supabase / Postgres)
 
-### ML on Eliza Cloud (ONNX models)
+<div align="center">
 
-**Recommended: train on Cloud, models in Supabase.** With Supabase configured (and the `vince-ml-models` Storage bucket created once), the bot **trains in the container** when it has 90+ complete trades, **uploads** models to Supabase Storage, and **reloads** the ML service. On the next redeploy, the app **downloads** the latest models from the bucket — so ML improves **without** an extra deploy. See the [Milestone](#milestone-ml-trains-on-eliza-cloud-no-extra-redeploy) section above and [DEPLOY.md](DEPLOY.md).
+**Supabase migration is ready.** Set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`.
 
-**Alternative: ship models in the repo.** Train locally, copy `.onnx` + `training_metadata.json` into `src/plugins/plugin-vince/models/`, commit, and deploy; the Dockerfile copies that folder into the container. See [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) and [DEPLOY.md](DEPLOY.md#ml-onnx-on-eliza-cloud--will-it-be-active).
+Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) · Backfill: `bun run sync:supabase`
 
-```
-  ▶  TESTING
-```
+</div>
 
-## Testing
+1. **`.env`** — `POSTGRES_URL` (port 5432), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` (required if using pooler)
+2. **Bootstrap SQL** — `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql` in Supabase SQL Editor
+3. **Run** — `bun start`
+4. **Deploy** — `bun run deploy:cloud` passes vars from `.env` → [DEPLOY.md](DEPLOY.md)
 
-ElizaOS employs a dual testing strategy:
+### ML on Eliza Cloud
 
-1. **Component Tests** (`src/__tests__/*.test.ts`)
+**Recommended:** Train on Cloud, models in Supabase. Bot trains in container at 90+ trades, uploads to `vince-ml-models`, reloads ML. Next redeploy pulls latest — no extra deploy for new models.
 
-   - Run with Bun's native test runner
-   - Fast, isolated tests using mocks
-   - Perfect for TDD and component logic
-
-2. **E2E Tests** (`src/__tests__/e2e/*.e2e.ts`)
-   - Run with ElizaOS custom test runner
-   - Real runtime with actual database (PGLite)
-   - Test complete user scenarios
+**Alternative:** Ship models in repo — copy `.onnx` + `training_metadata.json` into `src/plugins/plugin-vince/models/`, commit, deploy. → [models/README.md](src/plugins/plugin-vince/models/README.md)
 
 ### Test Structure
 
 ```
 src/
   __tests__/              # All tests live inside src
-    *.test.ts            # Component tests (use Bun test runner)
-    e2e/                 # E2E tests (use ElizaOS test runner)
-      project-starter.e2e.ts  # E2E test suite
-      README.md          # E2E testing documentation
-  index.ts               # Export tests here: tests: [ProjectStarterTestSuite]
+    *.test.ts             # Component tests (Bun)
+    e2e/                  # E2E tests (ElizaOS runner)
+      project-starter.e2e.ts
+      README.md
+  index.ts                # Export: tests: [ProjectStarterTestSuite]
 ```
 
-### Running Tests
+---
 
-- `elizaos test` - Run all tests (component + e2e)
-- `elizaos test component` - Run only component tests
-- `elizaos test e2e` - Run only E2E tests
+## 🧪 Testing
 
-### Writing Tests
+| Type | Location | Runner |
+|:---|:---|:---|
+| **Component** | `src/__tests__/*.test.ts` | Bun native · fast · mocks |
+| **E2E** | `src/__tests__/e2e/*.e2e.ts` | ElizaOS · real runtime · PGLite |
 
-Component tests use bun:test:
-
-```typescript
-// Unit test example (__tests__/config.test.ts)
-describe('Configuration', () => {
-  it('should load configuration correctly', () => {
-    expect(config.debug).toBeDefined();
-  });
-});
-
-// Integration test example (__tests__/integration.test.ts)
-describe('Integration: Plugin with Character', () => {
-  it('should initialize character with plugins', async () => {
-    // Test interactions between components
-  });
-});
+```bash
+elizaos test              # All
+elizaos test component    # Component only
+elizaos test e2e          # E2E only
 ```
 
-E2E tests use ElizaOS test interface:
+---
 
-```typescript
-// E2E test example (e2e/project.test.ts)
-export class ProjectTestSuite implements TestSuite {
-  name = 'project_test_suite';
-  tests = [
-    {
-      name: 'project_initialization',
-      fn: async (runtime) => {
-        // Test project in a real runtime
-      },
-    },
-  ];
-}
-
-export default new ProjectTestSuite();
-```
-
-The test utilities in `__tests__/utils/` provide helper functions to simplify writing tests.
-
-[1]: https://github.com/IkigaiLabsETH/summarize
-
-```
-  ─ ─ ─  REFERENCE  ─ ─ ─   Configuration · Documentation · Troubleshooting  ─ ─ ─
-```
-
-```
-  ▶  CONFIGURATION  ·  DOCUMENTATION  ·  TROUBLESHOOTING
-```
-
-## Configuration
+## ⚙ Configuration
 
 | What | Where |
-|------|--------|
-| VINCE character & agent | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
-| Paper bot, ML, actions, providers | `src/plugins/plugin-vince/` |
-| Teammate context (loaded every session) | `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md |
+|:---|:---|
+| VINCE character & agent | `src/agents/vince.ts` |
+| Paper bot, ML, actions | `src/plugins/plugin-vince/` |
+| Teammate context | `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md |
+| Dynamic config | `dynamicConfig.ts` — tuned via `tuned-config.json` |
 
-## Documentation
+### Key Env Vars
+
+| Variable | Purpose |
+|:---|:---|
+| `POSTGRES_URL` | Supabase/Postgres. Empty = PGLite |
+| `SUPABASE_SERVICE_ROLE_KEY` | Feature-store dual-write, ML bucket |
+| `SUPABASE_URL` | Optional if direct; required if pooler |
+| `VINCE_PAPER_AGGRESSIVE` | `true` = higher leverage, $210 TP, 2:1 R:R |
+| `VINCE_PAPER_ASSETS` | e.g. `BTC` or `BTC,ETH,SOL` |
+| `VINCE_APPLY_IMPROVEMENT_WEIGHTS` | `true` = align weights with training metadata |
+| `VINCE_BINANCE_BASE_URL` | Proxy for Binance in 451 regions |
+
+---
+
+## 📚 Documentation
 
 | Doc | Purpose |
-|-----|---------|
-| [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage (JSONL, PGLite/Postgres, Supabase), training, env flags |
-| [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) | Production persistence checklist, bootstrap SQL, backfill script |
-| [DEPLOY.md](DEPLOY.md) | Deploy to Eliza Cloud (PGLite vs Postgres), env vars, troubleshooting |
-| [CLAUDE.md](CLAUDE.md) | ElizaOS project dev guide (character, plugins, env, testing) |
-| [TREASURY.md](TREASURY.md) | Cost coverage and profitability mandate |
-| [src/plugins/plugin-vince/README.md](src/plugins/plugin-vince/README.md) | Plugin overview; [WHAT.md](src/plugins/plugin-vince/WHAT.md) / [WHY.md](src/plugins/plugin-vince/WHY.md) / [HOW.md](src/plugins/plugin-vince/HOW.md) / [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for purpose, framework rationale, and development |
-| [src/plugins/plugin-vince/models/README.md](src/plugins/plugin-vince/models/README.md) | Ship ONNX models for Eliza Cloud (copy trained `.onnx` + `training_metadata.json` into this folder, then deploy) |
+|:---|:---|
+| [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage, training |
+| [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) | Production persistence checklist |
+| [DEPLOY.md](DEPLOY.md) | Eliza Cloud, env, troubleshooting |
+| [CLAUDE.md](CLAUDE.md) | ElizaOS dev guide |
+| [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
+| [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
+| [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
+| [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights |
+| [DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md) | Feature coverage |
+| [ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md) | ML roadmap |
+| [models/README](src/plugins/plugin-vince/models/README.md) | Ship ONNX |
+| [BINANCE_DATA_IMPROVEMENTS](src/plugins/plugin-vince/BINANCE_DATA_IMPROVEMENTS.md) | Binance endpoints, 451 proxy |
+| [HYPERLIQUID_ENDPOINTS](src/plugins/plugin-vince/HYPERLIQUID_ENDPOINTS.md) | HL endpoints |
+| [progress.txt](src/plugins/plugin-vince/progress.txt) | Tracker, backlog |
 
-```
-  ◇  ALTERNATIVES CONSIDERED: HONCHO
-```
+---
 
-## Alternatives considered: Honcho
+## ◇ Alternatives & related
 
-**[Honcho](https://docs.honcho.dev)** is an open-source memory library for stateful agents (Peers, Sessions, representations from reasoning over messages). We evaluated it for VINCE and **do not use it**; this section records why and when it might be relevant.
+### Honcho
 
-| Honcho | VINCE / ElizaOS today |
-|--------|------------------------|
+We evaluated [Honcho](https://docs.honcho.dev) and **do not use it**.
+
+| Honcho | VINCE / ElizaOS |
+|:---|:---|
 | Peers + Sessions | Entities, rooms, participants |
 | Representations (reasoning over messages) | Evaluators (facts, reflection) + memory |
 | Managed or self-hosted memory service | DB adapter (Postgres/PGLite) + Supabase feature store |
 
-**Why we don’t add Honcho here:** Eliza already gives us memories, embeddings, search, evaluators (facts/reflection), entities, and relationships. The paper bot and ML pipeline use the **feature store** (Supabase); that’s the right place for trading state. Adding Honcho would duplicate “what we know” and add sync/maintenance cost without a clear gap being filled.
+Eliza gives us memories, embeddings, evaluators, entities. The paper bot uses the **feature store** (Supabase); that's the right place for trading state. Adding Honcho would duplicate what we have without filling a clear gap.
 
-**When Honcho could make sense:** (1) You need formal reasoning over conversations (premises → conclusions → representations) beyond what our evaluators do, (2) you want a managed memory service for a new product, or (3) you’re prototyping a separate agent and want to try Honcho from scratch. For those cases, the [Honcho agent skills](https://docs.honcho.dev/v3/documentation/introduction/vibecoding#agent-skills) (e.g. `honcho-integration`) are useful; we’d still keep them out of the main VINCE runtime unless we have a concrete use case.
+**When Honcho could make sense:** (1) Formal reasoning over conversations beyond evaluators, (2) managed memory for a new product, (3) prototyping a separate agent from scratch. → [Honcho agent skills](https://docs.honcho.dev/v3/documentation/introduction/vibecoding#agent-skills)
 
-```
-  ⚠  TROUBLESHOOTING
-```
+### OpenClaw, Pi, and Eliza + Pi patterns
 
-## Troubleshooting
+**OpenClaw** is not an agent framework—it's a wrapper around another agent called **Pi** (a coding agent). It started as a relay for agents before becoming Clawd. The killer combo: Pi + Claude Skills. Most of the rest is adapters.
 
-### Database migration failed (`CREATE SCHEMA IF NOT EXISTS migrations`)
+| OpenClaw / Pi | ElizaOS |
+|:---|:---|
+| Memory, connectors (APIs, chats), personality | Very similar—different packaging |
+| Pi: CLI everything | MCP + plugin tool-calling |
 
-If you see:
+**The big difference:** ElizaOS is heavy on **MCP and tool calling from plugins**. Pi leans into "CLI everything"—simpler, less ceremony. Both are valid.
 
-```text
-Failed to run database migrations (error=Failed query: CREATE SCHEMA IF NOT EXISTS migrations
-```
-
-**Fix (Supabase / Postgres for prod):** In `.env`, set `POSTGRES_URL` to the **direct** connection: **port 5432** (not 6543). Add `?sslmode=verify-full`, e.g.  
-`POSTGRES_URL=postgresql://postgres:PASSWORD@db.XXX.supabase.co:5432/postgres?sslmode=verify-full`  
-Then run **`bun start`** — the start script runs the migration bootstrap first.
-
-**Local-only (no Postgres):** Leave `POSTGRES_URL` empty in `.env` and run `bun start` to use PGLite.
-
-**"self-signed certificate in certificate chain":** If bootstrap or the app fails with this SSL error, add to `.env`:  
-`POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in; use only if needed).
-
-See [DEPLOY.md](DEPLOY.md) for full deploy options, bootstrap SQL, and troubleshooting.
-
-**Quick deploy (PGLite, minimal env):** `bun run deploy:cloud` or the minimal command in [DEPLOY.md](DEPLOY.md#minimal-required-only--pglite-no-postgres).
+If you're looking for more coding-agent simplicity, the target is **Eliza + Pi patterns**, not Eliza with OpenClaw. The ElizaOS maintainers are working on an Eliza code orchestrator in that direction. OpenClaw-on-ElizaOS (swapping Pi for Eliza) exists and may be published—no huge advantages or disadvantages either way.
 
 ---
 
+## ⚠ Troubleshooting
+
+### Database migration failed
+
 ```
-╭─────────────────────────────────────────────────────────────────────────────╮
-│  QUICK REFERENCE                                                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Run locally    elizaos dev          │  Deploy       bun run deploy:cloud    │
-│  Test           elizaos test         │  Supabase     See SUPABASE_MIGRATION  │
-│  Backfill JSONL bun run sync:supabase│  ML bucket    vince-ml-models         │
-│  Feature store  vince_paper_bot_features │  Postgres    port 5432 (not 6543)  │
-╰─────────────────────────────────────────────────────────────────────────────╯
+Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 ```
+
+**Fix:** `POSTGRES_URL` to **direct** connection (port 5432, not 6543). Add `?sslmode=verify-full`. Run `bun start` (runs bootstrap).  
+**Local-only:** Leave `POSTGRES_URL` empty → PGLite.  
+**SSL error:** `POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in).
+
+→ [DEPLOY.md](DEPLOY.md)
+
+### Known Limitations
+
+| | Limitation | Notes |
+|:---:|---|:---|
+| 🔑 | XAI/Grok | API key required |
+| 📊 | Nansen | 100 credits/month |
+| 📈 | Sanbase | 1K calls/month |
+| 🌐 | Binance 451 | Use `VINCE_BINANCE_BASE_URL` proxy |
+| 🤖 | ONNX | Active when `.onnx` present; run `train_models.py` |
+| 🛡️ | Circuit breakers | Not validated with live trading |
+
+---
+
+<div align="center">
+
+## ═══════════════════════════════════════
+## 📋 QUICK REFERENCE
+## ═══════════════════════════════════════
+
+| | | |
+|:---|:---|:---|
+| **Run** | `elizaos dev` | `bun start` |
+| **Deploy** | `bun run deploy:cloud` | |
+| **Backfill** | `bun run sync:supabase` | |
+| **DB** | `bun run db:check` | `bun run db:bootstrap` |
+| **Feature store** | `vince_paper_bot_features` | `plugin_vince.paper_bot_features` |
+| **ML bucket** | `vince-ml-models` | |
+| **Postgres** | port 5432 (direct) | |
+| **Train** | `train_models.py --data .elizadb/.../features --output .../models` | |
+| **Weights** | `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run .../run-improvement-weights.ts` | |
+
+---
+
+*Built with [ElizaOS](https://github.com/elizaos/eliza) · [summarize](https://github.com/IkigaiLabsETH/summarize)*
+
+</div>
