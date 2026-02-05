@@ -6,7 +6,9 @@ Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designe
 
 ## Multi-Agent Discord (Same Server, No Conflict)
 
-To run **both VINCE and Eliza in the same Discord server** without `Send handler not found` errors (like [the-org](https://github.com/elizaOS/the-org)):
+**If you see `Send handler not found (handlerSource=discord)`:** VINCE and Eliza are using the **same** Discord Application ID. Create a **second** Discord app for VINCE at [Discord Developer Portal](https://discord.com/developers/applications), then set `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` to the new app’s values (different from Eliza’s). Restart the app.
+
+To run **both VINCE and Eliza in the same Discord server** without errors (like [the-org](https://github.com/elizaOS/the-org)):
 
 1. **Two Discord applications (two bots)**  
    Create two apps in the [Discord Developer Portal](https://discord.com/developers/applications): one for VINCE, one for Eliza. Each has its own **Application ID** and **Bot token**.
