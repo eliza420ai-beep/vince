@@ -967,7 +967,7 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
             className="h-10"
           />
           <div className="ml-auto text-[10px] text-muted-foreground text-right max-w-xs">
-            Otaku is in beta. We recommend starting with smaller amounts for testing.
+            {agent.name} is in beta. We recommend starting with smaller amounts for testing.
           </div>
         </div>
       </div>

@@ -19,7 +19,11 @@ export const character: Character = {
   plugins: [
     '@elizaos/plugin-sql',
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? ['@elizaos/plugin-anthropic'] : []),
-    ...(process.env.ELIZAOS_API_KEY?.trim() ? ['@elizaos/plugin-elizacloud'] : []),
+    // Local-only messaging: do not load elizacloud (replies stay on local server/socket).
+    // Set ELIZAOS_USE_LOCAL_MESSAGING=true or leave ELIZAOS_API_KEY unset for local-only.
+    ...(process.env.ELIZAOS_API_KEY?.trim() && process.env.ELIZAOS_USE_LOCAL_MESSAGING !== 'true'
+      ? ['@elizaos/plugin-elizacloud']
+      : []),
     ...(process.env.OPENROUTER_API_KEY?.trim() ? ['@elizaos/plugin-openrouter'] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ['@elizaos/plugin-openai'] : []),
     ...(process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ? ['@elizaos/plugin-google-genai'] : []),
