@@ -291,11 +291,22 @@ Share recommendations, spots, photos
 
 ---
 
+## Invite links at startup (Voice vs text-only)
+
+When the Discord plugin starts, it prints a **Discord Bot Invite** box with two sections:
+
+- **With Voice** — for bots that join voice channels (TTS, listen, etc.). We don’t use this yet.
+- **Without Voice** — text-only (chat, read, send messages). Use this for VINCE and Eliza unless you’ve set up voice.
+
+**Use the “Without Voice” links** (Basic, Moderator, or Admin) when adding the bot to your server. The “With Voice” links are optional and only needed if you enable voice later.
+
+---
+
 ## Setup Checklist
 
 - [ ] Create VINCE Command Center category (IKIGAI) or LIFESTYLE category (LiveTheLifeTV)
 - [ ] Create `#vince-daily-reports`, `#vince-news`, `#vince-lifestyle`, `#vince-alerts`
-- [ ] Invite VINCE to those channels
+- [ ] Invite VINCE to those channels (use **Without Voice** invite if you’re not using voice)
 - [ ] Add channel purposes/descriptions
 - [ ] Pin command list in general chat
 - [ ] Mirror structure in Slack if used
