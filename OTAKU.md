@@ -2,6 +2,8 @@
 
 A DeFi-focused AI agent built on ElizaOS, featuring a modern React frontend, Coinbase Developer Platform (CDP) wallet integration, and comprehensive DeFi capabilities including swaps, bridging, analytics, and market data.
 
+**Full reference:** The canonical Otaku project (structure, plugins, scripts, env, and deployment) is **[github.com/elizaOS/otaku](https://github.com/elizaOS/otaku/)**. Use it for the complete plugin set, `managers/`, workspace packages (`api-client`, `server`), and up-to-date docs.
+
 ## Features
 
 - **AI Agent Interface** - Real-time chat with Otaku, a DeFi analyst agent
@@ -29,43 +31,44 @@ This is a monorepo workspace project built with:
 
 ### Project Structure
 
+The layout below mirrors [elizaOS/otaku](https://github.com/elizaOS/otaku/). This repo may only include a subset (e.g. `src/agents/otaku.ts` and some plugins).
+
 ```
 ├── src/
 │   ├── index.ts              # Main entry point (agent & plugin config)
-│   ├── character.ts          # Otaku agent character definition
+│   ├── character.ts         # Otaku agent character definition
+│   ├── managers/            # Backend managers (Otaku repo)
+│   │   └── cdp-transaction-manager.ts   # CDP transaction handling
 │   ├── frontend/             # React application
-│   │   ├── App.tsx           # Main App component with CDP integration
-│   │   ├── components/       # React components
-│   │   │   ├── chat/         # Chat interface components
-│   │   │   ├── dashboard/    # Dashboard components (sidebar, wallet, widgets)
-│   │   │   ├── agents/       # Agent management UI
-│   │   │   ├── auth/         # Authentication components
-│   │   │   └── ui/           # Reusable UI components (Radix UI)
-│   │   ├── lib/              # Client libraries
-│   │   │   ├── elizaClient.ts      # Type-safe API client
-│   │   │   ├── socketManager.ts    # WebSocket manager
-│   │   │   └── cdpUser.ts          # CDP user utilities
-│   │   ├── hooks/            # React hooks
-│   │   ├── contexts/         # React contexts (LoadingPanel, Modal)
-│   │   └── types/            # TypeScript types
-│   ├── packages/             # Workspace packages
-│   │   ├── api-client/       # Type-safe ElizaOS API client (@elizaos/api-client)
-│   │   └── server/           # Server package docs (@elizaos/server)
-│   └── plugins/              # Custom plugins
-│       ├── plugin-cdp/       # Coinbase Developer Platform integration
-│       ├── plugin-coingecko/ # CoinGecko API integration
-│       ├── plugin-web-search/ # Web search (Tavily, CoinDesk)
-│       ├── plugin-defillama/  # DeFiLlama TVL analytics
-│       ├── plugin-relay/      # Relay Protocol bridging
-│       ├── plugin-etherscan/  # Etherscan transaction checking
-│       └── plugin-bootstrap/  # Core ElizaOS bootstrap plugin
-├── dist/                     # Build output
-├── build.ts                  # Backend build script
-├── start-server.ts           # Server startup script
-├── vite.config.ts           # Vite configuration
-├── tailwind.config.js       # Tailwind CSS config
-├── turbo.json               # Turbo monorepo config
-└── package.json             # Root dependencies & scripts
+│   │   ├── App.tsx          # Main App component with CDP integration
+│   │   ├── components/      # chat/, dashboard/, agents/, auth/, ui/
+│   │   ├── lib/             # elizaClient.ts, socketManager.ts, cdpUser.ts
+│   │   ├── hooks/
+│   │   ├── contexts/
+│   │   └── types/
+│   ├── packages/            # Workspace packages (Otaku repo)
+│   │   ├── api-client/       # @elizaos/api-client
+│   │   └── server/          # @elizaos/server (custom ElizaOS server)
+│   └── plugins/             # Plugins required for full Otaku (see Plugins section)
+│       ├── plugin-biconomy/
+│       ├── plugin-bootstrap/
+│       ├── plugin-cdp/
+│       ├── plugin-clanker/
+│       ├── plugin-coingecko/
+│       ├── plugin-defillama/
+│       ├── plugin-etherscan/
+│       ├── plugin-gamification/
+│       ├── plugin-morpho/
+│       ├── plugin-polymarket-discovery/
+│       ├── plugin-relay/
+│       └── plugin-web-search/
+├── dist/
+├── build.ts
+├── start-server.ts
+├── vite.config.ts
+├── tailwind.config.js
+├── turbo.json
+└── package.json
 ```
 
 ## Prerequisites
@@ -160,7 +163,7 @@ To have the **Otaku agent** (`src/agents/otaku.ts`) fully operational (wallet, s
 
 **x402-related:** The x402 protocol is used for paid API requests (e.g. `FETCH_WITH_PAYMENT`). You need the **x402 plugin** or integration, the packages above (`@coinbase/x402`, `x402-axios`, `x402-express`, `x402-fetch`), and env vars such as `X402_RECEIVING_WALLET`, `X402_PUBLIC_URL`, `X402_FACILITATOR_URL` (see `.env.example` and `docs/x402-payments.md` if present).
 
-**Plugins:** Otaku expects plugins for CDP (wallet, swaps, transfers), CoinGecko, web search, DeFiLlama, Relay, Etherscan, Morpho, Polymarket (if used), and bootstrap—as listed in the Plugins section below. Ensure the project’s agent config (e.g. in `src/index.ts`) registers the Otaku agent with the correct plugin list.
+**Plugins:** Otaku expects all plugins listed in the [Plugins](#plugins) section (CDP, bootstrap, Clanker, CoinGecko, DeFiLlama, Etherscan, Morpho, Polymarket discovery, Relay, web search, Biconomy, gamification) plus `@elizaos/plugin-sql`. The full set lives in [elizaOS/otaku](https://github.com/elizaOS/otaku/). Ensure the project’s agent config (e.g. in `src/index.ts`) registers the Otaku agent with this plugin list.
 
 If these are missing, the Otaku agent may start but wallet, swap, paid-request, and protocol-specific features will be unavailable or fall back to stubs.
 
@@ -231,6 +234,25 @@ The `build` script compiles the backend to `dist/index.js`, emits type declarati
 Note: The server serves the built frontend from `dist/frontend`. To see UI changes, rebuild the frontend (`bun run build:frontend`).
 
 ## Plugins
+
+Plugins needed for full Otaku behavior come from the [elizaOS/otaku](https://github.com/elizaOS/otaku/) repo. Register them in the Otaku agent config (e.g. `src/index.ts` or wherever the Otaku character is loaded).
+
+| Plugin | Purpose |
+|--------|--------|
+| **plugin-biconomy** | Biconomy (account abstraction / gasless tx) |
+| **plugin-bootstrap** | Core ElizaOS bootstrap (actions, evaluators, providers) |
+| **plugin-cdp** | Coinbase Developer Platform (wallet, swaps, transfers, x402) |
+| **plugin-clanker** | Clanker SDK integration (e.g. stablecoins / payments) |
+| **plugin-coingecko** | CoinGecko (prices, trending, NFT stats) |
+| **plugin-defillama** | DeFiLlama (protocol TVL, analytics) |
+| **plugin-etherscan** | Etherscan (transaction confirmation checks) |
+| **plugin-gamification** | Gamification / engagement features |
+| **plugin-morpho** | Morpho protocol (lending / Blue SDK) |
+| **plugin-polymarket-discovery** | Polymarket discovery / prediction markets |
+| **plugin-relay** | Relay Protocol (cross-chain bridging) |
+| **plugin-web-search** | Web search (Tavily) and crypto news (CoinDesk) |
+
+Plus **@elizaos/plugin-sql** for database (messages, memories, state).
 
 ### CDP Plugin (plugin-cdp)
 
@@ -337,6 +359,26 @@ Otaku ships with a custom build of the ElizaOS bootstrap plugin providing essent
 ### SQL Plugin (@elizaos/plugin-sql)
 
 Database integration for persistent storage of messages, memories, and agent state.
+
+### Biconomy Plugin (plugin-biconomy)
+
+Account abstraction / gasless transaction support (Biconomy). See [elizaOS/otaku](https://github.com/elizaOS/otaku/) for actions and config.
+
+### Clanker Plugin (plugin-clanker)
+
+[Clanker](https://github.com/elizaOS/otaku/tree/master/src/plugins/plugin-clanker) SDK integration (e.g. stablecoins, payments). Requires `clanker-sdk` in `package.json`.
+
+### Gamification Plugin (plugin-gamification)
+
+Gamification and engagement features for the Otaku agent. See the Otaku repo for actions and configuration.
+
+### Morpho Plugin (plugin-morpho)
+
+[Morpho](https://github.com/elizaOS/otaku/tree/master/src/plugins/plugin-morpho) protocol integration (lending, Blue SDK). Uses `@morpho-org/blue-sdk`, `@morpho-org/morpho-ts` from `package.json`.
+
+### Polymarket Discovery Plugin (plugin-polymarket-discovery)
+
+Polymarket discovery and prediction markets. Uses `@polymarket/sdk`. See [elizaOS/otaku](https://github.com/elizaOS/otaku/) for actions.
 
 ## Agent: Otaku
 
