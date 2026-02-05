@@ -51,13 +51,16 @@ export class VinceNotificationService extends Service {
     if (!text?.trim()) return 0;
 
     const targets = await this.getPushTargets(options);
-    if (targets.length === 0) return 0;
     if (targets.length === 0) {
       logger.debug("[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping");
       return 0;
     }
 
+    const isNoSendHandler = (err: unknown): boolean =>
+      String(err).includes("No send handler registered") || String((err as Error)?.message).includes("No send handler registered");
+
     let sent = 0;
+    let skippedNoHandler = 0;
     const failed: string[] = [];
     for (const target of targets) {
       try {
@@ -65,12 +68,19 @@ export class VinceNotificationService extends Service {
         sent++;
         logger.debug(`[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`);
       } catch (err) {
-        failed.push(`${target.source}: ${err}`);
+        if (isNoSendHandler(err)) {
+          skippedNoHandler++;
+        } else {
+          failed.push(`${target.source}: ${err}`);
+        }
       }
     }
 
     if (sent > 0) {
       logger.info(`[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`);
+    }
+    if (skippedNoHandler > 0) {
+      logger.debug(`[VinceNotification] Skipped ${skippedNoHandler} target(s) (no send handler for source — use a separate Discord app for VINCE)`);
     }
     if (failed.length > 0) {
       logger.warn(`[VinceNotification] Failed ${failed.length}/${targets.length}: ${failed.slice(0, 2).join("; ")}${failed.length > 2 ? "…" : ""}`);

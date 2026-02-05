@@ -380,8 +380,15 @@ Your call on execution. Want me to log the selections?`,
 // ==========================================
 
 const initVince = async ({ runtime }: { runtime: IAgentRuntime }) => {
-  // Services initialize asynchronously - individual service logs confirm when each is ready
-  // No need to wait or check here since ElizaOS handles service registration
+  const vinceAppId = process.env.VINCE_DISCORD_APPLICATION_ID?.trim();
+  const elizaAppId = process.env.ELIZA_DISCORD_APPLICATION_ID?.trim();
+  if (vinceAppId && elizaAppId && vinceAppId === elizaAppId) {
+    logger.warn(
+      "[VINCE] Discord: ELIZA_DISCORD_APPLICATION_ID and VINCE_DISCORD_APPLICATION_ID are the same. " +
+        "Use two different Discord applications (two bots) or only one agent will connect. " +
+        "Create a second app at discord.com/developers/applications and set VINCE_* to the new app's ID and token."
+    );
+  }
   logger.info("[VINCE] ✅ Agent initialized - services starting in background");
 };
 
