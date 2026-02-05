@@ -797,6 +797,11 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
                     <div className="flex items-start gap-2">
                       <span className="text-sm font-medium"> {error}</span>
                     </div>
+                    {error.toLowerCase().includes('endpoint not found') && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Make sure the API is running (e.g. use <code className="px-1 rounded bg-muted">bun start</code> and open the URL it prints, usually http://localhost:5173).
+                      </p>
+                    )}
                     <button
                       onClick={() => setError(null)}
                       className="mt-2 text-xs underline hover:no-underline"

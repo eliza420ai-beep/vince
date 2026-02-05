@@ -1033,11 +1033,13 @@ function AppContent({
 
               {/* Content Area */}
               <div className="min-h-0 flex-1 flex flex-col gap-8 md:gap-14 px-3 lg:px-6 pt-10 md:pt-6 ring-2 ring-pop bg-background">
-                {userId &&
-                  connected &&
-                  !isLoadingChannels &&
-                  (activeChannelId || isNewChatMode) && (
+                {userId && !isLoadingChannels && (activeChannelId || isNewChatMode) ? (
                     <div className="flex-1 min-h-0">
+                      {!connected && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Connecting…
+                        </p>
+                      )}
                       <ChatInterface
                         agent={agent}
                         userId={userId}
@@ -1067,7 +1069,17 @@ function AppContent({
                         }}
                       />
                     </div>
-                  )}
+                ) : (
+                  <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-muted-foreground">
+                    {!userId ? (
+                      <p>Sign in or continue as guest to chat.</p>
+                    ) : isLoadingChannels ? (
+                      <p>Loading…</p>
+                    ) : (
+                      <p>Click + next to CHAT HISTORY to start a new chat.</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}

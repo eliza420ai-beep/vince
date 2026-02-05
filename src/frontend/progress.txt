@@ -1,0 +1,103 @@
+# VINCE Frontend Progress Tracker
+# Last updated: 2026-02-05
+# Otaku-style UI (Vite) integrated and branded as VINCE. Update after feature or fix.
+
+================================================================================
+OVERVIEW
+================================================================================
+
+- **Stack:** React, Vite, Tailwind v4, @elizaos/api-client (local packages/api-client)
+- **Run:** `bun start` → API on :3000, Vite dev server on :5173 (or next free port)
+- **Use:** Open the URL the script prints (e.g. http://localhost:5173) for the chat UI.
+  Port 3000 serves the default ElizaOS dashboard (invite code); use 5173 for this UI.
+- **Build:** `bun run build:frontend` → dist/frontend (served by backend when using start:custom-ui)
+
+================================================================================
+COMPLETED
+================================================================================
+
+## Integration ✅
+- Otaku-style frontend brought into repo under src/frontend/
+- Vite root: src/frontend; build outDir: ../../dist/frontend
+- Proxy: /api and /socket.io → http://localhost:3000 (vite.config.ts)
+- Script: scripts/dev-with-vite.js starts backend + Vite, opens browser to correct URL
+
+## Branding ✅
+- "Otaku" → "VINCE" in sidebar, mobile header, index.html
+- Default sidebar user label "Guest" when not signed in
+- Document title "VINCE - Chat" (App.tsx)
+
+## Guest mode & CDP stubs ✅
+- Guest mode in App.tsx: when VITE_CDP_PROJECT_ID not set, persistent guest userId + default
+  userProfile so UI renders without CDP
+- Stubs: src/frontend/stubs/ for @coinbase/cdp-react and @coinbase/cdp-hooks (no-op) so build
+  works without installing CDP packages; aliased in vite.config.ts
+
+## Chat UI behavior ✅
+- Chat input shown when userId and !isLoadingChannels and (activeChannelId || isNewChatMode);
+  no longer requires socket "connected" so input is visible even while connecting
+- Fallback copy when chat area not ready: "Click + next to CHAT HISTORY to start a new chat",
+  "Loading…", or "Sign in or continue as guest to chat"
+- "Connecting…" line shown above chat when socket not yet connected
+- Error state: on "API endpoint not found", in-app hint suggests `bun start` and opening the
+  printed URL (e.g. http://localhost:5173); Dismiss button to clear
+
+## Dependencies & build ✅
+- streamdown ^2.1.0; wrap-ansi-cjs 8.0.0 override for install
+- @tailwindcss/vite in vite.config.ts for Tailwind v4
+- Removed tw-animate-css import (package not present)
+- Local @elizaos/api-client: packages/api-client, built and aliased in vite.config.ts
+
+## Docs ✅
+- README (repo root) § "Chat UI: API endpoint not found" troubleshooting
+- plugin-vince progress.txt: KNOWN ISSUES + session note for this frontend issue
+
+================================================================================
+KNOWN ISSUES / LIMITATIONS
+================================================================================
+
+⚠️ "API endpoint not found"
+   Backend returns this when a request to /api/* does not match any route (404 catch-all).
+   - Ensure `bun start` is running and open the URL it prints (e.g. http://localhost:5173).
+   - If GET /api/server/health is OK but chat still fails, check Network tab for the exact
+     failing URL (e.g. /api/messaging/servers, /api/messaging/central-servers/.../channels).
+   See repo README Troubleshooting and plugin-vince progress.txt.
+
+⚠️ Backend guest/anonymous support
+   Full chat (create server/channels, send messages) may require backend support for
+   unauthenticated or guest users; not yet verified end-to-end.
+
+⚠️ CDP not configured
+   When VITE_CDP_PROJECT_ID is not set, CDP wallet and auth use stubs/guest mode. Wallet
+   card and sign-in are present but not wired to real CDP.
+
+================================================================================
+IN PROGRESS / BACKLOG
+================================================================================
+
+- Verify end-to-end chat: send message → agent reply over Socket.IO + messaging API
+- Optional: Radix sidebar/sheet for mobile, full action-tool layout from Otaku
+- Optional: Replace "Otaku is in beta" disclaimer with VINCE or remove
+
+================================================================================
+KEY FILES
+================================================================================
+
+- App.tsx                    — Main app, guest mode, channels, chat view, error fallbacks
+- components/chat/chat-interface.tsx — Messages, input, quick prompts, error display
+- lib/elizaClient.ts         — API client (baseUrl: window.location.origin)
+- lib/socketManager.ts       — Socket.IO connection and channel join/leave
+- vite.config.ts             — Proxy, aliases (api-client, CDP stubs), Tailwind
+- stubs/cdp-react.tsx, stubs/cdp-hooks.ts — No-op CDP when not configured
+- docs/architecture.md, docs/development.md, docs/troubleshooting.md
+
+================================================================================
+SESSION NOTES
+================================================================================
+
+2026-02-05:
+- progress.txt created for frontend folder; documents integration, branding, guest mode,
+  chat input visibility, "API endpoint not found" handling, and known issues.
+- Chat UI error: when error message contains "endpoint not found", show hint to use
+  `bun start` and open printed URL (chat-interface.tsx).
+- README and plugin-vince progress.txt updated with Chat UI troubleshooting and KNOWN ISSUES.
