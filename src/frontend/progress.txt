@@ -71,11 +71,21 @@ KNOWN ISSUES / LIMITATIONS
    When VITE_CDP_PROJECT_ID is not set, CDP wallet and auth use stubs/guest mode. Wallet
    card and sign-in are present but not wired to real CDP.
 
+⚠️ Agent replies not reaching UI (MESSAGE-BUS "fetch failed")
+   If "bot status" (or any message) never shows the agent reply and the UI stays on
+   "Analyzing your request", check terminal at startup for:
+   - [SERVICE:MESSAGE-BUS] Error fetching agent servers (error=fetch failed)
+   - [SERVICE:MESSAGE-BUS] Error fetching channels from server (error=fetch failed)
+   The message bus can't get server/channel list, so it can't route the reply back.
+   Fix: ensure central API is reachable (ELIZAOS_API_KEY / base URL) or configure
+   local-only messaging. See DEPLOY.md § "Bot status / agent replies not reaching the UI (local)".
+
 ================================================================================
 IN PROGRESS / BACKLOG
 ================================================================================
 
 - Verify end-to-end chat: send message → agent reply over Socket.IO + messaging API
+   (blocked by MESSAGE-BUS fetch when "fetch failed" at startup)
 - Optional: Radix sidebar/sheet for mobile, full action-tool layout from Otaku
 - Optional: Replace "Otaku is in beta" disclaimer with VINCE or remove
 
@@ -101,3 +111,15 @@ SESSION NOTES
 - Chat UI error: when error message contains "endpoint not found", show hint to use
   `bun start` and open printed URL (chat-interface.tsx).
 - README and src/plugins/plugin-vince/progress.txt updated with Chat UI troubleshooting and KNOWN ISSUES.
+
+2026-02-05 (bot status / agent reply delivery):
+- chat-interface.tsx: clear typing indicator on any agent message (not only MULTI_STEP_SUMMARY)
+  so single-step actions like VINCE_BOT_STATUS stop showing "Analyzing your request" once reply arrives.
+- chat-interface.tsx: filter messageBroadcast by channelId/roomId when present so messages for
+  other channels aren't shown; added [Chat] debug logs (New message received / Ignoring message for different channel).
+- plugin-log-filter: stopped suppressing [SERVICE:MESSAGE-BUS] "Error sending response to central server"
+  so that error is visible when reply delivery fails.
+- DEPLOY.md: added § "Bot status / agent replies not reaching the UI (local)" explaining
+  MESSAGE-BUS "Error fetching agent servers" and "Error fetching channels from server" (fetch failed)
+  and that they prevent the bus from routing replies to the UI.
+- progress.txt: added KNOWN ISSUES entry for MESSAGE-BUS fetch failed and link to DEPLOY.md.
