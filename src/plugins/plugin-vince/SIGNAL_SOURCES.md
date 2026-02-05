@@ -128,3 +128,5 @@ These services exist and return data, but they are **not** wired into the signal
 - [README.md](./README.md) — Plugin overview and signal pipeline
 - [CLAUDE.md](./CLAUDE.md) — Service list and technical reference
 - [../../FEATURE-STORE.md](../../FEATURE-STORE.md) — Where feature records (and decision drivers) are stored for ML
+- [IMPROVEMENT_WEIGHTS_AND_TUNING.md](./IMPROVEMENT_WEIGHTS_AND_TUNING.md) — Threshold tunables, improvement report (holdout_metrics), run-improvement-weights
+- [ML_IMPROVEMENT_PROOF.md](./ML_IMPROVEMENT_PROOF.md) — How to prove ML improves the algo (validate_ml_improvement, tests)

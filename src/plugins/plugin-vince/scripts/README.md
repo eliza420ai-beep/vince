@@ -42,12 +42,21 @@ Use this checklist to track improvements. Full rationale and detail are in [FEED
 
 ## Running
 
-From repo root (or plugin root), with a venv that has the training deps:
+From **repo root**, with a venv that has the training deps:
 
 ```bash
 # Run on the feature store directory (loads all features_*.jsonl)
 python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 ```
+
+From **plugin directory** (no need to remember repo-root paths):
+
+```bash
+cd src/plugins/plugin-vince
+bun run train-models
+```
+
+This runs the same command from repo root (paths are resolved automatically). Requires Python 3 and `pip3 install -r scripts/requirements.txt`.
 
 Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).
 

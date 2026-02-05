@@ -75,6 +75,34 @@ def main() -> None:
     wins = df_trades["profitable"].sum()
     baseline_win_rate = wins / n_all
 
+    # Optional: show holdout metrics from last training run if available
+    data_path = Path(args.data).resolve()
+    candidates = [
+        data_path.parent / "models" / "training_metadata.json",   # e.g. .../features -> .../models
+        data_path.parent.parent / "models" / "training_metadata.json",
+        SCRIPT_DIR.parent / ".elizadb" / "vince-paper-bot" / "models" / "training_metadata.json",
+    ]
+    meta_path = None
+    for c in candidates:
+        try:
+            if c.resolve().is_file():
+                meta_path = c.resolve()
+                break
+        except (OSError, RuntimeError):
+            continue
+    if meta_path and meta_path.is_file():
+        try:
+            with open(meta_path) as f:
+                meta = json.load(f)
+            holdout = (meta.get("improvement_report") or {}).get("holdout_metrics")
+            if holdout:
+                print("Holdout metrics (from last training run, for drift/sizing context):")
+                for model_name, metrics in holdout.items():
+                    print(f"  {model_name}: " + ", ".join(f"{k}={v:.4f}" for k, v in (metrics or {}).items()))
+                print()
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # Baseline metrics
     print("=" * 60)
     print("ML PARAMETER IMPROVEMENT VALIDATION")

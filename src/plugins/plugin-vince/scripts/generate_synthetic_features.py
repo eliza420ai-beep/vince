@@ -16,6 +16,10 @@ Usage:
   python3 generate_synthetic_features.py --count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl
   python3 generate_synthetic_features.py --count 200 --output features.jsonl --append
   python3 train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+
+Optional train_models flags you can use with this data: --recency-decay, --balance-assets,
+--tune-hyperparams (GridSearchCV + TimeSeriesSplit). Holdout metrics (MAE/AUC/quantile) are written
+to improvement_report.holdout_metrics and improvement_report.md.
 """
 
 import argparse

@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (Daily report task, Eliza Cloud logs, channel structure)
+# Last updated: 2026-02-05 (train_models holdout/sample-weights/tuning, 8 tests, docs)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -203,8 +203,26 @@ COMPLETED
 ## ML Learning State ✅
 - Feature store: 21+ feature/synthetic files in .elizadb/vince-paper-bot/features (features_*.jsonl, synthetic_*.jsonl). 1250+ completed trades for training.
 - Synthetic data: generate_synthetic_features.py supports --count, --output, --append (timestamps continue), --win-rate, --seed. train_models.py loads all features_*.jsonl and synthetic_*.jsonl from --data dir.
-- ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
-- Tests: test_train_models.py (6 tests) and generate_synthetic_features.py verified; pytest optional.
+- ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run from repo root: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
+- Tests: test_train_models.py (8 tests: metadata/holdout, learning baseline, insufficient data, SL label, multi-asset, generate→train, recency-decay/balance-assets smoke, tune-hyperparams smoke) and generate_synthetic_features.py verified; pytest optional.
+- Run from repo root: `bun run train-models` or `python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90` (script lives in plugin-vince/scripts/, not repo root). Optional: --recency-decay, --balance-assets, --tune-hyperparams.
+
+## train_models.py improvements for more sources (2026-02-05) ✅
+- TP and SL optimizers now use same optional news/signal features as signal quality and position sizing when present: news_nasdaqChange, news_macro_risk_on/off, signal_hasOICap, news_etfFlowBtc/EtfFlowEth.
+- Shared OPTIONAL_FEATURE_COLUMNS tuple used by all four prepare_* functions to avoid drift when adding new feature-store columns.
+- CANDIDATE_SIGNAL_FACTORS extended with Binance L/S ratio (market_longShortRatio) and Binance OI flush (market_oiChange24h) for improvement report suggestions.
+- improvementReportWeights.ts: signal_hasOICap → HyperliquidOICap; news_etfFlowBtc, news_etfFlowEth → NewsSentiment for run-improvement-weights after retrain.
+- Script docstring documents extending OPTIONAL_FEATURE_COLUMNS and CANDIDATE_SIGNAL_FACTORS when the feature store adds new sources. See scripts/FEEDBACK.md and scripts/PARAMETER_IMPROVEMENT.md.
+
+## train_models.py: holdout metrics, sample weights, tuning, tests (2026-02-05) ✅
+- Holdout metrics: _holdout_metrics() computes AUC (signal quality), MAE/quantile loss (position sizing, SL) on time-based holdout; written to improvement_report.holdout_metrics and improvement_report.md; in training_metadata.json. For drift/sizing checks.
+- Sample weights: --recency-decay and --balance-assets; _compute_sample_weights(); passed into all four train_* fits so one symbol or era does not dominate.
+- Hyperparameter search: --tune-hyperparams runs GridSearchCV (max_depth, learning_rate, n_estimators) with TimeSeriesSplit for signal_quality and position_sizing.
+- StandardScaler: _safe_float_columns_for_scaler() in all four prepare_* to avoid "Mean of empty slice" when float columns empty or constant.
+- improvementReportWeights: ImprovementReport type and logAndApplyImprovementReportWeights() now include holdout_metrics; script logs them when present.
+- validate_ml_improvement.py: optionally prints holdout_metrics from last training run (training_metadata.json) when found.
+- test_train_models.py: 8 tests total; assert holdout_metrics in metadata when training succeeds; smoke tests test_recency_decay_and_balance_assets_run_without_crash and test_tune_hyperparams_run_without_crash; run_train_models() accepts extra_args and timeout_sec.
+- Docs: IMPROVEMENT_WEIGHTS_AND_TUNING.md (holdout_metrics, 8 tests); ML_IMPROVEMENT_PROOF.md (holdout, validate script, test description); PARAMETER_IMPROVEMENT.md (holdout + optional training options); FEEDBACK.md (medium impact done, backlog described); generate_synthetic_features.py docstring (optional train flags); README.md (train-models script, holdout, docs table); progress.txt (this entry).
 
 ## ML on Eliza Cloud ✅
 - Why Cloud had no ML: .elizadb/ is gitignored, so the deploy image never contained ONNX files; the bot fell back to rule-based signal quality, sizing, and TP/SL.
@@ -413,7 +431,7 @@ NEXT / BACKLOG
 🟢 Migrate prod to Supabase Postgres — DONE ✅ (2026-02-05)
    POSTGRES_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL in .env. plugin_vince.paper_bot_features and public.vince_paper_bot_features in same Supabase DB as ElizaOS tables. Added: scripts/sync-jsonl-to-supabase.ts (backfill), SUPABASE_MIGRATION.md (checklist), getSupabaseUrl() supports pooler URL. See FEATURE-STORE.md, DEPLOY.md.
 🟢 Daily report task: VINCE_DAILY_REPORT runs at VINCE_DAILY_REPORT_HOUR (default 18:00 UTC); pushes ALOHA + OPTIONS + PERPS + HIP-3 to channels with "daily" in name. Set VINCE_DAILY_REPORT_ENABLED=false to disable. NOTIFICATIONS.md has channel structure (e.g. #vince-daily-reports, #vince-alerts).
-🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual: pip3 install -r scripts/requirements.txt && python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
+🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual (from repo root): `pip3 install -r src/plugins/plugin-vince/scripts/requirements.txt` then `python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90`. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
@@ -531,6 +549,8 @@ SESSION NOTES
 - MandoMinutes TLDR at top (MANDOMINUTES #1): getVibeCheck() returns 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases from headlines + Themes). Shown at top of printDetailedDashboard() and formatForBriefing(). Phrases: crypto selloff, gains erased, Vitalik ETH, gold up, ETF outflow, regulatory, security. Unit test for empty cache. See newsSentiment.service.ts getVibeCheck(), formatForBriefing().
 - NASDAQ 24h + macro news features (THINGS TO DO #2): HIP-3 primary for nasdaqChange (US500, INFOTECH, MAG7, SEMIS, XYZ100) and macroRiskEnvironment (tradFiVsCrypto). 6s timeout. Yahoo Finance ^IXIC fallback when HIP-3 has no index data. See vinceFeatureStore.service.ts collectNewsFeatures(), fetchYahooNasdaqChange().
 - News sentiment "erases gains" bug fix (DEBUG LOG FOCUS #1): (1) NEGATIVE_GAINS_PHRASES now returns "bearish" immediately (override; bullish keywords like "gains"/"win" no longer override). (2) normalizeForSentiment() normalizes unicode (NFKC), fancy apostrophes (U+2019 → ASCII), whitespace. (3) news cache: on re-fetch we UPDATE existing items' sentiment (not skip), so logic changes apply on next refresh. (4) Added singular variants (erases gain, gain erased). (5) Unit test: "BTC erases gains since Trump's election win" and "Trump\u2019s" (fancy apostrophe) both → bearish. See newsSentiment.service.ts, newsSentiment.service.test.ts.
+- train_models.py improvements for more sources: TP/SL use news_nasdaqChange, news_macro_risk_on/off, signal_hasOICap, news_etfFlow* when present; OPTIONAL_FEATURE_COLUMNS centralized; CANDIDATE_SIGNAL_FACTORS + Binance L/S and OI flush; improvementReportWeights signal_hasOICap and news_etfFlow*; script path from repo root documented (src/plugins/plugin-vince/scripts/train_models.py). progress.txt, scripts/README.md, scripts/FEEDBACK.md updated.
+- train_models.py medium-impact + docs: holdout_metrics (AUC/MAE/quantile) in improvement report and training_metadata; sample weights (--recency-decay, --balance-assets); hyperparameter search (--tune-hyperparams); StandardScaler safe columns; improvementReportWeights logs holdout_metrics; validate_ml_improvement prints holdout when metadata found; test_train_models.py 8 tests (holdout assertion + smoke tests for recency-decay and tune-hyperparams). IMPROVEMENT_WEIGHTS_AND_TUNING.md, ML_IMPROVEMENT_PROOF.md, PARAMETER_IMPROVEMENT.md, FEEDBACK.md, generate_synthetic_features.py, README.md, progress.txt updated.
 
 2026-02-04:
 - MandoMinutes sentiment for trading bot (completeness): (1) Asset-specific sentiment via getTradingSentiment(asset). (2) Risk-event dampener: block bullish when critical/warning, boost bearish. (3) Price-embedded headlines parsed and merged. (4) Phrase overrides expanded. (5) Category weighting per asset. (6) Confidence calibration (score+headcount blend). (7) Macro vs crypto via category weights. See "MandoMinutes sentiment for trading bot — DONE" above.

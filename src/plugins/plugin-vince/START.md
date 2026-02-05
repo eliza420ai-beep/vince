@@ -93,6 +93,8 @@ For plugin-vince, we have a tailored documentation structure:
 | **CLAUDE.md** | AI operating manual—rules, constraints, patterns AI must follow |
 | **START.md** | This file—the complete system for understanding and extending VINCE |
 | **SIGNAL_SOURCES.md** | Which signal sources feed the aggregator, how to enable them, how to verify in logs |
+| **IMPROVEMENT_WEIGHTS_AND_TUNING.md** | ML improvement report, holdout metrics, optional training flags (recency decay, asset balance, hyperparameter tuning) |
+| **ML_IMPROVEMENT_PROOF.md** | Validating that ML training actually improves paper-bot metrics |
 | **README.md** | Plugin overview, install, usage; links to WHAT/WHY/HOW |
 
 These docs cross-reference each other. WHAT defines the vision, WHY explains the architecture, HOW teaches implementation, CLAUDE.md keeps AI aligned, and SIGNAL_SOURCES.md tells you how to get more factors per trade.

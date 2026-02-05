@@ -47,7 +47,7 @@ Ways to improve signal quality using the **same** Binance Futures public APIs (n
 **Current:** We fetch `globalLongShortAccountRatio` in `getIntelligence` but do **not** create a signal from it (CoinGlass L/S is used elsewhere).
 
 **Improvement:**
-- In the signal aggregator, when `intel.longShortRatio` is present and extreme (e.g. ratio > 1.5 or < 0.67), add a **BinanceLongShort** contrarian signal (too many longs → short, too many shorts → long). That gives the bot one more data point from Binance.
+- In the signal aggregator, when `intel.longShortRatio` is present and extreme (ratio > 1.4 or < 0.72), add a **BinanceLongShort** contrarian signal (too many longs → short, too many shorts → long). That gives the bot one more data point from Binance. Thresholds are tunable; see [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md).
 
 **Where:** `signalAggregator.service.ts` Phase 3 (Binance block): add a 3e. block for `intel.longShortRatio`.
 
@@ -107,7 +107,7 @@ Ways to improve signal quality using the **same** Binance Futures public APIs (n
 | Priority | Change | Status |
 |----------|--------|--------|
 | High | Funding extreme = percentile (more history) | Done (limit=30, top/bottom 10%). |
-| High | Use Binance L/S in aggregator | Done (BinanceLongShort, ratio >1.5 / <0.67). |
+| High | Use Binance L/S in aggregator | Done (BinanceLongShort, ratio >1.4 / <0.72). See IMPROVEMENT_WEIGHTS_AND_TUNING.md for tunables. |
 | Medium | More history (limit=5) + smoothing for top trader / taker | Done (avg of last 3; validation clamp). |
 | Medium | Multi-period (5m + 1h) for confirmation | Not yet (would double calls). |
 | Low | OI trend as weak signal or ML feature | Done (BinanceOIFlush when OI falling <-5%). |
@@ -115,3 +115,5 @@ Ways to improve signal quality using the **same** Binance Futures public APIs (n
 | Low | Validation and clamping | Done (longPosition, buySellRatio, L/S, funding ±0.5%). |
 
 All of the above use only **free, public** Binance Futures data endpoints; no API key required.
+
+Binance-derived features (e.g. BinanceFundingExtreme, BinanceLongShort, BinanceOIFlush) feed the feature store and appear in the ML improvement report (`feature_importances`, `suggested_signal_factors`). After retraining, see [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md) and `improvement_report.holdout_metrics` for drift/sizing checks.

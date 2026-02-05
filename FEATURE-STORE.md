@@ -141,9 +141,43 @@ Requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env`. Run `supabase
 
 ---
 
+## Feature name mapping (store → training → inference)
+
+When you add or change a feature, update **all three** places so training and inference stay in sync:
+
+| Layer | Where | Rule |
+|-------|--------|------|
+| **Feature store** | `vinceFeatureStore.service.ts` — `FeatureRecord.market`, `.session`, `.signal`, `.regime`, `.news`, `.execution`, `.outcome`, `.labels` | Nested keys (e.g. `market.priceChange24h`) are written to JSONL as-is in the record. |
+| **Flattened column (training)** | `train_models.py` — `load_features()` flattens each record | `record.section.key` → **`section_key`** (e.g. `market.priceChange24h` → `market_priceChange24h`). Lists/objects: `signal.sources` → derived `signal_source_count`, `signal_avg_sentiment`; `news.macroRiskEnvironment` → `news_macro_risk_on` / `news_macro_risk_off` (0/1); `regime.volatilityRegime` → `regime_volatility_high` (1 if high); `regime.marketRegime` → `regime_bullish`, `regime_bearish`. |
+| **Inference input** | `mlInference.service.ts` — `SignalQualityInput`, `getSignalQualityFeatureValue()` | Flattened column name (e.g. `market_priceChange24h`) is mapped to an input field (e.g. `priceChange24h`) and normalized. Order is defined by **`training_metadata.signal_quality_feature_names`** after each train; inference builds the vector from that list. |
+
+**Flatten rules (train_models.py):**
+
+- `market.*` → `market_*` (e.g. `market_atrPct`, `market_longShortRatio`)
+- `session.*` → `session_*` (e.g. `session_utcHour`, `session_isOpenWindow`)
+- `signal.*` (except `sources`, `factors`) → `signal_*`; plus `signal_source_count`, `signal_avg_sentiment` from `sources`
+- `regime.*` → `regime_*`; training also derives `regime_volatility_high`, `regime_bullish`, `regime_bearish` from `regime_volatilityRegime` / `regime_marketRegime`
+- `news.*` (scalar values) → `news_*`; `news.macroRiskEnvironment` → `news_macro_risk_on`, `news_macro_risk_off`
+- `execution.*` → `exec_*`; `outcome.*` → `outcome_*`; `labels.*` → `label_*`
+
+**Signal-quality model (canonical order after train):**
+
+Base (always): `market_priceChange24h`, `market_volumeRatio`, `market_fundingPercentile`, `market_longShortRatio`, `signal_strength`, `signal_confidence`, `signal_source_count`, `signal_hasCascadeSignal`, `signal_hasFundingExtreme`, `signal_hasWhaleSignal`, `session_isWeekend`, `session_isOpenWindow`, `session_utcHour`. Optional (when present in data): `market_dvol`, `market_rsi14`, `market_oiChange24h`, `market_fundingDelta`, `market_bookImbalance`, `market_bidAskSpread`, `market_priceVsSma20`, `signal_hasOICap`, `signal_avg_sentiment`, `news_avg_sentiment`, `news_nasdaqChange`, `news_etfFlowBtc`, `news_etfFlowEth`, `news_macro_risk_on`, `news_macro_risk_off`. Regime: `regime_volatility_high`, `regime_bullish`, `regime_bearish`. Multi-asset: `asset_BTC`, `asset_ETH`, etc. (dummies).
+
+**Adding a new feature:**
+
+1. **Store:** Add the field to the right interface in `vinceFeatureStore.service.ts` (e.g. `MarketFeatures`, `NewsFeatures`) and populate it in the corresponding `collect*Features()` method.
+2. **Training:** In `train_models.py`, add the flattened column to the model’s feature list (e.g. `prepare_signal_quality_features` or `OPTIONAL_FEATURE_COLUMNS`). If it’s derived (like regime dummies), add the derivation in the prepare function.
+3. **Inference:** In `mlInference.service.ts`, add the field to `SignalQualityInput` (or the relevant input type), and in `getSignalQualityFeatureValue()` add a `case "flattened_column_name": return ...` so the vector built from `signal_quality_feature_names` gets the correct value.
+
+After retraining, `training_metadata.signal_quality_feature_names` defines the exact order; inference uses that list and does not need a code change for dimension.
+
+---
+
 ## Related docs
 
 - [README.md](README.md) — Project overview and getting started
 - [DEPLOY.md](DEPLOY.md) — Deploy env (PGLite, Postgres, Supabase keys)
 - [src/plugins/plugin-vince/HOW.md](src/plugins/plugin-vince/HOW.md) — Paper bot dev and ML layer
 - [src/plugins/plugin-vince/scripts/README.md](src/plugins/plugin-vince/scripts/README.md) — Training script usage
+- [src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md) — ML usage and improvement checklist

@@ -4,11 +4,15 @@ Short reference for data-driven aggregator weights, Binance 451 handling, and th
 
 ## Improvement report → aggregator weights
 
-**What:** After each ML retrain, `training_metadata.json` includes `improvement_report.feature_importances.signal_quality`. These feature importances are mapped to signal aggregator **source names** (e.g. `regime_bearish` → MarketRegime, `signal_hasWhaleSignal` → BinanceTopTraders). The plugin can use this to keep source weights data-driven so the agent improves as models retrain.
+**What:** After each ML retrain, `training_metadata.json` includes `improvement_report` with:
+- `feature_importances.signal_quality` — mapped to aggregator **source names** (e.g. `regime_bearish` → MarketRegime, `signal_hasWhaleSignal` → BinanceTopTraders).
+- **`holdout_metrics`** — per-model AUC (signal quality), MAE/quantile loss (position sizing, SL) on a time-based holdout for drift/sizing checks.
+
+The plugin uses this to keep source weights data-driven as models retrain.
 
 **How:**
 - On plugin init, `improvementReportWeights.ts` looks for `training_metadata.json` under `.elizadb/vince-paper-bot/models` or `plugin-vince/models/`.
-- It logs top signal_quality features and per-source importance.
+- It logs top signal_quality features, per-source importance, and **holdout_metrics** (when present).
 - If **`VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`**, it nudges `dynamicConfig` source weights toward the importance ratios (weights clamped 0.5–2.0; disabled sources stay at 0).
 
 **Run manually (dry-run or apply):**
@@ -66,4 +70,5 @@ Defined in `signalAggregator.service.ts`. News contributes when sentiment is neu
 ## Tests and scripts
 
 - **Unit test:** `src/__tests__/improvementReportWeights.test.ts` — `sourceImportancesFromReport` mapping and `logAndApplyImprovementReportWeights(false)` no-throw.
-- **Script:** `scripts/run-improvement-weights.ts` — dry-run or apply from CLI.
+- **Script:** `scripts/run-improvement-weights.ts` — dry-run or apply from CLI (logs holdout_metrics when present).
+- **Training tests:** `scripts/test_train_models.py` — 8 tests including smoke tests for `--recency-decay`/`--balance-assets` and `--tune-hyperparams`; asserts holdout_metrics in metadata when training succeeds.

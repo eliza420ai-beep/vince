@@ -175,7 +175,7 @@ Ideas to improve the end-to-end ML pipeline beyond the table above:
    - Keep TRAIN_ONNX_WHEN_READY (90+ trades, max once per 24h). Optionally trigger retrain when win rate or Sharpe over last N trades drops below a bound (e.g. “retrain when last 50 trades &lt; 45% win rate”).
 
 4. **Feature store → training alignment**
-   - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare*Features). Document the mapping in FEATURE-STORE.md or this file.
+   - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare*Features). **Single source of truth:** [FEATURE-STORE.md § Feature name mapping](../../../FEATURE-STORE.md) documents store key → flattened column → inference input and how to add a new feature in all three places.
    - **New signal flags (more data sources):** `hasFundingExtreme` is true for either Binance or Hyperliquid funding extreme; `hasOICap` is set when `HyperliquidOICap` contributed. Training script uses `signal_hasOICap` as an optional feature when present. After retraining with data that includes `signal_hasOICap`, add this input to `SignalQualityInput` and `prepareSignalQualityFeatures()` in `mlInference.service.ts` so the ONNX input dimension matches the new model.
 
 5. **A/B or shadow mode**

@@ -56,7 +56,7 @@ Markets evolve; VINCE learns **parametrically**, not by rewriting code:
 
 - **Thompson Sampling** — Signal source weights adapt from real wins/losses.
 - **Embeddings** — Similar past trades inform current decisions.
-- **Offline models** — ONNX (from feature-store JSONL) for signal quality and position sizing.
+- **Offline models** — ONNX (from feature-store JSONL) for signal quality and position sizing. Training produces an improvement report (including holdout metrics) consumed by the runtime to refine weights.
 
 Timeline: **Day 1** rule-based → **~30 days** adaptive weights → **90+ days** full ML inference when data allows. If ML fails, rules take over. No auto-code edits, no external ML infra—just graceful degradation.
 
@@ -78,6 +78,7 @@ VINCE runs on **free** sources by default (Binance, Deribit, DexScreener, Hyperl
 
 - **Implement or extend:** [HOW.md](./HOW.md), [CLAUDE.md](./CLAUDE.md).
 - **Signal sources and debugging:** [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md).
+- **ML improvement, tuning, and proof:** [IMPROVEMENT_WEIGHTS_AND_TUNING.md](./IMPROVEMENT_WEIGHTS_AND_TUNING.md), [ML_IMPROVEMENT_PROOF.md](./ML_IMPROVEMENT_PROOF.md).
 - **Why ElizaOS (and trade-offs):** [WHY.md](./WHY.md).
 - **Cost coverage and profitability context:** [TREASURY.md](../../TREASURY.md) (project root).
 

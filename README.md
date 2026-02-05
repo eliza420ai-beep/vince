@@ -155,7 +155,7 @@ The core is a **multi-factor paper trading pipeline**:
 
 - **15+ signal sources** — CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid OI cap/funding extreme
 - **50+ features per decision** — stored with **decision drivers** ("WHY THIS TRADE")
-- **Python training pipeline** — `train_models.py` → ONNX + improvement report (feature importances, suggested signal factors)
+- **Python training pipeline** — `train_models.py` → ONNX + improvement report (feature importances, holdout metrics AUC/MAE/quantile, suggested signal factors). Optional: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`.
 
 Feature store and training script aligned: **hasFundingExtreme** (Binance + Hyperliquid), **hasOICap** (Hyperliquid perps-at-OI-cap); synthetic data uses a 10-source pool so ML sees production variety.
 
@@ -224,7 +224,7 @@ flowchart LR
 | 1 | **Paper trading** | Simulated perpetuals (Hyperliquid-style), risk limits, session filters. Goals: $420/day, $10K/month. Targets: BTC, ETH, SOL, HYPE + 34 HIP-3 tradFi assets. |
 | 2 | **Feature store** | **50+ features** per decision: market (price, funding, OI, funding 8h delta, OI 24h change, DVOL, RSI, order-book imbalance, bid-ask spread, price vs SMA20), session, signal (factor-derived sentiment, hasFundingExtreme, hasOICap), regime, news (sentiment, risk events, NASDAQ 24h, macro risk-on/off), execution, outcome. → JSONL + Supabase. [DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md) |
 | 3 | **Online adaptation** | Thompson Sampling gets PnL-weighted updates per source on each closed trade. Signal-similarity k-NN: "avoid" → hard filter (trade skipped). Bayesian parameter tuner. |
-| 4 | **Offline ML** | `train_models.py` trains XGBoost for **signal quality**, **position sizing**, **TP optimizer**, **SL optimizer** → exports all four to ONNX. |
+| 4 | **Offline ML** | `train_models.py` trains XGBoost for **signal quality**, **position sizing**, **TP optimizer**, **SL optimizer** → exports all four to ONNX. Improvement report includes holdout metrics (drift/sizing). Optional sample weights and GridSearchCV tuning. |
 | 5 | **ONNX at runtime** | Bot loads ONNX for signal-quality and sizing; rule-based fallbacks when models aren't trained. |
 
 ### Why Knowledge Matters
@@ -241,8 +241,8 @@ Funding history (8h delta) · rolling SMA20 · Binance depth (book imbalance, sp
 2. Book-imbalance filter · SMA20/funding confidence boost · DVOL size cap
 3. **getVibeCheck()** → "Headlines: {vibe}" in WHY THIS TRADE
 4. **Real-time thresholds** relaxed
-5. **Improvement weights** from training metadata
-6. **Retrain pipeline** — train_models.py, run-improvement-weights.ts, FEATURE_TO_SOURCE
+5. **Improvement weights** from training metadata (run-improvement-weights logs holdout_metrics when present)
+6. **Retrain pipeline** — train_models.py (8 tests, holdout metrics, smoke tests for sample-weight/tuning), run-improvement-weights.ts, FEATURE_TO_SOURCE
 
 *We do **not** yet claim improved P&L or win rate—that requires backtest or live results.*
 
@@ -315,6 +315,7 @@ elizaos test         # Run tests
 | `bun run db:check` | Verify DB migrations |
 | `bun run db:bootstrap` | Run DB bootstrap (Postgres) |
 | `bun run scripts/ingest-urls.ts --file urls.txt` | Batch ingest URLs/YouTube into `knowledge/` |
+| `bun run train-models` | Train ML models (from plugin or repo root); see [scripts/README](src/plugins/plugin-vince/scripts/README.md) |
 
 ---
 
@@ -404,7 +405,9 @@ elizaos test e2e          # E2E only
 | [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
 | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
-| [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights |
+| [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights, holdout metrics |
+| [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) | How to prove ML improves the algo (validate_ml_improvement, tests) |
+| [PARAMETER_IMPROVEMENT.md](src/plugins/plugin-vince/scripts/PARAMETER_IMPROVEMENT.md) | What the improvement report identifies (thresholds, TP/SL) |
 | [DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md) | Feature coverage |
 | [ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md) | ML roadmap |
 | [models/README](src/plugins/plugin-vince/models/README.md) | Ship ONNX |
@@ -490,8 +493,8 @@ Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 | **Feature store** | `vince_paper_bot_features` | `plugin_vince.paper_bot_features` |
 | **ML bucket** | `vince-ml-models` | |
 | **Postgres** | port 5432 (direct) | |
-| **Train** | `train_models.py --data .elizadb/.../features --output .../models` | |
-| **Weights** | `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run .../run-improvement-weights.ts` | |
+| **Train** | `bun run train-models` or `train_models.py --data .elizadb/.../features --output .../models` | Holdout metrics in report |
+| **Weights** | `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true bun run .../run-improvement-weights.ts` | Logs holdout_metrics |
 
 ---
 

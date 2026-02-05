@@ -110,7 +110,13 @@ def generate_synthetic_jsonl(
             f.write(json.dumps(rec) + "\n")
 
 
-def run_train_models(data_path: str, output_dir: str, min_samples: int = 30) -> subprocess.CompletedProcess:
+def run_train_models(
+    data_path: str,
+    output_dir: str,
+    min_samples: int = 30,
+    extra_args: list[str] | None = None,
+    timeout_sec: int = 120,
+) -> subprocess.CompletedProcess:
     """Run train_models.py and return the completed process."""
     train_script = SCRIPT_DIR / "train_models.py"
     cmd = [
@@ -123,12 +129,14 @@ def run_train_models(data_path: str, output_dir: str, min_samples: int = 30) -> 
         "--min-samples",
         str(min_samples),
     ]
+    if extra_args:
+        cmd.extend(extra_args)
     return subprocess.run(
         cmd,
         capture_output=True,
         text=True,
         cwd=str(SCRIPT_DIR),
-        timeout=120,
+        timeout=timeout_sec,
     )
 
 
@@ -189,6 +197,13 @@ class TestTrainModels(unittest.TestCase):
                 onnx_path = os.path.join(output_dir, f"{name}.onnx")
                 if os.path.isfile(onnx_path):
                     self.assertGreater(os.path.getsize(onnx_path), 0, f"{onnx_path} is empty")
+
+            # Holdout metrics (MAE/AUC/quantile) written for drift/sizing when training ran
+            improvement = metadata.get("improvement_report") or {}
+            holdout = improvement.get("holdout_metrics")
+            if models_fit and holdout is not None:
+                self.assertIsInstance(holdout, dict, "holdout_metrics should be a dict per model")
+                self.assertGreater(len(holdout), 0, "At least one model should have holdout_metrics")
 
     def test_learning_improves_over_baseline(self):
         """
@@ -312,6 +327,10 @@ class TestTrainModels(unittest.TestCase):
             self.assertGreaterEqual(len(models_fit), 1, (
                 "At least one model should be fit when training on generate_synthetic_features.py output"
             ))
+            # Holdout metrics present when improvement report is written
+            improvement = metadata.get("improvement_report") or {}
+            if improvement.get("holdout_metrics"):
+                self.assertGreater(len(improvement["holdout_metrics"]), 0, "holdout_metrics should list at least one model")
             # When news features present, signal_quality_input_dim can be 20
             if "signal_quality_input_dim" in metadata:
                 self.assertGreaterEqual(metadata["signal_quality_input_dim"], 16)
@@ -339,6 +358,56 @@ class TestTrainModels(unittest.TestCase):
             )
             self.assertGreaterEqual(len(X), 50, "Enough samples for multi-asset feature set")
             self.assertEqual(len(y), len(X), "y should align with X")
+
+    def test_recency_decay_and_balance_assets_run_without_crash(self):
+        """Smoke test: train_models with --recency-decay and --balance-assets completes successfully."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features.jsonl")
+            output_dir = os.path.join(tmp, "models")
+            generate_synthetic_jsonl(data_path, num_records=120, assets=["BTC", "ETH"])
+
+            result = run_train_models(
+                data_path,
+                output_dir,
+                min_samples=50,
+                extra_args=["--recency-decay", "0.01", "--balance-assets"],
+                timeout_sec=120,
+            )
+            self.assertEqual(result.returncode, 0, (
+                f"train_models.py with recency-decay and balance-assets failed: "
+                f"stdout={result.stdout!r} stderr={result.stderr!r}"
+            ))
+            metadata_path = os.path.join(output_dir, "training_metadata.json")
+            self.assertTrue(os.path.isfile(metadata_path), f"Missing {metadata_path}")
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+            models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
+            self.assertGreaterEqual(len(models_fit), 1, "At least one model should be fit with sample weights")
+
+    def test_tune_hyperparams_run_without_crash(self):
+        """Smoke test: train_models with --tune-hyperparams (GridSearchCV + TimeSeriesSplit) completes without crash."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features.jsonl")
+            output_dir = os.path.join(tmp, "models")
+            generate_synthetic_jsonl(data_path, num_records=100)
+
+            result = run_train_models(
+                data_path,
+                output_dir,
+                min_samples=50,
+                extra_args=["--tune-hyperparams"],
+                timeout_sec=180,
+            )
+            self.assertEqual(result.returncode, 0, (
+                f"train_models.py with --tune-hyperparams failed: "
+                f"stdout={result.stdout!r} stderr={result.stderr!r}"
+            ))
+            metadata_path = os.path.join(output_dir, "training_metadata.json")
+            self.assertTrue(os.path.isfile(metadata_path), f"Missing {metadata_path}")
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+            models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
+            self.assertGreaterEqual(len(models_fit), 1, "At least one model should be fit after hyperparameter tuning")
 
 
 if __name__ == "__main__":

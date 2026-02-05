@@ -42,7 +42,7 @@ This is the **hands-on development guide** for plugin-vince: workflows, adding a
 | Change signal weights or thresholds | `src/constants/paperTradingDefaults.ts`, `src/config/dynamicConfig.ts` |
 | See which signal sources contributed | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md); logs: `[VinceSignalAggregator]` |
 | Inspect paper bot / ML state | `.elizadb/vince-paper-bot/` (see [Data Persistence Paths](#data-persistence-paths) below) |
-| Train ONNX models from features | `scripts/train_models.py`, [scripts/README.md](scripts/README.md) |
+| Train ONNX models from features | `scripts/train_models.py`, [scripts/README.md](scripts/README.md); produces holdout metrics, supports `--recency-decay`, `--balance-assets`, `--tune-hyperparams`; 8 tests in `test_train_models.py` |
 | Understand cost/profitability mandate | [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) (project root) |
 
 ---
@@ -533,6 +533,8 @@ cat .elizadb/vince-paper-bot/risk-state.json | jq '.'
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+Training also produces an **improvement report** (`improvement_report.md` + `training_metadata.json`) that includes **holdout metrics** (AUC/MAE/quantile loss). The runtime consumes thresholds and TP-level preferences from this report; `run-improvement-weights.ts` logs holdout metrics when applying a new report.
+
 ### Thompson Sampling (Weight Bandit)
 
 ```typescript
@@ -596,13 +598,15 @@ await featureStore.recordFeatures(features);
 # Generate training data
 cat .elizadb/vince-paper-bot/features/*.jsonl > training_data.jsonl
 
-# Train models (requires Python 3)
-python3 scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+# From plugin dir: train models (Python 3), or use bun from repo root
+bun run train-models
+# Or: python3 scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+# Optional: --recency-decay, --balance-assets, --tune-hyperparams (see scripts/README.md)
 
 # Models output to:
-# - models/signal_quality.onnx
-# - models/position_sizing.onnx
-# - models/tp_optimizer.onnx
+# - models/signal_quality.onnx, position_sizing.onnx, tp_optimizer.onnx
+# - training_metadata.json, improvement_report.md (with holdout_metrics)
+# 8 tests: bun run test (test_train_models.py)
 ```
 
 ### Graceful Degradation

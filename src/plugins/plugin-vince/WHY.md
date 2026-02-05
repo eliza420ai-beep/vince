@@ -22,6 +22,7 @@
 | **ElizaOS over ClawdBot** | Providers aggregate 15+ signal sources in parallel; evaluators learn from trade outcomes; native Discord/Telegram; character system keeps one persona across options, perps, memes, lifestyle, art. |
 | **Trade-offs we accepted** | No computer control (human executes trades); no self-healing code; server-based by default. |
 | **What transfers** | Domain logic (weights, thresholds, session filters, circuit breakers), constants, knowledge files—the IP is the thinking, not the TypeScript. |
+| **Improvement report** | Training produces an improvement report (holdout metrics, thresholds); the runtime consumes it so the bot tightens filters without code edits. |
 
 ---
 
