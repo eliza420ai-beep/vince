@@ -50,7 +50,7 @@ COMPLETED
 
 ## Docs ✅
 - README (repo root) § "Chat UI: API endpoint not found" troubleshooting
-- plugin-vince progress.txt: KNOWN ISSUES + session note for this frontend issue
+- src/plugins/plugin-vince/progress.txt: KNOWN ISSUES + session note for this frontend issue
 
 ================================================================================
 KNOWN ISSUES / LIMITATIONS
@@ -61,7 +61,7 @@ KNOWN ISSUES / LIMITATIONS
    - Ensure `bun start` is running and open the URL it prints (e.g. http://localhost:5173).
    - If GET /api/server/health is OK but chat still fails, check Network tab for the exact
      failing URL (e.g. /api/messaging/servers, /api/messaging/central-servers/.../channels).
-   See repo README Troubleshooting and plugin-vince progress.txt.
+   See repo README Troubleshooting and src/plugins/plugin-vince/progress.txt.
 
 ⚠️ Backend guest/anonymous support
    Full chat (create server/channels, send messages) may require backend support for
@@ -100,4 +100,4 @@ SESSION NOTES
   chat input visibility, "API endpoint not found" handling, and known issues.
 - Chat UI error: when error message contains "endpoint not found", show hint to use
   `bun start` and open printed URL (chat-interface.tsx).
-- README and plugin-vince progress.txt updated with Chat UI troubleshooting and KNOWN ISSUES.
+- README and src/plugins/plugin-vince/progress.txt updated with Chat UI troubleshooting and KNOWN ISSUES.
