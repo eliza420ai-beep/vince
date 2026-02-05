@@ -138,7 +138,7 @@ export class VinceNotificationService extends Service {
           if (!matchesRoomName(room)) continue;
 
           targets.push({
-            source: room.source,
+            source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
             serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,
@@ -154,7 +154,7 @@ export class VinceNotificationService extends Service {
           if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
           if (!matchesRoomName(room)) continue;
           targets.push({
-            source: room.source,
+            source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
             serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,

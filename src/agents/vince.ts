@@ -43,9 +43,8 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
-// Only load Discord on VINCE when explicitly enabled AND he has his own bot (different app than Eliza).
-// Set VINCE_DISCORD_ENABLED=true only after creating a second Discord app and setting VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN.
-// Otherwise Discord messages are delivered to VINCE's runtime but he has no send handler → "Send handler not found" spam.
+// Load Discord for VINCE only when he has his own bot (different Discord app than Eliza).
+// This avoids one bot being used by two runtimes; with two apps, both agents can run in the same server (see DISCORD.md).
 const vinceHasOwnDiscord =
   process.env.VINCE_DISCORD_ENABLED === "true" &&
   !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&

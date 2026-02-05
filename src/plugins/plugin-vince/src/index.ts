@@ -228,6 +228,15 @@ export const vincePlugin: Plugin = {
   
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Normalize sendMessageToTarget source to lowercase so "Discord" from DB matches handler key "discord"
+    if (isVinceAgent(runtime) && typeof runtime.sendMessageToTarget === "function") {
+      const original = runtime.sendMessageToTarget.bind(runtime);
+      (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: { source?: string; [k: string]: unknown }, content: unknown) => {
+        const normalized = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
+        return original(normalized, content);
+      };
+    }
+
     // Banner + MARKET PULSE: only for VINCE (Eliza also loads this plugin → would print twice)
     if (isVinceAgent(runtime)) {
     // Fetch live prices and 24h change from CoinGecko

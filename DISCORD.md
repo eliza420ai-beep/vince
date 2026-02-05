@@ -2,6 +2,38 @@
 
 Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designed to fit VINCE (trading, lifestyle, news) and Eliza (research, knowledge, UPLOAD) agents.
 
+---
+
+## Multi-Agent Discord (Same Server, No Conflict)
+
+To run **both VINCE and Eliza in the same Discord server** without `Send handler not found` errors (like [the-org](https://github.com/elizaOS/the-org)):
+
+1. **Two Discord applications (two bots)**  
+   Create two apps in the [Discord Developer Portal](https://discord.com/developers/applications): one for VINCE, one for Eliza. Each has its own **Application ID** and **Bot token**.
+
+2. **Invite both bots to the same server**  
+   Use each app’s OAuth2 URL to invite its bot. You’ll have two bots in the server (e.g. `Vince` and `Eliza`).
+
+3. **Env per agent (same key names, different values)**  
+   Each agent’s character uses `DISCORD_APPLICATION_ID` and `DISCORD_API_TOKEN` in `settings.secrets`. The plugin reads those from the runtime, so each runtime gets its own bot:
+
+   - **VINCE:** `VINCE_DISCORD_APPLICATION_ID` + `VINCE_DISCORD_API_TOKEN` → copied into character as `DISCORD_APPLICATION_ID` / `DISCORD_API_TOKEN`.
+   - **Eliza:** `ELIZA_DISCORD_APPLICATION_ID` + `ELIZA_DISCORD_API_TOKEN` (or fallback `DISCORD_*`) → same keys in her character.
+
+4. **When both load Discord**  
+   VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). So set:
+
+   - `VINCE_DISCORD_ENABLED=true`
+   - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (Vince’s app)
+   - `ELIZA_DISCORD_APPLICATION_ID` and `ELIZA_DISCORD_API_TOKEN` (Eliza’s app)
+
+   With **different** application IDs, both agents load Discord; each runtime gets its own send handler and no conflict.
+
+5. **Why “Send handler not found” happened before**  
+   If only one Discord app was used for both agents (or only Eliza’s env was set), VINCE’s character didn’t load the Discord plugin, so his runtime had no `discord` send handler. Messages or pushes that tried to send from VINCE’s runtime then failed with `Send handler not found (handlerSource=discord)`.
+
+**Current split (VINCE in IKIGAI LABS, Eliza in LiveTheLifeTV)** is valid: two servers, two bots, no conflict. To move both into one server later, use the same two-app setup and invite both bots to that server.
+
 ## Quick Reference: Channel Name → Push Type
 
 | Channel name contains | Receives |

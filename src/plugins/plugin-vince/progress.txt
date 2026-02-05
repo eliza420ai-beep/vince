@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (train_models holdout/sample-weights/tuning, 8 tests, docs)
+# Last updated: 2026-02-05 (TOP PRIORITY: VINCE Discord send-handler fix; train_models, docs)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -234,6 +234,18 @@ COMPLETED
   - Utils: src/plugins/plugin-vince/src/utils/supabaseMlModels.ts (getSupabaseClient, uploadModelsToSupabase, downloadModelsFromSupabase).
 - **Option B – Ship models in repo:** Copy trained .onnx + training_metadata.json into src/plugins/plugin-vince/models/, commit, deploy. Dockerfile copies that folder into .elizadb/vince-paper-bot/models/ at build time. See plugin-vince/models/README.md.
 - Docs: DEPLOY.md "ML training on Eliza Cloud" and "One-time: Create the vince-ml-models bucket"; FEATURE-STORE.md §5; scripts/supabase-feature-store-bootstrap.sql for feature table.
+
+================================================================================
+TOP PRIORITY – FIX FIRST
+================================================================================
+
+1. **VINCE Discord: "Send handler not found" + can't reply or push day report to #daily**
+   - Symptom: Logs spam "Send handler not found (handlerSource=discord)". VINCE is visible in Discord but "not active" (offline / can't reply or post day report). Eliza works fine on Discord. With VINCE_DISCORD_ENABLED=false the errors stop.
+   - Cause (two parts):
+     (a) **Handler lookup is case-sensitive.** The Discord plugin registers the send handler under the key "discord" (lowercase). If rooms in the DB or targets passed to sendMessageToTarget have source "Discord" (capital D), the runtime does sendHandlers.get("Discord") and finds nothing → "Send handler not found". **Fix applied:** VinceNotificationService now normalizes room.source to lowercase when building push targets so our pushes use "discord" and the handler is found.
+     (b) **"Visible but not active"** may mean VINCE's Discord client never fully connected (e.g. second bot in same process, or login failed). If the handler is still not found after (a), or the bot stays offline: try temporarily disabling Eliza's Discord (unset ELIZA_DISCORD_* or remove Discord from Eliza's plugins) and run with only VINCE_DISCORD_ENABLED=true. If VINCE then connects and works, the limitation is two Discord bots in one process; workaround = run VINCE in a separate process or use one shared Discord app for both (would require different wiring).
+   - Config: Create a **separate** Discord application for VINCE. In .env set VINCE_DISCORD_ENABLED=true, VINCE_DISCORD_APPLICATION_ID, VINCE_DISCORD_API_TOKEN. Invite VINCE's bot to the server and add it to #daily. Restart.
+   - Refs: NOTIFICATIONS.md, src/agents/vince.ts (vinceHasOwnDiscord), plugin-vince notification.service (getPushTargets; source normalized to lowercase).
 
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
