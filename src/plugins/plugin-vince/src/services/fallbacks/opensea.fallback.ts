@@ -86,11 +86,20 @@ export class OpenSeaFallbackService implements IOpenSeaService {
   constructor(runtime?: IAgentRuntime) {
     // Runtime getSetting() only reads character.settings/secrets, not process.env.
     // So we check runtime first, then process.env so .env works without duplicating in character.
-    const fromRuntime = runtime?.getSetting("OPENSEA_API_KEY") as string | null | undefined;
-    const fromEnv = typeof process !== "undefined" && process.env?.OPENSEA_API_KEY;
-    const key = (fromRuntime && String(fromRuntime).trim()) || (fromEnv && String(fromEnv).trim()) || null;
+    const fromRuntime = runtime?.getSetting("OPENSEA_API_KEY") as
+      | string
+      | null
+      | undefined;
+    const fromEnv =
+      typeof process !== "undefined" && process.env?.OPENSEA_API_KEY;
+    const key =
+      (fromRuntime && String(fromRuntime).trim()) ||
+      (fromEnv && String(fromEnv).trim()) ||
+      null;
     this.apiKey = key || null;
-    logger.debug(`[OpenSeaFallback] Fallback service initialized (API key: ${this.apiKey ? "yes" : "no"})`);
+    logger.debug(
+      `[OpenSeaFallback] Fallback service initialized (API key: ${this.apiKey ? "yes" : "no"})`,
+    );
   }
 
   /**
@@ -124,13 +133,15 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < REQUEST_DELAY_MS) {
-      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS - timeSinceLastRequest));
+      await new Promise((resolve) =>
+        setTimeout(resolve, REQUEST_DELAY_MS - timeSinceLastRequest),
+      );
     }
     this.lastRequestTime = Date.now();
 
     try {
       const headers: Record<string, string> = {
-        "Accept": "application/json",
+        Accept: "application/json",
       };
 
       if (this.apiKey) {
@@ -157,7 +168,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
           if (!hasLogged401) {
             hasLogged401 = true;
             logger.info(
-              "[OpenSeaFallback] OpenSea API key missing or invalid (401) - NFT floor data unavailable. Set OPENSEA_API_KEY for full data."
+              "[OpenSeaFallback] OpenSea API key missing or invalid (401) - NFT floor data unavailable. Set OPENSEA_API_KEY for full data.",
             );
           }
           return null;
@@ -186,11 +197,13 @@ export class OpenSeaFallbackService implements IOpenSeaService {
    */
   private calculateFloorThickness(
     floorPrice: number,
-    listings: Listing[]
+    listings: Listing[],
   ): IOpenSeaFloorThickness {
     // Sort listings by price
     const sortedListings = listings
-      .map((l) => this.weiToEth(l.price.current.value, l.price.current.decimals))
+      .map((l) =>
+        this.weiToEth(l.price.current.value, l.price.current.decimals),
+      )
       .filter((p) => p > 0)
       .sort((a, b) => a - b);
 
@@ -258,7 +271,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
    */
   async analyzeFloorOpportunities(
     slug: string,
-    options?: { maxListings?: number }
+    options?: { maxListings?: number },
   ): Promise<IOpenSeaFloorAnalysis> {
     const maxListings = options?.maxListings || 20;
 
@@ -282,7 +295,9 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
     try {
       // Fetch collection stats (returns null on 401 / no API key)
-      const stats = await this.fetchOpenSea<CollectionStats>(`/collections/${slug}/stats`);
+      const stats = await this.fetchOpenSea<CollectionStats>(
+        `/collections/${slug}/stats`,
+      );
 
       if (!stats || !stats.total) {
         return emptyResult();
@@ -292,7 +307,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
       // Fetch listings for floor thickness analysis
       const listingsResponse = await this.fetchOpenSea<ListingsResponse>(
-        `/listings/collection/${slug}/all?limit=${maxListings}`
+        `/listings/collection/${slug}/all?limit=${maxListings}`,
       );
 
       const listings = listingsResponse?.listings || [];
@@ -301,8 +316,12 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       const floorThickness = this.calculateFloorThickness(floorPrice, listings);
 
       // Extract volume metrics
-      const interval24h = stats.intervals?.find((i) => i.interval === "one_day");
-      const interval7d = stats.intervals?.find((i) => i.interval === "seven_day");
+      const interval24h = stats.intervals?.find(
+        (i) => i.interval === "one_day",
+      );
+      const interval7d = stats.intervals?.find(
+        (i) => i.interval === "seven_day",
+      );
 
       const volumeMetrics: IOpenSeaVolumeMetrics = {
         salesPerDay: interval24h?.sales || 0,
@@ -321,13 +340,15 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
       logger.debug(
         `[OpenSeaFallback] ${slug} - Floor: ${floorPrice.toFixed(4)} ETH, ` +
-        `Thickness: ${floorThickness.description} (${floorThickness.score}), ` +
-        `Near floor: ${floorThickness.nftsNearFloor}`
+          `Thickness: ${floorThickness.description} (${floorThickness.score}), ` +
+          `Near floor: ${floorThickness.nftsNearFloor}`,
       );
 
       return result;
     } catch (error) {
-      logger.debug(`[OpenSeaFallback] analyzeFloorOpportunities ${slug}: ${error}`);
+      logger.debug(
+        `[OpenSeaFallback] analyzeFloorOpportunities ${slug}: ${error}`,
+      );
       return emptyResult();
     }
   }

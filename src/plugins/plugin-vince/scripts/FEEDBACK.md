@@ -83,4 +83,3 @@ Prioritized ideas to improve the training pipeline and ML loop (see also ALGO_ML
 
 - **Single source of feature names:** Document the full list "feature store key → flattened column → inference input" in FEATURE-STORE.md or ALGO_ML_IMPROVEMENTS.md so new features are added in all three places (store, train_models, mlInference).
 - **Run from plugin dir:** Add a small `package.json` script in plugin-vince that invokes `train_models.py` with the correct paths so you can run `bun run train-models` from the plugin root without remembering the repo-root path.
-

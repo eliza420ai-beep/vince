@@ -10,22 +10,26 @@
  * Run automatically via postinstall or manually: bun run scripts/patch-plugin-sql.ts
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { join } from "path";
 
-const PLUGIN_SQL_PATH = join(import.meta.dir, '../node_modules/@elizaos/plugin-sql/dist/node/index.node.js');
+const PLUGIN_SQL_PATH = join(
+  import.meta.dir,
+  "../node_modules/@elizaos/plugin-sql/dist/node/index.node.js",
+);
 
 const PATCHES = [
   {
-    name: 'SET LOCAL app.entity_id parameterization fix',
-    search: 'await tx.execute(sql`SET LOCAL app.entity_id = ${entityId}`);',
+    name: "SET LOCAL app.entity_id parameterization fix",
+    search: "await tx.execute(sql`SET LOCAL app.entity_id = ${entityId}`);",
     // Note: entityId is validated as UUID type upstream in ElizaOS (src/types.ts)
     // The withEntityContext function signature enforces UUID | null type
     // SQL injection risk is mitigated by this type validation before reaching this code
-    replace: "await tx.execute(sql.raw(`SET LOCAL app.entity_id = '${entityId}'`));",
+    replace:
+      "await tx.execute(sql.raw(`SET LOCAL app.entity_id = '${entityId}'`));",
   },
   {
-    name: 'Exclude user_registry from RLS (auth lookup table)',
+    name: "Exclude user_registry from RLS (auth lookup table)",
     // Fix: user_registry is queried during auth to LOOK UP the entity_id.
     // RLS requires entity context to be set, but auth doesn't have it yet - chicken and egg.
     // user_registry stores auth mappings, not user data, so no entity isolation needed.
@@ -36,12 +40,12 @@ const PATCHES = [
           )`,
   },
   {
-    name: 'PostgreSQL pool configuration (Railway-optimized)',
+    name: "PostgreSQL pool configuration (Railway-optimized)",
     // Fix: Railway Postgres proxy silently closes idle connections.
     // - Short idle timeout (10s) to evict stale connections quickly
     // - allowExitOnIdle: true - don't hold process open for idle connections
     // - keepAlive with short delay to detect dead connections
-    search: 'const poolConfig = { connectionString };',
+    search: "const poolConfig = { connectionString };",
     replace: `const poolConfig = {
       connectionString,
       idleTimeoutMillis: 10000,
@@ -54,7 +58,7 @@ const PATCHES = [
     };`,
   },
   {
-    name: 'Pool error handler (prevent crashes on connection errors)',
+    name: "Pool error handler (prevent crashes on connection errors)",
     // Fix: pg Pool emits 'error' when a connection dies. Without handler, pool can get into bad state.
     search: `this.pool = new Pool2(poolConfig);
     this.db = drizzle2(this.pool, { casing: "snake_case" });`,
@@ -69,11 +73,11 @@ const PATCHES = [
 
 function applyPatches() {
   if (!existsSync(PLUGIN_SQL_PATH)) {
-    console.log('⏭️  @elizaos/plugin-sql not installed, skipping patches');
+    console.log("⏭️  @elizaos/plugin-sql not installed, skipping patches");
     return;
   }
 
-  let content = readFileSync(PLUGIN_SQL_PATH, 'utf-8');
+  let content = readFileSync(PLUGIN_SQL_PATH, "utf-8");
   let patchesApplied = 0;
 
   for (const patch of PATCHES) {
@@ -83,7 +87,9 @@ function applyPatches() {
     }
 
     if (!content.includes(patch.search)) {
-      console.log(`⚠️  ${patch.name} (pattern not found - may be fixed upstream)`);
+      console.log(
+        `⚠️  ${patch.name} (pattern not found - may be fixed upstream)`,
+      );
       continue;
     }
 
@@ -94,9 +100,10 @@ function applyPatches() {
 
   if (patchesApplied > 0) {
     writeFileSync(PLUGIN_SQL_PATH, content);
-    console.log(`\n✅ Applied ${patchesApplied} patch(es) to @elizaos/plugin-sql`);
+    console.log(
+      `\n✅ Applied ${patchesApplied} patch(es) to @elizaos/plugin-sql`,
+    );
   }
 }
 
 applyPatches();
-

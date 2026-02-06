@@ -5,6 +5,7 @@ Filters verbose logs that clutter terminal output, specifically suppressing MCP 
 ## What It Does
 
 This plugin (and early bootstrap filter in `src/index.ts`) automatically suppresses:
+
 - MCP tool schema definitions (JSON schemas, response formats)
 - Verbose API endpoint documentation
 - CoinGecko MCP tool descriptions with `jq_filter` recommendations
@@ -64,6 +65,7 @@ Filtered messages will appear as debug logs with `[LogFilter] Suppressed:` prefi
 ## What Gets Filtered
 
 The filter suppresses logs matching these patterns:
+
 - `[coingecko] get_*` - All CoinGecko MCP tool messages
 - `response schema`, `json schema`, `Response Schema`
 - `additionalProperties`, `"type": "object"`, etc.
@@ -105,6 +107,7 @@ If you're still seeing verbose logs:
 ## Adding New Patterns
 
 To add new suppression patterns, edit both:
+
 - `src/index.ts` - Early bootstrap filter
 - `src/plugins/plugin-log-filter/src/index.ts` - Plugin filter
 

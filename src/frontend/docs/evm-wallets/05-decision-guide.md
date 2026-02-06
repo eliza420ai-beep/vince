@@ -32,11 +32,11 @@ Your backend/agent needs to sign transactions without user interaction?
 
 ### Question 2: What level of throughput?
 
-| TPS Needed | Solution |
-|------------|----------|
-| < 10 TPS | CDP Server Wallets (EOA or Smart) |
-| 10-100 TPS | CDP Server Wallets (Smart Account) |
-| 100+ TPS | CDP Server Wallets on Solana (225+ TPS) |
+| TPS Needed | Solution                                |
+| ---------- | --------------------------------------- |
+| < 10 TPS   | CDP Server Wallets (EOA or Smart)       |
+| 10-100 TPS | CDP Server Wallets (Smart Account)      |
+| 100+ TPS   | CDP Server Wallets on Solana (225+ TPS) |
 
 ### Question 3: Do you need gas sponsorship?
 
@@ -50,12 +50,12 @@ Need to sponsor gas for operations?
 
 ### Question 4: What controls do you need?
 
-| Need | Solution |
-|------|----------|
-| Spending limits | Policy Engine (Server Wallets) |
+| Need                | Solution                       |
+| ------------------- | ------------------------------ |
+| Spending limits     | Policy Engine (Server Wallets) |
 | Contract allowlists | Policy Engine (Server Wallets) |
-| USD spend caps | Policy Engine (Server Wallets) |
-| Just basic signing | EOA |
+| USD spend caps      | Policy Engine (Server Wallets) |
+| Just basic signing  | EOA                            |
 
 ### Recommended Stack
 
@@ -112,12 +112,12 @@ Should users have self-custody?
 
 ### Question 2: What kind of onboarding?
 
-| User Expectation | Solution |
-|-----------------|----------|
-| Email/social login | CDP Embedded Wallets ✅ |
-| Download MetaMask | Don't use embedded - use WalletConnect |
-| Passkey auth | CDP Embedded Wallets or Coinbase Smart Wallet |
-| Seed phrase | Traditional wallet (not CDP Embedded) |
+| User Expectation   | Solution                                      |
+| ------------------ | --------------------------------------------- |
+| Email/social login | CDP Embedded Wallets ✅                       |
+| Download MetaMask  | Don't use embedded - use WalletConnect        |
+| Passkey auth       | CDP Embedded Wallets or Coinbase Smart Wallet |
+| Seed phrase        | Traditional wallet (not CDP Embedded)         |
 
 ### Question 3: Do they need to connect to other dApps?
 
@@ -145,12 +145,12 @@ Should transactions be free for users?
 
 ### Question 5: What chains?
 
-| Requirement | Compatible |
-|------------|-----------|
-| Base only | ✅ Perfect fit |
+| Requirement     | Compatible                  |
+| --------------- | --------------------------- |
+| Base only       | ✅ Perfect fit              |
 | Multi-chain EVM | ✅ All EVM chains supported |
-| Solana | ✅ Supported |
-| Bitcoin | ❌ Not supported |
+| Solana          | ✅ Supported                |
+| Bitcoin         | ❌ Not supported            |
 
 ### Recommended Stack
 
@@ -250,12 +250,12 @@ function AgentUI() {
 
 ### Critical Considerations
 
-| Concern | Solution |
-|---------|----------|
-| User trust | Explain what agent does, show transaction history |
-| Recovery | Implement recovery signer when available |
+| Concern         | Solution                                             |
+| --------------- | ---------------------------------------------------- |
+| User trust      | Explain what agent does, show transaction history    |
+| Recovery        | Implement recovery signer when available             |
 | Spending limits | Use Paymaster allowlists (Policy Engine coming soon) |
-| Transparency | Log all agent actions |
+| Transparency    | Log all agent actions                                |
 
 ---
 
@@ -291,12 +291,12 @@ Use Smart Account if:
 
 ## Gas Payment Decision Matrix
 
-| Scenario | Account Type | Paymaster | Gas Payer |
-|----------|-------------|-----------|-----------|
-| User pays ETH | EOA or Smart | None | User |
-| You sponsor | Smart Account | CDP Paymaster | You |
-| User pays USDC | Smart Account | ERC-20 Paymaster | User (in USDC) |
-| User has no crypto | Smart Account | CDP Paymaster | You |
+| Scenario           | Account Type  | Paymaster        | Gas Payer      |
+| ------------------ | ------------- | ---------------- | -------------- |
+| User pays ETH      | EOA or Smart  | None             | User           |
+| You sponsor        | Smart Account | CDP Paymaster    | You            |
+| User pays USDC     | Smart Account | ERC-20 Paymaster | User (in USDC) |
+| User has no crypto | Smart Account | CDP Paymaster    | You            |
 
 ---
 
@@ -531,18 +531,18 @@ Costs:
 
 ## Quick Decision Matrix
 
-| Your Situation | Recommended Solution |
-|---------------|---------------------|
-| Backend automation | Server Wallets + Smart Account |
-| AI agent | Server Wallets + AgentKit |
-| Consumer app (stay in app) | Embedded Wallets + Smart Account |
-| Consumer app (connect to dApps) | WalletConnect |
-| Agent UI (user wallets) | Embedded Wallets + Smart Account |
-| Enterprise treasury | Server Wallets + Policy Engine |
-| Gaming | Embedded Wallets + Session Keys |
-| Payments (USDC) | Embedded Wallets + ERC-20 Paymaster |
-| NFT minting | Embedded Wallets + CDP Paymaster |
-| Multi-sig | Server Wallets + Multiple owners |
+| Your Situation                  | Recommended Solution                |
+| ------------------------------- | ----------------------------------- |
+| Backend automation              | Server Wallets + Smart Account      |
+| AI agent                        | Server Wallets + AgentKit           |
+| Consumer app (stay in app)      | Embedded Wallets + Smart Account    |
+| Consumer app (connect to dApps) | WalletConnect                       |
+| Agent UI (user wallets)         | Embedded Wallets + Smart Account    |
+| Enterprise treasury             | Server Wallets + Policy Engine      |
+| Gaming                          | Embedded Wallets + Session Keys     |
+| Payments (USDC)                 | Embedded Wallets + ERC-20 Paymaster |
+| NFT minting                     | Embedded Wallets + CDP Paymaster    |
+| Multi-sig                       | Server Wallets + Multiple owners    |
 
 ---
 
@@ -579,12 +579,12 @@ Costs:
 
 ## Resources
 
-| Resource | URL |
-|----------|-----|
-| CDP Portal | https://portal.cdp.coinbase.com |
-| Server Wallets Docs | https://docs.cdp.coinbase.com/server-wallets/v2 |
-| Embedded Wallets Docs | https://docs.cdp.coinbase.com/embedded-wallets |
-| Paymaster Docs | https://docs.cdp.coinbase.com/paymaster |
-| AgentKit | https://docs.cdp.coinbase.com/agent-kit |
-| Discord | https://discord.gg/coinbasedev |
-| Status | https://cdpstatus.coinbase.com |
+| Resource              | URL                                             |
+| --------------------- | ----------------------------------------------- |
+| CDP Portal            | https://portal.cdp.coinbase.com                 |
+| Server Wallets Docs   | https://docs.cdp.coinbase.com/server-wallets/v2 |
+| Embedded Wallets Docs | https://docs.cdp.coinbase.com/embedded-wallets  |
+| Paymaster Docs        | https://docs.cdp.coinbase.com/paymaster         |
+| AgentKit              | https://docs.cdp.coinbase.com/agent-kit         |
+| Discord               | https://discord.gg/coinbasedev                  |
+| Status                | https://cdpstatus.coinbase.com                  |

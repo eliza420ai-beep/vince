@@ -70,7 +70,10 @@ export class DeribitFallbackService implements IDeribitService {
   /**
    * Rate-limited fetch with caching
    */
-  private async fetchDeribit<T>(endpoint: string, params: Record<string, string> = {}): Promise<T | null> {
+  private async fetchDeribit<T>(
+    endpoint: string,
+    params: Record<string, string> = {},
+  ): Promise<T | null> {
     const cacheKey = `${endpoint}:${JSON.stringify(params)}`;
     const cached = this.cache.get(cacheKey) as CacheEntry<T> | undefined;
 
@@ -82,7 +85,9 @@ export class DeribitFallbackService implements IDeribitService {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequestTime;
     if (timeSinceLastRequest < REQUEST_DELAY_MS) {
-      await new Promise((resolve) => setTimeout(resolve, REQUEST_DELAY_MS - timeSinceLastRequest));
+      await new Promise((resolve) =>
+        setTimeout(resolve, REQUEST_DELAY_MS - timeSinceLastRequest),
+      );
     }
     this.lastRequestTime = Date.now();
 
@@ -93,7 +98,7 @@ export class DeribitFallbackService implements IDeribitService {
       const response = await fetch(url, {
         method: "GET",
         headers: {
-          "Accept": "application/json",
+          Accept: "application/json",
         },
       });
 
@@ -130,17 +135,22 @@ export class DeribitFallbackService implements IDeribitService {
   /**
    * Get DVOL (Deribit Volatility Index) for BTC or ETH
    */
-  async getVolatilityIndex(asset: "BTC" | "ETH"): Promise<IDeribitVolatilityIndex | null> {
+  async getVolatilityIndex(
+    asset: "BTC" | "ETH",
+  ): Promise<IDeribitVolatilityIndex | null> {
     try {
       const now = Date.now();
       const oneDayAgo = now - 24 * 60 * 60 * 1000;
 
-      const data = await this.fetchDeribit<VolatilityIndexData>("/public/get_volatility_index_data", {
-        currency: asset,
-        start_timestamp: String(oneDayAgo),
-        end_timestamp: String(now),
-        resolution: "60", // 1-hour candles
-      });
+      const data = await this.fetchDeribit<VolatilityIndexData>(
+        "/public/get_volatility_index_data",
+        {
+          currency: asset,
+          start_timestamp: String(oneDayAgo),
+          end_timestamp: String(now),
+          resolution: "60", // 1-hour candles
+        },
+      );
 
       if (!data || !data.data || data.data.length === 0) {
         logger.debug(`[DeribitFallback] No DVOL data for ${asset}`);
@@ -181,16 +191,23 @@ export class DeribitFallbackService implements IDeribitService {
   /**
    * Get comprehensive options data including put/call ratio
    */
-  async getComprehensiveData(currency: "BTC" | "ETH" | "SOL"): Promise<IDeribitComprehensiveData | null> {
+  async getComprehensiveData(
+    currency: "BTC" | "ETH" | "SOL",
+  ): Promise<IDeribitComprehensiveData | null> {
     try {
       // Note: SOL options are limited on Deribit, but we try anyway
-      const bookSummary = await this.fetchDeribit<BookSummaryItem[]>("/public/get_book_summary_by_currency", {
-        currency: currency,
-        kind: "option",
-      });
+      const bookSummary = await this.fetchDeribit<BookSummaryItem[]>(
+        "/public/get_book_summary_by_currency",
+        {
+          currency: currency,
+          kind: "option",
+        },
+      );
 
       if (!bookSummary || bookSummary.length === 0) {
-        logger.debug(`[DeribitFallback] No options book summary for ${currency}`);
+        logger.debug(
+          `[DeribitFallback] No options book summary for ${currency}`,
+        );
         return null;
       }
 
@@ -213,7 +230,8 @@ export class DeribitFallbackService implements IDeribitService {
       }
 
       const totalOpenInterest = callOpenInterest + putOpenInterest;
-      const putCallRatio = callOpenInterest > 0 ? putOpenInterest / callOpenInterest : 0;
+      const putCallRatio =
+        callOpenInterest > 0 ? putOpenInterest / callOpenInterest : 0;
 
       const optionsSummary: IDeribitOptionsSummary = {
         putCallRatio,
@@ -224,7 +242,7 @@ export class DeribitFallbackService implements IDeribitService {
 
       logger.debug(
         `[DeribitFallback] ${currency} P/C Ratio: ${putCallRatio.toFixed(3)}, ` +
-        `Calls: ${callOpenInterest.toFixed(2)}, Puts: ${putOpenInterest.toFixed(2)}`
+          `Calls: ${callOpenInterest.toFixed(2)}, Puts: ${putOpenInterest.toFixed(2)}`,
       );
 
       return {

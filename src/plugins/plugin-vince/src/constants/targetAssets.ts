@@ -1,6 +1,6 @@
 /**
  * VINCE Target Assets Configuration
- * 
+ *
  * Core focus: BTC, SOL, HYPE, ETH + HIP-3 tokens
  * Self-contained HIP-3 integration with Hyperliquid API
  */
@@ -18,20 +18,47 @@ export type CoreAsset = (typeof CORE_ASSETS)[number];
 
 /** HIP-3 Commodities - Available on flx and km dexes */
 export const HIP3_COMMODITIES = [
-  "GOLD", "SILVER", "COPPER", "NATGAS", "OIL", "USOIL"
+  "GOLD",
+  "SILVER",
+  "COPPER",
+  "NATGAS",
+  "OIL",
+  "USOIL",
 ] as const;
 export type HIP3Commodity = (typeof HIP3_COMMODITIES)[number];
 
 /** HIP-3 Equity Indices - Available across xyz, vntl, km dexes */
 export const HIP3_INDICES = [
-  "XYZ100", "US500", "SMALL2000", "MAG7", "SEMIS", "INFOTECH", "ROBOT"
+  "XYZ100",
+  "US500",
+  "SMALL2000",
+  "MAG7",
+  "SEMIS",
+  "INFOTECH",
+  "ROBOT",
 ] as const;
 export type HIP3Index = (typeof HIP3_INDICES)[number];
 
 /** HIP-3 Single Stocks - Available on xyz dex */
 export const HIP3_STOCKS = [
-  "NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "META", "MSFT", "PLTR",
-  "COIN", "HOOD", "NFLX", "MSTR", "AMD", "INTC", "ORCL", "MU", "SNDK", "CRCL",
+  "NVDA",
+  "TSLA",
+  "AAPL",
+  "AMZN",
+  "GOOGL",
+  "META",
+  "MSFT",
+  "PLTR",
+  "COIN",
+  "HOOD",
+  "NFLX",
+  "MSTR",
+  "AMD",
+  "INTC",
+  "ORCL",
+  "MU",
+  "SNDK",
+  "CRCL",
 ] as const;
 export type HIP3Stock = (typeof HIP3_STOCKS)[number];
 
@@ -84,14 +111,14 @@ export const HIP3_DEX_MAPPING: Record<string, HIP3Dex> = {
   ORCL: "xyz",
   MU: "xyz",
   XYZ100: "xyz",
-  
+
   // flx dex (USDH settled) - Commodities
   GOLD: "flx",
   SILVER: "flx",
   OIL: "flx",
   COPPER: "flx",
   NATGAS: "flx",
-  
+
   // vntl dex - AI/tech plays and some indices
   SPACEX: "vntl",
   OPENAI: "vntl",
@@ -102,7 +129,7 @@ export const HIP3_DEX_MAPPING: Record<string, HIP3Dex> = {
   INFOTECH: "vntl",
   SNDK: "vntl",
   AMD: "vntl",
-  
+
   // km dex - Traditional indices and USOIL
   US500: "km",
   SMALL2000: "km",
@@ -115,13 +142,13 @@ export const HIP3_DEX_MAPPING: Record<string, HIP3Dex> = {
  */
 export function normalizeHIP3Symbol(apiSymbol: string): string {
   if (!apiSymbol) return "";
-  
+
   // Check for dex prefix pattern (xyz:, flx:, vntl:, km:)
   const colonIndex = apiSymbol.indexOf(":");
   if (colonIndex !== -1) {
     return apiSymbol.substring(colonIndex + 1);
   }
-  
+
   return apiSymbol;
 }
 
@@ -131,14 +158,14 @@ export function normalizeHIP3Symbol(apiSymbol: string): string {
  */
 export function toHIP3ApiSymbol(symbol: string): string {
   if (!symbol) return "";
-  
+
   const upper = symbol.toUpperCase();
   const dex = HIP3_DEX_MAPPING[upper];
-  
+
   if (dex) {
     return `${dex}:${upper}`;
   }
-  
+
   // Not a HIP-3 asset, return as-is (for crypto assets on main dex)
   return upper;
 }
@@ -148,9 +175,9 @@ export function toHIP3ApiSymbol(symbol: string): string {
  */
 export function isHIP3ApiSymbol(apiSymbol: string): boolean {
   if (!apiSymbol) return false;
-  
+
   const prefixes = ["xyz:", "flx:", "vntl:", "km:"];
-  return prefixes.some(prefix => apiSymbol.toLowerCase().startsWith(prefix));
+  return prefixes.some((prefix) => apiSymbol.toLowerCase().startsWith(prefix));
 }
 
 /**
@@ -163,14 +190,17 @@ export function getHIP3Dex(symbol: string): HIP3Dex | null {
 /**
  * Get the category for a HIP-3 asset
  */
-export function getHIP3Category(symbol: string): "commodity" | "index" | "stock" | "ai_tech" | null {
+export function getHIP3Category(
+  symbol: string,
+): "commodity" | "index" | "stock" | "ai_tech" | null {
   const upper = symbol.toUpperCase();
-  
-  if ((HIP3_COMMODITIES as readonly string[]).includes(upper)) return "commodity";
+
+  if ((HIP3_COMMODITIES as readonly string[]).includes(upper))
+    return "commodity";
   if ((HIP3_INDICES as readonly string[]).includes(upper)) return "index";
   if ((HIP3_STOCKS as readonly string[]).includes(upper)) return "stock";
   if ((HIP3_AI_TECH as readonly string[]).includes(upper)) return "ai_tech";
-  
+
   return null;
 }
 
@@ -185,7 +215,14 @@ export const PRIVACY_ASSETS = ["XMR", "ZEC"] as const;
 export const RWA_ASSETS = ["ONDO", "ENA"] as const;
 
 /** DeFi Kings */
-export const DEFI_ASSETS = ["AAVE", "UNI", "MORPHO", "PENDLE", "SYRUP", "LINK"] as const;
+export const DEFI_ASSETS = [
+  "AAVE",
+  "UNI",
+  "MORPHO",
+  "PENDLE",
+  "SYRUP",
+  "LINK",
+] as const;
 
 /** AI Infrastructure */
 export const AI_INFRA_ASSETS = ["FIL", "TAO"] as const;
@@ -221,10 +258,7 @@ export const PRIORITY_ASSETS = [
 export type PriorityAsset = (typeof PRIORITY_ASSETS)[number];
 
 /** All tracked assets */
-export const ALL_TRACKED_ASSETS = [
-  ...PRIORITY_ASSETS,
-  ...HIP3_ASSETS,
-] as const;
+export const ALL_TRACKED_ASSETS = [...PRIORITY_ASSETS, ...HIP3_ASSETS] as const;
 export type TrackedAsset = (typeof ALL_TRACKED_ASSETS)[number];
 
 // ============================================================================

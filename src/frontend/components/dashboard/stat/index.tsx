@@ -1,6 +1,11 @@
 import React from "react";
 import NumberFlow from "@number-flow/react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/frontend/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/frontend/components/ui/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Bullet } from "@/frontend/components/ui/bullet";
 import { cn } from "@/frontend/lib/utils";
@@ -105,13 +110,13 @@ export default function DashboardStat({
                 getIntentClassName(),
                 direction === "up"
                   ? "animate-marquee-up"
-                  : "animate-marquee-down"
+                  : "animate-marquee-down",
               )}
             >
               <div
                 className={cn(
                   "flex",
-                  direction === "up" ? "flex-col-reverse" : "flex-col"
+                  direction === "up" ? "flex-col-reverse" : "flex-col",
                 )}
               >
                 {Array.from({ length: 6 }, (_, i) => (
@@ -121,7 +126,7 @@ export default function DashboardStat({
               <div
                 className={cn(
                   "flex",
-                  direction === "up" ? "flex-col-reverse" : "flex-col"
+                  direction === "up" ? "flex-col-reverse" : "flex-col",
                 )}
               >
                 {Array.from({ length: 6 }, (_, i) => (
@@ -157,7 +162,7 @@ const Arrow = ({ direction, index }: ArrowProps) => {
         "transition-all duration-700 ease-out",
         "animate-marquee-pulse",
 
-        "will-change-transform"
+        "will-change-transform",
       )}
     >
       {direction === "up" ? "" : ""}

@@ -14,7 +14,11 @@
 import { logAndApplyImprovementReportWeights } from "../src/utils/improvementReportWeights";
 
 const apply = process.env.VINCE_APPLY_IMPROVEMENT_WEIGHTS === "true";
-console.log(apply ? "[run-improvement-weights] Apply mode: will update weights." : "[run-improvement-weights] Dry-run: logging only.");
+console.log(
+  apply
+    ? "[run-improvement-weights] Apply mode: will update weights."
+    : "[run-improvement-weights] Dry-run: logging only.",
+);
 
 logAndApplyImprovementReportWeights(apply)
   .then(() => {

@@ -41,6 +41,58 @@
 
 Each card: same visual style as Quick Start (icon, uppercase title, 1–2 line description). Optional: click expands or inserts a prompt to get full detail in chat.
 
+## How to test what we built
+
+**1. Backend (API)** — Server must be running (`bun start` or `docker compose up`).
+
+```bash
+# Agents
+curl -s http://localhost:3000/api/agents | jq '.data.agents[] | {name, id, status}'
+
+# Pulse (use VINCE agent). Shows insight + section keys on success, or raw error on 404/503.
+VINCE_ID=$(curl -s http://localhost:3000/api/agents | jq -r '.data.agents[] | select(.name=="VINCE") | .id')
+[ -n "$VINCE_ID" ] && curl -s "http://localhost:3000/api/agents/${VINCE_ID}/plugins/vince/pulse" | jq 'if .error then . else {insight: (.insight // "")[0:100], section_keys: ((.sections // {}) | keys)} end'
+```
+
+**2. Frontend (UI)** — Custom UI with Market Pulse and quick actions.
+
+- Run **`bun start`** (backend + Vite). Open the URL printed (e.g. http://localhost:5173 or http://localhost:3000).
+- **Market Pulse:** At the top of the chat you should see a “Market pulse” card with an insight line and optional sections. If it’s missing, pulse API may be 404 (see “Test pulse API” below).
+- **Quick actions:** Row of chips (ALOHA, News, Memes, Perps, Options). Click one; it should send the prompt and the agent reply should appear in chat (if messaging is set up).
+- **Chat with VINCE:** Start or select a channel with the VINCE agent so the pulse and replies use the right runtime.
+
+**3. Docker** — Same API checks against the container.
+
+```bash
+docker compose up -d
+# Then run the same curl commands as in step 1 (agents + pulse). Use VINCE agent ID for pulse.
+```
+
+**4. Automated tests** — From repo root:
+
+```bash
+bun run type-check          # TypeScript
+bun run format:check       # Prettier
+bun run test               # Component + e2e (after test:install)
+bun run cy:run             # Cypress component tests
+```
+
+## Test pulse API (Market Pulse card)
+
+To verify the pulse endpoint returns data (same data that feeds the Market Pulse card):
+
+```bash
+# Use the VINCE agent ID (plugin-vince and the pulse route are on that agent)
+AGENT_ID=$(curl -s http://localhost:3000/api/agents | jq -r '.data.agents[] | select(.name=="VINCE") | .id')
+# If no VINCE, fall back to first agent
+[ -z "$AGENT_ID" ] && AGENT_ID=$(curl -s http://localhost:3000/api/agents | jq -r '.data.agents[0].id')
+curl -s "http://localhost:3000/api/agents/${AGENT_ID}/plugins/vince/pulse" | jq .
+```
+
+- **200** + JSON with `insight` and `sections`: pulse works; frontend card should show it.
+- **404**: Use the **VINCE** agent ID (see one-liner above) and path `/plugins/vince/pulse` (not `/vince/pulse`). If it still 404s: the server must apply the plugin-route path fix (Express strips `/api` from `req.path`). **Local:** run `node scripts/patch-elizaos-server-plugin-routes.cjs` then restart; or edit `node_modules/@elizaos/server/dist/index.js` in `createPluginRouteHandler` to use `reqPath.replace(/(?:\/api)?\/agents\/[^\/]+\/plugins/, "")`. **Docker:** rebuild the image so the Dockerfile’s patch step runs (`docker compose build --no-cache` or equivalent), then restart.
+- **503**: Route is hit but runtime not passed to the handler (see progress.txt § Market Pulse card not showing).
+
 ## Data source (minimal backend)
 
 - **Prefer:** Reuse **last agent reply** or **last action result** in the chat. When the user has already asked "aloha", "bot status", "options", etc., keep a compact summary per dashboard type and show it in the Alpha cards. No new backend.

@@ -10,53 +10,60 @@
  * - Strategy guidance
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { AirdropProtocol } from "../types/index";
 
 // Key airdrop protocols we track
 const TRACKED_PROTOCOLS: AirdropProtocol[] = [
-  { 
-    name: "treadfi", 
-    category: "mm", 
-    status: "active", 
+  {
+    name: "treadfi",
+    category: "mm",
+    status: "active",
     priority: 1,
-    notes: "MM & DN strategies across Hyperliquid, Paradex, Extended, Nado, Pacifica"
+    notes:
+      "MM & DN strategies across Hyperliquid, Paradex, Extended, Nado, Pacifica",
   },
-  { 
-    name: "Hyperliquid", 
-    category: "defi", 
-    status: "confirmed", 
+  {
+    name: "Hyperliquid",
+    category: "defi",
+    status: "confirmed",
     priority: 2,
-    notes: "Points program active, HYPE token live"
+    notes: "Points program active, HYPE token live",
   },
-  { 
-    name: "Paradex", 
-    category: "defi", 
-    status: "active", 
+  {
+    name: "Paradex",
+    category: "defi",
+    status: "active",
     priority: 3,
-    notes: "Trading rewards, maker rebates"
+    notes: "Trading rewards, maker rebates",
   },
-  { 
-    name: "Extended", 
-    category: "defi", 
-    status: "speculated", 
+  {
+    name: "Extended",
+    category: "defi",
+    status: "speculated",
     priority: 4,
-    notes: "Early stage, watch for announcements"
+    notes: "Early stage, watch for announcements",
   },
-  { 
-    name: "Nado", 
-    category: "defi", 
-    status: "speculated", 
+  {
+    name: "Nado",
+    category: "defi",
+    status: "speculated",
     priority: 5,
-    notes: "Privacy-focused, potential airdrop"
+    notes: "Privacy-focused, potential airdrop",
   },
-  { 
-    name: "Pacifica", 
-    category: "defi", 
-    status: "speculated", 
+  {
+    name: "Pacifica",
+    category: "defi",
+    status: "speculated",
     priority: 6,
-    notes: "New entrant, monitor activity"
+    notes: "New entrant, monitor activity",
   },
 ];
 
@@ -103,7 +110,7 @@ function buildAirdropsDataContext(ctx: AirdropsDataContext): string {
 
 async function generateAirdropsHumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, giving an airdrop farming update to a degen friend. You know the meta and you're sharing what's worth grinding.
 
@@ -153,7 +160,10 @@ export const vinceAirdropsAction: Action = {
   similes: ["AIRDROPS", "AIRDROP", "FARMING", "TREADFI", "POINTS"],
   description: "Human-style airdrop farming status with strategy guidance",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("airdrop") ||
@@ -170,14 +180,18 @@ export const vinceAirdropsAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       logger.info("[VINCE_AIRDROPS] Building airdrop status...");
 
-      const treadfi = TRACKED_PROTOCOLS.find(p => p.name === "treadfi");
-      const activeProtocols = TRACKED_PROTOCOLS.filter(p => p.status === "active" || p.status === "confirmed");
-      const speculatedProtocols = TRACKED_PROTOCOLS.filter(p => p.status === "speculated");
+      const treadfi = TRACKED_PROTOCOLS.find((p) => p.name === "treadfi");
+      const activeProtocols = TRACKED_PROTOCOLS.filter(
+        (p) => p.status === "active" || p.status === "confirmed",
+      );
+      const speculatedProtocols = TRACKED_PROTOCOLS.filter(
+        (p) => p.status === "speculated",
+      );
 
       const ctx: AirdropsDataContext = {
         priority: {
@@ -186,13 +200,13 @@ export const vinceAirdropsAction: Action = {
           notes: treadfi?.notes || "MM & DN strategies",
           venues: ["Hyperliquid", "Paradex", "Extended", "Nado", "Pacifica"],
         },
-        active: activeProtocols.map(p => ({
+        active: activeProtocols.map((p) => ({
           name: p.name,
           category: p.category,
           status: p.status,
           notes: p.notes,
         })),
-        speculated: speculatedProtocols.map(p => ({
+        speculated: speculatedProtocols.map((p) => ({
           name: p.name,
           notes: p.notes,
         })),
@@ -201,7 +215,10 @@ export const vinceAirdropsAction: Action = {
       // Generate briefing
       const dataContext = buildAirdropsDataContext(ctx);
       logger.info("[VINCE_AIRDROPS] Generating briefing...");
-      const briefing = await generateAirdropsHumanBriefing(runtime, dataContext);
+      const briefing = await generateAirdropsHumanBriefing(
+        runtime,
+        dataContext,
+      );
 
       const output = [
         "**Airdrop Status**",

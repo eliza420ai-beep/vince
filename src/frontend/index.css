@@ -9,8 +9,9 @@ html.dark body {
 
 @font-face {
   font-family: "Rebels";
-  src: url("/Rebels-Fett.woff2") format("woff2"),
-       url("/Rebels-Fett.woff") format("woff");
+  src:
+    url("/Rebels-Fett.woff2") format("woff2"),
+    url("/Rebels-Fett.woff") format("woff");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -166,7 +167,9 @@ html.dark body {
   * {
     @apply border-border outline-ring/50 overscroll-none;
   }
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     overflow: hidden;
   }

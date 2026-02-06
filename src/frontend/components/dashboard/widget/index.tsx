@@ -5,46 +5,71 @@ import { Card, CardContent } from "@/frontend/components/ui/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import TVNoise from "@/frontend/components/ui/tv-noise";
 
+const COINGECKO_BTC_URL =
+  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+const BTC_POLL_MS = 60_000;
+
+function formatBtcPrice(usd: number): string {
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (usd >= 1_000) return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `$${usd.toFixed(2)}`;
+}
+
 // Memoize Widget to prevent re-renders of parent components
-// The clock updates every second internally, but shouldn't trigger parent re-renders
 function Widget() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userTimezone, setUserTimezone] = useState<string>('');
-  const [utcOffset, setUtcOffset] = useState<string>('');
-  const [userLocation, setUserLocation] = useState<string>('');
-  const [temperature, setTemperature] = useState<string>('');
+  const [btcPrice, setBtcPrice] = useState<string | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>("");
+  const [utcOffset, setUtcOffset] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<string>("");
+  const [temperature, setTemperature] = useState<string>("");
 
+  // Update date once per minute (for day/date row)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+    const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Fetch BTC price on mount and periodically
+  useEffect(() => {
+    const fetchBtc = async () => {
+      try {
+        const res = await fetch(COINGECKO_BTC_URL);
+        const data = await res.json();
+        const usd = data?.bitcoin?.usd;
+        if (typeof usd === "number") setBtcPrice(formatBtcPrice(usd));
+      } catch (e) {
+        console.error("Error fetching BTC price:", e);
+      }
+    };
+    fetchBtc();
+    const interval = setInterval(fetchBtc, BTC_POLL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     // Get user's timezone
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setUserTimezone(timezone);
-    
+
     // Calculate UTC offset
     const offsetMinutes = -new Date().getTimezoneOffset();
     const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
     const offsetMins = Math.abs(offsetMinutes) % 60;
-    const sign = offsetMinutes >= 0 ? '+' : '-';
-    const utcOffsetString = `UTC${sign}${offsetHours}${offsetMins > 0 ? ':' + offsetMins.toString().padStart(2, '0') : ''}`;
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const utcOffsetString = `UTC${sign}${offsetHours}${offsetMins > 0 ? ":" + offsetMins.toString().padStart(2, "0") : ""}`;
     setUtcOffset(utcOffsetString);
 
     // Get approximate location from IP address (no permissions needed)
     const fetchLocationAndWeather = async () => {
       try {
         // Use IP-based geolocation (free, no API key, no permissions)
-        const geoResponse = await fetch('https://get.geojs.io/v1/ip/geo.json');
+        const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
         const geoData = await geoResponse.json();
-        
+
         if (geoData.city || geoData.region) {
-          const city = (geoData.city || '').trim();
-          const region = (geoData.region || '').trim();
+          const city = (geoData.city || "").trim();
+          const region = (geoData.region || "").trim();
 
           if (city && region) {
             // Avoid duplicates like "Belgrade, Belgrade"
@@ -64,35 +89,29 @@ function Widget() {
         if (geoData.latitude && geoData.longitude) {
           try {
             const weatherResponse = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m&temperature_unit=celsius`
+              `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m&temperature_unit=celsius`,
             );
             const weatherData = await weatherResponse.json();
             if (weatherData.current?.temperature_2m) {
-              setTemperature(`${Math.round(weatherData.current.temperature_2m)}°C`);
+              setTemperature(
+                `${Math.round(weatherData.current.temperature_2m)}°C`,
+              );
             }
           } catch (error) {
-            console.error('Error fetching weather:', error);
+            console.error("Error fetching weather:", error);
           }
         }
       } catch (error) {
-        console.error('Error fetching IP-based location:', error);
+        console.error("Error fetching IP-based location:", error);
         // Fallback to timezone-based location
-        const locationParts = timezone.split('/');
-        const city = locationParts[locationParts.length - 1].replace(/_/g, ' ');
+        const locationParts = timezone.split("/");
+        const city = locationParts[locationParts.length - 1].replace(/_/g, " ");
         setUserLocation(city);
       }
     };
 
     fetchLocationAndWeather();
   }, []);
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour12: true,
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
 
   const formatDate = (date: Date) => {
     const dayOfWeek = date.toLocaleDateString("en-US", {
@@ -117,17 +136,18 @@ function Widget() {
           <span>{dateInfo.restOfDate}</span>
         </div>
         <div className="text-center">
-          <div className="text-5xl font-display" suppressHydrationWarning>
-            {formatTime(currentTime)}
+          <div className="text-5xl font-display">
+            {btcPrice ?? "—"}
           </div>
+          <div className="text-xs uppercase opacity-60 mt-0.5">BTC</div>
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="opacity-50">{temperature || '--°C'}</span>
-          <span>{userLocation || 'Loading...'}</span>
+          <span className="opacity-50">{temperature || "--°C"}</span>
+          <span>{userLocation || "Loading..."}</span>
 
           <Badge variant="secondary" className="bg-accent">
-            {utcOffset || 'UTC'}
+            {utcOffset || "UTC"}
           </Badge>
         </div>
 

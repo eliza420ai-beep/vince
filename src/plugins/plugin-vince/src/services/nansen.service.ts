@@ -1,25 +1,31 @@
 /**
  * Vince Nansen Service
- * 
+ *
  * Simplified Nansen integration for VINCE smart money tracking.
  * Focuses on: smart money tokens, DEX trades, who bought/sold.
- * 
+ *
  * Data Source: Nansen API v1 (100 free credits)
  * Endpoint: https://api.nansen.ai/api/v1/*
- * 
+ *
  * Credit Costs:
  * - Token Screener: 1 credit
- * - DEX Trades: 1 credit  
+ * - DEX Trades: 1 credit
  * - Who Bought/Sold: 1 credit
  * - Holders: 5 credits (use sparingly!)
- * 
+ *
  * API Docs: https://docs.nansen.ai/api/token-god-mode/token-screener
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 
 // Types
-export type NansenChain = "ethereum" | "solana" | "base" | "arbitrum" | "polygon" | "optimism";
+export type NansenChain =
+  | "ethereum"
+  | "solana"
+  | "base"
+  | "arbitrum"
+  | "polygon"
+  | "optimism";
 
 export interface SmartMoneyToken {
   tokenAddress: string;
@@ -72,7 +78,8 @@ interface CacheEntry<T> {
 
 export class VinceNansenService extends Service {
   static serviceType = "VINCE_NANSEN_SERVICE";
-  capabilityDescription = "Provides Nansen smart money tracking (100 free credits)";
+  capabilityDescription =
+    "Provides Nansen smart money tracking (100 free credits)";
 
   private apiKey: string = "";
   private creditsUsed: number = 0;
@@ -80,13 +87,15 @@ export class VinceNansenService extends Service {
 
   constructor(protected runtime: IAgentRuntime) {
     super();
-    
+
     const fromRuntime = runtime.getSetting("NANSEN_API_KEY");
     const fromEnv = process.env.NANSEN_API_KEY;
     this.apiKey = (fromRuntime || fromEnv || "").toString().trim();
-    
+
     if (!this.apiKey) {
-      logger.debug("[VinceNansenService] NANSEN_API_KEY not set - API calls will fail");
+      logger.debug(
+        "[VinceNansenService] NANSEN_API_KEY not set - API calls will fail",
+      );
     } else {
       logger.debug("[VinceNansenService] Initialized with API key");
     }
@@ -96,9 +105,15 @@ export class VinceNansenService extends Service {
     return new VinceNansenService(runtime);
   }
 
+  isConfigured(): boolean {
+    return !!this.apiKey;
+  }
+
   async stop(): Promise<void> {
     this.cache.clear();
-    logger.info(`[VinceNansenService] Stopped. Credits used: ${this.creditsUsed}/${FREE_TIER_CREDITS}`);
+    logger.info(
+      `[VinceNansenService] Stopped. Credits used: ${this.creditsUsed}/${FREE_TIER_CREDITS}`,
+    );
   }
 
   // Cache helpers
@@ -119,13 +134,20 @@ export class VinceNansenService extends Service {
   private trackCredits(cost: number): void {
     this.creditsUsed += cost;
     const remaining = FREE_TIER_CREDITS - this.creditsUsed;
-    
-    logger.info({ cost, used: this.creditsUsed, remaining }, "[VinceNansenService] Credit used");
-    
+
+    logger.info(
+      { cost, used: this.creditsUsed, remaining },
+      "[VinceNansenService] Credit used",
+    );
+
     if (remaining <= 5 && remaining > 0) {
-      logger.warn(`[VinceNansenService] ⚠️ CRITICAL: Only ${remaining} credits remaining!`);
+      logger.warn(
+        `[VinceNansenService] ⚠️ CRITICAL: Only ${remaining} credits remaining!`,
+      );
     } else if (remaining <= 20) {
-      logger.warn(`[VinceNansenService] ⚠️ Low credits: ${remaining} remaining`);
+      logger.warn(
+        `[VinceNansenService] ⚠️ Low credits: ${remaining} remaining`,
+      );
     }
   }
 
@@ -135,12 +157,21 @@ export class VinceNansenService extends Service {
     if (remaining <= 0) warningLevel = "empty";
     else if (remaining <= 5) warningLevel = "critical";
     else if (remaining <= 20) warningLevel = "low";
-    
-    return { used: this.creditsUsed, remaining, total: FREE_TIER_CREDITS, warningLevel };
+
+    return {
+      used: this.creditsUsed,
+      remaining,
+      total: FREE_TIER_CREDITS,
+      warningLevel,
+    };
   }
 
   // HTTP helper
-  private async fetchNansen<T>(endpoint: string, body: Record<string, unknown>, creditCost: number): Promise<T | null> {
+  private async fetchNansen<T>(
+    endpoint: string,
+    body: Record<string, unknown>,
+    creditCost: number,
+  ): Promise<T | null> {
     const cacheKey = `${endpoint}:${JSON.stringify(body)}`;
     const cached = this.getCached<T>(cacheKey);
     if (cached) return cached;
@@ -152,7 +183,10 @@ export class VinceNansenService extends Service {
 
     const remaining = FREE_TIER_CREDITS - this.creditsUsed;
     if (remaining < creditCost) {
-      logger.error({ creditCost, remaining }, "[VinceNansenService] Insufficient credits");
+      logger.error(
+        { creditCost, remaining },
+        "[VinceNansenService] Insufficient credits",
+      );
       return null;
     }
 
@@ -165,8 +199,8 @@ export class VinceNansenService extends Service {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apiKey": this.apiKey,
-          "Accept": "application/json",
+          apiKey: this.apiKey,
+          Accept: "application/json",
         },
         body: JSON.stringify(body),
         signal: controller.signal,
@@ -177,16 +211,21 @@ export class VinceNansenService extends Service {
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          logger.error("[VinceNansenService] Authentication failed - check NANSEN_API_KEY");
+          logger.error(
+            "[VinceNansenService] Authentication failed - check NANSEN_API_KEY",
+          );
         } else if (response.status === 429) {
           logger.warn("[VinceNansenService] Rate limit hit");
         } else {
-          logger.error({ status: response.status, endpoint }, "[VinceNansenService] API error");
+          logger.error(
+            { status: response.status, endpoint },
+            "[VinceNansenService] API error",
+          );
         }
         return null;
       }
 
-      const data = await response.json() as T;
+      const data = (await response.json()) as T;
       this.setCache(cacheKey, data);
       return data;
     } catch (error) {
@@ -203,13 +242,13 @@ export class VinceNansenService extends Service {
   /**
    * Get smart money tokens - the most valuable endpoint (1 credit)
    * Shows what tokens smart money is buying/selling
-   * 
+   *
    * Uses the Token Screener endpoint with smart money filter enabled
    * API: POST /api/v1/token-screener
    */
   async getSmartMoneyTokens(
     chains: NansenChain[] = ["ethereum", "solana", "base"],
-    timeframe: "5m" | "10m" | "1h" | "6h" | "24h" | "7d" | "30d" = "24h"
+    timeframe: "5m" | "10m" | "1h" | "6h" | "24h" | "7d" | "30d" = "24h",
   ): Promise<SmartMoneyToken[]> {
     const result = await this.fetchNansen<{ data: any[] }>(
       "/token-screener",
@@ -220,7 +259,7 @@ export class VinceNansenService extends Service {
         order_by: [{ field: "buy_volume", direction: "DESC" }],
         pagination: { page: 1, per_page: 20 },
       },
-      1
+      1,
     );
 
     if (!result?.data) return [];
@@ -232,7 +271,7 @@ export class VinceNansenService extends Service {
       chain: t.chain || "",
       buyVolume: t.buy_volume || 0,
       sellVolume: t.sell_volume || 0,
-      netFlow: t.netflow || ((t.buy_volume || 0) - (t.sell_volume || 0)),
+      netFlow: t.netflow || (t.buy_volume || 0) - (t.sell_volume || 0),
       smartMoneyBuyers: t.smart_money_buyers || 0,
       smartMoneySellers: t.smart_money_sellers || 0,
       priceChange24h: t.price_change || 0,
@@ -242,12 +281,12 @@ export class VinceNansenService extends Service {
   /**
    * Get DEX trades for a token (1 credit)
    * Can filter for smart money trades only
-   * 
+   *
    * API: POST /api/v1/token-god-mode/dex-trades
    */
   async getSmartMoneyTrades(
     chain: NansenChain,
-    tokenAddress: string
+    tokenAddress: string,
   ): Promise<SmartMoneyTrade[]> {
     const result = await this.fetchNansen<{ data: any[] }>(
       "/token-god-mode/dex-trades",
@@ -259,7 +298,7 @@ export class VinceNansenService extends Service {
         order_by: [{ field: "block_timestamp", direction: "DESC" }],
         pagination: { page: 1, per_page: 50 },
       },
-      1
+      1,
     );
 
     if (!result?.data) return [];
@@ -278,13 +317,13 @@ export class VinceNansenService extends Service {
   /**
    * Get who bought/sold a token (1 credit)
    * Shows aggregate volumes by wallet
-   * 
+   *
    * API: POST /api/v1/token-god-mode/who-bought-sold
    */
   async getWhoBoughtSold(
     chain: NansenChain,
     tokenAddress: string,
-    side: "BUY" | "SELL" = "BUY"
+    side: "BUY" | "SELL" = "BUY",
   ): Promise<WhoBoughtSold[]> {
     const result = await this.fetchNansen<{ data: any[] }>(
       "/token-god-mode/who-bought-sold",
@@ -293,10 +332,15 @@ export class VinceNansenService extends Service {
         token_address: tokenAddress,
         buy_or_sell: side,
         timeframe: "7d",
-        order_by: [{ field: side === "BUY" ? "bought_volume_usd" : "sold_volume_usd", direction: "DESC" }],
+        order_by: [
+          {
+            field: side === "BUY" ? "bought_volume_usd" : "sold_volume_usd",
+            direction: "DESC",
+          },
+        ],
         pagination: { page: 1, per_page: 20 },
       },
-      1
+      1,
     );
 
     if (!result?.data) return [];
@@ -306,7 +350,9 @@ export class VinceNansenService extends Service {
       walletLabels: w.labels || [],
       boughtVolumeUsd: w.bought_volume_usd || w.buy_volume || 0,
       soldVolumeUsd: w.sold_volume_usd || w.sell_volume || 0,
-      netVolumeUsd: (w.bought_volume_usd || w.buy_volume || 0) - (w.sold_volume_usd || w.sell_volume || 0),
+      netVolumeUsd:
+        (w.bought_volume_usd || w.buy_volume || 0) -
+        (w.sold_volume_usd || w.sell_volume || 0),
       txCount: w.tx_count || 0,
     }));
   }
@@ -315,7 +361,10 @@ export class VinceNansenService extends Service {
    * Check if smart money is accumulating a meme token
    * Useful for MEMETICS analysis
    */
-  async isSmartMoneyAccumulating(chain: NansenChain, tokenAddress: string): Promise<{
+  async isSmartMoneyAccumulating(
+    chain: NansenChain,
+    tokenAddress: string,
+  ): Promise<{
     accumulating: boolean;
     netFlow: number;
     topBuyers: WhoBoughtSold[];
@@ -330,8 +379,8 @@ export class VinceNansenService extends Service {
 
     // Check for smart money labels in top buyers
     const smartLabels = ["Smart Trader", "Fund", "30D Smart Trader", "Whale"];
-    const smartBuyers = buyers.filter((b) => 
-      b.walletLabels.some((l) => smartLabels.includes(l))
+    const smartBuyers = buyers.filter((b) =>
+      b.walletLabels.some((l) => smartLabels.includes(l)),
     );
 
     let confidence: "high" | "medium" | "low" = "low";
@@ -352,13 +401,13 @@ export class VinceNansenService extends Service {
    */
   async getHotMemeTokens(): Promise<SmartMoneyToken[]> {
     const tokens = await this.getSmartMoneyTokens(["base", "solana"], "24h");
-    
+
     // Filter for meme-like characteristics (high volume, many traders)
-    return tokens.filter((t) => 
-      t.smartMoneyBuyers >= 2 && 
-      t.buyVolume > 50000 &&
-      t.netFlow > 0
-    ).slice(0, 10);
+    return tokens
+      .filter(
+        (t) => t.smartMoneyBuyers >= 2 && t.buyVolume > 50000 && t.netFlow > 0,
+      )
+      .slice(0, 10);
   }
 }
 

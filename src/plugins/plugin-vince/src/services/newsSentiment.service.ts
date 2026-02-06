@@ -22,28 +22,95 @@ import { isVinceAgent, isElizaAgent } from "../utils/dashboard";
 /** Keywords that indicate bullish sentiment */
 const BULLISH_KEYWORDS = [
   // Price action
-  "rally", "surge", "breakout", "ath", "all-time high", "moon", "pump",
-  "gains", "soars", "jumps", "spikes", "climbs", "rises",
+  "rally",
+  "surge",
+  "breakout",
+  "ath",
+  "all-time high",
+  "moon",
+  "pump",
+  "gains",
+  "soars",
+  "jumps",
+  "spikes",
+  "climbs",
+  "rises",
   // Institutional
-  "etf inflow", "inflows", "accumulation", "accumulating", "buying",
-  "institutional", "adoption", "approval", "approved", "launch",
+  "etf inflow",
+  "inflows",
+  "accumulation",
+  "accumulating",
+  "buying",
+  "institutional",
+  "adoption",
+  "approval",
+  "approved",
+  "launch",
   // Positive news ("record" removed - ambiguous: "record outflows" is bearish)
-  "bullish", "optimistic", "upgrade", "partnership", "milestone",
-  "record high", "record inflow", "expansion", "growth", "success", "breakthrough",
+  "bullish",
+  "optimistic",
+  "upgrade",
+  "partnership",
+  "milestone",
+  "record high",
+  "record inflow",
+  "expansion",
+  "growth",
+  "success",
+  "breakthrough",
 ];
 
 /** Keywords that indicate bearish sentiment */
 const BEARISH_KEYWORDS = [
   // Price action
-  "crash", "dump", "plunge", "selloff", "sell-off", "sell off", "decline", "drop",
-  "falls", "fell", "fall", "sinks", "tumbles", "slides", "slide", "correction", "capitulation",
+  "crash",
+  "dump",
+  "plunge",
+  "selloff",
+  "sell-off",
+  "sell off",
+  "decline",
+  "drop",
+  "falls",
+  "fell",
+  "fall",
+  "sinks",
+  "tumbles",
+  "slides",
+  "slide",
+  "correction",
+  "capitulation",
   // Negative events
-  "hack", "hacked", "exploit", "exploited", "rug", "rugged", "scam",
-  "sec", "lawsuit", "investigation", "probes", "ban", "banned", "crackdown",
+  "hack",
+  "hacked",
+  "exploit",
+  "exploited",
+  "rug",
+  "rugged",
+  "scam",
+  "sec",
+  "lawsuit",
+  "investigation",
+  "probes",
+  "ban",
+  "banned",
+  "crackdown",
   // Outflows / pullbacks
-  "etf outflow", "outflows", "distribution", "selling", "liquidation",
-  "retreat", "retreats", "retreating", "sunset", "sunsets",
-  "bearish", "pessimistic", "downgrade", "failure", "collapse",
+  "etf outflow",
+  "outflows",
+  "distribution",
+  "selling",
+  "liquidation",
+  "retreat",
+  "retreats",
+  "retreating",
+  "sunset",
+  "sunsets",
+  "bearish",
+  "pessimistic",
+  "downgrade",
+  "failure",
+  "collapse",
 ];
 
 /** Keywords that indicate risk events requiring alerts */
@@ -66,49 +133,178 @@ const RISK_EVENT_KEYWORDS = [
 ];
 
 /** Assets to track in news headlines */
-const TRACKED_ASSETS = ["BTC", "ETH", "SOL", "HYPE", "XRP", "ADA", "AVAX", "LINK", "DOT", "MATIC"];
+const TRACKED_ASSETS = [
+  "BTC",
+  "ETH",
+  "SOL",
+  "HYPE",
+  "XRP",
+  "ADA",
+  "AVAX",
+  "LINK",
+  "DOT",
+  "MATIC",
+];
 
 // ==========================================
 // Theme Detection for Human Summaries
 // ==========================================
 
 /** News themes for grouping and narrative generation */
-type NewsTheme = "regulatory" | "security" | "price" | "institutional" | "macro" | "defi" | "meme" | "other";
+type NewsTheme =
+  | "regulatory"
+  | "security"
+  | "price"
+  | "institutional"
+  | "macro"
+  | "defi"
+  | "meme"
+  | "other";
 
 /** Keywords that indicate each theme */
 const THEME_KEYWORDS: Record<NewsTheme, string[]> = {
   regulatory: [
-    "sec", "cftc", "regulation", "regulator", "lawsuit", "legal", "ban", "banned",
-    "crackdown", "investigation", "compliance", "license", "licensed", "sanction",
-    "enforcement", "court", "ruling", "legislation", "congress", "senate", "bill",
+    "sec",
+    "cftc",
+    "regulation",
+    "regulator",
+    "lawsuit",
+    "legal",
+    "ban",
+    "banned",
+    "crackdown",
+    "investigation",
+    "compliance",
+    "license",
+    "licensed",
+    "sanction",
+    "enforcement",
+    "court",
+    "ruling",
+    "legislation",
+    "congress",
+    "senate",
+    "bill",
   ],
   security: [
-    "hack", "hacked", "exploit", "exploited", "breach", "vulnerability", "attack",
-    "drained", "stolen", "theft", "security", "bug", "patch", "audit", "compromised",
+    "hack",
+    "hacked",
+    "exploit",
+    "exploited",
+    "breach",
+    "vulnerability",
+    "attack",
+    "drained",
+    "stolen",
+    "theft",
+    "security",
+    "bug",
+    "patch",
+    "audit",
+    "compromised",
   ],
   price: [
-    "rally", "surge", "pump", "dump", "crash", "ath", "all-time", "breakout",
-    "correction", "dip", "bounce", "resistance", "support", "100k", "50k", "200k",
-    "price", "trading", "volume", "market cap", "gains", "losses",
+    "rally",
+    "surge",
+    "pump",
+    "dump",
+    "crash",
+    "ath",
+    "all-time",
+    "breakout",
+    "correction",
+    "dip",
+    "bounce",
+    "resistance",
+    "support",
+    "100k",
+    "50k",
+    "200k",
+    "price",
+    "trading",
+    "volume",
+    "market cap",
+    "gains",
+    "losses",
   ],
   institutional: [
-    "etf", "blackrock", "fidelity", "grayscale", "institutional", "hedge fund",
-    "bank", "jpmorgan", "goldman", "morgan stanley", "custody", "adoption",
-    "wall street", "traditional finance", "tradfi", "inflow", "outflow", "approval",
+    "etf",
+    "blackrock",
+    "fidelity",
+    "grayscale",
+    "institutional",
+    "hedge fund",
+    "bank",
+    "jpmorgan",
+    "goldman",
+    "morgan stanley",
+    "custody",
+    "adoption",
+    "wall street",
+    "traditional finance",
+    "tradfi",
+    "inflow",
+    "outflow",
+    "approval",
   ],
   macro: [
-    "fed", "federal reserve", "interest rate", "inflation", "cpi", "ppi", "gdp",
-    "unemployment", "treasury", "bond", "yield", "dollar", "dxy", "economy",
-    "recession", "tariff", "trade war", "china", "europe", "japan",
+    "fed",
+    "federal reserve",
+    "interest rate",
+    "inflation",
+    "cpi",
+    "ppi",
+    "gdp",
+    "unemployment",
+    "treasury",
+    "bond",
+    "yield",
+    "dollar",
+    "dxy",
+    "economy",
+    "recession",
+    "tariff",
+    "trade war",
+    "china",
+    "europe",
+    "japan",
   ],
   defi: [
-    "defi", "lending", "borrowing", "yield", "apy", "tvl", "liquidity",
-    "aave", "compound", "uniswap", "curve", "pendle", "staking", "restaking",
-    "lsd", "liquid staking", "bridge", "cross-chain",
+    "defi",
+    "lending",
+    "borrowing",
+    "yield",
+    "apy",
+    "tvl",
+    "liquidity",
+    "aave",
+    "compound",
+    "uniswap",
+    "curve",
+    "pendle",
+    "staking",
+    "restaking",
+    "lsd",
+    "liquid staking",
+    "bridge",
+    "cross-chain",
   ],
   meme: [
-    "meme", "memecoin", "doge", "shib", "pepe", "bonk", "wif", "trump",
-    "ai agent", "ai token", "degen", "ape", "fomo", "100x", "moon",
+    "meme",
+    "memecoin",
+    "doge",
+    "shib",
+    "pepe",
+    "bonk",
+    "wif",
+    "trump",
+    "ai agent",
+    "ai token",
+    "degen",
+    "ape",
+    "fomo",
+    "100x",
+    "moon",
   ],
   other: [], // Fallback
 };
@@ -121,8 +317,8 @@ interface ThemedNews {
 
 /** MandoMinutes shared cache keys (plugin-web-search uses both) */
 const MANDO_CACHE_KEYS = [
-  "mando_minutes:latest:v9",  // Used by dailyNewsDigest.ts and cryptoNews.ts
-  "mando_minutes:latest",     // Used by mandoMinutes.ts
+  "mando_minutes:latest:v9", // Used by dailyNewsDigest.ts and cryptoNews.ts
+  "mando_minutes:latest", // Used by mandoMinutes.ts
 ];
 
 /** MandoMinutes URL for direct fetching (must match plugin-web-search) */
@@ -170,11 +366,16 @@ interface MandoCacheData {
 
 export class VinceNewsSentimentService extends Service {
   static serviceType = "VINCE_NEWS_SENTIMENT_SERVICE";
-  capabilityDescription = "News sentiment and risk event tracking via MandoMinutes";
+  capabilityDescription =
+    "News sentiment and risk event tracking via MandoMinutes";
 
   private newsCache: NewsItem[] = [];
   private riskEvents: RiskEvent[] = [];
-  private priceSnapshots: Array<{ asset: string; changePct: number; timestamp: number }> = [];
+  private priceSnapshots: Array<{
+    asset: string;
+    changePct: number;
+    timestamp: number;
+  }> = [];
   private lastUpdate = 0;
   private lastMandoFetch = 0;
   private lastMandoWarnTime = 0;
@@ -188,13 +389,17 @@ export class VinceNewsSentimentService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceNewsSentimentService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceNewsSentimentService> {
     const service = new VinceNewsSentimentService(runtime);
     const shouldPrint = isVinceAgent(runtime);
     const skipHeavyInit = isElizaAgent(runtime);
 
     if (skipHeavyInit) {
-      logger.info("[VinceNewsSentiment] Service initialized (Eliza - no startup fetch)");
+      logger.info(
+        "[VinceNewsSentiment] Service initialized (Eliza - no startup fetch)",
+      );
       return service;
     }
 
@@ -226,7 +431,9 @@ export class VinceNewsSentimentService extends Service {
               }
             }
           } catch (bgErr) {
-            logger.debug(`[VinceNewsSentiment] Background fetch failed: ${bgErr}`);
+            logger.debug(
+              `[VinceNewsSentiment] Background fetch failed: ${bgErr}`,
+            );
           }
         }, 10000);
       }
@@ -239,7 +446,9 @@ export class VinceNewsSentimentService extends Service {
       }
     }
 
-    logger.info("[VinceNewsSentiment] Service initialized (MandoMinutes integration)");
+    logger.info(
+      "[VinceNewsSentiment] Service initialized (MandoMinutes integration)",
+    );
     return service;
   }
 
@@ -258,21 +467,41 @@ export class VinceNewsSentimentService extends Service {
     sep();
     logEmpty();
     const vibeCheck = this.getVibeCheck();
-    const vibeEmoji = vibeCheck.includes("Risk-off") || vibeCheck.includes("⚠️") ? "⚠️" : vibeCheck.includes("Risk-on") ? "💡" : "📋";
+    const vibeEmoji =
+      vibeCheck.includes("Risk-off") || vibeCheck.includes("⚠️")
+        ? "⚠️"
+        : vibeCheck.includes("Risk-on")
+          ? "💡"
+          : "📋";
     logLine(`${vibeEmoji} ${vibeCheck}`);
     logEmpty();
-    const sentEmoji = sentiment.sentiment === "bullish" ? "🟢" : sentiment.sentiment === "bearish" ? "🔴" : "⚪";
-    logLine(`${sentEmoji} ${sentiment.sentiment.toUpperCase()} (${Math.round(sentiment.confidence)}% confidence)`);
-    logLine(`${stats.totalNews} articles (🟢${stats.bullishCount} 🔴${stats.bearishCount} ⚪${stats.neutralCount})`);
+    const sentEmoji =
+      sentiment.sentiment === "bullish"
+        ? "🟢"
+        : sentiment.sentiment === "bearish"
+          ? "🔴"
+          : "⚪";
+    logLine(
+      `${sentEmoji} ${sentiment.sentiment.toUpperCase()} (${Math.round(sentiment.confidence)}% confidence)`,
+    );
+    logLine(
+      `${stats.totalNews} articles (🟢${stats.bullishCount} 🔴${stats.bearishCount} ⚪${stats.neutralCount})`,
+    );
     logEmpty();
     sep();
     logEmpty();
     logLine("📋 TOP HEADLINES:");
     for (const news of topHeadlines) {
-      const emoji = news.sentiment === "bullish" ? "🟢" : news.sentiment === "bearish" ? "🔴" : "⚪";
+      const emoji =
+        news.sentiment === "bullish"
+          ? "🟢"
+          : news.sentiment === "bearish"
+            ? "🔴"
+            : "⚪";
       const impactTag = news.impact === "high" ? "❗" : "";
       const title = news.title ?? "";
-      const headline = title.length > 55 ? title.substring(0, 52) + "..." : title;
+      const headline =
+        title.length > 55 ? title.substring(0, 52) + "..." : title;
       logLine(`${emoji}${impactTag} ${headline}`);
     }
     if (riskEvents.length > 0) {
@@ -281,8 +510,16 @@ export class VinceNewsSentimentService extends Service {
       logEmpty();
       logLine("⚠️  ACTIVE RISK EVENTS:");
       for (const event of riskEvents.slice(0, 3)) {
-        const sevEmoji = event.severity === "critical" ? "🚨" : event.severity === "high" ? "⚠️" : "⚡";
-        const desc = (event.description?.length ?? 0) > 52 ? (event.description ?? "").substring(0, 49) + "..." : (event.description ?? "");
+        const sevEmoji =
+          event.severity === "critical"
+            ? "🚨"
+            : event.severity === "warning"
+              ? "⚠️"
+              : "⚡";
+        const desc =
+          (event.description?.length ?? 0) > 52
+            ? (event.description ?? "").substring(0, 49) + "..."
+            : (event.description ?? "");
         logLine(`${sevEmoji} ${desc}`);
         const assets = event.assets ?? [];
         if (assets.length > 0) {
@@ -294,7 +531,12 @@ export class VinceNewsSentimentService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("RISK") || tldr.includes("BEARISH") ? "⚠️" : tldr.includes("BULLISH") || tldr.includes("CATALYST") ? "💡" : "📋";
+    const tldrEmoji =
+      tldr.includes("RISK") || tldr.includes("BEARISH")
+        ? "⚠️"
+        : tldr.includes("BULLISH") || tldr.includes("CATALYST")
+          ? "💡"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
   }
@@ -315,11 +557,11 @@ export class VinceNewsSentimentService extends Service {
 
     // Fetch from MandoMinutes cache (or direct if forceDirectFetch)
     await this.fetchFromMandoMinutes(forceDirectFetch);
-    
+
     // Clear old entries (older than 24 hours)
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
-    this.newsCache = this.newsCache.filter(n => n.timestamp > oneDayAgo);
-    this.riskEvents = this.riskEvents.filter(e => e.timestamp > oneDayAgo);
+    this.newsCache = this.newsCache.filter((n) => n.timestamp > oneDayAgo);
+    this.riskEvents = this.riskEvents.filter((e) => e.timestamp > oneDayAgo);
 
     this.lastUpdate = now;
   }
@@ -340,8 +582,12 @@ export class VinceNewsSentimentService extends Service {
           if (result && result.articles && result.articles.length > 0) {
             if (Date.now() - result.timestamp <= this.MANDO_CACHE_TTL_MS * 2) {
               cached = result;
-              const ageMinutes = Math.round((Date.now() - result.timestamp) / 60000);
-              logger.info(`[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`);
+              const ageMinutes = Math.round(
+                (Date.now() - result.timestamp) / 60000,
+              );
+              logger.info(
+                `[VinceNewsSentiment] Found cache at ${cacheKey} with ${result.articles.length} articles (${ageMinutes}m old)`,
+              );
               break;
             }
           }
@@ -349,13 +595,22 @@ export class VinceNewsSentimentService extends Service {
       }
 
       // If no cache or force direct, fetch via browser
-      if (forceDirect || !cached || !cached.articles || cached.articles.length === 0) {
+      if (
+        forceDirect ||
+        !cached ||
+        !cached.articles ||
+        cached.articles.length === 0
+      ) {
         if (forceDirect) {
-          logger.info("[VinceNewsSentiment] Force direct fetch for freshness check");
+          logger.info(
+            "[VinceNewsSentiment] Force direct fetch for freshness check",
+          );
         }
-        logger.debug("[VinceNewsSentiment] MandoMinutes cache empty - attempting direct fetch");
+        logger.debug(
+          "[VinceNewsSentiment] MandoMinutes cache empty - attempting direct fetch",
+        );
         cached = await this.fetchDirectFromBrowser();
-        
+
         if (!cached) {
           return;
         }
@@ -372,18 +627,23 @@ export class VinceNewsSentimentService extends Service {
 
       if (isVinceAgent(this.runtime)) {
         startBox();
-        logLine(`✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE`);
+        logLine(
+          `✅ MANDOMINUTES: ${cached.articles.length} HEADLINES FROM CACHE`,
+        );
         logEmpty();
         sep();
         logEmpty();
         for (let i = 0; i < cached.articles.length; i++) {
           const title = cached.articles[i].title ?? "";
-          const truncated = title.length > 55 ? title.substring(0, 52) + "..." : title;
+          const truncated =
+            title.length > 55 ? title.substring(0, 52) + "..." : title;
           logLine(`${(i + 1).toString().padStart(2, " ")}. ${truncated}`);
         }
         endBox();
       }
-      logger.info(`[VinceNewsSentiment] ✅ Processing ${cached.articles.length} articles from MandoMinutes cache`);
+      logger.info(
+        `[VinceNewsSentiment] ✅ Processing ${cached.articles.length} articles from MandoMinutes cache`,
+      );
       this.lastMandoFetch = cached.timestamp;
 
       // Convert and analyze each article
@@ -392,7 +652,10 @@ export class VinceNewsSentimentService extends Service {
         if (!article.title || article.title.length < 10) continue;
 
         // Parse price-embedded lines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)")
-        const priceSnaps = this.parsePriceSnapshotsFromTitle(article.title, cached.timestamp);
+        const priceSnaps = this.parsePriceSnapshotsFromTitle(
+          article.title,
+          cached.timestamp,
+        );
         if (priceSnaps.length > 0) {
           this.priceSnapshots.push(...priceSnaps);
           continue;
@@ -400,22 +663,24 @@ export class VinceNewsSentimentService extends Service {
 
         // Analyze sentiment
         const sentiment = this.analyzeSentiment(article.title);
-        
+
         // Detect assets mentioned
         const assets = this.detectAssets(article.title);
-        
+
         // Determine impact based on keywords and asset mentions
         const impact = this.determineImpact(article.title, assets);
-        
+
         // Extract source from MandoMinutes format
         const source = this.extractSource(article.source || "MandoMinutes");
-        
+
         // Determine category
         const category = article.categories?.[0] || "crypto";
 
         // Add or update in cache (update sentiment so re-fetches fix misclassifications after logic changes)
         const existingIdx = this.newsCache.findIndex(
-          (n) => this.normalizeForSentiment(n.title) === this.normalizeForSentiment(article.title)
+          (n) =>
+            this.normalizeForSentiment(n.title) ===
+            this.normalizeForSentiment(article.title),
         );
         const item = {
           title: article.title,
@@ -442,15 +707,18 @@ export class VinceNewsSentimentService extends Service {
       }
 
       const sentimentCounts = {
-        bullish: this.newsCache.filter(n => n.sentiment === "bullish").length,
-        bearish: this.newsCache.filter(n => n.sentiment === "bearish").length,
-        neutral: this.newsCache.filter(n => n.sentiment === "neutral").length,
+        bullish: this.newsCache.filter((n) => n.sentiment === "bullish").length,
+        bearish: this.newsCache.filter((n) => n.sentiment === "bearish").length,
+        neutral: this.newsCache.filter((n) => n.sentiment === "neutral").length,
       };
-      logger.info(`[VinceNewsSentiment] Processed: ${sentimentCounts.bullish} bullish, ${sentimentCounts.bearish} bearish, ${sentimentCounts.neutral} neutral`);
-
+      logger.info(
+        `[VinceNewsSentiment] Processed: ${sentimentCounts.bullish} bullish, ${sentimentCounts.bearish} bearish, ${sentimentCounts.neutral} neutral`,
+      );
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
-      logger.debug(`[VinceNewsSentiment] Failed to fetch from MandoMinutes: ${errMsg}`);
+      logger.debug(
+        `[VinceNewsSentiment] Failed to fetch from MandoMinutes: ${errMsg}`,
+      );
     }
   }
 
@@ -460,24 +728,30 @@ export class VinceNewsSentimentService extends Service {
    */
   private async fetchDirectFromBrowser(): Promise<MandoCacheData | null> {
     const browser = new PuppeteerBrowserService();
-    
+
     try {
-      logger.info("[VinceNewsSentiment] Fetching MandoMinutes via Puppeteer...");
-      
+      logger.info(
+        "[VinceNewsSentiment] Fetching MandoMinutes via Puppeteer...",
+      );
+
       const navResult = await browser.navigate(MANDO_MINUTES_URL, undefined, {
         retries: 2,
         retryDelay: 3000,
         timeout: 45000,
       });
-      
+
       if (!navResult.success) {
-        const errMsg = navResult.error?.split('\n')[0] || 'Unknown error';
+        const errMsg = navResult.error?.split("\n")[0] || "Unknown error";
         const now = Date.now();
         if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
           this.lastMandoWarnTime = now;
-          logger.warn(`[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`);
+          logger.warn(
+            `[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`,
+          );
         } else {
-          logger.debug(`[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`);
+          logger.debug(
+            `[VinceNewsSentiment] MandoMinutes fetch failed: ${errMsg}`,
+          );
         }
         return null;
       }
@@ -488,38 +762,54 @@ export class VinceNewsSentimentService extends Service {
         const now = Date.now();
         if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
           this.lastMandoWarnTime = now;
-          logger.warn(`[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`);
+          logger.warn(
+            `[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`,
+          );
         } else {
-          logger.debug(`[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`);
+          logger.debug(
+            `[VinceNewsSentiment] MandoMinutes content too short (${pageContent?.length || 0} chars)`,
+          );
         }
         return null;
       }
-      
-      logger.debug(`[VinceNewsSentiment] Got MandoMinutes content: ${pageContent.length} chars`);
+
+      logger.debug(
+        `[VinceNewsSentiment] Got MandoMinutes content: ${pageContent.length} chars`,
+      );
 
       const inferredDate = this.extractMandoPublishDate(pageContent);
       if (inferredDate) {
         this.lastInferredMandoDate = inferredDate;
-        logger.info(`[VinceNewsSentiment] Inferred Mando publish date: ${inferredDate}`);
+        logger.info(
+          `[VinceNewsSentiment] Inferred Mando publish date: ${inferredDate}`,
+        );
       } else {
-        logger.debug("[VinceNewsSentiment] Could not infer Mando publish date from page");
+        logger.debug(
+          "[VinceNewsSentiment] Could not infer Mando publish date from page",
+        );
       }
 
       // Parse the content to extract headlines
       const articles = this.parseMandoMinutesContent(pageContent);
-      
+
       if (articles.length === 0) {
         const now = Date.now();
         if (now - this.lastMandoWarnTime >= this.MANDO_WARN_COOLDOWN_MS) {
           this.lastMandoWarnTime = now;
-          logger.warn("[VinceNewsSentiment] No articles parsed from MandoMinutes");
+          logger.warn(
+            "[VinceNewsSentiment] No articles parsed from MandoMinutes",
+          );
         } else {
-          logger.debug("[VinceNewsSentiment] No articles parsed from MandoMinutes");
+          logger.debug(
+            "[VinceNewsSentiment] No articles parsed from MandoMinutes",
+          );
         }
         return null;
       }
 
-      logger.info(`[VinceNewsSentiment] ✅ MandoMinutes SUCCESS: ${articles.length} headlines loaded`);
+      logger.info(
+        `[VinceNewsSentiment] ✅ MandoMinutes SUCCESS: ${articles.length} headlines loaded`,
+      );
 
       // Cache the result for other services
       const cacheData: MandoCacheData = {
@@ -527,11 +817,10 @@ export class VinceNewsSentimentService extends Service {
         timestamp: Date.now(),
         ...(inferredDate && { inferredPublishDate: inferredDate }),
       };
-      
-      await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
-      
-      return cacheData;
 
+      await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
+
+      return cacheData;
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       const now = Date.now();
@@ -539,7 +828,9 @@ export class VinceNewsSentimentService extends Service {
         this.lastMandoWarnTime = now;
         logger.warn(`[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`);
       } else {
-        logger.debug(`[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`);
+        logger.debug(
+          `[VinceNewsSentiment] MandoMinutes fetch error: ${errMsg}`,
+        );
       }
       return null;
     } finally {
@@ -558,7 +849,10 @@ export class VinceNewsSentimentService extends Service {
     if (!content || content.length < 50) return null;
     const fullText = content;
 
-    const patterns: Array<{ regex: RegExp; parse: (m: RegExpExecArray) => string | null }> = [
+    const patterns: Array<{
+      regex: RegExp;
+      parse: (m: RegExpExecArray) => string | null;
+    }> = [
       // ISO: 2025-02-05
       {
         regex: /\b(20\d{2})-(\d{2})-(\d{2})\b/,
@@ -566,11 +860,22 @@ export class VinceNewsSentimentService extends Service {
       },
       // Feb 5, 2025 or February 5, 2025 (month name + day + year)
       {
-        regex: /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2}),?\s+(20\d{2})\b/i,
+        regex:
+          /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2}),?\s+(20\d{2})\b/i,
         parse: (m) => {
           const mon: Record<string, string> = {
-            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+            jan: "01",
+            feb: "02",
+            mar: "03",
+            apr: "04",
+            may: "05",
+            jun: "06",
+            jul: "07",
+            aug: "08",
+            sep: "09",
+            oct: "10",
+            nov: "11",
+            dec: "12",
           };
           const month = mon[m[1].toLowerCase().slice(0, 3)];
           const day = m[2].padStart(2, "0");
@@ -579,11 +884,22 @@ export class VinceNewsSentimentService extends Service {
       },
       // 5 Feb 2025 or 5 February 2025 (day + month + year)
       {
-        regex: /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(20\d{2})\b/i,
+        regex:
+          /\b(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(20\d{2})\b/i,
         parse: (m) => {
           const mon: Record<string, string> = {
-            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+            jan: "01",
+            feb: "02",
+            mar: "03",
+            apr: "04",
+            may: "05",
+            jun: "06",
+            jul: "07",
+            aug: "08",
+            sep: "09",
+            oct: "10",
+            nov: "11",
+            dec: "12",
           };
           const month = mon[m[2].toLowerCase().slice(0, 3)];
           const day = m[1].padStart(2, "0");
@@ -592,11 +908,22 @@ export class VinceNewsSentimentService extends Service {
       },
       // Feb 5 or February 5 (no year - assume current year)
       {
-        regex: /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})\b(?!\s*,\s*20\d{2})/i,
+        regex:
+          /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})\b(?!\s*,\s*20\d{2})/i,
         parse: (m) => {
           const mon: Record<string, string> = {
-            jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-            jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12",
+            jan: "01",
+            feb: "02",
+            mar: "03",
+            apr: "04",
+            may: "05",
+            jun: "06",
+            jul: "07",
+            aug: "08",
+            sep: "09",
+            oct: "10",
+            nov: "11",
+            dec: "12",
           };
           const month = mon[m[1].toLowerCase().slice(0, 3)];
           const day = m[2].padStart(2, "0");
@@ -620,56 +947,81 @@ export class VinceNewsSentimentService extends Service {
    * Parse MandoMinutes content - handles plain text format from document.body.innerText
    * MandoMinutes typically has 30-50 articles per day across categories
    */
-  private parseMandoMinutesContent(content: string): Array<{ title: string; source?: string; categories?: string[] }> {
-    const articles: Array<{ title: string; source?: string; categories?: string[] }> = [];
+  private parseMandoMinutesContent(
+    content: string,
+  ): Array<{ title: string; source?: string; categories?: string[] }> {
+    const articles: Array<{
+      title: string;
+      source?: string;
+      categories?: string[];
+    }> = [];
     const seen = new Set<string>();
-    const lines = content.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
+    const lines = content
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
     let currentCategory: "crypto" | "macro" | "leftcurve" = "crypto";
-    
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // Detect category headers (standalone section names in plain text)
       if (/^Crypto$/i.test(line) || /^Crypto\s*News$/i.test(line)) {
-        currentCategory = 'crypto';
+        currentCategory = "crypto";
         continue;
       }
-      if (/^Macro\s*(&|and)?\s*General$/i.test(line) || /^Macro$/i.test(line) || /^General$/i.test(line)) {
-        currentCategory = 'macro';
+      if (
+        /^Macro\s*(&|and)?\s*General$/i.test(line) ||
+        /^Macro$/i.test(line) ||
+        /^General$/i.test(line)
+      ) {
+        currentCategory = "macro";
         continue;
       }
       if (/^Left\s*Curve/i.test(line) || /^Degen/i.test(line)) {
-        currentCategory = 'leftcurve';
+        currentCategory = "leftcurve";
         continue;
       }
-      
+
       // Skip non-content lines
       if (this.isSkippableLine(line)) continue;
-      
+
       // Detect headlines (bullets or substantive lines)
       const headline = this.extractHeadline(line);
       if (headline && headline.length >= 20) {
         // Look ahead for source
         const source = this.lookAheadForSource(lines, i);
-        this.addParsedArticle(articles, seen, headline, source, currentCategory);
+        this.addParsedArticle(
+          articles,
+          seen,
+          headline,
+          source,
+          currentCategory,
+        );
       }
     }
-    
-    logger.info(`[VinceNewsSentiment] Parsed ${articles.length} articles (crypto: ${articles.filter(a => a.categories?.[0] === 'crypto').length}, macro: ${articles.filter(a => a.categories?.[0] === 'macro').length}, leftcurve: ${articles.filter(a => a.categories?.[0] === 'leftcurve').length})`);
-    
+
+    logger.info(
+      `[VinceNewsSentiment] Parsed ${articles.length} articles (crypto: ${articles.filter((a) => a.categories?.[0] === "crypto").length}, macro: ${articles.filter((a) => a.categories?.[0] === "macro").length}, leftcurve: ${articles.filter((a) => a.categories?.[0] === "leftcurve").length})`,
+    );
+
     return articles;
   }
-  
+
   /**
    * Parse price-embedded headlines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)")
    * Returns array of { asset, changePct } for trading sentiment.
    */
   private parsePriceSnapshotsFromTitle(
     title: string,
-    timestamp: number
+    timestamp: number,
   ): Array<{ asset: string; changePct: number; timestamp: number }> {
-    const results: Array<{ asset: string; changePct: number; timestamp: number }> = [];
+    const results: Array<{
+      asset: string;
+      changePct: number;
+      timestamp: number;
+    }> = [];
     const regex = /([A-Z]{2,5}):\s*\$?[\d,.]+[kmb]?\s*\(([+-]?\d+\.?\d*)%?\)/gi;
     let m: RegExpExecArray | null;
     while ((m = regex.exec(title)) !== null) {
@@ -690,15 +1042,17 @@ export class VinceNewsSentimentService extends Service {
     seen: Set<string>,
     headline: string,
     source: string,
-    category: "crypto" | "macro" | "leftcurve"
+    category: "crypto" | "macro" | "leftcurve",
   ): void {
     const normalized = headline.toLowerCase().trim();
-    
-    if (normalized.length >= 15 && 
-        normalized.length <= 300 && 
-        !seen.has(normalized) &&
-        !normalized.includes('cookie') &&
-        !normalized.includes('subscribe')) {
+
+    if (
+      normalized.length >= 15 &&
+      normalized.length <= 300 &&
+      !seen.has(normalized) &&
+      !normalized.includes("cookie") &&
+      !normalized.includes("subscribe")
+    ) {
       seen.add(normalized);
       articles.push({
         title: headline.trim(),
@@ -707,19 +1061,30 @@ export class VinceNewsSentimentService extends Service {
       });
     }
   }
-  
+
   /**
    * Check if a line should be skipped (navigation, footer, etc.)
    */
   private isSkippableLine(line: string): boolean {
     const skipPatterns = [
-      /^Subscribe/i, /^Follow/i, /^Cookie/i, /^Disclaimer/i,
-      /^Terms$/i, /^Privacy$/i, /^Loading/i, /^Mando\s*Minutes$/i,
-      /^@\w+$/, /^https?:\/\//, /^All Minutes$/i, /^Site Logo$/i,
-      /^Comic by/i, /^newsletter/i, /^MandoMinutes$/i,
+      /^Subscribe/i,
+      /^Follow/i,
+      /^Cookie/i,
+      /^Disclaimer/i,
+      /^Terms$/i,
+      /^Privacy$/i,
+      /^Loading/i,
+      /^Mando\s*Minutes$/i,
+      /^@\w+$/,
+      /^https?:\/\//,
+      /^All Minutes$/i,
+      /^Site Logo$/i,
+      /^Comic by/i,
+      /^newsletter/i,
+      /^MandoMinutes$/i,
       /^\d+\s*(min|sec|hour|day)s?\s*(ago|read)?$/i,
     ];
-    return skipPatterns.some(p => p.test(line)) || line.length < 10;
+    return skipPatterns.some((p) => p.test(line)) || line.length < 10;
   }
 
   /**
@@ -727,21 +1092,28 @@ export class VinceNewsSentimentService extends Service {
    */
   private extractHeadline(line: string): string | null {
     // Remove bullet points and leading punctuation
-    let clean = line.replace(/^[•\-\*▸►]\s*/, '').trim();
-    
+    let clean = line.replace(/^[•\-\*▸►]\s*/, "").trim();
+
     // Skip if too short
     if (clean.length < 20) return null;
-    
+
     // Skip if it looks like a source name (short, known sources)
-    const knownSources = /^(The Block|CoinDesk|Reuters|Bloomberg|Decrypt|DL News|WSJ|CNBC|Cointelegraph|BeInCrypto|Blockworks|Unchained|The Defiant|CryptoSlate|NewsBTC|Bitcoinist|U\.Today|AMBCrypto|Benzinga|MarketWatch|Yahoo Finance|Forbes|Fortune|TechCrunch|Wired|Ars Technica)$/i;
+    const knownSources =
+      /^(The Block|CoinDesk|Reuters|Bloomberg|Decrypt|DL News|WSJ|CNBC|Cointelegraph|BeInCrypto|Blockworks|Unchained|The Defiant|CryptoSlate|NewsBTC|Bitcoinist|U\.Today|AMBCrypto|Benzinga|MarketWatch|Yahoo Finance|Forbes|Fortune|TechCrunch|Wired|Ars Technica)$/i;
     if (knownSources.test(clean)) return null;
-    
+
     // Skip price-only items like "BTC: 90k" or "ETH: $3,400 (+5%)"
-    if (/^[A-Z]{2,5}:\s*\$?[\d,]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?$/i.test(clean)) return null;
-    
+    if (
+      /^[A-Z]{2,5}:\s*\$?[\d,]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?$/i.test(clean)
+    )
+      return null;
+
     // Skip navigation/UI elements
-    if (/^(Home|About|Contact|Login|Sign up|Register|Menu|Search)$/i.test(clean)) return null;
-    
+    if (
+      /^(Home|About|Contact|Login|Sign up|Register|Menu|Search)$/i.test(clean)
+    )
+      return null;
+
     return clean;
   }
 
@@ -750,15 +1122,20 @@ export class VinceNewsSentimentService extends Service {
    */
   private lookAheadForSource(lines: string[], currentIndex: number): string {
     // Known news source names
-    const sourcePatterns = /^(The Block|CoinDesk|Reuters|Bloomberg|Decrypt|DL News|WSJ|CNBC|Cointelegraph|BeInCrypto|Blockworks|Unchained|The Defiant|CryptoSlate|NewsBTC|Bitcoinist|U\.Today|AMBCrypto|Benzinga|MarketWatch|Yahoo Finance|Forbes|Fortune|TechCrunch|Wired|Ars Technica)$/i;
-    
+    const sourcePatterns =
+      /^(The Block|CoinDesk|Reuters|Bloomberg|Decrypt|DL News|WSJ|CNBC|Cointelegraph|BeInCrypto|Blockworks|Unchained|The Defiant|CryptoSlate|NewsBTC|Bitcoinist|U\.Today|AMBCrypto|Benzinga|MarketWatch|Yahoo Finance|Forbes|Fortune|TechCrunch|Wired|Ars Technica)$/i;
+
     // Check next 1-3 lines for source name
-    for (let j = currentIndex + 1; j <= currentIndex + 3 && j < lines.length; j++) {
+    for (
+      let j = currentIndex + 1;
+      j <= currentIndex + 3 && j < lines.length;
+      j++
+    ) {
       const nextLine = lines[j].trim();
       // Stop if we hit another headline (has bullet) or category header
       if (/^[•\-\*▸►]/.test(nextLine)) break;
       if (/^(Crypto|Macro|Left Curve|General|Degen)/i.test(nextLine)) break;
-      
+
       if (sourcePatterns.test(nextLine)) {
         return nextLine;
       }
@@ -770,18 +1147,45 @@ export class VinceNewsSentimentService extends Service {
    * Phrases that mean "gains are being lost" — treat as bearish even though "gains" is a bullish word
    */
   private static readonly NEGATIVE_GAINS_PHRASES = [
-    "erases gains", "erases gain", "gains erased", "gain erased", "erase gains", "erase gain", "erasing gains",
-    "give up gains", "gave up gains", "giving up gains", "gives up gains",
-    "wiped gains", "wiping out gains", "gains wiped", "wipes out gains",
-    "reverses gains", "reversing gains", "reversed gains",
-    "lose gains", "losing gains", "lost gains", "loses gains",
-    "continues to slide", "continues to fall", "touches $",
-    "etf outflow", "etf outflows", "withdrawals", "probing", "probes",
-    "sanctions evasion", "sanctions probe",
+    "erases gains",
+    "erases gain",
+    "gains erased",
+    "gain erased",
+    "erase gains",
+    "erase gain",
+    "erasing gains",
+    "give up gains",
+    "gave up gains",
+    "giving up gains",
+    "gives up gains",
+    "wiped gains",
+    "wiping out gains",
+    "gains wiped",
+    "wipes out gains",
+    "reverses gains",
+    "reversing gains",
+    "reversed gains",
+    "lose gains",
+    "losing gains",
+    "lost gains",
+    "loses gains",
+    "continues to slide",
+    "continues to fall",
+    "touches $",
+    "etf outflow",
+    "etf outflows",
+    "withdrawals",
+    "probing",
+    "probes",
+    "sanctions evasion",
+    "sanctions probe",
   ];
 
   /** Category weights per asset for trading algo (macro vs crypto vs leftcurve) */
-  private static readonly CATEGORY_WEIGHTS: Record<string, Record<string, number>> = {
+  private static readonly CATEGORY_WEIGHTS: Record<
+    string,
+    Record<string, number>
+  > = {
     BTC: { crypto: 1.0, macro: 1.5, leftcurve: 0.7 },
     ETH: { crypto: 1.0, macro: 1.2, leftcurve: 0.8 },
     SOL: { crypto: 1.0, macro: 0.9, leftcurve: 1.3 },
@@ -854,7 +1258,7 @@ export class VinceNewsSentimentService extends Service {
   private detectAssets(text: string): string[] {
     const upper = text.toUpperCase();
     const assets: string[] = [];
-    
+
     for (const asset of TRACKED_ASSETS) {
       // Check for exact match (with word boundaries)
       const regex = new RegExp(`\\b${asset}\\b`, "i");
@@ -862,13 +1266,13 @@ export class VinceNewsSentimentService extends Service {
         assets.push(asset);
       }
     }
-    
+
     // Also check common names
     if (/\bbitcoin\b/i.test(text)) assets.push("BTC");
     if (/\bethereum\b/i.test(text)) assets.push("ETH");
     if (/\bsolana\b/i.test(text)) assets.push("SOL");
     if (/\bhyperliquid\b/i.test(text)) assets.push("HYPE");
-    
+
     // Deduplicate
     return [...new Set(assets)];
   }
@@ -876,31 +1280,44 @@ export class VinceNewsSentimentService extends Service {
   /**
    * Determine the impact level of a news item
    */
-  private determineImpact(text: string, assets: string[]): "high" | "medium" | "low" {
+  private determineImpact(
+    text: string,
+    assets: string[],
+  ): "high" | "medium" | "low" {
     const lower = text.toLowerCase();
-    
+
     // High impact: Major events, hacks, regulatory, or affects BTC/ETH
     const highImpactKeywords = [
-      "hack", "exploit", "sec", "etf", "approval", "ban", "crash", 
-      "bankruptcy", "billion", "record", "ath", "all-time",
+      "hack",
+      "exploit",
+      "sec",
+      "etf",
+      "approval",
+      "ban",
+      "crash",
+      "bankruptcy",
+      "billion",
+      "record",
+      "ath",
+      "all-time",
     ];
-    
+
     for (const keyword of highImpactKeywords) {
       if (lower.includes(keyword)) {
         return "high";
       }
     }
-    
+
     // High impact if it mentions BTC or ETH
     if (assets.includes("BTC") || assets.includes("ETH")) {
       return "medium";
     }
-    
+
     // Medium impact for other tracked assets
     if (assets.length > 0) {
       return "medium";
     }
-    
+
     return "low";
   }
 
@@ -918,16 +1335,20 @@ export class VinceNewsSentimentService extends Service {
   /**
    * Detect and record risk events from headlines
    */
-  private detectRiskEvents(text: string, assets: string[], timestamp: number): void {
+  private detectRiskEvents(
+    text: string,
+    assets: string[],
+    timestamp: number,
+  ): void {
     const lower = text.toLowerCase();
-    
+
     for (const risk of RISK_EVENT_KEYWORDS) {
       if (lower.includes(risk.keyword)) {
         // Check if we already have this risk event
-        const exists = this.riskEvents.some(e => 
-          e.description.toLowerCase() === text.toLowerCase()
+        const exists = this.riskEvents.some(
+          (e) => e.description.toLowerCase() === text.toLowerCase(),
         );
-        
+
         if (!exists) {
           this.riskEvents.push({
             type: risk.type,
@@ -936,8 +1357,10 @@ export class VinceNewsSentimentService extends Service {
             assets: assets.length > 0 ? assets : ["MARKET"],
             timestamp,
           });
-          
-          logger.info(`[VinceNewsSentiment] Risk event detected: [${risk.severity}] ${text}`);
+
+          logger.info(
+            `[VinceNewsSentiment] Risk event detected: [${risk.severity}] ${text}`,
+          );
         }
         break; // Only record once per headline
       }
@@ -978,7 +1401,11 @@ export class VinceNewsSentimentService extends Service {
   // Public API
   // ==========================================
 
-  getStatus(): { newsCount: number; riskEventCount: number; lastUpdate: number } {
+  getStatus(): {
+    newsCount: number;
+    riskEventCount: number;
+    lastUpdate: number;
+  } {
     return {
       newsCount: this.newsCache.length,
       riskEventCount: this.riskEvents.length,
@@ -1009,7 +1436,7 @@ export class VinceNewsSentimentService extends Service {
 
   getNewsByAsset(asset: string): NewsItem[] {
     return this.newsCache
-      .filter(n => n.assets.includes(asset))
+      .filter((n) => n.assets.includes(asset))
       .sort((a, b) => b.timestamp - a.timestamp);
   }
 
@@ -1018,19 +1445,18 @@ export class VinceNewsSentimentService extends Service {
    */
   getNewsByCategory(category: string): NewsItem[] {
     return this.newsCache
-      .filter(n => n.category === category)
+      .filter((n) => n.category === category)
       .sort((a, b) => b.timestamp - a.timestamp);
   }
 
   getActiveRiskEvents(): RiskEvent[] {
     return this.riskEvents
-      .filter(e => Date.now() - e.timestamp < 4 * 60 * 60 * 1000) // Last 4 hours
+      .filter((e) => Date.now() - e.timestamp < 4 * 60 * 60 * 1000) // Last 4 hours
       .sort((a, b) => b.timestamp - a.timestamp);
   }
 
   getCriticalRiskEvents(): RiskEvent[] {
-    return this.getActiveRiskEvents()
-      .filter(e => e.severity === "critical");
+    return this.getActiveRiskEvents().filter((e) => e.severity === "critical");
   }
 
   /**
@@ -1039,16 +1465,19 @@ export class VinceNewsSentimentService extends Service {
    */
   private getPriceSentimentContribution(
     snapshots: Array<{ asset: string; changePct: number }>,
-    assetFilter?: string
+    assetFilter?: string,
   ): { bullishAdd: number; bearishAdd: number } {
     const filtered = assetFilter
       ? snapshots.filter((s) => s.asset === assetFilter)
       : snapshots;
     if (filtered.length === 0) return { bullishAdd: 0, bearishAdd: 0 };
-    const avgChange = filtered.reduce((s, x) => s + x.changePct, 0) / filtered.length;
+    const avgChange =
+      filtered.reduce((s, x) => s + x.changePct, 0) / filtered.length;
     if (Math.abs(avgChange) < 0.5) return { bullishAdd: 0, bearishAdd: 0 };
     const contrib = Math.min(3, Math.abs(avgChange) / 2);
-    return avgChange > 0 ? { bullishAdd: contrib, bearishAdd: 0 } : { bullishAdd: 0, bearishAdd: contrib };
+    return avgChange > 0
+      ? { bullishAdd: contrib, bearishAdd: 0 }
+      : { bullishAdd: 0, bearishAdd: contrib };
   }
 
   /**
@@ -1058,11 +1487,16 @@ export class VinceNewsSentimentService extends Service {
     scoreConfidence: number,
     bullishCount: number,
     bearishCount: number,
-    totalRelevant: number
+    totalRelevant: number,
   ): number {
     const headcountConfidence =
       totalRelevant > 0
-        ? Math.min(100, (Math.abs(bullishCount - bearishCount) / Math.max(1, totalRelevant)) * 100)
+        ? Math.min(
+            100,
+            (Math.abs(bullishCount - bearishCount) /
+              Math.max(1, totalRelevant)) *
+              100,
+          )
         : 0;
     return Math.round(0.6 * scoreConfidence + 0.4 * headcountConfidence);
   }
@@ -1071,7 +1505,10 @@ export class VinceNewsSentimentService extends Service {
    * Get overall market sentiment from news
    * Uses keyword counts per headline, weighted by recency and impact; includes price snapshots and headcount calibration.
    */
-  getOverallSentiment(): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number } {
+  getOverallSentiment(): {
+    sentiment: "bullish" | "bearish" | "neutral";
+    confidence: number;
+  } {
     let bullishScore = 0;
     let bearishScore = 0;
     let bullishCount = 0;
@@ -1083,21 +1520,26 @@ export class VinceNewsSentimentService extends Service {
     for (const news of this.newsCache) {
       const ageHours = (now - news.timestamp) / (60 * 60 * 1000);
       const recencyWeight = Math.max(0.1, 1 - ageHours / 24);
-      const impactWeight = news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
+      const impactWeight =
+        news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
       const weight = recencyWeight * impactWeight;
 
       if (news.sentiment === "bullish") {
         bullishScore += weight;
         bullishCount++;
-        if (bullishExamples.length < 3) bullishExamples.push(news.title.slice(0, 60));
+        if (bullishExamples.length < 3)
+          bullishExamples.push(news.title.slice(0, 60));
       } else if (news.sentiment === "bearish") {
         bearishScore += weight;
         bearishCount++;
-        if (bearishExamples.length < 3) bearishExamples.push(news.title.slice(0, 60));
+        if (bearishExamples.length < 3)
+          bearishExamples.push(news.title.slice(0, 60));
       }
     }
 
-    const priceContrib = this.getPriceSentimentContribution(this.priceSnapshots);
+    const priceContrib = this.getPriceSentimentContribution(
+      this.priceSnapshots,
+    );
     bullishScore += priceContrib.bullishAdd;
     bearishScore += priceContrib.bearishAdd;
 
@@ -1112,12 +1554,23 @@ export class VinceNewsSentimentService extends Service {
         : bearishScore > bullishScore * 1.2
           ? "bearish"
           : "neutral";
-    const scoreConf = totalScore > 0 ? Math.min(100, (Math.abs(bullishScore - bearishScore) / totalScore) * 100) : 0;
-    const confidence = this.blendConfidence(scoreConf, bullishCount, bearishCount, bullishCount + bearishCount);
+    const scoreConf =
+      totalScore > 0
+        ? Math.min(
+            100,
+            (Math.abs(bullishScore - bearishScore) / totalScore) * 100,
+          )
+        : 0;
+    const confidence = this.blendConfidence(
+      scoreConf,
+      bullishCount,
+      bearishCount,
+      bullishCount + bearishCount,
+    );
 
     logger.debug(
       `[VinceNewsSentiment] Overall ${sentiment}: weighted bullish=${bullishScore.toFixed(1)} bearish=${bearishScore.toFixed(1)} ` +
-        `(confidence ${confidence}%). Bullish sample: ${bullishExamples.join(" | ")}. Bearish sample: ${bearishExamples.join(" | ")}.`
+        `(confidence ${confidence}%). Bullish sample: ${bullishExamples.join(" | ")}. Bearish sample: ${bearishExamples.join(" | ")}.`,
     );
 
     return { sentiment, confidence };
@@ -1127,9 +1580,17 @@ export class VinceNewsSentimentService extends Service {
    * Get sentiment for a specific asset with category weighting and macro vs crypto split.
    * Crypto+leftcurve weighted for perps; macro weighted higher for BTC.
    */
-  getAssetSentiment(asset: string): { sentiment: "bullish" | "bearish" | "neutral"; confidence: number; newsCount: number } {
+  getAssetSentiment(asset: string): {
+    sentiment: "bullish" | "bearish" | "neutral";
+    confidence: number;
+    newsCount: number;
+  } {
     const assetNews = this.getNewsByAsset(asset);
-    const catWeights = VinceNewsSentimentService.CATEGORY_WEIGHTS[asset] ?? { crypto: 1, macro: 1, leftcurve: 1 };
+    const catWeights = VinceNewsSentimentService.CATEGORY_WEIGHTS[asset] ?? {
+      crypto: 1,
+      macro: 1,
+      leftcurve: 1,
+    };
     const now = Date.now();
     let bullishScore = 0;
     let bearishScore = 0;
@@ -1139,8 +1600,12 @@ export class VinceNewsSentimentService extends Service {
     for (const news of assetNews) {
       const ageHours = (now - news.timestamp) / (60 * 60 * 1000);
       const recencyWeight = Math.max(0.1, 1 - ageHours / 24);
-      const impactWeight = news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
-      const cat = (news.category || "crypto") as "crypto" | "macro" | "leftcurve";
+      const impactWeight =
+        news.impact === "high" ? 3 : news.impact === "medium" ? 2 : 1;
+      const cat = (news.category || "crypto") as
+        | "crypto"
+        | "macro"
+        | "leftcurve";
       const catWeight = catWeights[cat] ?? 1;
       const weight = recencyWeight * impactWeight * catWeight;
 
@@ -1153,7 +1618,10 @@ export class VinceNewsSentimentService extends Service {
       }
     }
 
-    const priceContrib = this.getPriceSentimentContribution(this.priceSnapshots, asset);
+    const priceContrib = this.getPriceSentimentContribution(
+      this.priceSnapshots,
+      asset,
+    );
     bullishScore += priceContrib.bullishAdd;
     bearishScore += priceContrib.bearishAdd;
 
@@ -1163,9 +1631,24 @@ export class VinceNewsSentimentService extends Service {
     }
 
     const sentiment =
-      bullishScore > bearishScore * 1.2 ? "bullish" : bearishScore > bullishScore * 1.2 ? "bearish" : "neutral";
-    const scoreConf = totalScore > 0 ? Math.min(100, (Math.abs(bullishScore - bearishScore) / totalScore) * 100) : 0;
-    const confidence = this.blendConfidence(scoreConf, bullishCount, bearishCount, bullishCount + bearishCount);
+      bullishScore > bearishScore * 1.2
+        ? "bullish"
+        : bearishScore > bullishScore * 1.2
+          ? "bearish"
+          : "neutral";
+    const scoreConf =
+      totalScore > 0
+        ? Math.min(
+            100,
+            (Math.abs(bullishScore - bearishScore) / totalScore) * 100,
+          )
+        : 0;
+    const confidence = this.blendConfidence(
+      scoreConf,
+      bullishCount,
+      bearishCount,
+      bullishCount + bearishCount,
+    );
 
     return { sentiment, confidence, newsCount: assetNews.length };
   }
@@ -1182,7 +1665,9 @@ export class VinceNewsSentimentService extends Service {
     const assetSent = this.getAssetSentiment(asset);
     const overall = this.getOverallSentiment();
     const activeEvents = this.getActiveRiskEvents();
-    const hasHighRiskEvent = activeEvents.some((e) => e.severity === "critical" || e.severity === "warning");
+    const hasHighRiskEvent = activeEvents.some(
+      (e) => e.severity === "critical" || e.severity === "warning",
+    );
 
     const useAsset = assetSent.newsCount >= 2;
     const sentiment = useAsset ? assetSent.sentiment : overall.sentiment;
@@ -1206,11 +1691,16 @@ export class VinceNewsSentimentService extends Service {
     }
 
     // Overall sentiment
-    const sentimentEmoji = sentiment.sentiment === "bullish" ? "📈" 
-                         : sentiment.sentiment === "bearish" ? "📉" 
-                         : "➡️";
-    lines.push(`Sentiment: ${sentimentEmoji} ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)`);
-    
+    const sentimentEmoji =
+      sentiment.sentiment === "bullish"
+        ? "📈"
+        : sentiment.sentiment === "bearish"
+          ? "📉"
+          : "➡️";
+    lines.push(
+      `Sentiment: ${sentimentEmoji} ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)`,
+    );
+
     // Risk events warning
     if (riskEvents.length > 0) {
       lines.push(`⚠️ ${riskEvents.length} risk event(s) detected!`);
@@ -1218,19 +1708,23 @@ export class VinceNewsSentimentService extends Service {
         lines.push(`  • [${event.type}] ${event.description.slice(0, 60)}...`);
       }
     }
-    
+
     // Top headlines
     if (topNews.length > 0) {
       lines.push("Headlines:");
       for (const news of topNews) {
-        const emoji = news.sentiment === "bullish" ? "🟢" 
-                    : news.sentiment === "bearish" ? "🔴" 
-                    : "⚪";
-        const title = news.title.length > 70 ? news.title.slice(0, 67) + "..." : news.title;
+        const emoji =
+          news.sentiment === "bullish"
+            ? "🟢"
+            : news.sentiment === "bearish"
+              ? "🔴"
+              : "⚪";
+        const title =
+          news.title.length > 70 ? news.title.slice(0, 67) + "..." : news.title;
         lines.push(`  ${emoji} ${title}`);
       }
     }
-    
+
     return lines;
   }
 
@@ -1268,9 +1762,14 @@ export class VinceNewsSentimentService extends Service {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    const pubDay = new Date(pubDate.getFullYear(), pubDate.getMonth(), pubDate.getDate());
+    const pubDay = new Date(
+      pubDate.getFullYear(),
+      pubDate.getMonth(),
+      pubDate.getDate(),
+    );
     const isTodayOrYesterday =
-      pubDay.getTime() === today.getTime() || pubDay.getTime() === yesterday.getTime();
+      pubDay.getTime() === today.getTime() ||
+      pubDay.getTime() === yesterday.getTime();
 
     return {
       hasData,
@@ -1293,11 +1792,16 @@ export class VinceNewsSentimentService extends Service {
   } {
     return {
       totalNews: this.newsCache.length,
-      bullishCount: this.newsCache.filter(n => n.sentiment === "bullish").length,
-      bearishCount: this.newsCache.filter(n => n.sentiment === "bearish").length,
-      neutralCount: this.newsCache.filter(n => n.sentiment === "neutral").length,
+      bullishCount: this.newsCache.filter((n) => n.sentiment === "bullish")
+        .length,
+      bearishCount: this.newsCache.filter((n) => n.sentiment === "bearish")
+        .length,
+      neutralCount: this.newsCache.filter((n) => n.sentiment === "neutral")
+        .length,
       riskEventCount: this.riskEvents.length,
-      lastUpdate: this.lastUpdate ? new Date(this.lastUpdate).toISOString() : "never",
+      lastUpdate: this.lastUpdate
+        ? new Date(this.lastUpdate).toISOString()
+        : "never",
       hasData: this.hasData(),
     };
   }
@@ -1311,7 +1815,7 @@ export class VinceNewsSentimentService extends Service {
    */
   private detectTheme(text: string): NewsTheme {
     const lower = text.toLowerCase();
-    
+
     // Check each theme's keywords
     const themeScores: Record<NewsTheme, number> = {
       regulatory: 0,
@@ -1323,7 +1827,7 @@ export class VinceNewsSentimentService extends Service {
       meme: 0,
       other: 0,
     };
-    
+
     for (const [theme, keywords] of Object.entries(THEME_KEYWORDS)) {
       for (const keyword of keywords) {
         if (lower.includes(keyword)) {
@@ -1331,7 +1835,7 @@ export class VinceNewsSentimentService extends Service {
         }
       }
     }
-    
+
     // Find highest scoring theme
     let maxTheme: NewsTheme = "other";
     let maxScore = 0;
@@ -1341,7 +1845,7 @@ export class VinceNewsSentimentService extends Service {
         maxTheme = theme as NewsTheme;
       }
     }
-    
+
     return maxTheme;
   }
 
@@ -1350,7 +1854,7 @@ export class VinceNewsSentimentService extends Service {
    */
   private groupByTheme(): ThemedNews[] {
     const groups: Map<NewsTheme, NewsItem[]> = new Map();
-    
+
     for (const article of this.newsCache) {
       const theme = this.detectTheme(article.title);
       if (!groups.has(theme)) {
@@ -1358,7 +1862,7 @@ export class VinceNewsSentimentService extends Service {
       }
       groups.get(theme)!.push(article);
     }
-    
+
     // Convert to array and sort by article count
     const themed: ThemedNews[] = [];
     for (const [theme, articles] of groups) {
@@ -1368,7 +1872,7 @@ export class VinceNewsSentimentService extends Service {
           const impactOrder = { high: 3, medium: 2, low: 1 };
           return impactOrder[b.impact] - impactOrder[a.impact];
         });
-        
+
         themed.push({
           theme,
           articles,
@@ -1376,10 +1880,10 @@ export class VinceNewsSentimentService extends Service {
         });
       }
     }
-    
+
     // Sort by number of articles (most coverage first)
     themed.sort((a, b) => b.articles.length - a.articles.length);
-    
+
     return themed;
   }
 
@@ -1393,12 +1897,12 @@ export class VinceNewsSentimentService extends Service {
     const dollarMatch = title.match(/\$[\d,]+(?:\.\d+)?[BMK]?/i);
     // Extract specific numbers (like "100k")
     const numMatch = title.match(/\b\d+[kmb]\b/i);
-    
+
     const details: string[] = [];
     if (pctMatch) details.push(pctMatch[0]);
     if (dollarMatch) details.push(dollarMatch[0]);
     if (numMatch) details.push(numMatch[0]);
-    
+
     return details.join(", ");
   }
 
@@ -1414,29 +1918,29 @@ export class VinceNewsSentimentService extends Service {
     const themed = this.groupByTheme();
     const paragraphs: string[] = [];
     const totalArticles = this.newsCache.length;
-    
+
     // Process ALL themes with at least 1 article
     for (const { theme, articles } of themed) {
       if (articles.length === 0 || theme === "other") continue;
-      
+
       const paragraph = this.writeThemeParagraph(theme, articles);
       if (paragraph) {
         paragraphs.push(paragraph);
       }
     }
-    
+
     // Handle "other" category - miscellaneous news worth mentioning
-    const otherNews = themed.find(t => t.theme === "other");
+    const otherNews = themed.find((t) => t.theme === "other");
     if (otherNews && otherNews.articles.length > 0) {
       const misc = this.writeMiscParagraph(otherNews.articles);
       if (misc) {
         paragraphs.push(misc);
       }
     }
-    
+
     // Add article count context
     const header = `**${totalArticles} stories today** - here's what matters:\n`;
-    
+
     return header + paragraphs.join("\n\n");
   }
 
@@ -1445,12 +1949,12 @@ export class VinceNewsSentimentService extends Service {
    */
   private writeThemeParagraph(theme: NewsTheme, articles: NewsItem[]): string {
     const count = articles.length;
-    const bullish = articles.filter(a => a.sentiment === "bullish").length;
-    const bearish = articles.filter(a => a.sentiment === "bearish").length;
-    
+    const bullish = articles.filter((a) => a.sentiment === "bullish").length;
+    const bearish = articles.filter((a) => a.sentiment === "bearish").length;
+
     // Get top headlines for this theme (up to 5)
-    const topHeadlines = articles.slice(0, 5).map(a => a.title);
-    
+    const topHeadlines = articles.slice(0, 5).map((a) => a.title);
+
     // Theme emoji and title
     const themeLabels: Record<NewsTheme, { emoji: string; title: string }> = {
       regulatory: { emoji: "⚖️", title: "Regulation" },
@@ -1462,15 +1966,19 @@ export class VinceNewsSentimentService extends Service {
       meme: { emoji: "🐸", title: "Meme Szn" },
       other: { emoji: "📰", title: "Other" },
     };
-    
+
     const { emoji, title } = themeLabels[theme];
     const lines: string[] = [];
-    
+
     // Header with count
-    const sentimentNote = bullish > bearish ? "(leaning bullish)" : 
-                          bearish > bullish ? "(leaning bearish)" : "";
+    const sentimentNote =
+      bullish > bearish
+        ? "(leaning bullish)"
+        : bearish > bullish
+          ? "(leaning bearish)"
+          : "";
     lines.push(`${emoji} **${title}** [${count} stories] ${sentimentNote}`);
-    
+
     // Write narrative sentences using actual headlines
     switch (theme) {
       case "regulatory":
@@ -1497,74 +2005,113 @@ export class VinceNewsSentimentService extends Service {
       default:
         break;
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for regulatory news
    */
-  private writeRegulatoryNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeRegulatoryNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    
+
     // Look for specific entities
     const entities = this.extractEntities(headlines, [
-      "SEC", "CFTC", "DOJ", "Gensler", "Congress", "Senate", "EU", "MiCA", 
-      "Binance", "Coinbase", "Kraken", "Ripple", "XRP"
+      "SEC",
+      "CFTC",
+      "DOJ",
+      "Gensler",
+      "Congress",
+      "Senate",
+      "EU",
+      "MiCA",
+      "Binance",
+      "Coinbase",
+      "Kraken",
+      "Ripple",
+      "XRP",
     ]);
-    
+
     if (entities.length > 0) {
       lines.push(`Key players: ${entities.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 4)) {
       lines.push(`  → ${this.cleanHeadline(headline, 80)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for security news
    */
-  private writeSecurityNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeSecurityNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    const hasCritical = articles.some(a => a.impact === "high");
-    
+    const hasCritical = articles.some((a) => a.impact === "high");
+
     // Look for affected protocols
     const protocols = this.extractEntities(headlines, [
-      "ETH", "Ethereum", "Solana", "BSC", "Arbitrum", "Optimism", 
-      "Aave", "Curve", "Uniswap", "bridge"
+      "ETH",
+      "Ethereum",
+      "Solana",
+      "BSC",
+      "Arbitrum",
+      "Optimism",
+      "Aave",
+      "Curve",
+      "Uniswap",
+      "bridge",
     ]);
-    
+
     if (protocols.length > 0) {
       lines.push(`Affected: ${protocols.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 3)) {
-      const prefix = hasCritical && headline === headlines[0] ? "  ⚠️ " : "  → ";
+      const prefix =
+        hasCritical && headline === headlines[0] ? "  ⚠️ " : "  → ";
       lines.push(`${prefix}${this.cleanHeadline(headline, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for price/market news
    */
-  private writePriceNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writePriceNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    const bullish = articles.filter(a => a.sentiment === "bullish").length;
-    const bearish = articles.filter(a => a.sentiment === "bearish").length;
-    
+    const bullish = articles.filter((a) => a.sentiment === "bullish").length;
+    const bearish = articles.filter((a) => a.sentiment === "bearish").length;
+
     // Extract assets mentioned
     const assets = this.extractEntities(headlines, [
-      "BTC", "Bitcoin", "ETH", "Ethereum", "SOL", "Solana", "XRP", 
-      "ADA", "DOGE", "AVAX", "LINK", "DOT"
+      "BTC",
+      "Bitcoin",
+      "ETH",
+      "Ethereum",
+      "SOL",
+      "Solana",
+      "XRP",
+      "ADA",
+      "DOGE",
+      "AVAX",
+      "LINK",
+      "DOT",
     ]);
-    
+
     // Mood + assets on one line
     let mood = "Mixed action";
     if (bullish > bearish * 1.5) {
@@ -1572,112 +2119,164 @@ export class VinceNewsSentimentService extends Service {
     } else if (bearish > bullish * 1.5) {
       mood = "🔴 Red dominating";
     }
-    
+
     if (assets.length > 0) {
       lines.push(`${mood} - focus on ${assets.join(", ")}`);
     } else {
       lines.push(mood);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 4)) {
-      const sentiment = articles.find(a => a.title === headline)?.sentiment;
-      const dot = sentiment === "bullish" ? "🟢" : sentiment === "bearish" ? "🔴" : "⚪";
+      const sentiment = articles.find((a) => a.title === headline)?.sentiment;
+      const dot =
+        sentiment === "bullish" ? "🟢" : sentiment === "bearish" ? "🔴" : "⚪";
       lines.push(`  ${dot} ${this.cleanHeadline(headline, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for institutional news
    */
-  private writeInstitutionalNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeInstitutionalNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    
+
     const players = this.extractEntities(headlines, [
-      "BlackRock", "Fidelity", "Grayscale", "VanEck", "Ark", "21Shares",
-      "JPMorgan", "Goldman", "Morgan Stanley", "Citadel", "ETF"
+      "BlackRock",
+      "Fidelity",
+      "Grayscale",
+      "VanEck",
+      "Ark",
+      "21Shares",
+      "JPMorgan",
+      "Goldman",
+      "Morgan Stanley",
+      "Citadel",
+      "ETF",
     ]);
-    
+
     if (players.length > 0) {
       lines.push(`Big names: ${players.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 4)) {
       lines.push(`  → ${this.cleanHeadline(headline, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for macro news
    */
-  private writeMacroNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeMacroNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    
+
     const factors = this.extractEntities(headlines, [
-      "Fed", "Powell", "CPI", "inflation", "rates", "dollar", "DXY",
-      "Treasury", "bonds", "yields", "GDP", "jobs", "unemployment"
+      "Fed",
+      "Powell",
+      "CPI",
+      "inflation",
+      "rates",
+      "dollar",
+      "DXY",
+      "Treasury",
+      "bonds",
+      "yields",
+      "GDP",
+      "jobs",
+      "unemployment",
     ]);
-    
+
     if (factors.length > 0) {
       lines.push(`Key factors: ${factors.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 4)) {
       lines.push(`  → ${this.cleanHeadline(headline, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for DeFi news
    */
-  private writeDefiNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeDefiNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    
+
     const protocols = this.extractEntities(headlines, [
-      "Aave", "Uniswap", "Curve", "Pendle", "Lido", "Rocket Pool",
-      "Compound", "MakerDAO", "Synthetix", "TVL", "yields", "APY"
+      "Aave",
+      "Uniswap",
+      "Curve",
+      "Pendle",
+      "Lido",
+      "Rocket Pool",
+      "Compound",
+      "MakerDAO",
+      "Synthetix",
+      "TVL",
+      "yields",
+      "APY",
     ]);
-    
+
     if (protocols.length > 0) {
       lines.push(`Protocols: ${protocols.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 4)) {
       lines.push(`  → ${this.cleanHeadline(headline, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
   /**
    * Write narrative for meme/degen news
    */
-  private writeMemeNarrative(headlines: string[], articles: NewsItem[]): string {
+  private writeMemeNarrative(
+    headlines: string[],
+    articles: NewsItem[],
+  ): string {
     const lines: string[] = [];
-    
+
     const tokens = this.extractEntities(headlines, [
-      "DOGE", "SHIB", "PEPE", "BONK", "WIF", "FLOKI", "TRUMP",
-      "AI", "agent", "100x", "moon"
+      "DOGE",
+      "SHIB",
+      "PEPE",
+      "BONK",
+      "WIF",
+      "FLOKI",
+      "TRUMP",
+      "AI",
+      "agent",
+      "100x",
+      "moon",
     ]);
-    
+
     if (tokens.length > 0) {
       lines.push(`Tokens: ${tokens.join(", ")}`);
     }
-    
+
     // Each headline on its own line
     for (const headline of headlines.slice(0, 3)) {
       lines.push(`  🐸 ${this.cleanHeadline(headline, 70)}`);
     }
-    
+
     return lines.join("\n");
   }
 
@@ -1686,17 +2285,21 @@ export class VinceNewsSentimentService extends Service {
    */
   private writeMiscParagraph(articles: NewsItem[]): string {
     if (articles.length === 0) return "";
-    
+
     const lines: string[] = [];
     lines.push(`📰 **Other Notable** [${articles.length} stories]`);
-    
+
     // List top 5 headlines with proper indentation
     for (const article of articles.slice(0, 5)) {
-      const emoji = article.sentiment === "bullish" ? "🟢" : 
-                    article.sentiment === "bearish" ? "🔴" : "⚪";
+      const emoji =
+        article.sentiment === "bullish"
+          ? "🟢"
+          : article.sentiment === "bearish"
+            ? "🔴"
+            : "⚪";
       lines.push(`  ${emoji} ${this.cleanHeadline(article.title, 75)}`);
     }
-    
+
     return lines.join("\n");
   }
 
@@ -1710,12 +2313,12 @@ export class VinceNewsSentimentService extends Service {
       .replace(/^JUST IN:\s*/i, "")
       .replace(/^UPDATE:\s*/i, "")
       .trim();
-    
+
     // Truncate if needed
     if (clean.length > maxLen) {
       clean = clean.slice(0, maxLen - 3) + "...";
     }
-    
+
     return clean;
   }
 
@@ -1725,13 +2328,13 @@ export class VinceNewsSentimentService extends Service {
   private extractEntities(headlines: string[], lookFor: string[]): string[] {
     const found: string[] = [];
     const combined = headlines.join(" ");
-    
+
     for (const entity of lookFor) {
       if (combined.toLowerCase().includes(entity.toLowerCase())) {
         found.push(entity);
       }
     }
-    
+
     return [...new Set(found)].slice(0, 3); // Max 3 entities
   }
 
@@ -1746,18 +2349,27 @@ export class VinceNewsSentimentService extends Service {
     const topHeadlines = this.getTopHeadlines(8);
     const criticalRisks = this.getCriticalRiskEvents();
     const vibe =
-      sentiment.sentiment === "bearish" ? "Risk-off" :
-      sentiment.sentiment === "bullish" ? "Risk-on" : "Mixed";
+      sentiment.sentiment === "bearish"
+        ? "Risk-off"
+        : sentiment.sentiment === "bullish"
+          ? "Risk-on"
+          : "Mixed";
     const phrases: string[] = [];
     for (const n of topHeadlines.slice(0, 5)) {
       const t = (n.title ?? "").toLowerCase();
-      if (t.includes("selloff") || t.includes("sell-off")) phrases.push("crypto selloff");
-      else if (t.includes("erases gains") || t.includes("gains erased")) phrases.push("gains erased");
-      else if (t.includes("vitalik") && t.includes("eth")) phrases.push("Vitalik ETH");
-      else if (t.includes("gold") && (t.includes("up") || t.includes("rally"))) phrases.push("gold up");
+      if (t.includes("selloff") || t.includes("sell-off"))
+        phrases.push("crypto selloff");
+      else if (t.includes("erases gains") || t.includes("gains erased"))
+        phrases.push("gains erased");
+      else if (t.includes("vitalik") && t.includes("eth"))
+        phrases.push("Vitalik ETH");
+      else if (t.includes("gold") && (t.includes("up") || t.includes("rally")))
+        phrases.push("gold up");
       else if (t.includes("etf outflow")) phrases.push("ETF outflow");
-      else if (t.includes("sec") || t.includes("regulation")) phrases.push("regulatory");
-      else if (t.includes("hack") || t.includes("exploit")) phrases.push("security");
+      else if (t.includes("sec") || t.includes("regulation"))
+        phrases.push("regulatory");
+      else if (t.includes("hack") || t.includes("exploit"))
+        phrases.push("security");
     }
     const uniquePhrases = [...new Set(phrases)].slice(0, 4);
     const themeNames = themed
@@ -1765,10 +2377,15 @@ export class VinceNewsSentimentService extends Service {
       .sort((a, b) => b.articles.length - a.articles.length)
       .slice(0, 4)
       .map((t) => t.theme);
-    const themeStr = themeNames.length > 0 ? `. Themes: ${themeNames.join(", ")}` : "";
-    const phraseStr = uniquePhrases.length > 0 ? ` ${uniquePhrases.join(", ")}` : "";
+    const themeStr =
+      themeNames.length > 0 ? `. Themes: ${themeNames.join(", ")}` : "";
+    const phraseStr =
+      uniquePhrases.length > 0 ? ` ${uniquePhrases.join(", ")}` : "";
     if (criticalRisks.length > 0) {
-      return `${vibe} ⚠️ Risk event active${phraseStr}${themeStr}`.slice(0, 120);
+      return `${vibe} ⚠️ Risk event active${phraseStr}${themeStr}`.slice(
+        0,
+        120,
+      );
     }
     const tail = phraseStr || themeStr ? `:${phraseStr}${themeStr}` : "";
     return (vibe + tail).slice(0, 120) || vibe;
@@ -1781,41 +2398,47 @@ export class VinceNewsSentimentService extends Service {
     if (this.newsCache.length === 0) {
       return "NEWS: No data yet - run MANDO_MINUTES to fetch";
     }
-    
+
     const sentiment = this.getOverallSentiment();
     const criticalRisks = this.getCriticalRiskEvents();
     const themed = this.groupByTheme();
-    
+
     // Check for specific themes
-    const hasRegulatory = themed.some(t => t.theme === "regulatory" && t.articles.length >= 2);
-    const hasSecurity = themed.some(t => t.theme === "security" && t.articles.length >= 1);
-    const hasInstitutional = themed.some(t => t.theme === "institutional" && t.articles.length >= 2);
-    
+    const hasRegulatory = themed.some(
+      (t) => t.theme === "regulatory" && t.articles.length >= 2,
+    );
+    const hasSecurity = themed.some(
+      (t) => t.theme === "security" && t.articles.length >= 1,
+    );
+    const hasInstitutional = themed.some(
+      (t) => t.theme === "institutional" && t.articles.length >= 2,
+    );
+
     // Priority 1: Critical security/hack events
     if (criticalRisks.length > 0) {
       return "RISK EVENT: Security incident - reduce exposure";
     }
-    
+
     // Priority 2: Heavy regulatory day
     if (hasRegulatory && sentiment.sentiment !== "bullish") {
       return "REGULATORY NOISE: Choppy ahead - trade smaller";
     }
-    
+
     // Priority 3: Bullish with institutional
     if (sentiment.sentiment === "bullish" && hasInstitutional) {
       return "BULLISH CATALYST: Institutional flow - lean long";
     }
-    
+
     // Priority 4: Pure sentiment
     if (sentiment.sentiment === "bullish") {
       return `BULLISH: ${sentiment.confidence.toFixed(0)}% confidence - favor longs`;
     }
     if (sentiment.sentiment === "bearish") {
-      return hasSecurity 
+      return hasSecurity
         ? "BEARISH + RISK: Protect capital, stay defensive"
         : `BEARISH: ${sentiment.confidence.toFixed(0)}% confidence - favor shorts`;
     }
-    
+
     // Default: Neutral
     return "NEUTRAL: No strong catalyst - trade your plan";
   }
@@ -1827,33 +2450,41 @@ export class VinceNewsSentimentService extends Service {
     const sentiment = this.getOverallSentiment();
     const criticalRisks = this.getCriticalRiskEvents();
     const themed = this.groupByTheme();
-    
+
     // Count themes
-    const hasRegulatory = themed.some(t => t.theme === "regulatory" && t.articles.length >= 2);
-    const hasSecurity = themed.some(t => t.theme === "security" && t.articles.length >= 1);
-    const hasInstitutional = themed.some(t => t.theme === "institutional" && t.articles.length >= 2);
-    const hasPriceAction = themed.some(t => t.theme === "price" && t.articles.length >= 3);
-    
+    const hasRegulatory = themed.some(
+      (t) => t.theme === "regulatory" && t.articles.length >= 2,
+    );
+    const hasSecurity = themed.some(
+      (t) => t.theme === "security" && t.articles.length >= 1,
+    );
+    const hasInstitutional = themed.some(
+      (t) => t.theme === "institutional" && t.articles.length >= 2,
+    );
+    const hasPriceAction = themed.some(
+      (t) => t.theme === "price" && t.articles.length >= 3,
+    );
+
     // Critical security event overrides everything
     if (criticalRisks.length > 0) {
       return "🔴 Risk-off mode - security/hack news dominating, stay defensive and wait for clarity.";
     }
-    
+
     // Heavy regulatory day
     if (hasRegulatory && sentiment.sentiment !== "bullish") {
       return "⚠️ Choppy day ahead - regulatory noise creating uncertainty, watch for dips but don't force it.";
     }
-    
+
     // Bullish with institutional backing
     if (sentiment.sentiment === "bullish" && hasInstitutional) {
       return "🟢 Bullish undertone - institutional flow and positive sentiment, lean long on quality.";
     }
-    
+
     // Bullish without institutional
     if (sentiment.sentiment === "bullish") {
       return "🟢 Positive bias today - sentiment tilting green, but size accordingly.";
     }
-    
+
     // Bearish
     if (sentiment.sentiment === "bearish") {
       if (hasSecurity) {
@@ -1861,12 +2492,12 @@ export class VinceNewsSentimentService extends Service {
       }
       return "📉 Cautious mode - bearish lean in the news, wait for better entries.";
     }
-    
+
     // Neutral with action
     if (hasPriceAction) {
       return "↔️ Mixed signals - headlines all over, trade the levels not the noise.";
     }
-    
+
     // Default neutral
     return "➡️ Quiet day on the news front - no strong bias, stick to your plan.";
   }
@@ -1875,17 +2506,21 @@ export class VinceNewsSentimentService extends Service {
    * Format news for display in GM briefing - NEW HUMAN STYLE
    * Returns summary + conclusion instead of raw headlines
    */
-  formatHumanBriefing(): { summary: string; conclusion: string; riskAlert?: string } {
+  formatHumanBriefing(): {
+    summary: string;
+    conclusion: string;
+    riskAlert?: string;
+  } {
     const summary = this.generateDailySummary();
     const conclusion = this.getDailyConclusion();
-    
+
     // Only include risk alert if critical
     const criticalRisks = this.getCriticalRiskEvents();
     let riskAlert: string | undefined;
     if (criticalRisks.length > 0) {
       riskAlert = `⚠️ ALERT: ${criticalRisks[0].description.slice(0, 80)}`;
     }
-    
+
     return { summary, conclusion, riskAlert };
   }
 }

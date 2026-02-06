@@ -19,19 +19,20 @@ What should a Polymarket plugin do for Otaku, a DeFi-focused AI agent built on E
 Polymarket is a decentralized prediction market platform headquartered in Manhattan, New York, launched in 2020. Users trade shares representing the probability of future events (political outcomes, economic indicators, sports, weather, awards).
 
 **Key Statistics (2024):**
+
 - Over $3.2 billion traded during 2024 US presidential election
 - Recognized for accurate election outcome predictions
 - World's largest prediction market platform
 
 ### Blockchain Infrastructure
 
-| Attribute | Value |
-|-----------|-------|
-| Network | Polygon (Layer 2) |
-| Chain ID | 137 |
-| Trading Token | USDC (stablecoin, 1:1 USD peg) |
-| Settlement | On-chain via smart contracts |
-| Order Book | Hybrid-decentralized (off-chain matching, on-chain settlement) |
+| Attribute     | Value                                                          |
+| ------------- | -------------------------------------------------------------- |
+| Network       | Polygon (Layer 2)                                              |
+| Chain ID      | 137                                                            |
+| Trading Token | USDC (stablecoin, 1:1 USD peg)                                 |
+| Settlement    | On-chain via smart contracts                                   |
+| Order Book    | Hybrid-decentralized (off-chain matching, on-chain settlement) |
 
 ### How Trading Works
 
@@ -51,6 +52,7 @@ Polymarket is a decentralized prediction market platform headquartered in Manhat
 **Repository**: https://github.com/Okay-Bet/plugin-polymarket
 
 **Architecture:**
+
 ```
 src/
   actions/           # Individual action implementations
@@ -63,18 +65,20 @@ src/
 
 **Actions Implemented (12):**
 
-| Category | Actions |
-|----------|---------|
-| Trading | `PLACE_ORDER`, `SELL_ORDER`, `REDEEM_WINNINGS` |
-| Market Discovery | `SEARCH_MARKETS`, `EXPLAIN_MARKET`, `GET_MARKET_PRICE`, `SHOW_FAVORITE_MARKETS` |
-| Portfolio | `GET_PORTFOLIO_POSITIONS`, `GET_WALLET_BALANCE`, `APPROVE_USDC`, `SETUP_TRADING` |
-| Data | Order book depth, historical pricing |
+| Category         | Actions                                                                          |
+| ---------------- | -------------------------------------------------------------------------------- |
+| Trading          | `PLACE_ORDER`, `SELL_ORDER`, `REDEEM_WINNINGS`                                   |
+| Market Discovery | `SEARCH_MARKETS`, `EXPLAIN_MARKET`, `GET_MARKET_PRICE`, `SHOW_FAVORITE_MARKETS`  |
+| Portfolio        | `GET_PORTFOLIO_POSITIONS`, `GET_WALLET_BALANCE`, `APPROVE_USDC`, `SETUP_TRADING` |
+| Data             | Order book depth, historical pricing                                             |
 
 **Key Services:**
+
 - `MarketSyncService`: Updates local market data every 24 hours
 - `MarketDetailService`: Provides market analysis
 
 **Configuration:**
+
 ```
 WALLET_PRIVATE_KEY (required)
 CLOB_API_URL (optional, default: https://clob.polymarket.com)
@@ -87,15 +91,16 @@ CLOB_API_KEY (optional)
 
 **Actions Implemented (16):**
 
-| Category | Actions |
-|----------|---------|
-| Market Data | `GET_ALL_MARKETS`, `GET_SIMPLIFIED_MARKETS`, `GET_CLOB_MARKETS`, `GET_OPEN_MARKETS` |
-| Analysis | `GET_MARKET_DETAILS`, `GET_PRICE_HISTORY`, `GET_ORDER_BOOK_SUMMARY`, `GET_ORDER_BOOK_DEPTH` |
-| Pricing | `GET_BEST_PRICE`, `GET_MIDPOINT_PRICE`, `GET_SPREAD` |
-| Trading | `PLACE_ORDER` |
-| API Keys | `CREATE_API_KEY`, `REVOKE_API_KEY`, `GET_ALL_API_KEYS` |
+| Category    | Actions                                                                                     |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Market Data | `GET_ALL_MARKETS`, `GET_SIMPLIFIED_MARKETS`, `GET_CLOB_MARKETS`, `GET_OPEN_MARKETS`         |
+| Analysis    | `GET_MARKET_DETAILS`, `GET_PRICE_HISTORY`, `GET_ORDER_BOOK_SUMMARY`, `GET_ORDER_BOOK_DEPTH` |
+| Pricing     | `GET_BEST_PRICE`, `GET_MIDPOINT_PRICE`, `GET_SPREAD`                                        |
+| Trading     | `PLACE_ORDER`                                                                               |
+| API Keys    | `CREATE_API_KEY`, `REVOKE_API_KEY`, `GET_ALL_API_KEYS`                                      |
 
 **Dependencies:**
+
 ```json
 {
   "@polymarket/clob-client": "^4.16.0",
@@ -106,6 +111,7 @@ CLOB_API_KEY (optional)
 ```
 
 **Configuration:**
+
 ```
 CLOB_API_URL (default: https://clob.polymarket.com)
 CLOB_API_KEY (optional for read operations)
@@ -116,17 +122,17 @@ CLOB_API_PASSPHRASE (for API key retrieval)
 
 ### Plugin Comparison
 
-| Feature | Okay-Bet | elizaos-plugins |
-|---------|----------|-----------------|
-| Actions Count | 12 | 16 |
-| Market Sync | Yes (24h) | No |
-| USDC Deposits | Yes | No |
-| Sell Orders | Yes | No (explicit) |
-| Redeem Winnings | Yes | No |
-| API Key Management | No | Yes |
-| Order Book Depth | Yes | Yes (bulk) |
-| Price History | Yes | Yes |
-| Primary SDK | CLOB Client | @polymarket/clob-client |
+| Feature            | Okay-Bet    | elizaos-plugins         |
+| ------------------ | ----------- | ----------------------- |
+| Actions Count      | 12          | 16                      |
+| Market Sync        | Yes (24h)   | No                      |
+| USDC Deposits      | Yes         | No                      |
+| Sell Orders        | Yes         | No (explicit)           |
+| Redeem Winnings    | Yes         | No                      |
+| API Key Management | No          | Yes                     |
+| Order Book Depth   | Yes         | Yes (bulk)              |
+| Price History      | Yes         | Yes                     |
+| Primary SDK        | CLOB Client | @polymarket/clob-client |
 
 **Recommendation**: The elizaos-plugins version is more data-rich but Okay-Bet has better trading lifecycle support. A production plugin should combine both approaches.
 
@@ -136,41 +142,45 @@ CLOB_API_PASSPHRASE (for API key retrieval)
 
 ### API Endpoints
 
-| Endpoint | Purpose |
-|----------|---------|
-| `https://clob.polymarket.com/` | REST API (markets, orders, prices) |
-| `https://data-api.polymarket.com/` | User data, holdings, on-chain activities |
-| `wss://ws-subscriptions-clob.polymarket.com/ws/` | WebSocket subscriptions |
-| `wss://ws-live-data.polymarket.com` | Real-time data streaming |
+| Endpoint                                         | Purpose                                  |
+| ------------------------------------------------ | ---------------------------------------- |
+| `https://clob.polymarket.com/`                   | REST API (markets, orders, prices)       |
+| `https://data-api.polymarket.com/`               | User data, holdings, on-chain activities |
+| `wss://ws-subscriptions-clob.polymarket.com/ws/` | WebSocket subscriptions                  |
+| `wss://ws-live-data.polymarket.com`              | Real-time data streaming                 |
 
 ### REST API Categories
 
 **Order Book:**
+
 - `GET /book` - Order book for specific token
 - `POST /books` - Multiple order books
 
 **Pricing:**
+
 - `GET /price` - Market price for token
 - `GET /prices` - Multiple prices
 - `GET /midpoint` - Midpoint price
 - `GET /prices-history` - Historical data
 
 **Orders:**
+
 - `POST /order` - Place order
 - `GET /orders` - Get active orders
 - `DELETE /order` - Cancel order
 
 **Trades:**
+
 - `GET /trades` - Trade history
 
 ### Authentication Levels
 
-| Level | Requirements | Capabilities |
-|-------|-------------|--------------|
-| Public | None | Market data, orderbooks, prices |
-| L1 | Private key (wallet signer) | Create/derive API keys |
-| L2 | Signer + API credentials | Place orders, manage positions |
-| Builder | Builder API credentials | Order attribution, builder trades |
+| Level   | Requirements                | Capabilities                      |
+| ------- | --------------------------- | --------------------------------- |
+| Public  | None                        | Market data, orderbooks, prices   |
+| L1      | Private key (wallet signer) | Create/derive API keys            |
+| L2      | Signer + API credentials    | Place orders, manage positions    |
+| Builder | Builder API credentials     | Order attribution, builder trades |
 
 ### Official SDKs
 
@@ -205,19 +215,19 @@ await client.postOrder(order);
 
 ```typescript
 interface Order {
-  salt: string;           // Random uniqueness value
-  maker: string;          // Funder address
-  signer: string;         // Signing address
-  taker: string;          // Operator address
-  tokenId: string;        // ERC1155 conditional token ID
-  makerAmount: string;    // Max spend
-  takerAmount: string;    // Min return
-  expiration: number;     // Unix timestamp
-  nonce: number;          // Exchange nonce
-  feeRateBps: number;     // Fee rate in basis points
-  side: 'buy' | 'sell';
-  signatureType: number;  // Auth type
-  signature: string;      // Hex-encoded
+  salt: string; // Random uniqueness value
+  maker: string; // Funder address
+  signer: string; // Signing address
+  taker: string; // Operator address
+  tokenId: string; // ERC1155 conditional token ID
+  makerAmount: string; // Max spend
+  takerAmount: string; // Min return
+  expiration: number; // Unix timestamp
+  nonce: number; // Exchange nonce
+  feeRateBps: number; // Fee rate in basis points
+  side: "buy" | "sell";
+  signatureType: number; // Auth type
+  signature: string; // Hex-encoded
 }
 ```
 
@@ -226,6 +236,7 @@ interface Order {
 Current fee rate: **0 bps** (0%) for all volume levels.
 
 Fee formula:
+
 - Selling: `feeQuote = baseRate x min(price, 1-price) x size`
 - Buying: `feeBase = baseRate x min(price, 1-price) x (size/price)`
 
@@ -237,35 +248,35 @@ Fee formula:
 
 ### Tier 1: Essential (Market Discovery) - MVP
 
-| Action | Description | Auth Level |
-|--------|-------------|------------|
-| `POLYMARKET_SEARCH_MARKETS` | Search markets by keyword, category | Public |
-| `POLYMARKET_GET_MARKET` | Get specific market details by ID | Public |
-| `POLYMARKET_GET_TRENDING` | Show trending/active markets | Public |
-| `POLYMARKET_GET_PRICE` | Get current price for a market outcome | Public |
+| Action                      | Description                            | Auth Level |
+| --------------------------- | -------------------------------------- | ---------- |
+| `POLYMARKET_SEARCH_MARKETS` | Search markets by keyword, category    | Public     |
+| `POLYMARKET_GET_MARKET`     | Get specific market details by ID      | Public     |
+| `POLYMARKET_GET_TRENDING`   | Show trending/active markets           | Public     |
+| `POLYMARKET_GET_PRICE`      | Get current price for a market outcome | Public     |
 
 **Why Essential**: Zero risk, read-only, provides immediate value for users researching prediction markets without any compliance concerns.
 
 ### Tier 2: Portfolio Tracking - Phase 2
 
-| Action | Description | Auth Level |
-|--------|-------------|------------|
-| `POLYMARKET_GET_POSITIONS` | View user's current positions | L2 |
-| `POLYMARKET_GET_BALANCE` | Check USDC balance on Polymarket | L2 |
-| `POLYMARKET_GET_TRADE_HISTORY` | Historical trades for user | L2 |
-| `POLYMARKET_GET_PNL` | Profit/loss summary | L2 |
+| Action                         | Description                      | Auth Level |
+| ------------------------------ | -------------------------------- | ---------- |
+| `POLYMARKET_GET_POSITIONS`     | View user's current positions    | L2         |
+| `POLYMARKET_GET_BALANCE`       | Check USDC balance on Polymarket | L2         |
+| `POLYMARKET_GET_TRADE_HISTORY` | Historical trades for user       | L2         |
+| `POLYMARKET_GET_PNL`           | Profit/loss summary              | L2         |
 
 **Why Phase 2**: Requires user authentication but still read-only, low risk.
 
 ### Tier 3: Trading - Phase 3 (With Safety Controls)
 
-| Action | Description | Auth Level |
-|--------|-------------|------------|
-| `POLYMARKET_BUY_SHARES` | Buy Yes/No shares | L2 |
-| `POLYMARKET_SELL_SHARES` | Sell existing positions | L2 |
-| `POLYMARKET_REDEEM` | Redeem winning shares for USDC | L2 |
-| `POLYMARKET_SET_LIMIT_ORDER` | Place limit order | L2 |
-| `POLYMARKET_CANCEL_ORDER` | Cancel pending order | L2 |
+| Action                       | Description                    | Auth Level |
+| ---------------------------- | ------------------------------ | ---------- |
+| `POLYMARKET_BUY_SHARES`      | Buy Yes/No shares              | L2         |
+| `POLYMARKET_SELL_SHARES`     | Sell existing positions        | L2         |
+| `POLYMARKET_REDEEM`          | Redeem winning shares for USDC | L2         |
+| `POLYMARKET_SET_LIMIT_ORDER` | Place limit order              | L2         |
+| `POLYMARKET_CANCEL_ORDER`    | Cancel pending order           | L2         |
 
 **Safety Requirements (aligned with Otaku's character):**
 
@@ -289,6 +300,7 @@ Type "confirm" to proceed.
 ### Action Schema Examples
 
 **POLYMARKET_SEARCH_MARKETS:**
+
 ```typescript
 parameters: {
   query: {
@@ -315,6 +327,7 @@ parameters: {
 ```
 
 **POLYMARKET_BUY_SHARES:**
+
 ```typescript
 parameters: {
   market_id: {
@@ -412,9 +425,9 @@ class CdpSignerAdapter {
   async _signTypedData(
     domain: TypedDataDomain,
     types: Record<string, TypedDataField[]>,
-    value: Record<string, any>
+    value: Record<string, any>,
   ): Promise<string> {
-    const primaryType = Object.keys(types).find(t => t !== 'EIP712Domain')!;
+    const primaryType = Object.keys(types).find((t) => t !== "EIP712Domain")!;
     return this.cdpAccount.signTypedData({
       domain,
       types,
@@ -426,6 +439,7 @@ class CdpSignerAdapter {
 ```
 
 **Benefits of CDP integration:**
+
 - No private key exposure
 - MPC signing in Trusted Execution Environments
 - Same wallet for DeFi ops and prediction markets
@@ -552,12 +566,12 @@ Note: Polymarket is not available to US residents. Trading while circumventing g
 
 ### Synergies
 
-| Existing Plugin | Integration Opportunity |
-|-----------------|------------------------|
-| plugin-coingecko | Cross-reference crypto prediction market tokens with prices |
-| plugin-web-search | Research context for prediction markets |
-| plugin-cdp | Same wallet can hold USDC for Polymarket on Polygon |
-| plugin-relay | Bridge USDC to Polygon for Polymarket deposits |
+| Existing Plugin   | Integration Opportunity                                     |
+| ----------------- | ----------------------------------------------------------- |
+| plugin-coingecko  | Cross-reference crypto prediction market tokens with prices |
+| plugin-web-search | Research context for prediction markets                     |
+| plugin-cdp        | Same wallet can hold USDC for Polymarket on Polygon         |
+| plugin-relay      | Bridge USDC to Polygon for Polymarket deposits              |
 
 ### Wallet Considerations
 
@@ -575,6 +589,7 @@ Note: Polymarket is not available to US residents. Trading while circumventing g
 **Goal**: Read-only market discovery
 
 **Actions:**
+
 - `POLYMARKET_SEARCH_MARKETS`
 - `POLYMARKET_GET_MARKET`
 - `POLYMARKET_GET_PRICE`
@@ -587,6 +602,7 @@ Note: Polymarket is not available to US residents. Trading while circumventing g
 **Goal**: Portfolio viewing
 
 **Actions:**
+
 - `POLYMARKET_GET_POSITIONS`
 - `POLYMARKET_GET_BALANCE`
 - `POLYMARKET_GET_TRADE_HISTORY`
@@ -598,6 +614,7 @@ Note: Polymarket is not available to US residents. Trading while circumventing g
 **Goal**: Trading with safety controls
 
 **Actions:**
+
 - `POLYMARKET_BUY_SHARES`
 - `POLYMARKET_SELL_SHARES`
 - `POLYMARKET_REDEEM`
@@ -619,18 +636,21 @@ Note: Polymarket is not available to US residents. Trading while circumventing g
 ## Sources
 
 ### Official Documentation
+
 - [Polymarket Documentation](https://docs.polymarket.com)
 - [CLOB API Introduction](https://docs.polymarket.com/developers/CLOB/introduction)
 - [Methods Overview](https://docs.polymarket.com/developers/CLOB/clients/methods-overview)
 - [Geographic Restrictions](https://docs.polymarket.com/polymarket-learn/FAQ/geoblocking)
 
 ### SDKs & Code
+
 - [Python CLOB Client](https://github.com/Polymarket/py-clob-client)
 - [Rust CLOB Client](https://github.com/Polymarket/rs-clob-client)
 - [ElizaOS Plugin (elizaos-plugins)](https://github.com/elizaos-plugins/plugin-polymarket)
 - [ElizaOS Plugin (Okay-Bet)](https://github.com/Okay-Bet/plugin-polymarket)
 
 ### Articles & Analysis
+
 - [CoinGecko - What is Polymarket](https://www.coingecko.com/learn/what-is-polymarket-decentralized-prediction-markets-guide)
 - [CoinDesk - Polymarket Probe](https://www.coindesk.com/policy/2024/11/14/polymarkets-probe-highlights-challenges-of-blocking-us-users-and-their-vpns)
 - [Yahoo Finance - Polymarket US Relaunch](https://finance.yahoo.com/news/polymarket-back-crypto-prediction-giant-225745866.html)

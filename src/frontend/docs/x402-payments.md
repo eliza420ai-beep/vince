@@ -28,6 +28,7 @@ x402 is a payment protocol that enables automated micropayments for API access. 
 ## API Endpoints
 
 ### Base URL
+
 ```
 https://otaku.so
 ```
@@ -37,8 +38,9 @@ https://otaku.so
 **POST** `/api/messaging/jobs`
 
 **Configuration:**
-- **Price:** $0.015 USDC per request  
-- **Network:** Base Mainnet  
+
+- **Price:** $0.015 USDC per request
+- **Network:** Base Mainnet
 - **Payment Method:** x402 automatic payment
 - **Default Timeout:** 3 minutes (180 seconds)
 - **Maximum Timeout:** 5 minutes (300 seconds)
@@ -48,10 +50,10 @@ https://otaku.so
 ### Using x402-fetch (Recommended)
 
 ```typescript
-import { createWalletClient, http } from 'viem';
-import { base } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
-import { wrapFetchWithPayment } from 'x402-fetch';
+import { createWalletClient, http } from "viem";
+import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+import { wrapFetchWithPayment } from "x402-fetch";
 
 // Setup your wallet
 const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
@@ -65,25 +67,22 @@ const walletClient = createWalletClient({
 const maxPayment = BigInt(20_000); // 0.02 USDC (includes buffer)
 
 // Wrap fetch with payment capability
-const fetchWithPayment = wrapFetchWithPayment(
-  fetch,
-  walletClient,
-  maxPayment
-);
+const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, maxPayment);
 
 // Make a paid request
-const response = await fetchWithPayment('https://otaku.so/api/messaging/jobs', {
-  method: 'POST',
+const response = await fetchWithPayment("https://otaku.so/api/messaging/jobs", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    prompt: 'Research the latest developments in AI and summarize the top 3 trends.'
+    prompt:
+      "Research the latest developments in AI and summarize the top 3 trends.",
   }),
 });
 
 const job = await response.json();
-console.log('Job created:', job.jobId);
+console.log("Job created:", job.jobId);
 ```
 
 ## Request Format
@@ -102,6 +101,7 @@ console.log('Job created:', job.jobId);
 ### Example Requests
 
 **Research Query:**
+
 ```json
 {
   "prompt": "What are the latest advancements in quantum computing?"
@@ -109,6 +109,7 @@ console.log('Job created:', job.jobId);
 ```
 
 **News Summarization:**
+
 ```json
 {
   "prompt": "Summarize today's top tech news from major sources."
@@ -116,6 +117,7 @@ console.log('Job created:', job.jobId);
 ```
 
 **Data Analysis:**
+
 ```json
 {
   "prompt": "Analyze the trend in Bitcoin prices over the last month."
@@ -149,27 +151,29 @@ After creating a job, poll the status endpoint to get results:
 
 ```typescript
 async function pollForCompletion(jobId: string): Promise<void> {
-  const maxAttempts = 100;  // Support 3-minute job timeout
+  const maxAttempts = 100; // Support 3-minute job timeout
   const pollInterval = 2000; // 2 seconds
-  
+
   for (let i = 0; i < maxAttempts; i++) {
-    await new Promise(resolve => setTimeout(resolve, pollInterval));
-    
-    const response = await fetch(`https://otaku.so/api/messaging/jobs/${jobId}`);
+    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+    const response = await fetch(
+      `https://otaku.so/api/messaging/jobs/${jobId}`,
+    );
     const job = await response.json();
-    
+
     console.log(`[${i + 1}] Status: ${job.status}`);
-    
-    if (job.status === 'completed') {
-      console.log('Result:', job.result.message.content);
+
+    if (job.status === "completed") {
+      console.log("Result:", job.result.message.content);
       return;
-    } else if (job.status === 'failed' || job.status === 'timeout') {
-      console.error('Job failed:', job.error || 'Timeout');
+    } else if (job.status === "failed" || job.status === "timeout") {
+      console.error("Job failed:", job.error || "Timeout");
       return;
     }
   }
-  
-  console.log('Polling timeout - job may still be processing');
+
+  console.log("Polling timeout - job may still be processing");
 }
 ```
 
@@ -214,30 +218,34 @@ async function pollForCompletion(jobId: string): Promise<void> {
 Check the `x-payment-response` header in the response:
 
 ```typescript
-const paymentHeader = response.headers.get('x-payment-response');
+const paymentHeader = response.headers.get("x-payment-response");
 if (paymentHeader) {
   const paymentInfo = JSON.parse(
-    Buffer.from(paymentHeader, 'base64').toString('utf-8')
+    Buffer.from(paymentHeader, "base64").toString("utf-8"),
   );
-  
-  console.log('Transaction:', paymentInfo.transaction);
-  console.log('Payer:', paymentInfo.payer);
-  console.log('Network:', paymentInfo.network);
-  console.log('View on BaseScan:', 
-    `https://basescan.org/tx/${paymentInfo.transaction}`);
+
+  console.log("Transaction:", paymentInfo.transaction);
+  console.log("Payer:", paymentInfo.payer);
+  console.log("Network:", paymentInfo.network);
+  console.log(
+    "View on BaseScan:",
+    `https://basescan.org/tx/${paymentInfo.transaction}`,
+  );
 }
 ```
 
 ## Entity ID & User Identity
 
-**Your wallet address determines your entity ID.** 
+**Your wallet address determines your entity ID.**
 
 When you make a paid request, Otaku automatically:
+
 - Extracts your wallet address from the payment
 - Creates a deterministic user ID: `stringToUuid(walletAddress.toLowerCase())`
 - **Same wallet = same user ID** across all requests
 
 This means:
+
 - ✅ No need to provide a `userId` in requests
 - ✅ Your conversations and history persist across requests
 - ✅ The AI remembers your context from previous interactions
@@ -252,7 +260,7 @@ Job listing is intentionally disabled to prevent free access. After creating a p
 
 ```typescript
 // ❌ This endpoint is disabled
-const response = await fetch('https://otaku.so/api/messaging/jobs?limit=10');
+const response = await fetch("https://otaku.so/api/messaging/jobs?limit=10");
 // Returns: 402 Payment Required
 ```
 
@@ -271,12 +279,12 @@ console.log(job);
 **GET** `/api/messaging/jobs/health`
 
 ```typescript
-const response = await fetch('https://otaku.so/api/messaging/jobs/health');
+const response = await fetch("https://otaku.so/api/messaging/jobs/health");
 const health = await response.json();
 
-console.log('Healthy:', health.healthy);
-console.log('Total jobs:', health.totalJobs);
-console.log('Status counts:', health.statusCounts);
+console.log("Healthy:", health.healthy);
+console.log("Total jobs:", health.totalJobs);
+console.log("Status counts:", health.statusCounts);
 ```
 
 ## Error Handling
@@ -284,6 +292,7 @@ console.log('Status counts:', health.statusCounts);
 ### 402 Payment Required
 
 If you get a 402 error, it means payment failed. Check:
+
 - ✅ Sufficient USDC balance on Base
 - ✅ Correct network (Base mainnet, not testnet)
 - ✅ Valid private key
@@ -292,9 +301,13 @@ If you get a 402 error, it means payment failed. Check:
 ```typescript
 if (response.status === 402) {
   const error = await response.json();
-  console.error('Payment required:', error);
-  console.log('Payment amount:', error.accepts[0].maxAmountRequired / 1_000_000, 'USDC'); // Should be 0.015
-  console.log('Recipient:', error.accepts[0].payTo);
+  console.error("Payment required:", error);
+  console.log(
+    "Payment amount:",
+    error.accepts[0].maxAmountRequired / 1_000_000,
+    "USDC",
+  ); // Should be 0.015
+  console.log("Recipient:", error.accepts[0].payTo);
 }
 ```
 
@@ -319,10 +332,10 @@ if (response.status === 402) {
 ## Complete Example
 
 ```typescript
-import { createWalletClient, http } from 'viem';
-import { base } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
-import { wrapFetchWithPayment } from 'x402-fetch';
+import { createWalletClient, http } from "viem";
+import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+import { wrapFetchWithPayment } from "x402-fetch";
 
 async function askOtaku(prompt: string): Promise<string> {
   // Setup wallet
@@ -335,41 +348,51 @@ async function askOtaku(prompt: string): Promise<string> {
 
   // Wrap fetch with payment
   const maxPayment = BigInt(20_000); // 0.02 USDC
-  const fetchWithPayment = wrapFetchWithPayment(fetch, walletClient, maxPayment);
+  const fetchWithPayment = wrapFetchWithPayment(
+    fetch,
+    walletClient,
+    maxPayment,
+  );
 
   // Create job
-  console.log('Creating job...');
-  const response = await fetchWithPayment('https://otaku.so/api/messaging/jobs', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt }),
-  });
+  console.log("Creating job...");
+  const response = await fetchWithPayment(
+    "https://otaku.so/api/messaging/jobs",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    },
+  );
 
   const job = await response.json();
   console.log(`Job created: ${job.jobId}`);
 
   // Poll for result
-  console.log('Waiting for response...');
-  for (let i = 0; i < 100; i++) {  // Support 3-minute job timeout
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const statusRes = await fetch(`https://otaku.so/api/messaging/jobs/${job.jobId}`);
+  console.log("Waiting for response...");
+  for (let i = 0; i < 100; i++) {
+    // Support 3-minute job timeout
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const statusRes = await fetch(
+      `https://otaku.so/api/messaging/jobs/${job.jobId}`,
+    );
     const jobData = await statusRes.json();
-    
-    if (jobData.status === 'completed') {
+
+    if (jobData.status === "completed") {
       return jobData.result.message.content;
-    } else if (jobData.status === 'failed' || jobData.status === 'timeout') {
-      throw new Error(jobData.error || 'Job failed');
+    } else if (jobData.status === "failed" || jobData.status === "timeout") {
+      throw new Error(jobData.error || "Job failed");
     }
   }
-  
-  throw new Error('Timeout waiting for result');
+
+  throw new Error("Timeout waiting for result");
 }
 
 // Usage
-askOtaku('What are the top 3 AI trends in 2024?')
-  .then(result => console.log('Answer:', result))
-  .catch(error => console.error('Error:', error));
+askOtaku("What are the top 3 AI trends in 2024?")
+  .then((result) => console.log("Answer:", result))
+  .catch((error) => console.error("Error:", error));
 ```
 
 ## Capabilities
@@ -377,7 +400,7 @@ askOtaku('What are the top 3 AI trends in 2024?')
 Otaku can help you with:
 
 - 🔍 **Research**: Query and analyze research data, papers, and academic resources
-- 📰 **News**: Fetch and summarize current news articles from various sources  
+- 📰 **News**: Fetch and summarize current news articles from various sources
 - 💡 **Information Processing**: Synthesize information from multiple sources
 - 📊 **Data Analysis**: Analyze trends, patterns, and insights from data
 - 🧠 **Deep Research**: Perform comprehensive research on complex topics
@@ -400,10 +423,10 @@ Otaku can help you with:
 
 ```typescript
 // ✅ CORRECT - Use this
-import { wrapFetchWithPayment } from 'x402-fetch';
+import { wrapFetchWithPayment } from "x402-fetch";
 
 // ❌ WRONG - Don't use this
-import { withPaymentInterceptor } from 'x402-axios'; // Broken!
+import { withPaymentInterceptor } from "x402-axios"; // Broken!
 ```
 
 ### 💰 Check Your USDC Balance
@@ -411,17 +434,17 @@ import { withPaymentInterceptor } from 'x402-axios'; // Broken!
 Before making requests, ensure you have USDC on Base:
 
 ```typescript
-import { createPublicClient, http } from 'viem';
-import { base } from 'viem/chains';
+import { createPublicClient, http } from "viem";
+import { base } from "viem/chains";
 
-const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const ERC20_ABI = [
   {
     constant: true,
-    inputs: [{ name: '_owner', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: 'balance', type: 'uint256' }],
-    type: 'function',
+    inputs: [{ name: "_owner", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "balance", type: "uint256" }],
+    type: "function",
   },
 ];
 
@@ -433,11 +456,11 @@ const publicClient = createPublicClient({
 const balance = await publicClient.readContract({
   address: USDC_ADDRESS,
   abi: ERC20_ABI,
-  functionName: 'balanceOf',
+  functionName: "balanceOf",
   args: [walletAddress],
 });
 
-console.log('USDC Balance:', Number(balance) / 1_000_000);
+console.log("USDC Balance:", Number(balance) / 1_000_000);
 ```
 
 ## Support & Resources
@@ -453,26 +476,29 @@ console.log('USDC Balance:', Number(balance) / 1_000_000);
 ### Payment Failed (Still Getting 402)
 
 1. **Check USDC balance on Base mainnet**
+
    ```bash
    # Must have at least 0.015 USDC + gas
    ```
 
 2. **Verify you're using x402-fetch**
+
    ```typescript
    // Correct implementation
-   import { wrapFetchWithPayment } from 'x402-fetch';
+   import { wrapFetchWithPayment } from "x402-fetch";
    ```
 
 3. **Check network**
+
    ```typescript
    // Must be Base mainnet, not testnet
-   import { base } from 'viem/chains';
+   import { base } from "viem/chains";
    ```
 
 4. **Validate private key format**
    ```typescript
    // Must start with 0x
-   const key = '0x...' as `0x${string}`;
+   const key = "0x..." as `0x${string}`;
    ```
 
 ### Job Stays in "processing" Status
@@ -486,13 +512,13 @@ console.log('USDC Balance:', Number(balance) / 1_000_000);
 ### Job Failed with Error
 
 Check the error message in the job response:
+
 ```typescript
-if (job.status === 'failed') {
-  console.error('Error:', job.error);
+if (job.status === "failed") {
+  console.error("Error:", job.error);
 }
 ```
 
 ---
 
 **Ready to start?** Get USDC on Base and start making requests to [otaku.so](https://otaku.so)! 🚀
-

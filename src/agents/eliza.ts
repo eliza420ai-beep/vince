@@ -17,7 +17,11 @@
  * See: src/character.ts (full character), knowledge/teammate/SOUL.md
  */
 
-import { type IAgentRuntime, type ProjectAgent, type Plugin } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type ProjectAgent,
+  type Plugin,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { character } from "../character.ts";
 import sqlPlugin from "@elizaos/plugin-sql";
@@ -43,8 +47,12 @@ const buildPlugins = (): Plugin[] => [
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
-  const webSearch = process.env.TAVILY_API_KEY?.trim() ? " web search when corpus is limited;" : "";
-  logger.info(`[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE);${webSearch} execution → VINCE`);
+  const webSearch = process.env.TAVILY_API_KEY?.trim()
+    ? " web search when corpus is limited;"
+    : "";
+  logger.info(
+    `[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE);${webSearch} execution → VINCE`,
+  );
 };
 
 const elizaAgent: ProjectAgent = {

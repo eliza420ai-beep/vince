@@ -26,7 +26,13 @@
  * This action evaluates BTC and triggers paper trades when conditions are met.
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
@@ -45,23 +51,23 @@ import { BOT_FOOTER } from "../constants/botFormat";
 /** Hybrid thresholds (between Expert and Degen) */
 const HYBRID_CONFIG = {
   // Signal thresholds
-  MIN_STRENGTH: 55,           // Expert: 55, Degen: 30
-  MIN_CONFIDENCE: 55,         // Expert: 50, Degen: 30
+  MIN_STRENGTH: 55, // Expert: 55, Degen: 30
+  MIN_CONFIDENCE: 55, // Expert: 50, Degen: 30
   DYNAMIC_THRESHOLD_PCT: 0.3, // Expert: 0.5-1%, Degen: 0.2%
 
   // Position sizing (from Expert for safety)
-  MAX_LEVERAGE: 5,            // Expert: 3, Degen: 40
-  POSITION_SIZE_PCT: 5,       // Expert: 5-10%, Degen: 2.5%
-  STOP_LOSS_ATR_MULT: 1.5,    // Expert: 2, Degen: 0.8
+  MAX_LEVERAGE: 5, // Expert: 3, Degen: 40
+  POSITION_SIZE_PCT: 5, // Expert: 5-10%, Degen: 2.5%
+  STOP_LOSS_ATR_MULT: 1.5, // Expert: 2, Degen: 0.8
   TAKE_PROFIT_RR_RATIOS: [1.5, 3, 5], // R:R targets
 
   // Signal weights
-  WHALE_SIGNAL_BOOST: 25,     // Degen priority
+  WHALE_SIGNAL_BOOST: 25, // Degen priority
   VOLUME_SPIKE_BOOST: 15,
   RSI_CONFIRMATION_BOOST: 10,
   FUNDING_CONFIRMATION_BOOST: 10,
   ORDER_BOOK_BOOST: 8,
-  VOLATILITY_BOOST: 10,       // Degen: volatility = opportunity
+  VOLATILITY_BOOST: 10, // Degen: volatility = opportunity
 
   // Thresholds
   VOLUME_SPIKE_THRESHOLD: 1.5,
@@ -94,7 +100,7 @@ interface HybridSignal {
 
 async function evaluateHybridStrategy(
   runtime: IAgentRuntime,
-  asset: string = "BTC"
+  asset: string = "BTC",
 ): Promise<HybridSignal> {
   const factors: string[] = [];
   const reasoning: string[] = [];
@@ -104,10 +110,18 @@ async function evaluateHybridStrategy(
   let direction: "long" | "short" | "neutral" = "neutral";
 
   // Get services
-  const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
-  const coinGlass = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
-  const topTraders = runtime.getService("VINCE_TOP_TRADERS_SERVICE") as VinceTopTradersService | null;
-  const signalAggregator = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as VinceSignalAggregatorService | null;
+  const marketData = runtime.getService(
+    "VINCE_MARKET_DATA_SERVICE",
+  ) as VinceMarketDataService | null;
+  const coinGlass = runtime.getService(
+    "VINCE_COINGLASS_SERVICE",
+  ) as VinceCoinGlassService | null;
+  const topTraders = runtime.getService(
+    "VINCE_TOP_TRADERS_SERVICE",
+  ) as VinceTopTradersService | null;
+  const signalAggregator = runtime.getService(
+    "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+  ) as VinceSignalAggregatorService | null;
 
   // Get market context
   let currentPrice = 0;
@@ -155,13 +169,17 @@ async function evaluateHybridStrategy(
   if (marketRegime === "extreme") {
     reasoning.push("Market regime is EXTREME - skipping trade for safety");
     whyNotTrade.push("Extreme volatility regime - waiting for stabilization");
-    return createNeutralSignal(currentPrice, atr, whyNotTrade, ["Extreme regime detected"]);
+    return createNeutralSignal(currentPrice, atr, whyNotTrade, [
+      "Extreme regime detected",
+    ]);
   }
 
   if (marketRegime === "volatile") {
     // DEGEN TWIST: Volatility boost instead of reduction
     strength += HYBRID_CONFIG.VOLATILITY_BOOST;
-    factors.push(`🔥 Volatile regime: +${HYBRID_CONFIG.VOLATILITY_BOOST} strength (Degen: volatility = opportunity)`);
+    factors.push(
+      `🔥 Volatile regime: +${HYBRID_CONFIG.VOLATILITY_BOOST} strength (Degen: volatility = opportunity)`,
+    );
   }
 
   // === 2. WHALE SIGNALS (from Degen - Priority 1) ===
@@ -169,29 +187,44 @@ async function evaluateHybridStrategy(
   if (topTraders) {
     try {
       const recentSignals = topTraders.getRecentSignals(5);
-      const assetSignals = recentSignals.filter(s => s.asset === asset);
+      const assetSignals = recentSignals.filter((s) => s.asset === asset);
 
       if (assetSignals.length > 0) {
         const latestSignal = assetSignals[0];
         const age = (Date.now() - latestSignal.timestamp) / (60 * 1000);
 
-        if (age < 60) { // Within 60 minutes
-          if (latestSignal.action === "opened_long" || latestSignal.action === "increased_long") {
+        if (age < 60) {
+          // Within 60 minutes
+          if (
+            latestSignal.action === "opened_long" ||
+            latestSignal.action === "increased_long"
+          ) {
             whaleDirection = "long";
             direction = "long";
             strength += HYBRID_CONFIG.WHALE_SIGNAL_BOOST;
             confidence += 15;
             const sizeK = (latestSignal.size / 1000).toFixed(0);
-            factors.push(`🐋 Whale ${latestSignal.action.replace("_", " ")} $${sizeK}k: +${HYBRID_CONFIG.WHALE_SIGNAL_BOOST} strength`);
-            reasoning.push(`Smart money just went LONG. Whale opened $${sizeK}k position within ${Math.round(age)} minutes.`);
-          } else if (latestSignal.action === "opened_short" || latestSignal.action === "increased_short") {
+            factors.push(
+              `🐋 Whale ${latestSignal.action.replace("_", " ")} $${sizeK}k: +${HYBRID_CONFIG.WHALE_SIGNAL_BOOST} strength`,
+            );
+            reasoning.push(
+              `Smart money just went LONG. Whale opened $${sizeK}k position within ${Math.round(age)} minutes.`,
+            );
+          } else if (
+            latestSignal.action === "opened_short" ||
+            latestSignal.action === "increased_short"
+          ) {
             whaleDirection = "short";
             direction = "short";
             strength += HYBRID_CONFIG.WHALE_SIGNAL_BOOST;
             confidence += 15;
             const sizeK = (latestSignal.size / 1000).toFixed(0);
-            factors.push(`🐋 Whale ${latestSignal.action.replace("_", " ")} $${sizeK}k: +${HYBRID_CONFIG.WHALE_SIGNAL_BOOST} strength`);
-            reasoning.push(`Smart money just went SHORT. Whale opened $${sizeK}k position within ${Math.round(age)} minutes.`);
+            factors.push(
+              `🐋 Whale ${latestSignal.action.replace("_", " ")} $${sizeK}k: +${HYBRID_CONFIG.WHALE_SIGNAL_BOOST} strength`,
+            );
+            reasoning.push(
+              `Smart money just went SHORT. Whale opened $${sizeK}k position within ${Math.round(age)} minutes.`,
+            );
           }
         }
       }
@@ -209,7 +242,9 @@ async function evaluateHybridStrategy(
           direction = signal.direction;
           strength += Math.round(signal.strength * 0.3); // 30% of signal strength
           confidence += Math.round(signal.confidence * 0.3);
-          factors.push(`📊 Aggregated signal: ${signal.direction.toUpperCase()} (${signal.confidence}% conf)`);
+          factors.push(
+            `📊 Aggregated signal: ${signal.direction.toUpperCase()} (${signal.confidence}% conf)`,
+          );
         }
       }
     } catch (e) {
@@ -220,21 +255,27 @@ async function evaluateHybridStrategy(
   // === 4. MOMENTUM CHECK (from Expert) ===
   const dynamicThreshold = Math.max(
     HYBRID_CONFIG.DYNAMIC_THRESHOLD_PCT,
-    (atr / currentPrice) * 100 * 0.5
+    (atr / currentPrice) * 100 * 0.5,
   );
 
   const hasMomentum = Math.abs(priceChange24h) >= dynamicThreshold;
   if (hasMomentum && direction === "neutral") {
     direction = priceChange24h > 0 ? "long" : "short";
     strength += 10;
-    factors.push(`📈 Price ${priceChange24h > 0 ? "up" : "down"} ${Math.abs(priceChange24h).toFixed(2)}% (threshold: ${dynamicThreshold.toFixed(2)}%)`);
+    factors.push(
+      `📈 Price ${priceChange24h > 0 ? "up" : "down"} ${Math.abs(priceChange24h).toFixed(2)}% (threshold: ${dynamicThreshold.toFixed(2)}%)`,
+    );
   }
 
   // === 5. RSI CONFIRMATION (from Expert) ===
   if (direction === "long" && rsi > 40 && rsi < HYBRID_CONFIG.RSI_OVERBOUGHT) {
     strength += HYBRID_CONFIG.RSI_CONFIRMATION_BOOST;
     factors.push(`RSI ${rsi.toFixed(0)} confirms bullish momentum`);
-  } else if (direction === "short" && rsi < 60 && rsi > HYBRID_CONFIG.RSI_OVERSOLD) {
+  } else if (
+    direction === "short" &&
+    rsi < 60 &&
+    rsi > HYBRID_CONFIG.RSI_OVERSOLD
+  ) {
     strength += HYBRID_CONFIG.RSI_CONFIRMATION_BOOST;
     factors.push(`RSI ${rsi.toFixed(0)} confirms bearish momentum`);
   } else if (direction === "long" && rsi > HYBRID_CONFIG.RSI_OVERBOUGHT) {
@@ -250,12 +291,16 @@ async function evaluateHybridStrategy(
     if (rsi < 25) {
       direction = "long";
       strength += 15;
-      factors.push(`📉 RSI extreme oversold (${rsi.toFixed(0)}) - contrarian long`);
+      factors.push(
+        `📉 RSI extreme oversold (${rsi.toFixed(0)}) - contrarian long`,
+      );
       reasoning.push("RSI at extreme levels. Oversold bounce setup.");
     } else if (rsi > 75) {
       direction = "short";
       strength += 15;
-      factors.push(`📈 RSI extreme overbought (${rsi.toFixed(0)}) - contrarian short`);
+      factors.push(
+        `📈 RSI extreme overbought (${rsi.toFixed(0)}) - contrarian short`,
+      );
       reasoning.push("RSI at extreme levels. Overbought pullback setup.");
     }
   }
@@ -263,37 +308,60 @@ async function evaluateHybridStrategy(
   // === 7. FUNDING CONFIRMATION (from Core/Expert) ===
   if (direction !== "neutral") {
     const fundingPct = (fundingRate * 100).toFixed(4);
-    if (direction === "long" && fundingRate < HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD) {
+    if (
+      direction === "long" &&
+      fundingRate < HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD
+    ) {
       strength += HYBRID_CONFIG.FUNDING_CONFIRMATION_BOOST;
       if (fundingRate < 0) {
-        factors.push(`Funding negative (${fundingPct}%) - shorts crowded, squeeze potential`);
-        reasoning.push("Negative funding means shorts are paying longs. Shorts are crowded and we get paid to hold.");
+        factors.push(
+          `Funding negative (${fundingPct}%) - shorts crowded, squeeze potential`,
+        );
+        reasoning.push(
+          "Negative funding means shorts are paying longs. Shorts are crowded and we get paid to hold.",
+        );
       } else {
         factors.push(`Funding neutral (${fundingPct}%) - not crowded`);
       }
-    } else if (direction === "short" && fundingRate > -HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD) {
+    } else if (
+      direction === "short" &&
+      fundingRate > -HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD
+    ) {
       strength += HYBRID_CONFIG.FUNDING_CONFIRMATION_BOOST;
       if (fundingRate > 0) {
-        factors.push(`Funding positive (${fundingPct}%) - longs crowded, flush potential`);
-        reasoning.push("Positive funding means longs are paying shorts. Longs are crowded and vulnerable.");
+        factors.push(
+          `Funding positive (${fundingPct}%) - longs crowded, flush potential`,
+        );
+        reasoning.push(
+          "Positive funding means longs are paying shorts. Longs are crowded and vulnerable.",
+        );
       } else {
         factors.push(`Funding neutral (${fundingPct}%) - not crowded`);
       }
     } else {
       // Funding against us
       strength -= 5;
-      reasoning.push(`Funding ${fundingPct}% shows crowding in our direction - increased risk`);
+      reasoning.push(
+        `Funding ${fundingPct}% shows crowding in our direction - increased risk`,
+      );
     }
   }
 
   // === 8. MEAN REVERSION FALLBACK (from Expert) ===
-  if (direction === "neutral" && Math.abs(fundingRate) > HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD * 2) {
+  if (
+    direction === "neutral" &&
+    Math.abs(fundingRate) > HYBRID_CONFIG.FUNDING_EXTREME_THRESHOLD * 2
+  ) {
     // Extreme funding = fade the crowd
     direction = fundingRate > 0 ? "short" : "long";
     strength += 15;
     const fundingPct = (fundingRate * 100).toFixed(4);
-    factors.push(`💰 Extreme funding (${fundingPct}%) - fading crowded ${fundingRate > 0 ? "longs" : "shorts"}`);
-    reasoning.push(`Extreme funding indicates ${fundingRate > 0 ? "longs" : "shorts"} are heavily crowded. Mean reversion likely.`);
+    factors.push(
+      `💰 Extreme funding (${fundingPct}%) - fading crowded ${fundingRate > 0 ? "longs" : "shorts"}`,
+    );
+    reasoning.push(
+      `Extreme funding indicates ${fundingRate > 0 ? "longs" : "shorts"} are heavily crowded. Mean reversion likely.`,
+    );
   }
 
   // === 9. VOLUME CONFIRMATION (from Expert) ===
@@ -304,16 +372,22 @@ async function evaluateHybridStrategy(
     reasoning.push("High volume confirms real interest behind the move.");
   } else if (volumeRatio < 0.7) {
     strength -= 5;
-    reasoning.push(`Low volume (${volumeRatio.toFixed(1)}x) - move may lack conviction`);
+    reasoning.push(
+      `Low volume (${volumeRatio.toFixed(1)}x) - move may lack conviction`,
+    );
   }
 
   // === 10. ORDER BOOK CONFIRMATION (from Expert) ===
   if (direction === "long" && bidAskRatio > 1.2) {
     strength += HYBRID_CONFIG.ORDER_BOOK_BOOST;
-    factors.push(`📗 Order book favors longs (${bidAskRatio.toFixed(2)} ratio)`);
+    factors.push(
+      `📗 Order book favors longs (${bidAskRatio.toFixed(2)} ratio)`,
+    );
   } else if (direction === "short" && bidAskRatio < 0.8) {
     strength += HYBRID_CONFIG.ORDER_BOOK_BOOST;
-    factors.push(`📕 Order book favors shorts (${bidAskRatio.toFixed(2)} ratio)`);
+    factors.push(
+      `📕 Order book favors shorts (${bidAskRatio.toFixed(2)} ratio)`,
+    );
   } else if (
     (direction === "long" && bidAskRatio < 0.7) ||
     (direction === "short" && bidAskRatio > 1.3)
@@ -325,10 +399,14 @@ async function evaluateHybridStrategy(
   // === 11. TREND ALIGNMENT (from Expert) ===
   if (direction === "long" && priceVsSma20 > 0) {
     strength += 5;
-    factors.push(`Price ${priceVsSma20.toFixed(1)}% above SMA20 - trend aligned`);
+    factors.push(
+      `Price ${priceVsSma20.toFixed(1)}% above SMA20 - trend aligned`,
+    );
   } else if (direction === "short" && priceVsSma20 < 0) {
     strength += 5;
-    factors.push(`Price ${Math.abs(priceVsSma20).toFixed(1)}% below SMA20 - trend aligned`);
+    factors.push(
+      `Price ${Math.abs(priceVsSma20).toFixed(1)}% below SMA20 - trend aligned`,
+    );
   }
 
   // === CALCULATE CONFIDENCE ===
@@ -336,7 +414,7 @@ async function evaluateHybridStrategy(
   confidence = Math.min(100, confidence + confirmingCount * 5);
 
   // === CHECK THRESHOLDS ===
-  const wouldTrade = 
+  const wouldTrade =
     direction !== "neutral" &&
     strength >= HYBRID_CONFIG.MIN_STRENGTH &&
     confidence >= HYBRID_CONFIG.MIN_CONFIDENCE;
@@ -346,16 +424,22 @@ async function evaluateHybridStrategy(
       whyNotTrade.push("No clear direction detected");
     }
     if (strength < HYBRID_CONFIG.MIN_STRENGTH) {
-      whyNotTrade.push(`Strength ${strength}% (need ${HYBRID_CONFIG.MIN_STRENGTH}%)`);
+      whyNotTrade.push(
+        `Strength ${strength}% (need ${HYBRID_CONFIG.MIN_STRENGTH}%)`,
+      );
     }
     if (confidence < HYBRID_CONFIG.MIN_CONFIDENCE) {
-      whyNotTrade.push(`Confidence ${confidence}% (need ${HYBRID_CONFIG.MIN_CONFIDENCE}%)`);
+      whyNotTrade.push(
+        `Confidence ${confidence}% (need ${HYBRID_CONFIG.MIN_CONFIDENCE}%)`,
+      );
     }
     if (!whaleDirection) {
       whyNotTrade.push("No whale activity in past 60 min");
     }
     if (volumeRatio < HYBRID_CONFIG.VOLUME_SPIKE_THRESHOLD) {
-      whyNotTrade.push(`Volume ${volumeRatio.toFixed(1)}x (need ${HYBRID_CONFIG.VOLUME_SPIKE_THRESHOLD}x for confirmation)`);
+      whyNotTrade.push(
+        `Volume ${volumeRatio.toFixed(1)}x (need ${HYBRID_CONFIG.VOLUME_SPIKE_THRESHOLD}x for confirmation)`,
+      );
     }
   }
 
@@ -363,18 +447,21 @@ async function evaluateHybridStrategy(
   const leverage = HYBRID_CONFIG.MAX_LEVERAGE;
   const positionSizePct = HYBRID_CONFIG.POSITION_SIZE_PCT;
   const stopDistance = atr * HYBRID_CONFIG.STOP_LOSS_ATR_MULT;
-  const stopLoss = direction === "long"
-    ? currentPrice - stopDistance
-    : currentPrice + stopDistance;
+  const stopLoss =
+    direction === "long"
+      ? currentPrice - stopDistance
+      : currentPrice + stopDistance;
 
-  const takeProfits = HYBRID_CONFIG.TAKE_PROFIT_RR_RATIOS.map(rr => {
+  const takeProfits = HYBRID_CONFIG.TAKE_PROFIT_RR_RATIOS.map((rr) => {
     const target = stopDistance * rr;
     return direction === "long" ? currentPrice + target : currentPrice - target;
   });
 
   // Add summary reasoning
   if (wouldTrade) {
-    reasoning.unshift(`${direction.toUpperCase()} ${asset} setup detected with ${confirmingCount} confirming factors.`);
+    reasoning.unshift(
+      `${direction.toUpperCase()} ${asset} setup detected with ${confirmingCount} confirming factors.`,
+    );
   }
 
   return {
@@ -396,7 +483,7 @@ function createNeutralSignal(
   currentPrice: number,
   atr: number,
   whyNotTrade: string[],
-  factors: string[]
+  factors: string[],
 ): HybridSignal {
   return {
     direction: "neutral",
@@ -420,16 +507,20 @@ function createNeutralSignal(
 function formatTradeTriggered(
   asset: string,
   signal: HybridSignal,
-  entryPrice: number
+  entryPrice: number,
 ): string {
   const dirIcon = signal.direction === "long" ? "🟢" : "🔴";
-  const sizeUsd = (100000 * signal.positionSizePct / 100).toLocaleString();
+  const sizeUsd = ((100000 * signal.positionSizePct) / 100).toLocaleString();
   const lines: string[] = [];
 
   lines.push(`**${asset} Trade Opened**`);
   lines.push("");
-  lines.push(`${dirIcon} **${signal.direction.toUpperCase()} ${asset}** @ $${entryPrice.toLocaleString()} · $${sizeUsd} · ${signal.leverage}x`);
-  lines.push(`SL $${signal.stopLoss.toLocaleString()} · TP1 $${signal.takeProfits[0]?.toLocaleString() || "—"}`);
+  lines.push(
+    `${dirIcon} **${signal.direction.toUpperCase()} ${asset}** @ $${entryPrice.toLocaleString()} · $${sizeUsd} · ${signal.leverage}x`,
+  );
+  lines.push(
+    `SL $${signal.stopLoss.toLocaleString()} · TP1 $${signal.takeProfits[0]?.toLocaleString() || "—"}`,
+  );
   lines.push("");
   lines.push("**Thesis**");
   for (const reason of signal.reasoning.slice(0, 3)) {
@@ -449,20 +540,34 @@ function formatNoTrade(asset: string, signal: HybridSignal): string {
 
   lines.push(`**${asset} — No Trade**`);
   lines.push("");
-  lines.push(`Signal: **${signal.direction.toUpperCase()}** (${signal.strength}% strength · ${signal.confidence}% confidence)`);
+  lines.push(
+    `Signal: **${signal.direction.toUpperCase()}** (${signal.strength}% strength · ${signal.confidence}% confidence)`,
+  );
   lines.push("");
   lines.push("**Missing**");
   lines.push(signal.whyNotTrade.slice(0, 5).join(" · "));
-  if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH || signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE) {
+  if (
+    signal.strength < HYBRID_CONFIG.MIN_STRENGTH ||
+    signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE
+  ) {
     const triggers: string[] = [];
-    if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH) triggers.push(`Whale (+${HYBRID_CONFIG.WHALE_SIGNAL_BOOST}%) or volume spike`);
-    if (signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE) triggers.push("extreme funding or RSI");
+    if (signal.strength < HYBRID_CONFIG.MIN_STRENGTH)
+      triggers.push(
+        `Whale (+${HYBRID_CONFIG.WHALE_SIGNAL_BOOST}%) or volume spike`,
+      );
+    if (signal.confidence < HYBRID_CONFIG.MIN_CONFIDENCE)
+      triggers.push("extreme funding or RSI");
     lines.push("");
     lines.push(`**Would trigger** ${triggers.join("; ")}`);
   }
   if (signal.factors.length > 0) {
     lines.push("");
-    lines.push(signal.factors.slice(0, 3).map(f => f.replace(/^[•·]\s*/, "")).join(" · "));
+    lines.push(
+      signal.factors
+        .slice(0, 3)
+        .map((f) => f.replace(/^[•·]\s*/, ""))
+        .join(" · "),
+    );
   }
 
   return lines.join("\n") + BOT_FOOTER;
@@ -474,10 +579,22 @@ function formatNoTrade(asset: string, signal: HybridSignal): string {
 
 export const vinceBotAction: Action = {
   name: "VINCE_BOT_TRADE",
-  similes: ["TRADE", "TRIGGER_BOT", "RUN_BOT", "EXECUTE", "GO_LONG", "GO_SHORT", "TRADE_NOW"],
-  description: "Evaluates BTC using hybrid Core/Expert/Degen strategy and triggers paper trade if conditions are met",
+  similes: [
+    "TRADE",
+    "TRIGGER_BOT",
+    "RUN_BOT",
+    "EXECUTE",
+    "GO_LONG",
+    "GO_SHORT",
+    "TRADE_NOW",
+  ],
+  description:
+    "Evaluates BTC using hybrid Core/Expert/Degen strategy and triggers paper trade if conditions are met",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text === "trade" ||
@@ -497,15 +614,23 @@ export const vinceBotAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       logger.info("[VINCE_BOT_TRADE] Evaluating hybrid strategy for BTC...");
 
-      const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as VincePaperTradingService | null;
-      const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
-      const riskManager = runtime.getService("VINCE_RISK_MANAGER_SERVICE") as VinceRiskManagerService | null;
-      const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+      const paperTrading = runtime.getService(
+        "VINCE_PAPER_TRADING_SERVICE",
+      ) as VincePaperTradingService | null;
+      const positionManager = runtime.getService(
+        "VINCE_POSITION_MANAGER_SERVICE",
+      ) as VincePositionManagerService | null;
+      const riskManager = runtime.getService(
+        "VINCE_RISK_MANAGER_SERVICE",
+      ) as VinceRiskManagerService | null;
+      const marketData = runtime.getService(
+        "VINCE_MARKET_DATA_SERVICE",
+      ) as VinceMarketDataService | null;
 
       if (!paperTrading || !positionManager) {
         await callback({
@@ -518,13 +643,15 @@ export const vinceBotAction: Action = {
       // Check if already have BTC position
       if (positionManager.hasOpenPosition("BTC")) {
         const positions = positionManager.getOpenPositions();
-        const btcPos = positions.find(p => p.asset === "BTC");
+        const btcPos = positions.find((p) => p.asset === "BTC");
         if (btcPos) {
-          const pnlStr = btcPos.unrealizedPnl >= 0 
-            ? `+$${btcPos.unrealizedPnl.toFixed(0)}` 
-            : `-$${Math.abs(btcPos.unrealizedPnl).toFixed(0)}`;
+          const pnlStr =
+            btcPos.unrealizedPnl >= 0
+              ? `+$${btcPos.unrealizedPnl.toFixed(0)}`
+              : `-$${Math.abs(btcPos.unrealizedPnl).toFixed(0)}`;
           await callback({
-            text: `Already have an open BTC position:\n\n` +
+            text:
+              `Already have an open BTC position:\n\n` +
               `${btcPos.direction === "long" ? "🟢" : "🔴"} **${btcPos.direction.toUpperCase()} BTC** @ $${btcPos.entryPrice.toLocaleString()}\n` +
               `P&L: ${pnlStr} (${btcPos.unrealizedPnlPct.toFixed(2)}%)\n\n` +
               `_Use \`bot\` to see full status or wait for position to close._`,
@@ -538,7 +665,8 @@ export const vinceBotAction: Action = {
       if (paperTrading.isPaused()) {
         const status = paperTrading.getStatus();
         await callback({
-          text: `Paper trading bot is **PAUSED**${status.pauseReason ? `: ${status.pauseReason}` : ""}\n\n` +
+          text:
+            `Paper trading bot is **PAUSED**${status.pauseReason ? `: ${status.pauseReason}` : ""}\n\n` +
             `Use \`resume bot\` to resume trading.`,
           actions: ["VINCE_BOT_TRADE"],
         });
@@ -580,7 +708,7 @@ export const vinceBotAction: Action = {
       if (riskManager) {
         const portfolio = positionManager.getPortfolio();
         const sizeUsd = portfolio.totalValue * (signal.positionSizePct / 100);
-        
+
         const validation = riskManager.validateTrade({
           sizeUsd,
           leverage: signal.leverage,
@@ -590,7 +718,8 @@ export const vinceBotAction: Action = {
 
         if (!validation.valid) {
           await callback({
-            text: `Trade blocked by risk manager: ${validation.reason}\n\n` +
+            text:
+              `Trade blocked by risk manager: ${validation.reason}\n\n` +
               `Signal was: ${signal.direction.toUpperCase()} with ${signal.strength}% strength\n\n` +
               `_Check \`bot\` for current risk state._`,
             actions: ["VINCE_BOT_TRADE"],
@@ -607,7 +736,7 @@ export const vinceBotAction: Action = {
         confidence: signal.confidence,
         confirmingCount: signal.factors.length,
         conflictingCount: 0,
-        signals: signal.factors.map(f => ({
+        signals: signal.factors.map((f) => ({
           source: "hybrid_strategy",
           direction: signal.direction as "long" | "short",
           strength: signal.strength,
@@ -631,7 +760,9 @@ export const vinceBotAction: Action = {
       });
 
       if (position) {
-        logger.info(`[VINCE_BOT_TRADE] ✅ Opened ${signal.direction.toUpperCase()} BTC @ $${position.entryPrice}`);
+        logger.info(
+          `[VINCE_BOT_TRADE] ✅ Opened ${signal.direction.toUpperCase()} BTC @ $${position.entryPrice}`,
+        );
         await callback({
           text: formatTradeTriggered("BTC", signal, position.entryPrice),
           actions: ["VINCE_BOT_TRADE"],
@@ -642,7 +773,6 @@ export const vinceBotAction: Action = {
           actions: ["VINCE_BOT_TRADE"],
         });
       }
-
     } catch (error) {
       logger.error(`[VINCE_BOT_TRADE] Error: ${error}`);
       await callback({

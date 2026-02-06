@@ -35,12 +35,12 @@ const REQUEST_TIMEOUT_MS = 15000;
 
 // Per-endpoint cache TTLs for optimal data freshness
 const CACHE_TTLS = {
-  metaAndAssetCtxs: 60 * 1000,    // 60s - funding data
-  predictedFundings: 60 * 1000,   // 60s - cross-venue data
-  optionsPulse: 2 * 60 * 1000,   // 2 min - aggregated pulse
-  crossVenue: 2 * 60 * 1000,      // 2 min - aggregated cross-venue
-  perpsAtOICap: 60 * 1000,       // 60s - OI cap list
-  fundingHistory: 60 * 1000,     // 60s per asset - funding history for percentile
+  metaAndAssetCtxs: 60 * 1000, // 60s - funding data
+  predictedFundings: 60 * 1000, // 60s - cross-venue data
+  optionsPulse: 2 * 60 * 1000, // 2 min - aggregated pulse
+  crossVenue: 2 * 60 * 1000, // 2 min - aggregated cross-venue
+  perpsAtOICap: 60 * 1000, // 60s - OI cap list
+  fundingHistory: 60 * 1000, // 60s per asset - funding history for percentile
 };
 
 // Threshold for identifying arbitrage opportunities (0.01% = 0.0001)
@@ -131,9 +131,9 @@ type FundingHistoryResponse = FundingHistoryEntry[];
 
 // Funding regime from history (percentile of current rate vs recent history)
 export interface HyperliquidFundingRegime {
-  percentile: number;   // 0–100, where 100 = current is highest
-  isExtremeLong: boolean;   // percentile >= 90 (longs crowded)
-  isExtremeShort: boolean;  // percentile <= 10 (shorts crowded)
+  percentile: number; // 0–100, where 100 = current is highest
+  isExtremeLong: boolean; // percentile >= 90 (longs crowded)
+  isExtremeShort: boolean; // percentile <= 10 (shorts crowded)
 }
 
 export class HyperliquidFallbackService implements IHyperliquidService {
@@ -162,35 +162,50 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   private readonly MAX_GLOBAL_BACKOFF_MS = 60000;
 
   constructor() {
-    logger.info("[HyperliquidFallback] ✅ Fallback service initialized (API: https://api.hyperliquid.xyz/info)");
+    logger.info(
+      "[HyperliquidFallback] ✅ Fallback service initialized (API: https://api.hyperliquid.xyz/info)",
+    );
   }
 
   /**
    * Test the Hyperliquid API connection and return diagnostic info
    */
-  async testConnection(): Promise<{ success: boolean; message: string; data?: unknown }> {
+  async testConnection(): Promise<{
+    success: boolean;
+    message: string;
+    data?: unknown;
+  }> {
     try {
       const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
         { type: "metaAndAssetCtxs" },
-        5000 // Short cache for test
+        5000, // Short cache for test
       );
 
       if (!data || !Array.isArray(data) || data.length < 2) {
-        return { success: false, message: "API returned invalid data structure" };
+        return {
+          success: false,
+          message: "API returned invalid data structure",
+        };
       }
 
       const [meta, assetCtxs] = data;
-      const btcIdx = meta.universe.findIndex((u) => u.name.toUpperCase() === "BTC");
-      const ethIdx = meta.universe.findIndex((u) => u.name.toUpperCase() === "ETH");
+      const btcIdx = meta.universe.findIndex(
+        (u) => u.name.toUpperCase() === "BTC",
+      );
+      const ethIdx = meta.universe.findIndex(
+        (u) => u.name.toUpperCase() === "ETH",
+      );
 
-      const btcFunding = btcIdx >= 0 ? parseFloat(assetCtxs[btcIdx]?.funding || "0") : null;
-      const ethFunding = ethIdx >= 0 ? parseFloat(assetCtxs[ethIdx]?.funding || "0") : null;
+      const btcFunding =
+        btcIdx >= 0 ? parseFloat(assetCtxs[btcIdx]?.funding || "0") : null;
+      const ethFunding =
+        ethIdx >= 0 ? parseFloat(assetCtxs[ethIdx]?.funding || "0") : null;
 
       logger.info(
         `[HyperliquidFallback] 🔗 API TEST SUCCESS | ` +
-        `Assets: ${meta.universe.length} | ` +
-        `BTC funding: ${btcFunding !== null ? (btcFunding * 100).toFixed(4) + "%" : "N/A"} | ` +
-        `ETH funding: ${ethFunding !== null ? (ethFunding * 100).toFixed(4) + "%" : "N/A"}`
+          `Assets: ${meta.universe.length} | ` +
+          `BTC funding: ${btcFunding !== null ? (btcFunding * 100).toFixed(4) + "%" : "N/A"} | ` +
+          `ETH funding: ${ethFunding !== null ? (ethFunding * 100).toFixed(4) + "%" : "N/A"}`,
       );
 
       return {
@@ -216,7 +231,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   private isCircuitOpen(): boolean {
     if (!this.circuitOpen) return false;
     if (Date.now() - this.circuitOpenedAt > this.CIRCUIT_RESET_MS) {
-      logger.info("[HyperliquidFallback] Circuit breaker half-open, attempting request");
+      logger.info(
+        "[HyperliquidFallback] Circuit breaker half-open, attempting request",
+      );
       return false;
     }
     return true;
@@ -224,7 +241,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
 
   private recordSuccess(): void {
     if (this.circuitOpen) {
-      logger.info("[HyperliquidFallback] Circuit breaker closed after successful request");
+      logger.info(
+        "[HyperliquidFallback] Circuit breaker closed after successful request",
+      );
     }
     this.consecutiveErrors = 0;
     this.circuitOpen = false;
@@ -236,7 +255,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     if (this.consecutiveErrors >= this.CIRCUIT_THRESHOLD && !this.circuitOpen) {
       this.circuitOpen = true;
       this.circuitOpenedAt = Date.now();
-      logger.warn("[HyperliquidFallback] Circuit breaker OPEN - too many consecutive errors");
+      logger.warn(
+        "[HyperliquidFallback] Circuit breaker OPEN - too many consecutive errors",
+      );
     }
   }
 
@@ -254,7 +275,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
    */
   private async postHyperliquid<T>(
     body: Record<string, unknown>,
-    cacheTtl?: number
+    cacheTtl?: number,
   ): Promise<T | null> {
     const cacheKey = JSON.stringify(body);
 
@@ -275,7 +296,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     const now = Date.now();
     if (now < this.globalBackoffUntil) {
       const waitMs = this.globalBackoffUntil - now;
-      logger.debug(`[HyperliquidFallback] In global backoff, waiting ${waitMs}ms`);
+      logger.debug(
+        `[HyperliquidFallback] In global backoff, waiting ${waitMs}ms`,
+      );
       await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
 
@@ -300,7 +323,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   private async executeRequest<T>(
     body: Record<string, unknown>,
     cacheKey: string,
-    cacheTtl: number
+    cacheTtl: number,
   ): Promise<T | null> {
     await this.requestSemaphore.acquire();
 
@@ -310,7 +333,10 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       const timeSinceLastRequest = now - this.lastRequestTimestamp;
       if (timeSinceLastRequest < this.MIN_REQUEST_INTERVAL_MS) {
         await new Promise((resolve) =>
-          setTimeout(resolve, this.MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest)
+          setTimeout(
+            resolve,
+            this.MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest,
+          ),
         );
       }
       this.lastRequestTimestamp = Date.now();
@@ -329,19 +355,21 @@ export class HyperliquidFallbackService implements IHyperliquidService {
             if (response.status === 429) {
               // Rate limited - escalate global backoff
               this.consecutiveRateLimits++;
-              const baseBackoff = this.BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
+              const baseBackoff =
+                this.BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
               const escalation = Math.min(this.consecutiveRateLimits, 5);
-              const backoffMs = baseBackoff * escalation + Math.floor(Math.random() * 500);
+              const backoffMs =
+                baseBackoff * escalation + Math.floor(Math.random() * 500);
 
               // Set global backoff to prevent other requests
               this.globalBackoffUntil = Math.max(
                 this.globalBackoffUntil,
-                Date.now() + Math.min(backoffMs, this.MAX_GLOBAL_BACKOFF_MS)
+                Date.now() + Math.min(backoffMs, this.MAX_GLOBAL_BACKOFF_MS),
               );
 
               logger.warn(
                 `[HyperliquidFallback] Rate limited, backing off ${backoffMs}ms ` +
-                `(attempt=${attempt + 1}, consecutive=${this.consecutiveRateLimits})`
+                  `(attempt=${attempt + 1}, consecutive=${this.consecutiveRateLimits})`,
               );
               await new Promise((resolve) => setTimeout(resolve, backoffMs));
               continue; // Retry
@@ -350,13 +378,17 @@ export class HyperliquidFallbackService implements IHyperliquidService {
             if (response.status >= 500) {
               // Server error - retry with backoff
               const backoffMs = this.BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
-              logger.warn(`[HyperliquidFallback] Server error ${response.status}, retrying`);
+              logger.warn(
+                `[HyperliquidFallback] Server error ${response.status}, retrying`,
+              );
               await new Promise((resolve) => setTimeout(resolve, backoffMs));
               continue;
             }
 
             // Client error (4xx except 429) - don't retry
-            logger.warn(`[HyperliquidFallback] HTTP error ${response.status} (no retry)`);
+            logger.warn(
+              `[HyperliquidFallback] HTTP error ${response.status} (no retry)`,
+            );
             this.recordFailure();
             return null;
           }
@@ -369,14 +401,18 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         } catch (error) {
           const isLastAttempt = attempt === this.MAX_RETRIES - 1;
           if (isLastAttempt) {
-            logger.warn(`[HyperliquidFallback] All ${this.MAX_RETRIES} retry attempts exhausted`);
+            logger.warn(
+              `[HyperliquidFallback] All ${this.MAX_RETRIES} retry attempts exhausted`,
+            );
             this.recordFailure();
             return null;
           }
 
           // Transient error - retry with backoff
           const backoffMs = this.BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
-          logger.debug(`[HyperliquidFallback] Transient error, retrying in ${backoffMs}ms`);
+          logger.debug(
+            `[HyperliquidFallback] Transient error, retrying in ${backoffMs}ms`,
+          );
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
         }
       }
@@ -395,15 +431,21 @@ export class HyperliquidFallbackService implements IHyperliquidService {
    * Check if we're in a rate-limited state
    */
   isRateLimited(): boolean {
-    return this.consecutiveRateLimits > 0 ||
-           Date.now() < this.globalBackoffUntil ||
-           this.circuitOpen;
+    return (
+      this.consecutiveRateLimits > 0 ||
+      Date.now() < this.globalBackoffUntil ||
+      this.circuitOpen
+    );
   }
 
   /**
    * Get detailed rate limit status
    */
-  getRateLimitStatus(): { isLimited: boolean; backoffUntil: number; circuitOpen: boolean } {
+  getRateLimitStatus(): {
+    isLimited: boolean;
+    backoffUntil: number;
+    circuitOpen: boolean;
+  } {
     return {
       isLimited: this.isRateLimited(),
       backoffUntil: this.globalBackoffUntil,
@@ -420,7 +462,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
    * Funding > 0 means longs pay shorts (crowded longs)
    * Funding < 0 means shorts pay longs (crowded shorts)
    */
-  private determineCrowdingLevel(fundingRate: number): IHyperliquidAssetPulse["crowdingLevel"] {
+  private determineCrowdingLevel(
+    fundingRate: number,
+  ): IHyperliquidAssetPulse["crowdingLevel"] {
     const annualized = fundingRate * 3 * 365 * 100; // 8h funding * 3 * 365 = annualized %
 
     if (annualized > 50) return "extreme_long";
@@ -433,7 +477,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   /**
    * Determine squeeze risk based on crowding and funding
    */
-  private determineSqueezeRisk(crowdingLevel: IHyperliquidAssetPulse["crowdingLevel"]): IHyperliquidAssetPulse["squeezeRisk"] {
+  private determineSqueezeRisk(
+    crowdingLevel: IHyperliquidAssetPulse["crowdingLevel"],
+  ): IHyperliquidAssetPulse["squeezeRisk"] {
     if (crowdingLevel === "extreme_long" || crowdingLevel === "extreme_short") {
       return "high";
     }
@@ -458,16 +504,20 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   /**
    * Get mark price and 24h change for an asset (uses prevDayPx for change). Preferred for core assets.
    */
-  async getMarkPriceAndChange(symbol: string): Promise<{ price: number; change24h: number } | null> {
+  async getMarkPriceAndChange(
+    symbol: string,
+  ): Promise<{ price: number; change24h: number } | null> {
     try {
       const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
         { type: "metaAndAssetCtxs" },
-        CACHE_TTLS.metaAndAssetCtxs
+        CACHE_TTLS.metaAndAssetCtxs,
       );
       if (!data || !Array.isArray(data) || data.length < 2) return null;
       const [meta, assetCtxs] = data;
       const upper = symbol.toUpperCase();
-      const idx = meta.universe.findIndex((u) => u.name.toUpperCase() === upper);
+      const idx = meta.universe.findIndex(
+        (u) => u.name.toUpperCase() === upper,
+      );
       if (idx < 0 || idx >= assetCtxs.length) return null;
       const ctx = assetCtxs[idx];
       const markPx = ctx?.markPx ?? ctx?.midPx;
@@ -490,7 +540,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     try {
       const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
         { type: "metaAndAssetCtxs" },
-        CACHE_TTLS.optionsPulse
+        CACHE_TTLS.optionsPulse,
       );
 
       if (!data || !Array.isArray(data) || data.length < 2) {
@@ -508,7 +558,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       }
 
       // Build asset pulses for BTC, ETH, SOL, HYPE (openInterest + volume24h from same metaAndAssetCtxs)
-      const buildAssetPulse = (symbol: string): IHyperliquidAssetPulse | undefined => {
+      const buildAssetPulse = (
+        symbol: string,
+      ): IHyperliquidAssetPulse | undefined => {
         const ctx = assetMap.get(symbol);
         if (!ctx) return undefined;
 
@@ -550,26 +602,36 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       let overallBias: IHyperliquidOptionsPulse["overallBias"] = "neutral";
       if (count > 0) {
         const avgFunding = totalFunding / count;
-        if (avgFunding > 0.0001) overallBias = "bullish"; // Longs paying = bullish sentiment
+        if (avgFunding > 0.0001)
+          overallBias = "bullish"; // Longs paying = bullish sentiment
         else if (avgFunding < -0.0001) overallBias = "bearish";
       }
 
       // Full detail only at debug to avoid terminal noise
       logger.debug(
         `[HyperliquidFallback] 📊 OPTIONS PULSE | Bias: ${overallBias} | ` +
-        `BTC: ${assets.btc?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.btc?.crowdingLevel || "N/A"}) | ` +
-        `ETH: ${assets.eth?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.eth?.crowdingLevel || "N/A"}) | ` +
-        `SOL: ${assets.sol?.fundingAnnualized?.toFixed(2) || "N/A"}% | ` +
-        `HYPE: ${assets.hype?.fundingAnnualized?.toFixed(2) || "N/A"}%`
+          `BTC: ${assets.btc?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.btc?.crowdingLevel || "N/A"}) | ` +
+          `ETH: ${assets.eth?.fundingAnnualized?.toFixed(2) || "N/A"}% (${assets.eth?.crowdingLevel || "N/A"}) | ` +
+          `SOL: ${assets.sol?.fundingAnnualized?.toFixed(2) || "N/A"}% | ` +
+          `HYPE: ${assets.hype?.fundingAnnualized?.toFixed(2) || "N/A"}%`,
       );
       // Dashboard-style line at debug to reduce Eliza Cloud INFO noise (set LOG_LEVEL=debug to see)
       if (overallBias !== "neutral") {
         const sym = overallBias === "bullish" ? "🟢" : "🔴";
-        const btc = assets.btc?.fundingAnnualized != null ? `${assets.btc.fundingAnnualized.toFixed(2)}%` : "—";
-        const eth = assets.eth?.fundingAnnualized != null ? `${assets.eth.fundingAnnualized.toFixed(2)}%` : "—";
-        const sol = assets.sol?.fundingAnnualized != null ? `${assets.sol.fundingAnnualized.toFixed(2)}%` : "—";
+        const btc =
+          assets.btc?.fundingAnnualized != null
+            ? `${assets.btc.fundingAnnualized.toFixed(2)}%`
+            : "—";
+        const eth =
+          assets.eth?.fundingAnnualized != null
+            ? `${assets.eth.fundingAnnualized.toFixed(2)}%`
+            : "—";
+        const sol =
+          assets.sol?.fundingAnnualized != null
+            ? `${assets.sol.fundingAnnualized.toFixed(2)}%`
+            : "—";
         logger.debug(
-          `[HyperliquidFallback] 📊 OPTIONS PULSE | ${sym} ${overallBias.toUpperCase()} | BTC ${btc} | ETH ${eth} | SOL ${sol}`
+          `[HyperliquidFallback] 📊 OPTIONS PULSE | ${sym} ${overallBias.toUpperCase()} | BTC ${btc} | ETH ${eth} | SOL ${sol}`,
         );
       }
 
@@ -591,7 +653,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     try {
       const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
         { type: "metaAndAssetCtxs" },
-        CACHE_TTLS.metaAndAssetCtxs
+        CACHE_TTLS.metaAndAssetCtxs,
       );
       if (!data || !Array.isArray(data) || data.length < 2) return null;
       const [meta, assetCtxs] = data;
@@ -605,7 +667,8 @@ export class HyperliquidFallbackService implements IHyperliquidService {
 
         const price = parseFloat(ctx.markPx || ctx.midPx || "0");
         const prevDayPx = parseFloat(ctx.prevDayPx || "0");
-        const change24h = prevDayPx > 0 ? ((price - prevDayPx) / prevDayPx) * 100 : 0;
+        const change24h =
+          prevDayPx > 0 ? ((price - prevDayPx) / prevDayPx) * 100 : 0;
         const funding8h = parseFloat(ctx.funding || "0");
         const fundingAnnualized = funding8h * 3 * 365 * 100;
         const openInterest = parseFloat(ctx.openInterest || "0") || 0;
@@ -629,14 +692,18 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       // Skip HIP-3 prefixed symbols (tradfi on other dexes) - main dex is crypto only
       const cryptoAssets = assets.filter((a) => !a.symbol.includes(":"));
 
-      const sortedByAbsChange = [...cryptoAssets].sort((a, b) => Math.abs(b.change24h) - Math.abs(a.change24h));
+      const sortedByAbsChange = [...cryptoAssets].sort(
+        (a, b) => Math.abs(b.change24h) - Math.abs(a.change24h),
+      );
       const topMovers = sortedByAbsChange.slice(0, 5).map((a) => ({
         symbol: a.symbol,
         change24h: a.change24h,
         volume24h: a.volume24h,
       }));
 
-      const sortedByVolume = [...cryptoAssets].sort((a, b) => b.volume24h - a.volume24h);
+      const sortedByVolume = [...cryptoAssets].sort(
+        (a, b) => b.volume24h - a.volume24h,
+      );
       const volumeLeaders = sortedByVolume.slice(0, 5).map((a) => ({
         symbol: a.symbol,
         volume24h: a.volume24h,
@@ -645,15 +712,22 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       }));
 
       const top10ByVol = sortedByVolume.slice(0, 10);
-      const hottestAvg = top10ByVol.length > 0
-        ? top10ByVol.reduce((s, a) => s + a.change24h, 0) / top10ByVol.length
-        : 0;
-      const worstByChange = [...cryptoAssets].sort((a, b) => a.change24h - b.change24h).slice(0, 5);
-      const coldestAvg = worstByChange.length > 0
-        ? worstByChange.reduce((s, a) => s + a.change24h, 0) / worstByChange.length
-        : 0;
+      const hottestAvg =
+        top10ByVol.length > 0
+          ? top10ByVol.reduce((s, a) => s + a.change24h, 0) / top10ByVol.length
+          : 0;
+      const worstByChange = [...cryptoAssets]
+        .sort((a, b) => a.change24h - b.change24h)
+        .slice(0, 5);
+      const coldestAvg =
+        worstByChange.length > 0
+          ? worstByChange.reduce((s, a) => s + a.change24h, 0) /
+            worstByChange.length
+          : 0;
 
-      const majors = cryptoAssets.filter((a) => ["BTC", "ETH", "SOL"].includes(a.symbol));
+      const majors = cryptoAssets.filter((a) =>
+        ["BTC", "ETH", "SOL"].includes(a.symbol),
+      );
       let totalFunding = 0;
       let count = 0;
       for (const m of majors) {
@@ -688,7 +762,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     try {
       const data = await this.postHyperliquid<PredictedFundingsResponse>(
         { type: "predictedFundings" },
-        CACHE_TTLS.crossVenue
+        CACHE_TTLS.crossVenue,
       );
 
       if (!data || !Array.isArray(data)) {
@@ -709,7 +783,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
           if (!fundingInfo || fundingInfo.fundingRate === undefined) {
             continue;
           }
-          
+
           const rate = parseFloat(fundingInfo.fundingRate) || 0;
 
           if (venue === "HlPerp") {
@@ -725,8 +799,10 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         let cexFunding: number | undefined;
         if (binanceFunding !== undefined && bybitFunding !== undefined) {
           // Use the one furthest from HL for arb comparison
-          const binDiff = hlFunding !== undefined ? Math.abs(hlFunding - binanceFunding) : 0;
-          const bybitDiff = hlFunding !== undefined ? Math.abs(hlFunding - bybitFunding) : 0;
+          const binDiff =
+            hlFunding !== undefined ? Math.abs(hlFunding - binanceFunding) : 0;
+          const bybitDiff =
+            hlFunding !== undefined ? Math.abs(hlFunding - bybitFunding) : 0;
           cexFunding = binDiff > bybitDiff ? binanceFunding : bybitFunding;
         } else {
           cexFunding = binanceFunding ?? bybitFunding;
@@ -734,7 +810,8 @@ export class HyperliquidFallbackService implements IHyperliquidService {
 
         // Determine if there's an arbitrage opportunity
         let isArbitrageOpportunity = false;
-        let arbitrageDirection: IHyperliquidCrossVenueAsset["arbitrageDirection"] = null;
+        let arbitrageDirection: IHyperliquidCrossVenueAsset["arbitrageDirection"] =
+          null;
 
         if (hlFunding !== undefined && cexFunding !== undefined) {
           const diff = hlFunding - cexFunding;
@@ -759,7 +836,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       // Never dump 70+ tickers. Full list only at debug.
       const arbCount = arbitrageOpportunities.length;
       logger.debug(
-        `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbCount > 0 ? arbitrageOpportunities.join(", ") : "none"}`
+        `[HyperliquidFallback] 💱 CROSS-VENUE | ${assets.length} assets | Arb: ${arbCount > 0 ? arbitrageOpportunities.join(", ") : "none"}`,
       );
       // INFO only when there are arb opportunities (actionable for operators)
       if (arbCount > 0) {
@@ -768,7 +845,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
             ? arbitrageOpportunities.join(", ")
             : `${arbCount} assets`;
         logger.info(
-          `[HyperliquidFallback] 💱 CROSS-VENUE ARB | ${assets.length} assets | ${arbSummary}`
+          `[HyperliquidFallback] 💱 CROSS-VENUE ARB | ${assets.length} assets | ${arbSummary}`,
         );
       }
 
@@ -777,7 +854,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
         assets,
       };
     } catch (error) {
-      logger.error(`[HyperliquidFallback] getCrossVenueFunding error: ${error}`);
+      logger.error(
+        `[HyperliquidFallback] getCrossVenueFunding error: ${error}`,
+      );
       return null;
     }
   }
@@ -790,12 +869,14 @@ export class HyperliquidFallbackService implements IHyperliquidService {
     try {
       const data = await this.postHyperliquid<string[]>(
         { type: "perpsAtOpenInterestCap" },
-        CACHE_TTLS.perpsAtOICap
+        CACHE_TTLS.perpsAtOICap,
       );
       if (!data || !Array.isArray(data)) return null;
       return data.filter((s): s is string => typeof s === "string");
     } catch (error) {
-      logger.debug(`[HyperliquidFallback] getPerpsAtOpenInterestCap error: ${error}`);
+      logger.debug(
+        `[HyperliquidFallback] getPerpsAtOpenInterestCap error: ${error}`,
+      );
       return null;
     }
   }
@@ -807,20 +888,30 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   async getFundingHistory(
     coin: string,
     startTime: number,
-    endTime?: number
+    endTime?: number,
   ): Promise<FundingHistoryEntry[] | null> {
-    const body: { type: string; coin: string; startTime: number; endTime?: number } = {
+    const body: {
+      type: string;
+      coin: string;
+      startTime: number;
+      endTime?: number;
+    } = {
       type: "fundingHistory",
       coin,
       startTime,
     };
     if (endTime != null) body.endTime = endTime;
     try {
-      const data = await this.postHyperliquid<FundingHistoryResponse>(body, CACHE_TTLS.fundingHistory);
+      const data = await this.postHyperliquid<FundingHistoryResponse>(
+        body,
+        CACHE_TTLS.fundingHistory,
+      );
       if (!data || !Array.isArray(data)) return null;
       return data;
     } catch (error) {
-      logger.debug(`[HyperliquidFallback] getFundingHistory(${coin}) error: ${error}`);
+      logger.debug(
+        `[HyperliquidFallback] getFundingHistory(${coin}) error: ${error}`,
+      );
       return null;
     }
   }
@@ -833,7 +924,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   async getFundingRegime(
     coin: string,
     currentFunding8h: number,
-    lookbackSamples: number = 30
+    lookbackSamples: number = 30,
   ): Promise<HyperliquidFundingRegime | null> {
     const now = Date.now();
     // HL funding every 8h; lookbackSamples * 8h in ms. Omit endTime so cache key is stable (API defaults to now).

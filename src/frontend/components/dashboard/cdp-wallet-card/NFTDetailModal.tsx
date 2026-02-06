@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { X, Copy, Check, Send, ExternalLink } from 'lucide-react';
-import { Button } from '@/frontend/components/ui/button';
-import { useModal } from '@/frontend/contexts/ModalContext';
-import { useLoadingPanel } from '@/frontend/contexts/LoadingPanelContext';
-import { elizaClient } from '@/frontend/lib/elizaClient';
+import { useState } from "react";
+import { X, Copy, Check, Send, ExternalLink } from "lucide-react";
+import { Button } from "@/frontend/components/ui/button";
+import { useModal } from "@/frontend/contexts/ModalContext";
+import { useLoadingPanel } from "@/frontend/contexts/LoadingPanelContext";
+import { elizaClient } from "@/frontend/lib/elizaClient";
 
 // NFT interface
 interface NFT {
@@ -28,22 +28,26 @@ interface NFTDetailModalContentProps {
   onSuccess?: () => void;
 }
 
-export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModalContentProps) {
+export function NFTDetailModalContent({
+  nft,
+  userId,
+  onSuccess,
+}: NFTDetailModalContentProps) {
   const { hideModal, showModal } = useModal();
   const { showLoading, showSuccess, showError } = useLoadingPanel();
-  const modalId = 'nft-detail-modal';
+  const modalId = "nft-detail-modal";
   const [isCopied, setIsCopied] = useState(false);
   const [showSendForm, setShowSendForm] = useState(false);
-  const [recipientAddress, setRecipientAddress] = useState('');
-  const [amount, setAmount] = useState('1');
-  const [error, setError] = useState('');
+  const [recipientAddress, setRecipientAddress] = useState("");
+  const [amount, setAmount] = useState("1");
+  const [error, setError] = useState("");
 
   // Get chain name for display
   const getChainName = (chain: string) => {
     const names: Record<string, string> = {
-      base: 'Base',
-      ethereum: 'Ethereum',
-      polygon: 'Polygon',
+      base: "Base",
+      ethereum: "Ethereum",
+      polygon: "Polygon",
     };
     return names[chain] || chain;
   };
@@ -51,9 +55,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
   // Get explorer URL for NFT
   const getExplorerUrl = (chain: string, address: string, tokenId: string) => {
     const explorers: Record<string, string> = {
-      base: 'https://basescan.org',
-      ethereum: 'https://etherscan.io',
-      polygon: 'https://polygonscan.com',
+      base: "https://basescan.org",
+      ethereum: "https://etherscan.io",
+      polygon: "https://polygonscan.com",
     };
     return `${explorers[chain] || explorers.base}/nft/${address}/${tokenId}`;
   };
@@ -61,9 +65,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
   // Get transaction explorer URL
   const getTxExplorerUrl = (hash: string, chain: string) => {
     const explorers: Record<string, string> = {
-      base: 'https://basescan.org',
-      ethereum: 'https://etherscan.io',
-      polygon: 'https://polygonscan.com',
+      base: "https://basescan.org",
+      ethereum: "https://etherscan.io",
+      polygon: "https://polygonscan.com",
     };
     return `${explorers[chain] || explorers.base}/tx/${hash}`;
   };
@@ -75,27 +79,27 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy address:', err);
+      console.error("Failed to copy address:", err);
     }
   };
 
   // Handle send NFT
   const handleSend = async () => {
     if (!recipientAddress) {
-      setError('Please enter a valid recipient address');
+      setError("Please enter a valid recipient address");
       return;
     }
 
     // Validate address format
     if (!recipientAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
-      setError('Invalid recipient address');
+      setError("Invalid recipient address");
       return;
     }
 
     try {
-      setError('');
+      setError("");
 
-      console.log(' Sending NFT:', {
+      console.log(" Sending NFT:", {
         contract: nft.contractAddress,
         tokenId: nft.tokenId,
         to: recipientAddress,
@@ -104,9 +108,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
 
       // Show loading state
       showLoading(
-        'Sending NFT...',
-        'Please wait while your transaction is being processed',
-        modalId
+        "Sending NFT...",
+        "Please wait while your transaction is being processed",
+        modalId,
       );
 
       const result = await elizaClient.cdp.sendNFT({
@@ -116,21 +120,21 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
         tokenId: nft.tokenId,
       });
 
-      console.log(' NFT sent successfully:', result);
-      
+      console.log(" NFT sent successfully:", result);
+
       // Show success state
       showSuccess(
-        'NFT Sent Successfully!',
+        "NFT Sent Successfully!",
         `Your ${nft.name || `${nft.contractName} #${nft.tokenId}`} has been sent`,
         modalId,
-        false // Don't auto-close
+        false, // Don't auto-close
       );
-      
+
       // Reset form
       setShowSendForm(false);
-      setRecipientAddress('');
-      setAmount('1');
-      
+      setRecipientAddress("");
+      setAmount("1");
+
       // Call success callback after a short delay
       if (onSuccess) {
         setTimeout(() => {
@@ -138,9 +142,10 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
         }, 2000);
       }
     } catch (err: any) {
-      console.error(' NFT send failed:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send NFT';
-      showError('Transaction Failed', errorMessage, modalId);
+      console.error(" NFT send failed:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to send NFT";
+      showError("Transaction Failed", errorMessage, modalId);
     }
   };
 
@@ -153,7 +158,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
             <h2 className="text-xl font-semibold truncate">
               {nft.name || `${nft.contractName} #${nft.tokenId}`}
             </h2>
-            <p className="text-sm text-muted-foreground truncate">{nft.contractName}</p>
+            <p className="text-sm text-muted-foreground truncate">
+              {nft.contractName}
+            </p>
           </div>
         </div>
         <button
@@ -173,7 +180,8 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
             alt={nft.name || `Token #${nft.tokenId}`}
             className="max-w-full max-h-[250px] rounded-lg object-contain"
             onError={(e) => {
-              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
+              e.currentTarget.src =
+                'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E';
             }}
           />
         </div>
@@ -190,8 +198,10 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
           </Button>
         ) : (
           <div className="bg-muted rounded-lg p-4 space-y-4">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Send NFT</h3>
-            
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              Send NFT
+            </h3>
+
             {error && (
               <div className="text-xs text-red-500 bg-red-500/10 p-2 rounded border border-red-500/20">
                 {error}
@@ -199,7 +209,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
             )}
 
             <div className="space-y-2">
-              <label className="text-xs text-muted-foreground">Recipient Address</label>
+              <label className="text-xs text-muted-foreground">
+                Recipient Address
+              </label>
               <input
                 type="text"
                 value={recipientAddress}
@@ -209,7 +221,7 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
               />
             </div>
 
-            {nft.tokenType === 'ERC1155' && (
+            {nft.tokenType === "ERC1155" && (
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Amount</label>
                 <input
@@ -217,7 +229,7 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   min="1"
-                  max={nft.balance || '1'}
+                  max={nft.balance || "1"}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -227,19 +239,16 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
               <Button
                 onClick={() => {
                   setShowSendForm(false);
-                  setRecipientAddress('');
-                  setAmount('1');
-                  setError('');
+                  setRecipientAddress("");
+                  setAmount("1");
+                  setError("");
                 }}
                 variant="outline"
                 className="flex-1"
               >
                 Cancel
               </Button>
-              <Button
-                onClick={handleSend}
-                className="flex-1"
-              >
+              <Button onClick={handleSend} className="flex-1">
                 <Send className="w-4 h-4 mr-2" />
                 Send
               </Button>
@@ -250,7 +259,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
         {/* Description */}
         {nft.description && (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Description</h3>
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              Description
+            </h3>
             <p className="text-sm">{nft.description}</p>
           </div>
         )}
@@ -269,7 +280,7 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
             <div className="text-xs text-muted-foreground mb-1">Network</div>
             <div className="text-sm font-medium">{getChainName(nft.chain)}</div>
           </div>
-          {nft.balance && nft.tokenType === 'ERC1155' && (
+          {nft.balance && nft.tokenType === "ERC1155" && (
             <div className="bg-muted rounded-lg p-3">
               <div className="text-xs text-muted-foreground mb-1">Balance</div>
               <div className="text-sm font-medium">{nft.balance}</div>
@@ -279,7 +290,9 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
 
         {/* Contract Address */}
         <div className="bg-muted rounded-lg p-3 space-y-2">
-          <div className="text-xs text-muted-foreground uppercase font-medium">Contract Address</div>
+          <div className="text-xs text-muted-foreground uppercase font-medium">
+            Contract Address
+          </div>
           <div className="flex items-center gap-2">
             <code className="flex-1 text-xs bg-background p-2 rounded border border-border overflow-x-auto scrollbar-thin font-mono">
               {nft.contractAddress}
@@ -298,7 +311,12 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
               )}
             </Button>
             <Button
-              onClick={() => window.open(getExplorerUrl(nft.chain, nft.contractAddress, nft.tokenId), '_blank')}
+              onClick={() =>
+                window.open(
+                  getExplorerUrl(nft.chain, nft.contractAddress, nft.tokenId),
+                  "_blank",
+                )
+              }
               variant="ghost"
               size="sm"
               className="shrink-0"
@@ -312,12 +330,21 @@ export function NFTDetailModalContent({ nft, userId, onSuccess }: NFTDetailModal
         {/* Attributes */}
         {nft.attributes && nft.attributes.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase text-muted-foreground">Attributes</h3>
+            <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              Attributes
+            </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {nft.attributes.map((attr, index) => (
-                <div key={index} className="bg-muted rounded-lg p-2 text-center">
-                  <div className="text-xs text-muted-foreground uppercase mb-1">{attr.trait_type}</div>
-                  <div className="text-sm font-medium truncate">{attr.value}</div>
+                <div
+                  key={index}
+                  className="bg-muted rounded-lg p-2 text-center"
+                >
+                  <div className="text-xs text-muted-foreground uppercase mb-1">
+                    {attr.trait_type}
+                  </div>
+                  <div className="text-sm font-medium truncate">
+                    {attr.value}
+                  </div>
                 </div>
               ))}
             </div>

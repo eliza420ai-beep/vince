@@ -15,7 +15,9 @@ export const pluginVinceSchema = pgSchema("plugin_vince");
  */
 export const paperBotFeatures = pluginVinceSchema.table("paper_bot_features", {
   id: text("id").primaryKey(),
-  created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  created_at: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   payload: jsonb("payload").notNull(),
 });
 

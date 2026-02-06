@@ -6,9 +6,18 @@
  * Use for: "hl crypto", "crypto scan", "tickers with traction", "hyperliquid crypto".
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { IHyperliquidService, IHyperliquidCryptoPulse } from "../types/external-services";
+import type {
+  IHyperliquidService,
+  IHyperliquidCryptoPulse,
+} from "../types/external-services";
 import { getOrCreateHyperliquidService } from "../services/fallbacks";
 
 function formatVol(v: number): string {
@@ -29,18 +38,42 @@ export function printHlCryptoDashboard(pulse: IHyperliquidCryptoPulse): string {
   const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
 
   lines.push("");
-  lines.push("╔═══════════════════════════════════════════════════════════════╗");
-  lines.push("║                                                               ║");
-  lines.push("║   📊 HL CRYPTO DASHBOARD (Hyperliquid perps)                  ║");
-  lines.push("║                                                               ║");
-  lines.push("╟───────────────────────────────────────────────────────────────╢");
-  lines.push("║                                                               ║");
-  lines.push(`║   Assets: ${pad(String(pulse.assets.length), 8)} crypto perps on main dex                      ║`);
-  lines.push("║                                                               ║");
-  lines.push("╟───────────────────────────────────────────────────────────────╢");
-  lines.push("║                                                               ║");
-  lines.push("║   🔥 TOP MOVERS (by % change)                                 ║");
-  lines.push("║                                                               ║");
+  lines.push(
+    "╔═══════════════════════════════════════════════════════════════╗",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "║   📊 HL CRYPTO DASHBOARD (Hyperliquid perps)                  ║",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "╟───────────────────────────────────────────────────────────────╢",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    `║   Assets: ${pad(String(pulse.assets.length), 8)} crypto perps on main dex                      ║`,
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "╟───────────────────────────────────────────────────────────────╢",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "║   🔥 TOP MOVERS (by % change)                                 ║",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
 
   for (const m of pulse.topMovers) {
     const emoji = m.change24h >= 0 ? "🟢" : "🔴";
@@ -50,11 +83,21 @@ export function printHlCryptoDashboard(pulse: IHyperliquidCryptoPulse): string {
     lines.push(`║   ${emoji} ${pad(sym + ch + vol, 56)} ║`);
   }
 
-  lines.push("║                                                               ║");
-  lines.push("╟───────────────────────────────────────────────────────────────╢");
-  lines.push("║                                                               ║");
-  lines.push("║   📊 VOLUME LEADERS                                           ║");
-  lines.push("║                                                               ║");
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "╟───────────────────────────────────────────────────────────────╢",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "║   📊 VOLUME LEADERS                                           ║",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
 
   for (const l of pulse.volumeLeaders) {
     const sym = l.symbol.padEnd(10);
@@ -64,29 +107,56 @@ export function printHlCryptoDashboard(pulse: IHyperliquidCryptoPulse): string {
     lines.push(`║   ${pad(sym + vol + oi + fund, 56)} ║`);
   }
 
-  lines.push("║                                                               ║");
-  lines.push("╟───────────────────────────────────────────────────────────────╢");
-  lines.push("║                                                               ║");
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "╟───────────────────────────────────────────────────────────────╢",
+  );
+  lines.push(
+    "║                                                               ║",
+  );
 
-  const biasEmoji = pulse.overallBias === "bullish" ? "🟢" : pulse.overallBias === "bearish" ? "🔴" : "⚪";
-  lines.push(`║   ${biasEmoji} Bias: ${pulse.overallBias.toUpperCase().padEnd(52)} ║`);
+  const biasEmoji =
+    pulse.overallBias === "bullish"
+      ? "🟢"
+      : pulse.overallBias === "bearish"
+        ? "🔴"
+        : "⚪";
+  lines.push(
+    `║   ${biasEmoji} Bias: ${pulse.overallBias.toUpperCase().padEnd(52)} ║`,
+  );
   const hotStr = `HOTTEST (top10 vol avg): ${formatChange(pulse.hottestAvg)}`;
   const coldStr = `COLDEST: ${formatChange(pulse.coldestAvg)}`;
   lines.push(`║   ${pad(hotStr, 56)} ║`);
   lines.push(`║   ${pad(coldStr, 56)} ║`);
 
   const crowded = pulse.assets.filter(
-    (a) => a.crowdingLevel && a.crowdingLevel !== "neutral" && ["extreme_long", "long", "extreme_short", "short"].includes(a.crowdingLevel)
+    (a) =>
+      a.crowdingLevel &&
+      a.crowdingLevel !== "neutral" &&
+      ["extreme_long", "long", "extreme_short", "short"].includes(
+        a.crowdingLevel,
+      ),
   );
   if (crowded.length > 0) {
-    const crowdStr = `Crowded: ${crowded.slice(0, 5).map((a) => `${a.symbol} ${a.crowdingLevel}`).join(", ")}`;
+    const crowdStr = `Crowded: ${crowded
+      .slice(0, 5)
+      .map((a) => `${a.symbol} ${a.crowdingLevel}`)
+      .join(", ")}`;
     lines.push(`║   ${pad(crowdStr, 56)} ║`);
   }
 
-  lines.push("║                                                               ║");
-  lines.push("╚═══════════════════════════════════════════════════════════════╝");
+  lines.push(
+    "║                                                               ║",
+  );
+  lines.push(
+    "╚═══════════════════════════════════════════════════════════════╝",
+  );
   lines.push("");
-  lines.push("*Source: Hyperliquid main dex. Commands: PERPS, HIP3, OPTIONS, MEMES, INTEL*");
+  lines.push(
+    "*Source: Hyperliquid main dex. Commands: PERPS, HIP3, OPTIONS, MEMES, INTEL*",
+  );
   lines.push("");
 
   return lines.join("\n");
@@ -103,9 +173,13 @@ export const vinceHlCryptoAction: Action = {
     "TICKERS TRACTION",
     "TICKERS WITH TRACTION",
   ],
-  description: "HIP-3 style dashboard for all Hyperliquid crypto perps: top movers, volume leaders, market vibes",
+  description:
+    "HIP-3 style dashboard for all Hyperliquid crypto perps: top movers, volume leaders, market vibes",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = (message.content.text || "").toLowerCase();
     return (
       text.includes("hl crypto") ||
@@ -114,7 +188,10 @@ export const vinceHlCryptoAction: Action = {
       text.includes("crypto dashboard") ||
       text.includes("tickers with traction") ||
       text.includes("tickers traction") ||
-      (text.includes("crypto") && (text.includes("movers") || text.includes("volume") || text.includes("traction")))
+      (text.includes("crypto") &&
+        (text.includes("movers") ||
+          text.includes("volume") ||
+          text.includes("traction")))
     );
   },
 
@@ -123,10 +200,12 @@ export const vinceHlCryptoAction: Action = {
     message: Memory,
     _state: State,
     _options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const hlService = getOrCreateHyperliquidService(runtime) as IHyperliquidService | null;
+      const hlService = getOrCreateHyperliquidService(
+        runtime,
+      ) as IHyperliquidService | null;
       if (!hlService || typeof hlService.getAllCryptoPulse !== "function") {
         await callback({
           text: "Hyperliquid crypto pulse isn't available. Services might still be starting.",

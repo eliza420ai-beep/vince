@@ -34,7 +34,9 @@ export class VinceMeteoraService extends Service {
       try {
         await service.initialize();
       } catch (error) {
-        logger.warn(`[VinceMeteora] Initialization error (service still available): ${error}`);
+        logger.warn(
+          `[VinceMeteora] Initialization error (service still available): ${error}`,
+        );
       }
     }
     if (isVinceAgent(runtime)) {
@@ -65,7 +67,9 @@ export class VinceMeteoraService extends Service {
         const tvlStr = `$${(pool.tvl / 1e6).toFixed(1)}M`;
         const apyPct = (pool.apy * 100).toFixed(1);
         const binStr = pool.binWidth ? `${pool.binWidth}bp` : "";
-        logLine(`   ${pool.tokenA}/${pool.tokenB} │ ${tvlStr} TVL │ ${apyPct}% APY ${binStr}`);
+        logLine(
+          `   ${pool.tokenA}/${pool.tokenB} │ ${tvlStr} TVL │ ${apyPct}% APY ${binStr}`,
+        );
       }
     } else {
       logLine("   Loading pools...");
@@ -74,8 +78,12 @@ export class VinceMeteoraService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("HOT") || tldr.includes("OPPORTUNITY") ? "💡" :
-                      tldr.includes("CAUTION") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("HOT") || tldr.includes("OPPORTUNITY")
+        ? "💡"
+        : tldr.includes("CAUTION")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
   }
@@ -86,23 +94,24 @@ export class VinceMeteoraService extends Service {
   getTLDR(): string {
     const memeOpps = this.getMemePoolOpportunities();
     const topPools = this.getTopPools(5);
-    
+
     // Priority 1: Meme pool opportunities (high activity)
     if (memeOpps.length > 0) {
       const best = memeOpps[0];
       return `HOT POOL: ${best.tokenA}/${best.tokenB} high volume - check for LP entry`;
     }
-    
+
     // Priority 2: Top TVL pools activity
     if (topPools.length > 0) {
       const top = topPools[0];
       const totalTvl = topPools.reduce((sum, p) => sum + p.tvl, 0);
-      if (totalTvl > 100e6) { // $100M+ total TVL across top pools
+      if (totalTvl > 100e6) {
+        // $100M+ total TVL across top pools
         return `DEEP LIQUIDITY: $${(totalTvl / 1e6).toFixed(0)}M in top pools - stable LPing`;
       }
       return `TOP POOL: ${top.tokenA}/${top.tokenB} $${(top.tvl / 1e6).toFixed(1)}M TVL`;
     }
-    
+
     // Default
     return "LP QUIET: Low activity, monitor for opportunities";
   }
@@ -143,10 +152,12 @@ export class VinceMeteoraService extends Service {
       // Process top pools by TVL (with volume and APY filters)
       const MIN_VOLUME_24H = 100000; // $100k minimum daily volume
       const MIN_APY = 0.05; // 5% minimum APY
-      
+
       const sortedPools = data
         .filter((p: any) => p.liquidity > 10000) // Min $10k TVL
-        .filter((p: any) => parseFloat(p.trade_volume_24h || 0) > MIN_VOLUME_24H) // Min $100k volume
+        .filter(
+          (p: any) => parseFloat(p.trade_volume_24h || 0) > MIN_VOLUME_24H,
+        ) // Min $100k volume
         .filter((p: any) => parseFloat(p.apr || 0) >= MIN_APY) // Min 5% APY
         .sort((a: any, b: any) => (b.liquidity || 0) - (a.liquidity || 0))
         .slice(0, 50);
@@ -171,7 +182,6 @@ export class VinceMeteoraService extends Service {
       this.topPools = Array.from(this.poolCache.values())
         .sort((a, b) => b.tvl - a.tvl)
         .slice(0, 20);
-
     } catch (error) {
       logger.debug(`[VinceMeteora] Pool fetch error: ${error}`);
     }
@@ -202,7 +212,7 @@ export class VinceMeteoraService extends Service {
   async findPoolForToken(tokenMint: string): Promise<MeteoraPool | null> {
     try {
       const res = await fetch(
-        `https://dlmm-api.meteora.ag/pair/all_by_groups?token_mints=${tokenMint}`
+        `https://dlmm-api.meteora.ag/pair/all_by_groups?token_mints=${tokenMint}`,
       );
 
       if (!res.ok) return null;
@@ -223,7 +233,6 @@ export class VinceMeteoraService extends Service {
         hasLp: true,
         timestamp: Date.now(),
       };
-
     } catch (error) {
       logger.debug(`[VinceMeteora] Token pool search error: ${error}`);
       return null;
@@ -242,14 +251,14 @@ export class VinceMeteoraService extends Service {
    * Get pools with high APY
    */
   getHighApyPools(minApy: number = 50): MeteoraPool[] {
-    return this.topPools.filter(p => p.apy >= minApy);
+    return this.topPools.filter((p) => p.apy >= minApy);
   }
 
   /**
    * Get pools for memecoins (high volume relative to TVL)
    */
   getMemePoolOpportunities(): MeteoraPool[] {
-    return this.topPools.filter(p => {
+    return this.topPools.filter((p) => {
       const volumeTvlRatio = p.volume24h / (p.tvl || 1);
       return volumeTvlRatio > 0.5; // High trading activity
     });

@@ -1,9 +1,9 @@
 /**
  * EXAMPLE USAGE OF THE MODAL SYSTEM
- * 
+ *
  * This file shows how to use the new modal system (useModal hook)
  * instead of using createPortal directly.
- * 
+ *
  * Benefits:
  * - No need to manage isOpen/onClose state manually
  * - No need to use createPortal
@@ -12,17 +12,17 @@
  * - Similar pattern to LoadingPanel
  */
 
-import { useModal } from '@/frontend/contexts/ModalContext';
-import { Button } from './button';
-import { Input } from './input';
-import { useState } from 'react';
+import { useModal } from "@/frontend/contexts/ModalContext";
+import { Button } from "./button";
+import { Input } from "./input";
+import { useState } from "react";
 
 // ============================================
 // EXAMPLE 1: Simple Content Modal
 // ============================================
 export function ExampleSimpleModal() {
   const { showModal, hideModal } = useModal();
-  const modalId = 'simple-modal';
+  const modalId = "simple-modal";
 
   const handleOpenModal = () => {
     showModal(
@@ -31,24 +31,18 @@ export function ExampleSimpleModal() {
         <p className="text-muted-foreground">
           This is a simple modal without using createPortal!
         </p>
-        <Button onClick={() => hideModal(modalId)}>
-          Close
-        </Button>
+        <Button onClick={() => hideModal(modalId)}>Close</Button>
       </div>,
       modalId,
       {
         closeOnBackdropClick: true,
         closeOnEsc: true,
         showCloseButton: true,
-      }
+      },
     );
   };
 
-  return (
-    <Button onClick={handleOpenModal}>
-      Open Simple Modal
-    </Button>
-  );
+  return <Button onClick={handleOpenModal}>Open Simple Modal</Button>;
 }
 
 // ============================================
@@ -56,16 +50,16 @@ export function ExampleSimpleModal() {
 // ============================================
 export function ExampleFormModal() {
   const { showModal, hideModal } = useModal();
-  const modalId = 'form-modal';
+  const modalId = "form-modal";
 
   const handleOpenFormModal = () => {
     // You can define the form content inline or as a separate component
     const FormContent = () => {
-      const [name, setName] = useState('');
-      const [email, setEmail] = useState('');
+      const [name, setName] = useState("");
+      const [email, setEmail] = useState("");
 
       const handleSubmit = () => {
-        console.log('Form submitted:', { name, email });
+        console.log("Form submitted:", { name, email });
         // Do something with the data
         hideModal(modalId);
       };
@@ -116,22 +110,14 @@ export function ExampleFormModal() {
       );
     };
 
-    showModal(
-      <FormContent />,
-      modalId,
-      {
-        closeOnBackdropClick: false, // Don't close on backdrop click for forms
-        closeOnEsc: true,
-        showCloseButton: true,
-      }
-    );
+    showModal(<FormContent />, modalId, {
+      closeOnBackdropClick: false, // Don't close on backdrop click for forms
+      closeOnEsc: true,
+      showCloseButton: true,
+    });
   };
 
-  return (
-    <Button onClick={handleOpenFormModal}>
-      Open Form Modal
-    </Button>
-  );
+  return <Button onClick={handleOpenFormModal}>Open Form Modal</Button>;
 }
 
 // ============================================
@@ -139,7 +125,7 @@ export function ExampleFormModal() {
 // ============================================
 export function ExampleConfirmationModal() {
   const { showModal, hideModal } = useModal();
-  const modalId = 'confirm-modal';
+  const modalId = "confirm-modal";
 
   const handleDeleteAction = () => {
     showModal(
@@ -148,7 +134,8 @@ export function ExampleConfirmationModal() {
           Confirm Delete
         </h3>
         <p className="text-muted-foreground">
-          Are you sure you want to delete this item? This action cannot be undone.
+          Are you sure you want to delete this item? This action cannot be
+          undone.
         </p>
         <div className="flex gap-2">
           <Button
@@ -160,7 +147,7 @@ export function ExampleConfirmationModal() {
           </Button>
           <Button
             onClick={() => {
-              console.log('Item deleted!');
+              console.log("Item deleted!");
               hideModal(modalId);
             }}
             variant="destructive"
@@ -175,7 +162,7 @@ export function ExampleConfirmationModal() {
         closeOnBackdropClick: true,
         closeOnEsc: true,
         showCloseButton: false, // Hide close button for confirmation modals
-      }
+      },
     );
   };
 
@@ -191,7 +178,7 @@ export function ExampleConfirmationModal() {
 // ============================================
 export function ExampleCustomStyledModal() {
   const { showModal, hideModal } = useModal();
-  const modalId = 'custom-modal';
+  const modalId = "custom-modal";
 
   const handleOpenCustomModal = () => {
     showModal(
@@ -200,24 +187,20 @@ export function ExampleCustomStyledModal() {
         <p className="text-muted-foreground">
           This modal has custom width and styling!
         </p>
-        <Button onClick={() => hideModal(modalId)}>
-          Close
-        </Button>
+        <Button onClick={() => hideModal(modalId)}>Close</Button>
       </div>,
       modalId,
       {
         closeOnBackdropClick: true,
         closeOnEsc: true,
         showCloseButton: true,
-        className: 'max-w-2xl', // Custom width
-      }
+        className: "max-w-2xl", // Custom width
+      },
     );
   };
 
   return (
-    <Button onClick={handleOpenCustomModal}>
-      Open Custom Styled Modal
-    </Button>
+    <Button onClick={handleOpenCustomModal}>Open Custom Styled Modal</Button>
   );
 }
 
@@ -227,12 +210,12 @@ export function ExampleCustomStyledModal() {
 
 /**
  * HOW TO CONVERT YOUR EXISTING MODALS:
- * 
+ *
  * OLD WAY (with createPortal):
  * ```tsx
  * export function SendModal({ isOpen, onClose, tokens, userId }: SendModalProps) {
  *   if (!isOpen) return null;
- *   
+ *
  *   return createPortal(
  *     <div className="fixed inset-0 z-[100]...">
  *       // Modal content here
@@ -240,23 +223,23 @@ export function ExampleCustomStyledModal() {
  *     document.body
  *   );
  * }
- * 
+ *
  * // Usage:
  * const [isModalOpen, setIsModalOpen] = useState(false);
  * <SendModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
  * ```
- * 
+ *
  * NEW WAY (with useModal):
  * ```tsx
  * // 1. Create a component for the modal content (no isOpen/onClose props needed)
  * function SendModalContent({ tokens, userId, onSuccess }: { tokens: Token[], userId: string, onSuccess: () => void }) {
  *   const { hideModal } = useModal();
  *   const modalId = 'send-modal';
- *   
+ *
  *   const handleClose = () => {
  *     hideModal(modalId);
  *   };
- *   
+ *
  *   return (
  *     <div className="space-y-4">
  *       // Your modal content here (without the portal/backdrop wrapper)
@@ -264,15 +247,15 @@ export function ExampleCustomStyledModal() {
  *     </div>
  *   );
  * }
- * 
+ *
  * // 2. In your component where you want to open the modal:
  * function MyComponent() {
  *   const { showModal } = useModal();
- *   
+ *
  *   const handleOpenSendModal = () => {
  *     showModal(
- *       <SendModalContent 
- *         tokens={tokens} 
+ *       <SendModalContent
+ *         tokens={tokens}
  *         userId={userId}
  *         onSuccess={handleSuccess}
  *       />,
@@ -280,11 +263,11 @@ export function ExampleCustomStyledModal() {
  *       { closeOnBackdropClick: true }
  *     );
  *   };
- *   
+ *
  *   return <Button onClick={handleOpenSendModal}>Send</Button>;
  * }
  * ```
- * 
+ *
  * BENEFITS:
  * - No need to manage isOpen state
  * - No need to import createPortal
@@ -298,7 +281,7 @@ export function ModalExamplesDemo() {
   return (
     <div className="p-8 space-y-4">
       <h2 className="text-2xl font-bold mb-6">Modal System Examples</h2>
-      
+
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Simple Modal</h3>
         <ExampleSimpleModal />
@@ -321,4 +304,3 @@ export function ModalExamplesDemo() {
     </div>
   );
 }
-

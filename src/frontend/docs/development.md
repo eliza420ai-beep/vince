@@ -36,6 +36,7 @@ Must export: `Action` object with `{ name, description, parameters, validate, ha
 **See guide**: `docs/plugin-actions.md`
 
 **See examples**:
+
 - `src/plugins/plugin-cdp/src/actions/cdp-wallet-swap.ts`
 - `src/plugins/plugin-web-search/src/actions/webSearch.ts`
 
@@ -44,7 +45,7 @@ Must export: `Action` object with `{ name, description, parameters, validate, ha
 File: `src/index.ts`
 
 ```typescript
-import myPlugin from './plugins/plugin-name/src/index.ts';
+import myPlugin from "./plugins/plugin-name/src/index.ts";
 
 export const projectAgent: ProjectAgent = {
   character,
@@ -52,7 +53,7 @@ export const projectAgent: ProjectAgent = {
     sqlPlugin,
     bootstrapPlugin,
     openaiPlugin,
-    myPlugin,  // Add here
+    myPlugin, // Add here
     // ... more plugins
   ],
 };
@@ -73,6 +74,7 @@ bun run build:backend
 File: `src/plugins/plugin-name/src/actions/my-action.ts`
 
 **Pattern**:
+
 - Import `Action` from `@elizaos/core`
 - Define params interface
 - Export action object with name, description, parameters, validate, handler
@@ -86,8 +88,9 @@ File: `src/plugins/plugin-name/src/actions/my-action.ts`
 File: `src/plugins/plugin-name/src/index.ts`
 
 Add to `actions` array:
+
 ```typescript
-actions: [existingAction1, existingAction2, myAction]
+actions: [existingAction1, existingAction2, myAction];
 ```
 
 ### 3. Rebuild
@@ -99,34 +102,42 @@ bun run build:backend
 ## Action Handler Pattern
 
 **Retrieve Parameters**:
+
 ```typescript
-const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
+const composedState = await runtime.composeState(
+  message,
+  ["ACTION_STATE"],
+  true,
+);
 const params = composedState?.data?.actionParams || {};
 ```
 
 **Validate Required Params**:
+
 ```typescript
 if (!params.requiredParam) {
   return {
     text: "Missing required parameter 'requiredParam'",
     success: false,
-    error: "missing_required_parameter"
+    error: "missing_required_parameter",
   };
 }
 ```
 
 **Extract with Defaults**:
+
 ```typescript
 const param1 = params.param1?.trim();
 const param2 = params.param2 || "default_value";
 ```
 
 **Return Result**:
+
 ```typescript
 return {
   text: "Action completed successfully",
   success: true,
-  values: { outputData }
+  values: { outputData },
 };
 ```
 
@@ -135,6 +146,7 @@ return {
 File: `src/character.ts`
 
 **Key Sections**:
+
 - `system` - Core behavior prompt
 - `bio` - Agent description
 - `topics` - Areas of expertise
@@ -153,6 +165,7 @@ File: `src/character.ts`
 Files: `src/frontend/`
 
 **Key Files**:
+
 - `App.tsx` - Main app with routing
 - `components/` - React components
 - `contexts/` - React contexts
@@ -178,11 +191,13 @@ Server serves frontend from `dist/frontend/`
 ## WebSocket Message Flow
 
 **Send Message** (type: 2):
+
 ```typescript
 socketManager.sendMessage(channelId, text, serverId, metadata);
 ```
 
 **Receive Message** (type: 3):
+
 ```typescript
 socketManager.onMessage((data) => {
   if (data.type === SOCKET_MESSAGE_TYPE.MESSAGE) {
@@ -192,6 +207,7 @@ socketManager.onMessage((data) => {
 ```
 
 **Join Channel** (type: 1):
+
 ```typescript
 socketManager.joinChannel(channelId, serverId, metadata);
 ```
@@ -247,12 +263,14 @@ bun run type-check
 **Reference**: `.env.sample` (canonical source)
 
 **Required**:
+
 - `JWT_SECRET`
 - `OPENAI_API_KEY` or `OPENROUTER_API_KEY`
 - `VITE_CDP_PROJECT_ID`, `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET`, `CDP_WALLET_SECRET`
 - `ALCHEMY_API_KEY`
 
 **Optional**:
+
 - Plugin API keys (Tavily, CoinGecko, Nansen, etc.)
 - RPC overrides
 - Database config
@@ -261,23 +279,27 @@ bun run type-check
 ## Common Mistakes
 
 **Action not available to LLM**:
+
 - Check `validate` function returns `true`
 - Verify plugin registered in `src/index.ts`
 - Check plugin order (services before actions)
 - Rebuild backend
 
 **Parameters not reaching action**:
+
 - Check LLM generated `<parameters>` in XML
 - Verify param names match schema (case-sensitive)
 - Check state contains `actionParams`
 - Add logging: `console.log(params)` in handler
 
 **Frontend not updating**:
+
 - Rebuild frontend: `bun run build:frontend`
 - Restart server: `bun run start`
 - Server doesn't hot-reload
 
 **Build failures**:
+
 - Clean: `rm -rf dist node_modules`
 - Reinstall: `bun install`
 - Rebuild: `bun run build`

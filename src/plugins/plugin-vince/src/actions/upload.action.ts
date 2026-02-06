@@ -32,7 +32,14 @@
  * - Falls back to simple file storage if plugin-knowledge-ingestion is not available
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback, UUID } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+  UUID,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { spawn } from "child_process";
 import { isElizaAgent } from "../utils/dashboard";
@@ -95,7 +102,7 @@ const YOUTUBE_PATTERNS = [
  * Check if text contains a YouTube URL
  */
 function containsYouTubeUrl(text: string): boolean {
-  return YOUTUBE_PATTERNS.some(pattern => pattern.test(text));
+  return YOUTUBE_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 /**
@@ -106,7 +113,7 @@ function extractYouTubeUrl(text: string): string | null {
     /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=[\w-]+)/i,
     /(https?:\/\/)?(youtu\.be\/[\w-]+)/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match) {
@@ -140,16 +147,31 @@ function extractSingleUrl(text: string): string | null {
 }
 
 /** Allowed summary length presets (summarize --length). */
-const SUMMARY_LENGTH_PRESETS = ["short", "medium", "long", "xl", "xxl"] as const;
+const SUMMARY_LENGTH_PRESETS = [
+  "short",
+  "medium",
+  "long",
+  "xl",
+  "xxl",
+] as const;
 
 /** Resolve summarize CLI: use local node_modules/.bin/summarize if present, else bunx. */
-function getSummarizeCommand(cliArgs: string[]): { command: string; args: string[] } {
+function getSummarizeCommand(cliArgs: string[]): {
+  command: string;
+  args: string[];
+} {
   const cwd = process.cwd();
   const binDir = path.join(cwd, "node_modules", ".bin");
   const localBin = path.join(binDir, "summarize");
   const localBinWin = path.join(binDir, "summarize.cmd");
-  if (fs.existsSync(localBin) || (process.platform === "win32" && fs.existsSync(localBinWin))) {
-    const cmd = process.platform === "win32" && fs.existsSync(localBinWin) ? localBinWin : localBin;
+  if (
+    fs.existsSync(localBin) ||
+    (process.platform === "win32" && fs.existsSync(localBinWin))
+  ) {
+    const cmd =
+      process.platform === "win32" && fs.existsSync(localBinWin)
+        ? localBinWin
+        : localBin;
     return { command: cmd, args: cliArgs };
   }
   return { command: "bunx", args: ["@steipete/summarize", ...cliArgs] };
@@ -175,17 +197,34 @@ type SummarizeResult =
  */
 async function runSummarizeCli(
   url: string,
-  options: { isYouTube?: boolean; timeoutMs?: number; extractOnly?: boolean } = {}
+  options: {
+    isYouTube?: boolean;
+    timeoutMs?: number;
+    extractOnly?: boolean;
+  } = {},
 ): Promise<SummarizeResult | null> {
   const { isYouTube = false, extractOnly } = options;
-  const useExtractOnly = extractOnly ?? (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" || process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
-  const youtubeSlides = isYouTube && (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
-  const lengthEnv = (process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "long").toLowerCase();
-  const length = SUMMARY_LENGTH_PRESETS.includes(lengthEnv as (typeof SUMMARY_LENGTH_PRESETS)[number]) ? lengthEnv : "long";
+  const useExtractOnly =
+    extractOnly ??
+    (process.env.VINCE_UPLOAD_EXTRACT_ONLY === "true" ||
+      process.env.VINCE_UPLOAD_EXTRACT_ONLY === "1");
+  const youtubeSlides =
+    isYouTube &&
+    (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "true" ||
+      process.env.VINCE_UPLOAD_YOUTUBE_SLIDES === "1");
+  const lengthEnv = (
+    process.env.VINCE_UPLOAD_SUMMARY_LENGTH ?? "long"
+  ).toLowerCase();
+  const length = SUMMARY_LENGTH_PRESETS.includes(
+    lengthEnv as (typeof SUMMARY_LENGTH_PRESETS)[number],
+  )
+    ? lengthEnv
+    : "long";
   let timeoutMs = isYouTube ? 120_000 : 90_000;
   if (youtubeSlides) timeoutMs = 180_000;
   const timeoutSec = Math.ceil(timeoutMs / 1000) + 30;
-  const timeoutArg = timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
+  const timeoutArg =
+    timeoutSec >= 60 ? `${Math.ceil(timeoutSec / 60)}m` : `${timeoutSec}s`;
 
   const cliArgs = [url, "--plain", "--no-color", "--timeout", timeoutArg];
   if (useExtractOnly) {
@@ -199,7 +238,10 @@ async function runSummarizeCli(
   }
   if (youtubeSlides) {
     cliArgs.push("--slides", "--slides-dir", "./knowledge/.slides");
-    if (process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "true" || process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "1") {
+    if (
+      process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "true" ||
+      process.env.VINCE_UPLOAD_YOUTUBE_SLIDES_OCR === "1"
+    ) {
       cliArgs.push("--slides-ocr");
     }
   }
@@ -210,7 +252,8 @@ async function runSummarizeCli(
   const lang = process.env.VINCE_UPLOAD_LANG?.trim();
   if (lang) cliArgs.push("--lang", lang);
 
-  const { command: summarizeCommand, args: summarizeArgs } = getSummarizeCommand(cliArgs);
+  const { command: summarizeCommand, args: summarizeArgs } =
+    getSummarizeCommand(cliArgs);
 
   const runOne = (): Promise<SummarizeResult | null> =>
     new Promise((resolve) => {
@@ -228,28 +271,46 @@ async function runSummarizeCli(
       });
       const timer = setTimeout(() => {
         child.kill("SIGTERM");
-        logger.warn({ url, isYouTube, timeoutMs }, "[VINCE_UPLOAD] summarize CLI timed out");
+        logger.warn(
+          { url, isYouTube, timeoutMs },
+          "[VINCE_UPLOAD] summarize CLI timed out",
+        );
         resolve({ error: "Timed out", stderr: stderr.slice(0, 300) });
       }, timeoutMs);
       child.on("close", (code) => {
         clearTimeout(timer);
         if (code !== 0) {
-          logger.debug({ code, stderr: stderr.slice(0, 500) }, "[VINCE_UPLOAD] summarize CLI exited non-zero");
-          resolve({ error: "Summarize failed", stderr: stderr.trim().slice(0, 300) });
+          logger.debug(
+            { code, stderr: stderr.slice(0, 500) },
+            "[VINCE_UPLOAD] summarize CLI exited non-zero",
+          );
+          resolve({
+            error: "Summarize failed",
+            stderr: stderr.trim().slice(0, 300),
+          });
           return;
         }
         const content = stdout.trim();
         if (content.length < MIN_TEXT_LENGTH) {
           logger.debug("[VINCE_UPLOAD] summarize returned too little content");
-          resolve({ error: "Too little content", stderr: stderr.trim().slice(0, 200) });
+          resolve({
+            error: "Too little content",
+            stderr: stderr.trim().slice(0, 200),
+          });
           return;
         }
         resolve({ content, sourceUrl: url });
       });
       child.on("error", (err) => {
         clearTimeout(timer);
-        logger.debug({ err: String(err) }, "[VINCE_UPLOAD] summarize CLI spawn error");
-        resolve({ error: String(err), stderr: (err as Error).message?.slice(0, 200) });
+        logger.debug(
+          { err: String(err) },
+          "[VINCE_UPLOAD] summarize CLI spawn error",
+        );
+        resolve({
+          error: String(err),
+          stderr: (err as Error).message?.slice(0, 200),
+        });
       });
     });
 
@@ -266,7 +327,7 @@ async function runSummarizeCli(
  */
 function hasUploadIntent(text: string): boolean {
   const lowerText = text.toLowerCase();
-  return UPLOAD_INTENT_KEYWORDS.some(kw => lowerText.includes(kw));
+  return UPLOAD_INTENT_KEYWORDS.some((kw) => lowerText.includes(kw));
 }
 
 /**
@@ -290,13 +351,13 @@ function looksPastedNotConversational(text: string): boolean {
 
   // Pasted content signals
   const pastedSignals = [
-    /^#+ /m,          // Markdown headers
-    /^[-*•] /m,       // Bullet points
-    /^\d+\.\s/m,      // Numbered lists
+    /^#+ /m, // Markdown headers
+    /^[-*•] /m, // Bullet points
+    /^\d+\.\s/m, // Numbered lists
     /^[A-Z][A-Z0-9_]+[.:=]/m, // ALL_CAPS labels
-    /^```/m,          // Code blocks
-    /\n[-*•] /m,      // Multiple bullet points
-    /^>\s/m,          // Blockquotes
+    /^```/m, // Code blocks
+    /\n[-*•] /m, // Multiple bullet points
+    /^>\s/m, // Blockquotes
   ];
 
   for (const pattern of pastedSignals) {
@@ -345,9 +406,12 @@ async function getRecentUserMessagesContent(
   runtime: IAgentRuntime,
   roomId: UUID,
   currentMessageId: string | undefined,
-  options: { minLength?: number; maxMessages?: number } = {}
+  options: { minLength?: number; maxMessages?: number } = {},
 ): Promise<string | null> {
-  const { minLength = MIN_TEXT_LENGTH, maxMessages = MAX_RECENT_USER_MESSAGES_TO_COMBINE } = options;
+  const {
+    minLength = MIN_TEXT_LENGTH,
+    maxMessages = MAX_RECENT_USER_MESSAGES_TO_COMBINE,
+  } = options;
   try {
     const memories = await runtime.getMemories({
       roomId,
@@ -355,7 +419,9 @@ async function getRecentUserMessagesContent(
       tableName: "messages",
     });
     const userMessages = memories.filter((m) => m.entityId !== runtime.agentId);
-    const byNewest = [...userMessages].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    const byNewest = [...userMessages].sort(
+      (a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0),
+    );
     let startIdx = 0;
     if (currentMessageId) {
       const idx = byNewest.findIndex((m) => m.id === currentMessageId);
@@ -380,9 +446,8 @@ async function getRecentUserMessagesContent(
  */
 function generateTitle(content: string): string {
   const firstLine = content.split("\n")[0].trim();
-  const title = firstLine.length > 100 
-    ? firstLine.slice(0, 100) + "..." 
-    : firstLine;
+  const title =
+    firstLine.length > 100 ? firstLine.slice(0, 100) + "..." : firstLine;
   return title || "Untitled Knowledge";
 }
 
@@ -408,45 +473,93 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
   }
 
   // Trading & Markets
-  if (lowerContent.includes("perp") || lowerContent.includes("funding") || lowerContent.includes("liquidat")) {
+  if (
+    lowerContent.includes("perp") ||
+    lowerContent.includes("funding") ||
+    lowerContent.includes("liquidat")
+  ) {
     return "perps-trading";
   }
-  if (lowerContent.includes("option") || lowerContent.includes("strike") || lowerContent.includes("delta") || lowerContent.includes("covered call")) {
+  if (
+    lowerContent.includes("option") ||
+    lowerContent.includes("strike") ||
+    lowerContent.includes("delta") ||
+    lowerContent.includes("covered call")
+  ) {
     return "options";
   }
-  if (lowerContent.includes("defi") || lowerContent.includes("tvl") || lowerContent.includes("yield")) {
+  if (
+    lowerContent.includes("defi") ||
+    lowerContent.includes("tvl") ||
+    lowerContent.includes("yield")
+  ) {
     return "defi-metrics";
   }
-  if (lowerContent.includes("airdrop") || lowerContent.includes("farm") || lowerContent.includes("memecoin") || lowerContent.includes("pump.fun")) {
+  if (
+    lowerContent.includes("airdrop") ||
+    lowerContent.includes("farm") ||
+    lowerContent.includes("memecoin") ||
+    lowerContent.includes("pump.fun")
+  ) {
     return "grinding-the-trenches";
   }
-  
+
   // Assets
-  if (lowerContent.includes("bitcoin") || lowerContent.includes("btc") || lowerContent.includes("halving")) {
+  if (
+    lowerContent.includes("bitcoin") ||
+    lowerContent.includes("btc") ||
+    lowerContent.includes("halving")
+  ) {
     return "bitcoin-maxi";
   }
-  if (lowerContent.includes("solana") || lowerContent.includes("sol ") || lowerContent.includes("spl token")) {
+  if (
+    lowerContent.includes("solana") ||
+    lowerContent.includes("sol ") ||
+    lowerContent.includes("spl token")
+  ) {
     return "solana";
   }
-  if (lowerContent.includes("altcoin") || lowerContent.includes("eth ") || lowerContent.includes("ethereum")) {
+  if (
+    lowerContent.includes("altcoin") ||
+    lowerContent.includes("eth ") ||
+    lowerContent.includes("ethereum")
+  ) {
     return "altcoins";
   }
-  
+
   // Macro & Investment
-  if (lowerContent.includes("macro") || lowerContent.includes("fed") || lowerContent.includes("inflation") || lowerContent.includes("interest rate")) {
+  if (
+    lowerContent.includes("macro") ||
+    lowerContent.includes("fed") ||
+    lowerContent.includes("inflation") ||
+    lowerContent.includes("interest rate")
+  ) {
     return "macro-economy";
   }
-  if (lowerContent.includes("venture") || lowerContent.includes("vc ") || lowerContent.includes("fundrais")) {
+  if (
+    lowerContent.includes("venture") ||
+    lowerContent.includes("vc ") ||
+    lowerContent.includes("fundrais")
+  ) {
     return "venture-capital";
   }
-  
+
   // Technical & Tools
-  if (lowerContent.includes("setup") || lowerContent.includes("install") || lowerContent.includes("config")) {
+  if (
+    lowerContent.includes("setup") ||
+    lowerContent.includes("install") ||
+    lowerContent.includes("config")
+  ) {
     return "setup-guides";
   }
-  
+
   // Content
-  if (lowerContent.includes("lifestyle") || lowerContent.includes("travel") || lowerContent.includes("hotel") || lowerContent.includes("restaurant")) {
+  if (
+    lowerContent.includes("lifestyle") ||
+    lowerContent.includes("travel") ||
+    lowerContent.includes("hotel") ||
+    lowerContent.includes("restaurant")
+  ) {
     return "the-good-life";
   }
   // Framework / philosophy / essay-style synthesis (before art so "The Art of X" books don't hit art-collections)
@@ -459,7 +572,10 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
     lowerContent.includes("taleb") ||
     lowerContent.includes("bostrom") ||
     lowerContent.includes("decision-making") ||
-    (lowerContent.includes("philosophy") && (lowerContent.includes("trading") || lowerContent.includes("investment") || lowerContent.includes("economics")))
+    (lowerContent.includes("philosophy") &&
+      (lowerContent.includes("trading") ||
+        lowerContent.includes("investment") ||
+        lowerContent.includes("economics")))
   ) {
     return "substack-essays";
   }
@@ -472,7 +588,8 @@ function detectSimpleCategory(content: string): KnowledgeCategory {
     lowerContent.includes("generative art") ||
     lowerContent.includes("physical art") ||
     lowerContent.includes("art market") ||
-    (lowerContent.includes("collect") && (lowerContent.includes("art") || lowerContent.includes("nft")));
+    (lowerContent.includes("collect") &&
+      (lowerContent.includes("art") || lowerContent.includes("nft")));
   if (artLike) {
     return "art-collections";
   }
@@ -488,7 +605,7 @@ async function simpleFallbackStorage(
   content: string,
   title: string,
   timestamp: number,
-  opts?: { sourceUrl?: string; ingestedWith?: string }
+  opts?: { sourceUrl?: string; ingestedWith?: string },
 ): Promise<IKnowledgeGenerationResult> {
   try {
     const sourceUrl = opts?.sourceUrl ?? `chat://vince-upload/${timestamp}`;
@@ -515,7 +632,7 @@ async function simpleFallbackStorage(
     }
 
     // Calculate word count
-    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+    const wordCount = content.split(/\s+/).filter((w) => w.length > 0).length;
 
     // Generate markdown content (structure aligns with knowledge/README.md and KNOWLEDGE-USAGE-GUIDELINES.md)
     const knowledgeNote = `> **Knowledge base note:** Numbers and metrics here are illustrative from the source; use for methodologies and frameworks, not as current data. For live data use actions/APIs.`;
@@ -540,12 +657,15 @@ ${knowledgeNote}
 
 ${content}
 `;
-    
+
     // Write file
     fs.writeFileSync(filepath, markdownContent, "utf-8");
-    
-    logger.info({ filepath, category, wordCount }, "[VINCE_UPLOAD] Fallback storage: File saved");
-    
+
+    logger.info(
+      { filepath, category, wordCount },
+      "[VINCE_UPLOAD] Fallback storage: File saved",
+    );
+
     return {
       success: true,
       file: {
@@ -574,22 +694,29 @@ ${content}
 /**
  * Try to dynamically load KnowledgeFileService from plugin-knowledge-ingestion
  */
-async function tryLoadKnowledgeFileService(runtime: IAgentRuntime): Promise<IKnowledgeFileService | null> {
+async function tryLoadKnowledgeFileService(
+  runtime: IAgentRuntime,
+): Promise<IKnowledgeFileService | null> {
   try {
     // Try dynamic import - this will fail gracefully if plugin is not installed
     // Using variable path to prevent TypeScript from checking the module at compile time
-    const modulePath = "../../../../plugin-knowledge-ingestion/src/services/knowledge-file.service";
+    const modulePath =
+      "../../../../plugin-knowledge-ingestion/src/services/knowledge-file.service";
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const module = await import(/* @vite-ignore */ modulePath);
     if (module?.KnowledgeFileService) {
       const service = new module.KnowledgeFileService(runtime);
       await service.initialize(runtime);
-      logger.debug("[VINCE_UPLOAD] KnowledgeFileService loaded from plugin-knowledge-ingestion");
+      logger.debug(
+        "[VINCE_UPLOAD] KnowledgeFileService loaded from plugin-knowledge-ingestion",
+      );
       return service as IKnowledgeFileService;
     }
   } catch (e) {
     // Expected when plugin is not installed - fall back to simple storage
-    logger.debug("[VINCE_UPLOAD] plugin-knowledge-ingestion not available, using fallback storage");
+    logger.debug(
+      "[VINCE_UPLOAD] plugin-knowledge-ingestion not available, using fallback storage",
+    );
   }
   return null;
 }
@@ -613,33 +740,39 @@ TRIGGERS:
 
 Use this action whenever you want to add long-form research to knowledge/.`,
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text || "";
-    
+
     // Skip agent's own messages
     if (message.entityId === runtime.agentId) {
       return false;
     }
 
-    // Skip if too short
-    if (text.length < MIN_TEXT_LENGTH) {
-      return false;
-    }
-
-    // Priority 1: Explicit upload intent keywords
-    if (hasUploadIntent(text)) {
-      logger.info("[VINCE_UPLOAD] Upload intent detected");
-      return true;
-    }
-
-    // Priority 2: YouTube URL
+    // Priority 1: Standalone or prominent YouTube URL (allow even if short)
     if (containsYouTubeUrl(text)) {
       logger.info("[VINCE_UPLOAD] YouTube URL detected");
       return true;
     }
 
+    // Skip if too short for other content (including upload-intent-only like "upload")
+    if (text.length < MIN_TEXT_LENGTH) {
+      return false;
+    }
+
+    // Priority 2: Explicit upload intent keywords
+    if (hasUploadIntent(text)) {
+      logger.info("[VINCE_UPLOAD] Upload intent detected");
+      return true;
+    }
+
     // Priority 3: Long pasted content (non-conversational)
-    if (text.length >= AUTO_INGEST_LENGTH && looksPastedNotConversational(text)) {
+    if (
+      text.length >= AUTO_INGEST_LENGTH &&
+      looksPastedNotConversational(text)
+    ) {
       logger.info("[VINCE_UPLOAD] Long pasted content detected");
       return true;
     }
@@ -653,8 +786,10 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         /^(yes|no|yeah|nope|sure|exactly|agreed|right|true|absolutely)/i,
         /\?$/,
       ];
-      
-      const isConversational = conversationalStart.some(p => p.test(firstLine.trim()));
+
+      const isConversational = conversationalStart.some((p) =>
+        p.test(firstLine.trim()),
+      );
       if (!isConversational) {
         logger.info("[VINCE_UPLOAD] Long dump detected");
         return true;
@@ -669,7 +804,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
     message: Memory,
     state?: State,
     options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ): Promise<void> => {
     const text = message.content?.text || "";
     const startTime = Date.now();
@@ -684,15 +819,23 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             actions: ["VINCE_UPLOAD"],
           });
         }
-        const summarized = await runSummarizeCli(youtubeUrl, { isYouTube: true });
+        const summarized = await runSummarizeCli(youtubeUrl, {
+          isYouTube: true,
+        });
         if (summarized && "content" in summarized) {
           const timestamp = Date.now();
           const title = generateTitle(summarized.content);
           const knowledgeService = await tryLoadKnowledgeFileService(runtime);
           const fileResult = knowledgeService
             ? await (async () => {
-                const category = await knowledgeService.categorizeContent(summarized.content, "article");
-                const slugTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50);
+                const category = await knowledgeService.categorizeContent(
+                  summarized.content,
+                  "article",
+                );
+                const slugTitle = title
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .slice(0, 50);
                 return knowledgeService.generateKnowledgeFile({
                   sourceType: "article",
                   sourceUrl: summarized.sourceUrl,
@@ -704,7 +847,13 @@ Use this action whenever you want to add long-form research to knowledge/.`,
                   preserveOriginal: true,
                 });
               })()
-            : await simpleFallbackStorage(runtime, summarized.content, title, timestamp, { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" });
+            : await simpleFallbackStorage(
+                runtime,
+                summarized.content,
+                title,
+                timestamp,
+                { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
+              );
           if (callback && fileResult.success && fileResult.file) {
             await callback({
               text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
@@ -719,9 +868,12 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           return;
         }
         if (callback) {
-          const errMsg = summarized && "error" in summarized
-            ? [summarized.error, summarized.stderr].filter(Boolean).join(summarized.stderr ? "\n(summarize): " : "")
-            : "summarize timed out or isn't installed";
+          const errMsg =
+            summarized && "error" in summarized
+              ? [summarized.error, summarized.stderr]
+                  .filter(Boolean)
+                  .join(summarized.stderr ? "\n(summarize): " : "")
+              : "summarize timed out or isn't installed";
           await callback({
             text: `⚠️ **Couldn't fetch that YouTube**\n\n${errMsg}\n\n• Install: \`bun install -g @steipete/summarize\` and set \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`\n• Or paste the transcript here and I'll save it.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
             actions: ["VINCE_UPLOAD"],
@@ -732,7 +884,8 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 
       // --- Single URL (article/PDF): run summarize then save (skip X/twitter — no API, summarize can't get post content) ---
       let content = extractContent(text);
-      const singleUrl = content.trim().length < 500 && extractSingleUrl(content);
+      const singleUrl =
+        content.trim().length < 500 && extractSingleUrl(content);
       if (singleUrl && hasUploadIntent(text)) {
         if (isXOrTwitterUrl(singleUrl)) {
           if (callback) {
@@ -744,14 +897,20 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           return;
         }
         const urlContent = content.trim();
-        if (urlContent === singleUrl || (urlContent.startsWith(singleUrl) && urlContent.length < singleUrl.length + 50)) {
+        if (
+          urlContent === singleUrl ||
+          (urlContent.startsWith(singleUrl) &&
+            urlContent.length < singleUrl.length + 50)
+        ) {
           if (callback) {
             await callback({
               text: `🔗 **Fetching URL**\n\n${singleUrl}\n\nSummarizing... (up to ~90s)\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
               actions: ["VINCE_UPLOAD"],
             });
           }
-          const summarized = await runSummarizeCli(singleUrl, { isYouTube: false });
+          const summarized = await runSummarizeCli(singleUrl, {
+            isYouTube: false,
+          });
           if (summarized && "content" in summarized) {
             content = summarized.content;
             const timestamp = Date.now();
@@ -759,8 +918,14 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             const knowledgeService = await tryLoadKnowledgeFileService(runtime);
             let fileResult: IKnowledgeGenerationResult;
             if (knowledgeService) {
-              const category = await knowledgeService.categorizeContent(content, "article");
-              const slugTitle = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 50);
+              const category = await knowledgeService.categorizeContent(
+                content,
+                "article",
+              );
+              const slugTitle = title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .slice(0, 50);
               fileResult = await knowledgeService.generateKnowledgeFile({
                 sourceType: "article",
                 sourceUrl: summarized.sourceUrl,
@@ -772,7 +937,13 @@ Use this action whenever you want to add long-form research to knowledge/.`,
                 preserveOriginal: true,
               });
             } else {
-              fileResult = await simpleFallbackStorage(runtime, content, title, timestamp, { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" });
+              fileResult = await simpleFallbackStorage(
+                runtime,
+                content,
+                title,
+                timestamp,
+                { sourceUrl: summarized.sourceUrl, ingestedWith: "summarize" },
+              );
             }
             if (callback && fileResult.success && fileResult.file) {
               await callback({
@@ -788,9 +959,12 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             return;
           }
           if (callback) {
-            const errMsg = summarized && "error" in summarized
-              ? [summarized.error, summarized.stderr].filter(Boolean).join(summarized.stderr ? "\n(summarize): " : "")
-              : "Install `bun install -g @steipete/summarize` and set an API key, or paste the article text here.";
+            const errMsg =
+              summarized && "error" in summarized
+                ? [summarized.error, summarized.stderr]
+                    .filter(Boolean)
+                    .join(summarized.stderr ? "\n(summarize): " : "")
+                : "Install `bun install -g @steipete/summarize` and set an API key, or paste the article text here.";
             await callback({
               text: `⚠️ **Couldn't fetch that URL**\n\n${errMsg}\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
               actions: ["VINCE_UPLOAD"],
@@ -801,16 +975,25 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       }
 
       // --- "Upload that" / "save that": use recent user messages combined (captures full dumps split across messages; no X API) ---
-      if (content.length <= MAX_REFERENCE_MESSAGE_LENGTH && looksLikeUploadThat(text)) {
+      if (
+        content.length <= MAX_REFERENCE_MESSAGE_LENGTH &&
+        looksLikeUploadThat(text)
+      ) {
         const combinedContent = await getRecentUserMessagesContent(
           runtime,
           message.roomId,
           message.id,
-          { minLength: MIN_TEXT_LENGTH, maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE }
+          {
+            minLength: MIN_TEXT_LENGTH,
+            maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE,
+          },
         );
         if (combinedContent) {
           content = combinedContent;
-          logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Using combined recent user messages (upload that)");
+          logger.info(
+            { contentLength: content.length },
+            "[VINCE_UPLOAD] Using combined recent user messages (upload that)",
+          );
         }
       }
 
@@ -820,13 +1003,20 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           runtime,
           message.roomId,
           message.id,
-          { minLength: 100, maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE }
+          { minLength: 100, maxMessages: MAX_RECENT_USER_MESSAGES_TO_COMBINE },
         );
-        if (previousBlock && previousBlock.length > 0 && !previousBlock.includes(content.trim().slice(0, 200))) {
+        if (
+          previousBlock &&
+          previousBlock.length > 0 &&
+          !previousBlock.includes(content.trim().slice(0, 200))
+        ) {
           const combined = `${previousBlock}\n\n${content}`.trim();
           if (combined.length > content.length) {
             content = combined;
-            logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Prepended recent user messages to capture full dump");
+            logger.info(
+              { contentLength: content.length },
+              "[VINCE_UPLOAD] Prepended recent user messages to capture full dump",
+            );
           }
         }
       }
@@ -842,17 +1032,20 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         return;
       }
 
-      logger.info({ contentLength: content.length }, "[VINCE_UPLOAD] Processing content...");
+      logger.info(
+        { contentLength: content.length },
+        "[VINCE_UPLOAD] Processing content...",
+      );
 
       const timestamp = Date.now();
       const title = generateTitle(extractContent(text));
-      
+
       // Try to use full KnowledgeFileService, fall back to simple storage
       const knowledgeService = await tryLoadKnowledgeFileService(runtime);
-      
+
       let fileResult: IKnowledgeGenerationResult;
       let usedFallback = false;
-      
+
       if (knowledgeService) {
         // Use full knowledge ingestion with LLM categorization
         const slugTitle = title
@@ -862,11 +1055,14 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         const suggestedFilename = `vince-upload-${slugTitle}-${timestamp}.md`;
 
         logger.info("[VINCE_UPLOAD] Categorizing content with LLM...");
-        const category = await knowledgeService.categorizeContent(content, "article");
+        const category = await knowledgeService.categorizeContent(
+          content,
+          "article",
+        );
         logger.info({ category }, "[VINCE_UPLOAD] Content categorized");
 
         const tags = ["vince-upload", "user-submitted", "chat"];
-        
+
         fileResult = await knowledgeService.generateKnowledgeFile({
           sourceType: "article",
           sourceUrl: `chat://vince-upload/${timestamp}`,
@@ -880,15 +1076,23 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       } else {
         // Use simple fallback storage
         usedFallback = true;
-        fileResult = await simpleFallbackStorage(runtime, content, title, timestamp);
+        fileResult = await simpleFallbackStorage(
+          runtime,
+          content,
+          title,
+          timestamp,
+        );
       }
 
-      logger.info({
-        success: fileResult.success,
-        file: fileResult.file?.filename,
-        error: fileResult.error,
-        usedFallback,
-      }, "[VINCE_UPLOAD] File generation result");
+      logger.info(
+        {
+          success: fileResult.success,
+          file: fileResult.file?.filename,
+          error: fileResult.error,
+          usedFallback,
+        },
+        "[VINCE_UPLOAD] File generation result",
+      );
 
       // Send response
       if (callback) {
@@ -933,7 +1137,7 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       }
     } catch (error) {
       logger.error({ error }, "[VINCE_UPLOAD] Unexpected error");
-      
+
       if (callback) {
         await callback({
           text: `❌ An error occurred while uploading: ${String(error)}\n\n---\nNeed context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
@@ -945,7 +1149,12 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "upload: Bitcoin's halving cycle typically creates a supply shock 12-18 months after the event, leading to price appreciation. The 2024 halving follows the same pattern." } },
+      {
+        name: "{{user1}}",
+        content: {
+          text: "upload: Bitcoin's halving cycle typically creates a supply shock 12-18 months after the event, leading to price appreciation. The 2024 halving follows the same pattern.",
+        },
+      },
       {
         name: "VINCE",
         content: {
@@ -955,7 +1164,12 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "save this: The best covered call strikes for BTC are typically 10-15% OTM with 7-14 DTE. This balances premium capture with assignment risk." } },
+      {
+        name: "{{user1}}",
+        content: {
+          text: "save this: The best covered call strikes for BTC are typically 10-15% OTM with 7-14 DTE. This balances premium capture with assignment risk.",
+        },
+      },
       {
         name: "VINCE",
         content: {
@@ -965,7 +1179,12 @@ Need context instead? \`ALOHA\` · \`PERPS\` · \`OPTIONS\``,
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "remember: Hyperliquid's points program is still live. Running MM and DN strategies across multiple venues compounds airdrop potential." } },
+      {
+        name: "{{user1}}",
+        content: {
+          text: "remember: Hyperliquid's points program is still live. Running MM and DN strategies across multiple venues compounds airdrop potential.",
+        },
+      },
       {
         name: "VINCE",
         content: {

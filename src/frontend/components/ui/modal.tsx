@@ -1,5 +1,5 @@
-import { useEffect, ReactNode } from 'react';
-import { useIsMobile } from '@/frontend/hooks/use-mobile';
+import { useEffect, ReactNode } from "react";
+import { useIsMobile } from "@/frontend/hooks/use-mobile";
 
 interface ModalProps {
   children: ReactNode;
@@ -10,13 +10,13 @@ interface ModalProps {
   className?: string;
 }
 
-export function Modal({ 
-  children, 
-  onClose, 
+export function Modal({
+  children,
+  onClose,
   closeOnBackdropClick = true,
   closeOnEsc = true,
   showCloseButton = true,
-  className = ''
+  className = "",
 }: ModalProps) {
   const isMobile = useIsMobile();
 
@@ -25,20 +25,20 @@ export function Modal({
     if (!closeOnEsc) return;
 
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
 
-    document.addEventListener('keydown', handleEsc);
-    return () => document.removeEventListener('keydown', handleEsc);
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
   }, [closeOnEsc, onClose]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    
+    document.body.style.overflow = "hidden";
+
     return () => {
       document.body.style.overflow = originalOverflow;
     };
@@ -51,29 +51,32 @@ export function Modal({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80  p-4" 
+    <div
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80  p-4"
       onClick={handleBackdropClick}
-      style={{ pointerEvents: 'auto' }}
+      style={{ pointerEvents: "auto" }}
     >
-      <div className={`bg-background rounded-lg w-full max-h-[90vh] p-1.5 relative ${className}`} style={{ overflow: 'visible' }}>
+      <div
+        className={`bg-background rounded-lg w-full max-h-[90vh] p-1.5 relative ${className}`}
+        style={{ overflow: "visible" }}
+      >
         {/* Close button - positioned above content with better visibility */}
         {showCloseButton && (
-          <button 
+          <button
             onClick={onClose}
             className="absolute top-6 right-6 z-[100] text-muted-foreground hover:text-foreground transition-colors text-xl leading-none"
             aria-label="Close modal"
-          >
-            
-          </button>
+          ></button>
         )}
-        
+
         {/* Modal content - with proper overflow handling, allow dropdowns to extend beyond */}
-        <div className="bg-pop rounded-lg p-4 sm:p-6" style={{ overflow: 'visible' }}>
+        <div
+          className="bg-pop rounded-lg p-4 sm:p-6"
+          style={{ overflow: "visible" }}
+        >
           {children}
         </div>
       </div>
     </div>
   );
 }
-

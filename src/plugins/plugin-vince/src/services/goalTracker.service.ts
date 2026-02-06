@@ -38,7 +38,8 @@ import type { VinceMarketDataService } from "./marketData.service";
 
 export class VinceGoalTrackerService extends Service {
   static serviceType = "VINCE_GOAL_TRACKER_SERVICE";
-  capabilityDescription = "Tracks trading performance against KPI goals with dynamic leverage and sizing";
+  capabilityDescription =
+    "Tracks trading performance against KPI goals with dynamic leverage and sizing";
 
   private goal: TradingGoal;
   private dailyPnlHistory: GoalTrackerState["dailyPnlHistory"] = [];
@@ -57,7 +58,7 @@ export class VinceGoalTrackerService extends Service {
   static async start(runtime: IAgentRuntime): Promise<VinceGoalTrackerService> {
     const service = new VinceGoalTrackerService(runtime);
     logger.info(
-      `[VinceGoalTracker] ✅ Service started | Daily Target: $${service.goal.dailyTarget} | Monthly: $${service.goal.monthlyTarget}`
+      `[VinceGoalTracker] ✅ Service started | Daily Target: $${service.goal.dailyTarget} | Monthly: $${service.goal.monthlyTarget}`,
     );
     return service;
   }
@@ -72,7 +73,9 @@ export class VinceGoalTrackerService extends Service {
 
   updateGoal(goal: Partial<TradingGoal>): void {
     this.goal = { ...this.goal, ...goal };
-    logger.info(`[VinceGoalTracker] Goal updated: $${this.goal.dailyTarget}/day, $${this.goal.monthlyTarget}/month`);
+    logger.info(
+      `[VinceGoalTracker] Goal updated: $${this.goal.dailyTarget}/day, $${this.goal.monthlyTarget}/month`,
+    );
   }
 
   getGoal(): TradingGoal {
@@ -129,32 +132,47 @@ export class VinceGoalTrackerService extends Service {
     // Calculate expected return per trade
     const winRate = stats.winRate / 100;
     const lossRate = 1 - winRate;
-    const avgWinPct = stats.avgWin > 0 ? (stats.avgWin / currentCapital) * 100 : 2; // Default 2%
-    const avgLossPct = stats.avgLoss > 0 ? (stats.avgLoss / currentCapital) * 100 : 1; // Default 1%
+    const avgWinPct =
+      stats.avgWin > 0 ? (stats.avgWin / currentCapital) * 100 : 2; // Default 2%
+    const avgLossPct =
+      stats.avgLoss > 0 ? (stats.avgLoss / currentCapital) * 100 : 1; // Default 1%
 
-    const expectedReturnPerTrade = (winRate * avgWinPct) - (lossRate * avgLossPct);
-    const expectedDailyReturn = expectedReturnPerTrade * this.goal.expectedTradesPerDay;
+    const expectedReturnPerTrade = winRate * avgWinPct - lossRate * avgLossPct;
+    const expectedDailyReturn =
+      expectedReturnPerTrade * this.goal.expectedTradesPerDay;
 
     // Calculate capital needed at different leverage levels
     const maxLeverage = DEFAULT_RISK_LIMITS.maxLeverage;
-    const kellyLeverage = this.calculateKellyLeverage(stats.winRate, stats.avgWin, stats.avgLoss);
+    const kellyLeverage = this.calculateKellyLeverage(
+      stats.winRate,
+      stats.avgWin,
+      stats.avgLoss,
+    );
     const safeLeverage = kellyLeverage * KELLY_CONFIG.kellyFraction;
 
     // Capital = Target / (Return% * Leverage)
-    const minimumCapital = expectedDailyReturn > 0
-      ? (this.goal.dailyTarget / (expectedDailyReturn / 100)) / maxLeverage
-      : 50000; // Fallback
+    const minimumCapital =
+      expectedDailyReturn > 0
+        ? this.goal.dailyTarget / (expectedDailyReturn / 100) / maxLeverage
+        : 50000; // Fallback
 
-    const optimalCapital = expectedDailyReturn > 0
-      ? (this.goal.dailyTarget / (expectedDailyReturn / 100)) / Math.max(1, kellyLeverage)
-      : 50000;
+    const optimalCapital =
+      expectedDailyReturn > 0
+        ? this.goal.dailyTarget /
+          (expectedDailyReturn / 100) /
+          Math.max(1, kellyLeverage)
+        : 50000;
 
-    const conservativeCapital = expectedDailyReturn > 0
-      ? (this.goal.dailyTarget / (expectedDailyReturn / 100)) / Math.max(1, safeLeverage)
-      : 75000;
+    const conservativeCapital =
+      expectedDailyReturn > 0
+        ? this.goal.dailyTarget /
+          (expectedDailyReturn / 100) /
+          Math.max(1, safeLeverage)
+        : 75000;
 
     const capitalGap = optimalCapital - currentCapital;
-    const utilizationPct = optimalCapital > 0 ? (currentCapital / optimalCapital) * 100 : 100;
+    const utilizationPct =
+      optimalCapital > 0 ? (currentCapital / optimalCapital) * 100 : 100;
 
     let status: CapitalRequirements["status"];
     let recommendation: string;
@@ -195,13 +213,18 @@ export class VinceGoalTrackerService extends Service {
    *   q = 1 - p (probability of losing)
    *   b = win/loss ratio (average win / average loss)
    */
-  private calculateKellyLeverage(winRatePct: number, avgWin: number, avgLoss: number): number {
+  private calculateKellyLeverage(
+    winRatePct: number,
+    avgWin: number,
+    avgLoss: number,
+  ): number {
     // Need minimum data for reliable calculation
     const p = winRatePct / 100;
     const q = 1 - p;
 
     // Win/loss ratio (b)
-    const b = avgLoss > 0 ? avgWin / avgLoss : KELLY_CONFIG.fallbackWinLossRatio;
+    const b =
+      avgLoss > 0 ? avgWin / avgLoss : KELLY_CONFIG.fallbackWinLossRatio;
 
     // Kelly formula: f* = (p * b - q) / b
     const kellyFraction = (p * b - q) / b;
@@ -212,7 +235,10 @@ export class VinceGoalTrackerService extends Service {
     let kellyLeverage = kellyFraction / riskPerTrade;
 
     // Clamp to reasonable bounds
-    kellyLeverage = Math.max(KELLY_CONFIG.minLeverage, Math.min(KELLY_CONFIG.maxKellyLeverage, kellyLeverage));
+    kellyLeverage = Math.max(
+      KELLY_CONFIG.minLeverage,
+      Math.min(KELLY_CONFIG.maxKellyLeverage, kellyLeverage),
+    );
 
     // Handle edge cases
     if (!isFinite(kellyLeverage) || kellyLeverage <= 0) {
@@ -234,7 +260,11 @@ export class VinceGoalTrackerService extends Service {
     const adjustments: LeverageAdjustment[] = [];
 
     // Base Kelly leverage
-    const kellyOptimal = this.calculateKellyLeverage(stats.winRate, stats.avgWin, stats.avgLoss);
+    const kellyOptimal = this.calculateKellyLeverage(
+      stats.winRate,
+      stats.avgWin,
+      stats.avgLoss,
+    );
     const kellySafe = kellyOptimal * KELLY_CONFIG.kellyFraction;
 
     let recommended = kellySafe;
@@ -288,7 +318,9 @@ export class VinceGoalTrackerService extends Service {
     }
 
     // 3. Session adjustment
-    const riskManager = this.runtime.getService("VINCE_RISK_MANAGER_SERVICE") as VinceRiskManagerService | null;
+    const riskManager = this.runtime.getService(
+      "VINCE_RISK_MANAGER_SERVICE",
+    ) as VinceRiskManagerService | null;
     if (riskManager) {
       const session = riskManager.getTradingSession();
       if (session.session === "off-hours") {
@@ -324,7 +356,7 @@ export class VinceGoalTrackerService extends Service {
     }
 
     // 4. Daily progress adjustment
-    const dailyProgress = this.todayPnl / this.goal.dailyTarget * 100;
+    const dailyProgress = (this.todayPnl / this.goal.dailyTarget) * 100;
     if (dailyProgress >= LEVERAGE_ADJUSTMENTS.progress.aheadThresholdPct) {
       const mult = LEVERAGE_ADJUSTMENTS.progress.aheadTargetMultiplier;
       recommended *= mult;
@@ -345,7 +377,10 @@ export class VinceGoalTrackerService extends Service {
 
     // Clamp to allowed range
     const maximum = DEFAULT_RISK_LIMITS.maxLeverage;
-    recommended = Math.max(KELLY_CONFIG.minLeverage, Math.min(maximum, recommended));
+    recommended = Math.max(
+      KELLY_CONFIG.minLeverage,
+      Math.min(maximum, recommended),
+    );
 
     // Generate reason
     let reason: string;
@@ -353,7 +388,7 @@ export class VinceGoalTrackerService extends Service {
       reason = `Half-Kelly optimal (${kellySafe.toFixed(1)}x) based on ${stats.winRate.toFixed(0)}% win rate`;
     } else {
       const totalMult = adjustments.reduce((acc, a) => acc * a.multiplier, 1);
-      reason = `Adjusted ${(totalMult * 100 - 100).toFixed(0)}% from Kelly due to: ${adjustments.map(a => a.factor).join(", ")}`;
+      reason = `Adjusted ${(totalMult * 100 - 100).toFixed(0)}% from Kelly due to: ${adjustments.map((a) => a.factor).join(", ")}`;
     }
 
     return {
@@ -383,18 +418,30 @@ export class VinceGoalTrackerService extends Service {
     const factors: string[] = [];
 
     // Get optimal leverage
-    const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+    const marketData = this.runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as VinceMarketDataService | null;
     let volatility: number | null = null;
     if (marketData) {
-      marketData.getDVOL(signal.asset).then(v => volatility = v).catch(() => {});
+      marketData
+        .getDVOL(signal.asset)
+        .then((v) => (volatility = v))
+        .catch(() => {});
     }
 
-    const leverageRec = this.calculateOptimalLeverage(currentCapital, currentDrawdownPct, volatility);
+    const leverageRec = this.calculateOptimalLeverage(
+      currentCapital,
+      currentDrawdownPct,
+      volatility,
+    );
     const leverage = leverageRec.recommended;
 
     // Base position size from goal
     // Target: Make enough per trade to hit daily target
-    const tradesRemaining = Math.max(1, this.goal.expectedTradesPerDay - this.todayTrades);
+    const tradesRemaining = Math.max(
+      1,
+      this.goal.expectedTradesPerDay - this.todayTrades,
+    );
     const remainingTarget = Math.max(0, this.goal.dailyTarget - this.todayPnl);
     const targetPerTrade = remainingTarget / tradesRemaining;
 
@@ -406,12 +453,14 @@ export class VinceGoalTrackerService extends Service {
     let targetSize = targetPerTrade / (expectedWinPct * leverage);
 
     // Apply risk limits (margin-based)
-    const maxPositionMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxPositionSizePct / 100);
+    const maxPositionMargin =
+      currentCapital * (DEFAULT_RISK_LIMITS.maxPositionSizePct / 100);
     const maxRiskUsd = currentCapital * (this.goal.riskPerTradePct / 100);
     const riskBasedMaxSize = maxRiskUsd / stopLossPct;
     const riskBasedMaxMargin = riskBasedMaxSize / leverage;
 
-    const maxExposureMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
+    const maxExposureMargin =
+      currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
     const availableMargin = Math.max(0, maxExposureMargin - currentExposure);
 
     const targetMargin = targetSize / leverage;
@@ -420,7 +469,7 @@ export class VinceGoalTrackerService extends Service {
       targetMargin,
       maxPositionMargin,
       riskBasedMaxMargin,
-      availableMargin
+      availableMargin,
     );
     marginToUse = Math.max(0, marginToUse);
 
@@ -430,7 +479,9 @@ export class VinceGoalTrackerService extends Service {
     if (marginToUse === targetMargin) {
       factors.push("Goal-based sizing");
     } else if (marginToUse === maxPositionMargin) {
-      factors.push(`Capped at ${DEFAULT_RISK_LIMITS.maxPositionSizePct}% max position`);
+      factors.push(
+        `Capped at ${DEFAULT_RISK_LIMITS.maxPositionSizePct}% max position`,
+      );
     } else if (marginToUse === riskBasedMaxMargin) {
       factors.push(`Risk-limited to ${this.goal.riskPerTradePct}% of capital`);
     } else if (marginToUse === availableMargin) {
@@ -463,7 +514,8 @@ export class VinceGoalTrackerService extends Service {
     // Expected contribution to daily goal (probability weighted)
     const stats = this.getTradeStats();
     const winProb = stats.winRate / 100;
-    const expectedContribution = (winProb * expectedWinUsd) - ((1 - winProb) * expectedLossUsd);
+    const expectedContribution =
+      winProb * expectedWinUsd - (1 - winProb) * expectedLossUsd;
 
     return {
       sizeUsd: Math.round(sizeUsd),
@@ -521,14 +573,20 @@ export class VinceGoalTrackerService extends Service {
     // If behind, what daily target is needed to catch up?
     const remainingDays = this.getTradingDaysRemaining();
     const remainingTarget = this.goal.monthlyTarget - monthlyPnl;
-    const dailyTargetToHitGoal = remainingDays > 0 ? remainingTarget / remainingDays : remainingTarget;
+    const dailyTargetToHitGoal =
+      remainingDays > 0 ? remainingTarget / remainingDays : remainingTarget;
 
     // Calculate Sharpe ratio (simplified)
-    const dailyReturns = this.dailyPnlHistory.map(d => d.pnl);
-    const avgReturn = dailyReturns.length > 0 ? dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length : 0;
-    const variance = dailyReturns.length > 1
-      ? dailyReturns.reduce((acc, r) => acc + Math.pow(r - avgReturn, 2), 0) / (dailyReturns.length - 1)
-      : 1;
+    const dailyReturns = this.dailyPnlHistory.map((d) => d.pnl);
+    const avgReturn =
+      dailyReturns.length > 0
+        ? dailyReturns.reduce((a, b) => a + b, 0) / dailyReturns.length
+        : 0;
+    const variance =
+      dailyReturns.length > 1
+        ? dailyReturns.reduce((acc, r) => acc + Math.pow(r - avgReturn, 2), 0) /
+          (dailyReturns.length - 1)
+        : 1;
     const stdDev = Math.sqrt(variance);
     const sharpeRatio = stdDev > 0 ? (avgReturn / stdDev) * Math.sqrt(252) : 0; // Annualized
 
@@ -625,7 +683,9 @@ export class VinceGoalTrackerService extends Service {
     profitFactor: number;
     totalTrades: number;
   } {
-    const journal = this.runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as VinceTradeJournalService | null;
+    const journal = this.runtime.getService(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    ) as VinceTradeJournalService | null;
 
     if (journal) {
       const stats = journal.getStats();
@@ -652,7 +712,7 @@ export class VinceGoalTrackerService extends Service {
     // Sum of daily P&L this month
     const currentMonth = this.getCurrentMonthString();
     const monthlyTotal = this.dailyPnlHistory
-      .filter(d => d.date.startsWith(currentMonth))
+      .filter((d) => d.date.startsWith(currentMonth))
       .reduce((sum, d) => sum + d.pnl, 0);
 
     return monthlyTotal + this.todayPnl;
@@ -675,7 +735,9 @@ export class VinceGoalTrackerService extends Service {
     this.goal = state.goal;
     this.dailyPnlHistory = state.dailyPnlHistory || [];
     this.monthlyPnlHistory = state.monthlyPnlHistory || [];
-    logger.info(`[VinceGoalTracker] State restored | Goal: $${this.goal.dailyTarget}/day`);
+    logger.info(
+      `[VinceGoalTracker] State restored | Goal: $${this.goal.dailyTarget}/day`,
+    );
   }
 
   // ==========================================
@@ -690,14 +752,22 @@ export class VinceGoalTrackerService extends Service {
     const capitalReq = this.calculateCapitalRequirements(portfolio.totalValue);
 
     // Get leverage recommendation
-    const riskManager = this.runtime.getService("VINCE_RISK_MANAGER_SERVICE") as VinceRiskManagerService | null;
+    const riskManager = this.runtime.getService(
+      "VINCE_RISK_MANAGER_SERVICE",
+    ) as VinceRiskManagerService | null;
     const currentDrawdown = riskManager?.getRiskState().currentDrawdownPct || 0;
 
-    const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+    const marketData = this.runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as VinceMarketDataService | null;
     let dvol: number | null = null;
     // Note: getDVOL is async but we need sync here, so use cached value if available
 
-    const leverageRec = this.calculateOptimalLeverage(portfolio.totalValue, currentDrawdown, dvol);
+    const leverageRec = this.calculateOptimalLeverage(
+      portfolio.totalValue,
+      currentDrawdown,
+      dvol,
+    );
 
     const lines: string[] = [
       "==========================================",

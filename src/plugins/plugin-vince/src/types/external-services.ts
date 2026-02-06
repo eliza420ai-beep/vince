@@ -42,12 +42,16 @@ export interface IDeribitService {
    * Get DVOL (Deribit Volatility Index) for BTC or ETH
    * Returns null for unsupported assets
    */
-  getVolatilityIndex(asset: "BTC" | "ETH"): Promise<IDeribitVolatilityIndex | null>;
+  getVolatilityIndex(
+    asset: "BTC" | "ETH",
+  ): Promise<IDeribitVolatilityIndex | null>;
 
   /**
    * Get comprehensive options data including put/call ratio
    */
-  getComprehensiveData(currency: "BTC" | "ETH" | "SOL"): Promise<IDeribitComprehensiveData | null>;
+  getComprehensiveData(
+    currency: "BTC" | "ETH" | "SOL",
+  ): Promise<IDeribitComprehensiveData | null>;
 }
 
 // ==========================================
@@ -59,7 +63,12 @@ export interface IDeribitService {
 export interface IHyperliquidAssetPulse {
   funding8h?: number;
   fundingAnnualized?: number;
-  crowdingLevel?: "extreme_long" | "long" | "neutral" | "short" | "extreme_short";
+  crowdingLevel?:
+    | "extreme_long"
+    | "long"
+    | "neutral"
+    | "short"
+    | "extreme_short";
   squeezeRisk?: "high" | "medium" | "low";
   /** HL venue open interest (contracts). Same metaAndAssetCtxs call; no extra API cost. */
   openInterest?: number;
@@ -106,10 +115,15 @@ export interface IHyperliquidCryptoAsset {
 export interface IHyperliquidCryptoPulse {
   assets: IHyperliquidCryptoAsset[];
   topMovers: { symbol: string; change24h: number; volume24h: number }[];
-  volumeLeaders: { symbol: string; volume24h: number; openInterest: number; funding8h: number }[];
+  volumeLeaders: {
+    symbol: string;
+    volume24h: number;
+    openInterest: number;
+    funding8h: number;
+  }[];
   overallBias: "bullish" | "bearish" | "neutral";
-  hottestAvg: number;  // avg change of top 10 by volume
-  coldestAvg: number;  // avg change of worst performers
+  hottestAvg: number; // avg change of top 10 by volume
+  coldestAvg: number; // avg change of worst performers
 }
 
 /**
@@ -141,7 +155,9 @@ export interface IHyperliquidService {
   /**
    * Get mark price and 24h change for an asset. Preferred for core assets (BTC, ETH, SOL, HYPE).
    */
-  getMarkPriceAndChange?(symbol: string): Promise<{ price: number; change24h: number } | null>;
+  getMarkPriceAndChange?(
+    symbol: string,
+  ): Promise<{ price: number; change24h: number } | null>;
 
   /**
    * Check if we're in a rate-limited state (optional - for fallback compatibility)
@@ -151,7 +167,11 @@ export interface IHyperliquidService {
   /**
    * Get detailed rate limit status (optional - for fallback compatibility)
    */
-  getRateLimitStatus?(): { isLimited: boolean; backoffUntil: number; circuitOpen?: boolean };
+  getRateLimitStatus?(): {
+    isLimited: boolean;
+    backoffUntil: number;
+    circuitOpen?: boolean;
+  };
 
   /**
    * Get list of perp symbols at open-interest cap (optional - fallback implements)
@@ -164,8 +184,12 @@ export interface IHyperliquidService {
   getFundingRegime?(
     coin: string,
     currentFunding8h: number,
-    lookbackSamples?: number
-  ): Promise<{ percentile: number; isExtremeLong: boolean; isExtremeShort: boolean } | null>;
+    lookbackSamples?: number,
+  ): Promise<{
+    percentile: number;
+    isExtremeLong: boolean;
+    isExtremeShort: boolean;
+  } | null>;
 
   /**
    * Clear the cache (optional)
@@ -175,7 +199,11 @@ export interface IHyperliquidService {
   /**
    * Test the API connection and return diagnostic info (optional)
    */
-  testConnection?(): Promise<{ success: boolean; message: string; data?: unknown }>;
+  testConnection?(): Promise<{
+    success: boolean;
+    message: string;
+    data?: unknown;
+  }>;
 }
 
 // ==========================================
@@ -188,9 +216,9 @@ export interface IOpenSeaFloorThickness {
   score: number; // 0-100 (lower = thinner = more opportunity)
   description: string; // "Very Thin", "Thin", "Medium", "Thick", "Very Thick"
   gaps: {
-    to2nd: number;  // ETH gap to 2nd listing
-    to3rd: number;  // ETH gap to 3rd listing
-    to5th: number;  // ETH gap to 5th listing
+    to2nd: number; // ETH gap to 2nd listing
+    to3rd: number; // ETH gap to 3rd listing
+    to5th: number; // ETH gap to 5th listing
     to10th: number; // ETH gap to 10th listing
   };
   nftsNearFloor: number; // Count within 5% of floor
@@ -221,7 +249,7 @@ export interface IOpenSeaService {
    */
   analyzeFloorOpportunities(
     slug: string,
-    options?: { maxListings?: number }
+    options?: { maxListings?: number },
   ): Promise<IOpenSeaFloorAnalysis>;
 }
 
@@ -231,7 +259,13 @@ export interface IOpenSeaService {
 // Service key: "VINCE_NANSEN_SERVICE"
 // ==========================================
 
-export type NansenChain = "ethereum" | "solana" | "base" | "arbitrum" | "polygon" | "optimism";
+export type NansenChain =
+  | "ethereum"
+  | "solana"
+  | "base"
+  | "arbitrum"
+  | "polygon"
+  | "optimism";
 
 export interface INansenSmartMoneyToken {
   tokenAddress: string;
@@ -282,7 +316,7 @@ export interface INansenAccumulationResult {
 /**
  * Interface for the Nansen service (smart money tracking).
  * Accessed via: runtime.getService("VINCE_NANSEN_SERVICE")
- * 
+ *
  * This service is optional - MEMES action works without it (DexScreener only).
  */
 export interface INansenService {
@@ -291,7 +325,7 @@ export interface INansenService {
    */
   getSmartMoneyTokens(
     chains?: NansenChain[],
-    timeframe?: string
+    timeframe?: string,
   ): Promise<INansenSmartMoneyToken[]>;
 
   /**
@@ -299,7 +333,7 @@ export interface INansenService {
    */
   getSmartMoneyTrades(
     chain: NansenChain,
-    tokenAddress: string
+    tokenAddress: string,
   ): Promise<INansenSmartMoneyTrade[]>;
 
   /**
@@ -308,7 +342,7 @@ export interface INansenService {
   getWhoBoughtSold(
     chain: NansenChain,
     tokenAddress: string,
-    side?: "BUY" | "SELL"
+    side?: "BUY" | "SELL",
   ): Promise<INansenWhoBoughtSold[]>;
 
   /**
@@ -316,7 +350,7 @@ export interface INansenService {
    */
   isSmartMoneyAccumulating(
     chain: NansenChain,
-    tokenAddress: string
+    tokenAddress: string,
   ): Promise<INansenAccumulationResult>;
 
   /**
@@ -394,7 +428,12 @@ export type KnowledgeCategory =
   // Default
   | "uncategorized";
 
-export type SourceType = "tweet" | "youtube" | "article" | "markdown" | "unknown";
+export type SourceType =
+  | "tweet"
+  | "youtube"
+  | "article"
+  | "markdown"
+  | "unknown";
 
 export interface IKnowledgeFileRequest {
   sourceType: SourceType;
@@ -434,6 +473,11 @@ export interface IKnowledgeGenerationResult {
  */
 export interface IKnowledgeFileService {
   initialize(runtime: unknown): Promise<void>;
-  categorizeContent(content: string, sourceType: SourceType): Promise<KnowledgeCategory>;
-  generateKnowledgeFile(request: IKnowledgeFileRequest): Promise<IKnowledgeGenerationResult>;
+  categorizeContent(
+    content: string,
+    sourceType: SourceType,
+  ): Promise<KnowledgeCategory>;
+  generateKnowledgeFile(
+    request: IKnowledgeFileRequest,
+  ): Promise<IKnowledgeGenerationResult>;
 }

@@ -1,12 +1,12 @@
 /**
  * VINCE Improvement Journal Service
- * 
+ *
  * Generates structured improvement entries for ClawdBot to process:
  * - Bug reports (API failures, exceptions)
  * - Performance issues (signal sources underperforming)
  * - Enhancement suggestions (new patterns discovered)
  * - Code change requests (specific patches with diffs)
- * 
+ *
  * This is the bridge between ElizaOS learning and ClawdBot code execution.
  * ClawdBot monitors the journal file and applies changes autonomously.
  */
@@ -21,16 +21,16 @@ import { dynamicConfig } from "../config/dynamicConfig";
 // Types
 // ==========================================
 
-type EntryType = 
-  | "BUG_REPORT" 
-  | "PERFORMANCE_ISSUE" 
-  | "ENHANCEMENT_SUGGESTION" 
+type EntryType =
+  | "BUG_REPORT"
+  | "PERFORMANCE_ISSUE"
+  | "ENHANCEMENT_SUGGESTION"
   | "CODE_CHANGE_REQUEST";
 
-type EntryStatus = 
-  | "PENDING_CLAWDBOT" 
-  | "APPLIED" 
-  | "FAILED" 
+type EntryStatus =
+  | "PENDING_CLAWDBOT"
+  | "APPLIED"
+  | "FAILED"
   | "HUMAN_REVIEW_REQUIRED"
   | "REJECTED";
 
@@ -69,7 +69,8 @@ const CONFIG = {
 
 export class VinceImprovementJournalService extends Service {
   static serviceType = "VINCE_IMPROVEMENT_JOURNAL_SERVICE";
-  capabilityDescription = "Generates structured improvement entries for ClawdBot";
+  capabilityDescription =
+    "Generates structured improvement entries for ClawdBot";
 
   private journalPath: string | null = null;
   private entries: ImprovementEntry[] = [];
@@ -80,7 +81,9 @@ export class VinceImprovementJournalService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceImprovementJournalService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceImprovementJournalService> {
     const service = new VinceImprovementJournalService(runtime);
     await service.initialize();
     logger.info("[VinceImprovementJournal] ✅ Service started");
@@ -96,13 +99,13 @@ export class VinceImprovementJournalService extends Service {
     try {
       const elizaDbDir = path.join(process.cwd(), ".elizadb");
       const persistDir = path.join(elizaDbDir, PERSISTENCE_DIR);
-      
+
       if (!fs.existsSync(persistDir)) {
         fs.mkdirSync(persistDir, { recursive: true });
       }
-      
+
       this.journalPath = path.join(persistDir, CONFIG.journalFileName);
-      
+
       // Load existing entries (parse from markdown)
       if (fs.existsSync(this.journalPath)) {
         this.loadFromFile();
@@ -110,7 +113,7 @@ export class VinceImprovementJournalService extends Service {
         // Create initial file with header
         await this.createJournalFile();
       }
-      
+
       this.initialized = true;
     } catch (error) {
       logger.warn(`[VinceImprovementJournal] Could not initialize: ${error}`);
@@ -142,12 +145,15 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
 
   private loadFromFile(): void {
     if (!this.journalPath) return;
-    
+
     try {
       const content = fs.readFileSync(this.journalPath, "utf-8");
       // Parse entries from markdown (simplified - just track pending count)
-      const pendingCount = (content.match(/Status:\s*PENDING_CLAWDBOT/g) || []).length;
-      logger.info(`[VinceImprovementJournal] Found ${pendingCount} pending entries`);
+      const pendingCount = (content.match(/Status:\s*PENDING_CLAWDBOT/g) || [])
+        .length;
+      logger.info(
+        `[VinceImprovementJournal] Found ${pendingCount} pending entries`,
+      );
     } catch (error) {
       logger.warn(`[VinceImprovementJournal] Could not load journal: ${error}`);
     }
@@ -208,7 +214,7 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
 
     await this.appendEntry(entry);
     this.markEntryAdded("BUG_REPORT");
-    
+
     logger.info(`[VinceImprovementJournal] Bug recorded: ${params.service}`);
     return true;
   }
@@ -229,13 +235,21 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
       return false;
     }
 
-    const { pattern, description, winRate, sampleSize, suggestedAction, signalSources } = params;
-    const confidence = sampleSize >= 20 ? "high" : sampleSize >= 10 ? "medium" : "low";
+    const {
+      pattern,
+      description,
+      winRate,
+      sampleSize,
+      suggestedAction,
+      signalSources,
+    } = params;
+    const confidence =
+      sampleSize >= 20 ? "high" : sampleSize >= 10 ? "medium" : "low";
 
     // Determine if this should be a code change request
-    const isCodeChangeWorthy = 
-      confidence === "high" && 
-      signalSources && 
+    const isCodeChangeWorthy =
+      confidence === "high" &&
+      signalSources &&
       signalSources.length > 0 &&
       (winRate < 35 || winRate > 70);
 
@@ -249,7 +263,9 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
         `Pattern: ${pattern}`,
         `Win Rate: ${winRate.toFixed(1)}%`,
         `Sample Size: ${sampleSize} trades`,
-        signalSources?.length ? `Signal Sources: ${signalSources.join(", ")}` : "",
+        signalSources?.length
+          ? `Signal Sources: ${signalSources.join(", ")}`
+          : "",
       ].filter(Boolean),
       suggestedFix: suggestedAction,
       confidence,
@@ -263,14 +279,15 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
     // Generate patch for code change requests
     if (isCodeChangeWorthy && signalSources) {
       entry.patch = this.generateWeightPatch(signalSources, winRate);
-      entry.codeLocation = "src/plugins/plugin-vince/src/config/dynamicConfig.ts";
+      entry.codeLocation =
+        "src/plugins/plugin-vince/src/config/dynamicConfig.ts";
     }
 
     await this.appendEntry(entry);
     this.markEntryAdded("PERFORMANCE_ISSUE");
-    
+
     logger.info(
-      `[VinceImprovementJournal] Performance issue recorded: ${pattern} (${winRate.toFixed(1)}% win rate)`
+      `[VinceImprovementJournal] Performance issue recorded: ${pattern} (${winRate.toFixed(1)}% win rate)`,
     );
     return true;
   }
@@ -285,7 +302,9 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
     implementation?: string;
   }): Promise<boolean> {
     if (!this.canAddEntry("ENHANCEMENT_SUGGESTION")) {
-      logger.debug("[VinceImprovementJournal] Rate limited: ENHANCEMENT_SUGGESTION");
+      logger.debug(
+        "[VinceImprovementJournal] Rate limited: ENHANCEMENT_SUGGESTION",
+      );
       return false;
     }
 
@@ -295,18 +314,17 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
       type: "ENHANCEMENT_SUGGESTION",
       status: "HUMAN_REVIEW_REQUIRED",
       issue: params.title,
-      analysis: [
-        params.description,
-        `Rationale: ${params.rationale}`,
-      ],
+      analysis: [params.description, `Rationale: ${params.rationale}`],
       suggestedFix: params.implementation,
       confidence: "medium",
     };
 
     await this.appendEntry(entry);
     this.markEntryAdded("ENHANCEMENT_SUGGESTION");
-    
-    logger.info(`[VinceImprovementJournal] Enhancement recorded: ${params.title}`);
+
+    logger.info(
+      `[VinceImprovementJournal] Enhancement recorded: ${params.title}`,
+    );
     return true;
   }
 
@@ -322,7 +340,9 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
     autoApply?: boolean;
   }): Promise<boolean> {
     if (!this.canAddEntry("CODE_CHANGE_REQUEST")) {
-      logger.debug("[VinceImprovementJournal] Rate limited: CODE_CHANGE_REQUEST");
+      logger.debug(
+        "[VinceImprovementJournal] Rate limited: CODE_CHANGE_REQUEST",
+      );
       return false;
     }
 
@@ -330,9 +350,10 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
       id: `code_${Date.now()}`,
       timestamp: Date.now(),
       type: "CODE_CHANGE_REQUEST",
-      status: params.autoApply && params.confidence === "high" 
-        ? "PENDING_CLAWDBOT" 
-        : "HUMAN_REVIEW_REQUIRED",
+      status:
+        params.autoApply && params.confidence === "high"
+          ? "PENDING_CLAWDBOT"
+          : "HUMAN_REVIEW_REQUIRED",
       issue: params.issue,
       analysis: params.analysis,
       codeLocation: params.codeLocation,
@@ -342,8 +363,10 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
 
     await this.appendEntry(entry);
     this.markEntryAdded("CODE_CHANGE_REQUEST");
-    
-    logger.info(`[VinceImprovementJournal] Code change recorded: ${params.issue}`);
+
+    logger.info(
+      `[VinceImprovementJournal] Code change recorded: ${params.issue}`,
+    );
     return true;
   }
 
@@ -357,11 +380,11 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
   private generateWeightPatch(sources: string[], winRate: number): string {
     const currentWeights = dynamicConfig.getAllSourceWeights();
     const lines: string[] = [];
-    
+
     for (const source of sources) {
       const currentWeight = currentWeights[source] ?? 1.0;
       let newWeight: number;
-      
+
       if (winRate >= 70) {
         // High performer: increase weight
         newWeight = Math.min(3.0, currentWeight + 0.2);
@@ -371,11 +394,13 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
       } else {
         continue; // No change needed
       }
-      
+
       lines.push(`-  ${source}: ${currentWeight.toFixed(1)},`);
-      lines.push(`+  ${source}: ${newWeight.toFixed(1)},  // Auto-tuned: ${winRate.toFixed(1)}% win rate`);
+      lines.push(
+        `+  ${source}: ${newWeight.toFixed(1)},  // Auto-tuned: ${winRate.toFixed(1)}% win rate`,
+      );
     }
-    
+
     return lines.join("\n");
   }
 
@@ -387,7 +412,7 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
     if (!this.journalPath) return;
 
     this.entries.push(entry);
-    
+
     // Trim if needed
     if (this.entries.length > CONFIG.maxEntriesInMemory) {
       this.entries = this.entries.slice(-CONFIG.maxEntriesInMemory);
@@ -395,7 +420,7 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
 
     // Append to file
     const markdown = this.formatEntryAsMarkdown(entry);
-    
+
     try {
       fs.appendFileSync(this.journalPath, markdown);
     } catch (error) {
@@ -405,32 +430,32 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
 
   private formatEntryAsMarkdown(entry: ImprovementEntry): string {
     const timestamp = new Date(entry.timestamp).toISOString();
-    
+
     let md = `\n## [${timestamp}] ${entry.type}\n\n`;
     md += `### Issue\n${entry.issue}\n\n`;
     md += `### Analysis\n`;
-    
+
     for (const line of entry.analysis) {
       md += `- ${line}\n`;
     }
     md += "\n";
-    
+
     if (entry.suggestedFix) {
       md += `### Suggested Fix\n${entry.suggestedFix}\n\n`;
     }
-    
+
     if (entry.codeLocation) {
       md += `### Code Location\n\`${entry.codeLocation}\`\n\n`;
     }
-    
+
     if (entry.patch) {
       md += `### Patch\n\`\`\`diff\n${entry.patch}\n\`\`\`\n\n`;
     }
-    
+
     md += `### Confidence\n${entry.confidence.toUpperCase()}\n\n`;
     md += `### Status\n${entry.status}\n\n`;
     md += `---\n`;
-    
+
     return md;
   }
 
@@ -442,7 +467,7 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
    * Get pending entries for ClawdBot
    */
   getPendingEntries(): ImprovementEntry[] {
-    return this.entries.filter(e => e.status === "PENDING_CLAWDBOT");
+    return this.entries.filter((e) => e.status === "PENDING_CLAWDBOT");
   }
 
   /**
@@ -462,11 +487,11 @@ ClawdBot monitors this file and applies patches with status \`PENDING_CLAWDBOT\`
       ENHANCEMENT_SUGGESTION: 0,
       CODE_CHANGE_REQUEST: 0,
     };
-    
+
     for (const entry of this.entries) {
       counts[entry.type]++;
     }
-    
+
     return counts;
   }
 

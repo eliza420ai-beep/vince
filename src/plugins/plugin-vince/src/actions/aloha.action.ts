@@ -7,7 +7,13 @@
  * Triggered by "aloha", "bull bear", "market analysis", etc.
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { BullBearAnalyzer } from "../analysis/bullBearAnalyzer";
 import type { AnalysisResult } from "../types/analysis";
@@ -19,7 +25,9 @@ const DETAILED_ANALYSIS_ASSETS = [...CORE_ASSETS]; // BTC, ETH, SOL, HYPE
 // HIP-3 assets for quick scan
 const HIP3_SCAN_ASSETS = [
   ...HIP3_INDICES.slice(0, 3),
-  "NVDA", "TSLA", "COIN",
+  "NVDA",
+  "TSLA",
+  "COIN",
 ] as const;
 
 // ==========================================
@@ -28,44 +36,66 @@ const HIP3_SCAN_ASSETS = [
 
 function buildDataContext(
   coreResults: Map<string, AnalysisResult>,
-  hip3Results: { asset: string; result: AnalysisResult }[]
+  hip3Results: { asset: string; result: AnalysisResult }[],
 ): string {
   const lines: string[] = [];
-  
+
   lines.push("=== CORE ASSETS ===");
   const coreEntries = Array.from(coreResults.entries());
   for (const [asset, result] of coreEntries) {
     const s = result.snapshot;
     const c = result.conclusion;
-    
+
     lines.push(`\n${asset}:`);
     if (s.spotPrice) lines.push(`  Price: $${s.spotPrice.toLocaleString()}`);
-    if (s.priceChange24h !== null) lines.push(`  24h Change: ${s.priceChange24h >= 0 ? "+" : ""}${s.priceChange24h.toFixed(2)}%`);
-    lines.push(`  Direction: ${c.direction.toUpperCase()} (${c.conviction.toFixed(0)}% conviction)`);
+    if (s.priceChange24h !== null)
+      lines.push(
+        `  24h Change: ${s.priceChange24h >= 0 ? "+" : ""}${s.priceChange24h.toFixed(2)}%`,
+      );
+    lines.push(
+      `  Direction: ${c.direction.toUpperCase()} (${c.conviction.toFixed(0)}% conviction)`,
+    );
     lines.push(`  Recommendation: ${c.recommendation}`);
-    
+
     // Key factors
     if (c.bullCase.keyFactors.length > 0) {
-      lines.push(`  Bull factors: ${c.bullCase.keyFactors.slice(0, 2).map(f => f.explanation).join("; ")}`);
+      lines.push(
+        `  Bull factors: ${c.bullCase.keyFactors
+          .slice(0, 2)
+          .map((f) => f.explanation)
+          .join("; ")}`,
+      );
     }
     if (c.bearCase.keyFactors.length > 0) {
-      lines.push(`  Bear factors: ${c.bearCase.keyFactors.slice(0, 2).map(f => f.explanation).join("; ")}`);
+      lines.push(
+        `  Bear factors: ${c.bearCase.keyFactors
+          .slice(0, 2)
+          .map((f) => f.explanation)
+          .join("; ")}`,
+      );
     }
   }
-  
+
   // Market-wide context from BTC
   const btc = coreResults.get("BTC");
   if (btc) {
     const s = btc.snapshot;
     lines.push("\n=== MARKET CONTEXT ===");
-    if (s.fearGreedValue !== null) lines.push(`Fear/Greed Index: ${s.fearGreedValue} (${s.fearGreedLabel})`);
-    if (s.fundingRate !== null) lines.push(`BTC Funding Rate: ${(s.fundingRate * 100).toFixed(4)}%`);
-    if (s.longShortRatio !== null) lines.push(`BTC Long/Short Ratio: ${s.longShortRatio.toFixed(2)}`);
-    if (s.dvol !== null) lines.push(`BTC DVOL (Implied Vol): ${s.dvol.toFixed(1)}`);
-    if (s.openInterestChange !== null) lines.push(`OI Change 24h: ${s.openInterestChange >= 0 ? "+" : ""}${s.openInterestChange.toFixed(1)}%`);
+    if (s.fearGreedValue !== null)
+      lines.push(`Fear/Greed Index: ${s.fearGreedValue} (${s.fearGreedLabel})`);
+    if (s.fundingRate !== null)
+      lines.push(`BTC Funding Rate: ${(s.fundingRate * 100).toFixed(4)}%`);
+    if (s.longShortRatio !== null)
+      lines.push(`BTC Long/Short Ratio: ${s.longShortRatio.toFixed(2)}`);
+    if (s.dvol !== null)
+      lines.push(`BTC DVOL (Implied Vol): ${s.dvol.toFixed(1)}`);
+    if (s.openInterestChange !== null)
+      lines.push(
+        `OI Change 24h: ${s.openInterestChange >= 0 ? "+" : ""}${s.openInterestChange.toFixed(1)}%`,
+      );
     if (s.hasRiskEvents) lines.push(`⚠️ ACTIVE RISK EVENTS IN NEWS`);
   }
-  
+
   // HIP-3 summary
   if (hip3Results.length > 0) {
     lines.push("\n=== HIP-3 EQUITIES/INDICES ===");
@@ -75,7 +105,7 @@ function buildDataContext(
       lines.push(`${h.asset}: ${dir} (${conv}%)`);
     }
   }
-  
+
   return lines.join("\n");
 }
 
@@ -86,7 +116,7 @@ function buildDataContext(
 async function generateHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string,
-  date: string
+  date: string,
 ): Promise<string> {
   const prompt = `You are VINCE, writing your daily market briefing for ${date}. You're texting this to a friend who trades - be real, be specific, have opinions.
 
@@ -135,7 +165,7 @@ Write the briefing:`;
 async function generateTweet(
   runtime: IAgentRuntime,
   dataContext: string,
-  date: string
+  date: string,
 ): Promise<string> {
   const prompt = `You are VINCE. Based on today's market data, write a single tweet.
 
@@ -159,17 +189,19 @@ Write the tweet:`;
   try {
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
     let tweet = String(response).trim();
-    
+
     // Clean quotes
-    if ((tweet.startsWith('"') && tweet.endsWith('"')) || 
-        (tweet.startsWith("'") && tweet.endsWith("'"))) {
+    if (
+      (tweet.startsWith('"') && tweet.endsWith('"')) ||
+      (tweet.startsWith("'") && tweet.endsWith("'"))
+    ) {
       tweet = tweet.slice(1, -1);
     }
-    
+
     if (tweet.length > 280) {
       tweet = tweet.substring(0, 277) + "...";
     }
-    
+
     return tweet;
   } catch (error) {
     logger.error(`[VINCE_ALOHA] Failed to generate tweet: ${error}`);
@@ -191,9 +223,13 @@ export const vinceAlohaAction: Action = {
     "BULL_BEAR_CASE",
     "MARKET_OUTLOOK",
   ],
-  description: "Generate a human-style daily market briefing that reads like a friend texting you about the market",
+  description:
+    "Generate a human-style daily market briefing that reads like a friend texting you about the market",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("aloha") ||
@@ -212,12 +248,15 @@ export const vinceAlohaAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       const now = new Date();
       const day = now.toLocaleDateString("en-US", { weekday: "long" });
-      const date = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const date = now.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
 
       // Initialize analyzer
       const analyzer = new BullBearAnalyzer();
@@ -225,7 +264,7 @@ export const vinceAlohaAction: Action = {
       // Analyze all assets
       logger.info("[VINCE_ALOHA] Analyzing core assets...");
       const coreResults: Map<string, AnalysisResult> = new Map();
-      
+
       for (const asset of DETAILED_ANALYSIS_ASSETS) {
         try {
           const result = await analyzer.analyze(runtime, asset);
@@ -252,7 +291,11 @@ export const vinceAlohaAction: Action = {
 
       // Generate the human briefing
       logger.info("[VINCE_ALOHA] Generating briefing...");
-      const briefing = await generateHumanBriefing(runtime, dataContext, `${day}, ${date}`);
+      const briefing = await generateHumanBriefing(
+        runtime,
+        dataContext,
+        `${day}, ${date}`,
+      );
 
       // Generate tweet
       logger.info("[VINCE_ALOHA] Generating tweet...");
@@ -273,7 +316,9 @@ export const vinceAlohaAction: Action = {
       sections.push(`_${tweet.length}/280 chars_`);
       sections.push("");
       sections.push("---");
-      sections.push("_Keep digging_: `OPTIONS` (deep dive), `PERPS` (full dashboard), `UPLOAD <url>` (feed knowledge)");
+      sections.push(
+        "_Keep digging_: `OPTIONS` (deep dive), `PERPS` (full dashboard), `UPLOAD <url>` (feed knowledge)",
+      );
 
       await callback({
         text: sections.join("\n"),

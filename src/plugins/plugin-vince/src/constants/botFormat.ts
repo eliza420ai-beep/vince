@@ -4,4 +4,5 @@
  */
 
 /** Single-line footer for BOT command replies */
-export const BOT_FOOTER = "\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*";
+export const BOT_FOOTER =
+  "\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*";

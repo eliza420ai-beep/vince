@@ -34,7 +34,7 @@ export interface IBrowserService {
       retries?: number;
       retryDelay?: number;
       timeout?: number;
-    }
+    },
   ): Promise<{ success: boolean; content?: string; error?: string }>;
 
   /**
@@ -60,7 +60,9 @@ export class BrowserFallbackService implements IBrowserService {
 
   constructor(runtime?: IAgentRuntime) {
     this.runtime = runtime ?? null;
-    logger.debug("[BrowserFallback] Fallback service initialized (simple fetch, no JS rendering)");
+    logger.debug(
+      "[BrowserFallback] Fallback service initialized (simple fetch, no JS rendering)",
+    );
   }
 
   /**
@@ -69,7 +71,7 @@ export class BrowserFallbackService implements IBrowserService {
    */
   private parseHtmlToAccessibilityFormat(html: string): string {
     const lines: string[] = [];
-    
+
     // Extract title
     const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
     if (titleMatch) {
@@ -92,7 +94,8 @@ export class BrowserFallbackService implements IBrowserService {
     let linkMatch;
     while ((linkMatch = linkRegex.exec(html)) !== null) {
       const text = linkMatch[2].trim();
-      if (text && text.length > 5) { // Skip tiny navigation links
+      if (text && text.length > 5) {
+        // Skip tiny navigation links
         lines.push(`link "${text}"`);
       }
     }
@@ -111,7 +114,10 @@ export class BrowserFallbackService implements IBrowserService {
     const paragraphRegex = /<p[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/p>/gi;
     let paragraphMatch;
     let paragraphCount = 0;
-    while ((paragraphMatch = paragraphRegex.exec(html)) !== null && paragraphCount < 50) {
+    while (
+      (paragraphMatch = paragraphRegex.exec(html)) !== null &&
+      paragraphCount < 50
+    ) {
       const text = paragraphMatch[1].replace(/<[^>]*>/g, " ").trim();
       if (text && text.length > 20) {
         lines.push(`text: ${text.substring(0, 300)}`);
@@ -131,7 +137,7 @@ export class BrowserFallbackService implements IBrowserService {
       retries?: number;
       retryDelay?: number;
       timeout?: number;
-    }
+    },
   ): Promise<string> {
     const retries = options?.retries ?? 3;
     const retryDelay = options?.retryDelay ?? 2000;
@@ -147,8 +153,10 @@ export class BrowserFallbackService implements IBrowserService {
         const response = await fetch(url, {
           method: "GET",
           headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "User-Agent":
+              "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
           },
           signal: controller.signal,
@@ -164,13 +172,15 @@ export class BrowserFallbackService implements IBrowserService {
         return html;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        
+
         if (error instanceof Error && error.name === "AbortError") {
           lastError = new Error(`Request timed out after ${timeout}ms`);
         }
 
         if (attempt < retries - 1) {
-          logger.debug(`[BrowserFallback] Retry ${attempt + 1}/${retries} for ${url}: ${lastError.message}`);
+          logger.debug(
+            `[BrowserFallback] Retry ${attempt + 1}/${retries} for ${url}: ${lastError.message}`,
+          );
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
       }
@@ -189,7 +199,7 @@ export class BrowserFallbackService implements IBrowserService {
       retries?: number;
       retryDelay?: number;
       timeout?: number;
-    }
+    },
   ): Promise<{ success: boolean; content?: string; error?: string }> {
     // Check cache first
     const cached = this.cache.get(url);
@@ -202,19 +212,21 @@ export class BrowserFallbackService implements IBrowserService {
     try {
       logger.debug(`[BrowserFallback] Fetching ${url}`);
       const html = await this.fetchWithRetry(url, options);
-      
+
       // Parse to accessibility format
       const content = this.parseHtmlToAccessibilityFormat(html);
-      
+
       // Cache the result
       this.cache.set(url, {
         content,
         timestamp: Date.now(),
       });
-      
+
       this.lastContent = content;
-      
-      logger.debug(`[BrowserFallback] Successfully fetched ${url} (${content.length} chars)`);
+
+      logger.debug(
+        `[BrowserFallback] Successfully fetched ${url} (${content.length} chars)`,
+      );
       return { success: true, content };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -241,7 +253,9 @@ export class BrowserFallbackService implements IBrowserService {
   /**
    * Browse to a URL (alternative interface)
    */
-  async browse(url: string): Promise<{ content?: string; text?: string } | null> {
+  async browse(
+    url: string,
+  ): Promise<{ content?: string; text?: string } | null> {
     const result = await this.navigate(url);
     if (result.success) {
       return { content: result.content, text: result.content };

@@ -26,15 +26,20 @@ export interface PushOptions {
 
 export class VinceNotificationService extends Service {
   static serviceType = "VINCE_NOTIFICATION_SERVICE";
-  capabilityDescription = "Pushes proactive messages to Discord, Slack, and Telegram";
+  capabilityDescription =
+    "Pushes proactive messages to Discord, Slack, and Telegram";
 
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceNotificationService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceNotificationService> {
     const service = new VinceNotificationService(runtime);
-    logger.info("[VinceNotification] ✅ Service started (push to Discord/Slack/Telegram when connected)");
+    logger.info(
+      "[VinceNotification] ✅ Service started (push to Discord/Slack/Telegram when connected)",
+    );
     return service;
   }
 
@@ -52,7 +57,9 @@ export class VinceNotificationService extends Service {
 
     const targets = await this.getPushTargets(options);
     if (targets.length === 0) {
-      logger.debug("[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping");
+      logger.debug(
+        "[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping",
+      );
       return 0;
     }
 
@@ -69,7 +76,9 @@ export class VinceNotificationService extends Service {
       try {
         await this.runtime.sendMessageToTarget(target, { text });
         sent++;
-        logger.debug(`[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`);
+        logger.debug(
+          `[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`,
+        );
       } catch (err) {
         if (isNoSendHandler(err)) {
           skippedNoHandler++;
@@ -80,20 +89,23 @@ export class VinceNotificationService extends Service {
     }
 
     if (sent > 0) {
-      logger.info(`[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`);
+      logger.info(
+        `[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`,
+      );
     }
     if (skippedNoHandler > 0) {
       logger.debug(`[VinceNotification] Skipped ${skippedNoHandler} target(s) (no send handler for source — use a separate Discord app for VINCE)`);
     }
     if (failed.length > 0) {
-      logger.warn(`[VinceNotification] Failed ${failed.length}/${targets.length}: ${failed.slice(0, 2).join("; ")}${failed.length > 2 ? "…" : ""}`);
+      logger.warn(
+        `[VinceNotification] Failed ${failed.length}/${targets.length}: ${failed.slice(0, 2).join("; ")}${failed.length > 2 ? "…" : ""}`,
+      );
     }
     return sent;
   }
 
   private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
     const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
-    // VINCE has own Discord when VINCE_DISCORD_* are set and different from Eliza's app (same condition as vince.ts).
     const vinceHasOwnDiscord =
       !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
       !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
@@ -113,7 +125,6 @@ export class VinceNotificationService extends Service {
     const shouldIncludeSource = (src: string): boolean => {
       if (!sources.includes(src)) return false;
       if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
-      // Only include Discord for VINCE when his Discord plugin is loaded (same condition as vince.ts).
       if (isVince && src === "discord") return vinceHasOwnDiscord;
       if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim()) return false;
       if (isVince && src === "telegram" && !process.env.TELEGRAM_BOT_TOKEN?.trim()) return false;
@@ -138,7 +149,8 @@ export class VinceNotificationService extends Service {
             source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
-            serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,
+            serverId:
+              room.messageServerId ?? (room as { serverId?: string }).serverId,
           });
         }
       }
@@ -154,7 +166,8 @@ export class VinceNotificationService extends Service {
             source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
-            serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,
+            serverId:
+              room.messageServerId ?? (room as { serverId?: string }).serverId,
           });
         }
       }

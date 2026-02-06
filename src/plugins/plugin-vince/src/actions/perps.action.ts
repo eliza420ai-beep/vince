@@ -3,7 +3,7 @@
  *
  * Perpetual trading signals with LLM-generated narrative.
  * Reads like a friend texting you about trading setups, not a robotic report.
- * 
+ *
  * Features:
  * - Market signals from CoinGlass, Binance, Top Traders
  * - Aggregated signal direction with confidence
@@ -11,7 +11,13 @@
  * - Educational explanations of why trades are/aren't happening
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceCoinGlassService } from "../services/coinglass.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
@@ -34,7 +40,7 @@ interface PerpsDataContext {
 }
 
 async function buildPerpsDataContext(
-  runtime: IAgentRuntime
+  runtime: IAgentRuntime,
 ): Promise<PerpsDataContext> {
   const context: PerpsDataContext = {
     marketContext: [],
@@ -46,14 +52,26 @@ async function buildPerpsDataContext(
   };
 
   const assets = ["BTC", "ETH", "SOL", "HYPE"];
-  
+
   // Get services
-  const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
-  const signalService = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as VinceSignalAggregatorService | null;
-  const topTradersService = runtime.getService("VINCE_TOP_TRADERS_SERVICE") as VinceTopTradersService | null;
-  const marketDataService = runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
-  const sanbaseService = runtime.getService("VINCE_SANBASE_SERVICE") as VinceSanbaseService | null;
-  const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
+  const coinglassService = runtime.getService(
+    "VINCE_COINGLASS_SERVICE",
+  ) as VinceCoinGlassService | null;
+  const signalService = runtime.getService(
+    "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+  ) as VinceSignalAggregatorService | null;
+  const topTradersService = runtime.getService(
+    "VINCE_TOP_TRADERS_SERVICE",
+  ) as VinceTopTradersService | null;
+  const marketDataService = runtime.getService(
+    "VINCE_MARKET_DATA_SERVICE",
+  ) as VinceMarketDataService | null;
+  const sanbaseService = runtime.getService(
+    "VINCE_SANBASE_SERVICE",
+  ) as VinceSanbaseService | null;
+  const positionManager = runtime.getService(
+    "VINCE_POSITION_MANAGER_SERVICE",
+  ) as VincePositionManagerService | null;
 
   // Market context
   if (marketDataService) {
@@ -61,8 +79,13 @@ async function buildPerpsDataContext(
       try {
         const ctx = await marketDataService.getEnrichedContext(asset);
         if (ctx) {
-          const change = ctx.priceChange24h >= 0 ? `+${ctx.priceChange24h.toFixed(1)}%` : `${ctx.priceChange24h.toFixed(1)}%`;
-          context.marketContext.push(`${asset}: $${ctx.currentPrice.toLocaleString()} (${change}) - ${ctx.marketRegime}`);
+          const change =
+            ctx.priceChange24h >= 0
+              ? `+${ctx.priceChange24h.toFixed(1)}%`
+              : `${ctx.priceChange24h.toFixed(1)}%`;
+          context.marketContext.push(
+            `${asset}: $${ctx.currentPrice.toLocaleString()} (${change}) - ${ctx.marketRegime}`,
+          );
         }
       } catch (e) {
         // Skip failed assets
@@ -78,7 +101,9 @@ async function buildPerpsDataContext(
         const direction = signal.direction.toUpperCase();
         context.tradingSignals.push(
           `${asset}: ${direction} (strength: ${signal.strength}%, confidence: ${signal.confidence}%)` +
-          (signal.factors.length > 0 ? ` - ${signal.factors.slice(0, 2).join(", ")}` : "")
+            (signal.factors.length > 0
+              ? ` - ${signal.factors.slice(0, 2).join(", ")}`
+              : ""),
         );
       } catch (e) {
         // Skip failed assets
@@ -89,7 +114,9 @@ async function buildPerpsDataContext(
       try {
         const signal = coinglassService.generateSignal(asset);
         if (signal) {
-          context.tradingSignals.push(`${asset}: ${signal.direction.toUpperCase()} (strength: ${signal.strength}%)`);
+          context.tradingSignals.push(
+            `${asset}: ${signal.direction.toUpperCase()} (strength: ${signal.strength}%)`,
+          );
         }
       } catch (e) {
         // Skip failed assets
@@ -102,12 +129,14 @@ async function buildPerpsDataContext(
     try {
       const status = topTradersService.getStatus();
       context.topTraders.push(`Tracking ${status.trackedCount} whale wallets`);
-      
+
       const recentSignals = topTradersService.getRecentSignals(3);
       if (recentSignals.length > 0) {
         for (const sig of recentSignals) {
           const action = sig.action.replace("_", " ");
-          context.topTraders.push(`${sig.asset}: whale ${action} ($${(sig.size / 1000).toFixed(0)}k)`);
+          context.topTraders.push(
+            `${sig.asset}: whale ${action} ($${(sig.size / 1000).toFixed(0)}k)`,
+          );
         }
       } else {
         context.topTraders.push("No recent whale activity");
@@ -123,7 +152,12 @@ async function buildPerpsDataContext(
       const allFunding = coinglassService.getAllFunding();
       for (const funding of allFunding) {
         const rate = (funding.rate * 100).toFixed(4);
-        const bias = funding.rate > 0.0001 ? "(longs paying)" : funding.rate < -0.0001 ? "(shorts paying)" : "(neutral)";
+        const bias =
+          funding.rate > 0.0001
+            ? "(longs paying)"
+            : funding.rate < -0.0001
+              ? "(shorts paying)"
+              : "(neutral)";
         context.fundingRates.push(`${funding.asset}: ${rate}% ${bias}`);
       }
     } catch (e) {
@@ -136,13 +170,19 @@ async function buildPerpsDataContext(
     try {
       const btcOnChain = await sanbaseService.getOnChainContext("BTC");
       if (btcOnChain.exchangeFlows) {
-        context.onChain.push(`BTC Exchange flows: ${btcOnChain.exchangeFlows.sentiment} (30d lag)`);
+        context.onChain.push(
+          `BTC Exchange flows: ${btcOnChain.exchangeFlows.sentiment} (30d lag)`,
+        );
       }
       if (btcOnChain.whaleActivity) {
-        context.onChain.push(`BTC Whale activity: ${btcOnChain.whaleActivity.sentiment} (30d lag)`);
+        context.onChain.push(
+          `BTC Whale activity: ${btcOnChain.whaleActivity.sentiment} (30d lag)`,
+        );
       }
       if (btcOnChain.networkActivity) {
-        context.onChain.push(`Network activity: ${btcOnChain.networkActivity.trend}`);
+        context.onChain.push(
+          `Network activity: ${btcOnChain.networkActivity.trend}`,
+        );
       }
     } catch (e) {
       // Skip if unavailable
@@ -155,30 +195,45 @@ async function buildPerpsDataContext(
       const positions = positionManager.getOpenPositions();
       const portfolio = positionManager.getPortfolio();
       const riskState = positionManager.getRiskState();
-      
+
       const statusLabel = riskState.isPaused ? "PAUSED" : "ACTIVE";
-      const returnPct = portfolio.returnPct >= 0 ? `+${portfolio.returnPct.toFixed(2)}%` : `${portfolio.returnPct.toFixed(2)}%`;
-      context.paperBot.push(`Bot: ${statusLabel} | Portfolio: $${portfolio.totalValue.toLocaleString()} (${returnPct})`);
-      
+      const returnPct =
+        portfolio.returnPct >= 0
+          ? `+${portfolio.returnPct.toFixed(2)}%`
+          : `${portfolio.returnPct.toFixed(2)}%`;
+      context.paperBot.push(
+        `Bot: ${statusLabel} | Portfolio: $${portfolio.totalValue.toLocaleString()} (${returnPct})`,
+      );
+
       if (positions.length > 0) {
         for (const pos of positions) {
-          const pnlStr = pos.unrealizedPnl >= 0 ? `+$${pos.unrealizedPnl.toFixed(0)}` : `-$${Math.abs(pos.unrealizedPnl).toFixed(0)}`;
-          const pnlPct = pos.unrealizedPnlPct >= 0 ? `+${pos.unrealizedPnlPct.toFixed(1)}%` : `${pos.unrealizedPnlPct.toFixed(1)}%`;
+          const pnlStr =
+            pos.unrealizedPnl >= 0
+              ? `+$${pos.unrealizedPnl.toFixed(0)}`
+              : `-$${Math.abs(pos.unrealizedPnl).toFixed(0)}`;
+          const pnlPct =
+            pos.unrealizedPnlPct >= 0
+              ? `+${pos.unrealizedPnlPct.toFixed(1)}%`
+              : `${pos.unrealizedPnlPct.toFixed(1)}%`;
           const duration = formatDuration(Date.now() - pos.openedAt);
           context.paperBot.push(
-            `${pos.direction.toUpperCase()} ${pos.asset} @ $${pos.entryPrice.toLocaleString()} (${duration}) - P&L: ${pnlStr} (${pnlPct})`
+            `${pos.direction.toUpperCase()} ${pos.asset} @ $${pos.entryPrice.toLocaleString()} (${duration}) - P&L: ${pnlStr} (${pnlPct})`,
           );
-          context.paperBot.push(`  Strategy: ${pos.strategyName} | Signals: ${pos.triggerSignals.slice(0, 2).join(", ")}`);
+          context.paperBot.push(
+            `  Strategy: ${pos.strategyName} | Signals: ${pos.triggerSignals.slice(0, 2).join(", ")}`,
+          );
         }
       } else {
         context.paperBot.push("No open positions - waiting for setup");
-        
+
         // Get why not trading if signal service available
         if (signalService) {
           const btcSignal = await signalService.getSignal("BTC");
           const reasons: string[] = [];
-          if (btcSignal.strength < 60) reasons.push(`strength ${btcSignal.strength}% (need 60%)`);
-          if (btcSignal.confidence < 60) reasons.push(`confidence ${btcSignal.confidence}% (need 60%)`);
+          if (btcSignal.strength < 60)
+            reasons.push(`strength ${btcSignal.strength}% (need 60%)`);
+          if (btcSignal.confidence < 60)
+            reasons.push(`confidence ${btcSignal.confidence}% (need 60%)`);
           if (reasons.length > 0) {
             context.paperBot.push(`Why waiting: ${reasons.join(", ")}`);
           }
@@ -209,7 +264,7 @@ function formatDuration(ms: number): string {
 
 async function generatePerpsNarrative(
   runtime: IAgentRuntime,
-  context: PerpsDataContext
+  context: PerpsDataContext,
 ): Promise<string> {
   const dataContext = [
     "=== MARKET CONTEXT ===",
@@ -223,7 +278,9 @@ async function generatePerpsNarrative(
     "",
     "=== FUNDING RATES ===",
     ...context.fundingRates,
-    ...(context.onChain.length > 0 ? ["", "=== ON-CHAIN (30d lag) ===", ...context.onChain] : []),
+    ...(context.onChain.length > 0
+      ? ["", "=== ON-CHAIN (30d lag) ===", ...context.onChain]
+      : []),
     "",
     "=== PAPER BOT STATUS ===",
     ...context.paperBot,
@@ -271,9 +328,13 @@ Write the briefing:`;
 export const vincePerpsAction: Action = {
   name: "VINCE_PERPS",
   similes: ["PERPS", "PERPETUALS", "TRADING", "SIGNALS", "MARKET_SIGNALS"],
-  description: "Perpetual trading signals with LLM-generated narrative - reads like a friend texting about setups",
+  description:
+    "Perpetual trading signals with LLM-generated narrative - reads like a friend texting about setups",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("perp") ||
@@ -289,23 +350,26 @@ export const vincePerpsAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       logger.info("[VINCE_PERPS] Building data context...");
-      
+
       // Build data context from all services
       const context = await buildPerpsDataContext(runtime);
-      
+
       logger.info("[VINCE_PERPS] Generating narrative...");
-      
+
       // Generate LLM narrative
       const narrative = await generatePerpsNarrative(runtime, context);
-      
+
       // Format final output
       const now = new Date();
-      const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-      
+      const time = now.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
       // Build source attribution - list all 15 signal aggregator sources
       const allSources = [
         "CoinGlass",
@@ -325,7 +389,8 @@ export const vincePerpsAction: Action = {
         "Deribit Put/Call Ratio",
       ];
 
-      const outro = "\n---\nPulse check done. Next moves: `ALOHA` (full vibe) · `OPTIONS` (O/I flows, greeks) · `UPLOAD <url>` (stash research)";
+      const outro =
+        "\n---\nPulse check done. Next moves: `ALOHA` (full vibe) · `OPTIONS` (O/I flows, greeks) · `UPLOAD <url>` (stash research)";
       const output = [
         `**Perps** _${time}_`,
         "",
@@ -339,7 +404,7 @@ export const vincePerpsAction: Action = {
         text: output,
         actions: ["VINCE_PERPS"],
       });
-      
+
       logger.info("[VINCE_PERPS] Briefing complete");
     } catch (error) {
       logger.error(`[VINCE_PERPS] Error: ${error}`);

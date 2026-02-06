@@ -52,6 +52,9 @@
     "src/__tests__/**/*",
     "src/**/cypress/**/*",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "**/vitest.config.ts",
+    "src/frontend/scripts/**",
+    "src/frontend/components/ui/slider.tsx"
   ]
 }

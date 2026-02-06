@@ -33,16 +33,22 @@ export const MAX_CONFIDENCE = 100;
 export function getBookImbalanceRejection(
   signal: SignalDirection,
   snapshot: ExtendedSnapshot | null,
-  threshold: number = BOOK_IMBALANCE_THRESHOLD
+  threshold: number = BOOK_IMBALANCE_THRESHOLD,
 ): { reject: boolean; reason?: string } {
   if (signal.direction === "neutral") return { reject: false };
   const book = snapshot?.bookImbalance;
   if (book == null) return { reject: false };
   if (signal.direction === "long" && book < -threshold) {
-    return { reject: true, reason: `Order book favors sellers (imbalance ${book.toFixed(2)})` };
+    return {
+      reject: true,
+      reason: `Order book favors sellers (imbalance ${book.toFixed(2)})`,
+    };
   }
   if (signal.direction === "short" && book > threshold) {
-    return { reject: true, reason: `Order book favors buyers (imbalance ${book.toFixed(2)})` };
+    return {
+      reject: true,
+      reason: `Order book favors buyers (imbalance ${book.toFixed(2)})`,
+    };
   }
   return { reject: false };
 }
@@ -52,7 +58,7 @@ export function getBookImbalanceRejection(
  */
 export function getSma20ConfidenceBoost(
   signal: SignalDirection,
-  snapshot: ExtendedSnapshot | null
+  snapshot: ExtendedSnapshot | null,
 ): number {
   if (signal.direction === "neutral") return 0;
   const pct = snapshot?.priceVsSma20;
@@ -67,11 +73,12 @@ export function getSma20ConfidenceBoost(
  */
 export function getFundingReversalConfidenceBoost(
   snapshot: ExtendedSnapshot | null,
-  fundingRate: number
+  fundingRate: number,
 ): number {
   const delta = snapshot?.fundingDelta;
   if (delta == null || Math.abs(delta) <= FUNDING_DELTA_THRESHOLD) return 0;
-  const oppositeSigns = (delta > 0 && fundingRate < 0) || (delta < 0 && fundingRate > 0);
+  const oppositeSigns =
+    (delta > 0 && fundingRate < 0) || (delta < 0 && fundingRate > 0);
   return oppositeSigns ? CONFIDENCE_BOOST : 0;
 }
 
@@ -81,7 +88,7 @@ export function getFundingReversalConfidenceBoost(
 export function getAdjustedConfidence(
   signal: SignalDirection,
   snapshot: ExtendedSnapshot | null,
-  fundingRate: number
+  fundingRate: number,
 ): number {
   let c = signal.confidence;
   c += getSma20ConfidenceBoost(signal, snapshot);

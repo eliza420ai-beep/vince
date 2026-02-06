@@ -1,9 +1,9 @@
 /**
  * Knowledge Quality Testing Utilities
- * 
+ *
  * Provides utilities for testing whether VINCE's knowledge base
  * actually improves response quality via A/B comparison.
- * 
+ *
  * Based on patterns from scripts/test-knowledge-quality.ts
  */
 
@@ -15,7 +15,7 @@ import * as path from "path";
 // ============================================================================
 
 const RETRIEVAL_CONFIG = {
-  similarityThreshold: 0.35,  // Raised from 0.1 to filter irrelevant chunks
+  similarityThreshold: 0.35, // Raised from 0.1 to filter irrelevant chunks
   maxChunks: 8,
   maxTokens: 4000,
   chunkSize: 1000,
@@ -44,7 +44,7 @@ export interface TestCase {
 }
 
 export interface ScoreResult {
-  knowledgeIntegration: number;  // NEW: measures if knowledge was actually used
+  knowledgeIntegration: number; // NEW: measures if knowledge was actually used
   capabilityCoverage: number;
   toneConsistency: number;
   actionability: number;
@@ -94,20 +94,20 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
     throw new Error("Embedding vectors must have the same length");
   }
-  
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
-  
+
   for (let i = 0; i < a.length; i++) {
     dotProduct += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  
+
   const denominator = Math.sqrt(normA) * Math.sqrt(normB);
   if (denominator === 0) return 0;
-  
+
   return dotProduct / denominator;
 }
 
@@ -119,25 +119,25 @@ export async function generateEmbedding(text: string): Promise<number[]> {
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is required for embedding generation");
   }
-  
+
   try {
     const response = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "text-embedding-3-small",
         input: text,
       }),
     });
-    
-    const data = await response.json() as any;
+
+    const data = (await response.json()) as any;
     if (data.error) {
       throw new Error(data.error.message || "Embedding generation failed");
     }
-    
+
     return data.data[0].embedding as number[];
   } catch (error) {
     console.error("Embedding generation error:", error);
@@ -150,14 +150,14 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  */
 export async function getEmbedding(text: string): Promise<number[]> {
   const cacheKey = text.slice(0, 200);
-  
+
   if (embeddingCache.has(cacheKey)) {
     return embeddingCache.get(cacheKey)!;
   }
-  
+
   const embedding = await generateEmbedding(text);
   embeddingCache.set(cacheKey, embedding);
-  
+
   return embedding;
 }
 
@@ -178,27 +178,30 @@ export function clearEmbeddingCache(): void {
 export function splitIntoChunks(
   text: string,
   targetSize: number = RETRIEVAL_CONFIG.chunkSize,
-  overlap: number = RETRIEVAL_CONFIG.chunkOverlap
+  overlap: number = RETRIEVAL_CONFIG.chunkOverlap,
 ): string[] {
   const chunks: string[] = [];
   const sentences = text.split(/(?<=[.!?])\s+/);
-  
-  let currentChunk = '';
-  
+
+  let currentChunk = "";
+
   for (const sentence of sentences) {
-    if (currentChunk.length + sentence.length > targetSize && currentChunk.length > 0) {
+    if (
+      currentChunk.length + sentence.length > targetSize &&
+      currentChunk.length > 0
+    ) {
       chunks.push(currentChunk.trim());
       const overlapText = currentChunk.slice(-overlap);
-      currentChunk = overlapText + (overlapText ? ' ' : '') + sentence;
+      currentChunk = overlapText + (overlapText ? " " : "") + sentence;
     } else {
-      currentChunk += (currentChunk ? ' ' : '') + sentence;
+      currentChunk += (currentChunk ? " " : "") + sentence;
     }
   }
-  
+
   if (currentChunk.trim()) {
     chunks.push(currentChunk.trim());
   }
-  
+
   return chunks.length > 0 ? chunks : [text];
 }
 
@@ -223,11 +226,14 @@ export const VINCE_KNOWLEDGE_PATHS = [
  */
 export async function loadRelevantKnowledge(
   query: string,
-  knowledgePaths: { directory: string; shared: boolean }[] = VINCE_KNOWLEDGE_PATHS
+  knowledgePaths: {
+    directory: string;
+    shared: boolean;
+  }[] = VINCE_KNOWLEDGE_PATHS,
 ): Promise<KnowledgeLoadResult> {
   const projectRoot = path.resolve(process.cwd());
   const knowledgeDir = path.join(projectRoot, "knowledge");
-  
+
   // Collect all knowledge chunks
   const allChunks: KnowledgeChunk[] = [];
   let totalSize = 0;
@@ -235,22 +241,22 @@ export async function loadRelevantKnowledge(
 
   for (const item of knowledgePaths) {
     const fullPath = path.join(knowledgeDir, item.directory);
-    
+
     if (!fs.existsSync(fullPath)) {
       continue;
     }
 
     const stats = fs.statSync(fullPath);
-    
+
     if (stats.isDirectory()) {
       const entries = fs.readdirSync(fullPath, { recursive: true });
       const files = entries
-        .filter((f): f is string => typeof f === 'string' && f.endsWith('.md'))
+        .filter((f): f is string => typeof f === "string" && f.endsWith(".md"))
         .map((f) => path.join(fullPath, f));
-      
+
       for (const file of files) {
         try {
-          const content = fs.readFileSync(file, 'utf-8');
+          const content = fs.readFileSync(file, "utf-8");
           const chunks = splitIntoChunks(content);
           for (const chunk of chunks) {
             allChunks.push({
@@ -271,9 +277,9 @@ export async function loadRelevantKnowledge(
   // Generate embeddings and calculate similarity
   console.log(`   Generating query embedding...`);
   const queryEmbedding = await getEmbedding(query);
-  
+
   console.log(`   Processing ${allChunks.length} chunks...`);
-  
+
   // Process in batches to avoid rate limits
   const batchSize = 20;
   for (let i = 0; i < allChunks.length; i += batchSize) {
@@ -289,62 +295,101 @@ export async function loadRelevantKnowledge(
           chunk.similarity = 0;
           chunk.relevance = 0;
         }
-      })
+      }),
     );
   }
-  
+
   // Apply quality penalties and boosts
   for (const chunk of allChunks) {
     const chunkLower = chunk.content.toLowerCase();
-    
+
     // PENALTY: Meta-instructions (API docs, tool instructions)
-    const metaTerms = ['api', 'endpoint', 'install', 'npm', 'import from', 'export default', 'require(', 'package.json'];
+    const metaTerms = [
+      "api",
+      "endpoint",
+      "install",
+      "npm",
+      "import from",
+      "export default",
+      "require(",
+      "package.json",
+    ];
     let metaPenalty = 0;
     for (const term of metaTerms) {
       if (chunkLower.includes(term)) {
         metaPenalty += 0.1;
       }
     }
-    metaPenalty = Math.min(0.4, metaPenalty);  // Cap penalty
-    
+    metaPenalty = Math.min(0.4, metaPenalty); // Cap penalty
+
     // PENALTY: Outdated data (price-heavy chunks)
     const priceMatches = chunk.content.match(/\$[\d,]+|\d{4}-\d{2}-\d{2}/g);
-    const dataPenalty = priceMatches ? Math.min(0.15, priceMatches.length * 0.02) : 0;
-    
+    const dataPenalty = priceMatches
+      ? Math.min(0.15, priceMatches.length * 0.02)
+      : 0;
+
     // BOOST: Methodology/framework content
-    const methodologyTerms = ['methodology', 'framework', 'approach', 'how to think', 'interpret', 'analyze', 'strategy', 'setup', 'signal', 'wheel strategy', 'csp', 'covered call'];
+    const methodologyTerms = [
+      "methodology",
+      "framework",
+      "approach",
+      "how to think",
+      "interpret",
+      "analyze",
+      "strategy",
+      "setup",
+      "signal",
+      "wheel strategy",
+      "csp",
+      "covered call",
+    ];
     let methodologyBoost = 0;
     for (const term of methodologyTerms) {
       if (chunkLower.includes(term)) {
         methodologyBoost += 0.03;
       }
     }
-    methodologyBoost = Math.min(0.15, methodologyBoost);  // Cap boost
-    
+    methodologyBoost = Math.min(0.15, methodologyBoost); // Cap boost
+
     // BOOST: Conceptual/analytical content
-    const conceptTerms = ['thesis', 'when to', 'how to', 'red flag', 'warning sign', 'indicator', 'pattern', 'h/e/f/s', 'rating system', 'evaluation'];
+    const conceptTerms = [
+      "thesis",
+      "when to",
+      "how to",
+      "red flag",
+      "warning sign",
+      "indicator",
+      "pattern",
+      "h/e/f/s",
+      "rating system",
+      "evaluation",
+    ];
     let conceptBoost = 0;
     for (const term of conceptTerms) {
       if (chunkLower.includes(term)) {
         conceptBoost += 0.03;
       }
     }
-    conceptBoost = Math.min(0.12, conceptBoost);  // Cap boost
-    
+    conceptBoost = Math.min(0.12, conceptBoost); // Cap boost
+
     // Apply adjustments
     if (chunk.similarity !== undefined) {
-      const adjustment = methodologyBoost + conceptBoost - metaPenalty - dataPenalty;
-      chunk.similarity = Math.max(0, Math.min(1, chunk.similarity + adjustment));
+      const adjustment =
+        methodologyBoost + conceptBoost - metaPenalty - dataPenalty;
+      chunk.similarity = Math.max(
+        0,
+        Math.min(1, chunk.similarity + adjustment),
+      );
       chunk.relevance = chunk.similarity;
     }
   }
 
   // Select top chunks
   const topChunks = allChunks
-    .filter(c => (c.similarity || 0) >= RETRIEVAL_CONFIG.similarityThreshold)
+    .filter((c) => (c.similarity || 0) >= RETRIEVAL_CONFIG.similarityThreshold)
     .sort((a, b) => (b.similarity || 0) - (a.similarity || 0))
     .slice(0, RETRIEVAL_CONFIG.maxChunks);
-  
+
   // Apply token limit
   let totalChars = 0;
   const selectedChunks: KnowledgeChunk[] = [];
@@ -356,51 +401,68 @@ export async function loadRelevantKnowledge(
       break;
     }
   }
-  
-  const finalChunks = selectedChunks.length > 0 ? selectedChunks : topChunks.slice(0, 5);
+
+  const finalChunks =
+    selectedChunks.length > 0 ? selectedChunks : topChunks.slice(0, 5);
 
   // Format knowledge context
   let knowledge = "# Knowledge\n\n";
-  
+
   if (finalChunks.length > 0) {
     for (const chunk of finalChunks) {
-      const similarityStr = chunk.similarity !== undefined 
-        ? ` (similarity: ${(chunk.similarity * 100).toFixed(1)}%)`
-        : '';
+      const similarityStr =
+        chunk.similarity !== undefined
+          ? ` (similarity: ${(chunk.similarity * 100).toFixed(1)}%)`
+          : "";
       knowledge += `## From: ${chunk.file}${similarityStr}\n${chunk.content}\n\n---\n\n`;
     }
   }
 
   const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
-  const sizeStr = totalSize > 1024 * 1024 
-    ? `${sizeMB} MB (${fileCount} files)`
-    : `${(totalSize / 1024).toFixed(2)} KB (${fileCount} files)`;
+  const sizeStr =
+    totalSize > 1024 * 1024
+      ? `${sizeMB} MB (${fileCount} files)`
+      : `${(totalSize / 1024).toFixed(2)} KB (${fileCount} files)`;
 
   // Calculate retrieval metrics
-  const chunksWithSimilarity = allChunks.filter(c => c.similarity !== undefined && c.similarity > 0);
-  const similarities = chunksWithSimilarity.map(c => c.similarity!);
-  const methodologyTermsForMetrics = ['methodology', 'framework', 'approach', 'strategy', 'wheel', 'csp', 'thesis'];
-  
+  const chunksWithSimilarity = allChunks.filter(
+    (c) => c.similarity !== undefined && c.similarity > 0,
+  );
+  const similarities = chunksWithSimilarity.map((c) => c.similarity!);
+  const methodologyTermsForMetrics = [
+    "methodology",
+    "framework",
+    "approach",
+    "strategy",
+    "wheel",
+    "csp",
+    "thesis",
+  ];
+
   const metrics: RetrievalMetrics = {
-    avgSimilarity: similarities.length > 0 
-      ? similarities.reduce((a, b) => a + b, 0) / similarities.length 
-      : 0,
+    avgSimilarity:
+      similarities.length > 0
+        ? similarities.reduce((a, b) => a + b, 0) / similarities.length
+        : 0,
     maxSimilarity: similarities.length > 0 ? Math.max(...similarities) : 0,
-    minSimilarity: finalChunks.length > 0 
-      ? Math.min(...finalChunks.map(c => c.similarity || 0)) 
-      : 0,
+    minSimilarity:
+      finalChunks.length > 0
+        ? Math.min(...finalChunks.map((c) => c.similarity || 0))
+        : 0,
     chunksAboveThreshold: topChunks.length,
     totalChunksEvaluated: allChunks.length,
-    methodologyChunksFound: finalChunks.filter(c => 
-      methodologyTermsForMetrics.some(term => c.content.toLowerCase().includes(term))
+    methodologyChunksFound: finalChunks.filter((c) =>
+      methodologyTermsForMetrics.some((term) =>
+        c.content.toLowerCase().includes(term),
+      ),
     ).length,
   };
 
-  return { 
-    content: knowledge.trim(), 
+  return {
+    content: knowledge.trim(),
     size: sizeStr,
     chunksUsed: finalChunks.length,
-    metrics
+    metrics,
   };
 }
 
@@ -414,19 +476,19 @@ export async function loadRelevantKnowledge(
 export async function callLLM(
   system: string,
   user: string,
-  maxTokens: number = 2000
+  maxTokens: number = 2000,
 ): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is required");
   }
-  
+
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
@@ -438,7 +500,7 @@ export async function callLLM(
         temperature: 0.7,
       }),
     });
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     return data.choices?.[0]?.message?.content || "";
   } catch (error) {
     console.error("LLM call error:", error);
@@ -458,7 +520,7 @@ export async function scoreResponse(
   response: string,
   expectedCapabilities: string[],
   expectedTone: string[],
-  hasKnowledge: boolean = false
+  hasKnowledge: boolean = false,
 ): Promise<ScoreResult> {
   const scoringPrompt = `You are an expert evaluator assessing AI agent response quality.
 
@@ -526,7 +588,7 @@ Respond in JSON format ONLY:
     const result = await callLLM(
       "You are an expert evaluator. Respond only in valid JSON format.",
       scoringPrompt,
-      800
+      800,
     );
 
     const jsonMatch = result.match(/\{[\s\S]*\}/);
@@ -534,12 +596,12 @@ Respond in JSON format ONLY:
       const parsed = JSON.parse(jsonMatch[0]);
       // New weights: Knowledge Integration at 30% (highest)
       const overall = Math.round(
-        (parsed.knowledgeIntegration || 0) * 0.30 +  // NEW - highest weight
-        parsed.capabilityCoverage * 0.20 +
-        parsed.toneConsistency * 0.15 +
-        parsed.actionability * 0.15 +
-        parsed.authenticity * 0.10 +
-        parsed.domainExpertise * 0.10
+        (parsed.knowledgeIntegration || 0) * 0.3 + // NEW - highest weight
+          parsed.capabilityCoverage * 0.2 +
+          parsed.toneConsistency * 0.15 +
+          parsed.actionability * 0.15 +
+          parsed.authenticity * 0.1 +
+          parsed.domainExpertise * 0.1,
       );
 
       return {
@@ -593,15 +655,21 @@ No emojis. No hashtags. Reference actual strategies and methodologies.`;
 /**
  * Run A/B comparison test for a domain
  */
-export async function runDomainTest(testCase: TestCase): Promise<DomainTestResult> {
+export async function runDomainTest(
+  testCase: TestCase,
+): Promise<DomainTestResult> {
   console.log(`\n   Testing: ${testCase.domain}`);
   console.log(`   Query: "${testCase.query.slice(0, 60)}..."`);
 
   // Load relevant knowledge
-  const { content: knowledgeContent, chunksUsed, metrics } = await loadRelevantKnowledge(
-    testCase.query
+  const {
+    content: knowledgeContent,
+    chunksUsed,
+    metrics,
+  } = await loadRelevantKnowledge(testCase.query);
+  console.log(
+    `   Loaded ${chunksUsed} chunks (avg sim: ${(metrics.avgSimilarity * 100).toFixed(1)}%, max: ${(metrics.maxSimilarity * 100).toFixed(1)}%, methodology: ${metrics.methodologyChunksFound})`,
   );
-  console.log(`   Loaded ${chunksUsed} chunks (avg sim: ${(metrics.avgSimilarity * 100).toFixed(1)}%, max: ${(metrics.maxSimilarity * 100).toFixed(1)}%, methodology: ${metrics.methodologyChunksFound})`);
 
   // Generate baseline response (no knowledge)
   console.log(`   Generating baseline response...`);
@@ -618,7 +686,7 @@ You CANNOT know:
 - Our specific thresholds (like "funding > 0.05% = crowded long")
 
 If asked about these, provide GENERAL guidance only. Do not invent specific frameworks.`;
-  
+
   const baselineResponse = await callLLM(baselineSystem, testCase.query, 1500);
 
   // Generate enhanced response (with knowledge)
@@ -658,26 +726,34 @@ Make your response clearly leverage these unique insights.`;
     baselineResponse,
     testCase.expectedCapabilities,
     testCase.expectedTone,
-    false  // baseline has no knowledge
+    false, // baseline has no knowledge
   );
   const enhancedScore = await scoreResponse(
     testCase.query,
     enhancedResponse,
     testCase.expectedCapabilities,
     testCase.expectedTone,
-    true   // enhanced has knowledge
+    true, // enhanced has knowledge
   );
 
   const improvement = enhancedScore.overallScore - baselineScore.overallScore;
-  const improvementPercent = baselineScore.overallScore > 0
-    ? ((improvement / baselineScore.overallScore) * 100).toFixed(1)
-    : "N/A";
+  const improvementPercent =
+    baselineScore.overallScore > 0
+      ? ((improvement / baselineScore.overallScore) * 100).toFixed(1)
+      : "N/A";
 
   // Log knowledge integration specifically
-  const kiImprovement = enhancedScore.knowledgeIntegration - baselineScore.knowledgeIntegration;
-  console.log(`   Baseline: ${baselineScore.overallScore}/100 (KI: ${baselineScore.knowledgeIntegration})`);
-  console.log(`   Enhanced: ${enhancedScore.overallScore}/100 (KI: ${enhancedScore.knowledgeIntegration})`);
-  console.log(`   Improvement: +${improvement} (${improvementPercent}%) | KI delta: +${kiImprovement}`);
+  const kiImprovement =
+    enhancedScore.knowledgeIntegration - baselineScore.knowledgeIntegration;
+  console.log(
+    `   Baseline: ${baselineScore.overallScore}/100 (KI: ${baselineScore.knowledgeIntegration})`,
+  );
+  console.log(
+    `   Enhanced: ${enhancedScore.overallScore}/100 (KI: ${enhancedScore.knowledgeIntegration})`,
+  );
+  console.log(
+    `   Improvement: +${improvement} (${improvementPercent}%) | KI delta: +${kiImprovement}`,
+  );
 
   return {
     domain: testCase.domain,

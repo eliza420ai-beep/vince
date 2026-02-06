@@ -11,7 +11,12 @@
  * Set VINCE_DAILY_REPORT_HOUR=18 (UTC) to customize. Disable with VINCE_DAILY_REPORT_ENABLED=false.
  */
 
-import { type IAgentRuntime, type UUID, logger, ModelType } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type UUID,
+  logger,
+  ModelType,
+} from "@elizaos/core";
 import { BullBearAnalyzer } from "../analysis/bullBearAnalyzer";
 import type { AnalysisResult } from "../types/analysis";
 import { CORE_ASSETS } from "../constants/targetAssets";
@@ -23,10 +28,16 @@ const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
 // Build combined data context
 // ==========================================
 
-async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> {
+async function buildDailyReportContext(
+  runtime: IAgentRuntime,
+): Promise<string> {
   const lines: string[] = [];
   const now = new Date();
-  const date = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  const date = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
 
   lines.push(`=== DAILY REPORT DATA · ${date} ===`);
   lines.push("");
@@ -47,20 +58,32 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
   for (const [asset, result] of coreResults) {
     const s = result.snapshot;
     const c = result.conclusion;
-    const change = s.priceChange24h != null ? `${s.priceChange24h >= 0 ? "+" : ""}${s.priceChange24h.toFixed(2)}%` : "—";
-    lines.push(`${asset}: $${s.spotPrice?.toLocaleString() ?? "—"} (${change}) · ${c.direction} (${c.conviction.toFixed(0)}%)`);
+    const change =
+      s.priceChange24h != null
+        ? `${s.priceChange24h >= 0 ? "+" : ""}${s.priceChange24h.toFixed(2)}%`
+        : "—";
+    lines.push(
+      `${asset}: $${s.spotPrice?.toLocaleString() ?? "—"} (${change}) · ${c.direction} (${c.conviction.toFixed(0)}%)`,
+    );
   }
   const btc = coreResults.get("BTC");
   if (btc?.snapshot) {
     const s = btc.snapshot;
     if (s.fearGreedValue != null) lines.push(`Fear/Greed: ${s.fearGreedValue}`);
-    if (s.fundingRate != null) lines.push(`BTC Funding: ${(s.fundingRate * 100).toFixed(4)}%`);
-    if (s.longShortRatio != null) lines.push(`L/S: ${s.longShortRatio.toFixed(2)}`);
+    if (s.fundingRate != null)
+      lines.push(`BTC Funding: ${(s.fundingRate * 100).toFixed(4)}%`);
+    if (s.longShortRatio != null)
+      lines.push(`L/S: ${s.longShortRatio.toFixed(2)}`);
   }
   lines.push("");
 
   // --- HIP-3 (TradFi) ---
-  const hip3Service = runtime.getService("VINCE_HIP3_SERVICE") as { getHIP3Pulse?: () => Promise<{ summary?: { overallBias?: string; tradFiVsCrypto?: string }; sectorStats?: { hottestSector?: string } } | null> } | null;
+  const hip3Service = runtime.getService("VINCE_HIP3_SERVICE") as {
+    getHIP3Pulse?: () => Promise<{
+      summary?: { overallBias?: string; tradFiVsCrypto?: string };
+      sectorStats?: { hottestSector?: string };
+    } | null>;
+  } | null;
   if (hip3Service?.getHIP3Pulse) {
     try {
       const pulse = await hip3Service.getHIP3Pulse();
@@ -68,7 +91,8 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
         lines.push("=== HIP-3 (TradFi) ===");
         lines.push(`Bias: ${pulse.summary.overallBias ?? "—"}`);
         lines.push(`Rotation: ${pulse.summary.tradFiVsCrypto ?? "—"}`);
-        if (pulse.sectorStats?.hottestSector) lines.push(`Hottest: ${pulse.sectorStats.hottestSector}`);
+        if (pulse.sectorStats?.hottestSector)
+          lines.push(`Hottest: ${pulse.sectorStats.hottestSector}`);
         lines.push("");
       }
     } catch {
@@ -77,14 +101,21 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
   }
 
   // --- OPTIONS (compact) ---
-  const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as { getOptionsContext?: (a: string) => Promise<{ spotPrice?: number; dvol?: number | null; ivSurface?: { skewInterpretation?: string } }> } | null;
+  const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as {
+    getOptionsContext?: (a: string) => Promise<{
+      spotPrice?: number;
+      dvol?: number | null;
+      ivSurface?: { skewInterpretation?: string };
+    }>;
+  } | null;
   if (deribitService?.getOptionsContext) {
     try {
       const btcCtx = await deribitService.getOptionsContext("BTC");
       if (btcCtx?.spotPrice && btcCtx?.dvol != null) {
         lines.push("=== OPTIONS ===");
         lines.push(`BTC DVOL: ${btcCtx.dvol.toFixed(1)}%`);
-        if (btcCtx.ivSurface?.skewInterpretation) lines.push(`Skew: ${btcCtx.ivSurface.skewInterpretation}`);
+        if (btcCtx.ivSurface?.skewInterpretation)
+          lines.push(`Skew: ${btcCtx.ivSurface.skewInterpretation}`);
         lines.push("");
       }
     } catch {
@@ -93,13 +124,24 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
   }
 
   // --- PERPS (signals) ---
-  const signalService = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as { getSignal?: (a: string) => Promise<{ direction: string; strength: number; confidence: number; factors: string[] }> } | null;
+  const signalService = runtime.getService(
+    "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+  ) as {
+    getSignal?: (a: string) => Promise<{
+      direction: string;
+      strength: number;
+      confidence: number;
+      factors: string[];
+    }>;
+  } | null;
   if (signalService?.getSignal) {
     lines.push("=== PERPS SIGNALS ===");
     for (const asset of CORE_ASSETS) {
       try {
         const sig = await signalService.getSignal(asset);
-        lines.push(`${asset}: ${sig.direction.toUpperCase()} (${sig.strength}% strength, ${sig.confidence}% conf)`);
+        lines.push(
+          `${asset}: ${sig.direction.toUpperCase()} (${sig.strength}% strength, ${sig.confidence}% conf)`,
+        );
       } catch {
         // Skip
       }
@@ -107,16 +149,29 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
   }
 
   // --- PAPER BOT ---
-  const posManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as { getOpenPositions?: () => { asset: string; direction: string; entryPrice: number; unrealizedPnl: number }[]; getPortfolio?: () => { totalValue: number; returnPct: number } } | null;
+  const posManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as {
+    getOpenPositions?: () => {
+      asset: string;
+      direction: string;
+      entryPrice: number;
+      unrealizedPnl: number;
+    }[];
+    getPortfolio?: () => { totalValue: number; returnPct: number };
+  } | null;
   if (posManager) {
     const positions = posManager.getOpenPositions?.() ?? [];
     const portfolio = posManager.getPortfolio?.();
     lines.push("");
     lines.push("=== PAPER BOT ===");
-    if (portfolio) lines.push(`Portfolio: $${portfolio.totalValue.toLocaleString()} (${portfolio.returnPct >= 0 ? "+" : ""}${portfolio.returnPct.toFixed(2)}%)`);
+    if (portfolio)
+      lines.push(
+        `Portfolio: $${portfolio.totalValue.toLocaleString()} (${portfolio.returnPct >= 0 ? "+" : ""}${portfolio.returnPct.toFixed(2)}%)`,
+      );
     if (positions.length > 0) {
       for (const p of positions) {
-        lines.push(`${p.direction.toUpperCase()} ${p.asset} @ $${p.entryPrice.toLocaleString()} · P&L ${p.unrealizedPnl >= 0 ? "+" : ""}$${p.unrealizedPnl.toFixed(0)}`);
+        lines.push(
+          `${p.direction.toUpperCase()} ${p.asset} @ $${p.entryPrice.toLocaleString()} · P&L ${p.unrealizedPnl >= 0 ? "+" : ""}$${p.unrealizedPnl.toFixed(0)}`,
+        );
       }
     } else {
       lines.push("No open positions");
@@ -126,7 +181,10 @@ async function buildDailyReportContext(runtime: IAgentRuntime): Promise<string> 
   return lines.join("\n");
 }
 
-async function generateDailyReport(runtime: IAgentRuntime, dataContext: string): Promise<string> {
+async function generateDailyReport(
+  runtime: IAgentRuntime,
+  dataContext: string,
+): Promise<string> {
   const prompt = `You are VINCE, writing your daily market report. This goes to a Discord/Slack channel. Be concise, punchy, opinionated.
 
 ${dataContext}
@@ -155,15 +213,23 @@ TOTAL: ~300-400 words. Use **bold** for section headers only.`;
 // Task registration
 // ==========================================
 
-export async function registerDailyReportTask(runtime: IAgentRuntime): Promise<void> {
+export async function registerDailyReportTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
   const enabled = process.env.VINCE_DAILY_REPORT_ENABLED !== "false";
   if (!enabled) {
-    logger.info("[DailyReport] Task disabled (VINCE_DAILY_REPORT_ENABLED=false)");
+    logger.info(
+      "[DailyReport] Task disabled (VINCE_DAILY_REPORT_ENABLED=false)",
+    );
     return;
   }
 
-  const reportHour = parseInt(process.env.VINCE_DAILY_REPORT_HOUR ?? String(DEFAULT_REPORT_HOUR_UTC), 10) || DEFAULT_REPORT_HOUR_UTC;
-  const taskWorldId = (runtime.agentId as UUID);
+  const reportHour =
+    parseInt(
+      process.env.VINCE_DAILY_REPORT_HOUR ?? String(DEFAULT_REPORT_HOUR_UTC),
+      10,
+    ) || DEFAULT_REPORT_HOUR_UTC;
+  const taskWorldId = runtime.agentId as UUID;
 
   runtime.registerTaskWorker({
     name: "VINCE_DAILY_REPORT",
@@ -172,11 +238,18 @@ export async function registerDailyReportTask(runtime: IAgentRuntime): Promise<v
       const now = new Date();
       const hourUtc = now.getUTCHours();
       if (hourUtc !== reportHour) {
-        logger.debug(`[DailyReport] Skipping: current hour ${hourUtc} UTC, target ${reportHour}`);
+        logger.debug(
+          `[DailyReport] Skipping: current hour ${hourUtc} UTC, target ${reportHour}`,
+        );
         return;
       }
 
-      const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (text: string, opts?: { roomNameContains?: string }) => Promise<number> } | null;
+      const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as {
+        push?: (
+          text: string,
+          opts?: { roomNameContains?: string },
+        ) => Promise<number>;
+      } | null;
       if (!notif?.push) {
         logger.warn("[DailyReport] VinceNotificationService not available");
         return;
@@ -186,14 +259,20 @@ export async function registerDailyReportTask(runtime: IAgentRuntime): Promise<v
       try {
         const context = await buildDailyReportContext(rt);
         const report = await generateDailyReport(rt, context);
-        const date = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+        const date = now.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        });
         const text = `**VINCE Daily Report** _${date}_\n\n${report}\n\n---\n_Commands: ALOHA, OPTIONS, PERPS, HIP3, BOT_`;
 
         const sent = await notif.push(text, { roomNameContains: "daily" });
         if (sent > 0) {
           logger.info(`[DailyReport] Pushed to ${sent} channel(s)`);
         } else {
-          logger.debug("[DailyReport] No channels matched (room name contains 'daily'). Create e.g. #vince-daily-reports.");
+          logger.debug(
+            "[DailyReport] No channels matched (room name contains 'daily'). Create e.g. #vince-daily-reports.",
+          );
         }
       } catch (error) {
         logger.error(`[DailyReport] Failed: ${error}`);
@@ -203,7 +282,8 @@ export async function registerDailyReportTask(runtime: IAgentRuntime): Promise<v
 
   await runtime.createTask({
     name: "VINCE_DAILY_REPORT",
-    description: "Daily market report (ALOHA + OPTIONS + PERPS + HIP-3) pushed to Discord/Slack/Telegram",
+    description:
+      "Daily market report (ALOHA + OPTIONS + PERPS + HIP-3) pushed to Discord/Slack/Telegram",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["vince", "daily-report", "repeat"],
@@ -213,5 +293,7 @@ export async function registerDailyReportTask(runtime: IAgentRuntime): Promise<v
     },
   });
 
-  logger.info(`[DailyReport] Task registered (runs at ${reportHour}:00 UTC, push to channels with "daily" in name)`);
+  logger.info(
+    `[DailyReport] Task registered (runs at ${reportHour}:00 UTC, push to channels with "daily" in name)`,
+  );
 }

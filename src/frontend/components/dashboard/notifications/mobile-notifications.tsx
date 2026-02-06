@@ -6,7 +6,12 @@ import { Bullet } from "@/frontend/components/ui/bullet";
 import { AnimatePresence, motion, PanInfo } from "framer-motion";
 import NotificationItem from "./notification-item";
 import type { Notification } from "@/frontend/types/dashboard";
-import { SheetClose, SheetHeader, SheetTitle, SheetDescription } from "@/frontend/components/ui/sheet";
+import {
+  SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/frontend/components/ui/sheet";
 import { useIsV0 } from "@/frontend/lib/v0-context";
 
 interface MobileNotificationsProps {
@@ -59,7 +64,7 @@ export default function MobileNotifications({
 
   const markAsRead = (id: string) => {
     setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
+      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)),
     );
   };
 

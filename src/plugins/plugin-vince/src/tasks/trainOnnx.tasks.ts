@@ -38,7 +38,14 @@ function getModelsDir(): string {
 }
 
 function getScriptPath(): string {
-  return path.join(process.cwd(), "src", "plugins", "plugin-vince", "scripts", "train_models.py");
+  return path.join(
+    process.cwd(),
+    "src",
+    "plugins",
+    "plugin-vince",
+    "scripts",
+    "train_models.py",
+  );
 }
 
 function getLastTrainTime(): number {
@@ -61,7 +68,11 @@ function setLastTrainTime(): void {
     if (!fs.existsSync(modelsDir)) {
       fs.mkdirSync(modelsDir, { recursive: true });
     }
-    fs.writeFileSync(path.join(process.cwd(), COOLDOWN_FILE), String(Date.now()), "utf-8");
+    fs.writeFileSync(
+      path.join(process.cwd(), COOLDOWN_FILE),
+      String(Date.now()),
+      "utf-8",
+    );
   } catch (e) {
     logger.warn(`[TrainONNX] Could not write cooldown file: ${e}`);
   }
@@ -70,7 +81,11 @@ function setLastTrainTime(): void {
 /**
  * Run the Python training script. Resolves when the process exits.
  */
-function runTrainingScript(): Promise<{ success: boolean; stderr: string; stdout: string }> {
+function runTrainingScript(): Promise<{
+  success: boolean;
+  stderr: string;
+  stdout: string;
+}> {
   const scriptPath = getScriptPath();
   const dataDir = getDataDir();
   const modelsDir = getModelsDir();
@@ -120,9 +135,13 @@ function runTrainingScript(): Promise<{ success: boolean; stderr: string; stdout
       const success = code === 0;
       if (success) {
         setLastTrainTime();
-        logger.info(`[TrainONNX] Training completed successfully. Models in ${modelsDir}`);
+        logger.info(
+          `[TrainONNX] Training completed successfully. Models in ${modelsDir}`,
+        );
       } else {
-        logger.warn(`[TrainONNX] Training exited with code ${code}. stderr: ${stderr.slice(-500)}`);
+        logger.warn(
+          `[TrainONNX] Training exited with code ${code}. stderr: ${stderr.slice(-500)}`,
+        );
       }
       resolve({ success, stderr, stdout });
     });
@@ -132,7 +151,10 @@ function runTrainingScript(): Promise<{ success: boolean; stderr: string; stdout
 /**
  * Register the task worker and create the recurring task.
  */
-export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UUID) => {
+export const registerTrainOnnxTask = async (
+  runtime: IAgentRuntime,
+  worldId?: UUID,
+) => {
   const taskWorldId = worldId || (runtime.agentId as UUID);
 
   runtime.registerTaskWorker({
@@ -140,7 +162,9 @@ export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UU
     validate: async () => true,
     execute: async (rt, _options, _task) => {
       try {
-        const featureStore = rt.getService("VINCE_FEATURE_STORE_SERVICE") as VinceFeatureStoreService | null;
+        const featureStore = rt.getService(
+          "VINCE_FEATURE_STORE_SERVICE",
+        ) as VinceFeatureStoreService | null;
         if (!featureStore) {
           logger.debug("[TrainONNX] Feature store not available, skipping");
           return;
@@ -149,7 +173,7 @@ export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UU
         const completeCount = await featureStore.getCompleteRecordCount(365);
         if (completeCount < MIN_COMPLETE_RECORDS) {
           logger.info(
-            `[TrainONNX] Skipping: ${completeCount} complete trades (need ${MIN_COMPLETE_RECORDS}+). Keep paper trading to collect more.`
+            `[TrainONNX] Skipping: ${completeCount} complete trades (need ${MIN_COMPLETE_RECORDS}+). Keep paper trading to collect more.`,
           );
           return;
         }
@@ -177,18 +201,26 @@ export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UU
           }
         }
 
-        logger.info(`[TrainONNX] Starting training (${completeCount} complete records, min ${MIN_SAMPLES_ARG})...`);
+        logger.info(
+          `[TrainONNX] Starting training (${completeCount} complete records, min ${MIN_SAMPLES_ARG})...`,
+        );
         const result = await runTrainingScript();
         if (!result.success && result.stderr) {
-          logger.warn(`[TrainONNX] Training failed: ${result.stderr.slice(-300)}`);
+          logger.warn(
+            `[TrainONNX] Training failed: ${result.stderr.slice(-300)}`,
+          );
         } else if (result.success) {
           const modelsDir = getModelsDir();
           const uploaded = await uploadModelsToSupabase(rt, modelsDir);
           if (uploaded) {
-            const mlService = rt.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+            const mlService = rt.getService(
+              "VINCE_ML_INFERENCE_SERVICE",
+            ) as VinceMLInferenceService | null;
             if (mlService?.reloadModels) {
               await mlService.reloadModels();
-              logger.info("[TrainONNX] ML models reloaded; new thresholds active.");
+              logger.info(
+                "[TrainONNX] ML models reloaded; new thresholds active.",
+              );
             }
           }
         }
@@ -211,7 +243,9 @@ export const registerTrainOnnxTask = async (runtime: IAgentRuntime, worldId?: UU
     tags: ["train-onnx", "vince", "ml", "repeat"],
   });
 
-  logger.info("[TrainONNX] ONNX training task registered (runs when 90+ trades, max once per 24h)");
+  logger.info(
+    "[TrainONNX] ONNX training task registered (runs when 90+ trades, max once per 24h)",
+  );
 };
 
 export default registerTrainOnnxTask;

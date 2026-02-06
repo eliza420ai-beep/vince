@@ -16,13 +16,12 @@ export const Response = memo(
         "[&_a]:decoration-blue-600/50 dark:[&_a]:decoration-blue-400/60 hover:[&_a]:decoration-2",
         "focus-visible:[&_a]:outline-none focus-visible:[&_a]:ring-1 focus-visible:[&_a]:ring-blue-400/40 focus-visible:[&_a]:rounded-sm",
         "[&_a]:wrap-break-word",
-        className
+        className,
       )}
       {...props}
     />
   ),
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+  (prevProps, nextProps) => prevProps.children === nextProps.children,
 );
 
 Response.displayName = "Response";
-

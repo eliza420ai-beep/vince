@@ -3,8 +3,8 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
@@ -85,21 +85,23 @@ VINCE consolidates 6 distinct focus areas into a unified trading and lifestyle a
 
 ### Focus Areas
 
-| Domain | Description | Primary Data Sources |
-|--------|-------------|---------------------|
-| **OPTIONS** | Covered calls and secured puts via HYPERSURFACE | Deribit (IV surface, Greeks, DVOL) |
-| **PERPS** | Perpetual trading signals with paper bot | Hyperliquid, Binance, CoinGlass |
-| **HIP-3** | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API |
-| **MEMETICS** | AI meme token scanner ($1M-$20M mcap sweet spot) | DexScreener, Meteora, Nansen |
-| **LIFESTYLE** | Day-of-week aware suggestions | Internal rules engine |
-| **ART** | NFT floor tracking for curated collections | OpenSea (via plugin or fallback) |
+| Domain        | Description                                                 | Primary Data Sources               |
+| ------------- | ----------------------------------------------------------- | ---------------------------------- |
+| **OPTIONS**   | Covered calls and secured puts via HYPERSURFACE             | Deribit (IV surface, Greeks, DVOL) |
+| **PERPS**     | Perpetual trading signals with paper bot                    | Hyperliquid, Binance, CoinGlass    |
+| **HIP-3**     | TradFi assets on Hyperliquid (commodities, indices, stocks) | Hyperliquid HIP-3 API              |
+| **MEMETICS**  | AI meme token scanner ($1M-$20M mcap sweet spot)            | DexScreener, Meteora, Nansen       |
+| **LIFESTYLE** | Day-of-week aware suggestions                               | Internal rules engine              |
+| **ART**       | NFT floor tracking for curated collections                  | OpenSea (via plugin or fallback)   |
 
 ### Core Assets
 
 **Primary Trading Assets:**
+
 - BTC, ETH, SOL, HYPE
 
 **HIP-3 Assets (34 total):**
+
 - **Commodities:** GOLD, SILVER, OIL
 - **Indices:** SPX, NDX, DJI
 - **Stocks:** NVDA, AAPL, TSLA, MSFT, GOOGL, AMZN, META
@@ -196,136 +198,136 @@ flowchart TB
 
 #### Market Data Services (10)
 
-| Service | Purpose | API | Cost |
-|---------|---------|-----|------|
-| `VinceBinanceService` | Top traders, taker flow, OI, funding | Binance Futures | FREE |
-| `VinceBinanceLiquidationService` | Real-time liquidation WebSocket | Binance WS | FREE |
-| `VinceCoinGlassService` | Funding, L/S ratio, Fear/Greed | CoinGlass | $350/yr (optional) |
-| `VinceCoinGeckoService` | Prices, exchange health | CoinGecko | FREE |
-| `VinceDeribitService` | IV surface, Greeks, DVOL | Deribit | FREE |
-| `VinceHIP3Service` | HIP-3 asset prices, funding | Hyperliquid | FREE |
-| `VinceMarketDataService` | Aggregated context (RSI, volatility) | Internal | - |
-| `VinceMarketRegimeService` | Regime detection (trending/ranging) | Internal | - |
-| `VinceSignalAggregatorService` | Weighted signal voting | Internal | - |
-| `VinceTopTradersService` | Whale wallet tracking | Hyperliquid, Birdeye | FREE |
+| Service                          | Purpose                              | API                  | Cost               |
+| -------------------------------- | ------------------------------------ | -------------------- | ------------------ |
+| `VinceBinanceService`            | Top traders, taker flow, OI, funding | Binance Futures      | FREE               |
+| `VinceBinanceLiquidationService` | Real-time liquidation WebSocket      | Binance WS           | FREE               |
+| `VinceCoinGlassService`          | Funding, L/S ratio, Fear/Greed       | CoinGlass            | $350/yr (optional) |
+| `VinceCoinGeckoService`          | Prices, exchange health              | CoinGecko            | FREE               |
+| `VinceDeribitService`            | IV surface, Greeks, DVOL             | Deribit              | FREE               |
+| `VinceHIP3Service`               | HIP-3 asset prices, funding          | Hyperliquid          | FREE               |
+| `VinceMarketDataService`         | Aggregated context (RSI, volatility) | Internal             | -                  |
+| `VinceMarketRegimeService`       | Regime detection (trending/ranging)  | Internal             | -                  |
+| `VinceSignalAggregatorService`   | Weighted signal voting               | Internal             | -                  |
+| `VinceTopTradersService`         | Whale wallet tracking                | Hyperliquid, Birdeye | FREE               |
 
 #### On-Chain Analytics (3)
 
-| Service | Purpose | API | Cost |
-|---------|---------|-----|------|
-| `VinceNansenService` | Smart money flows | Nansen | 100 credits/mo |
-| `VinceSanbaseService` | Network activity, whale flows | Santiment | 1K calls/mo |
-| `VinceNewsSentimentService` | MandoMinutes sentiment | Browser scraping | FREE |
+| Service                     | Purpose                       | API              | Cost           |
+| --------------------------- | ----------------------------- | ---------------- | -------------- |
+| `VinceNansenService`        | Smart money flows             | Nansen           | 100 credits/mo |
+| `VinceSanbaseService`       | Network activity, whale flows | Santiment        | 1K calls/mo    |
+| `VinceNewsSentimentService` | MandoMinutes sentiment        | Browser scraping | FREE           |
 
 #### Memetics & DeFi (3)
 
-| Service | Purpose | API | Cost |
-|---------|---------|-----|------|
+| Service                   | Purpose                         | API         | Cost |
+| ------------------------- | ------------------------------- | ----------- | ---- |
 | `VinceDexScreenerService` | Meme scanner, traction analysis | DexScreener | FREE |
-| `VinceMeteoraService` | LP pool discovery for DCA | Meteora | FREE |
-| `VinceWatchlistService` | Token watchlist management | Internal | - |
+| `VinceMeteoraService`     | LP pool discovery for DCA       | Meteora     | FREE |
+| `VinceWatchlistService`   | Token watchlist management      | Internal    | -    |
 
 #### Lifestyle & Art (2)
 
-| Service | Purpose | API | Cost |
-|---------|---------|-----|------|
-| `VinceLifestyleService` | Day-of-week suggestions | Internal | - |
-| `VinceNFTFloorService` | Floor tracking, thickness analysis | OpenSea | FREE |
+| Service                 | Purpose                            | API      | Cost |
+| ----------------------- | ---------------------------------- | -------- | ---- |
+| `VinceLifestyleService` | Day-of-week suggestions            | Internal | -    |
+| `VinceNFTFloorService`  | Floor tracking, thickness analysis | OpenSea  | FREE |
 
 #### Paper Trading Bot (6)
 
-| Service | Purpose |
-|---------|---------|
-| `VincePaperTradingService` | Main orchestration, order simulation, ML integration |
-| `VincePositionManagerService` | Position tracking, P&L updates |
-| `VinceRiskManagerService` | Circuit breakers, session filters |
-| `VinceTradeJournalService` | Trade history, signal performance |
-| `VinceGoalTrackerService` | KPI tracking ($420/day, $10K/month) |
-| `VinceAlertService` | Multi-source alert detection |
+| Service                       | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `VincePaperTradingService`    | Main orchestration, order simulation, ML integration |
+| `VincePositionManagerService` | Position tracking, P&L updates                       |
+| `VinceRiskManagerService`     | Circuit breakers, session filters                    |
+| `VinceTradeJournalService`    | Trade history, signal performance                    |
+| `VinceGoalTrackerService`     | KPI tracking ($420/day, $10K/month)                  |
+| `VinceAlertService`           | Multi-source alert detection                         |
 
 #### ML Enhancement Services (4) - V4
 
-| Service | Purpose | Algorithm |
-|---------|---------|-----------|
-| `VinceFeatureStoreService` | Collect 40+ features per trade decision | JSONL persistence, outcome linking |
-| `VinceWeightBanditService` | Adaptive signal source weights | Thompson Sampling with decay |
-| `VinceSignalSimilarityService` | Historical trade similarity lookup | Embedding k-NN via ElizaOS |
-| `VinceMLInferenceService` | ONNX model loading and inference | Signal quality, position sizing, TP/SL |
+| Service                        | Purpose                                 | Algorithm                              |
+| ------------------------------ | --------------------------------------- | -------------------------------------- |
+| `VinceFeatureStoreService`     | Collect 40+ features per trade decision | JSONL persistence, outcome linking     |
+| `VinceWeightBanditService`     | Adaptive signal source weights          | Thompson Sampling with decay           |
+| `VinceSignalSimilarityService` | Historical trade similarity lookup      | Embedding k-NN via ElizaOS             |
+| `VinceMLInferenceService`      | ONNX model loading and inference        | Signal quality, position sizing, TP/SL |
 
 #### Self-Improving Architecture (2)
 
-| Service | Purpose |
-|---------|---------|
-| `VinceParameterTunerService` | Bayesian optimization for thresholds |
-| `VinceImprovementJournalService` | Structured improvement suggestions |
+| Service                          | Purpose                              |
+| -------------------------------- | ------------------------------------ |
+| `VinceParameterTunerService`     | Bayesian optimization for thresholds |
+| `VinceImprovementJournalService` | Structured improvement suggestions   |
 
 ### Action Layer (20 Actions)
 
 #### Core Trading Actions
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
-| `VINCE_GM` | "gm", "good morning", "briefing" | Morning briefing across all domains |
+| Action          | Triggers                            | Description                              |
+| --------------- | ----------------------------------- | ---------------------------------------- |
+| `VINCE_GM`      | "gm", "good morning", "briefing"    | Morning briefing across all domains      |
 | `VINCE_OPTIONS` | "options", "strike", "covered call" | HYPERSURFACE analysis for weekly options |
-| `VINCE_PERPS` | "perps", "trading", "signal" | Perpetual trading signals with narrative |
-| `VINCE_HIP3` | "hip3", "stocks", "gold", "nvda" | HIP-3 asset analysis |
-| `VINCE_INTEL` | "intel", "whales", "liquidations" | Binance market intelligence |
-| `VINCE_NEWS` | "news", "mando", "headlines" | News sentiment analysis |
+| `VINCE_PERPS`   | "perps", "trading", "signal"        | Perpetual trading signals with narrative |
+| `VINCE_HIP3`    | "hip3", "stocks", "gold", "nvda"    | HIP-3 asset analysis                     |
+| `VINCE_INTEL`   | "intel", "whales", "liquidations"   | Binance market intelligence              |
+| `VINCE_NEWS`    | "news", "mando", "headlines"        | News sentiment analysis                  |
 
 #### Memetics & Airdrops
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
-| `VINCE_MEMES` | "memes", "trenches", "ai token" | Hot meme scanner with traction analysis |
-| `VINCE_MEME_DEEP_DIVE` | "deep dive $TOKEN", "dd $TOKEN" | Detailed analysis of specific meme |
-| `VINCE_AIRDROPS` | "airdrops", "farming", "treadfi" | Airdrop strategy guidance |
+| Action                 | Triggers                         | Description                             |
+| ---------------------- | -------------------------------- | --------------------------------------- |
+| `VINCE_MEMES`          | "memes", "trenches", "ai token"  | Hot meme scanner with traction analysis |
+| `VINCE_MEME_DEEP_DIVE` | "deep dive $TOKEN", "dd $TOKEN"  | Detailed analysis of specific meme      |
+| `VINCE_AIRDROPS`       | "airdrops", "farming", "treadfi" | Airdrop strategy guidance               |
 
 #### Paper Trading Bot
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
-| `VINCE_BOT_TRADE` | "trade", "execute", "go long/short" | Evaluate and trigger paper trade |
-| `VINCE_BOT_STATUS` | "bot status", "portfolio" | Portfolio and position status |
-| `VINCE_BOT_PAUSE` | "pause bot", "resume bot" | Pause/resume trading |
-| `VINCE_WHY_TRADE` | "why", "explain", "reasoning" | Explain trading decisions |
+| Action             | Triggers                            | Description                      |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| `VINCE_BOT_TRADE`  | "trade", "execute", "go long/short" | Evaluate and trigger paper trade |
+| `VINCE_BOT_STATUS` | "bot status", "portfolio"           | Portfolio and position status    |
+| `VINCE_BOT_PAUSE`  | "pause bot", "resume bot"           | Pause/resume trading             |
+| `VINCE_WHY_TRADE`  | "why", "explain", "reasoning"       | Explain trading decisions        |
 
 #### Lifestyle & Art
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
-| `VINCE_LIFESTYLE` | "lifestyle", "dining", "hotel" | Day-of-week aware suggestions |
-| `VINCE_NFT_FLOOR` | "nft", "floor", "punk" | Thin floor buying opportunities |
+| Action            | Triggers                       | Description                     |
+| ----------------- | ------------------------------ | ------------------------------- |
+| `VINCE_LIFESTYLE` | "lifestyle", "dining", "hotel" | Day-of-week aware suggestions   |
+| `VINCE_NFT_FLOOR` | "nft", "floor", "punk"         | Thin floor buying opportunities |
 
 #### Knowledge & Research
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
-| `VINCE_UPLOAD` | "upload:", "save this:", URLs | Knowledge ingestion |
+| Action              | Triggers                          | Description                |
+| ------------------- | --------------------------------- | -------------------------- |
+| `VINCE_UPLOAD`      | "upload:", "save this:", URLs     | Knowledge ingestion        |
 | `VINCE_GROK_EXPERT` | "grok pulse", "prompt of the day" | Daily research suggestions |
 
 **Why knowledge is essential for VINCE**
 
-| Layer | Role | Source |
-|-------|------|--------|
-| **What is happening** | Current prices, funding, OI, signals, news | Actions + services, vinceContextProvider |
-| **How to think about it** | Frameworks, methodologies, risk patterns | knowledge/ + trenchKnowledgeProvider (RAG) |
+| Layer                     | Role                                       | Source                                     |
+| ------------------------- | ------------------------------------------ | ------------------------------------------ |
+| **What is happening**     | Current prices, funding, OI, signals, news | Actions + services, vinceContextProvider   |
+| **How to think about it** | Frameworks, methodologies, risk patterns   | knowledge/ + trenchKnowledgeProvider (RAG) |
 
-Without knowledge, VINCE would only echo numbers. With it, VINCE **interprets** live data through proven lenses: e.g. “Funding is 0.02%—knowledge says extreme positive funding often precedes mean reversion; combined with L/S ratio, that suggests caution on new longs.” Same number, added reasoning. For **OPTIONS**, knowledge provides strike-selection logic (e.g. HYPE wheel, funding → strike distance); for **MEMES**, lifecycle and TVL/MCap frameworks; for **LIFESTYLE**, the-good-life criteria. The **trenchKnowledgeProvider** injects relevant chunks every turn so the LLM can cite methodologies instead of giving generic answers. Knowledge = “how,” APIs = “what”; keeping them separate (see `knowledge/KNOWLEDGE-USAGE-GUIDELINES.md`) avoids treating old numbers as current. **UPLOAD** and the summarize-based ingest pipeline keep growing `knowledge/` from URLs, YouTube, and files—so the agent gets smarter as the folder grows. The paper bot’s ML decides *when* and *how much*; knowledge helps the LLM explain *why* and *what to watch next* in plain language.
+Without knowledge, VINCE would only echo numbers. With it, VINCE **interprets** live data through proven lenses: e.g. “Funding is 0.02%—knowledge says extreme positive funding often precedes mean reversion; combined with L/S ratio, that suggests caution on new longs.” Same number, added reasoning. For **OPTIONS**, knowledge provides strike-selection logic (e.g. HYPE wheel, funding → strike distance); for **MEMES**, lifecycle and TVL/MCap frameworks; for **LIFESTYLE**, the-good-life criteria. The **trenchKnowledgeProvider** injects relevant chunks every turn so the LLM can cite methodologies instead of giving generic answers. Knowledge = “how,” APIs = “what”; keeping them separate (see `knowledge/KNOWLEDGE-USAGE-GUIDELINES.md`) avoids treating old numbers as current. **UPLOAD** and the summarize-based ingest pipeline keep growing `knowledge/` from URLs, YouTube, and files—so the agent gets smarter as the folder grows. The paper bot’s ML decides _when_ and _how much_; knowledge helps the LLM explain _why_ and _what to watch next_ in plain language.
 
 **UPLOAD and [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize):** We use our fork of [steipete/summarize](https://github.com/steipete/summarize) to keep improving the `knowledge/` folder. When you send a URL or YouTube link (e.g. `upload: https://...`), VINCE runs the summarize CLI via bunx: transcript + summary for YouTube, summary for articles/PDFs, then saves to `knowledge/<category>/`. Install: `bun install -g @steipete/summarize` (or run from the [Ikigai fork](https://github.com/IkigaiLabsETH/summarize)); set `OPENAI_API_KEY` or `GEMINI_API_KEY` for the summarizer. If the CLI isn't available, the bot suggests installing it or pasting the content.
 
 #### Early Detection
 
-| Action | Triggers | Description |
-|--------|----------|-------------|
+| Action            | Triggers                    | Description            |
+| ----------------- | --------------------------- | ---------------------- |
 | `VINCE_WATCHLIST` | "watchlist", "watch $TOKEN" | Manage token watchlist |
-| `VINCE_ALERTS` | "alerts", "notifications" | View and manage alerts |
+| `VINCE_ALERTS`    | "alerts", "notifications"   | View and manage alerts |
 
 ### Provider Layer (2 Providers)
 
-| Provider | Purpose |
-|----------|---------|
-| `vinceContextProvider` | Unified context aggregation from all services |
+| Provider                  | Purpose                                        |
+| ------------------------- | ---------------------------------------------- |
+| `vinceContextProvider`    | Unified context aggregation from all services  |
 | `trenchKnowledgeProvider` | RAG integration for meme trading methodologies |
 
 ### Key Technical Patterns
@@ -343,6 +345,7 @@ if (!deribitService) {
 ```
 
 **Fallback Coverage:**
+
 - Deribit → Built-in API client
 - Hyperliquid → Built-in API client
 - OpenSea → Built-in API client
@@ -358,7 +361,7 @@ Services implement exponential backoff and circuit breakers:
 const CIRCUIT_BREAKER = {
   maxFailures: 3,
   resetTimeMs: 60000,
-  backoffMs: [1000, 2000, 4000]
+  backoffMs: [1000, 2000, 4000],
 };
 ```
 
@@ -366,13 +369,13 @@ const CIRCUIT_BREAKER = {
 
 From `utils/sessionFilters.ts`:
 
-| Session | Hours (UTC) | Confidence | Size |
-|---------|-------------|------------|------|
-| Asia | 00:00-07:00 | 0.9x | 0.8x |
-| Europe | 07:00-13:00 | 1.0x | 1.0x |
-| EU/US Overlap | 13:00-16:00 | 1.1x | 1.1x |
-| US | 16:00-22:00 | 1.0x | 1.0x |
-| Off-Hours | 22:00-00:00 | 0.8x | 0.7x |
+| Session       | Hours (UTC) | Confidence | Size |
+| ------------- | ----------- | ---------- | ---- |
+| Asia          | 00:00-07:00 | 0.9x       | 0.8x |
+| Europe        | 07:00-13:00 | 1.0x       | 1.0x |
+| EU/US Overlap | 13:00-16:00 | 1.1x       | 1.1x |
+| US            | 16:00-22:00 | 1.0x       | 1.0x |
+| Off-Hours     | 22:00-00:00 | 0.8x       | 0.7x |
 
 Weekend trading applies additional 0.8x confidence multiplier.
 
@@ -380,13 +383,13 @@ Weekend trading applies additional 0.8x confidence multiplier.
 
 The `SignalAggregatorService` uses weighted voting with source-specific multipliers:
 
-| Source | Weight | Rationale |
-|--------|--------|-----------|
-| Liquidation Cascades | 2.0x | High-conviction reversal signals |
-| Funding Extremes | 1.5x | Mean-reversion opportunity |
-| Whale Positions | 1.3x | Smart money alignment |
-| Volume Spikes | 1.2x | Confirmation signal |
-| News Sentiment | 1.0x | Contextual overlay |
+| Source               | Weight | Rationale                        |
+| -------------------- | ------ | -------------------------------- |
+| Liquidation Cascades | 2.0x   | High-conviction reversal signals |
+| Funding Extremes     | 1.5x   | Mean-reversion opportunity       |
+| Whale Positions      | 1.3x   | Smart money alignment            |
+| Volume Spikes        | 1.2x   | Confirmation signal              |
+| News Sentiment       | 1.0x   | Contextual overlay               |
 
 Historical performance adjusts weights: >60% win rate = 1.2x, <30% win rate = 0.8x.
 
@@ -396,14 +399,15 @@ From `services/goalTracker.service.ts`:
 
 ```typescript
 const TRADING_GOALS = {
-  dailyTarget: 420,      // $420/day
-  monthlyTarget: 10000,  // $10K/month
-  maxDailyLoss: 200,     // Stop trading after $200 loss
-  maxDrawdown: 0.15      // 15% portfolio drawdown circuit breaker
+  dailyTarget: 420, // $420/day
+  monthlyTarget: 10000, // $10K/month
+  maxDailyLoss: 200, // Stop trading after $200 loss
+  maxDrawdown: 0.15, // 15% portfolio drawdown circuit breaker
 };
 ```
 
 Position sizing uses Kelly Criterion with adjustments:
+
 - Drawdown penalty (reduces size when losing)
 - Volatility scaling (reduces size in high DVOL)
 - Progress bonus (allows slight increase when ahead of target)
@@ -430,11 +434,11 @@ The paper bot is **ML-first**. ### How ML improves the algo (in plain language)
 
 Four ONNX models (plus the improvement report) drive sizing, entries, and exits. If models aren’t loaded, rule-based fallbacks keep the bot running.
 
-| Where | What ML does |
-|-------|----------------|
-| **Signal aggregator** | **Signal quality** model scores each signal; score boosts/penalizes confidence. **Similarity** model compares to past trades → "proceed" / "caution" / "avoid" adjusts confidence. |
+| Where                  | What ML does                                                                                                                                                                                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Signal aggregator**  | **Signal quality** model scores each signal; score boosts/penalizes confidence. **Similarity** model compares to past trades → "proceed" / "caution" / "avoid" adjusts confidence.                                                                                                                                                                                                         |
 | **evaluateAndTrade()** | **Quality gate:** if `mlQualityScore` &lt; threshold from `training_metadata.json`, the trade is **blocked**. **Suggested min strength/confidence** from the improvement report (when present) reject weak signals. **Position sizing:** after all rule-based size adjustments, `predictPositionSize()` applies a 0.5×–2× multiplier from quality, regime, drawdown, win rate, and streak. |
-| **openTrade()** | **TP/SL:** when ATR and regime are available, `predictTakeProfit()` and `predictStopLoss()` set TP distance and SL% from ATR × model multiplier (1–4× for TP, 0.5–2.5× for SL). **TP level preference:** from `tp_level_performance` in the improvement report, the worst-performing level (win rate &lt; 45%, count ≥ 5) is **skipped** when building multiple take-profit levels. |
+| **openTrade()**        | **TP/SL:** when ATR and regime are available, `predictTakeProfit()` and `predictStopLoss()` set TP distance and SL% from ATR × model multiplier (1–4× for TP, 0.5–2.5× for SL). **TP level preference:** from `tp_level_performance` in the improvement report, the worst-performing level (win rate &lt; 45%, count ≥ 5) is **skipped** when building multiple take-profit levels.        |
 
 **Improvement report consumption (training_metadata.json):**
 
@@ -486,10 +490,10 @@ V4 introduces machine learning capabilities that allow the paper trading bot to 
 
 We considered two approaches for making the trading bot self-improving:
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **ClawdBot Integration** | Can modify code directly, full autonomy | External dependency, security risks, complex setup |
-| **Native ML within ElizaOS** | Self-contained, uses existing infrastructure, graceful degradation | No code modification, learning is parametric only |
+| Approach                     | Pros                                                               | Cons                                               |
+| ---------------------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
+| **ClawdBot Integration**     | Can modify code directly, full autonomy                            | External dependency, security risks, complex setup |
+| **Native ML within ElizaOS** | Self-contained, uses existing infrastructure, graceful degradation | No code modification, learning is parametric only  |
 
 **We chose native ML** because:
 
@@ -504,11 +508,11 @@ We considered two approaches for making the trading bot self-improving:
 
 These components learn from every trade **in real-time**:
 
-| Component | Algorithm | What It Learns | Persistence |
-|-----------|-----------|----------------|-------------|
-| **Weight Bandit** | Thompson Sampling | Which signal sources predict wins | `weight-bandit-state.json` |
-| **Signal Similarity** | Embedding k-NN | Which past trades resemble current setup | `signal-similarity-state.json` |
-| **Parameter Tuner** | Bayesian Optimization | Optimal thresholds (minStrength, minConfidence) | `bayesian-tuner-state.json` |
+| Component             | Algorithm             | What It Learns                                  | Persistence                    |
+| --------------------- | --------------------- | ----------------------------------------------- | ------------------------------ |
+| **Weight Bandit**     | Thompson Sampling     | Which signal sources predict wins               | `weight-bandit-state.json`     |
+| **Signal Similarity** | Embedding k-NN        | Which past trades resemble current setup        | `signal-similarity-state.json` |
+| **Parameter Tuner**   | Bayesian Optimization | Optimal thresholds (minStrength, minConfidence) | `bayesian-tuner-state.json`    |
 
 **Why Thompson Sampling for weights?**
 
@@ -539,7 +543,7 @@ const similar = await similarityService.predict({
   asset: "BTC",
   signal: aggregatedSignal,
   marketRegime: "trending",
-  session: "asia"
+  session: "asia",
 });
 // Returns: { winProbability: 0.72, recommendation: "proceed" }
 ```
@@ -548,15 +552,15 @@ const similar = await similarityService.predict({
 
 The **Feature Store** captures 40+ features per trading decision, linked to outcomes:
 
-| Category | Features | Purpose |
-|----------|----------|---------|
-| **Market** | Price, 1h/4h/24h changes, volume, ATR, RSI | Price action context |
-| **Session** | Current session, overlap flag, weekend flag | Temporal patterns |
-| **Signal** | Strength, confidence, confirming count, source breakdown | Signal quality metrics |
-| **Regime** | Trend direction, strength, volatility quantile | Market structure |
-| **News** | Headline sentiment, impact score | Catalyst awareness |
-| **Execution** | Fill price, slippage, leverage, streak multiplier | Trade mechanics |
-| **Outcome** | P&L, R-multiple, MAE, MFE, duration, exit reason | Learning targets |
+| Category      | Features                                                 | Purpose                |
+| ------------- | -------------------------------------------------------- | ---------------------- |
+| **Market**    | Price, 1h/4h/24h changes, volume, ATR, RSI               | Price action context   |
+| **Session**   | Current session, overlap flag, weekend flag              | Temporal patterns      |
+| **Signal**    | Strength, confidence, confirming count, source breakdown | Signal quality metrics |
+| **Regime**    | Trend direction, strength, volatility quantile           | Market structure       |
+| **News**      | Headline sentiment, impact score                         | Catalyst awareness     |
+| **Execution** | Fill price, slippage, leverage, streak multiplier        | Trade mechanics        |
+| **Outcome**   | P&L, R-multiple, MAE, MFE, duration, exit reason         | Learning targets       |
 
 **Why 40+ features?**
 
@@ -575,7 +579,11 @@ Machine learning is feature-hungry. We don't know which features matter most—t
   "asset": "BTC",
   "decision": "enter",
   "marketFeatures": { "price": 96200, "atr_pct": 2.1, "rsi": 58 },
-  "signalFeatures": { "strength": 72, "confidence": 68, "sources": ["funding", "liquidation"] },
+  "signalFeatures": {
+    "strength": 72,
+    "confidence": 68,
+    "sources": ["funding", "liquidation"]
+  },
   "tradeExecution": { "tradeId": "uuid", "fillPrice": 96215, "leverage": 3 },
   "tradeOutcome": { "profitable": true, "pnlPct": 1.8, "rMultiple": 1.2 }
 }
@@ -585,12 +593,12 @@ Machine learning is feature-hungry. We don't know which features matter most—t
 
 When enough data accumulates, we train XGBoost models offline and export to ONNX:
 
-| Model | Type | Input | Output | Use Case |
-|-------|------|-------|--------|----------|
-| **Signal Quality** | Binary Classification | Signal features | Quality score 0-1 | Filter low-quality signals |
-| **Position Sizing** | Regression | Market + portfolio features | Size multiplier | Dynamic position sizing |
-| **TP Optimizer** | Multi-class | Entry context | TP distance bucket | Optimize take-profit levels |
-| **SL Optimizer** | Quantile Regression | Volatility features | SL distance | ATR-calibrated stop losses |
+| Model               | Type                  | Input                       | Output             | Use Case                    |
+| ------------------- | --------------------- | --------------------------- | ------------------ | --------------------------- |
+| **Signal Quality**  | Binary Classification | Signal features             | Quality score 0-1  | Filter low-quality signals  |
+| **Position Sizing** | Regression            | Market + portfolio features | Size multiplier    | Dynamic position sizing     |
+| **TP Optimizer**    | Multi-class           | Entry context               | TP distance bucket | Optimize take-profit levels |
+| **SL Optimizer**    | Quantile Regression   | Volatility features         | SL distance        | ATR-calibrated stop losses  |
 
 **Why ONNX?**
 
@@ -635,9 +643,9 @@ sequenceDiagram
     Paper->>Store: Record decision features
     Paper->>Paper: Execute trade
     Paper->>Store: Link trade to decision
-    
+
     Note over Paper: Trade closes...
-    
+
     Paper->>Store: Record outcome
     Paper->>Bandit: Update source win/loss
     Paper->>Similarity: Record trade outcome
@@ -647,12 +655,12 @@ sequenceDiagram
 
 Every ML component has a fallback path:
 
-| Component | If Available | Fallback |
-|-----------|--------------|----------|
-| Weight Bandit | Sample from Beta distributions | Use static weights from `dynamicConfig` |
-| Signal Similarity | k-NN on embeddings | Return neutral recommendation |
-| ML Inference | ONNX model prediction | Rule-based signal filtering |
-| Parameter Tuner | Bayesian proposal | Rule-based threshold adjustment |
+| Component         | If Available                   | Fallback                                |
+| ----------------- | ------------------------------ | --------------------------------------- |
+| Weight Bandit     | Sample from Beta distributions | Use static weights from `dynamicConfig` |
+| Signal Similarity | k-NN on embeddings             | Return neutral recommendation           |
+| ML Inference      | ONNX model prediction          | Rule-based signal filtering             |
+| Parameter Tuner   | Bayesian proposal              | Rule-based threshold adjustment         |
 
 **This means:**
 
@@ -668,35 +676,39 @@ ML features are controlled via `ML_CONFIG` in the Signal Aggregator:
 
 ```typescript
 const ML_CONFIG = {
-  useBanditWeights: true,      // Use Thompson Sampling for source weights
-  useMLFiltering: true,        // Use ONNX model for signal quality
+  useBanditWeights: true, // Use Thompson Sampling for source weights
+  useMLFiltering: true, // Use ONNX model for signal quality
   useSimilarityPrediction: true, // Use embedding similarity for win prediction
-  minMLQualityScore: 0.4,      // Minimum quality score to proceed
-  similarityKNeighbors: 5,     // Number of similar trades to consider
-  banditDecayFactor: 0.995,    // Daily decay for source performance memory
+  minMLQualityScore: 0.4, // Minimum quality score to proceed
+  similarityKNeighbors: 5, // Number of similar trades to consider
+  banditDecayFactor: 0.995, // Daily decay for source performance memory
 };
 ```
 
 ### Monitoring & Debugging
 
 **Feature Store Status:**
+
 ```bash
 cat .elizadb/vince-paper-bot/features/*.jsonl | wc -l  # Total records
 ```
 
 **Bandit Status:**
+
 ```bash
 cat .elizadb/vince-paper-bot/weight-bandit-state.json | jq '.sources'
 # Shows win/loss counts per source
 ```
 
 **Similarity Status:**
+
 ```bash
 cat .elizadb/vince-paper-bot/signal-similarity-state.json | jq '.tradeCount'
 # Number of embedded historical trades
 ```
 
 **Parameter Tuner Status:**
+
 ```bash
 cat .elizadb/vince-paper-bot/bayesian-tuner-state.json | jq '.bestObservation'
 # Best parameter set found so far
@@ -710,12 +722,14 @@ cat .elizadb/vince-paper-bot/bayesian-tuner-state.json | jq '.bestObservation'
 
 **The tempting approach:** Use an external "meta-agent" (like ClawdBot) that monitors performance, generates code fixes, and pushes changes. This creates a true "self-healing" system.
 
-**The problem:** 
+**The problem:**
+
 - External dependencies add complexity and failure modes
 - Autonomous code changes are risky without extensive testing infrastructure
 - Debugging becomes harder when the code itself is changing
 
-**Our approach:** 
+**Our approach:**
+
 - Keep code static, make **parameters** adaptive
 - Use ElizaOS's existing ML primitives (embeddings, models, memory)
 - Train models offline, deploy via ONNX—no code changes needed
@@ -741,6 +755,7 @@ cat .elizadb/vince-paper-bot/bayesian-tuner-state.json | jq '.bestObservation'
 - **Paper bot is pure quant:** Executes on thresholds (55% strength, 55% confidence), then explains via LLM
 
 This separation enables:
+
 - Unit testing of quantitative logic without LLM mocking
 - Narrative style changes without touching data pipelines
 - Clear debugging: "Is the signal wrong or the explanation wrong?"
@@ -749,14 +764,14 @@ This separation enables:
 
 **Why favor free APIs over premium ones?**
 
-| API | Cost | VINCE Approach |
-|-----|------|----------------|
-| CoinGlass | $350/year | Optional—Binance FREE API provides most data |
-| Nansen | 100 credits/mo | Use sparingly, cache aggressively (30min TTL) |
-| Sanbase | 1K calls/mo | 30-day metric lag acceptable for on-chain |
-| Deribit | FREE | Direct public API, no auth needed |
-| Hyperliquid | FREE | Core exchange for VINCE trading |
-| DexScreener | FREE | Primary meme scanner |
+| API         | Cost           | VINCE Approach                                |
+| ----------- | -------------- | --------------------------------------------- |
+| CoinGlass   | $350/year      | Optional—Binance FREE API provides most data  |
+| Nansen      | 100 credits/mo | Use sparingly, cache aggressively (30min TTL) |
+| Sanbase     | 1K calls/mo    | 30-day metric lag acceptable for on-chain     |
+| Deribit     | FREE           | Direct public API, no auth needed             |
+| Hyperliquid | FREE           | Core exchange for VINCE trading               |
+| DexScreener | FREE           | Primary meme scanner                          |
 
 **Trade-off:** Slightly less data freshness for Nansen/Sanbase in exchange for $0 operational cost. CoinGlass is the only paid API worth considering for hobbyist-tier features.
 
@@ -789,6 +804,7 @@ This separation enables:
 ### Dependencies
 
 **Required:**
+
 ```json
 {
   "dependencies": {
@@ -799,6 +815,7 @@ This separation enables:
 ```
 
 **Optional External Plugins:**
+
 ```json
 {
   "peerDependencies": {
@@ -857,20 +874,20 @@ Add the plugin to your character's plugins array:
 
 #### Current Whale Signal Status
 
-| Source | Weight | Status | Notes |
-|--------|--------|--------|-------|
-| **TopTraders** | 0.0 (disabled) | No data | Requires manual wallet addresses in `wallets.json`. Currently empty placeholders. |
-| **SanbaseWhales** | 0.0 (disabled) | 30-day lag | Santiment free tier has 30-day delay on whale metrics - useless for trading. |
-| **BinanceTopTraders** | 1.0 | Working | Public Binance API, no key required. Only real whale data currently. |
+| Source                | Weight         | Status     | Notes                                                                             |
+| --------------------- | -------------- | ---------- | --------------------------------------------------------------------------------- |
+| **TopTraders**        | 0.0 (disabled) | No data    | Requires manual wallet addresses in `wallets.json`. Currently empty placeholders. |
+| **SanbaseWhales**     | 0.0 (disabled) | 30-day lag | Santiment free tier has 30-day delay on whale metrics - useless for trading.      |
+| **BinanceTopTraders** | 1.0            | Working    | Public Binance API, no key required. Only real whale data currently.              |
 
 #### CoinGlass API Upgrade Paths
 
 Our **Hobbyist tier ($29/mo)** does NOT include Hyperliquid whale data. Upgrading would unlock:
 
-| Tier | Price | Hyperliquid Whale Features |
-|------|-------|---------------------------|
-| **Hobbyist** | $29/mo ($348/yr) | None |
-| **Startup** | $79/mo ($948/yr) | Whale Alert, Whale Position, User Position |
+| Tier         | Price               | Hyperliquid Whale Features                                         |
+| ------------ | ------------------- | ------------------------------------------------------------------ |
+| **Hobbyist** | $29/mo ($348/yr)    | None                                                               |
+| **Startup**  | $79/mo ($948/yr)    | Whale Alert, Whale Position, User Position                         |
 | **Standard** | $299/mo ($3,588/yr) | All above + Wallet Positions Distribution, Wallet PNL Distribution |
 
 **Recommendation:** Upgrading to **Startup** ($50/mo more) would provide real Hyperliquid whale alerts and positions - a significant improvement over our current single whale data source (BinanceTopTraders only).
@@ -896,6 +913,7 @@ To enable the TopTraders signal without upgrading CoinGlass, add real Hyperliqui
 ```
 
 Find addresses from:
+
 - [Hyperliquid Leaderboard](https://app.hyperliquid.xyz/leaderboard)
 - [Arkham Intelligence](https://platform.arkhamintelligence.com/)
 
@@ -904,6 +922,7 @@ Find addresses from:
 ## Usage Examples
 
 ### Morning Briefing
+
 ```
 User: gm
 VINCE: Good morning! Here's the pulse across our domains...
@@ -916,6 +935,7 @@ ART: CryptoPunks floor at 28.5 ETH, thin gap to 29.2. Worth watching.
 ```
 
 ### Paper Bot Status
+
 ```
 User: bot status
 VINCE: Paper Trading Bot Status
@@ -933,6 +953,7 @@ Session: EU/US Overlap (1.1x confidence boost)
 ```
 
 ### Meme Deep Dive
+
 ```
 User: deep dive $MOLT
 VINCE: MOLT Deep Dive
@@ -1047,66 +1068,66 @@ plugin-vince/
 
 ### High Priority
 
-| ID | Category | Description | Rationale |
-|----|----------|-------------|-----------|
-| T1 | Testing | Add integration tests for SignalAggregator with mocked service responses | Signal aggregation is the core decision engine; needs comprehensive coverage |
-| T2 | Reliability | Add fallback for Sanbase service (currently no fallback if API is down) | On-chain analytics gaps affect signal quality |
-| T3 | Reliability | Add fallback for Nansen service (100 credits run out quickly) | Smart money signals disappear mid-month |
-| T4 | Paper Bot | Implement backtesting mode using historical data | Validate strategies before paper trading |
-| T5 | Alerts | Add Telegram/Discord notification integration for high-priority alerts | Real-time alerts are useless if user isn't watching terminal |
+| ID  | Category    | Description                                                              | Rationale                                                                    |
+| --- | ----------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| T1  | Testing     | Add integration tests for SignalAggregator with mocked service responses | Signal aggregation is the core decision engine; needs comprehensive coverage |
+| T2  | Reliability | Add fallback for Sanbase service (currently no fallback if API is down)  | On-chain analytics gaps affect signal quality                                |
+| T3  | Reliability | Add fallback for Nansen service (100 credits run out quickly)            | Smart money signals disappear mid-month                                      |
+| T4  | Paper Bot   | Implement backtesting mode using historical data                         | Validate strategies before paper trading                                     |
+| T5  | Alerts      | Add Telegram/Discord notification integration for high-priority alerts   | Real-time alerts are useless if user isn't watching terminal                 |
 
 ### Medium Priority
 
-| ID | Category | Description | Rationale |
-|----|----------|-------------|-----------|
-| T6 | Config | Move hardcoded thresholds to character settings | Currently in `paperTradingDefaults.ts`; should be user-configurable |
+| ID     | Category    | Description                                                             | Rationale                                                               |
+| ------ | ----------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| T6     | Config      | Move hardcoded thresholds to character settings                         | Currently in `paperTradingDefaults.ts`; should be user-configurable     |
 | ~~T7~~ | ~~Signals~~ | ~~Add machine learning signal weight adjustment based on TradeJournal~~ | ✅ **COMPLETED in V4** - Thompson Sampling in `weightBandit.service.ts` |
-| T8 | Watchlist | Add automatic watchlist suggestions from DexScreener scans | Currently manual; could auto-populate from "APE" verdicts |
-| T9 | Options | Integrate HYPERSURFACE execution tracking (post-trade logging) | Currently only suggests strikes; doesn't track actual execution |
-| T10 | Knowledge | Implement automatic knowledge cleanup (remove stale entries >30 days) | Knowledge folder grows unbounded |
+| T8     | Watchlist   | Add automatic watchlist suggestions from DexScreener scans              | Currently manual; could auto-populate from "APE" verdicts               |
+| T9     | Options     | Integrate HYPERSURFACE execution tracking (post-trade logging)          | Currently only suggests strikes; doesn't track actual execution         |
+| T10    | Knowledge   | Implement automatic knowledge cleanup (remove stale entries >30 days)   | Knowledge folder grows unbounded                                        |
 
 ### Low Priority
 
-| ID | Category | Description | Rationale |
-|----|----------|-------------|-----------|
-| T11 | Docs | Add JSDoc comments to all service public methods | IDE tooltips and auto-generated API docs |
-| T12 | Logging | Standardize log levels across all services | Inconsistent logging makes debugging harder |
-| T13 | Types | Export all service return types for external consumption | Other plugins may want to consume VINCE data |
+| ID  | Category    | Description                                                   | Rationale                                              |
+| --- | ----------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| T11 | Docs        | Add JSDoc comments to all service public methods              | IDE tooltips and auto-generated API docs               |
+| T12 | Logging     | Standardize log levels across all services                    | Inconsistent logging makes debugging harder            |
+| T13 | Types       | Export all service return types for external consumption      | Other plugins may want to consume VINCE data           |
 | T14 | Performance | Add Redis cache adapter option for multi-instance deployments | Current in-memory cache doesn't share across instances |
-| T15 | UI | Create web dashboard for paper bot performance visualization | Currently text-only; charts would improve UX |
+| T15 | UI          | Create web dashboard for paper bot performance visualization  | Currently text-only; charts would improve UX           |
 
 ### Technical Debt
 
-| ID | Category | Description | Rationale |
-|----|----------|-------------|-----------|
-| T16 | Code | Consolidate duplicate API fetching logic into shared utils | DexScreener, Binance, HIP3 all have similar retry/circuit breaker code |
-| T17 | Code | Extract session filter logic from RiskManager into shared utility | `sessionFilters.ts` exists but not fully utilized |
-| T18 | Types | Create discriminated union types for different alert types | Currently all alerts use same interface |
-| T19 | Services | Refactor service initialization to use dependency injection | Currently services look up other services by name |
-| T20 | Tests | Add E2E tests for paper bot full trade lifecycle | Unit tests exist but no end-to-end scenario coverage |
+| ID  | Category | Description                                                       | Rationale                                                              |
+| --- | -------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| T16 | Code     | Consolidate duplicate API fetching logic into shared utils        | DexScreener, Binance, HIP3 all have similar retry/circuit breaker code |
+| T17 | Code     | Extract session filter logic from RiskManager into shared utility | `sessionFilters.ts` exists but not fully utilized                      |
+| T18 | Types    | Create discriminated union types for different alert types        | Currently all alerts use same interface                                |
+| T19 | Services | Refactor service initialization to use dependency injection       | Currently services look up other services by name                      |
+| T20 | Tests    | Add E2E tests for paper bot full trade lifecycle                  | Unit tests exist but no end-to-end scenario coverage                   |
 
 ### Roadmap Ideas
 
-| ID | Category | Description | Rationale |
-|----|----------|-------------|-----------|
-| R1 | Trading | Add support for real trading via Hyperliquid API | Paper bot graduation path |
-| R2 | Multi-Asset | Expand paper bot beyond BTC to ETH, SOL, HYPE | Currently BTC-only for risk management |
-| R3 | Social | Add Twitter/X integration for meme sentiment analysis | DexScreener alone misses social momentum |
-| R4 | AI | Integrate Claude/GPT-4 for deeper market analysis summaries | Currently uses LLM for formatting only |
-| R5 | Collaboration | Add multi-agent coordination (VINCE consults specialist agents) | Future ElizaOS multi-agent patterns |
+| ID  | Category      | Description                                                     | Rationale                                |
+| --- | ------------- | --------------------------------------------------------------- | ---------------------------------------- |
+| R1  | Trading       | Add support for real trading via Hyperliquid API                | Paper bot graduation path                |
+| R2  | Multi-Asset   | Expand paper bot beyond BTC to ETH, SOL, HYPE                   | Currently BTC-only for risk management   |
+| R3  | Social        | Add Twitter/X integration for meme sentiment analysis           | DexScreener alone misses social momentum |
+| R4  | AI            | Integrate Claude/GPT-4 for deeper market analysis summaries     | Currently uses LLM for formatting only   |
+| R5  | Collaboration | Add multi-agent coordination (VINCE consults specialist agents) | Future ElizaOS multi-agent patterns      |
 
 ### V5+ ML Roadmap
 
-| ID | Category | Description | Status |
-|----|----------|-------------|--------|
-| M1 | Inference | Add Stop-Loss Optimizer model (quantile regression) | Planned |
-| M2 | Training | Automated retraining when feature store reaches threshold | Planned |
-| M3 | Monitoring | ML model drift detection and alerting | Planned |
-| M4 | Features | Add order book imbalance features from Hyperliquid | Planned |
-| M5 | Features | Add cross-asset correlation features (BTC vs alts) | Planned |
-| M6 | Online | Implement contextual bandits for regime-aware weights | Research |
-| M7 | Ensemble | Combine ONNX predictions with online learning signals | Research |
-| M8 | Explainability | SHAP values for trade decision explanations | Research |
+| ID  | Category       | Description                                               | Status   |
+| --- | -------------- | --------------------------------------------------------- | -------- |
+| M1  | Inference      | Add Stop-Loss Optimizer model (quantile regression)       | Planned  |
+| M2  | Training       | Automated retraining when feature store reaches threshold | Planned  |
+| M3  | Monitoring     | ML model drift detection and alerting                     | Planned  |
+| M4  | Features       | Add order book imbalance features from Hyperliquid        | Planned  |
+| M5  | Features       | Add cross-asset correlation features (BTC vs alts)        | Planned  |
+| M6  | Online         | Implement contextual bandits for regime-aware weights     | Research |
+| M7  | Ensemble       | Combine ONNX predictions with online learning signals     | Research |
+| M8  | Explainability | SHAP values for trade decision explanations               | Research |
 
 ---
 
@@ -1116,4 +1137,4 @@ MIT
 
 ---
 
-*Built for the VINCE agent on ElizaOS. Trade well, live well.*
+_Built for the VINCE agent on ElizaOS. Trade well, live well._

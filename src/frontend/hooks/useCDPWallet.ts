@@ -1,13 +1,18 @@
 import { useMemo } from "react";
-import { useIsSignedIn, useSignOut, useIsInitialized, useCurrentUser } from "@coinbase/cdp-hooks";
+import {
+  useIsSignedIn,
+  useSignOut,
+  useIsInitialized,
+  useCurrentUser,
+} from "@coinbase/cdp-hooks";
 import { resolveCdpUserInfo, type CdpUser } from "@/frontend/lib/cdpUser";
 
 /**
  * Custom hook to access CDP wallet information
- * 
+ *
  * This hook combines multiple CDP hooks and provides a unified interface
  * to access wallet state throughout the application.
- * 
+ *
  * @returns {Object} Wallet information including:
  *   - isInitialized: boolean - Whether CDP SDK has finished initializing (IMPORTANT: wait for this before using wallet data)
  *   - isSignedIn: boolean - Whether user is authenticated with CDP wallet
@@ -17,21 +22,21 @@ import { resolveCdpUserInfo, type CdpUser } from "@/frontend/lib/cdpUser";
  *   - hasWallet: boolean - Whether user has any wallet connected
  *   - isCdpConfigured: boolean - Whether CDP is properly configured
  *   - signOut: () => Promise<void> - Function to sign out the user
- * 
+ *
  * @example
  * ```tsx
  * function MyComponent() {
  *   const { isInitialized, isSignedIn, evmAddress, userEmail, hasWallet, signOut } = useCDPWallet();
- *   
+ *
  *   // Always wait for initialization first
  *   if (!isInitialized) {
  *     return <p>Loading wallet...</p>;
  *   }
- *   
+ *
  *   if (!isSignedIn) {
  *     return <p>Please sign in to access wallet features</p>;
  *   }
- *   
+ *
  *   return (
  *     <div>
  *       <p>Your wallet: {evmAddress}</p>
@@ -54,18 +59,19 @@ export function useCDPWallet() {
 
   // Normalize user info using shared helper (DRY) - memoized to prevent excessive re-renders
   const { email: userEmail, username: userName } = useMemo(
-    () => resolveCdpUserInfo(currentUser as CdpUser | undefined, { isSignedIn }),
-    [currentUser, isSignedIn]
+    () =>
+      resolveCdpUserInfo(currentUser as CdpUser | undefined, { isSignedIn }),
+    [currentUser, isSignedIn],
   );
 
   return {
     // Loading state
     isInitialized,
-    
+
     // Auth state
     isSignedIn,
     isCdpConfigured,
-    
+
     // User info
     userEmail,
     userName,
@@ -73,7 +79,6 @@ export function useCDPWallet() {
 
     // Actions
     signOut,
-    
   };
 }
 
@@ -81,4 +86,3 @@ export function useCDPWallet() {
  * Type definition for the wallet info returned by useCDPWallet
  */
 export type CDPWalletInfo = ReturnType<typeof useCDPWallet>;
-

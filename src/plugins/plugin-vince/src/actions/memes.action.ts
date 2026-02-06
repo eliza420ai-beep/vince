@@ -16,7 +16,13 @@
  * - GM briefing mode for quick daily summary
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceMeteoraService } from "../services/meteora.service";
@@ -73,7 +79,12 @@ interface MemesDataContext {
   baseTokens: TokenData[];
   apeCount: number;
   topApe: TokenData | null;
-  smartMoneyTokens: { symbol: string; chain: string; buyers: number; netFlow: number }[];
+  smartMoneyTokens: {
+    symbol: string;
+    chain: string;
+    buyers: number;
+    netFlow: number;
+  }[];
   meteoraPools: { pair: string; apy: number; tvl: number }[];
   nansenCredits: { remaining: number; total: number } | null;
   nansenAvailable: boolean; // true if Nansen API is working (not in fallback mode)
@@ -95,8 +106,12 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   // DexScreener scan summary (always show what was scanned)
   const totalTokens = ctx.solanaTokens.length + ctx.baseTokens.length;
   lines.push("=== DEXSCREENER SCAN SUMMARY ===");
-  lines.push(`Scanned: ${ctx.solanaTokens.length} Solana, ${ctx.baseTokens.length} Base tokens`);
-  lines.push(`AI tokens found: ${ctx.aiTokens.length} (matching $1M-$20M mcap + AI keywords)`);
+  lines.push(
+    `Scanned: ${ctx.solanaTokens.length} Solana, ${ctx.baseTokens.length} Base tokens`,
+  );
+  lines.push(
+    `AI tokens found: ${ctx.aiTokens.length} (matching $1M-$20M mcap + AI keywords)`,
+  );
   lines.push(`APE signals: ${ctx.apeCount} tokens meeting APE criteria`);
   lines.push("");
 
@@ -111,7 +126,12 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   if (ctx.memeNews.length > 0) {
     lines.push("=== MEME NEWS (MandoMinutes) ===");
     for (const news of ctx.memeNews) {
-      const sentimentEmoji = news.sentiment === "bullish" ? "🟢" : news.sentiment === "bearish" ? "🔴" : "⚪";
+      const sentimentEmoji =
+        news.sentiment === "bullish"
+          ? "🟢"
+          : news.sentiment === "bearish"
+            ? "🔴"
+            : "⚪";
       lines.push(`${sentimentEmoji} ${news.title} (${news.sentiment})`);
     }
     lines.push("");
@@ -139,8 +159,12 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   if (ctx.watchlistMatches.length > 0) {
     lines.push("=== WATCHLIST HITS ===");
     for (const match of ctx.watchlistMatches) {
-      const distStr = match.distanceToEntry ? ` [${match.distanceToEntry}]` : "";
-      lines.push(`⭐ ${match.symbol} (${match.chain}) - ${match.priority} priority${distStr}`);
+      const distStr = match.distanceToEntry
+        ? ` [${match.distanceToEntry}]`
+        : "";
+      lines.push(
+        `⭐ ${match.symbol} (${match.chain}) - ${match.priority} priority${distStr}`,
+      );
       if (match.notes) lines.push(`   Note: ${match.notes}`);
     }
     lines.push("");
@@ -149,24 +173,32 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   // Smart money activity
   if (!ctx.nansenAvailable) {
     lines.push("=== SMART MONEY ===");
-    lines.push("Nansen API unavailable - smart money data not included in this scan");
+    lines.push(
+      "Nansen API unavailable - smart money data not included in this scan",
+    );
     lines.push("Analysis is based on DexScreener traction data only");
     lines.push("");
   } else if (ctx.smartMoneyTokens.length > 0) {
     lines.push("=== SMART MONEY (Nansen) ===");
     for (const token of ctx.smartMoneyTokens) {
       const flowSign = token.netFlow >= 0 ? "+" : "";
-      lines.push(`${token.symbol} (${token.chain}): ${token.buyers} smart money buyers, ${flowSign}$${(token.netFlow / 1000).toFixed(0)}k net flow`);
+      lines.push(
+        `${token.symbol} (${token.chain}): ${token.buyers} smart money buyers, ${flowSign}$${(token.netFlow / 1000).toFixed(0)}k net flow`,
+      );
     }
     if (ctx.nansenCredits) {
-      lines.push(`Credits: ${ctx.nansenCredits.remaining}/${ctx.nansenCredits.total}`);
+      lines.push(
+        `Credits: ${ctx.nansenCredits.remaining}/${ctx.nansenCredits.total}`,
+      );
     }
     lines.push("");
   } else if (ctx.nansenAvailable) {
     lines.push("=== SMART MONEY (Nansen) ===");
     lines.push("No smart money activity detected on tracked tokens");
     if (ctx.nansenCredits) {
-      lines.push(`Credits: ${ctx.nansenCredits.remaining}/${ctx.nansenCredits.total}`);
+      lines.push(
+        `Credits: ${ctx.nansenCredits.remaining}/${ctx.nansenCredits.total}`,
+      );
     }
     lines.push("");
   }
@@ -175,16 +207,26 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   lines.push("=== AI TOKENS (MOLT-TIER) ===");
   if (ctx.aiTokens.length > 0) {
     for (const t of ctx.aiTokens) {
-      const change = t.priceChange24h >= 0 ? `+${t.priceChange24h.toFixed(0)}%` : `${t.priceChange24h.toFixed(0)}%`;
-      const mcapStr = t.marketCap ? `$${(t.marketCap / 1_000_000).toFixed(1)}M mcap` : "mcap unknown";
+      const change =
+        t.priceChange24h >= 0
+          ? `+${t.priceChange24h.toFixed(0)}%`
+          : `${t.priceChange24h.toFixed(0)}%`;
+      const mcapStr = t.marketCap
+        ? `$${(t.marketCap / 1_000_000).toFixed(1)}M mcap`
+        : "mcap unknown";
       const viralTag = t.hasViralPotential ? " [VIRAL POTENTIAL]" : "";
       lines.push(`${t.symbol} (${t.chain}): ${t.verdict} verdict${viralTag}`);
-      lines.push(`  ${mcapStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | 24h: ${change} | Liq: $${(t.liquidity / 1000).toFixed(0)}k`);
+      lines.push(
+        `  ${mcapStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | 24h: ${change} | Liq: $${(t.liquidity / 1000).toFixed(0)}k`,
+      );
       if (t.hasMeteoraLp) lines.push(`  Has Meteora LP`);
-      if (t.smartMoneyAccumulating) lines.push(`  Smart money accumulating (${t.smartMoneyBuyers} buyers)`);
+      if (t.smartMoneyAccumulating)
+        lines.push(`  Smart money accumulating (${t.smartMoneyBuyers} buyers)`);
     }
   } else {
-    lines.push("No MOLT-tier AI tokens right now (need $1M-$20M mcap + traction)");
+    lines.push(
+      "No MOLT-tier AI tokens right now (need $1M-$20M mcap + traction)",
+    );
   }
   lines.push("");
 
@@ -192,10 +234,17 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   lines.push("=== SOLANA (DexScreener) ===");
   if (ctx.solanaTokens.length > 0) {
     for (const t of ctx.solanaTokens) {
-      const change = t.priceChange24h >= 0 ? `+${t.priceChange24h.toFixed(0)}%` : `${t.priceChange24h.toFixed(0)}%`;
-      const mcapStr = t.marketCap ? `$${(t.marketCap / 1_000_000).toFixed(2)}M mcap` : "";
+      const change =
+        t.priceChange24h >= 0
+          ? `+${t.priceChange24h.toFixed(0)}%`
+          : `${t.priceChange24h.toFixed(0)}%`;
+      const mcapStr = t.marketCap
+        ? `$${(t.marketCap / 1_000_000).toFixed(2)}M mcap`
+        : "";
       const liqStr = `$${(t.liquidity / 1000).toFixed(0)}k liq`;
-      lines.push(`${t.symbol}: ${t.verdict} | ${mcapStr} | ${liqStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | ${change}`);
+      lines.push(
+        `${t.symbol}: ${t.verdict} | ${mcapStr} | ${liqStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | ${change}`,
+      );
     }
   } else {
     lines.push("No Solana tokens with traction on DexScreener");
@@ -206,10 +255,17 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   lines.push("=== BASE (DexScreener) ===");
   if (ctx.baseTokens.length > 0) {
     for (const t of ctx.baseTokens) {
-      const change = t.priceChange24h >= 0 ? `+${t.priceChange24h.toFixed(0)}%` : `${t.priceChange24h.toFixed(0)}%`;
-      const mcapStr = t.marketCap ? `$${(t.marketCap / 1_000_000).toFixed(2)}M mcap` : "";
+      const change =
+        t.priceChange24h >= 0
+          ? `+${t.priceChange24h.toFixed(0)}%`
+          : `${t.priceChange24h.toFixed(0)}%`;
+      const mcapStr = t.marketCap
+        ? `$${(t.marketCap / 1_000_000).toFixed(2)}M mcap`
+        : "";
       const liqStr = `$${(t.liquidity / 1000).toFixed(0)}k liq`;
-      lines.push(`${t.symbol}: ${t.verdict} | ${mcapStr} | ${liqStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | ${change}`);
+      lines.push(
+        `${t.symbol}: ${t.verdict} | ${mcapStr} | ${liqStr} | Vol/Liq: ${t.volumeLiquidityRatio.toFixed(1)}x | ${change}`,
+      );
     }
   } else {
     lines.push("No Base tokens with traction on DexScreener");
@@ -220,7 +276,9 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   if (ctx.apeCount > 0 && ctx.topApe) {
     lines.push("=== APE SIGNALS ===");
     lines.push(`${ctx.apeCount} tokens meeting APE criteria`);
-    lines.push(`Top APE: ${ctx.topApe.symbol} (${ctx.topApe.chain}) - ${ctx.topApe.volumeLiquidityRatio.toFixed(1)}x vol/liq`);
+    lines.push(
+      `Top APE: ${ctx.topApe.symbol} (${ctx.topApe.chain}) - ${ctx.topApe.volumeLiquidityRatio.toFixed(1)}x vol/liq`,
+    );
     lines.push("");
   }
 
@@ -228,14 +286,18 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
   if (ctx.meteoraPools.length > 0) {
     lines.push("=== METEORA LP OPPORTUNITIES ===");
     for (const pool of ctx.meteoraPools) {
-      lines.push(`${pool.pair}: ${pool.apy.toFixed(0)}% APY, $${(pool.tvl / 1000).toFixed(0)}k TVL`);
+      lines.push(
+        `${pool.pair}: ${pool.apy.toFixed(0)}% APY, $${(pool.tvl / 1000).toFixed(0)}k TVL`,
+      );
     }
     lines.push("");
   }
 
   // Trench framework (if relevant)
   if (ctx.trenchFramework) {
-    lines.push("=== FRAMEWORK: " + ctx.trenchFramework.name.toUpperCase() + " ===");
+    lines.push(
+      "=== FRAMEWORK: " + ctx.trenchFramework.name.toUpperCase() + " ===",
+    );
     lines.push(ctx.trenchFramework.summary);
     lines.push("");
   }
@@ -259,7 +321,7 @@ function buildMemesDataContext(ctx: MemesDataContext): string {
  */
 async function generateGmBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE giving a quick GM briefing on the meme trenches.
 
@@ -293,7 +355,7 @@ Keep it to 80-120 words. This is a quick GM, not a full analysis.`;
 
 async function generateMemesHumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, analyzing AI memes with viral potential - looking for the next MOLT.
 
@@ -346,10 +408,23 @@ Write the briefing:`;
 
 export const vinceMemesAction: Action = {
   name: "VINCE_MEMES",
-  similes: ["MEMES", "MEMETICS", "MEMECOINS", "TRENCHES", "HOT_TOKENS", "AI_TOKENS", "MOLT", "SMART_MONEY"],
-  description: "Human-style meme analysis with traction data, smart money tracking, and LP discovery",
+  similes: [
+    "MEMES",
+    "MEMETICS",
+    "MEMECOINS",
+    "TRENCHES",
+    "HOT_TOKENS",
+    "AI_TOKENS",
+    "MOLT",
+    "SMART_MONEY",
+  ],
+  description:
+    "Human-style meme analysis with traction data, smart money tracking, and LP discovery",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("meme") ||
@@ -377,24 +452,39 @@ export const vinceMemesAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const dexService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
-      const meteoraService = runtime.getService("VINCE_METEORA_SERVICE") as VinceMeteoraService | null;
-      const watchlistService = runtime.getService("VINCE_WATCHLIST_SERVICE") as VinceWatchlistService | null;
-      const alertService = runtime.getService("VINCE_ALERT_SERVICE") as VinceAlertService | null;
-      const topTradersService = runtime.getService("VINCE_TOP_TRADERS_SERVICE") as VinceTopTradersService | null;
-      const newsService = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
-      
+      const dexService = runtime.getService(
+        "VINCE_DEXSCREENER_SERVICE",
+      ) as VinceDexScreenerService | null;
+      const meteoraService = runtime.getService(
+        "VINCE_METEORA_SERVICE",
+      ) as VinceMeteoraService | null;
+      const watchlistService = runtime.getService(
+        "VINCE_WATCHLIST_SERVICE",
+      ) as VinceWatchlistService | null;
+      const alertService = runtime.getService(
+        "VINCE_ALERT_SERVICE",
+      ) as VinceAlertService | null;
+      const topTradersService = runtime.getService(
+        "VINCE_TOP_TRADERS_SERVICE",
+      ) as VinceTopTradersService | null;
+      const newsService = runtime.getService(
+        "VINCE_NEWS_SENTIMENT_SERVICE",
+      ) as VinceNewsSentimentService | null;
+
       // Use fallback factory for Nansen - gracefully degrades if API unavailable
       const nansenService = getOrCreateNansenService(runtime);
       const nansenAvailable = nansenService && !nansenService.isFallback?.();
 
       // Detect GM briefing mode
       const text = message.content.text?.toLowerCase() || "";
-      const isGmBriefing = text === "gm" || text.startsWith("gm ") || 
-                           text.includes("good morning") || text.includes("daily briefing");
+      const isGmBriefing =
+        text === "gm" ||
+        text.startsWith("gm ") ||
+        text.includes("good morning") ||
+        text.includes("daily briefing");
 
       if (!dexService) {
         await callback({
@@ -404,15 +494,23 @@ export const vinceMemesAction: Action = {
         return;
       }
 
-      logger.info(`[VINCE_MEMES] ${isGmBriefing ? "GM briefing" : "Scanning trenches"}...`);
+      logger.info(
+        `[VINCE_MEMES] ${isGmBriefing ? "GM briefing" : "Scanning trenches"}...`,
+      );
       if (!nansenAvailable) {
-        logger.warn("[VINCE_MEMES] Nansen unavailable - proceeding with DexScreener data only");
+        logger.warn(
+          "[VINCE_MEMES] Nansen unavailable - proceeding with DexScreener data only",
+        );
       }
       await dexService.refreshData();
 
       // Run alert detection
       if (alertService) {
-        await alertService.checkForAlerts(watchlistService, topTradersService, dexService);
+        await alertService.checkForAlerts(
+          watchlistService,
+          topTradersService,
+          dexService,
+        );
       }
 
       // Get market mood
@@ -439,8 +537,10 @@ export const vinceMemesAction: Action = {
 
       // Get recent alerts (high priority)
       if (alertService) {
-        const highPriorityAlerts = alertService.getHighPriorityAlerts().slice(0, 3);
-        ctx.recentAlerts = highPriorityAlerts.map(a => ({
+        const highPriorityAlerts = alertService
+          .getHighPriorityAlerts()
+          .slice(0, 3);
+        ctx.recentAlerts = highPriorityAlerts.map((a) => ({
           type: a.type,
           title: a.title,
           timeAgo: getTimeAgo(a.timestamp),
@@ -451,7 +551,7 @@ export const vinceMemesAction: Action = {
       if (topTradersService) {
         await topTradersService.refreshData();
         const recentSignals = topTradersService.getHighPrioritySignals(5);
-        ctx.walletSignals = recentSignals.map(s => ({
+        ctx.walletSignals = recentSignals.map((s) => ({
           name: s.traderName || s.address.slice(0, 8),
           action: s.action,
           token: s.asset,
@@ -460,12 +560,17 @@ export const vinceMemesAction: Action = {
 
       // Get watchlist maintenance reminder
       if (watchlistService) {
-        ctx.maintenanceReminder = watchlistService.getMaintenanceReminder() || undefined;
+        ctx.maintenanceReminder =
+          watchlistService.getMaintenanceReminder() || undefined;
       }
 
       // Get relevant trench framework (for LP opportunities)
       try {
-        if (text.includes("lp") || text.includes("liquidity") || text.includes("meteora")) {
+        if (
+          text.includes("lp") ||
+          text.includes("liquidity") ||
+          text.includes("meteora")
+        ) {
           const framework = await getFrameworkForTopic("lp liquidity meteora");
           if (framework) {
             ctx.trenchFramework = {
@@ -482,11 +587,13 @@ export const vinceMemesAction: Action = {
       if (newsService) {
         try {
           const leftcurveNews = newsService.getNewsByCategory("leftcurve");
-          ctx.memeNews = leftcurveNews.slice(0, 5).map(n => ({
+          ctx.memeNews = leftcurveNews.slice(0, 5).map((n) => ({
             title: n.title,
             sentiment: n.sentiment,
           }));
-          logger.debug(`[VINCE_MEMES] Got ${ctx.memeNews.length} leftcurve news items`);
+          logger.debug(
+            `[VINCE_MEMES] Got ${ctx.memeNews.length} leftcurve news items`,
+          );
         } catch (error) {
           logger.debug(`[VINCE_MEMES] Failed to get meme news: ${error}`);
         }
@@ -497,7 +604,7 @@ export const vinceMemesAction: Action = {
         ctx.nansenCredits = nansenService.getCreditUsage();
         if (ctx.nansenCredits.remaining > 0) {
           const hotMemes = await nansenService.getHotMemeTokens();
-          ctx.smartMoneyTokens = hotMemes.slice(0, 3).map(t => ({
+          ctx.smartMoneyTokens = hotMemes.slice(0, 3).map((t) => ({
             symbol: t.tokenSymbol,
             chain: t.chain,
             buyers: t.smartMoneyBuyers,
@@ -512,8 +619,9 @@ export const vinceMemesAction: Action = {
       if (aiTokens.length === 0) {
         aiTokens = dexService.getAllQualifiedAiMemes();
       }
-      
-      for (const token of aiTokens.slice(0, 5)) { // Show top 5 instead of 3
+
+      for (const token of aiTokens.slice(0, 5)) {
+        // Show top 5 instead of 3
         const tokenData: TokenData = {
           symbol: token.symbol,
           chain: token.chain,
@@ -527,11 +635,16 @@ export const vinceMemesAction: Action = {
         };
 
         if (meteoraService && token.chain === "solana") {
-          tokenData.hasMeteoraLp = await meteoraService.hasLpPool(token.address);
+          tokenData.hasMeteoraLp = await meteoraService.hasLpPool(
+            token.address,
+          );
         }
         // Only check smart money if Nansen is available (not in fallback mode)
         if (nansenAvailable && nansenService && token.chain === "solana") {
-          const accum = await nansenService.isSmartMoneyAccumulating("solana", token.address);
+          const accum = await nansenService.isSmartMoneyAccumulating(
+            "solana",
+            token.address,
+          );
           tokenData.smartMoneyAccumulating = accum.accumulating;
           tokenData.smartMoneyBuyers = accum.topBuyers?.length || 0;
         }
@@ -543,7 +656,10 @@ export const vinceMemesAction: Action = {
           if (watchedToken) {
             let distanceToEntry: string | undefined;
             if (watchedToken.entryTarget && token.marketCap) {
-              const diff = ((token.marketCap - watchedToken.entryTarget) / watchedToken.entryTarget) * 100;
+              const diff =
+                ((token.marketCap - watchedToken.entryTarget) /
+                  watchedToken.entryTarget) *
+                100;
               if (diff <= 5 && diff >= -5) {
                 distanceToEntry = "AT ENTRY TARGET";
               } else if (diff > 0) {
@@ -565,26 +681,32 @@ export const vinceMemesAction: Action = {
       }
 
       // Solana tokens (show top 5 for better DexScreener coverage)
-      ctx.solanaTokens = dexService.getTokensByChain("solana").slice(0, 5).map(t => ({
-        symbol: t.symbol,
-        chain: t.chain,
-        verdict: t.verdict,
-        volumeLiquidityRatio: t.volumeLiquidityRatio,
-        priceChange24h: t.priceChange24h,
-        liquidity: t.liquidity,
-        marketCap: t.marketCap,
-      }));
+      ctx.solanaTokens = dexService
+        .getTokensByChain("solana")
+        .slice(0, 5)
+        .map((t) => ({
+          symbol: t.symbol,
+          chain: t.chain,
+          verdict: t.verdict,
+          volumeLiquidityRatio: t.volumeLiquidityRatio,
+          priceChange24h: t.priceChange24h,
+          liquidity: t.liquidity,
+          marketCap: t.marketCap,
+        }));
 
       // Base tokens (show top 5 for better DexScreener coverage)
-      ctx.baseTokens = dexService.getTokensByChain("base").slice(0, 5).map(t => ({
-        symbol: t.symbol,
-        chain: t.chain,
-        verdict: t.verdict,
-        volumeLiquidityRatio: t.volumeLiquidityRatio,
-        priceChange24h: t.priceChange24h,
-        liquidity: t.liquidity,
-        marketCap: t.marketCap,
-      }));
+      ctx.baseTokens = dexService
+        .getTokensByChain("base")
+        .slice(0, 5)
+        .map((t) => ({
+          symbol: t.symbol,
+          chain: t.chain,
+          verdict: t.verdict,
+          volumeLiquidityRatio: t.volumeLiquidityRatio,
+          priceChange24h: t.priceChange24h,
+          liquidity: t.liquidity,
+          marketCap: t.marketCap,
+        }));
 
       // APE signals
       const apeTokens = dexService.getApeTokens();
@@ -604,7 +726,7 @@ export const vinceMemesAction: Action = {
       if (meteoraService) {
         await meteoraService.refreshData();
         const memeOpps = meteoraService.getMemePoolOpportunities();
-        ctx.meteoraPools = memeOpps.slice(0, 2).map(p => ({
+        ctx.meteoraPools = memeOpps.slice(0, 2).map((p) => ({
           pair: `${p.tokenA}/${p.tokenB}`,
           apy: p.apy,
           tvl: p.tvl,
@@ -613,29 +735,35 @@ export const vinceMemesAction: Action = {
 
       // Generate briefing
       const dataContext = buildMemesDataContext(ctx);
-      logger.info(`[VINCE_MEMES] Generating ${isGmBriefing ? "GM" : "full"} briefing...`);
-      
+      logger.info(
+        `[VINCE_MEMES] Generating ${isGmBriefing ? "GM" : "full"} briefing...`,
+      );
+
       // Use appropriate briefing generator
-      const briefing = isGmBriefing 
+      const briefing = isGmBriefing
         ? await generateGmBriefing(runtime, dataContext)
         : await generateMemesHumanBriefing(runtime, dataContext);
 
       // Build source attribution with clear status
       const sources: string[] = [];
       if (dexService) sources.push("DexScreener");
-      if (nansenAvailable && ctx.nansenCredits && ctx.nansenCredits.remaining > 0) {
+      if (
+        nansenAvailable &&
+        ctx.nansenCredits &&
+        ctx.nansenCredits.remaining > 0
+      ) {
         sources.push("Nansen Smart Money");
       }
       if (meteoraService) sources.push("Meteora");
 
       // Add note if Nansen was unavailable
-      const nansenNote = !nansenAvailable 
-        ? "\n*DexScreener data - no qualifying AI tokens in target range*" 
+      const nansenNote = !nansenAvailable
+        ? "\n*DexScreener data - no qualifying AI tokens in target range*"
         : "";
 
       // Different output format for GM vs full report
       const title = isGmBriefing ? "GM Meme Brief" : "Trenches Report";
-      const commands = isGmBriefing 
+      const commands = isGmBriefing
         ? "*Say 'memes' for full analysis. DD [token] for deep dive.*"
         : "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, DD [token]*";
 
@@ -648,7 +776,9 @@ export const vinceMemesAction: Action = {
         "",
         "---",
         commands,
-      ].filter(line => line !== "").join("\n");
+      ]
+        .filter((line) => line !== "")
+        .join("\n");
 
       await callback({
         text: output,
@@ -687,7 +817,10 @@ export const vinceMemesAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Where is smart money accumulating?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "Where is smart money accumulating?" },
+      },
       {
         name: "VINCE",
         content: {

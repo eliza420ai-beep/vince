@@ -3,13 +3,13 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-**Purpose:** Explain *why* VINCE was built on ElizaOS and how it compares to alternatives (e.g. ClawdBot). For *what* the plugin does, see [WHAT.md](./WHAT.md). For *how* to develop it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
+**Purpose:** Explain _why_ VINCE was built on ElizaOS and how it compares to alternatives (e.g. ClawdBot). For _what_ the plugin does, see [WHAT.md](./WHAT.md). For _how_ to develop it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
 
 **When to re-read:** Before migrating to another framework, adding a new platform (e.g. full computer control), or debating local-first vs server-based deployment.
 
@@ -69,14 +69,14 @@ ClawdBot is a TypeScript CLI application that functions as a personal AI assista
 
 **Key Characteristics:**
 
-| Aspect | ClawdBot |
-|--------|----------|
-| **Execution** | Local-first, runs on your machine |
-| **Computer Control** | Full shell, browser (Playwright), filesystem access |
-| **Memory** | JSONL session transcripts + markdown files in `memory/` |
-| **Search** | Hybrid (vector + FTS5 keyword matching) |
-| **Coordination** | Lane-based queue (serial by default, parallel explicit) |
-| **Safety** | Allowlist for commands, dangerous constructs blocked |
+| Aspect               | ClawdBot                                                |
+| -------------------- | ------------------------------------------------------- |
+| **Execution**        | Local-first, runs on your machine                       |
+| **Computer Control** | Full shell, browser (Playwright), filesystem access     |
+| **Memory**           | JSONL session transcripts + markdown files in `memory/` |
+| **Search**           | Hybrid (vector + FTS5 keyword matching)                 |
+| **Coordination**     | Lane-based queue (serial by default, parallel explicit) |
+| **Safety**           | Allowlist for commands, dangerous constructs blocked    |
 
 ### ElizaOS
 
@@ -114,31 +114,31 @@ ElizaOS is a multi-agent framework for building AI agents with persistent person
 
 **Key Characteristics:**
 
-| Aspect | ElizaOS |
-|--------|---------|
-| **Execution** | Server-based with platform connectors |
-| **Computer Control** | None (designed for chat/social interactions) |
-| **Memory** | Vector database with semantic embeddings |
-| **Search** | Semantic search via embeddings |
-| **Coordination** | Event-driven with parallel provider execution |
-| **Learning** | Evaluators extract facts and build relationships |
+| Aspect               | ElizaOS                                          |
+| -------------------- | ------------------------------------------------ |
+| **Execution**        | Server-based with platform connectors            |
+| **Computer Control** | None (designed for chat/social interactions)     |
+| **Memory**           | Vector database with semantic embeddings         |
+| **Search**           | Semantic search via embeddings                   |
+| **Coordination**     | Event-driven with parallel provider execution    |
+| **Learning**         | Evaluators extract facts and build relationships |
 
 ---
 
 ## Side-by-Side Comparison
 
-| Feature | ClawdBot | ElizaOS |
-|---------|----------|---------|
-| Computer control (shell, browser) | Full | None |
-| Multi-platform messaging | Telegram, WhatsApp, Discord, iMessage | Discord, Telegram, Twitter, Farcaster |
-| Vector memory/RAG | Hybrid search | Full RAG with embeddings |
-| Character/personality system | Minimal | Rich character definitions |
-| Plugin ecosystem | Skills marketplace | Extensive plugin registry |
-| Learning/evaluation | Static | Evaluators extract facts, build relationships |
-| Multi-agent orchestration | Single agent | Native multi-agent (Worlds, Rooms) |
-| Blockchain/DeFi | Via skills | Native plugins (Solana, EVM) |
-| Local-first | Yes | No (server-based) |
-| Self-healing/maintenance | Can fix its own code | Requires developer intervention |
+| Feature                           | ClawdBot                              | ElizaOS                                       |
+| --------------------------------- | ------------------------------------- | --------------------------------------------- |
+| Computer control (shell, browser) | Full                                  | None                                          |
+| Multi-platform messaging          | Telegram, WhatsApp, Discord, iMessage | Discord, Telegram, Twitter, Farcaster         |
+| Vector memory/RAG                 | Hybrid search                         | Full RAG with embeddings                      |
+| Character/personality system      | Minimal                               | Rich character definitions                    |
+| Plugin ecosystem                  | Skills marketplace                    | Extensive plugin registry                     |
+| Learning/evaluation               | Static                                | Evaluators extract facts, build relationships |
+| Multi-agent orchestration         | Single agent                          | Native multi-agent (Worlds, Rooms)            |
+| Blockchain/DeFi                   | Via skills                            | Native plugins (Solana, EVM)                  |
+| Local-first                       | Yes                                   | No (server-based)                             |
+| Self-healing/maintenance          | Can fix its own code                  | Requires developer intervention               |
 
 ---
 
@@ -153,8 +153,8 @@ The `SignalAggregatorService` consults 15+ data sources with weighted voting. El
 ```typescript
 // Each provider contributes context before the LLM decides
 const state = await runtime.composeState(message, [
-  'vinceContextProvider',      // Aggregated market data
-  'trenchKnowledgeProvider',   // RAG for meme trading
+  "vinceContextProvider", // Aggregated market data
+  "trenchKnowledgeProvider", // RAG for meme trading
 ]);
 ```
 
@@ -167,9 +167,9 @@ The `TradeJournalService` tracks which signal sources predict correctly. ElizaOS
 ```typescript
 // After each trade, evaluators analyze and learn
 evaluators: [
-  reflectionEvaluator,  // Self-assessment
+  reflectionEvaluator, // Self-assessment
   // Custom: tradePerformanceEvaluator could adjust signal weights
-]
+];
 ```
 
 ClawdBot has no native learning mechanism. The agent writes to markdown files, but there's no structured evaluation loop.
@@ -180,7 +180,7 @@ VINCE needs to send trading alerts to Discord/Telegram. ElizaOS has native servi
 
 ```typescript
 // Native multi-platform support
-plugins: ['@elizaos/plugin-discord', '@elizaos/plugin-telegram']
+plugins: ["@elizaos/plugin-discord", "@elizaos/plugin-telegram"];
 ```
 
 ClawdBot would require building channel adapters or using external notification services.
@@ -269,29 +269,29 @@ ElizaOS uses a vector database. More powerful for semantic search, but less tran
 ## The IP Transcends the Framework
 
 > "The IP was never the code—it was the concepts, insights, knowledge, expertise, and logic."
-> 
+>
 > — INSTRUCTIONS-CLAWDBOT-BRIEF.md
 
 What matters isn't the framework. It's the domain logic that VINCE encodes:
 
 ### Domain Logic (Transfers to Any Framework)
 
-| Component | Value |
-|-----------|-------|
-| **Signal Weights** | Liquidation cascades 2.0x, funding extremes 1.5x, whale positions 1.3x |
+| Component              | Value                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| **Signal Weights**     | Liquidation cascades 2.0x, funding extremes 1.5x, whale positions 1.3x          |
 | **Funding Thresholds** | `> +0.02%` crowded longs = WIDER calls; `< -0.02%` shorts paying = TIGHTER CSPs |
-| **Session Filters** | Asia 0.9x confidence, EU/US Overlap 1.1x, Off-Hours 0.8x |
-| **Circuit Breakers** | $200 daily loss = done; 15% drawdown = pause |
-| **Goal Tracking** | $420/day target, $10K/month stretch, Kelly Criterion sizing |
+| **Session Filters**    | Asia 0.9x confidence, EU/US Overlap 1.1x, Off-Hours 0.8x                        |
+| **Circuit Breakers**   | $200 daily loss = done; 15% drawdown = pause                                    |
+| **Goal Tracking**      | $420/day target, $10K/month stretch, Kelly Criterion sizing                     |
 
 ### Curated Datasets (Framework-Agnostic)
 
-| Dataset | Count | Location |
-|---------|-------|----------|
-| Meme Constants | 50+ tokens | `constants/memes.constants.ts` |
-| Target Assets | BTC, ETH, SOL, HYPE + 34 HIP-3 | `constants/targetAssets.ts` |
+| Dataset                | Count                           | Location                            |
+| ---------------------- | ------------------------------- | ----------------------------------- |
+| Meme Constants         | 50+ tokens                      | `constants/memes.constants.ts`      |
+| Target Assets          | BTC, ETH, SOL, HYPE + 34 HIP-3  | `constants/targetAssets.ts`         |
 | Paper Trading Defaults | Goals, thresholds, Kelly params | `constants/paperTradingDefaults.ts` |
-| Knowledge Files | 700+ | `knowledge/` |
+| Knowledge Files        | 700+                            | `knowledge/`                        |
 
 ### Architectural Patterns (Reusable Anywhere)
 
@@ -306,7 +306,7 @@ if (!deribitService) {
 const CIRCUIT_BREAKER = {
   maxFailures: 3,
   resetTimeMs: 60000,
-  backoffMs: [1000, 2000, 4000]
+  backoffMs: [1000, 2000, 4000],
 };
 
 // Pattern: Session-Based Risk Adjustment
@@ -322,27 +322,27 @@ If ClawdBot becomes the preferred framework, here's the migration priority:
 
 ### High Priority Skills (Unique Domain IP)
 
-| Skill | Effort | Value |
-|-------|--------|-------|
-| Hyperliquid Options Pulse | ~10-15 hours | Funding → strike guidance mapping |
-| NFT Floor Analysis | ~10-20 hours | OpenSea v2, tier classification, whale detection |
-| Deribit Options Data | ~5-10 hours | IV surfaces, Greeks, DVOL |
+| Skill                     | Effort       | Value                                            |
+| ------------------------- | ------------ | ------------------------------------------------ |
+| Hyperliquid Options Pulse | ~10-15 hours | Funding → strike guidance mapping                |
+| NFT Floor Analysis        | ~10-20 hours | OpenSea v2, tier classification, whale detection |
+| Deribit Options Data      | ~5-10 hours  | IV surfaces, Greeks, DVOL                        |
 
 ### Medium Priority (Check ClawdHub First)
 
-| Skill | Notes |
-|-------|-------|
+| Skill                    | Notes                      |
+| ------------------------ | -------------------------- |
 | DexScreener meme scanner | Community may have similar |
-| CoinGecko price fetcher | Likely exists |
-| News sentiment | Generic pattern |
+| CoinGecko price fetcher  | Likely exists              |
+| News sentiment           | Generic pattern            |
 
 ### Direct Transfer (No Rebuild)
 
-| Asset | Notes |
-|-------|-------|
-| `knowledge/` folder | Drop into ClawdBot's memory system |
-| Thresholds & constants | Embed in skill configuration |
-| README.md | Reference material for skill specs |
+| Asset                  | Notes                              |
+| ---------------------- | ---------------------------------- |
+| `knowledge/` folder    | Drop into ClawdBot's memory system |
+| Thresholds & constants | Embed in skill configuration       |
+| README.md              | Reference material for skill specs |
 
 ---
 
@@ -374,4 +374,4 @@ The domain logic—signal weights, funding thresholds, session filters, circuit 
 - [CLAUDE.md](./CLAUDE.md) — Full technical reference for the plugin.
 - [TREASURY.md](../../TREASURY.md) — Cost coverage and profitability context (project root).
 
-*Reference: [INSTRUCTIONS-CLAWDBOT-BRIEF.md](../../docs/INSTRUCTIONS-CLAWDBOT-BRIEF.md) for full migration context (if present).*
+_Reference: [INSTRUCTIONS-CLAWDBOT-BRIEF.md](../../docs/INSTRUCTIONS-CLAWDBOT-BRIEF.md) for full migration context (if present)._

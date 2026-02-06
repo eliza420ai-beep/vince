@@ -1,13 +1,13 @@
 /**
  * VINCE Trade Performance Evaluator
- * 
+ *
  * Runs after trades close to:
  * - Analyze trade outcomes and extract patterns
  * - Identify winning/losing signal combinations
  * - Store learnings in memory for future retrieval
  * - Trigger parameter tuning when thresholds are met
  * - Generate improvement journal entries for ClawdBot
- * 
+ *
  * This is a key component of the self-improving architecture:
  * The evaluator enables the system to learn from every trade.
  */
@@ -43,7 +43,10 @@ interface TradeLearning {
 interface PatternAnalysis {
   signalCombos: Map<string, { wins: number; losses: number; totalPnl: number }>;
   timePatterns: Map<string, { wins: number; losses: number }>;
-  assetPatterns: Map<string, { wins: number; losses: number; totalPnl: number }>;
+  assetPatterns: Map<
+    string,
+    { wins: number; losses: number; totalPnl: number }
+  >;
 }
 
 // ==========================================
@@ -54,7 +57,7 @@ interface PatternAnalysis {
  * Analyze recent trades for patterns
  */
 function analyzeTradePatterns(
-  journal: VinceTradeJournalService
+  journal: VinceTradeJournalService,
 ): PatternAnalysis {
   const analysis: PatternAnalysis = {
     signalCombos: new Map(),
@@ -73,13 +76,17 @@ function analyzeTradePatterns(
     // Analyze signal combinations
     if (entry.signalDetails && entry.signalDetails.length > 0) {
       const sources = entry.signalDetails
-        .map(s => s.source)
+        .map((s) => s.source)
         .filter(Boolean)
         .sort()
         .join("+");
-      
+
       if (sources) {
-        const existing = analysis.signalCombos.get(sources) || { wins: 0, losses: 0, totalPnl: 0 };
+        const existing = analysis.signalCombos.get(sources) || {
+          wins: 0,
+          losses: 0,
+          totalPnl: 0,
+        };
         if (isWin) existing.wins++;
         else existing.losses++;
         existing.totalPnl += pnl;
@@ -90,13 +97,20 @@ function analyzeTradePatterns(
     // Analyze time patterns
     const hour = new Date(entry.timestamp).getHours();
     const session = getSession(hour);
-    const sessionData = analysis.timePatterns.get(session) || { wins: 0, losses: 0 };
+    const sessionData = analysis.timePatterns.get(session) || {
+      wins: 0,
+      losses: 0,
+    };
     if (isWin) sessionData.wins++;
     else sessionData.losses++;
     analysis.timePatterns.set(session, sessionData);
 
     // Analyze asset patterns
-    const assetData = analysis.assetPatterns.get(entry.asset) || { wins: 0, losses: 0, totalPnl: 0 };
+    const assetData = analysis.assetPatterns.get(entry.asset) || {
+      wins: 0,
+      losses: 0,
+      totalPnl: 0,
+    };
     if (isWin) assetData.wins++;
     else assetData.losses++;
     assetData.totalPnl += pnl;
@@ -184,9 +198,10 @@ function extractLearnings(analysis: PatternAnalysis): TradeLearning[] {
         winRate,
         sampleSize: total,
         confidence: total >= 10 ? "high" : "medium",
-        suggestedAction: winRate >= 60 
-          ? "Consider increasing position size during this session"
-          : "Consider reducing position size during this session",
+        suggestedAction:
+          winRate >= 60
+            ? "Consider increasing position size during this session"
+            : "Consider reducing position size during this session",
         metadata: {
           avgPnlPct: 0,
           signalSources: [],
@@ -213,9 +228,10 @@ function extractLearnings(analysis: PatternAnalysis): TradeLearning[] {
         winRate,
         sampleSize: total,
         confidence: total >= 10 ? "high" : "medium",
-        suggestedAction: winRate >= 65
-          ? "Consider prioritizing this asset for signals"
-          : "Consider avoiding or reducing exposure to this asset",
+        suggestedAction:
+          winRate >= 65
+            ? "Consider prioritizing this asset for signals"
+            : "Consider avoiding or reducing exposure to this asset",
         metadata: {
           avgPnlPct: avgPnl,
           signalSources: [],
@@ -234,23 +250,31 @@ function extractLearnings(analysis: PatternAnalysis): TradeLearning[] {
 
 export const tradePerformanceEvaluator: Evaluator = {
   name: "tradePerformance",
-  description: "Analyzes closed trades to extract patterns and learnings for self-improvement",
+  description:
+    "Analyzes closed trades to extract patterns and learnings for self-improvement",
   similes: ["TRADE_ANALYSIS", "PERFORMANCE_LEARNING", "PATTERN_DETECTION"],
   alwaysRun: false,
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     // Run periodically, not on every message
     // Check if we've accumulated enough new trades since last evaluation
-    const journal = runtime.getService<VinceTradeJournalService>("VINCE_TRADE_JOURNAL_SERVICE");
+    const journal = runtime.getService<VinceTradeJournalService>(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    );
     if (!journal) return false;
 
     const stats = journal.getStats();
-    
+
     // Run evaluation if we have at least 5 trades
     if (stats.totalTrades < 5) return false;
 
     // Check last evaluation time from cache
-    const lastEvalTime = await runtime.getCache<number>("vince_last_performance_eval");
+    const lastEvalTime = await runtime.getCache<number>(
+      "vince_last_performance_eval",
+    );
     const now = Date.now();
     const evalIntervalMs = 30 * 60 * 1000; // 30 minutes
 
@@ -265,13 +289,22 @@ export const tradePerformanceEvaluator: Evaluator = {
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state?: State
+    state?: State,
   ): Promise<any> => {
-    logger.info("[tradePerformanceEvaluator] Starting trade performance analysis...");
+    logger.info(
+      "[tradePerformanceEvaluator] Starting trade performance analysis...",
+    );
 
-    const journal = runtime.getService<VinceTradeJournalService>("VINCE_TRADE_JOURNAL_SERVICE");
-    const parameterTuner = runtime.getService<VinceParameterTunerService>("VINCE_PARAMETER_TUNER_SERVICE");
-    const improvementJournal = runtime.getService<VinceImprovementJournalService>("VINCE_IMPROVEMENT_JOURNAL_SERVICE");
+    const journal = runtime.getService<VinceTradeJournalService>(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    );
+    const parameterTuner = runtime.getService<VinceParameterTunerService>(
+      "VINCE_PARAMETER_TUNER_SERVICE",
+    );
+    const improvementJournal =
+      runtime.getService<VinceImprovementJournalService>(
+        "VINCE_IMPROVEMENT_JOURNAL_SERVICE",
+      );
 
     if (!journal) {
       logger.debug("[tradePerformanceEvaluator] Trade journal not available");
@@ -286,15 +319,15 @@ export const tradePerformanceEvaluator: Evaluator = {
       const stats = journal.getStats();
       logger.info(
         `[tradePerformanceEvaluator] Analyzing ${stats.totalTrades} trades | ` +
-        `Win rate: ${stats.winRate.toFixed(1)}% | P&L: $${stats.totalPnl.toFixed(2)}`
+          `Win rate: ${stats.winRate.toFixed(1)}% | P&L: $${stats.totalPnl.toFixed(2)}`,
       );
 
       // Analyze patterns
       const analysis = analyzeTradePatterns(journal);
-      
+
       // Extract learnings
       const learnings = extractLearnings(analysis);
-      
+
       // Store learnings in memory
       for (const learning of learnings) {
         await runtime.createMemory(
@@ -307,7 +340,7 @@ export const tradePerformanceEvaluator: Evaluator = {
             },
             roomId: message.roomId,
           },
-          "facts"
+          "facts",
         );
       }
 
@@ -316,7 +349,7 @@ export const tradePerformanceEvaluator: Evaluator = {
         const tuningResult = await parameterTuner.forceTuning();
         if (tuningResult?.actionsApplied.length) {
           logger.info(
-            `[tradePerformanceEvaluator] Parameter tuning applied ${tuningResult.actionsApplied.length} adjustments`
+            `[tradePerformanceEvaluator] Parameter tuning applied ${tuningResult.actionsApplied.length} adjustments`,
           );
         }
       }
@@ -340,34 +373,49 @@ export const tradePerformanceEvaluator: Evaluator = {
       // Log summary
       if (learnings.length > 0) {
         console.log("");
-        console.log("  ╔═══════════════════════════════════════════════════════════════╗");
-        console.log("  ║  📊 TRADE PERFORMANCE LEARNINGS                               ║");
-        console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-        console.log(`  ║  Trades: ${stats.totalTrades}  |  Win Rate: ${stats.winRate.toFixed(1)}%  |  P&L: $${stats.totalPnl.toFixed(2).padEnd(9)} ║`);
-        console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-        
+        console.log(
+          "  ╔═══════════════════════════════════════════════════════════════╗",
+        );
+        console.log(
+          "  ║  📊 TRADE PERFORMANCE LEARNINGS                               ║",
+        );
+        console.log(
+          "  ╠═══════════════════════════════════════════════════════════════╣",
+        );
+        console.log(
+          `  ║  Trades: ${stats.totalTrades}  |  Win Rate: ${stats.winRate.toFixed(1)}%  |  P&L: $${stats.totalPnl.toFixed(2).padEnd(9)} ║`,
+        );
+        console.log(
+          "  ╠═══════════════════════════════════════════════════════════════╣",
+        );
+
         for (const learning of learnings.slice(0, 5)) {
-          const desc = learning.description.length > 53 
-            ? learning.description.substring(0, 50) + "..." 
-            : learning.description;
+          const desc =
+            learning.description.length > 53
+              ? learning.description.substring(0, 50) + "..."
+              : learning.description;
           console.log(`  ║  • ${desc.padEnd(55)} ║`);
         }
-        
+
         if (learnings.length > 5) {
-          console.log(`  ║  ... and ${learnings.length - 5} more learning(s)                              ║`);
+          console.log(
+            `  ║  ... and ${learnings.length - 5} more learning(s)                              ║`,
+          );
         }
-        
-        console.log("  ╚═══════════════════════════════════════════════════════════════╝");
+
+        console.log(
+          "  ╚═══════════════════════════════════════════════════════════════╝",
+        );
         console.log("");
       }
 
       logger.info(
-        `[tradePerformanceEvaluator] Extracted ${learnings.length} learning(s) from ${stats.totalTrades} trades`
+        `[tradePerformanceEvaluator] Extracted ${learnings.length} learning(s) from ${stats.totalTrades} trades`,
       );
 
       return {
         learningsExtracted: learnings.length,
-        learnings: learnings.map(l => ({
+        learnings: learnings.map((l) => ({
           pattern: l.pattern,
           description: l.description,
           winRate: l.winRate,
@@ -381,7 +429,10 @@ export const tradePerformanceEvaluator: Evaluator = {
         },
       };
     } catch (error) {
-      logger.error("[tradePerformanceEvaluator] Error analyzing trades:", error);
+      logger.error(
+        "[tradePerformanceEvaluator] Error analyzing trades:",
+        error,
+      );
       return { learningsExtracted: 0, error: String(error) };
     }
   },

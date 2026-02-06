@@ -1,24 +1,25 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { cn } from "@/frontend/lib/utils"
-import { Bullet } from "@/frontend/components/ui/bullet"
-import { ProfileSettings } from "./profile-settings"
-import { PreferencesSettings } from "./preferences-settings"
-import { NotificationSettings } from "./notification-settings"
-import { SecuritySettings } from "./security-settings"
+import { useState } from "react";
+import { cn } from "@/frontend/lib/utils";
+import { Bullet } from "@/frontend/components/ui/bullet";
+import { ProfileSettings } from "./profile-settings";
+import { PreferencesSettings } from "./preferences-settings";
+import { NotificationSettings } from "./notification-settings";
+import { SecuritySettings } from "./security-settings";
 
-type SettingsSection = "profile" | "preferences" | "notifications" | "security"
+type SettingsSection = "profile" | "preferences" | "notifications" | "security";
 
 const sections = [
   { id: "profile" as const, label: "Profile" },
   { id: "preferences" as const, label: "Preferences" },
   { id: "notifications" as const, label: "Notifications" },
   { id: "security" as const, label: "Security" },
-]
+];
 
 export function SettingsContent() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>("profile")
+  const [activeSection, setActiveSection] =
+    useState<SettingsSection>("profile");
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
@@ -54,5 +55,5 @@ export function SettingsContent() {
         {activeSection === "security" && <SecuritySettings />}
       </div>
     </div>
-  )
+  );
 }
