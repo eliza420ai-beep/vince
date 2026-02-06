@@ -171,7 +171,7 @@ export const vinceContextProvider: Provider = {
           lines.push(`${status.isPaused ? "PAUSED" : "ACTIVE"}`);
           lines.push(`Total Value: ${formatUsd(portfolio.totalValue)} (${returnStr})`);
           lines.push(`Balance: ${formatUsd(portfolio.balance)}`);
-          lines.push(`Realized P&L: ${formatPnL(portfolio.realizedPnl)}`);
+          lines.push(`Realized P&L: ${formatPnL(portfolio.realizedPnl)} (net of fees, 0.05% round-trip)`);
           lines.push(`Unrealized P&L: ${formatPnL(portfolio.unrealizedPnl)}`);
           lines.push(`Trades: ${portfolio.tradeCount} (${portfolio.winCount}W / ${portfolio.lossCount}L)`);
           lines.push(`Win Rate: ${portfolio.winRate.toFixed(1)}%`);

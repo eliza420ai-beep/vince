@@ -1031,7 +1031,14 @@ def build_improvement_report(
 
 def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> None:
     """Write human-readable improvement report to a markdown file."""
-    lines = ["# Parameter Improvement Report", "", "Use this report to see which parameters and weights to improve.", ""]
+    lines = [
+        "# Parameter Improvement Report",
+        "",
+        "Use this report to see which parameters and weights to improve.",
+        "",
+        "**Note:** All PnL and win/loss metrics in this report are **net of round-trip trading fees** (0.05% of notional).",
+        "",
+    ]
     data_summary = report.get("data_summary")
     if data_summary:
         lines.append("## Data summary")

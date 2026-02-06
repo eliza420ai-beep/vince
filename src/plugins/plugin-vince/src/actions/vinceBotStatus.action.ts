@@ -90,6 +90,7 @@ export const vinceBotStatusAction: Action = {
       lines.push("**Portfolio**");
       lines.push(`${formatUsd(portfolio.totalValue)} (${returnStr}) · Balance ${formatUsd(portfolio.balance)}`);
       lines.push(`P&L: Realized ${formatPnL(portfolio.realizedPnl)} · Unrealized ${formatPnL(portfolio.unrealizedPnl)}`);
+      lines.push("_Realized P&L is net of fees (0.05% round-trip)._");
       lines.push("");
 
       // KPI & Performance (compact)

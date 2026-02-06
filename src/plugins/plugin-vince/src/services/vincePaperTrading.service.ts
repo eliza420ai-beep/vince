@@ -602,11 +602,14 @@ export class VincePaperTradingService extends Service {
             logger.debug(`[VincePaperTrading] Extended snapshot skip: ${e}`);
           }
         }
-        const bookRejection = getBookImbalanceRejection(
-          { direction: signal.direction, confidence: signal.confidence },
-          extendedSnapshot,
-          aggressiveMode ? 0.4 : undefined
-        );
+        // In aggressive mode skip book-imbalance filter so we take more trades for ML data
+        const bookRejection = aggressiveMode
+          ? { reject: false as const }
+          : getBookImbalanceRejection(
+              { direction: signal.direction, confidence: signal.confidence },
+              extendedSnapshot,
+              undefined
+            );
         if (bookRejection.reject) {
           const reason = bookRejection.reason!;
           this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
