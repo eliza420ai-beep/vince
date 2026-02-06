@@ -5,21 +5,46 @@ import { Card, CardContent } from "@/frontend/components/ui/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import TVNoise from "@/frontend/components/ui/tv-noise";
 
+const COINGECKO_BTC_URL =
+  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+const BTC_POLL_MS = 60_000;
+
+function formatBtcPrice(usd: number): string {
+  if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
+  if (usd >= 1_000) return `$${usd.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  return `$${usd.toFixed(2)}`;
+}
+
 // Memoize Widget to prevent re-renders of parent components
-// The clock updates every second internally, but shouldn't trigger parent re-renders
 function Widget() {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [btcPrice, setBtcPrice] = useState<string | null>(null);
   const [userTimezone, setUserTimezone] = useState<string>("");
   const [utcOffset, setUtcOffset] = useState<string>("");
   const [userLocation, setUserLocation] = useState<string>("");
   const [temperature, setTemperature] = useState<string>("");
 
+  // Update date once per minute (for day/date row)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+    const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Fetch BTC price on mount and periodically
+  useEffect(() => {
+    const fetchBtc = async () => {
+      try {
+        const res = await fetch(COINGECKO_BTC_URL);
+        const data = await res.json();
+        const usd = data?.bitcoin?.usd;
+        if (typeof usd === "number") setBtcPrice(formatBtcPrice(usd));
+      } catch (e) {
+        console.error("Error fetching BTC price:", e);
+      }
+    };
+    fetchBtc();
+    const interval = setInterval(fetchBtc, BTC_POLL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -88,14 +113,6 @@ function Widget() {
     fetchLocationAndWeather();
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour12: true,
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
   const formatDate = (date: Date) => {
     const dayOfWeek = date.toLocaleDateString("en-US", {
       weekday: "long",
@@ -119,9 +136,10 @@ function Widget() {
           <span>{dateInfo.restOfDate}</span>
         </div>
         <div className="text-center">
-          <div className="text-5xl font-display" suppressHydrationWarning>
-            {formatTime(currentTime)}
+          <div className="text-5xl font-display">
+            {btcPrice ?? "—"}
           </div>
+          <div className="text-xs uppercase opacity-60 mt-0.5">BTC</div>
         </div>
 
         <div className="flex justify-between items-center">
