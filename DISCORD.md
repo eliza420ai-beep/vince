@@ -2,6 +2,42 @@
 
 Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designed to fit VINCE (trading, lifestyle, news) and Eliza (research, knowledge, UPLOAD) agents.
 
+---
+
+## Multi-Agent Discord (Same Server, No Conflict)
+
+**Why Eliza checks both `ELIZA_DISCORD_*` and `DISCORD_*`:**  
+`DISCORD_*` is a **fallback** for single-bot setups (Eliza only). For **two agents in the same server** you need **two Discord applications** (two bots). One token = one WebSocket; if both agents use the same token, only one connection can exist. Use `ELIZA_DISCORD_*` for Eliza and `VINCE_DISCORD_*` for VINCE (different app IDs). When running both, avoid setting generic `DISCORD_*` for Eliza so there’s no accidental token sharing.
+
+**If you see `Send handler not found (handlerSource=discord)`:** VINCE and Eliza are using the **same** Discord Application ID. Create a **second** Discord app for VINCE at [Discord Developer Portal](https://discord.com/developers/applications), then set `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` to the new app’s values (different from Eliza’s). Restart the app.
+
+To run **both VINCE and Eliza in the same Discord server** without errors (like [the-org](https://github.com/elizaOS/the-org)):
+
+1. **Two Discord applications (two bots)**  
+   Create two apps in the [Discord Developer Portal](https://discord.com/developers/applications): one for VINCE, one for Eliza. Each has its own **Application ID** and **Bot token**.
+
+2. **Invite both bots to the same server**  
+   Use each app’s OAuth2 URL to invite its bot. You’ll have two bots in the server (e.g. `Vince` and `Eliza`).
+
+3. **Env per agent (same key names, different values)**  
+   Each agent’s character uses `DISCORD_APPLICATION_ID` and `DISCORD_API_TOKEN` in `settings.secrets`. The plugin reads those from the runtime, so each runtime gets its own bot:
+
+   - **VINCE:** `VINCE_DISCORD_APPLICATION_ID` + `VINCE_DISCORD_API_TOKEN` → copied into character as `DISCORD_APPLICATION_ID` / `DISCORD_API_TOKEN`.
+   - **Eliza:** `ELIZA_DISCORD_APPLICATION_ID` + `ELIZA_DISCORD_API_TOKEN` (or fallback `DISCORD_*`) → same keys in her character.
+
+4. **When both load Discord**  
+   VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). So set:
+
+   - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (no separate enabled flag)
+   - `ELIZA_DISCORD_APPLICATION_ID` and `ELIZA_DISCORD_API_TOKEN` (Eliza’s app)
+
+   With **different** application IDs, both agents load Discord; each runtime gets its own send handler and no conflict.
+
+5. **Why “Send handler not found” happened before**  
+   If only one Discord app was used for both agents (or only Eliza’s env was set), VINCE’s character didn’t load the Discord plugin, so his runtime had no `discord` send handler. Messages or pushes that tried to send from VINCE’s runtime then failed with `Send handler not found (handlerSource=discord)`.
+
+**Current split (VINCE in IKIGAI LABS, Eliza in LiveTheLifeTV)** is valid: two servers, two bots, no conflict. To move both into one server later, use the same two-app setup and invite both bots to that server.
+
 ## Quick Reference: Channel Name → Push Type
 
 | Channel name contains | Receives |
@@ -257,11 +293,22 @@ Share recommendations, spots, photos
 
 ---
 
+## Invite links at startup (Voice vs text-only)
+
+When the Discord plugin starts, it prints a **Discord Bot Invite** box with two sections:
+
+- **With Voice** — for bots that join voice channels (TTS, listen, etc.). We don’t use this yet.
+- **Without Voice** — text-only (chat, read, send messages). Use this for VINCE and Eliza unless you’ve set up voice.
+
+**Use the “Without Voice” links** (Basic, Moderator, or Admin) when adding the bot to your server. The “With Voice” links are optional and only needed if you enable voice later.
+
+---
+
 ## Setup Checklist
 
 - [ ] Create VINCE Command Center category (IKIGAI) or LIFESTYLE category (LiveTheLifeTV)
 - [ ] Create `#vince-daily-reports`, `#vince-news`, `#vince-lifestyle`, `#vince-alerts`
-- [ ] Invite VINCE to those channels
+- [ ] Invite VINCE to those channels (use **Without Voice** invite if you’re not using voice)
 - [ ] Add channel purposes/descriptions
 - [ ] Pin command list in general chat
 - [ ] Mirror structure in Slack if used
@@ -270,8 +317,11 @@ Share recommendations, spots, photos
 
 ## Configuration Reference
 
+**Enable both bots in one server:** Set VINCE's `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` in `.env` (different app than Eliza's). Restart. Restart. If the second bot fails to connect, set `DELAY_SECOND_DISCORD_MS=3000` (default) to stagger startup; use `0` to disable.
+
 | Env var | Default | Description |
 |---------|---------|-------------|
+| `DELAY_SECOND_DISCORD_MS` | `3000` | Ms to wait after VINCE init before second Discord (Eliza) starts; set `0` to disable. |
 | `VINCE_DAILY_REPORT_ENABLED` | `true` | Daily market report |
 | `VINCE_DAILY_REPORT_HOUR` | `18` | UTC hour |
 | `VINCE_NEWS_DAILY_ENABLED` | `true` | News briefing |

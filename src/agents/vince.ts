@@ -48,6 +48,13 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
+// Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
+// No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
+const vinceHasOwnDiscord =
+  !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+  !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
+  (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+
 // ==========================================
 // Character Definition
 // ==========================================
@@ -62,19 +69,15 @@ export const vinceCharacter: Character = {
       ? ["@elizaos/plugin-anthropic"]
       : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
-    // Push notifications: Discord, Slack, Telegram (enable when tokens configured)
-    ...(process.env.DISCORD_API_TOKEN?.trim()
-      ? ["@elizaos/plugin-discord"]
-      : []),
-    ...(process.env.SLACK_BOT_TOKEN?.trim()
-      ? ["@elizaos-plugins/client-slack"]
-      : []),
-    ...(process.env.TELEGRAM_BOT_TOKEN?.trim()
-      ? ["@elizaos/plugin-telegram"]
-      : []),
+    ...(vinceHasOwnDiscord ? ["@elizaos/plugin-discord"] : []),
+    ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
+    ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
   ],
   settings: {
-    secrets: {},
+    secrets: {
+      ...(process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && { DISCORD_APPLICATION_ID: process.env.VINCE_DISCORD_APPLICATION_ID }),
+      ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() && { DISCORD_API_TOKEN: process.env.VINCE_DISCORD_API_TOKEN }),
+    },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
@@ -389,8 +392,15 @@ Your call on execution. Want me to log the selections?`,
 // ==========================================
 
 const initVince = async ({ runtime }: { runtime: IAgentRuntime }) => {
-  // Services initialize asynchronously - individual service logs confirm when each is ready
-  // No need to wait or check here since ElizaOS handles service registration
+  const vinceAppId = process.env.VINCE_DISCORD_APPLICATION_ID?.trim();
+  const elizaAppId = process.env.ELIZA_DISCORD_APPLICATION_ID?.trim();
+  if (vinceAppId && elizaAppId && vinceAppId === elizaAppId) {
+    logger.warn(
+      "[VINCE] Discord: ELIZA_DISCORD_APPLICATION_ID and VINCE_DISCORD_APPLICATION_ID are the same. " +
+        "Use two different Discord applications (two bots) or only one agent will connect. " +
+        "Create a second app at discord.com/developers/applications and set VINCE_* to the new app's ID and token."
+    );
+  }
   logger.info("[VINCE] ✅ Agent initialized - services starting in background");
 };
 

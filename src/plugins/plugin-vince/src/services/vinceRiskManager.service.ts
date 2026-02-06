@@ -111,25 +111,24 @@ export class VinceRiskManagerService extends Service {
   /**
    * Sync signal thresholds from dynamic config (self-improving architecture)
    * Called on startup and can be called periodically to pick up tuned values
-   * In aggressive mode, minConfirming = 2 to allow more trades for ML training
+   * In aggressive mode we keep 40/35 (AGGRESSIVE_RISK_LIMITS) and only use 2 confirming — do not overwrite with tuned-config/training_metadata so we actually get more trades for ML data.
    */
   syncFromDynamicConfig(): void {
     const thresholds = dynamicConfig.getThresholds();
-    const aggressive =
-      this.runtime.getSetting?.("vince_paper_aggressive") === true ||
-      this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
 
-    // Update limits with dynamic thresholds
-    this.limits.minSignalStrength = thresholds.minStrength;
-    this.limits.minSignalConfidence = thresholds.minConfidence;
-    // Aggressive: 2 confirming (more trades for ML). Default: 3 (conservative).
-    this.limits.minConfirmingSignals = aggressive
-      ? 2
-      : thresholds.minConfirming;
+    if (!aggressive) {
+      this.limits.minSignalStrength = thresholds.minStrength;
+      this.limits.minSignalConfidence = thresholds.minConfidence;
+      this.limits.minConfirmingSignals = thresholds.minConfirming;
+    } else {
+      // Aggressive: keep preset 40/35 (already set from AGGRESSIVE_RISK_LIMITS in start()); only force 2 confirming
+      this.limits.minConfirmingSignals = 2;
+    }
 
     logger.debug(
       `[VinceRiskManager] Synced from dynamic config: ` +
-        `strength=${thresholds.minStrength}, confidence=${thresholds.minConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`,
+        `strength=${this.limits.minSignalStrength}, confidence=${this.limits.minSignalConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`,
     );
   }
 

@@ -1,11 +1,18 @@
 # Training script review: train_models.py
 
-## Quick checklist (see [scripts/README.md](README.md) for tracking)
+**Status (2026-02-05):** Short-term items addressed. Script loads JSONL (line-by-line), implements all four models including SL Optimizer (quantile regression for max adverse excursion), uses robust key access (`r.get('market', {})` etc.), has `requirements.txt`, and uses the `logging` module. Early stopping and asset dummies are in place. TP/SL now use the same optional news/signal features as signal quality and position sizing. See repo root [scripts/README.md](../../../../scripts/README.md) for the correct run command.
 
-| Priority    | Item                                                                                                                                    |
-| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Short-term  | Load **JSONL** (feature store format); fix or remove **SL Optimizer** in docs; **robust key access**; **requirements.txt**; **logging** |
-| Medium-term | Early stopping; hyperparameter tuning; ONNX validation; unit tests; asset/feature enhancements                                          |
+## Quick checklist
+
+| Priority | Item | Status |
+|----------|------|--------|
+| Short-term | Load JSONL (feature store format) | Done — `load_features()` reads JSONL, supports dir of `features_*.jsonl` / `synthetic_*.jsonl` |
+| Short-term | SL Optimizer in docs/code | Done — implemented; docstring lists all four models |
+| Short-term | Robust key access | Done — `r.get('market', {})`, etc. |
+| Short-term | requirements.txt; logging | Done — `scripts/requirements.txt`; `logging` module with file handler |
+| Medium-term | Early stopping | Done — XGBoost `early_stopping_rounds` with time-based holdout |
+| Medium-term | Asset/feature enhancements | Done — asset dummies when multi-asset; OPTIONAL_FEATURE_COLUMNS; TP/SL use news + signal features |
+| Medium-term | Hyperparameter tuning; ONNX validation; unit tests | Optional — GridSearch/Optuna; onnxruntime smoke test; test_train_models.py (6 tests) |
 
 ---
 
@@ -20,38 +27,59 @@ Feature Engineering: Pragmatic flattening of nested JSON, handling of categorica
 Efficiency and Deployment: ONNX export ensures compatibility with various runtimes (e.g., ONNX Runtime for fast inference). The metadata JSON is useful for tracking.
 Thresholds and Safeguards: Min samples check prevents overfitting on tiny datasets. Positive rate and distribution prints help diagnose data quality.
 
-Potential Issues and BugsMissing SL Optimizer: The docstring lists "4. SL Optimizer - Quantile regression (max adverse excursion)", but the code doesn't implement it—no prepare_sl_features, no training function, and no export. If this is intentional (maybe phased out), update the docstring to avoid confusion. If not, you'd need to add it: e.g., target could be max drawdown percentile, using quantile loss in XGBoost (objective='reg:quantileerror', quantile_alpha=0.95).
-Data Assumptions:Assumes all records have consistent nested keys; if the JSON structure varies (e.g., missing 'outcome' in some), it could lead to NaNs or KeyErrors. Add more robust checks, like r.get('market', {}).
-JSON vs. JSONL: If your files are truly JSONL (one JSON object per line), switch to pd.read_json(filepath, lines=True) or a loop to avoid load errors.
-Asset-Specific Handling: All assets (e.g., BTC-PERP, ETH-PERP on Hyperliquid) are treated uniformly. If volatility differs wildly (e.g., meme coins vs. majors), consider asset dummies or separate models per asset.
+**Potential Issues and Bugs (addressed where noted)**  
+- **SL Optimizer:** Implemented — `prepare_sl_features`, `train_sl_optimizer_model` (quantile regression, `reg:quantileerror`), and ONNX export. Target: `label_maxAdverseExcursion` (clipped 0–5).  
+- **Data assumptions:** Robust key access — `r.get('market', {})`, `r.get('signal', {})`, etc. Missing keys yield NaNs or safe defaults; invalid lines skipped.  
+- **JSONL:** Input is JSONL (one JSON object per line). Script reads line-by-line with `json.loads`; supports a directory of `features_*.jsonl` / `synthetic_*.jsonl` / `combined.jsonl`.  
+- **Asset-specific:** Asset dummies used when `df["asset"].nunique() > 1` in all four prepare_* functions.
 
-Feature Gaps:Skips arrays like 'signal.sources' and 'news' lists—could extract aggregates (e.g., avg sentiment from sources) for richer features.
-No handling for multicollinearity or feature selection (e.g., via SHAP or recursive elimination); top features are printed, but not acted on.
-Categorical Encoding: Regimes are manually mapped, but others (e.g., 'asset') aren't used—encode 'asset' if multi-asset.
+**Feature gaps (partial):** Signal source count and avg sentiment from `signal.sources` are extracted; news dict flattened to `news_*` columns. Optional columns (OI cap, funding extreme, NASDAQ, macro risk, ETF flow) used when present. Top features logged and fed into improvement report for weight tuning (improvementReportWeights.ts). Asset encoded as dummies when multi-asset.
 
-Model-Specific:Signal Quality: Uses AUC for eval, which is good for imbalanced classes (trading wins are often <50%). But if positives are rare, consider class weights.
-Position Sizing: MAE for regression is fine, but for trading, MAPE or custom loss (e.g., penalizing undersizing wins more) might better align with risk management.
-TP Optimizer: Assumes 4 classes (num_class=4); confirm this matches your labeling. Multi-class accuracy can be misleading if imbalanced—log class distribution in metadata.
-Hyperparams: Fixed (n_estimators=100, max_depth=4)—add GridSearchCV or Optuna for tuning, wrapped in TimeSeriesSplit.
+Model-Specific: Signal quality uses AUC and scale_pos_weight for class imbalance. Position sizing: MAE; R-multiple clipped -2 to 3. TP optimizer: num_class from data; class distribution logged. SL: quantile regression (quantile_alpha=0.95). Hyperparams: n_estimators=200, max_depth=4; early stopping on time-based holdout. GridSearch/Optuna not added (optional). ONNX: uses onnxmltools (not skl2onnx); booster feature names set to f0, f1, … for converter. requirements.txt present; tree_method='hist' (GPU optional via tree_method='gpu_hist'). Error handling: main pipeline in try/except per model; minimal report written when &lt; min_samples.
 
-ONNX Export: Relies on skl2onnx, which works for XGBoost but can fail on complex boosters. Test inference post-export (e.g., with onnxruntime).
-Dependencies and Portability: Warns if ONNX missing, good. But no version pins—add a requirements.txt. Also, no GPU config for XGBoost (add tree_method='gpu_hist' if available).
-Error Handling: Limited; e.g., if no trades with outcomes, it prints and exits gracefully, but file I/O or DF ops could crash—wrap in try-except.
-
-Suggestions for ImprovementAdd SL Optimizer: Mirror TP structure. Features could include ATR, volatility regime, and signal direction. Target: predicted max adverse excursion (MAE) via quantile regression to set conservative stops.
-Enhance Data Prep:Add outlier detection (e.g., z-score on numerics).
-Incorporate more sentiment indicators: If sources are text-based, extract TF-IDF or embeddings (but keep it lightweight).
-Time Features: 'session_utcHour' is there, but add day-of-week or holidays for better session modeling.
-
-Advanced Training:Early Stopping: Add to XGBoost fit (e.g., early_stopping_rounds=10 with eval_set).
-Ensemble or Stacking: Combine models (e.g., use signal quality prob as input to sizing).
-Backtesting Integration: After training, simulate trades with predictions to compute metrics like Sharpe ratio.
-
-Testing and Validation:Unit Tests: Add pytest for functions like load_features (mock JSON).
-Logging: Use logging module instead of print for production.
-Data Augmentation: For small datasets, synthetic trades via SMOTE (for classification) or noise injection.
+**Suggestions (status)**  
+- SL Optimizer: Done. Outlier clipping (z-score) in `_clip_outliers` (optional, scipy). Sentiment from sources: `signal_avg_sentiment`, `news_*` columns. Session: `session_utcHour`, `session_isOpenWindow`, `session_isWeekend`.  
+- Early stopping: Done (XGBoost `early_stopping_rounds` with time-based holdout).  
+- Logging: Done (`logging` module, file handler to `train.log`).  
+- Unit tests: `test_train_models.py` (6 tests).  
+- Optional backlog: GridSearch/Optuna, ensemble (signal quality prob → sizing), backtest integration, SMOTE/synthetic augmentation.
 
 Scalability: If datasets grow large, switch to Dask for DF ops or XGBoost's distributed training.
 Ethical/Practical Notes: Since this is for Hyperliquid (crypto perps), models could amplify losses in volatile markets—emphasize paper trading validation. Also, sentiment indicators can be noisy; backtest against baselines like random sizing.
 
-If you share sample data (e.g., a small features.json), I could test-run the script or prototype fixes. Overall, this is a thoughtful setup—polish the gaps, and it'd be production-ready for bot optimization!
+---
+
+## Further improvement suggestions
+
+Prioritized ideas to improve the training pipeline and ML loop (see also ALGO_ML_IMPROVEMENTS.md § "Further ML flow improvements").
+
+### High impact
+
+| Idea | What | Status |
+|------|------|--------|
+| **Calibrate signal-quality probabilities** | Post-train Platt scaling so the score band matches historical win rate. | Done — `_platt_calibration()` in train_models.py; saved to `improvement_report.signal_quality_calibration`; mlInference applies in `predictSignalQuality()`. |
+| **ONNX smoke test after export** | After `export_to_onnx()`, run one inference with `onnxruntime` and assert output shape/value. | Done — `verify_onnx_inference()` called after each export; optional dependency on onnxruntime. |
+| **Retrain trigger on performance** | Besides "90+ trades, max once/24h", allow retrain when recent win rate &lt; 45%. | Done — TRAIN_ONNX_WHEN_READY uses `loadRecords(30)`, last 50 complete trades; if ≥20 trades and win rate &lt; 45%, bypass 24h cooldown. |
+
+### Medium impact
+
+| Idea | What | Status |
+|------|------|--------|
+| **Log actual vs predicted** | Holdout MAE / quantile loss / AUC in improvement report. | Done — `_holdout_metrics()`; `improvement_report.holdout_metrics` per model; in `training_metadata.json` and `improvement_report.md`. |
+| **Stratification / sample weights** | Optional recency weighting or per-asset balancing so one symbol doesn’t dominate training. | Done — `--recency-decay`, `--balance-assets`; `_compute_sample_weights()`; passed into all four `train_*` fits. |
+| **Hyperparameter search** | GridSearchCV over max_depth, learning_rate, n_estimators with TimeSeriesSplit. | Done — `--tune-hyperparams`; `_tune_signal_quality`, `_tune_position_sizing`; run e.g. every 500 trades. |
+| **Suppress StandardScaler warnings** | Avoid "Mean of empty slice" when float cols empty or constant. | Done — `_safe_float_columns_for_scaler()` in all four `prepare_*`. |
+
+### Lower priority / backlog
+
+| Idea | What / how to add |
+|------|-------------------|
+| **Ensemble** | Add signal-quality prob as input to position-sizing: in `prepare_position_sizing_features` add column from `model_sq.predict_proba(X_sq)[:, 1]` aligned by index (train signal_quality first); inference already has `signalQualityScore` in `PositionSizingInput`. |
+| **SHAP / feature selection** | SHAP: `shap.TreeExplainer(model)`; add summary to improvement report. Feature selection: `RFE(estimator, n_features_to_select=...)` with TimeSeriesSplit. |
+| **Backtest harness** | Load holdout from JSONL; run `model.predict(X_holdout)`; compute win rate, Sharpe, max DD; write `backtest_report.json` or add to improvement report. |
+| **A/B shadow mode** | In `evaluateAndTrade()` / `openTrade()` log `{ mlSuggestedSize, actualSize, asset, timestamp }` to table or file; later analyze correlation of following ML with outcomes. |
+
+### Doc / ops
+
+- **Single source of feature names:** Document the full list "feature store key → flattened column → inference input" in FEATURE-STORE.md or ALGO_ML_IMPROVEMENTS.md so new features are added in all three places (store, train_models, mlInference).
+- **Run from plugin dir:** Add a small `package.json` script in plugin-vince that invokes `train_models.py` with the correct paths so you can run `bun run train-models` from the plugin root without remembering the repo-root path.

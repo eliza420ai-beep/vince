@@ -10,7 +10,7 @@ Python scripts for offline ML training used by the VINCE paper-trading ML pipeli
 | `generate_synthetic_features.py` | Generates synthetic feature-store JSONL (same shape as real trades) so you can run `train_models.py` and test the ML pipeline before you have 90+ real trades.                                                                                                                                              |
 | `validate_ml_improvement.py`     | **Proves** that ML-derived `suggested_tuning` (min strength/confidence) improves selectivity: loads feature-store data, computes 25th % of profitable trades, simulates applying those thresholds, and reports baseline vs filtered win rate. See [../ML_IMPROVEMENT_PROOF.md](../ML_IMPROVEMENT_PROOF.md). |
 
-**Input:** Path to a single JSONL file or to the feature directory (e.g. `.elizadb/vince-paper-bot/features`); the script loads all `features_*.jsonl` and `combined.jsonl` in that directory.  
+**Input:** Path to a single JSONL file or to the feature directory (e.g. `.elizadb/vince-paper-bot/features`); the script loads all `features_*.jsonl` and `combined.jsonl` in that directory. Only records with **`outcome` and `labels`** (closed trades) are used for training; records with **`avoided`** (evaluated but no trade) are skipped but remain in the store for future use (e.g. avoid-classifier or counterfactual analysis). See [FEATURE-STORE.md (Avoided decisions)](../../../FEATURE-STORE.md#avoided-decisions-no-trade-evaluations) in the repo root.  
 **Output:** ONNX models, `training_metadata.json`, `improvement_report.md`, and optional joblib backups.
 
 After each run, the script writes an **improvement report** so you can see which parameters and weights to improve. The report includes:
@@ -43,14 +43,27 @@ Use this checklist to track improvements. Full rationale and detail are in [FEED
 
 ## Running
 
-From repo root (or plugin root), with a venv that has the training deps:
+From **repo root**, with a venv that has the training deps:
 
 ```bash
 # Run on the feature store directory (loads all features_*.jsonl)
 python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
 ```
 
-Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).
+From **plugin directory** (no need to remember repo-root paths):
+
+```bash
+cd src/plugins/plugin-vince
+bun run train-models
+```
+
+This runs the same command from repo root (paths are resolved automatically). Requires Python 3 and `pip3 install -r scripts/requirements.txt`.
+
+Ensure feature store has enough samples (script skips training if &lt; 90; default `--min-samples 90`).  
+**"0 trades with outcomes"** means every record in the feature store was written when a trade was **opened** (or when a signal was **avoided**), but none have **outcome/labels** yet. Outcomes are written when trades **close**; the feature store keeps open-trade records in memory until close, then flushes them with outcome/labels. Records with **`avoided`** (no trade) never get outcome/labels and are excluded from training. So you need the paper bot to **close** at least 90 trades (TP/SL/max_age/manual) for training to see them.
+
+To **reset the feature store** and start from a clean slate (e.g. after fixing outcome flushing):  
+`rm -f .elizadb/vince-paper-bot/features/features_*.jsonl .elizadb/vince-paper-bot/features/combined.jsonl .elizadb/vince-paper-bot/features/synthetic_*.jsonl` (from repo root).
 
 ### Synthetic data (no real trades yet)
 
@@ -68,6 +81,23 @@ python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-p
 - `train_models.py --data .elizadb/vince-paper-bot/features` loads all `synthetic_*.jsonl` and `features_*.jsonl` in that directory, so you can mix real and multiple synthetic files.
 
 Optional: `--win-rate 0.55`, `--sentiment-fraction 0.2` (populates `signal_avg_sentiment` for some records), `--seed 123` (reproducibility).
+
+### Real vs synthetic: when to use which
+
+- **Synthetic data** is for pipeline testing and development (e.g. before you have 90+ real trades, or to stress-test with `--count 400`). Models trained only on synthetic data learn the generator’s distribution, not the market—do not rely on them for production.
+- **Production:** Once you have enough real trades (e.g. 90+), train on real data. Use `--real-only` so the script loads only `features_*.jsonl` and `combined.jsonl` and excludes `synthetic_*.jsonl`:
+
+```bash
+python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only
+```
+
+Or from **repo root** with bun (extra args after `--` are passed to the Python script):
+
+```bash
+bun run train-models -- --real-only
+```
+
+- **Mixed runs** (default, no `--real-only`): The script loads both real and synthetic files from the directory. Use for dev or when you intentionally want to blend data; for production models, prefer `--real-only` when you have enough real samples.
 
 ## Testing that training improves paper trading parameters
 

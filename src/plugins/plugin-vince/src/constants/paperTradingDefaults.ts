@@ -223,13 +223,14 @@ export const SLIPPAGE = {
   MAX_BPS: 20,
 } as const;
 
-/** Fee settings (Hyperliquid-like) */
+/** Fee settings (Hyperliquid-like). PnL is reported net of fees. */
 export const FEES = {
-  /** Taker fee in basis points */
+  /** Taker fee in basis points (per side) */
   TAKER_BPS: 2.5,
-
   /** Maker fee in basis points */
   MAKER_BPS: 0,
+  /** Round-trip fee (open + close, both taker) in bps — used for fee-aware PnL */
+  ROUND_TRIP_BPS: 5,
 } as const;
 
 // ==========================================

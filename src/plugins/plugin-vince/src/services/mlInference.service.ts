@@ -121,11 +121,19 @@ interface ModelInfo {
   avgLatencyMs: number;
 }
 
+/** Platt scaling for signal quality probabilities (from training_metadata improvement_report). */
+export interface SignalQualityCalibration {
+  scale: number;
+  intercept: number;
+}
+
 /** TP level performance from improvement report: level key "1"|"2"|"3" -> { win_rate, count }. */
 export interface ImprovementReportTuning {
   suggested_signal_quality_threshold?: number;
   tp_level_performance?: Record<string, { win_rate: number; count: number }>;
   suggested_tuning?: { min_strength?: number; min_confidence?: number };
+  /** When set, raw signal-quality probability is calibrated: 1/(1+exp(-(scale*raw+intercept))). */
+  signal_quality_calibration?: SignalQualityCalibration;
 }
 
 // ==========================================
@@ -189,6 +197,8 @@ export class VinceMLInferenceService extends Service {
   private signalQualityInputDim: number = 16;
   /** Ordered feature names for signal quality (from training_metadata); when set, feature vector is built from these. */
   private signalQualityFeatureNames: string[] | null = null;
+  /** Platt calibration for signal quality score (from improvement_report.signal_quality_calibration). */
+  private signalQualityCalibration: SignalQualityCalibration | null = null;
 
   // ONNX runtime session placeholders
   // These will be populated if onnxruntime-node is available
@@ -274,11 +284,17 @@ export class VinceMLInferenceService extends Service {
         signal_quality_feature_names?: string[];
       };
       const report = meta.improvement_report;
-      if (report) this.improvementReport = report;
-      if (
-        typeof meta.signal_quality_input_dim === "number" &&
-        meta.signal_quality_input_dim > 0
-      ) {
+      if (report) {
+        this.improvementReport = report;
+        const cal = report.signal_quality_calibration;
+        if (cal && typeof cal.scale === "number" && typeof cal.intercept === "number") {
+          this.signalQualityCalibration = { scale: cal.scale, intercept: cal.intercept };
+          logger.info(`[MLInference] Signal quality calibration: scale=${cal.scale}, intercept=${cal.intercept}`);
+        } else {
+          this.signalQualityCalibration = null;
+        }
+      }
+      if (typeof meta.signal_quality_input_dim === "number" && meta.signal_quality_input_dim > 0) {
         this.signalQualityInputDim = meta.signal_quality_input_dim;
         logger.info(
           `[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`,
@@ -491,8 +507,16 @@ export class VinceMLInferenceService extends Service {
         ]);
         const results = await this.signalQualitySession.run({ input: tensor });
 
-        // Assuming output is probability
-        const probability = results.output?.data?.[0] ?? 0.5;
+        // Assuming output is probability (binary: index 0 or 1; use positive class)
+        let probability = results.output?.data?.[0] ?? 0.5;
+        const numOutputs = results.output?.dims?.[1] ?? (results.output?.data?.length ?? 1);
+        if (numOutputs > 1 && typeof results.output?.data?.[1] === "number") {
+          probability = results.output.data[1];
+        }
+        if (this.signalQualityCalibration) {
+          const { scale, intercept } = this.signalQualityCalibration;
+          probability = 1 / (1 + Math.exp(-(scale * probability + intercept)));
+        }
 
         const result: Prediction = {
           value: probability,

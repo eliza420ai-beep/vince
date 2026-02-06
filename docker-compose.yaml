@@ -40,8 +40,11 @@ services:
 
       # Optional: Add these based on your plugins
       # Discord
-      - DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID:-}
-      - DISCORD_API_TOKEN=${DISCORD_API_TOKEN:-}
+      - ELIZA_DISCORD_APPLICATION_ID=${ELIZA_DISCORD_APPLICATION_ID:-}
+      - ELIZA_DISCORD_API_TOKEN=${ELIZA_DISCORD_API_TOKEN:-}
+
+      - VINCE_DISCORD_APPLICATION_ID=${VINCE_DISCORD_APPLICATION_ID:-}
+      - VINCE_DISCORD_API_TOKEN=${VINCE_DISCORD_API_TOKEN:-}
 
       # Solana
       - SOLANA_PRIVATE_KEY=${SOLANA_PRIVATE_KEY:-}
@@ -63,6 +66,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      # Mount host knowledge/ so UPLOAD and ingestion write to your repo (visible in knowledge/macro-economy/, etc.)
+      - ./knowledge:/app/knowledge:rw
     restart: always
     networks:
       - eliza-network

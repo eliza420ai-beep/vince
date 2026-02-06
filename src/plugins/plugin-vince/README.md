@@ -13,6 +13,8 @@
 
 > A comprehensive ElizaOS plugin that consolidates trading, memetics, lifestyle, and art data sources into a single coherent system. **At its core: an ML-driven paper trading bot** that uses ONNX models (signal quality, position sizing, TP/SL) and a training-produced improvement report to block low-quality trades, size positions, and set take-profit/stop-loss from data—so the bot improves as it trades. VINCE also operates as a quantitative trading assistant with a lifestyle overlay: market analysis plus day-of-week aware suggestions for dining, hotels, and activities.
 
+**V4.30:** Paper bot records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning on days when no trades are taken. See [FEATURE-STORE.md](../../../FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data".
+
 ---
 
 ```
@@ -24,6 +26,7 @@
 ## Table of Contents
 
 - [Heart of VINCE: Signals → Trades → Learning](#heart-of-vince-signals--trades--learning)
+- [Differentiation & competitor lessons](#differentiation--competitor-lessons)
 - [WHAT - The Plugin's Purpose](#what---the-plugins-purpose)
 - [HOW - Architecture and Implementation](#how---architecture-and-implementation)
 - [V4 - ML-Enhanced Paper Trading](#v4---ml-enhanced-paper-trading)
@@ -53,6 +56,10 @@ The pipeline is a **sophisticated, multi-factor paper trading system** that goes
    The [signal aggregator](src/services/signalAggregator.service.ts) pulls from **10+ sources** (CoinGlass, Binance taker flow, market regime, news sentiment, liquidations, Deribit skew, Sanbase flows, Hyperliquid bias, etc.). Each source can add one or more **factors** (e.g. “Funding negative”, “OI +5% (position buildup)”, “Strong taker buy pressure”).  
    **“WHY THIS TRADE”** in the logs now shows **all contributing factors** (up to 12 in the banner; full list in the feature store and journal), plus **“N factors, M sources agreeing”** so you see exactly how many data points drove the decision.  
    See **[SIGNAL_SOURCES.md](SIGNAL_SOURCES.md)** for which sources exist, how to enable them, and how to **confirm in logs** which sources contributed: at startup look for `[VINCE] 📡 Signal sources available: N/8 (...)`; on each aggregation look for `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. Use `LOG_LEVEL=debug` to see which sources were tried but didn’t contribute (e.g. thresholds not met).
+
+### Differentiation & competitor lessons
+
+Other bots (Passivbot, Gunbot, 3Commas, Coinrule, Pionex, etc.) are mostly manual-tuned or single-signal. We differentiate with: self-improving ML loop in production, "WHY THIS TRADE" explainability, and 15+ signal sources. Lessons we're adopting: walk-forward optimization (Passivbot/3Commas), fee-aware PnL (Gunbot), dashboard for WHY + PnL (3Commas), backtesting as first-class step. See repo [README.md](../../../README.md#differentiation--competitor-lessons) and [progress.txt](progress.txt) — "Competitor landscape & lessons".
 
 2. **Feature store and decision drivers**  
    Every trading decision is recorded with **50+ features** and **decision drivers** (the human-readable reasons that influenced the open). Market features include not only price, funding, OI, and L/S ratio but **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance** and **bid-ask spread** (Binance futures depth), and **price vs SMA20** (rolling window). News features include **sentiment score/direction** and **risk event severity**; signal features include **factor-derived sentiment** when sources don’t provide it. Data is written to `.elizadb/vince-paper-bot/features/*.jsonl` and optionally Supabase/PGLite for ML. See **[DATA_LEVERAGE.md](DATA_LEVERAGE.md)** for what’s wired and what’s next.
@@ -438,8 +445,9 @@ Four ONNX models (plus the improvement report) drive sizing, entries, and exits.
 - **suggested_signal_quality_threshold** → used by ML inference and aggregator; trades below it are blocked.
 - **tp_level_performance** → drives which TP levels are used (skip worst).
 - **suggested_tuning.min_strength / min_confidence** → when the training script writes these (from profitable-trade percentiles), the bot rejects signals below them.
+- **holdout_metrics** (AUC/MAE/quantile loss) → written by training; logged by `run-improvement-weights.ts` when applying a new report.
 
-**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md`. After 90+ closed trades, re-run training; on next bot restart, new models and thresholds apply. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) for the full improvement checklist and status.
+**Train → ONNX → deploy:** [scripts/train_models.py](scripts/train_models.py) trains on `.elizadb/vince-paper-bot/features/*.jsonl`, exports ONNX to `.elizadb/vince-paper-bot/models/`, and writes `training_metadata.json` + `improvement_report.md` (including **holdout_metrics**). Optional flags: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`. From repo root: `bun run train-models`. Validation: [scripts/validate_ml_improvement.py](scripts/validate_ml_improvement.py); applying report: `run-improvement-weights.ts`. Eight tests in [scripts/test_train_models.py](scripts/test_train_models.py). After 90+ closed trades, re-run training; on next bot restart, new models and thresholds apply. See [ALGO_ML_IMPROVEMENTS.md](ALGO_ML_IMPROVEMENTS.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md).
 
 ---
 
@@ -606,9 +614,11 @@ When enough data accumulates, we train XGBoost models offline and export to ONNX
 elizaos start  # Run for a while, accumulate trades
 
 # Train models (run separately, from repo root)
-python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+bun run train-models
+# Or: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
+# Optional: --recency-decay, --balance-assets, --tune-hyperparams (see scripts/README.md)
 
-# Models are automatically loaded on next start
+# Models and improvement report (training_metadata.json, improvement_report.md) are loaded on next start
 ```
 
 ### How It All Connects
@@ -1022,8 +1032,12 @@ plugin-vince/
 │       ├── actions/
 │       ├── standalone.test.ts
 │       └── integration.test.ts
-├── scripts/                     # Training scripts
-│   └── train_models.py          # XGBoost → ONNX training pipeline
+├── scripts/                     # Training and improvement scripts
+│   ├── train_models.py          # XGBoost → ONNX training pipeline
+│   ├── generate_synthetic_features.py  # Synthetic data for testing training
+│   ├── validate_ml_improvement.py # Validate ML improvement vs baseline
+│   ├── run-improvement-weights.ts      # Apply improvement report (logs holdout_metrics)
+│   └── test_train_models.py    # 8 tests for train_models (holdout, flags, smoke)
 ├── models/                      # ONNX models (after training)
 │   ├── signal_quality.onnx
 │   ├── position_sizing.onnx
@@ -1037,6 +1051,10 @@ plugin-vince/
 .elizadb/vince-paper-bot/
 ├── features/                    # Feature store JSONL files
 │   └── features-YYYY-MM.jsonl
+├── models/                      # ONNX models (after training)
+│   ├── signal_quality.onnx, position_sizing.onnx, tp_optimizer.onnx
+│   ├── training_metadata.json  # Thresholds + holdout_metrics
+│   └── improvement_report.md   # Human-readable improvement report
 ├── weight-bandit-state.json     # Thompson Sampling state
 ├── signal-similarity-state.json # Embedded trade contexts
 ├── bayesian-tuner-state.json    # Parameter optimization history

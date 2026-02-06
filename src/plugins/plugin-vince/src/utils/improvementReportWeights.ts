@@ -28,6 +28,7 @@ const FEATURE_TO_SOURCE: Record<string, string> = {
   news_macro_risk_off: "NewsSentiment",
   signal_hasWhaleSignal: "BinanceTopTraders",
   signal_hasFundingExtreme: "BinanceFundingExtreme",
+  signal_hasOICap: "HyperliquidOICap",
   signal_hasCascadeSignal: "LiquidationCascade",
   market_longShortRatio: "CoinGlass",
   market_fundingPercentile: "CoinGlass",
@@ -35,6 +36,8 @@ const FEATURE_TO_SOURCE: Record<string, string> = {
   market_fundingDelta: "CoinGlass",
   market_priceChange24h: "MarketRegime",
   market_volumeRatio: "CoinGlass",
+  news_etfFlowBtc: "NewsSentiment",
+  news_etfFlowEth: "NewsSentiment",
   session_isOpenWindow: "_session",
 };
 
@@ -49,6 +52,8 @@ export interface ImprovementReport {
     reason?: string;
     description?: string;
   }>;
+  /** Holdout MAE / quantile loss / AUC per model (from train_models --holdout). */
+  holdout_metrics?: Record<string, Record<string, number>>;
 }
 
 function findMetadataPath(): string | null {
@@ -162,5 +167,16 @@ export async function logAndApplyImprovementReportWeights(
       "[ImprovementReport] Suggested signal factors (populate next): " +
         suggested.map((f) => f.name).join(", "),
     );
+  }
+
+  const holdout = report.holdout_metrics;
+  if (holdout && typeof holdout === "object") {
+    const parts = Object.entries(holdout).map(([model, metrics]) => {
+      const m = Object.entries(metrics as Record<string, number>)
+        .map(([k, v]) => `${k}=${typeof v === "number" ? v.toFixed(4) : v}`)
+        .join(", ");
+      return `${model}: ${m}`;
+    });
+    logger.info("[ImprovementReport] Holdout metrics (drift/sizing): " + parts.join(" | "));
   }
 }

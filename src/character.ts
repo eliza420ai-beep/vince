@@ -44,7 +44,7 @@ export const character: Character = {
     ...(process.env.OLLAMA_API_ENDPOINT?.trim()
       ? ["@elizaos/plugin-ollama"]
       : []),
-    ...(process.env.DISCORD_API_TOKEN?.trim()
+    ...((process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim())
       ? ["@elizaos/plugin-discord"]
       : []),
     ...(process.env.TWITTER_API_KEY?.trim() &&
@@ -62,7 +62,22 @@ export const character: Character = {
     ...(!process.env.IGNORE_BOOTSTRAP ? ["@elizaos/plugin-bootstrap"] : []),
   ],
   settings: {
-    secrets: {},
+    secrets: {
+      ...(process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() && {
+        DISCORD_APPLICATION_ID: process.env.ELIZA_DISCORD_APPLICATION_ID,
+      }),
+      ...(process.env.ELIZA_DISCORD_API_TOKEN?.trim() && {
+        DISCORD_API_TOKEN: process.env.ELIZA_DISCORD_API_TOKEN,
+      }),
+      ...(process.env.DISCORD_APPLICATION_ID?.trim() &&
+        !process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() && {
+          DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+        }),
+      ...(process.env.DISCORD_API_TOKEN?.trim() &&
+        !process.env.ELIZA_DISCORD_API_TOKEN?.trim() && {
+          DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
+        }),
+    },
     avatar: "https://elizaos.github.io/eliza-avatars/Eliza/portrait.png",
     ragKnowledge: true,
   },

@@ -27,6 +27,7 @@ Feature Store (JSONL)     →  train_models.py
   • signal_strength            • suggested_signal_quality_threshold
   • signal_confidence          • tp_level_performance, ONNX models
   • outcome.realizedPnl, etc.  →  training_metadata.json
+  • improvement_report: feature_importances, holdout_metrics (AUC/MAE/quantile), suggested_signal_quality_threshold, signal_quality_calibration (Platt)
                                         ↓
 Bot (evaluateAndTrade / openTrade)
   • getSuggestedMinStrength() / getSuggestedMinConfidence()  →  reject if below (when not aggressive)
@@ -57,19 +58,25 @@ python3 src/plugins/plugin-vince/scripts/validate_ml_improvement.py --data .eliz
 
 The script:
 
-1. Loads all trades with outcomes (profitable, strength, confidence).
-2. Computes **baseline** win rate (all trades) and **suggested_tuning** (25th percentile of profitable trades’ strength/confidence, same as `train_models.py`).
-3. Simulates “what if we had used these thresholds from the start”: keeps only trades that pass `strength >= minStr` and `confidence >= minConf`.
-4. Reports:
+1. Optionally prints **holdout_metrics** from the last training run (if `training_metadata.json` is found nearby), for drift/sizing context.
+2. Loads all trades with outcomes (profitable, strength, confidence).
+3. Computes **baseline** win rate (all trades) and **suggested_tuning** (25th percentile of profitable trades’ strength/confidence, same as `train_models.py`).
+4. Simulates “what if we had used these thresholds from the start”: keeps only trades that pass `strength >= minStr` and `confidence >= minConf`.
+5. Reports:
    - Baseline: N trades, win rate W0.
    - With suggested_tuning: M trades, win rate W1.
    - If W1 > W0 and we skipped mostly losers, that is evidence that **ML-derived thresholds improve selectivity** (fewer trades, higher win rate).
 
 So the “proof” is: on the same data that generated the suggestion, applying it would have improved win rate (or another chosen metric). That shows the **logic can** adjust parameters to improve the algo; live improvement still depends on data quality and regime.
 
-### B. Unit test: “Training produces non-trivial suggested_tuning”
+### B. Unit test: “Training produces models, metadata, and holdout metrics”
 
-Existing test: `scripts/test_train_models.py` generates synthetic features, runs `train_models.py`, and asserts models and metadata are produced. To strengthen the “proof” you can add an assertion that after training on synthetic data where profitable trades have higher strength/confidence, `suggested_tuning` is stricter than the baseline (e.g. min_strength > 40).
+`scripts/test_train_models.py` (8 tests) generates synthetic features, runs `train_models.py`, and asserts:
+- Models and metadata are produced; ONNX files when export succeeds.
+- **Holdout metrics** appear in `improvement_report.holdout_metrics` when training runs (for drift/sizing).
+- **Smoke tests** for `--recency-decay`/`--balance-assets` and `--tune-hyperparams` (code paths complete without crash).
+
+Optional strengthening: assert that after training on synthetic data where profitable trades have higher strength/confidence, `suggested_tuning` is stricter than the baseline (e.g. min_strength > 40).
 
 ### C. Online: “Parameter Tuner and Bandit change behavior”
 
@@ -85,8 +92,8 @@ So the proof for “can adjust” is: (1) offline validation script shows that a
 - **Essential parameters** ML adjusts: min strength/confidence (offline + online), signal quality threshold, TP/SL multipliers, position size multiplier, source weights (online).
 - **Chain:** Data (Feature Store) → Training / Tuner / Bandit → `training_metadata.json` or `dynamicConfig` → applied in `evaluateAndTrade()` and `openTrade()`.
 - **Proof that ML logic can improve the algo:**
-  1. Run `validate_ml_improvement.py` on your feature store; if filtered win rate (with suggested_tuning) is higher than baseline, that demonstrates that ML-derived thresholds improve selectivity on that data.
-  2. Run `test_train_models.py` to show training produces models and suggested_tuning.
+  1. Run `validate_ml_improvement.py` on your feature store; if filtered win rate (with suggested_tuning) is higher than baseline, that demonstrates that ML-derived thresholds improve selectivity on that data. The script also prints holdout_metrics from the last training run when available.
+  2. Run `test_train_models.py` to show training produces models, metadata (including improvement_report.holdout_metrics), and that sample-weight and hyperparameter-tuning paths run successfully.
   3. Inspect tuner and bandit state after many trades to show online parameter updates.
 
 For a one-command “proof” on real or synthetic data, run the validation script (and optionally the training test) as above.

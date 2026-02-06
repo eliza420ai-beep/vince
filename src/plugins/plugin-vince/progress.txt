@@ -1,10 +1,38 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (Daily report task, Eliza Cloud logs, channel structure)
+# Last updated: 2026-02-06 (V4.32 — Discord + push unlock)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.32 - Discord + push unlock (2026-02-06) ✅
+- **Both bots in one server:** VINCE and Eliza can run in the same Discord server at the same time. Each agent uses its own Discord app (VINCE_DISCORD_* vs ELIZA_DISCORD_*). No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to enable VINCE's Discord; removed VINCE_DISCORD_ENABLED everywhere.
+- **Eliza loads Discord from agent:** Eliza's agent now includes @elizaos/plugin-discord when ELIZA_DISCORD_* or DISCORD_* is set (so both runtimes get their own send handler). Optional DELAY_SECOND_DISCORD_MS=3000 staggers the second bot so both connect in one process.
+- **Push schedule = core objective:** Daily report (18 UTC), lifestyle (8 UTC), and news (7 UTC) are explicitly enabled in .env. Channels: name must contain "daily" | "lifestyle" | "news" (e.g. #vince-daily-reports, #vince-lifestyle, #vince-news). VINCE's job is push, not chat or upload (Eliza does research/upload).
+- **Docs:** DISCORD.md (enable both bots, no VINCE_DISCORD_ENABLED), README.md Configuration (push schedule), NOTIFICATIONS.md, .env.example (VINCE_* only). TOP PRIORITY "Send handler not found" resolved via two-app setup + source normalization + optional stagger.
+
+## V4.31 - Fee-aware PnL (net of costs) (2026-02-06) ✅
+- **Competitor lesson (Gunbot):** PnL and improvement report are now **after trading fees** so "positive expectancy" is net of costs.
+- **Position manager:** On close, gross PnL minus round-trip fee (FEES.ROUND_TRIP_BPS = 5 bps of notional, Hyperliquid-like). Position.realizedPnl and realizedPnlPct are net; position.feesUsd stores fee for logs/feature store. Portfolio balance and win/loss counts use net PnL.
+- **Feature store:** outcome.realizedPnl and realizedPnlPct are net; optional outcome.feesUsd. Labels (profitable, winAmount, lossAmount, rMultiple) derived from net PnL. Training and improvement report are fee-aware.
+- **Logs:** Position manager log and paper trading "PAPER TRADE CLOSED" one-liner show "Net P&L" and "fees -$X"; closed banner shows "Net P&L" and "Fees -$X".
+- **Constants:** paperTradingDefaults.ts FEES.ROUND_TRIP_BPS = 5 (2 × TAKER_BPS). See FEATURE-STORE.md — "Fee-aware PnL".
+
+## Competitor landscape & lessons (2026-02-06) ✅
+- **Context:** Passivbot, Gunbot, 3Commas, Coinrule, Pionex, Cornix, Mizar, Kraken AI, Axiom, Uniswap ecosystem (Hummingbot, Freqtrade) all offer trading bots or automation; most are manual-tuned or signal-following without a self-improving ML loop.
+- **What we do differently:** (1) Self-improving ML loop in production (feature store → train_models.py → ONNX → improvement report → tuner/bandit/similarity) so the bot improves as it trades. (2) "WHY THIS TRADE" explainability (supporting/conflicting factors, strength/confidence) in logs and feature store. (3) 15+ signal sources (CoinGlass, Binance, Deribit, Hyperliquid OI/funding, news, regime, etc.) vs single-signal or TradingView focus. (4) Paper-first, free, open; no subscription.
+- **High-value lessons we're adopting:** (1) Walk-forward optimization (Passivbot/3Commas) — add to training pipeline to reduce overfitting. (2) Fee-aware PnL (Gunbot) — include maker/taker/funding in PnL and improvement report so "positive expectancy" is after costs. (3) Dashboard for WHY + PnL (3Commas) — simple Streamlit/Flask for "WHY THIS TRADE" + PnL + SHAP/feature importance. (4) Backtesting as first-class step (Passivbot/3Commas) — replay historical features/signals to support "backtested + walk-forward" narrative.
+- **Medium / later:** Grid mode for chop (Passivbot), no-code rule layer (Coinrule), multi-exchange (after HL paper/real-money solid). Not copying: exchange-locked bots, scale-first playbooks; we focus on proving alpha in paper then optional real-money.
+- **Integrated in:** progress.txt (this section), repo README.md (Differentiation & competitor lessons), plugin-vince README.md (Differentiation).
+
+## V4.30 - Avoided decisions + more training data (2026-02-06) ✅
+- **Avoided decisions in feature store:** When the paper bot evaluates a signal but does not trade (e.g. "SIGNAL EVALUATED - NO TRADE" due to similarity AVOID, ML quality below threshold, strength/confidence below bar, book rejection, or risk-manager threshold), we now record the same feature snapshot (market, session, signal, regime, news) with `avoided: { reason, timestamp }` instead of execution/outcome. ML keeps learning on extreme or quiet days when no trades are taken.
+- **Feature store:** `FeatureRecord.avoided` optional field; `recordAvoidedDecision(asset, signal, reason)` in vinceFeatureStore.service.ts. Records written to JSONL/PGLite/Supabase like executed trades; training script continues to use only records with outcome+labels (closed trades); avoided records available for future avoid-classifier or counterfactual analysis.
+- **Paper trading:** On every NO TRADE path we call `recordAvoidedDecisionIfNeeded(asset, signal, reason)` (rate-limited once per asset per 2 min). Wired for ML quality, report suggestion (strength/confidence), similarity AVOID, book rejection, and risk-manager validation.
+- **Docs:** FEATURE-STORE.md — new sections "Avoided decisions (no-trade evaluations)" and "Collecting more training data" (aggressive mode, single-asset, synthetic bootstrap, optional data-collection mode, max-age, monitoring). Scripts README: training input/output note that avoided records are skipped for current models but kept in store.
+- **Startup log:** Paper trading service logs `aggressive=true|false, assets=BTC|...` on start so .env (VINCE_PAPER_AGGRESSIVE, VINCE_PAPER_ASSETS) is visible at runtime.
+- **Recommended for more data:** VINCE_PAPER_AGGRESSIVE=true and VINCE_PAPER_ASSETS=BTC (or BTC,ETH) until 90+ closed trades; see FEATURE-STORE.md and .env.example.
 
 ## Core Architecture ✅
 - Plugin structure (index.ts) with 27 services, 20 actions, 2 providers, 1 evaluator
@@ -143,6 +171,13 @@ COMPLETED
 - Batch script: --concurrency <n> (default 3) runs up to n jobs in parallel; at end the script lists failed inputs. Written files get ingestedWith: ingest-urls in frontmatter.
 - Docs: scripts/README.md has "Knowledge ingestion playbook", ingest-urls usage, and a Troubleshooting subsection (API keys, timeout, too little content, rate limits). PDF/podcast URLs supported by summarize (same flow).
 
+## UPLOAD / Discord: knowledge path when running in Docker or cloud (2026-02-06) ✅
+- Issue: User ran UPLOAD via Discord (Eliza); agent confirmed "Saved to macro-economy/why-tokens-cant-compound.md" but the file was not visible in the repo's knowledge/macro-economy/ folder.
+- Cause: UPLOAD writes to process.cwd() + "knowledge/" (or plugin-knowledge-ingestion's base path). When the app runs in Docker, cwd is /app inside the container—writes go to the container filesystem, not the host repo. When running on Eliza Cloud or any remote host, writes go to that server's disk.
+- Fix (local Docker): docker-compose.yaml now mounts ./knowledge:/app/knowledge:rw so the container's knowledge/ is the host repo's knowledge/. After `docker compose down` and `docker compose up -d`, new uploads appear in knowledge/<category>/ on the host.
+- Caveat (Eliza Cloud / remote): If the agent runs on a remote server, uploads still save to that server's knowledge/ directory. To have files in the repo, run the agent locally (bun start from repo) when ingestion should write into this repo, or add a sync/export from the cloud instance.
+- Doc: This note is in progress.txt; docker-compose volume is the single source of truth for local Docker knowledge persistence.
+
 ## Why knowledge is essential for VINCE
 - **Data vs methodology:** Actions and services supply *current* data (prices, funding, OI, signals). The knowledge base supplies *how to think*—frameworks, methodologies, and strategic patterns. Without knowledge, VINCE would only echo numbers; with it, VINCE interprets data through proven lenses (e.g. funding → strike distance, TVL red flags, meme lifecycle, options skew).
 - **RAG in every turn:** trenchKnowledgeProvider pulls relevant knowledge into context so the LLM can reference methodologies when answering OPTIONS, PERPS, MEMES, LIFESTYLE, etc. That makes responses analytical instead of generic.
@@ -203,8 +238,26 @@ COMPLETED
 ## ML Learning State ✅
 - Feature store: 21+ feature/synthetic files in .elizadb/vince-paper-bot/features (features_*.jsonl, synthetic_*.jsonl). 1250+ completed trades for training.
 - Synthetic data: generate_synthetic_features.py supports --count, --output, --append (timestamps continue), --win-rate, --seed. train_models.py loads all features_*.jsonl and synthetic_*.jsonl from --data dir.
-- ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run: python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
-- Tests: test_train_models.py (6 tests) and generate_synthetic_features.py verified; pytest optional.
+- ONNX: Script exports .onnx when onnxmltools installed; joblib backups and improvement_report.md always written. Run from repo root: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90.
+- Tests: test_train_models.py (8 tests: metadata/holdout, learning baseline, insufficient data, SL label, multi-asset, generate→train, recency-decay/balance-assets smoke, tune-hyperparams smoke) and generate_synthetic_features.py verified; pytest optional.
+- Run from repo root: `bun run train-models` or `python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90` (script lives in plugin-vince/scripts/, not repo root). Optional: --recency-decay, --balance-assets, --tune-hyperparams.
+
+## train_models.py improvements for more sources (2026-02-05) ✅
+- TP and SL optimizers now use same optional news/signal features as signal quality and position sizing when present: news_nasdaqChange, news_macro_risk_on/off, signal_hasOICap, news_etfFlowBtc/EtfFlowEth.
+- Shared OPTIONAL_FEATURE_COLUMNS tuple used by all four prepare_* functions to avoid drift when adding new feature-store columns.
+- CANDIDATE_SIGNAL_FACTORS extended with Binance L/S ratio (market_longShortRatio) and Binance OI flush (market_oiChange24h) for improvement report suggestions.
+- improvementReportWeights.ts: signal_hasOICap → HyperliquidOICap; news_etfFlowBtc, news_etfFlowEth → NewsSentiment for run-improvement-weights after retrain.
+- Script docstring documents extending OPTIONAL_FEATURE_COLUMNS and CANDIDATE_SIGNAL_FACTORS when the feature store adds new sources. See scripts/FEEDBACK.md and scripts/PARAMETER_IMPROVEMENT.md.
+
+## train_models.py: holdout metrics, sample weights, tuning, tests (2026-02-05) ✅
+- Holdout metrics: _holdout_metrics() computes AUC (signal quality), MAE/quantile loss (position sizing, SL) on time-based holdout; written to improvement_report.holdout_metrics and improvement_report.md; in training_metadata.json. For drift/sizing checks.
+- Sample weights: --recency-decay and --balance-assets; _compute_sample_weights(); passed into all four train_* fits so one symbol or era does not dominate.
+- Hyperparameter search: --tune-hyperparams runs GridSearchCV (max_depth, learning_rate, n_estimators) with TimeSeriesSplit for signal_quality and position_sizing.
+- StandardScaler: _safe_float_columns_for_scaler() in all four prepare_* to avoid "Mean of empty slice" when float columns empty or constant.
+- improvementReportWeights: ImprovementReport type and logAndApplyImprovementReportWeights() now include holdout_metrics; script logs them when present.
+- validate_ml_improvement.py: optionally prints holdout_metrics from last training run (training_metadata.json) when found.
+- test_train_models.py: 8 tests total; assert holdout_metrics in metadata when training succeeds; smoke tests test_recency_decay_and_balance_assets_run_without_crash and test_tune_hyperparams_run_without_crash; run_train_models() accepts extra_args and timeout_sec.
+- Docs: IMPROVEMENT_WEIGHTS_AND_TUNING.md (holdout_metrics, 8 tests); ML_IMPROVEMENT_PROOF.md (holdout, validate script, test description); PARAMETER_IMPROVEMENT.md (holdout + optional training options); FEEDBACK.md (medium impact done, backlog described); generate_synthetic_features.py docstring (optional train flags); README.md (train-models script, holdout, docs table); progress.txt (this entry).
 
 ## ML on Eliza Cloud ✅
 - Why Cloud had no ML: .elizadb/ is gitignored, so the deploy image never contained ONNX files; the bot fell back to rule-based signal quality, sizing, and TP/SL.
@@ -216,6 +269,72 @@ COMPLETED
   - Utils: src/plugins/plugin-vince/src/utils/supabaseMlModels.ts (getSupabaseClient, uploadModelsToSupabase, downloadModelsFromSupabase).
 - **Option B – Ship models in repo:** Copy trained .onnx + training_metadata.json into src/plugins/plugin-vince/models/, commit, deploy. Dockerfile copies that folder into .elizadb/vince-paper-bot/models/ at build time. See plugin-vince/models/README.md.
 - Docs: DEPLOY.md "ML training on Eliza Cloud" and "One-time: Create the vince-ml-models bucket"; FEATURE-STORE.md §5; scripts/supabase-feature-store-bootstrap.sql for feature table.
+
+================================================================================
+PRD – MVP ENHANCEMENTS (Feb 2026)
+================================================================================
+Source: Product Requirements Document – Enhancements to Self-Improving Paper Trading Bot for Hyperliquid Perps.
+Scope: Performance optimization, expanded testing, real-money safeguards, UI/dashboard, ML pipeline refinements. Out of scope: full rewrite; non–Hyperliquid live; hardware-specific optimizations.
+
+## Current vs target metrics
+- Current (as of PRD): ~31.3% win rate, 16 trades, -$928.88 P&L (paper).
+- Targets: Win rate ≥45%; positive P&L; 100+ trades over 6 months backdata; Sharpe >1.2; max drawdown <20%; AUC >0.75 (holdout); outperform BTC hold by 20%+ annualized for VC appeal.
+- KPIs: 50% reduction in negative P&L trades post-improvements; 2x faster model retraining; 99% uptime paper mode; <100ms inference per decision.
+
+## Success criteria (PRD)
+- Quantitative: Win rate ≥45%, Sharpe >1.2, max drawdown <20% in backtests; AUC >0.75 in ML holdout.
+- Qualitative: Positive feedback on "WHY THIS TRADE" explainability; seamless plugin integration.
+- Technical: Safe path to real-money (risk controls, audit logs, fallback on signal/API failure).
+
+## Prioritized improvements (PRD → progress mapping)
+
+### High – Performance optimization
+- Automated hyperparameter tuning: Extend --tune-hyperparams in train_models.py to full Bayesian optimization (e.g. Optuna). Current: GridSearchCV + TimeSeriesSplit.
+- Reinforcement learning: Add RL module (Stable Baselines3 or Ray RLlib) rewarding positive P&L; integrate with feature store. Backlog.
+- Bandit: Already using Thompson Sampling (VinceWeightBanditService). PRD suggests ensuring multi-armed bandit dynamically tests signal combinations; we record outcomes per source—consider explicit A/B arms for signal combos. Backlog refinement.
+- Risk-adjusted metrics: Add Sortino ratio and/or Value-at-Risk (VaR) in improvement reports; filter trades with >5% potential loss in reporting. Backlog.
+
+### High – Testing and validation
+- Walk-forward optimization: Split data into in-sample / out-of-sample; automate via backtrader or zipline. Backlog.
+- Stress testing: Synthetic black swan data (e.g. 50% flash crashes) with NumPy/SciPy; evaluate model robustness. Backlog.
+- Extended backtesting: 1–2 year historical data from Hyperliquid/Binance; --asset-expansion (e.g. AVAX, LINK). Backlog.
+- CI/CD: GitHub Actions daily backtests; alert on regressions. Backlog.
+
+### Medium – Real-money integration (safeguards)
+- Config flag --live-mode with mandatory simulation pre-check (e.g. 100 profitable paper trades). Backlog.
+- Risk controls: Kelly criterion position sizing (SciPy optimize); stop-loss/take-profit automation; max daily loss cap (e.g. 2% of account). Backlog (Kelly already in backlog).
+- Audit logs: All trades with blockchain timestamps for compliance. Backlog.
+- Fallback: On signal/API failure, default to hold or exit. Partially present (circuit breakers, degraded Binance); formalize "hold or exit" policy. Backlog.
+
+### Medium – UI/Dashboard and explainability
+- Streamlit or Flask dashboard: Trades, P&L curves, feature importances (SHAP), "WHY THIS TRADE" breakdowns. Backlog.
+- Real-time alerts: Telegram/Slack for trade notifications. (VinceNotificationService exists; ensure trade events push.) Verify/expand.
+- Export reports: PDF summaries of improvement cycles and tuned params. Backlog.
+
+### Low – Plugin and extensibility
+- API endpoints for community plugins (e.g. new signal sources like Glassnode). Backlog.
+- Multi-threaded signal fetch: concurrent.futures for parallel signal fetching. (We use Promise.all and withTimeout; consider worker pool for CPU-bound or many sources.) Backlog.
+- ONNX version control: Git-like repo for model versions and rollback. Backlog.
+
+## Implementation timeline (PRD)
+- Sprint 1 (2 weeks): Performance optimization + testing suite.
+- Sprint 2 (2 weeks): Real-money integration + dashboard.
+- Sprint 3 (1 week): Plugins and polish.
+- Total: 5 weeks to MVP enhancements. Resources: 1–2 engineers (Python/ML); Optuna, SHAP, Streamlit; minimal budget.
+
+## Risks and mitigations (PRD)
+- ML overfitting: Enforce cross-validation in all trainings (we have holdout + TimeSeriesSplit).
+- Live mode financial loss: Micro-positions (<$100/trade), auto-shutdown.
+- Scope creep: Strict prioritization; weekly check-ins.
+- Data privacy (API keys): Env vars and encryption (already in place).
+
+================================================================================
+TOP PRIORITY – FIX FIRST
+================================================================================
+
+1. **VINCE Discord: "Send handler not found" + can't reply or push day report** — RESOLVED ✅ (see V4.32 above)
+   - **Fix:** Two Discord apps (VINCE_DISCORD_* and ELIZA_DISCORD_* with different IDs). No VINCE_DISCORD_ENABLED; set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN only. Eliza loads Discord from agent plugins when her token is set. Optional DELAY_SECOND_DISCORD_MS=3000 if second bot fails to connect.
+   - Handler lookup: room.source normalized to lowercase ("discord"). Refs: DISCORD.md, src/agents/vince.ts (vinceHasOwnDiscord), notification.service (getPushTargets).
 
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
@@ -254,7 +373,7 @@ PRIORITY (real-time data for paper trading algo)
 IN PROGRESS
 ================================================================================
 
-🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
+🔄 Paper trading bot needs more trades to tune Thompson Sampling weights (PRD: target 100+ trades, win rate ≥45%)
    → Use VINCE_PAPER_AGGRESSIVE=true ($280 TP, 2:1 R:R, 40x, no cooldown) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
 🔄 Feature store: 90+ trades available; ONNX training runs automatically (TRAIN_ONNX_WHEN_READY) or manually: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Install: pip3 install onnx onnxmltools.
 🔄 No improvement suggestions generated yet (needs more trading data)
@@ -406,6 +525,18 @@ These use data we already collect (or can add with one small integration) but do
 5. **Optional: DVOL/regime in position cap** – DONE ✅
    - Paper trading already reduces size when dvol > 70 (30%) or > 85 (50%); regime-based sizing multiplier applied from MarketRegimeService. See vincePaperTrading.service.ts evaluateAndTrade().
 
+--------------------------------------------------------------------------------
+PRD-aligned next steps (from PRD – MVP Enhancements)
+--------------------------------------------------------------------------------
+- Optuna (or full Bayesian) for train_models.py hyperparameters; we have GridSearchCV, extend to reduce tuning cycles (PRD: 2x faster retraining).
+- Sortino / VaR in improvement reports and trade filtering (>5% potential loss); improve risk-adjusted view (PRD High).
+- Walk-forward optimization (in-sample / out-of-sample) and stress tests (black swan synthetic data) for robustness (PRD High).
+- RL module (Stable Baselines3 / Ray RLlib) rewarding positive P&L, fed from feature store (PRD High).
+- Dashboard (Streamlit/Flask): P&L curves, SHAP feature importances, "WHY THIS TRADE" breakdowns; PDF export of improvement cycles (PRD Medium).
+- Live-mode safeguards: --live-mode flag, 100 profitable paper trades pre-check, Kelly sizing, max daily loss 2%, audit logs, hold/exit fallback (PRD Medium).
+- CI/CD: GitHub Actions daily backtests with regression alerts (PRD High).
+- ONNX versioning and rollback; community plugin API; multi-threaded signal fetch where beneficial (PRD Low).
+
 ================================================================================
 NEXT / BACKLOG
 ================================================================================
@@ -413,14 +544,22 @@ NEXT / BACKLOG
 🟢 Migrate prod to Supabase Postgres — DONE ✅ (2026-02-05)
    POSTGRES_URL + SUPABASE_SERVICE_ROLE_KEY + SUPABASE_URL in .env. plugin_vince.paper_bot_features and public.vince_paper_bot_features in same Supabase DB as ElizaOS tables. Added: scripts/sync-jsonl-to-supabase.ts (backfill), SUPABASE_MIGRATION.md (checklist), getSupabaseUrl() supports pooler URL. See FEATURE-STORE.md, DEPLOY.md.
 🟢 Daily report task: VINCE_DAILY_REPORT runs at VINCE_DAILY_REPORT_HOUR (default 18:00 UTC); pushes ALOHA + OPTIONS + PERPS + HIP-3 to channels with "daily" in name. Set VINCE_DAILY_REPORT_ENABLED=false to disable. NOTIFICATIONS.md has channel structure (e.g. #vince-daily-reports, #vince-alerts).
-🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual: pip3 install -r scripts/requirements.txt && python3 …/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
+🟢 Train ONNX when 90+ trades: task TRAIN_ONNX_WHEN_READY registered; runs on schedule (12h), max once per 24h; min-samples 90. On Cloud: Dockerfile installs Python ML deps; after training task uploads models to Supabase Storage (vince-ml-models) and calls ML service reloadModels(); on next deploy app downloads from bucket. Manual (from repo root): `pip3 install -r src/plugins/plugin-vince/scripts/requirements.txt` then `python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90`. One-time: create bucket vince-ml-models in Supabase (DEPLOY.md).
 📋 Add more NFT collections to floor tracking
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
 📋 Add more meme tokens to constants
-📋 Implement position sizing based on Kelly Criterion ML model
+📋 Implement position sizing based on Kelly Criterion ML model (PRD: live-mode risk controls)
 📋 Add correlation-based position limits
 📋 Implement trailing stop-loss logic
+📋 PRD: Optuna/Bayesian hyperparameter tuning in train_models.py
+📋 PRD: Sortino ratio and VaR in improvement reports; filter >5% loss trades
+📋 PRD: Walk-forward optimization + stress testing (black swan synthetic data)
+📋 PRD: RL module (Stable Baselines3/Ray RLlib) for P&L-rewarded policy
+📋 PRD: Streamlit/Flask dashboard (P&L, SHAP, WHY THIS TRADE, PDF export)
+📋 PRD: Live-mode safeguards (pre-check, Kelly, 2% daily cap, audit logs)
+📋 PRD: GitHub Actions daily backtests + regression alerts
+📋 PRD: ONNX version control; community plugin API; parallel signal fetch
 🟢 Debug log: News sentiment "erases gains" bug — FIXED (2026-02-05); see DEBUG LOG FOCUS #1.
 📋 Debug log: Reduce "Service not found (HYPERLIQUID_SERVICE/DERIBIT_SERVICE)" noise – dedupe or
    register fallback as the named service (see DEBUG LOG FOCUS #2).
@@ -523,6 +662,9 @@ X (Twitter) integration – second thoughts:
 SESSION NOTES
 ================================================================================
 
+2026-02-06:
+- PRD (Product Requirements Document) integration: Added "PRD – MVP Enhancements (Feb 2026)" section to progress.txt. Captures current vs target metrics (31.3% win rate, 16 trades, -$928.88 → ≥45% win rate, Sharpe >1.2, max DD <20%, AUC >0.75); success criteria; prioritized improvements (High: perf + testing; Medium: real-money safeguards + UI/dashboard; Low: plugin API, ONNX versioning); 5-week timeline (Sprint 1–3); risks and mitigations. PRD-aligned next steps and backlog items added (Optuna, Sortino/VaR, walk-forward, stress tests, RL module, dashboard, live-mode, CI/CD backtests, ONNX versioning). See PRD section and "PRD-aligned next steps" under THINGS TO DO NEXT.
+
 2026-02-05:
 - Supabase migration (NEXT/BACKLOG): (1) Added SUPABASE_MIGRATION.md with checklist (bootstrap SQL, .env, backfill, verify, deploy). (2) scripts/sync-jsonl-to-supabase.ts for one-off JSONL→Supabase backfill. (3) getSupabaseUrl() in vinceFeatureStore.service.ts now derives SUPABASE_URL from pooler URLs (postgres.PROJECT_REF:...) so SUPABASE_URL optional when using pooler. (4) Updated FEATURE-STORE.md, DEPLOY.md, scripts/README.md. Migration ready for prod.
 - Retrain + improvement weights (THINGS TO DO #3, #4): (1) Ran train_models.py on 1250 trades, 1514 records, 175 files. news_nasdaqChange top-5 signal_quality (5.2%); position_sizing: news_macro_risk_on/off 8.1%/7.4%. (2) FEATURE_TO_SOURCE extended: news_nasdaqChange, news_macro_risk_on, news_macro_risk_off → NewsSentiment. (3) run-improvement-weights.ts VINCE_APPLY_IMPROVEMENT_WEIGHTS=true: NewsSentiment 0.60→0.69, CoinGlass 1.00→1.13, MarketRegime 1.00→1.07, BinanceTopTraders 1.00→0.93, BinanceFundingExtreme 1.50→1.37, LiquidationCascade 2.00→1.70. tuned-config.json persisted. (4) Copied ONNX + training_metadata to plugin-vince/models for Cloud deploy.
@@ -531,6 +673,8 @@ SESSION NOTES
 - MandoMinutes TLDR at top (MANDOMINUTES #1): getVibeCheck() returns 1–2 line "vibe check" (Risk-off/Risk-on/Mixed + salient phrases from headlines + Themes). Shown at top of printDetailedDashboard() and formatForBriefing(). Phrases: crypto selloff, gains erased, Vitalik ETH, gold up, ETF outflow, regulatory, security. Unit test for empty cache. See newsSentiment.service.ts getVibeCheck(), formatForBriefing().
 - NASDAQ 24h + macro news features (THINGS TO DO #2): HIP-3 primary for nasdaqChange (US500, INFOTECH, MAG7, SEMIS, XYZ100) and macroRiskEnvironment (tradFiVsCrypto). 6s timeout. Yahoo Finance ^IXIC fallback when HIP-3 has no index data. See vinceFeatureStore.service.ts collectNewsFeatures(), fetchYahooNasdaqChange().
 - News sentiment "erases gains" bug fix (DEBUG LOG FOCUS #1): (1) NEGATIVE_GAINS_PHRASES now returns "bearish" immediately (override; bullish keywords like "gains"/"win" no longer override). (2) normalizeForSentiment() normalizes unicode (NFKC), fancy apostrophes (U+2019 → ASCII), whitespace. (3) news cache: on re-fetch we UPDATE existing items' sentiment (not skip), so logic changes apply on next refresh. (4) Added singular variants (erases gain, gain erased). (5) Unit test: "BTC erases gains since Trump's election win" and "Trump\u2019s" (fancy apostrophe) both → bearish. See newsSentiment.service.ts, newsSentiment.service.test.ts.
+- train_models.py improvements for more sources: TP/SL use news_nasdaqChange, news_macro_risk_on/off, signal_hasOICap, news_etfFlow* when present; OPTIONAL_FEATURE_COLUMNS centralized; CANDIDATE_SIGNAL_FACTORS + Binance L/S and OI flush; improvementReportWeights signal_hasOICap and news_etfFlow*; script path from repo root documented (src/plugins/plugin-vince/scripts/train_models.py). progress.txt, scripts/README.md, scripts/FEEDBACK.md updated.
+- train_models.py medium-impact + docs: holdout_metrics (AUC/MAE/quantile) in improvement report and training_metadata; sample weights (--recency-decay, --balance-assets); hyperparameter search (--tune-hyperparams); StandardScaler safe columns; improvementReportWeights logs holdout_metrics; validate_ml_improvement prints holdout when metadata found; test_train_models.py 8 tests (holdout assertion + smoke tests for recency-decay and tune-hyperparams). IMPROVEMENT_WEIGHTS_AND_TUNING.md, ML_IMPROVEMENT_PROOF.md, PARAMETER_IMPROVEMENT.md, FEEDBACK.md, generate_synthetic_features.py, README.md, progress.txt updated.
 
 2026-02-04:
 - MandoMinutes sentiment for trading bot (completeness): (1) Asset-specific sentiment via getTradingSentiment(asset). (2) Risk-event dampener: block bullish when critical/warning, boost bearish. (3) Price-embedded headlines parsed and merged. (4) Phrase overrides expanded. (5) Category weighting per asset. (6) Confidence calibration (score+headcount blend). (7) Macro vs crypto via category weights. See "MandoMinutes sentiment for trading bot — DONE" above.

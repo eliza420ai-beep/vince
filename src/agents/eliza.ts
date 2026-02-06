@@ -32,16 +32,19 @@ import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
-const buildPlugins = (): Plugin[] =>
-  [
-    sqlPlugin,
-    bootstrapPlugin,
-    ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
-    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-    ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
-    ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-    vincePlugin, // UPLOAD + knowledge actions so Eliza can expand the corpus; execution/live data → VINCE
-  ] as Plugin[];
+// Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
+const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+
+const buildPlugins = (): Plugin[] => [
+  sqlPlugin,
+  bootstrapPlugin,
+  ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
+  ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+  ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
+  ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
+  ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+  vincePlugin, // UPLOAD + knowledge actions so Eliza can expand the corpus; execution/live data → VINCE
+] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
   const webSearch = process.env.TAVILY_API_KEY?.trim()

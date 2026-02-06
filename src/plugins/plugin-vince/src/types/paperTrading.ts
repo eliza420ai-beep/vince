@@ -92,11 +92,11 @@ export interface Position {
 
   /** Timestamp when position was closed (if closed) */
   closedAt?: number;
-
-  /** Realized P&L (if closed) */
+  /** Realized P&L net of fees (if closed) */
   realizedPnl?: number;
-
-  /** Realized P&L as percentage (if closed) */
+  /** Trading fees (round-trip) deducted to get net PnL */
+  feesUsd?: number;
+  /** Realized P&L as percentage vs margin (if closed) */
   realizedPnlPct?: number;
 
   /** Close reason (if closed) */

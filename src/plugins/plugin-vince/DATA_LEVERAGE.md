@@ -8,7 +8,7 @@
 
 - **Feature store:** `vinceFeatureStore.service.ts` → `collectMarketFeatures()` (and `collectNewsFeatures()`, `collectSignalFeatures()`). Any field we don’t populate stays `null` or `0`.
 - **Training:** `train_models.py` flattens records to `market_*`, `signal_*`, `news_*`, etc. It only uses columns that exist and are in each model’s `feature_cols` (or optional lists).
-- **Improvement report:** After training, `suggested_signal_factors` lists factors that are predictive in theory but **missing or mostly null** in your data — i.e. “consider populating” these next.
+- **Improvement report:** After training, `suggested_signal_factors` lists factors that are predictive in theory but **missing or mostly null** in your data — i.e. “consider populating” these next. The report also includes **holdout_metrics** (AUC, MAE, quantile loss per model) for drift/sizing checks; see [PARAMETER_IMPROVEMENT.md](scripts/PARAMETER_IMPROVEMENT.md) and [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md).
 
 ---
 
@@ -72,5 +72,7 @@ All of these use **no new API keys** and either existing services or free public
 - [x] **FREE:** Use HIP-3 for index 24h and macro: in `collectNewsFeatures()` get `VINCE_HIP3_SERVICE`, call `getHIP3Pulse()`, set `news.nasdaqChange` from `pulse.indices` (US500, INFOTECH, MAG7, SEMIS, XYZ100) `change24h` and `news.macroRiskEnvironment` from `pulse.summary.tradFiVsCrypto` (risk_on / risk_off / neutral). **DONE (2026-02-05):** Added 6s timeout, broader index fallback, Yahoo Finance ^IXIC fallback when HIP-3 has no index data.
 - [ ] Optionally add ETF flow source (e.g. Farside) and set `news.etfFlowBtc` / `news.etfFlowEth` in `collectNewsFeatures()`.
 - [ ] Improve signal sentiment coverage so `signal_avg_sentiment` is non-null more often (e.g. from factor text or source-level scores).
+
+After retraining, `improvement_report.holdout_metrics` and `improvement_report.md` contain per-model metrics; use `bun run train-models` with optional `--recency-decay`, `--balance-assets`, or `--tune-hyperparams` (see [scripts/README.md](scripts/README.md)).
 
 See **ALGO_ML_IMPROVEMENTS.md** (§ “Leverage more data points”) for the same summary and links to code.

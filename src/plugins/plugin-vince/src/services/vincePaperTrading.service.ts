@@ -116,7 +116,9 @@ export class VincePaperTradingService extends Service {
   ): Promise<VincePaperTradingService> {
     const service = new VincePaperTradingService(runtime);
     await service.initialize();
-    logger.info("[VincePaperTrading] ✅ Service started");
+    const aggressive = runtime.getSetting?.("vince_paper_aggressive") === true || runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const assets = getPaperTradeAssets(runtime).join(",");
+    logger.info(`[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`);
     return service;
   }
 
@@ -505,6 +507,33 @@ export class VincePaperTradingService extends Service {
 
   // Track last rejection log time per asset to avoid spam
   private lastRejectionLog: Map<string, number> = new Map();
+  /** Rate limit for recording avoided decisions (once per asset per 2 min) so we keep learning without flooding the store */
+  private static readonly AVOIDED_RECORD_INTERVAL_MS = 2 * 60 * 1000;
+  private lastAvoidedRecord: Map<string, number> = new Map();
+
+  /**
+   * Record an evaluated-but-no-trade decision in the feature store so ML can learn from avoid decisions
+   * (e.g. on extreme days when no trades are taken). Rate-limited per asset.
+   */
+  private async recordAvoidedDecisionIfNeeded(
+    asset: string,
+    signal: AggregatedSignal,
+    reason: string
+  ): Promise<void> {
+    const now = Date.now();
+    const last = this.lastAvoidedRecord.get(asset);
+    if (last != null && now - last < VincePaperTradingService.AVOIDED_RECORD_INTERVAL_MS) {
+      return;
+    }
+    this.lastAvoidedRecord.set(asset, now);
+    const featureStore = this.getFeatureStore() as VinceFeatureStoreService | null;
+    if (!featureStore || typeof featureStore.recordAvoidedDecision !== "function") return;
+    try {
+      await featureStore.recordAvoidedDecision({ asset, signal, reason });
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] recordAvoidedDecision failed: ${e}`);
+    }
+  }
 
   // ==========================================
   // Order Simulation
@@ -628,11 +657,9 @@ export class VincePaperTradingService extends Service {
             (signal as AggregatedSignal).mlQualityScore! < threshold
           ) {
             if (signal.direction !== "neutral" && signal.strength > 30) {
-              this.logSignalRejection(
-                asset,
-                this.toAggregatedTradeSignal(signal),
-                `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`,
-              );
+              const reason = `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`;
+              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+              void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             }
             continue;
           }
@@ -644,36 +671,18 @@ export class VincePaperTradingService extends Service {
           this.runtime.getSetting?.("vince_paper_aggressive") === true ||
           this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (mlService && !aggressiveMode) {
-          const minStr = (
-            mlService as { getSuggestedMinStrength?: () => number | null }
-          ).getSuggestedMinStrength?.();
-          const minConf = (
-            mlService as { getSuggestedMinConfidence?: () => number | null }
-          ).getSuggestedMinConfidence?.();
-          if (
-            typeof minStr === "number" &&
-            signal.strength < minStr &&
-            signal.direction !== "neutral" &&
-            signal.strength > 30
-          ) {
-            this.logSignalRejection(
-              asset,
-              this.toAggregatedTradeSignal(signal),
-              `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`,
-            );
+          const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
+          const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
+          if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
+            const reason = `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
           }
-          if (
-            typeof minConf === "number" &&
-            signal.confidence < minConf &&
-            signal.direction !== "neutral" &&
-            signal.strength > 30
-          ) {
-            this.logSignalRejection(
-              asset,
-              this.toAggregatedTradeSignal(signal),
-              `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`,
-            );
+          if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
+            const reason = `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
           }
         }
@@ -682,11 +691,9 @@ export class VincePaperTradingService extends Service {
         const aggSignal = signal as AggregatedSignal;
         if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(
-              asset,
-              this.toAggregatedTradeSignal(signal),
-              `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`,
-            );
+            const reason = `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           }
           continue;
         }
@@ -705,17 +712,18 @@ export class VincePaperTradingService extends Service {
             logger.debug(`[VincePaperTrading] Extended snapshot skip: ${e}`);
           }
         }
-        const bookRejection = getBookImbalanceRejection(
-          { direction: signal.direction, confidence: signal.confidence },
-          extendedSnapshot,
-          aggressiveMode ? 0.4 : undefined,
-        );
+        // In aggressive mode skip book-imbalance filter so we take more trades for ML data
+        const bookRejection = aggressiveMode
+          ? { reject: false as const }
+          : getBookImbalanceRejection(
+              { direction: signal.direction, confidence: signal.confidence },
+              extendedSnapshot,
+              undefined,
+            );
         if (bookRejection.reject) {
-          this.logSignalRejection(
-            asset,
-            this.toAggregatedTradeSignal(signal),
-            bookRejection.reason!,
-          );
+          const reason = bookRejection.reason!;
+          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+          void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           continue;
         }
         let fundingRate = 0;
@@ -788,11 +796,9 @@ export class VincePaperTradingService extends Service {
         if (!signalValidation.valid) {
           // Log WHY signal was rejected (only for meaningful signals, not neutral)
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(
-              asset,
-              tradeSignal,
-              signalValidation.reason || "threshold not met",
-            );
+            const reason = signalValidation.reason || "threshold not met";
+            this.logSignalRejection(asset, tradeSignal, reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           }
           continue;
         }
@@ -1490,19 +1496,12 @@ export class VincePaperTradingService extends Service {
       ...new Set((signal.signals ?? []).map((s) => s.source)),
     ];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const supporting = (signal.supportingReasons ?? []).slice(0, 10);
-    const conflicting = (signal.conflictingReasons ?? []).slice(0, 6);
-    const maxReasonsShown = 20;
-    const reasons = (signal.reasons ?? []).slice(0, maxReasonsShown);
-    const maxReasonLen = 56;
-    const mlQualityScore = (
-      signal as AggregatedTradeSignal & { mlQualityScore?: number }
-    ).mlQualityScore;
-    const openWindowBoost = (
-      signal as AggregatedTradeSignal & { openWindowBoost?: number }
-    ).openWindowBoost;
+    const supporting = signal.supportingReasons ?? [];
+    const conflicting = signal.conflictingReasons ?? [];
+    const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
+    const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
-    const W = 63;
+    const W = 76;
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
     const wrapToWidth = (text: string, width: number): string[] => {
       if (text.length <= width) return [text];
@@ -1582,18 +1581,17 @@ export class VincePaperTradingService extends Service {
     for (const chunk of decisionWrapped) {
       console.log(line(`  ${chunk}`));
     }
+    const netStr =
+      `Net: Strength ${signal.strength}% / confidence ${signal.confidence}% met threshold. ` +
+      `${supporting.length} supporting, ${conflicting.length} conflicting (full text below).`;
+    for (const chunk of wrapToWidth(netStr, W - 2)) {
+      console.log(line(`  ${chunk}`));
+    }
     console.log(empty);
-    const trunc = (t: string, len: number) =>
-      t.length <= len
-        ? t
-        : (t.slice(0, len + 1).lastIndexOf(" ") > 24
-            ? t.slice(0, t.slice(0, len + 1).lastIndexOf(" "))
-            : t.slice(0, len)) + "…";
     if (supporting.length > 0) {
       console.log(line(`  Supporting (${supporting.length}):`));
-      for (const f of supporting.slice(0, 8)) {
-        const txt = trunc(f, maxReasonLen);
-        for (const w of wrapToWidth(txt, W - 6)) {
+      for (const f of supporting) {
+        for (const w of wrapToWidth(f, W - 6)) {
           console.log(line(`    • ${w}`));
         }
       }
@@ -1602,8 +1600,7 @@ export class VincePaperTradingService extends Service {
     if (conflicting.length > 0) {
       console.log(line(`  Conflicting (${conflicting.length}):`));
       for (const f of conflicting) {
-        const txt = trunc(f, maxReasonLen);
-        for (const w of wrapToWidth(txt, W - 6)) {
+        for (const w of wrapToWidth(f, W - 6)) {
           console.log(line(`    • ${w}`));
         }
       }
@@ -1620,19 +1617,6 @@ export class VincePaperTradingService extends Service {
     }
     if (typeof openWindowBoost === "number" && openWindowBoost > 0) {
       console.log(line(`  Open window  +${openWindowBoost.toFixed(0)}% boost`));
-    }
-    console.log(empty);
-    console.log(line(`  All factors (${reasons.length}):`));
-    const reasonParts = reasons.map((r) => trunc(r, maxReasonLen));
-    const perLine = 3;
-    for (let i = 0; i < reasonParts.length; i += perLine) {
-      const chunk = reasonParts.slice(i, i + perLine);
-      if (chunk.length) console.log(line(`  • ${chunk.join("  • ")}`));
-    }
-    if (factorCount > maxReasonsShown) {
-      console.log(
-        line(`  … +${factorCount - maxReasonsShown} more (feature store)`),
-      );
     }
     console.log(empty);
     console.log(sep);
@@ -1798,12 +1782,12 @@ export class VincePaperTradingService extends Service {
           100;
     const lev = closedPosition.leverage ?? 1;
 
-    // Prominent one-line log so "PAPER TRADE CLOSED" always appears in terminal/log stream
+    const feesUsdLog = closedPosition.feesUsd != null && closedPosition.feesUsd > 0 ? ` fees -$${closedPosition.feesUsd.toFixed(2)}` : "";
     logger.info(
       `[VincePaperTrading] ${pnlIcon} PAPER TRADE CLOSED – ${resultText}  ` +
         `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
         `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
-        `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
+        `Net P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)}${feesUsdLog} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
         `Close Reason: ${closeReason}`,
     );
 
@@ -1846,14 +1830,12 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(sep);
     console.log(empty);
-    console.log(line("  P&L  (stop loss limits loss; % below is vs margin)"));
+    const feesUsd = closedPosition.feesUsd ?? 0;
+    const feesStr = feesUsd > 0 ? `  |  Fees -$${feesUsd.toFixed(2)}` : "";
+    console.log(line("  P&L  (net of fees; % vs margin)"));
     console.log(empty);
-    console.log(line(`  ${pnlIcon}  Nominal P&L: ${pnlStr}`));
-    console.log(
-      line(
-        `  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`,
-      ),
-    );
+    console.log(line(`  ${pnlIcon}  Net P&L: ${pnlStr}${feesStr}`));
+    console.log(line(`  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`));
     if (closeReason === "stop_loss") {
       console.log(
         line(
@@ -2031,6 +2013,7 @@ export class VincePaperTradingService extends Service {
           exitPrice: position.markPrice,
           realizedPnl: pnl,
           realizedPnlPct: pnlPct,
+          feesUsd: position.feesUsd,
           exitReason: closeReason || "manual",
           holdingPeriodMs,
           maxUnrealizedProfit: position.maxUnrealizedProfit,

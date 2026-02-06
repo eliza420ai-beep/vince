@@ -11,11 +11,18 @@ the same shape as the feature store so you can:
 Output: one JSONL file that train_models.py can load with --data <path>.
 Records include outcome.maxAdverseExcursion so the SL optimizer can train.
 
+Synthetic data is for testing only. For production models, train on real
+trades and use train_models.py --real-only to exclude synthetic files.
+
 Usage:
   python3 generate_synthetic_features.py --count 150 --output .elizadb/vince-paper-bot/features/synthetic_90plus.jsonl
-  python3 generate_synthetic_features.py --count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl
+  python3 generate_synthetic_features.py --count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl  # stress-test / CI
   python3 generate_synthetic_features.py --count 200 --output features.jsonl --append
   python3 train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+
+Optional train_models flags you can use with this data: --recency-decay, --balance-assets,
+--tune-hyperparams (GridSearchCV + TimeSeriesSplit). For production: --real-only (exclude synthetic).
+Holdout metrics (MAE/AUC/quantile) are written to improvement_report.holdout_metrics and improvement_report.md.
 """
 
 import argparse

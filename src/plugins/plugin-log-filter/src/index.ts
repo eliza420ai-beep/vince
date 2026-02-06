@@ -41,6 +41,8 @@ const SUPPRESS_ERROR_PATTERNS = [
   /No server ownership found for onboarding/i,
   /No world found for user during onboarding/i,
   /Critical error in settings provider.*No server ownership/i,
+  // ROLES provider: entity has role in world but no name/username in DB yet (skipped for role list only)
+  /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*User has no name or username, skipping/i,
 ];
 
 function shouldSuppressError(message: string): boolean {

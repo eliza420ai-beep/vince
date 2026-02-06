@@ -37,20 +37,19 @@ Reference: [Hyperliquid Docs – Info Endpoint (Perpetuals)](https://hyperliquid
 
 ## Endpoints we do _not_ use yet (candidates for new signals)
 
+**Note:** `fundingHistory` and `perpsAtOpenInterestCap` are **now in use** (HyperliquidFundingExtreme, HyperliquidOICap). See Summary and sections 1–2 below.
+
 From the [perpetuals docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/info-endpoint/perpetuals):
 
-| Request `type`                    | Returns                                                              | Potential use                                    |
-| --------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
-| **`meta`**                        | Universe + margin tables only (no asset ctxs)                        | Lighter-weight when only metadata needed.        |
-| **`userFunding`**                 | User funding history                                                 | Funding paid/received by a wallet (e.g. whales). |
-| **`userNonFundingLedgerUpdates`** | Deposits, transfers, withdrawals                                     | Wallet flow.                                     |
-| **`fundingHistory`**              | Historical funding rates (coin, startTime, endTime)                  | Funding regime / percentile / trend.             |
-| **`perpsAtOpenInterestCap`**      | List of perps at OI cap                                              | Crowding / capacity constraint.                  |
-| **`perpDeployAuctionStatus`**     | Auction status                                                       | Builder-deployed perp lifecycle (niche).         |
-| **`activeAssetData`**             | User’s active asset: leverage, maxTradeSzs, availableToTrade, markPx | Execution/risk for a given user+coin.            |
-| **`perpDexLimits`**               | OI caps, transfer limits (builder-deployed dex)                      | Risk/limits for HIP-3 dexs.                      |
-| **`perpDexStatus`**               | totalNetDeposit                                                      | DEX-level liquidity.                             |
-
+| Request `type` | Returns | Potential use |
+|----------------|--------|----------------|
+| **`meta`** | Universe + margin tables only (no asset ctxs) | Lighter-weight when only metadata needed. |
+| **`userFunding`** | User funding history | Funding paid/received by a wallet (e.g. whales). *Not yet used.* |
+| **`userNonFundingLedgerUpdates`** | Deposits, transfers, withdrawals | Wallet flow. |
+| **`perpDeployAuctionStatus`** | Auction status | Builder-deployed perp lifecycle (niche). |
+| **`activeAssetData`** | User’s active asset: leverage, maxTradeSzs, availableToTrade, markPx | Execution/risk for a given user+coin. |
+| **`perpDexLimits`** | OI caps, transfer limits (builder-deployed dex) | Risk/limits for HIP-3 dexs. |
+| **`perpDexStatus`** | totalNetDeposit | DEX-level liquidity. |
 ---
 
 ## Summary
@@ -66,7 +65,7 @@ For adding new data to the algo, the highest-value candidates are likely **`fund
 
 Recommendation in order of impact for the **paper trading bot** (signal aggregator → thresholds/weights → trade decision + feature store for ML):
 
-### 1. **`fundingHistory`** — Highest impact
+### 1. **`fundingHistory`** — Highest impact ✅ *Implemented*
 
 - **What it gives:** Historical funding rates per coin (`coin`, `startTime`, `endTime` → array of `{ coin, fundingRate, premium, time }`).
 - **Why it helps the algo:**
@@ -77,7 +76,7 @@ Recommendation in order of impact for the **paper trading bot** (signal aggregat
   - Feature store already has `fundingRate`, `fundingPercentile`, `fundingDelta`; we can add **HL-specific** funding percentile/delta for ML and for combo logic (e.g. funding/OI divergence using HL data).
 - **Implementation:** Call `fundingHistory` for BTC/ETH/SOL (and optionally HYPE) with a rolling window (e.g. last 30 funding intervals), compute percentile, then feed into aggregator and/or feature context. One extra POST per asset per refresh; can share/cache by asset.
 
-### 2. **`perpsAtOpenInterestCap`** — High impact, low effort
+### 2. **`perpsAtOpenInterestCap`** — High impact, low effort ✅ *Implemented*
 
 - **What it gives:** List of perp symbols currently at their open-interest cap (e.g. `["BADGER","CANTO","FTM","LOOM","PURR"]`).
 - **Why it helps the algo:**

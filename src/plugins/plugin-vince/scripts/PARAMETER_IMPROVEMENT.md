@@ -25,9 +25,12 @@ To better support the goal of **identifying which parameters and weights can and
 
 1. **Writes an improvement report** (see below) so you can see:
    - Which **features** each model relies on (feature importances).
+   - **Holdout metrics** (AUC for signal quality, MAE/quantile loss for position sizing and SL) on a time-based holdout for drift detection and sizing sanity checks.
    - A **suggested signal-quality threshold** from the trained classifier (for fallback or tuning).
    - **TP level performance** (win rate / count per level) so you know which levels to favor or avoid.
    - Short **action items** (parameters to review).
+
+   Optional training options: **sample weights** (`--recency-decay`, `--balance-assets`) to reduce dominance of one symbol or era; **hyperparameter search** (`--tune-hyperparams`) with GridSearchCV and TimeSeriesSplit (e.g. every 500 trades).
 
 2. **Uses the same data you care about**: labels come from your paper-trade outcomes (`profitable`, `rMultiple`, `optimalTpLevel`, and when available `maxAdverseExcursion` from the feature store).
 

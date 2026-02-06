@@ -125,7 +125,11 @@ plugin-vince/
 │       ├── standalone.test.ts
 │       └── realData.e2e.test.ts
 ├── scripts/
-│   └── train_models.py          # XGBoost to ONNX training
+│   ├── train_models.py          # XGBoost to ONNX training (holdout metrics, optional flags)
+│   ├── generate_synthetic_features.py  # Synthetic features for testing
+│   ├── validate_ml_improvement.py      # Validate ML improvement vs baseline
+│   ├── run-improvement-weights.ts     # Apply improvement report (logs holdout_metrics)
+│   └── test_train_models.py    # 8 tests for train_models
 ├── package.json
 ├── vitest.config.ts
 ├── README.md
@@ -464,19 +468,21 @@ Add the plugin to your character's plugins array:
 
 All persistent data is stored in `.elizadb/vince-paper-bot/`:
 
-| File                           | Purpose                            |
-| ------------------------------ | ---------------------------------- |
-| `features/*.jsonl`             | Feature store for ML training      |
-| `weight-bandit-state.json`     | Thompson Sampling win/loss counts  |
-| `signal-similarity-state.json` | Embedded trade contexts            |
-| `bayesian-tuner-state.json`    | Parameter optimization history     |
-| `improvement-journal.md`       | Structured improvement suggestions |
-| `portfolio.json`               | Paper trading portfolio state      |
-| `positions.json`               | Open position tracking             |
-| `journal.json`                 | Trade history                      |
-| `risk-state.json`              | Circuit breaker state              |
-| `goal-tracker.json`            | Daily/monthly KPI tracking         |
-| `tuned-config.json`            | Dynamically tuned parameters       |
+| File | Purpose |
+| --- | --- |
+| `features/*.jsonl` | Feature store for ML training |
+| `models/training_metadata.json` | Thresholds + holdout_metrics from last training run |
+| `models/improvement_report.md` | Human-readable improvement report (thresholds, TP performance, factors) |
+| `weight-bandit-state.json` | Thompson Sampling win/loss counts |
+| `signal-similarity-state.json` | Embedded trade contexts |
+| `bayesian-tuner-state.json` | Parameter optimization history |
+| `improvement-journal.md` | Structured improvement suggestions |
+| `portfolio.json` | Paper trading portfolio state |
+| `positions.json` | Open position tracking |
+| `journal.json` | Trade history |
+| `risk-state.json` | Circuit breaker state |
+| `goal-tracker.json` | Daily/monthly KPI tracking |
+| `tuned-config.json` | Dynamically tuned parameters |
 
 ### Inspecting State
 
@@ -698,7 +704,14 @@ cat .elizadb/vince-paper-bot/weight-bandit-state.json | jq '.'
 # Check feature collection count
 wc -l .elizadb/vince-paper-bot/features/*.jsonl
 
-# Check improvement suggestions
+# Check improvement report and holdout metrics (from last training run)
+cat .elizadb/vince-paper-bot/models/improvement_report.md
+cat .elizadb/vince-paper-bot/models/training_metadata.json | jq '.holdout_metrics'
+
+# Apply new report and log holdout metrics
+bun run scripts/run-improvement-weights.ts
+
+# Check improvement suggestions (journal)
 cat .elizadb/vince-paper-bot/improvement-journal.md
 ```
 
@@ -735,4 +748,7 @@ Important: 2 of 3 whale sources were found to provide stale or fake data:
 - [README.md](README.md) - Full plugin documentation
 - [WHAT.md](WHAT.md) - Purpose and philosophy
 - [WHY.md](WHY.md) - Framework decision context (ElizaOS vs ClawdBot)
+- [IMPROVEMENT_WEIGHTS_AND_TUNING.md](IMPROVEMENT_WEIGHTS_AND_TUNING.md) - ML improvement report, holdout metrics, tuning flags
+- [ML_IMPROVEMENT_PROOF.md](ML_IMPROVEMENT_PROOF.md) - Validating that ML training improves paper-bot metrics
+- [scripts/PARAMETER_IMPROVEMENT.md](scripts/PARAMETER_IMPROVEMENT.md) - Improvement report format and usage
 - [../../../CLAUDE.md](../../../CLAUDE.md) - Main project development guide

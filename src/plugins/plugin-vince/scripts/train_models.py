@@ -15,10 +15,18 @@ Usage:
     python train_models.py --data ./features.jsonl --output ./models/
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models
     python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90
+    python train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --real-only   # production: exclude synthetic
 
   --data can be a single JSONL file or a directory (loads all features_*.jsonl, synthetic_*.jsonl, and combined.jsonl).
+  --real-only: load only features_*.jsonl and combined.jsonl (exclude synthetic_*.jsonl); use when you have enough real trades.
   When the feature store has 90+ complete trades (with outcome), the plugin can run this automatically
   via the TRAIN_ONNX_WHEN_READY task (max once per 24h).
+
+  With more signal sources (Hyperliquid OI cap/funding, Binance L/S, News NASDAQ/macro, etc.), the script
+  uses optional columns when present: news_nasdaqChange, news_macro_risk_on/off, signal_hasOICap, and
+  OPTIONAL_FEATURE_COLUMNS. TP/SL models now share the same news and signal-source features as signal quality
+  and position sizing. Add new columns to OPTIONAL_FEATURE_COLUMNS and CANDIDATE_SIGNAL_FACTORS when the
+  feature store adds new sources.
 
 Requirements:
     pip3 install -r requirements.txt  (xgboost scikit-learn pandas numpy onnx onnxmltools joblib; scipy optional)
@@ -35,11 +43,11 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import pandas as pd
 import joblib
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
+from sklearn.model_selection import TimeSeriesSplit, cross_val_score, GridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import (
     accuracy_score,
-    classification_report,
+    log_loss,
     mean_absolute_error,
     mean_squared_error,
     roc_auc_score,
@@ -77,25 +85,26 @@ def setup_logging_to_file(output_dir: Path, verbose: bool = False) -> None:
 # Feature Engineering
 # ==========================================
 
-def _jsonl_paths(data_path: str) -> List[str]:
-    """Resolve --data to a list of JSONL file paths (single file or directory of features_*.jsonl)."""
+def _jsonl_paths(data_path: str, real_only: bool = False) -> List[str]:
+    """Resolve --data to a list of JSONL file paths (single file or directory of features_*.jsonl).
+    When real_only=True, only features_*.jsonl and combined.jsonl are loaded; synthetic_*.jsonl are excluded (for production)."""
     p = Path(data_path)
     if p.is_file():
         return [str(p)]
     if p.is_dir():
-        files = (
-            sorted(p.glob("features_*.jsonl"))
-            + sorted(p.glob("synthetic_*.jsonl"))
-            + ([p / "combined.jsonl"] if (p / "combined.jsonl").exists() else [])
-        )
+        files = sorted(p.glob("features_*.jsonl"))
+        if not real_only:
+            files = files + sorted(p.glob("synthetic_*.jsonl"))
+        if (p / "combined.jsonl").exists():
+            files = files + [p / "combined.jsonl"]
         return [str(f) for f in files]
     return []
 
 
-def load_features(filepath: str) -> pd.DataFrame:
+def load_features(filepath: str, real_only: bool = False) -> pd.DataFrame:
     """Load feature records from JSONL file(s) exported by FeatureStore (one JSON object per line).
-    If filepath is a directory, loads all features_*.jsonl and combined.jsonl inside it."""
-    paths = _jsonl_paths(filepath)
+    If filepath is a directory, loads features_*.jsonl and combined.jsonl; optionally exclude synthetic_*.jsonl when real_only=True."""
+    paths = _jsonl_paths(filepath, real_only=real_only)
     if not paths:
         logger.warning("No JSONL files found at %s", filepath)
         return pd.DataFrame()
@@ -184,6 +193,21 @@ def load_features(filepath: str) -> pd.DataFrame:
     return df
 
 
+# Optional feature columns used across models when present in data.
+# Extend this list when the feature store adds new sources (e.g. ETF flow, per-source flags).
+# With more sources, load_features() could also derive per-source booleans from signal.sources.
+OPTIONAL_FEATURE_COLUMNS = (
+    "market_dvol",
+    "market_rsi14",
+    "market_oiChange24h",
+    "market_fundingDelta",
+    "market_bookImbalance",
+    "market_bidAskSpread",
+    "market_priceVsSma20",
+    "signal_hasOICap",
+)
+
+
 def _clip_outliers(df: pd.DataFrame, z_thresh: float = 3.0) -> pd.DataFrame:
     """Optionally clip numeric outliers using z-score (requires scipy). No-op if scipy missing."""
     try:
@@ -218,23 +242,14 @@ def prepare_signal_quality_features(
         "signal_hasWhaleSignal", "session_isWeekend", "session_isOpenWindow",
         "session_utcHour",
     ]
-    for opt in (
-        "market_dvol",
-        "market_rsi14",
-        "market_oiChange24h",
-        "market_fundingDelta",
-        "market_bookImbalance",
-        "market_bidAskSpread",
-        "market_priceVsSma20",
-        "signal_hasOICap",
-    ):
+    for opt in OPTIONAL_FEATURE_COLUMNS:
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange",):
+    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "news_macroRiskEnvironment" in df_trades.columns:
@@ -264,7 +279,7 @@ def prepare_signal_quality_features(
     for c in X.select_dtypes(include=["bool"]).columns:
         X[c] = X[c].astype(int)
     if use_scaler:
-        float_cols = X.select_dtypes(include=["float64", "float32"]).columns
+        float_cols = _safe_float_columns_for_scaler(X)
         if len(float_cols) > 0:
             X[float_cols] = StandardScaler().fit_transform(X[float_cols])
 
@@ -284,23 +299,14 @@ def prepare_position_sizing_features(
         "signal_strength", "signal_confidence", "signal_source_count",
         "session_isWeekend", "exec_streakMultiplier",
     ]
-    for opt in (
-        "market_dvol",
-        "market_rsi14",
-        "market_oiChange24h",
-        "market_atrPct",
-        "market_fundingDelta",
-        "market_bookImbalance",
-        "market_bidAskSpread",
-        "market_priceVsSma20",
-    ):
+    for opt in OPTIONAL_FEATURE_COLUMNS + ("market_atrPct",):
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange",):
+    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "news_macroRiskEnvironment" in df_trades.columns:
@@ -325,7 +331,7 @@ def prepare_position_sizing_features(
     for c in X.select_dtypes(include=["bool"]).columns:
         X[c] = X[c].astype(int)
     if use_scaler:
-        float_cols = X.select_dtypes(include=["float64", "float32"]).columns
+        float_cols = _safe_float_columns_for_scaler(X)
         if len(float_cols) > 0:
             X[float_cols] = StandardScaler().fit_transform(X[float_cols])
 
@@ -345,21 +351,20 @@ def prepare_tp_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
-    for opt in (
-        "market_dvol",
-        "market_rsi14",
-        "market_oiChange24h",
-        "market_fundingDelta",
-        "market_bookImbalance",
-        "market_bidAskSpread",
-        "market_priceVsSma20",
-    ):
+    for opt in OPTIONAL_FEATURE_COLUMNS:
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
+    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    if "news_macroRiskEnvironment" in df_trades.columns:
+        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
     if "regime_volatilityRegime" in df_trades.columns:
         df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
             {"low": 0, "normal": 1, "high": 2}
@@ -383,7 +388,7 @@ def prepare_tp_features(
     for c in X.select_dtypes(include=["bool"]).columns:
         X[c] = X[c].astype(int)
     if use_scaler:
-        float_cols = X.select_dtypes(include=["float64", "float32"]).columns
+        float_cols = _safe_float_columns_for_scaler(X)
         if len(float_cols) > 0:
             X[float_cols] = StandardScaler().fit_transform(X[float_cols])
 
@@ -408,21 +413,20 @@ def prepare_sl_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
-    for opt in (
-        "market_dvol",
-        "market_rsi14",
-        "market_oiChange24h",
-        "market_fundingDelta",
-        "market_bookImbalance",
-        "market_bidAskSpread",
-        "market_priceVsSma20",
-    ):
+    for opt in OPTIONAL_FEATURE_COLUMNS:
         if opt in df_trades.columns:
             feature_cols.append(opt)
     if "signal_avg_sentiment" in df_trades.columns:
         feature_cols.append("signal_avg_sentiment")
     if "news_avg_sentiment" in df_trades.columns:
         feature_cols.append("news_avg_sentiment")
+    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    if "news_macroRiskEnvironment" in df_trades.columns:
+        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
     if "regime_volatilityRegime" in df_trades.columns:
         df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
             {"low": 0, "normal": 1, "high": 2}
@@ -446,7 +450,7 @@ def prepare_sl_features(
     for c in X.select_dtypes(include=["bool"]).columns:
         X[c] = X[c].astype(int)
     if use_scaler:
-        float_cols = X.select_dtypes(include=["float64", "float32"]).columns
+        float_cols = _safe_float_columns_for_scaler(X)
         if len(float_cols) > 0:
             X[float_cols] = StandardScaler().fit_transform(X[float_cols])
 
@@ -458,6 +462,27 @@ def prepare_sl_features(
 # Model Training
 # ==========================================
 
+def _compute_sample_weights(
+    n: int,
+    asset_series: pd.Series | None,
+    recency_decay: float,
+    balance_assets: bool,
+) -> np.ndarray | None:
+    """Optional sample weights: recency (recent rows upweighted) and/or per-asset balancing. Returns None if both off."""
+    if recency_decay <= 0 and not balance_assets:
+        return None
+    w = np.ones(n, dtype=np.float64)
+    if recency_decay > 0:
+        # Recent rows (high index) get weight closer to 1
+        w *= np.exp(recency_decay * (np.arange(n) - (n - 1)) / max(1, n))
+    if balance_assets and asset_series is not None and len(asset_series) == n:
+        counts = asset_series.value_counts()
+        inv_freq = asset_series.map(lambda a: 1.0 / max(1, counts.get(a, 1)))
+        w *= inv_freq.values
+    w /= w.max()
+    return w
+
+
 def _time_split(X: pd.DataFrame, y: pd.Series, test_frac: float = 0.2):
     """Split by time order (last test_frac as validation)."""
     n = len(X)
@@ -467,12 +492,94 @@ def _time_split(X: pd.DataFrame, y: pd.Series, test_frac: float = 0.2):
     return X.iloc[:split], y.iloc[:split], X.iloc[split:], y.iloc[split:]
 
 
-def train_signal_quality_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBClassifier:
+def _safe_float_columns_for_scaler(X: pd.DataFrame) -> List[str]:
+    """Return float columns that have at least one valid value and non-zero variance to avoid StandardScaler warnings."""
+    float_cols = X.select_dtypes(include=["float64", "float32"]).columns.tolist()
+    valid = []
+    for c in float_cols:
+        ser = X[c]
+        if not ser.notna().any():
+            continue
+        v = ser.var(skipna=True)
+        if v is None or (hasattr(v, "__float__") and float(v) <= 1e-10):
+            continue
+        valid.append(c)
+    return valid
+
+
+def _holdout_metrics(
+    model: Any, X: pd.DataFrame, y: pd.Series, kind: str
+) -> Dict[str, float]:
+    """Compute metrics on time-based holdout (last 20%) for drift detection. Returns dict for improvement_report.holdout_metrics."""
+    X_tr, y_tr, X_val, y_val = _time_split(X, y, test_frac=0.2)
+    if X_val is None or len(X_val) < 5:
+        return {}
+    try:
+        if kind == "signal_quality":
+            proba = model.predict_proba(X_val)[:, 1]
+            return {
+                "holdout_auc": float(roc_auc_score(y_val, proba)),
+                "holdout_accuracy": float(accuracy_score(y_val, (proba >= 0.5).astype(int))),
+            }
+        if kind == "position_sizing":
+            pred = model.predict(X_val)
+            return {"holdout_mae": float(mean_absolute_error(y_val, pred))}
+        if kind == "tp_optimizer":
+            pred = model.predict(X_val)
+            proba = model.predict_proba(X_val)
+            return {
+                "holdout_accuracy": float(accuracy_score(y_val, pred)),
+                "holdout_log_loss": float(log_loss(y_val, proba)),
+            }
+        if kind == "sl_optimizer":
+            pred = model.predict(X_val)
+            # Pinball/quantile loss for alpha=0.95
+            err = np.asarray(y_val) - np.asarray(pred)
+            quantile_loss = np.mean(np.where(err >= 0, 0.95 * err, -0.05 * err))
+            return {"holdout_mae": float(mean_absolute_error(y_val, pred)), "holdout_quantile_loss": float(quantile_loss)}
+    except Exception as e:
+        logger.debug("Holdout metrics failed for %s: %s", kind, e)
+        return {}
+    return {}
+
+
+def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBClassifier:
+    """GridSearchCV over key hyperparams with TimeSeriesSplit. Returns best estimator."""
+    pos_count = int(np.sum(y))
+    scale_pos_weight = (len(y) - pos_count) / pos_count if pos_count > 0 else 1.0
+    param_grid = {
+        "max_depth": [3, 4, 5],
+        "learning_rate": [0.03, 0.05, 0.07],
+        "n_estimators": [150, 200],
+    }
+    base = xgb.XGBClassifier(
+        objective="binary:logistic",
+        eval_metric="auc",
+        random_state=42,
+        tree_method="hist",
+        subsample=0.8,
+        colsample_bytree=0.8,
+        scale_pos_weight=scale_pos_weight,
+    )
+    tscv = TimeSeriesSplit(n_splits=3)
+    search = GridSearchCV(base, param_grid, cv=tscv, scoring="roc_auc", n_jobs=-1, verbose=0)
+    if sample_weight is not None:
+        search.fit(X, y, sample_weight=sample_weight)
+    else:
+        search.fit(X, y)
+    logger.info("Signal Quality Model - best CV AUC: %.3f (params: %s)", search.best_score_, search.best_params_)
+    return search.best_estimator_
+
+
+def train_signal_quality_model(
+    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+) -> xgb.XGBClassifier:
     """Train signal quality classifier with early stopping on a time-based holdout."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
     use_early_stop = X_val is not None and len(X_val) >= 5
     pos_count = int(np.sum(y))
     scale_pos_weight = (len(y) - pos_count) / pos_count if pos_count > 0 else 1.0
+    w_tr = sample_weight[: len(y_tr)] if sample_weight is not None and len(sample_weight) >= len(y_tr) else None
 
     cv_model = xgb.XGBClassifier(
         n_estimators=200,
@@ -504,9 +611,12 @@ def train_signal_quality_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBClassifi
         early_stopping_rounds=15 if use_early_stop else None,
     )
     if use_early_stop:
-        model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+        if w_tr is not None:
+            model.fit(X_tr, y_tr, sample_weight=w_tr, eval_set=[(X_val, y_val)], verbose=False)
+        else:
+            model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
     else:
-        model.fit(X, y)
+        model.fit(X, y, sample_weight=sample_weight if sample_weight is not None else None)
 
     importance = pd.DataFrame({
         "feature": X.columns,
@@ -516,10 +626,26 @@ def train_signal_quality_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBClassifi
     return model
 
 
-def train_position_sizing_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBRegressor:
+def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBRegressor:
+    """GridSearchCV for position sizing (neg MAE). Returns best estimator."""
+    param_grid = {"max_depth": [3, 4, 5], "learning_rate": [0.03, 0.05, 0.07], "n_estimators": [150, 200]}
+    base = xgb.XGBRegressor(objective="reg:squarederror", random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8)
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=-1, verbose=0)
+    if sample_weight is not None:
+        search.fit(X, y, sample_weight=sample_weight)
+    else:
+        search.fit(X, y)
+    logger.info("Position Sizing Model - best CV MAE: %.3f (params: %s)", -search.best_score_, search.best_params_)
+    return search.best_estimator_
+
+
+def train_position_sizing_model(
+    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+) -> xgb.XGBRegressor:
     """Train position sizing regressor with early stopping."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
     use_early_stop = X_val is not None and len(X_val) >= 5
+    w_tr = sample_weight[: len(y_tr)] if sample_weight is not None and len(sample_weight) >= len(y_tr) else None
 
     cv_model = xgb.XGBRegressor(
         n_estimators=200,
@@ -547,17 +673,23 @@ def train_position_sizing_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBRegress
         early_stopping_rounds=15 if use_early_stop else None,
     )
     if use_early_stop:
-        model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+        if w_tr is not None:
+            model.fit(X_tr, y_tr, sample_weight=w_tr, eval_set=[(X_val, y_val)], verbose=False)
+        else:
+            model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
     else:
-        model.fit(X, y)
+        model.fit(X, y, sample_weight=sample_weight if sample_weight is not None else None)
     return model
 
 
-def train_tp_optimizer_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBClassifier:
+def train_tp_optimizer_model(
+    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+) -> xgb.XGBClassifier:
     """Train take-profit optimizer (multi-class) with early stopping."""
     n_class = int(y.nunique())
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
     use_early_stop = X_val is not None and len(X_val) >= 5
+    w_tr = sample_weight[: len(y_tr)] if sample_weight is not None and len(sample_weight) >= len(y_tr) else None
 
     cv_model = xgb.XGBClassifier(
         n_estimators=200,
@@ -589,16 +721,22 @@ def train_tp_optimizer_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBClassifier
         early_stopping_rounds=15 if use_early_stop else None,
     )
     if use_early_stop:
-        model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+        if w_tr is not None:
+            model.fit(X_tr, y_tr, sample_weight=w_tr, eval_set=[(X_val, y_val)], verbose=False)
+        else:
+            model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
     else:
-        model.fit(X, y)
+        model.fit(X, y, sample_weight=sample_weight if sample_weight is not None else None)
     return model
 
 
-def train_sl_optimizer_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBRegressor:
+def train_sl_optimizer_model(
+    X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
+) -> xgb.XGBRegressor:
     """Train stop-loss optimizer (quantile regression for max adverse excursion)."""
     X_tr, y_tr, X_val, y_val = _time_split(X, y)
     use_early_stop = X_val is not None and len(X_val) >= 5
+    w_tr = sample_weight[: len(y_tr)] if sample_weight is not None and len(sample_weight) >= len(y_tr) else None
 
     model = xgb.XGBRegressor(
         n_estimators=200,
@@ -613,9 +751,12 @@ def train_sl_optimizer_model(X: pd.DataFrame, y: pd.Series) -> xgb.XGBRegressor:
         early_stopping_rounds=15 if use_early_stop else None,
     )
     if use_early_stop:
-        model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+        if w_tr is not None:
+            model.fit(X_tr, y_tr, sample_weight=w_tr, eval_set=[(X_val, y_val)], verbose=False)
+        else:
+            model.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
     else:
-        model.fit(X, y)
+        model.fit(X, y, sample_weight=sample_weight if sample_weight is not None else None)
     return model
 
 
@@ -630,6 +771,44 @@ def _onnx_rename_io_for_runtime(onnx_model: "onnx.ModelProto", input_name: str =
         g.input[0].name = input_name
     if g.output:
         g.output[0].name = output_name
+
+
+def verify_onnx_inference(onnx_path: str, X_sample: pd.DataFrame, model_name: str, is_classifier: bool = True) -> bool:
+    """Run one inference with onnxruntime to verify shape and value range. Catches dimension/dtype issues before deploy."""
+    try:
+        import onnxruntime as ort
+    except ImportError:
+        logger.debug("onnxruntime not installed; skipping ONNX smoke test for %s", model_name)
+        return True
+    try:
+        session = ort.InferenceSession(onnx_path, providers=["CPUExecutionProvider"])
+        input_name = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
+        sample = X_sample.fillna(0).select_dtypes(include=[np.number]).astype(np.float32)
+        if sample.shape[0] == 0:
+            logger.warning("ONNX smoke test %s: no numeric sample row", model_name)
+            return False
+        row = np.ascontiguousarray(sample.iloc[:1].values, dtype=np.float32)
+        out = session.run({input_name: row}, None)
+        if not out or out[0] is None:
+            logger.warning("ONNX smoke test %s: no output", model_name)
+            return False
+        arr = out[0]
+        if arr.size == 0:
+            logger.warning("ONNX smoke test %s: empty output", model_name)
+            return False
+        if is_classifier:
+            flat = arr.flatten()
+            if not np.all(np.isfinite(flat)):
+                logger.warning("ONNX smoke test %s: non-finite output", model_name)
+                return False
+            if np.any(flat < -0.01) or np.any(flat > 1.01):
+                logger.debug("ONNX smoke test %s: output outside [0,1] (may be logits): %s", model_name, flat[: min(4, len(flat))].tolist())
+        logger.info("ONNX smoke test passed for %s (shape %s)", model_name, arr.shape)
+        return True
+    except Exception as e:
+        logger.warning("ONNX smoke test failed for %s: %s", model_name, e)
+        return False
 
 
 def export_to_onnx(model: Any, X_sample: pd.DataFrame, output_path: str, model_name: str) -> bool:
@@ -649,6 +828,9 @@ def export_to_onnx(model: Any, X_sample: pd.DataFrame, output_path: str, model_n
             _onnx_rename_io_for_runtime(onnx_model, input_name="input", output_name="output")
             onnx.save_model(onnx_model, output_path)
             logger.info("Exported %s to %s", model_name, output_path)
+            is_classifier = "Classifier" in type(model).__name__ or "quality" in model_name.lower() or "optimizer" in model_name.lower()
+            if not verify_onnx_inference(output_path, X_sample, model_name, is_classifier=is_classifier):
+                logger.warning("ONNX export succeeded but smoke test failed for %s", model_name)
             return True
         finally:
             if original_names:
@@ -685,6 +867,24 @@ def _suggest_signal_quality_threshold(model: Any, X: pd.DataFrame, y: pd.Series)
         return round(best_thresh, 2)
     except Exception:
         return 0.6
+
+
+def _platt_calibration(model: Any, X: pd.DataFrame, y: pd.Series) -> Dict[str, float] | None:
+    """Fit Platt scaling on validation fold so score bands match historical win rate. Returns {scale, intercept} or None."""
+    try:
+        from sklearn.linear_model import LogisticRegression
+        X_tr, y_tr, X_val, y_val = _time_split(X, y)
+        if X_val is None or len(X_val) < 10:
+            return None
+        raw_proba = model.predict_proba(X_val)[:, 1]
+        # Clip to avoid logit extremes
+        raw_proba = np.clip(raw_proba, 1e-6, 1 - 1e-6)
+        lr = LogisticRegression(C=1e10, max_iter=500)
+        lr.fit(raw_proba.reshape(-1, 1), y_val)
+        return {"scale": float(lr.coef_[0][0]), "intercept": float(lr.intercept_[0])}
+    except Exception as e:
+        logger.warning("Platt calibration skipped: %s", e)
+        return None
 
 
 def _tp_level_performance(df: pd.DataFrame) -> Dict[str, Any]:
@@ -745,6 +945,8 @@ CANDIDATE_SIGNAL_FACTORS = [
     {"name": "Recent win/loss streak", "description": "Cold/hot streak for position sizing.", "hint": "exec_streakMultiplier"},
     {"name": "Hyperliquid OI cap", "description": "Perps at open interest cap (contrarian).", "hint": "signal_hasOICap"},
     {"name": "Hyperliquid funding extreme", "description": "Extreme funding regime (mean reversion).", "hint": "signal_hasFundingExtreme"},
+    {"name": "Binance L/S ratio", "description": "Long/short ratio signal.", "hint": "market_longShortRatio"},
+    {"name": "Binance OI flush", "description": "Open interest flush signal.", "hint": "market_oiChange24h"},
 ]
 
 
@@ -781,6 +983,9 @@ def build_improvement_report(
         "suggested_signal_factors": _suggest_signal_factors(df),
         "action_items": [],
     }
+    holdout = {k: v.get("holdout_metrics") for k, v in report_entries.items() if v.get("holdout_metrics")}
+    if holdout:
+        report["holdout_metrics"] = holdout
     # Suggested min strength/confidence from 25th percentile of profitable trades (for bot to consume)
     if "label_profitable" in df.columns and "signal_strength" in df.columns and "signal_confidence" in df.columns:
         prof = df[df["label_profitable"] == True]
@@ -826,7 +1031,14 @@ def build_improvement_report(
 
 def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> None:
     """Write human-readable improvement report to a markdown file."""
-    lines = ["# Parameter Improvement Report", "", "Use this report to see which parameters and weights to improve.", ""]
+    lines = [
+        "# Parameter Improvement Report",
+        "",
+        "Use this report to see which parameters and weights to improve.",
+        "",
+        "**Note:** All PnL and win/loss metrics in this report are **net of round-trip trading fees** (0.05% of notional).",
+        "",
+    ]
     data_summary = report.get("data_summary")
     if data_summary:
         lines.append("## Data summary")
@@ -869,6 +1081,12 @@ def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> No
         for level, stats in report["tp_level_performance"].items():
             lines.append(f"- TP level {level}: win_rate={stats['win_rate']:.2%}, count={stats['count']}")
         lines.append("")
+    if report.get("holdout_metrics"):
+        lines.append("## Holdout metrics (actual vs predicted, for drift detection)")
+        lines.append("")
+        for model_name, metrics in report["holdout_metrics"].items():
+            lines.append(f"- **{model_name}**: " + ", ".join(f"{k}={v:.4f}" for k, v in metrics.items()))
+        lines.append("")
     sug = report.get("suggested_signal_factors") or []
     if sug:
         lines.append("## Suggested signal factors (consider adding)")
@@ -896,6 +1114,10 @@ def main():
     parser.add_argument("--output", type=str, default="./models", help="Output directory for models")
     parser.add_argument("--min-samples", type=int, default=90, help="Minimum trades with outcome required to train (default 90)")
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging to train.log")
+    parser.add_argument("--recency-decay", type=float, default=0.0, help="Recency sample weight decay (e.g. 0.01 upweights recent rows); 0 = off")
+    parser.add_argument("--balance-assets", action="store_true", help="Balance sample weights by asset so one symbol does not dominate")
+    parser.add_argument("--tune-hyperparams", action="store_true", help="Run GridSearchCV over max_depth, learning_rate, n_estimators with TimeSeriesSplit (slower)")
+    parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -906,9 +1128,11 @@ def main():
     logger.info("VINCE ML Model Training")
     logger.info("Data: %s", args.data)
     logger.info("Output: %s", args.output)
+    if getattr(args, "real_only", False):
+        logger.info("Real-only: excluding synthetic_*.jsonl (production mode)")
     logger.info("=" * 60)
 
-    df = load_features(args.data)
+    df = load_features(args.data, real_only=getattr(args, "real_only", False))
     if df.empty:
         logger.warning("No data loaded. Exiting.")
         return
@@ -959,17 +1183,33 @@ def main():
         logger.info("=" * 40)
         X_sq, y_sq = prepare_signal_quality_features(df)
         if len(X_sq) >= args.min_samples:
-            model_sq = train_signal_quality_model(X_sq, y_sq)
+            df_sq = df[df["label_profitable"].notna()].copy()
+            w_sq = _compute_sample_weights(
+                len(X_sq),
+                df_sq["asset"] if "asset" in df_sq.columns else None,
+                args.recency_decay,
+                args.balance_assets,
+            ) if (args.recency_decay > 0 or args.balance_assets) else None
+            model_sq = (
+                _tune_signal_quality(X_sq, y_sq, w_sq)
+                if getattr(args, "tune_hyperparams", False)
+                else train_signal_quality_model(X_sq, y_sq, sample_weight=w_sq)
+            )
             models_fit.append("signal_quality")
             if export_to_onnx(model_sq, X_sq.iloc[:1], str(output_dir / "signal_quality.onnx"), "Signal Quality"):
                 models_trained.append("signal_quality")
             save_joblib_backup(model_sq, str(output_dir / "signal_quality.joblib"), "Signal Quality")
             imp = dict(zip(X_sq.columns.tolist(), [float(x) for x in model_sq.feature_importances_]))
+            calibration = _platt_calibration(model_sq, X_sq, y_sq)
             improvement_entries["signal_quality"] = {
                 "feature_importances": imp,
                 "suggested_threshold": _suggest_signal_quality_threshold(model_sq, X_sq, y_sq),
                 "feature_names": X_sq.columns.tolist(),
             }
+            if calibration:
+                improvement_entries["signal_quality"]["signal_quality_calibration"] = calibration
+                logger.info("Signal quality Platt calibration: scale=%.4f, intercept=%.4f", calibration["scale"], calibration["intercept"])
+            improvement_entries["signal_quality"]["holdout_metrics"] = _holdout_metrics(model_sq, X_sq, y_sq, "signal_quality")
         else:
             logger.info("Skipping Signal Quality - insufficient samples")
     except Exception as e:
@@ -982,13 +1222,25 @@ def main():
         logger.info("=" * 40)
         X_ps, y_ps = prepare_position_sizing_features(df)
         if len(X_ps) >= args.min_samples:
-            model_ps = train_position_sizing_model(X_ps, y_ps)
+            df_ps = df[df["label_rMultiple"].notna()].copy()
+            w_ps = _compute_sample_weights(
+                len(X_ps),
+                df_ps["asset"] if "asset" in df_ps.columns else None,
+                args.recency_decay,
+                args.balance_assets,
+            ) if (args.recency_decay > 0 or args.balance_assets) else None
+            model_ps = (
+                _tune_position_sizing(X_ps, y_ps, w_ps)
+                if getattr(args, "tune_hyperparams", False)
+                else train_position_sizing_model(X_ps, y_ps, sample_weight=w_ps)
+            )
             models_fit.append("position_sizing")
             if export_to_onnx(model_ps, X_ps.iloc[:1], str(output_dir / "position_sizing.onnx"), "Position Sizing"):
                 models_trained.append("position_sizing")
             save_joblib_backup(model_ps, str(output_dir / "position_sizing.joblib"), "Position Sizing")
             improvement_entries["position_sizing"] = {
                 "feature_importances": dict(zip(X_ps.columns.tolist(), [float(x) for x in model_ps.feature_importances_])),
+                "holdout_metrics": _holdout_metrics(model_ps, X_ps, y_ps, "position_sizing"),
             }
         else:
             logger.info("Skipping Position Sizing - insufficient samples")
@@ -1002,13 +1254,21 @@ def main():
         logger.info("=" * 40)
         X_tp, y_tp = prepare_tp_features(df)
         if len(X_tp) >= args.min_samples:
-            model_tp = train_tp_optimizer_model(X_tp, y_tp)
+            df_tp = df[df["label_optimalTpLevel"].notna()].copy()
+            w_tp = _compute_sample_weights(
+                len(X_tp),
+                df_tp["asset"] if "asset" in df_tp.columns else None,
+                args.recency_decay,
+                args.balance_assets,
+            ) if (args.recency_decay > 0 or args.balance_assets) else None
+            model_tp = train_tp_optimizer_model(X_tp, y_tp, sample_weight=w_tp)
             models_fit.append("tp_optimizer")
             if export_to_onnx(model_tp, X_tp.iloc[:1], str(output_dir / "tp_optimizer.onnx"), "TP Optimizer"):
                 models_trained.append("tp_optimizer")
             save_joblib_backup(model_tp, str(output_dir / "tp_optimizer.joblib"), "TP Optimizer")
             improvement_entries["tp_optimizer"] = {
                 "feature_importances": dict(zip(X_tp.columns.tolist(), [float(x) for x in model_tp.feature_importances_])),
+                "holdout_metrics": _holdout_metrics(model_tp, X_tp, y_tp, "tp_optimizer"),
             }
         else:
             logger.info("Skipping TP Optimizer - insufficient samples")
@@ -1022,13 +1282,22 @@ def main():
         logger.info("=" * 40)
         X_sl, y_sl = prepare_sl_features(df)
         if not X_sl.empty and len(X_sl) >= args.min_samples:
-            model_sl = train_sl_optimizer_model(X_sl, y_sl)
+            label_col = "label_maxAdverseExcursion"
+            df_sl = df[df[label_col].notna()].copy()
+            w_sl = _compute_sample_weights(
+                len(X_sl),
+                df_sl["asset"] if "asset" in df_sl.columns else None,
+                args.recency_decay,
+                args.balance_assets,
+            ) if (args.recency_decay > 0 or args.balance_assets) else None
+            model_sl = train_sl_optimizer_model(X_sl, y_sl, sample_weight=w_sl)
             models_fit.append("sl_optimizer")
             if export_to_onnx(model_sl, X_sl.iloc[:1], str(output_dir / "sl_optimizer.onnx"), "SL Optimizer"):
                 models_trained.append("sl_optimizer")
             save_joblib_backup(model_sl, str(output_dir / "sl_optimizer.joblib"), "SL Optimizer")
             improvement_entries["sl_optimizer"] = {
                 "feature_importances": dict(zip(X_sl.columns.tolist(), [float(x) for x in model_sl.feature_importances_])),
+                "holdout_metrics": _holdout_metrics(model_sl, X_sl, y_sl, "sl_optimizer"),
             }
         else:
             logger.info("Skipping SL Optimizer - no label_maxAdverseExcursion or insufficient samples")
@@ -1036,6 +1305,8 @@ def main():
         logger.error("Error training SL Optimizer Model: %s", e)
 
     improvement_report = build_improvement_report(df, improvement_entries) if improvement_entries else {}
+    if improvement_entries.get("signal_quality", {}).get("signal_quality_calibration"):
+        improvement_report["signal_quality_calibration"] = improvement_entries["signal_quality"]["signal_quality_calibration"]
     metadata = {
         "trained_at": datetime.now().isoformat(),
         "data_file": args.data,

@@ -211,10 +211,12 @@ export interface TradeExecutionFeatures {
 export interface TradeOutcomeFeatures {
   /** Exit price */
   exitPrice: number;
-  /** Realized P&L in USD */
+  /** Realized P&L in USD (net of fees) */
   realizedPnl: number;
-  /** Realized P&L as % */
+  /** Realized P&L as % (vs margin) */
   realizedPnlPct: number;
+  /** Trading fees (round-trip) in USD */
+  feesUsd?: number;
   /** Holding period in minutes */
   holdingPeriodMinutes: number;
   /** Exit reason */
@@ -282,6 +284,12 @@ export interface FeatureRecord {
   outcome?: TradeOutcomeFeatures;
   /** ML labels (derived after outcome) */
   labels?: MLLabels;
+  /**
+   * Set when we evaluated a signal but chose not to trade (e.g. similarity AVOID, threshold, ML quality).
+   * Enables learning from "no trade" decisions: same feature snapshot, no execution/outcome.
+   * Training can use these for avoid-classification or counterfactual analysis later.
+   */
+  avoided?: { reason: string; timestamp: number };
 }
 
 // ==========================================
@@ -535,6 +543,57 @@ export class VinceFeatureStoreService extends Service {
   }
 
   /**
+   * Record an evaluated signal that we chose not to trade (e.g. AVOID, below threshold, ML quality).
+   * Persists the same feature snapshot as recordDecision but with avoided=true so we keep learning
+   * when the bot correctly (or incorrectly) skips—e.g. on extreme days when no trades are taken.
+   */
+  async recordAvoidedDecision(params: {
+    asset: string;
+    signal: AggregatedSignal;
+    reason: string;
+  }): Promise<string> {
+    if (!this.storeConfig.enabled || !this.initialized) return "";
+
+    const recordId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+    try {
+      const market = await this.collectMarketFeatures(params.asset);
+      const session = this.collectSessionFeatures();
+      const signalFeatures = this.collectSignalFeatures(params.signal);
+      const regime = await this.collectRegimeFeatures(params.asset);
+      const news = await this.collectNewsFeatures();
+
+      const record: FeatureRecord = {
+        id: recordId,
+        timestamp: Date.now(),
+        asset: params.asset,
+        market,
+        session,
+        signal: signalFeatures,
+        regime,
+        news,
+        decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
+        avoided: { reason: params.reason, timestamp: Date.now() },
+      };
+
+      this.records.push(record);
+
+      if (this.records.length >= this.storeConfig.maxRecordsPerFile) {
+        await this.flush();
+      }
+
+      logger.debug(
+        `[VinceFeatureStore] Avoided decision recorded: ${params.asset} (${params.reason.substring(0, 40)})`
+      );
+
+      return recordId;
+    } catch (error) {
+      logger.debug(`[VinceFeatureStore] Error recording avoided decision: ${error}`);
+      return "";
+    }
+  }
+
+  /**
    * Link a trade position to a feature record
    */
   linkTrade(recordId: string, positionId: string): void {
@@ -599,6 +658,7 @@ export class VinceFeatureStoreService extends Service {
       realizedPnl: number;
       realizedPnlPct: number;
       exitReason: string;
+      feesUsd?: number;
       maxUnrealizedProfit?: number;
       maxUnrealizedLoss?: number;
       partialProfitsTaken?: number;
@@ -635,6 +695,7 @@ export class VinceFeatureStoreService extends Service {
       exitPrice: outcome.exitPrice,
       realizedPnl: outcome.realizedPnl,
       realizedPnlPct: outcome.realizedPnlPct,
+      feesUsd: outcome.feesUsd,
       holdingPeriodMinutes,
       exitReason: outcome.exitReason,
       maxFavorableExcursion: outcome.maxUnrealizedProfit ?? 0,
@@ -1277,8 +1338,14 @@ export class VinceFeatureStoreService extends Service {
   private async flush(): Promise<void> {
     if (this.records.length === 0) return;
 
-    const toFlush = [...this.records];
-    this.records = [];
+    // Only flush records that already have outcomes (or were never linked to a position).
+    // Records still in pendingOutcomes stay in memory until the trade closes, so we can
+    // write them with outcome/labels on the next flush and training gets "trades with outcomes".
+    const pendingRecordIds = new Set(this.pendingOutcomes.values());
+    const toFlush = this.records.filter((r) => !pendingRecordIds.has(r.id));
+    this.records = this.records.filter((r) => pendingRecordIds.has(r.id));
+
+    if (toFlush.length === 0) return;
 
     try {
       const filename = `features_${new Date().toISOString().split("T")[0]}_${Date.now()}.jsonl`;

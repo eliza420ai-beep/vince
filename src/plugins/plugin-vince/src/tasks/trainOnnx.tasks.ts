@@ -24,6 +24,10 @@ const MIN_COMPLETE_RECORDS = 90;
 const MIN_SAMPLES_ARG = "90";
 const TRAIN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h between runs
 const COOLDOWN_FILE = ".elizadb/vince-paper-bot/models/last_train_at.txt";
+/** When recent win rate is below this and we have enough recent complete trades, allow retrain despite cooldown. */
+const RETRAIN_RECENT_WIN_RATE_THRESHOLD = 0.45;
+const RETRAIN_RECENT_MIN_TRADES = 20;
+const RETRAIN_RECENT_LOOKBACK = 50;
 
 function getDataDir(): string {
   return path.join(process.cwd(), ".elizadb", "vince-paper-bot", "features");
@@ -175,11 +179,26 @@ export const registerTrainOnnxTask = async (
         }
 
         const lastTrain = getLastTrainTime();
-        if (lastTrain > 0 && Date.now() - lastTrain < TRAIN_COOLDOWN_MS) {
-          logger.debug(
-            "[TrainONNX] Skipping: last training was < 24h ago (cooldown)",
-          );
-          return;
+        const inCooldown = lastTrain > 0 && Date.now() - lastTrain < TRAIN_COOLDOWN_MS;
+        if (inCooldown) {
+          const records = await featureStore.loadRecords(30);
+          const complete = records.filter((r) => r.outcome && r.labels);
+          const recent = complete.slice(-RETRAIN_RECENT_LOOKBACK);
+          const recentWinRate =
+            recent.length >= RETRAIN_RECENT_MIN_TRADES
+              ? recent.filter((r) => r.labels!.profitable).length / recent.length
+              : null;
+          if (
+            recentWinRate !== null &&
+            recentWinRate < RETRAIN_RECENT_WIN_RATE_THRESHOLD
+          ) {
+            logger.info(
+              `[TrainONNX] Allowing retrain despite cooldown: recent win rate ${(recentWinRate * 100).toFixed(0)}% (last ${recent.length} trades) < ${RETRAIN_RECENT_WIN_RATE_THRESHOLD * 100}%`
+            );
+          } else {
+            logger.debug("[TrainONNX] Skipping: last training was < 24h ago (cooldown)");
+            return;
+          }
         }
 
         logger.info(

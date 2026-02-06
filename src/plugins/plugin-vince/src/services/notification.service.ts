@@ -50,6 +50,7 @@ export class VinceNotificationService extends Service {
   /**
    * Push a text message to connected channels.
    * No-op when no Discord/Slack/Telegram rooms exist.
+   * Only VINCE has Discord (and typically Slack/Telegram) send handlers; other agents skip push targets for those sources to avoid "No send handler" errors.
    */
   async push(text: string, options?: PushOptions): Promise<number> {
     if (!text?.trim()) return 0;
@@ -62,7 +63,14 @@ export class VinceNotificationService extends Service {
       return 0;
     }
 
+    const isNoSendHandler = (err: unknown): boolean =>
+      String(err).includes("No send handler registered") ||
+      String(err).includes("Send handler not found") ||
+      String((err as Error)?.message).includes("No send handler registered") ||
+      String((err as Error)?.message).includes("Send handler not found");
+
     let sent = 0;
+    let skippedNoHandler = 0;
     const failed: string[] = [];
     for (const target of targets) {
       try {
@@ -72,7 +80,11 @@ export class VinceNotificationService extends Service {
           `[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`,
         );
       } catch (err) {
-        failed.push(`${target.source}: ${err}`);
+        if (isNoSendHandler(err)) {
+          skippedNoHandler++;
+        } else {
+          failed.push(`${target.source}: ${err}`);
+        }
       }
     }
 
@@ -80,6 +92,9 @@ export class VinceNotificationService extends Service {
       logger.info(
         `[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`,
       );
+    }
+    if (skippedNoHandler > 0) {
+      logger.debug(`[VinceNotification] Skipped ${skippedNoHandler} target(s) (no send handler for source — use a separate Discord app for VINCE)`);
     }
     if (failed.length > 0) {
       logger.warn(
@@ -89,16 +104,15 @@ export class VinceNotificationService extends Service {
     return sent;
   }
 
-  private async getPushTargets(options?: PushOptions): Promise<
-    Array<{
-      source: string;
-      roomId?: UUID;
-      channelId?: string;
-      serverId?: string;
-    }>
-  > {
-    const sources =
-      (options?.sources as readonly string[] | undefined) ?? PUSH_SOURCES;
+  private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
+    const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
+    const vinceHasOwnDiscord =
+      !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+      !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
+      (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+    const defaultSources: readonly string[] =
+      isVince && !vinceHasOwnDiscord ? (["slack", "telegram"] as const) : PUSH_SOURCES;
+    const sources = (options?.sources as readonly string[] | undefined) ?? defaultSources;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
 
@@ -108,12 +122,16 @@ export class VinceNotificationService extends Service {
       return name.includes(nameContains);
     };
 
-    const targets: Array<{
-      source: string;
-      roomId?: UUID;
-      channelId?: string;
-      serverId?: string;
-    }> = [];
+    const shouldIncludeSource = (src: string): boolean => {
+      if (!sources.includes(src)) return false;
+      if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
+      if (isVince && src === "discord") return vinceHasOwnDiscord;
+      if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim()) return false;
+      if (isVince && src === "telegram" && !process.env.TELEGRAM_BOT_TOKEN?.trim()) return false;
+      return true;
+    };
+
+    const targets: Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }> = [];
 
     try {
       const worlds = await this.runtime.getAllWorlds();
@@ -122,18 +140,13 @@ export class VinceNotificationService extends Service {
         const rooms = await this.runtime.getRooms(world.id);
         for (const room of rooms) {
           const src = (room.source ?? "").toLowerCase();
-          if (!sources.includes(src)) continue;
-          if (
-            roomIdsFilter?.length &&
-            room.id &&
-            !roomIdsFilter.includes(room.id)
-          )
-            continue;
+          if (!shouldIncludeSource(src)) continue;
+          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
           if (!room.id) continue;
           if (!matchesRoomName(room)) continue;
 
           targets.push({
-            source: room.source,
+            source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
             serverId:
@@ -146,16 +159,11 @@ export class VinceNotificationService extends Service {
         const fallbackRooms = await this.runtime.getRooms(ZERO_UUID);
         for (const room of fallbackRooms) {
           const src = (room.source ?? "").toLowerCase();
-          if (!sources.includes(src)) continue;
-          if (
-            roomIdsFilter?.length &&
-            room.id &&
-            !roomIdsFilter.includes(room.id)
-          )
-            continue;
+          if (!shouldIncludeSource(src)) continue;
+          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
           if (!matchesRoomName(room)) continue;
           targets.push({
-            source: room.source,
+            source: (room.source ?? "").toLowerCase(),
             roomId: room.id,
             channelId: room.channelId,
             serverId:

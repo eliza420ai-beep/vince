@@ -132,3 +132,28 @@ bun run scripts/test-summarize.ts
 # Extract-only (transcript, no LLM)
 bun run scripts/test-summarize.ts -- --extract
 ```
+
+---
+
+## ML training (VINCE paper bot)
+
+The VINCE plugin trains XGBoost models (signal quality, position sizing, TP/SL optimizers) on paper-trade feature store data and exports ONNX for the ML Inference Service. The training script lives in the plugin, not in the repo root `scripts/` folder.
+
+**From repo root:**
+
+```bash
+# Install Python deps (once)
+pip3 install -r src/plugins/plugin-vince/scripts/requirements.txt
+
+# Train (min 90 completed trades with outcomes)
+python3 src/plugins/plugin-vince/scripts/train_models.py \
+  --data .elizadb/vince-paper-bot/features \
+  --output .elizadb/vince-paper-bot/models \
+  --min-samples 90
+```
+
+- `--data`: path to a single JSONL file or a directory; the script loads all `features_*.jsonl`, `synthetic_*.jsonl`, and `combined.jsonl` inside it.
+- `--output`: directory where `.onnx`, `training_metadata.json`, `improvement_report.md`, and joblib backups are written.
+- With 90+ completed trades, the plugin task `TRAIN_ONNX_WHEN_READY` can run this automatically (max once per 24h). On Eliza Cloud, trained models are uploaded to Supabase Storage and reloaded without redeploy.
+
+See [FEEDBACK.md](../src/plugins/plugin-vince/scripts/FEEDBACK.md) for review notes and [PARAMETER_IMPROVEMENT.md](../src/plugins/plugin-vince/scripts/PARAMETER_IMPROVEMENT.md) for improvement report usage. Feature store and deploy: [FEATURE-STORE.md](../FEATURE-STORE.md), [DEPLOY.md](../DEPLOY.md).

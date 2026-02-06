@@ -1,5 +1,7 @@
 # Stale P&L Investigation (Feb 2026)
 
+**Status:** Fixed (2026-02-03). See `progress.txt` § "Essential bug fix: Stale P&L / uPNL" for the completed entry.
+
 ## What happened
 
 The paper bot reported a short position as **"underwater"** with about **-$40 P&L** while BTC had already dropped to ~$75K. The short had been opened at $75,872, so it was actually **profitable** at $75K. The strategy and entry were correct; the **reported unrealized P&L was stale**.
