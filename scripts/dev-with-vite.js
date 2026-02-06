@@ -140,12 +140,13 @@ async function main() {
 
   console.log("\n");
   console.log("  ╔════════════════════════════════════════════════════════════╗");
-  console.log("  ║  USE THIS URL (chat UI — NOT the \"Invite code\" screen):     ║");
+  console.log("  ║  Otaku-style UI (VINCE chat + Alpha):                      ║");
   console.log("  ║                                                            ║");
-  console.log("  ║  " + resolvedUrl + "  ║");
+  console.log("  ║  http://localhost:" + API_PORT + "  (built UI from this process)           ║");
+  console.log("  ║  " + resolvedUrl + "  (Vite dev server)   ║");
   console.log("  ║                                                            ║");
-  console.log("  ║  Port 3000 = default ElizaOS dashboard (Invite code).       ║");
-  console.log("  ║  If 5173 was in use, the URL above may be 5174 — use it.    ║");
+  console.log("  ║  Use either URL. If you see \"Invite code\" / old dashboard,   ║");
+  console.log("  ║  you may have run `elizaos start` — use `bun start` instead.║");
   console.log("  ╚════════════════════════════════════════════════════════════╝");
   console.log("\n");
 }

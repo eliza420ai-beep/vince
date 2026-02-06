@@ -275,6 +275,24 @@ export class MessagingService extends BaseApiClient {
   }
 
   /**
+   * Get the current (default) message server ID for this server instance.
+   * Use this for local-only messaging so the message bus recognizes the server and delivers replies.
+   */
+  async getCurrentMessageServer(): Promise<{ messageServerId: UUID } | null> {
+    try {
+      const data = await this.get<{ success?: boolean; data?: { messageServerId: UUID } }>(
+        '/api/messaging/message-server/current'
+      );
+      if (data?.data?.messageServerId) {
+        return { messageServerId: data.data.messageServerId };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * List all message servers
    */
   async listServers(): Promise<{ servers: MessageServer[] }> {

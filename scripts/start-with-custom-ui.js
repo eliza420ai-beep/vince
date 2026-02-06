@@ -35,6 +35,12 @@ if (fs.existsSync(envPath)) {
   }
 }
 
+// Log when local-only messaging is active (agent replies stay on local server/socket)
+const useLocalMessaging = process.env.ELIZAOS_USE_LOCAL_MESSAGING === "true" || !process.env.ELIZAOS_API_KEY?.trim();
+if (useLocalMessaging) {
+  console.log("[start] Messaging: local-only (replies delivered via local server/socket)");
+}
+
 // Optional: run Postgres bootstrap when POSTGRES_URL is set (same as start-with-db.js)
 const postgresUrl = process.env.POSTGRES_URL?.trim();
 const sslReject = process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED?.trim().toLowerCase();
@@ -141,7 +147,8 @@ async function main() {
     postgresUrl: postgresUrl || undefined,
   });
   console.log(" Started", agents.length, "agent(s)");
-  console.log("\n Server with Otaku-style UI: http://localhost:" + port + "\n");
+  console.log(" Serving Otaku-style UI from:", clientPath);
+  console.log("\n Open: http://localhost:" + port + "\n");
 }
 
 main().catch((err) => {

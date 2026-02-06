@@ -10,7 +10,7 @@ import { elizaClient } from '@/frontend/lib/elizaClient'
 import { socketManager } from '@/frontend/lib/socketManager'
 import { cn } from "@/frontend/lib/utils"
 import type { Agent, UUID } from '@elizaos/core'
-import { Loader2, ArrowLeft, Wallet, TrendingUp, Search, Repeat, Database, CheckCircle2 } from "lucide-react"
+import { Loader2, ArrowLeft, Wallet, TrendingUp, Search, Repeat, Database, CheckCircle2, BarChart2, Newspaper, Flame, Building2, ImageIcon } from "lucide-react"
 import type React from "react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Textarea } from "@/frontend/components/ui/textarea"
@@ -79,6 +79,32 @@ const PLUGIN_ACTIONS = {
       "How many confirmations for 0x...",
     ]
   }
+}
+
+// Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
+const ALPHA_CATEGORIES: Record<string, { title: string; icon: typeof Wallet; promptToAsk: string }> = {
+  perps: { title: "PERPS / PRICES", icon: BarChart2, promptToAsk: "aloha" },
+  options: { title: "OPTIONS", icon: TrendingUp, promptToAsk: "options" },
+  nft: { title: "NFT FLOOR", icon: ImageIcon, promptToAsk: "nft floor" },
+  memes: { title: "MEMES", icon: Flame, promptToAsk: "meme scanner" },
+  tradfi: { title: "TRADFI", icon: Building2, promptToAsk: "tradfi" },
+  paper: { title: "PAPER", icon: Wallet, promptToAsk: "bot status" },
+  news: { title: "NEWS", icon: Newspaper, promptToAsk: "mando minutes" },
+}
+
+const ALPHA_PATTERNS: { key: keyof typeof ALPHA_CATEGORIES; patterns: RegExp[] }[] = [
+  { key: "perps", patterns: [/BINANCE INTELLIGENCE/i, /COINGECKO MARKET/i] },
+  { key: "options", patterns: [/DERIBIT OPTIONS/i] },
+  { key: "nft", patterns: [/NFT FLOOR/i] },
+  { key: "memes", patterns: [/DEXSCREENER.*MEME/i, /MEME SCANNER/i] },
+  { key: "tradfi", patterns: [/HIP-3 TRADFI/i, /TRADFI DASHBOARD/i] },
+  { key: "paper", patterns: [/PAPER TRADE OPENED/i] },
+  { key: "news", patterns: [/MANDOMINUTES/i] },
+]
+
+function extractAlphaSummary(content: string, maxLen: number = 100): string {
+  const trimmed = content.replace(/\s+/g, " ").trim()
+  return trimmed.length <= maxLen ? trimmed : trimmed.slice(0, maxLen) + "…"
 }
 
 // Helper function to extract chart data from a message
@@ -156,10 +182,13 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
   const [connectionCheck, setConnectionCheck] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
   const [showDummyToolGroup, setShowDummyToolGroup] = useState(false)
   const [showPromptsModal, setShowPromptsModal] = useState(false)
+  const [lastAlphaByCategory, setLastAlphaByCategory] = useState<Record<string, { summary: string; updatedAt: number }>>({})
+  const [showReplyHint, setShowReplyHint] = useState(false) // Shown when stuck on "Analyzing..." (reply not reaching UI)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const isUserScrollingRef = useRef(false) // Track if user is actively scrolling
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const replyHintTimerRef = useRef<NodeJS.Timeout | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   
   const MAX_TEXTAREA_HEIGHT = 160
@@ -236,6 +265,26 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
     resizeTextarea()
   }, [inputValue, resizeTextarea])
 
+  // When stuck on "Analyzing..." for 15s, show hint (agent reply not reaching UI — usually message-bus / local messaging)
+  useEffect(() => {
+    if (isTyping) {
+      setShowReplyHint(false)
+      replyHintTimerRef.current = setTimeout(() => setShowReplyHint(true), 15000)
+    } else {
+      if (replyHintTimerRef.current) {
+        clearTimeout(replyHintTimerRef.current)
+        replyHintTimerRef.current = null
+      }
+      setShowReplyHint(false)
+    }
+    return () => {
+      if (replyHintTimerRef.current) {
+        clearTimeout(replyHintTimerRef.current)
+        replyHintTimerRef.current = null
+      }
+    }
+  }, [isTyping])
+
   // Clear messages when entering new chat mode
   useEffect(() => {
     if (isNewChatMode && !channelId) {
@@ -299,6 +348,27 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
 
     loadMessages()
   }, [channelId])
+
+  // Extract alpha TLDR from agent messages (Option A: reuse last agent reply)
+  useEffect(() => {
+    const agentMessages = [...messages].filter((m) => m.isAgent && m.content?.trim()).sort((a, b) => b.createdAt - a.createdAt)
+    const updates: Record<string, { summary: string; updatedAt: number }> = {}
+    for (const msg of agentMessages) {
+      const content = msg.content
+      for (const { key, patterns } of ALPHA_PATTERNS) {
+        if (updates[key]) continue
+        for (const re of patterns) {
+          if (re.test(content)) {
+            updates[key] = { summary: extractAlphaSummary(content), updatedAt: msg.createdAt }
+            break
+          }
+        }
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      setLastAlphaByCategory((prev) => ({ ...prev, ...updates }))
+    }
+  }, [messages])
 
   // Listen for new messages (channel joining is handled in App.tsx)
   // Only depend on channelId to avoid re-subscribing when agent object changes
@@ -800,6 +870,14 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
                       </div>
                     </ToolGroup>
                   </div>
+                  {showReplyHint && (
+                    <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                      <p className="font-medium">Reply not showing?</p>
+                      <p className="mt-1 text-muted-foreground dark:text-amber-200/80">
+                        In <code className="rounded bg-muted px-1">.env</code> set <code className="rounded bg-muted px-1">ELIZAOS_USE_LOCAL_MESSAGING=true</code> and leave <code className="rounded bg-muted px-1">ELIZAOS_API_KEY</code> unset. Restart the server (<code className="rounded bg-muted px-1">bun start</code>). See DEPLOY.md § &quot;Bot status / agent replies not reaching the UI&quot;.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -865,6 +943,35 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
             {/* Plugin-Based Quick Actions - Only show when no messages and not creating/typing */}
             {messages.length === 0 && !isCreatingChannel && !isTyping && !isLoadingMessages && (
               <div className="pt-3 md:pt-4 border-t border-border">
+                {/* Alpha at a glance - TLDR from terminal dashboards (same card style as Quick Start) */}
+                <div className="mb-4">
+                  <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                    Alpha at a glance
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                    {(Object.keys(ALPHA_CATEGORIES) as Array<keyof typeof ALPHA_CATEGORIES>).map((alphaKey) => {
+                      const alpha = ALPHA_CATEGORIES[alphaKey]
+                      const Icon = alpha.icon
+                      const stored = lastAlphaByCategory[alphaKey]
+                      return (
+                        <button
+                          key={alphaKey}
+                          type="button"
+                          onClick={() => handlePromptClick(alpha.promptToAsk)}
+                          className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                        >
+                          <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                            <Icon className="size-3 md:size-3.5 text-primary shrink-0" strokeWidth={2} />
+                            <span className="text-foreground">{alpha.title}</span>
+                          </div>
+                          <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                            {stored?.summary ?? `Ask "${alpha.promptToAsk}" for live alpha`}
+                          </p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
                 <div className="flex items-center gap-2 mb-2 md:mb-3">
                   {selectedPlugin && (
                     <button

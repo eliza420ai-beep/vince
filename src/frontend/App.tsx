@@ -29,6 +29,9 @@ import { UUID } from "@elizaos/core";
 import { AboutModalContent } from "@/frontend/components/about/about-modal-content";
 import { getRandomAvatar } from "@/frontend/lib/utils";
 
+/** Default message server ID the message bus is subscribed to (local messaging). Use this when getCurrentMessageServer() returns null so replies reach the UI. */
+const DEFAULT_MESSAGE_SERVER_ID = "00000000-0000-0000-0000-000000000000" as UUID;
+
 // Auth migration version - increment this when auth methodology changes
 // to force users to re-authenticate
 const AUTH_VERSION = 2;
@@ -632,19 +635,23 @@ function App() {
       return;
     }
 
+    // Use the same message server ID we use for sending, so the socket joins the room
+    // where the agent reply will be emitted (default server). Using userId here can
+    // leave the client in a different room and replies never reach the UI.
+    const serverIdForJoin = messageServerId ?? userId;
     console.log(
       " Joining channel:",
       activeChannelId,
-      "with userId as serverId:",
-      userId,
+      "messageServerId:",
+      serverIdForJoin,
     );
-    socketManager.joinChannel(activeChannelId, userId, { isDm: true });
+    socketManager.joinChannel(activeChannelId, serverIdForJoin, { isDm: true });
 
     return () => {
       console.log(" Leaving channel:", activeChannelId);
       socketManager.leaveChannel(activeChannelId);
     };
-  }, [activeChannelId, userId, connected, isNewChatMode]); // Join when active channel, userId, connection, or new chat mode changes
+  }, [activeChannelId, userId, connected, isNewChatMode, messageServerId]); // Join when active channel or message server (for correct room) changes
 
   // Load channels when user ID or agent changes
   useEffect(() => {
@@ -663,63 +670,20 @@ function App() {
       }
 
       try {
-        // STEP 1: Create message server FIRST (before any channels)
-        // This ensures the server_id exists for the foreign key constraint
-        console.log(" Creating message server for user:", userId);
+        // STEP 1: Prefer the server's default message server ID so the message bus delivers replies (local-only).
+        // If we use a different server (createServer), the message bus may ignore messages (not in subscribedMessageServers).
         let serverIdForQuery: string = userId;
-        try {
-          const serverResult = await elizaClient.messaging.createServer({
-            name: `${userId.substring(0, 8)}'s Server`,
-            sourceType: "custom_ui",
-            sourceId: userId,
-            metadata: {
-              createdBy: "custom_ui",
-              userId: userId,
-              userType: "chat_user",
-            },
-          });
-          const sid = serverResult?.id ?? (serverResult as any)?.server?.id;
-          if (sid) {
-            serverIdForQuery = sid;
-            setMessageServerId(sid);
-            console.log(" Message server created/ensured:", sid);
-          }
-
-          // STEP 1.5: Associate agent with the user's server
-          if (sid) {
-            try {
-              await elizaClient.messaging.addAgentToServer(
-                sid as UUID,
-                agent.id as UUID,
-              );
-              console.log(" Agent associated with message server:", sid);
-            } catch (assocError: any) {
-              console.warn(
-                " Failed to associate agent with server (may already be associated):",
-                assocError.message,
-              );
-            }
-          }
-        } catch (serverError: any) {
-          console.log(
-            " Server creation failed (may already exist):",
-            serverError.message,
-          );
-          try {
-            const { servers } = await elizaClient.messaging.listServers();
-            const existing = servers?.find(
-              (s: any) =>
-                s.sourceId === userId ||
-                s.metadata?.userId === userId
-            );
-            if (existing?.id) {
-              serverIdForQuery = existing.id;
-              setMessageServerId(existing.id);
-              console.log(" Using existing message server:", existing.id);
-            }
-          } catch (_) {
-            // ignore
-          }
+        const currentServer = await elizaClient.messaging.getCurrentMessageServer();
+        if (currentServer?.messageServerId) {
+          serverIdForQuery = currentServer.messageServerId;
+          setMessageServerId(currentServer.messageServerId);
+          console.log(" Using server default message server (replies will reach UI):", serverIdForQuery);
+        } else {
+          // Use default message server ID so the message bus (subscribed to this ID) processes messages and delivers replies.
+          // Creating a user server would use an ID the bus is not subscribed to → "Agent not subscribed to server, ignoring message".
+          serverIdForQuery = DEFAULT_MESSAGE_SERVER_ID;
+          setMessageServerId(DEFAULT_MESSAGE_SERVER_ID);
+          console.log(" Using default message server (replies will reach UI):", serverIdForQuery);
         }
 
         // STEP 2: Load channels from the message server (use actual server id for FK)

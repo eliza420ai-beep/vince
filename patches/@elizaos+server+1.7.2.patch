@@ -1,0 +1,12 @@
+--- node_modules/@elizaos/server/dist/index.js
++++ node_modules/@elizaos/server/dist/index.js
+@@ -28827,9 +28827,9 @@
+       const room = await this.runtime.getRoom(agentRoomId);
+       const world = await this.runtime.getWorld(agentWorldId);
+-      const channelId = room?.channelId;
+-      const messageServerId = world?.messageServerId;
++      const channelId = room?.channelId ?? originalMessage?.channel_id;
++      const messageServerId = world?.messageServerId ?? originalMessage?.message_server_id;
+       if (!channelId || !messageServerId) {
+         logger32.error({
+          src: "service:message-bus",
