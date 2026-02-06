@@ -638,7 +638,7 @@ function App() {
     // Use the same message server ID we use for sending, so the socket joins the room
     // where the agent reply will be emitted (default server). Using userId here can
     // leave the client in a different room and replies never reach the UI.
-    const serverIdForJoin = messageServerId ?? userId;
+    const serverIdForJoin = messageServerId ?? DEFAULT_MESSAGE_SERVER_ID;
     console.log(
       " Joining channel:",
       activeChannelId,
@@ -1051,7 +1051,7 @@ function AppContent({
                       <ChatInterface
                         agent={agent}
                         userId={userId}
-                        serverId={messageServerId ?? userId}
+                        serverId={messageServerId ?? DEFAULT_MESSAGE_SERVER_ID}
                         channelId={activeChannelId}
                         isNewChatMode={isNewChatMode}
                         connected={connected}

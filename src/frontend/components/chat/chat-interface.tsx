@@ -870,7 +870,7 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
                       </div>
                     </ToolGroup>
                   </div>
-                  {showReplyHint && (
+                  {showReplyHint && isTyping && (
                     <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
                       <p className="font-medium">Reply not showing?</p>
                       <p className="mt-1 text-muted-foreground dark:text-amber-200/80">
