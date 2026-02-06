@@ -20,6 +20,9 @@ dist/
 .idea/
 .vscode/
 
+# Otaku reference clone (mirror patterns only; do not commit)
+otaku-ref/
+
 # Optional: uncomment if you don't want to track knowledge build artifacts
 # knowledge/**/*.pdf
 

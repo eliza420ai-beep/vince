@@ -15,7 +15,8 @@ import { logger as coreLogger } from '@elizaos/core';
 /** Known MESSAGE-BUS/central_messages errors we suppress. Non-blocking for UI delivery. */
 const SUPPRESS_ERROR_PATTERNS = [
   /\[HTTP\].*Error submitting agent message/i,
-  /\[SERVICE:MESSAGE-BUS\].*Error sending response to central server/i,
+  // Do NOT suppress "Error sending response to central server" – it explains why agent replies never reach the UI
+  // /\[SERVICE:MESSAGE-BUS\].*Error sending response to central server/i,
   /Failed query:.*insert into "central_messages"/i,
   /\[PLUGIN:SQL\].*Max retry attempts reached.*central_messages/i,
   // Transient SQL retries (rooms, participants, etc.) - plugin retries and typically succeeds

@@ -1,0 +1,173 @@
+# VINCE Frontend Progress Tracker
+# Last updated: 2026-02-05
+# Otaku-style UI (Vite) integrated and branded as VINCE. Update after feature or fix.
+
+================================================================================
+OVERVIEW
+================================================================================
+
+- **Stack:** React, Vite, Tailwind v4, @elizaos/api-client (local packages/api-client)
+- **Run:** `bun start` → API on :3000, Vite dev server on :5173 (or next free port)
+- **Use:** Open the URL the script prints (e.g. http://localhost:5173) for the chat UI.
+  Port 3000 serves the default ElizaOS dashboard (invite code); use 5173 for this UI.
+- **Build:** `bun run build:frontend` → dist/frontend (served by backend when using start:custom-ui)
+
+- **Otaku reference:** Full canonical Otaku project (structure, plugins, deps, scripts):
+  https://github.com/elizaOS/otaku/
+  In this repo, OTAKU.md is the single doc for Otaku: plugins table (12 + SQL), dependency
+  list from Otaku package.json, project structure (managers/, packages/, plugins/), x402/CDP,
+  and troubleshooting. Use OTAKU.md when aligning with Otaku behavior or adding Otaku features.
+
+================================================================================
+COMPLETED
+================================================================================
+
+## Integration ✅
+- Otaku-style frontend brought into repo under src/frontend/
+- Vite root: src/frontend; build outDir: ../../dist/frontend
+- Proxy: /api and /socket.io → http://localhost:3000 (vite.config.ts)
+- Script: scripts/dev-with-vite.js starts backend + Vite, opens browser to correct URL
+
+## Branding ✅
+- "Otaku" → "VINCE" in sidebar, mobile header, index.html
+- Default sidebar user label "Guest" when not signed in
+- Document title "VINCE - Chat" (App.tsx)
+
+## Guest mode & CDP stubs ✅
+- Guest mode in App.tsx: when VITE_CDP_PROJECT_ID not set, persistent guest userId + default
+  userProfile so UI renders without CDP
+- Stubs: src/frontend/stubs/ for @coinbase/cdp-react and @coinbase/cdp-hooks (no-op) so build
+  works without installing CDP packages; aliased in vite.config.ts
+
+## Chat UI behavior ✅
+- Chat input shown when userId and !isLoadingChannels and (activeChannelId || isNewChatMode);
+  no longer requires socket "connected" so input is visible even while connecting
+- Fallback copy when chat area not ready: "Click + next to CHAT HISTORY to start a new chat",
+  "Loading…", or "Sign in or continue as guest to chat"
+- "Connecting…" line shown above chat when socket not yet connected
+- Error state: on "API endpoint not found", in-app hint suggests `bun start` and opening the
+  printed URL (e.g. http://localhost:5173); Dismiss button to clear
+
+## Dependencies & build ✅
+- streamdown ^2.1.0; wrap-ansi-cjs 8.0.0 override for install
+- @tailwindcss/vite in vite.config.ts for Tailwind v4
+- Removed tw-animate-css import (package not present)
+- Local @elizaos/api-client: packages/api-client, built and aliased in vite.config.ts
+
+## Docs ✅
+- README (repo root) § "Chat UI: API endpoint not found" troubleshooting
+- src/plugins/plugin-vince/progress.txt: KNOWN ISSUES + session note for this frontend issue
+- OTAKU.md: full Otaku reference — canonical link (elizaOS/otaku), project structure with
+  managers/ (cdp-transaction-manager.ts), packages/ (api-client, server), all 12 plugins;
+  dependency table from Otaku package.json (CDP, x402, ElizaOS, DeFi, UI, etc.); plugins
+  section with summary table (biconomy, bootstrap, cdp, clanker, coingecko, defillama,
+  etherscan, gamification, morpho, polymarket-discovery, relay, web-search + SQL) and
+  subsections for Biconomy, Clanker, Gamification, Morpho, Polymarket discovery
+
+================================================================================
+KNOWN ISSUES / LIMITATIONS
+================================================================================
+
+⚠️ "API endpoint not found"
+   Backend returns this when a request to /api/* does not match any route (404 catch-all).
+   - Ensure `bun start` is running and open the URL it prints (e.g. http://localhost:5173).
+   - If GET /api/server/health is OK but chat still fails, check Network tab for the exact
+     failing URL (e.g. /api/messaging/servers, /api/messaging/central-servers/.../channels).
+   See repo README Troubleshooting and src/plugins/plugin-vince/progress.txt.
+
+⚠️ Backend guest/anonymous support
+   Full chat (create server/channels, send messages) may require backend support for
+   unauthenticated or guest users; not yet verified end-to-end.
+
+⚠️ CDP not configured
+   When VITE_CDP_PROJECT_ID is not set, CDP wallet and auth use stubs/guest mode. Wallet
+   card and sign-in are present but not wired to real CDP.
+
+⚠️ Which agent am I talking to?
+   The UI chats with the first agent returned by the API (agentsData[0]). In this repo
+   src/index.ts registers: 1) VINCE (vinceAgent), 2) Eliza (elizaAgent). So you are
+   talking to VINCE, not Otaku (Otaku is in src/agents/otaku.ts but not in the default
+   project agents array). The footer disclaimer now shows the actual agent name (e.g.
+   "VINCE is in beta...") so it's clear who you're chatting with.
+
+⚠️ Agent replies not reaching UI (MESSAGE-BUS "fetch failed")
+   If "bot status" (or any message) never shows the agent reply and the UI stays on
+   "Analyzing your request", check terminal at startup for:
+   - [SERVICE:MESSAGE-BUS] Error fetching agent servers (error=fetch failed)
+   - [SERVICE:MESSAGE-BUS] Error fetching channels from server (error=fetch failed)
+   The message bus can't get server/channel list, so it can't route the reply back.
+   Fix: use local-only messaging (recommended for now): in .env set
+   ELIZAOS_USE_LOCAL_MESSAGING=true or leave ELIZAOS_API_KEY unset; restart. See DEPLOY.md
+   § "Bot status / agent replies not reaching the UI (local)" and .env.example § MESSAGING.
+
+================================================================================
+IN PROGRESS / BACKLOG
+================================================================================
+
+- Verify end-to-end chat: send message → agent reply over Socket.IO + messaging API
+   (blocked by MESSAGE-BUS fetch when "fetch failed" at startup)
+- Optional: Radix sidebar/sheet for mobile, full action-tool layout from Otaku
+- Optional: Replace "Otaku is in beta" disclaimer with VINCE or remove
+- Optional: Add Otaku plugins/deps from OTAKU.md if full Otaku behavior (wallet, swaps,
+   x402, Morpho, Relay, Polymarket, etc.) is desired; this repo may ship a subset.
+
+================================================================================
+KEY FILES
+================================================================================
+
+- App.tsx                    — Main app, guest mode, channels, chat view, error fallbacks
+- components/chat/chat-interface.tsx — Messages, input, quick prompts, error display
+- lib/elizaClient.ts         — API client (baseUrl: window.location.origin)
+- lib/socketManager.ts       — Socket.IO connection and channel join/leave
+- vite.config.ts             — Proxy, aliases (api-client, CDP stubs), Tailwind
+- stubs/cdp-react.tsx, stubs/cdp-hooks.ts — No-op CDP when not configured
+- docs/architecture.md, docs/development.md, docs/troubleshooting.md
+- OTAKU.md (repo root) — Otaku agent: full reference (elizaOS/otaku), plugins, deps, structure
+
+================================================================================
+SESSION NOTES
+================================================================================
+
+2026-02-05:
+- progress.txt created for frontend folder; documents integration, branding, guest mode,
+  chat input visibility, "API endpoint not found" handling, and known issues.
+- Chat UI error: when error message contains "endpoint not found", show hint to use
+  `bun start` and open printed URL (chat-interface.tsx).
+- README and src/plugins/plugin-vince/progress.txt updated with Chat UI troubleshooting and KNOWN ISSUES.
+
+2026-02-05 (bot status / agent reply delivery):
+- chat-interface.tsx: clear typing indicator on any agent message (not only MULTI_STEP_SUMMARY)
+  so single-step actions like VINCE_BOT_STATUS stop showing "Analyzing your request" once reply arrives.
+- chat-interface.tsx: filter messageBroadcast by channelId/roomId when present so messages for
+  other channels aren't shown; added [Chat] debug logs (New message received / Ignoring message for different channel).
+- plugin-log-filter: stopped suppressing [SERVICE:MESSAGE-BUS] "Error sending response to central server"
+  so that error is visible when reply delivery fails.
+- DEPLOY.md: added § "Bot status / agent replies not reaching the UI (local)" explaining
+  MESSAGE-BUS "Error fetching agent servers" and "Error fetching channels from server" (fetch failed)
+  and that they prevent the bus from routing replies to the UI.
+- progress.txt: added KNOWN ISSUES entry for MESSAGE-BUS fetch failed and link to DEPLOY.md.
+
+2026-02-05 (Otaku reference and OTAKU.md):
+- OTAKU.md: set as single reference for Otaku; added canonical link to https://github.com/elizaOS/otaku/
+- OTAKU.md: project structure now includes managers/ (cdp-transaction-manager.ts), packages/
+  (api-client, server), and full plugins/ list (biconomy, bootstrap, cdp, clanker, coingecko,
+  defillama, etherscan, gamification, morpho, polymarket-discovery, relay, web-search).
+- OTAKU.md: full dependency table from elizaOS/otaku package.json (CDP, x402, ElizaOS plugins,
+  DeFi/protocols, UI, data/backend); x402 and plugins paragraphs updated to reference full list.
+- OTAKU.md: Plugins section has summary table (all 12 plugins + SQL) and new subsections for
+  Biconomy, Clanker, Gamification, Morpho, Polymarket discovery.
+- progress.txt: overview mentions Otaku reference (elizaOS/otaku + OTAKU.md); COMPLETED docs
+  and KEY FILES updated; BACKLOG note for optional Otaku plugins/deps from OTAKU.md.
+
+2026-02-05 (which agent + why no reply):
+- Clarified which agent: first in list from API = VINCE (src/index.ts has vinceAgent, then elizaAgent).
+  Otaku exists in src/agents/otaku.ts but is not in the default project; footer was hardcoded "Otaku".
+- chat-interface.tsx: footer disclaimer now uses agent.name so it shows the actual agent (e.g. "VINCE is in beta...").
+- progress.txt: added KNOWN ISSUES "Which agent am I talking to?" and kept MESSAGE-BUS as cause for no reply.
+
+2026-02-05 (local-only messaging):
+- character.ts: load plugin-elizacloud only when ELIZAOS_API_KEY is set AND ELIZAOS_USE_LOCAL_MESSAGING is not 'true'.
+  So local-only: set ELIZAOS_USE_LOCAL_MESSAGING=true or leave ELIZAOS_API_KEY unset; restart.
+- .env.example: new § MESSAGING (LOCAL-ONLY VS ELIZA CLOUD); ELIZAOS_USE_LOCAL_MESSAGING=true uncommented (default local-only).
+- DEPLOY.md: added recommended local-only step (set ELIZAOS_USE_LOCAL_MESSAGING=true or unset ELIZAOS_API_KEY).
+- progress.txt: Fix for "no reply" updated to recommend local-only and reference .env.example § MESSAGING.

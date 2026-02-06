@@ -46,7 +46,11 @@ Reference: [elizaOS/otaku](https://github.com/elizaOS/otaku)
    - Integrate with existing `ELIZA_CONFIG` and API (e.g. `/api/agents/{id}/message` or session-based messaging).
 
 4. **Build & serve**
-   - Single command builds backend + frontend and serves the gated UI (e.g. `bun run build` → includes `vite build`; `elizaos start` serves `dist/frontend`).
+   - **`bun start`** (default): Starts backend (API on :3000) and Vite dev server (UI on :5173). **Open http://localhost:5173** for the full Otaku-style UI (sidebar, chat, Quick Start, wallet). This matches [Otaku](https://github.com/elizaOS/otaku)’s “run Vite dev in a second terminal” flow in one command and avoids blank/unstyled screens.
+   - **`bun run start:static`**: Serves backend + built frontend from a single port (http://localhost:3000). Use for production-like or single-port testing.
+   - **`bun run start:eliza-dashboard`**: Runs `elizaos start` — built-in ElizaOS dashboard only (the "VINCE – Push, not pull" / Invite code screen). Use only if you want the default ElizaOS UI, not the Otaku-style VINCE UI.
+   - Build frontend manually: `bun run build:frontend` (or `bun run build:all`).
+   - **Why do I see "Invite code" / gated access?** You are on the wrong URL or started with `start:eliza-dashboard` (or `elizaos start`). For the Otaku-style UI run **`bun start`** and open **http://localhost:5173**.
 
 ### Nice-to-have for 4.20
 
@@ -106,13 +110,14 @@ Reference: [elizaOS/otaku](https://github.com/elizaOS/otaku)
 
 ## 7. File / Script Checklist
 
-- [ ] `tasks/FRONTEND-4.20-MVP-HACKATHON.md` (this doc).
-- [ ] Auth: `src/frontend/lib/auth.ts` (Supabase or invite), `src/frontend/contexts/AuthContext.tsx`, gated route in App.
-- [ ] Shell: `src/frontend/App.tsx` (sidebar + main), `src/frontend/components/layout/Sidebar.tsx`, `MainContent.tsx`.
-- [ ] Chat: `src/frontend/components/chat/*` (ChatPanel, MessageList, Composer).
-- [ ] Dashboard: `src/frontend/components/dashboard/*` (placeholder widgets).
-- [ ] API: `src/frontend/lib/api.ts` or `elizaClient.ts` for agents/messages.
-- [ ] Build: `package.json` — `build` runs `vite build` then backend build (or vice versa); `build:frontend` script.
+- [x] `tasks/FRONTEND-4.20-MVP-HACKATHON.md` (this doc).
+- [x] Auth: `src/frontend/lib/auth.ts` (invite-code), `src/frontend/contexts/AuthContext.tsx`, `components/auth/Gate.tsx`.
+- [x] Shell: `src/frontend/App.tsx` (sidebar + main + right widget column), `src/frontend/components/layout/Sidebar.tsx`.
+- [x] Chat: `src/frontend/components/chat/ChatPanel.tsx`.
+- [x] Dashboard: `src/frontend/components/dashboard/Dashboard.tsx`, `Widget.tsx` (Otaku-style clock/location).
+- [x] API: `src/frontend/lib/api.ts`; `lib/socketManager.ts` (Otaku-style, optional JWT).
+- [x] Build: `package.json` — `build` runs `build:frontend` then backend; `build:frontend` = `vite build`.
+- [x] **Otaku mirror:** UI components (`components/ui/`: button, card, input, badge, tv-noise), Widget, socketManager; 3-column layout with right-side Widget. Reference: clone `elizaOS/otaku` to `otaku-ref/` (gitignored).
 
 ---
 

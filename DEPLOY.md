@@ -76,6 +76,25 @@ It must be:
 --env "POSTGRES_URL=postgresql://..."
 ```
 
+## Bot status / agent replies not reaching the UI (local)
+
+If you send **"bot status"** (or any message) and the UI stays on "Analyzing your request" and never shows the agent’s reply, check the **terminal** for these lines at **startup**:
+
+```text
+Error      [SERVICE:MESSAGE-BUS] Error fetching agent servers (error=fetch failed)
+Error      [SERVICE:MESSAGE-BUS] Error fetching channels from server (messageServerId=..., error=fetch failed)
+```
+
+**What they mean:** The MESSAGE-BUS (from `@elizaos/plugin-elizacloud` or the core server) is trying to fetch the list of agent servers and channels so it can route the agent’s reply back to the right place. That fetch is failing, so when the agent produces a reply, the bus has no valid routing (it falls back to `messageServerId=00000000-0000-0000-0000-000000000000`) and the reply never reaches the chat UI.
+
+**What to do:**
+
+1. **Local run with Eliza Cloud plugin:** You have `ELIZAOS_API_KEY` set, so the plugin tries to talk to Eliza Cloud. The "fetch failed" usually means the request to the central API (e.g. `api.eliza.how` or the URL the plugin uses) failed — network, DNS, or wrong/base URL. Ensure the machine can reach the API and that the key is valid for that environment.
+2. **Fully local (no Cloud):** If you intend to run only against `http://localhost:3000` with no Cloud, the message bus may still be trying to call a central URL. Check ElizaOS docs or env vars (e.g. a base URL or “use local” flag) so the bus uses the local server for server/channel listing instead of a remote API. **Recommended for now (local-only):** In `.env` set `ELIZAOS_USE_LOCAL_MESSAGING=true` or leave `ELIZAOS_API_KEY` unset; the elizacloud plugin will not load and replies will be delivered by the local server/socket. See `.env.example` § MESSAGING.
+3. **After fixing:** Restart the app (`bun start`), open the chat at `http://localhost:5173`, and try "bot status" again. You should then see the reply in the UI (and no "Error sending response to central server" in the log if the bus can now route correctly).
+
+The agent **is** running (you’ll see e.g. "Received message from central bus", "Discovered new channel", and paper trading logs); the break is in **sending the response** back to the client because the bus never got a valid server/channel list.
+
 ## Env vars for production
 
 | Env | Required | Used by |
