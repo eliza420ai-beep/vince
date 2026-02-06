@@ -43,10 +43,9 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
-// Load Discord for VINCE only when he has his own bot (different Discord app than Eliza).
-// This avoids one bot being used by two runtimes; with two apps, both agents can run in the same server (see DISCORD.md).
+// Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
+// No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
 const vinceHasOwnDiscord =
-  process.env.VINCE_DISCORD_ENABLED === "true" &&
   !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
   !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
   (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());

@@ -231,10 +231,9 @@ export const vincePlugin: Plugin = {
     // Guard + normalize sendMessageToTarget so we never call core with discord when VINCE has no Discord handler (stops "Send handler not found" spam)
     if (isVinceAgent(runtime) && typeof runtime.sendMessageToTarget === "function") {
       const vinceHasOwnDiscord =
-        process.env.VINCE_DISCORD_ENABLED === "true" &&
         !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
         !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
-        (process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || !process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+        (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
       const original = runtime.sendMessageToTarget.bind(runtime);
       (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: TargetInfo, content: Content) => {
         const normalized: TargetInfo = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
@@ -555,6 +554,20 @@ export const vincePlugin: Plugin = {
           logger.warn("[VINCE] Failed to register news daily task:", e);
         }
       });
+    }
+
+    // Optional: stagger second Discord bot so both can connect in same process (see DISCORD.md).
+    // When both Eliza and VINCE have Discord enabled, delaying VINCE init gives the first bot time to connect before the second starts.
+    if (isVinceAgent(runtime)) {
+      const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+      const vinceHasDiscord =
+        !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+        !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim();
+      const delayMs = parseInt(process.env.DELAY_SECOND_DISCORD_MS ?? "3000", 10);
+      if (elizaHasDiscord && vinceHasDiscord && !Number.isNaN(delayMs) && delayMs > 0) {
+        logger.info(`[DISCORD] Staggering second bot: waiting ${delayMs}ms so both can connect (set DELAY_SECOND_DISCORD_MS=0 to disable).`);
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
     }
   },
 };

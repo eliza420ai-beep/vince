@@ -93,11 +93,13 @@ export class VinceNotificationService extends Service {
 
   private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
     const isVince = (this.runtime.character?.name ?? "").toUpperCase() === "VINCE";
-    // When VINCE has no Discord app, never include Discord in default sources so we never add Discord rooms (avoids "Send handler not found" from core when it also tries to deliver to those rooms).
+    // VINCE has own Discord when VINCE_DISCORD_* are set and different from Eliza's app (same condition as vince.ts).
+    const vinceHasOwnDiscord =
+      !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
+      !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
+      (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
     const defaultSources: readonly string[] =
-      isVince && process.env.VINCE_DISCORD_ENABLED !== "true"
-        ? (["slack", "telegram"] as const)
-        : PUSH_SOURCES;
+      isVince && !vinceHasOwnDiscord ? (["slack", "telegram"] as const) : PUSH_SOURCES;
     const sources = (options?.sources as readonly string[] | undefined) ?? defaultSources;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
@@ -111,13 +113,8 @@ export class VinceNotificationService extends Service {
     const shouldIncludeSource = (src: string): boolean => {
       if (!sources.includes(src)) return false;
       if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]) && !isVince) return false;
-      // Only include Discord for VINCE when his Discord plugin is actually loaded (same condition as vince.ts).
-      // Otherwise we add Discord rooms (from shared DB) and sendMessageToTarget logs "Send handler not found".
-      if (isVince && src === "discord") {
-        if (process.env.VINCE_DISCORD_ENABLED !== "true") return false;
-        if (!process.env.VINCE_DISCORD_API_TOKEN?.trim() || !process.env.VINCE_DISCORD_APPLICATION_ID?.trim()) return false;
-        if (process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() && process.env.VINCE_DISCORD_APPLICATION_ID?.trim() === process.env.ELIZA_DISCORD_APPLICATION_ID?.trim()) return false;
-      }
+      // Only include Discord for VINCE when his Discord plugin is loaded (same condition as vince.ts).
+      if (isVince && src === "discord") return vinceHasOwnDiscord;
       if (isVince && src === "slack" && !process.env.SLACK_BOT_TOKEN?.trim()) return false;
       if (isVince && src === "telegram" && !process.env.TELEGRAM_BOT_TOKEN?.trim()) return false;
       return true;

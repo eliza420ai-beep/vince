@@ -6,6 +6,9 @@ Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designe
 
 ## Multi-Agent Discord (Same Server, No Conflict)
 
+**Why Eliza checks both `ELIZA_DISCORD_*` and `DISCORD_*`:**  
+`DISCORD_*` is a **fallback** for single-bot setups (Eliza only). For **two agents in the same server** you need **two Discord applications** (two bots). One token = one WebSocket; if both agents use the same token, only one connection can exist. Use `ELIZA_DISCORD_*` for Eliza and `VINCE_DISCORD_*` for VINCE (different app IDs). When running both, avoid setting generic `DISCORD_*` for Eliza so there’s no accidental token sharing.
+
 **If you see `Send handler not found (handlerSource=discord)`:** VINCE and Eliza are using the **same** Discord Application ID. Create a **second** Discord app for VINCE at [Discord Developer Portal](https://discord.com/developers/applications), then set `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` to the new app’s values (different from Eliza’s). Restart the app.
 
 To run **both VINCE and Eliza in the same Discord server** without errors (like [the-org](https://github.com/elizaOS/the-org)):
@@ -25,8 +28,7 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 4. **When both load Discord**  
    VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). So set:
 
-   - `VINCE_DISCORD_ENABLED=true`
-   - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (Vince’s app)
+   - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (no separate enabled flag)
    - `ELIZA_DISCORD_APPLICATION_ID` and `ELIZA_DISCORD_API_TOKEN` (Eliza’s app)
 
    With **different** application IDs, both agents load Discord; each runtime gets its own send handler and no conflict.
@@ -315,8 +317,11 @@ When the Discord plugin starts, it prints a **Discord Bot Invite** box with two 
 
 ## Configuration Reference
 
+**Enable both bots in one server:** Set VINCE's `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` in `.env` (different app than Eliza's). Restart. Restart. If the second bot fails to connect, set `DELAY_SECOND_DISCORD_MS=3000` (default) to stagger startup; use `0` to disable.
+
 | Env var | Default | Description |
 |---------|---------|-------------|
+| `DELAY_SECOND_DISCORD_MS` | `3000` | Ms to wait after VINCE init before second Discord (Eliza) starts; set `0` to disable. |
 | `VINCE_DAILY_REPORT_ENABLED` | `true` | Daily market report |
 | `VINCE_DAILY_REPORT_HOUR` | `18` | UTC hour |
 | `VINCE_NEWS_DAILY_ENABLED` | `true` | News briefing |

@@ -8,10 +8,7 @@ import logFilterPlugin from './plugins/plugin-log-filter/src/index.ts';
 // If both use the same Application ID, VINCE won't load the Discord plugin → "Send handler not found".
 const elizaAppId = (process.env.ELIZA_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID)?.trim();
 const vinceAppId = process.env.VINCE_DISCORD_APPLICATION_ID?.trim();
-const vinceDiscordWanted =
-  process.env.VINCE_DISCORD_ENABLED === 'true' &&
-  !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
-  !!vinceAppId;
+const vinceDiscordWanted = !!process.env.VINCE_DISCORD_API_TOKEN?.trim() && !!vinceAppId;
 const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
 
 if (vinceDiscordWanted && elizaAppId && vinceAppId === elizaAppId) {
