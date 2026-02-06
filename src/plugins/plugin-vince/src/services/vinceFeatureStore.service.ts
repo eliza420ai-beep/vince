@@ -275,6 +275,12 @@ export interface FeatureRecord {
   outcome?: TradeOutcomeFeatures;
   /** ML labels (derived after outcome) */
   labels?: MLLabels;
+  /**
+   * Set when we evaluated a signal but chose not to trade (e.g. similarity AVOID, threshold, ML quality).
+   * Enables learning from "no trade" decisions: same feature snapshot, no execution/outcome.
+   * Training can use these for avoid-classification or counterfactual analysis later.
+   */
+  avoided?: { reason: string; timestamp: number };
 }
 
 // ==========================================
@@ -499,6 +505,57 @@ export class VinceFeatureStoreService extends Service {
       return recordId;
     } catch (error) {
       logger.error(`[VinceFeatureStore] Error recording decision: ${error}`);
+      return "";
+    }
+  }
+
+  /**
+   * Record an evaluated signal that we chose not to trade (e.g. AVOID, below threshold, ML quality).
+   * Persists the same feature snapshot as recordDecision but with avoided=true so we keep learning
+   * when the bot correctly (or incorrectly) skips—e.g. on extreme days when no trades are taken.
+   */
+  async recordAvoidedDecision(params: {
+    asset: string;
+    signal: AggregatedSignal;
+    reason: string;
+  }): Promise<string> {
+    if (!this.storeConfig.enabled || !this.initialized) return "";
+
+    const recordId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+    try {
+      const market = await this.collectMarketFeatures(params.asset);
+      const session = this.collectSessionFeatures();
+      const signalFeatures = this.collectSignalFeatures(params.signal);
+      const regime = await this.collectRegimeFeatures(params.asset);
+      const news = await this.collectNewsFeatures();
+
+      const record: FeatureRecord = {
+        id: recordId,
+        timestamp: Date.now(),
+        asset: params.asset,
+        market,
+        session,
+        signal: signalFeatures,
+        regime,
+        news,
+        decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
+        avoided: { reason: params.reason, timestamp: Date.now() },
+      };
+
+      this.records.push(record);
+
+      if (this.records.length >= this.storeConfig.maxRecordsPerFile) {
+        await this.flush();
+      }
+
+      logger.debug(
+        `[VinceFeatureStore] Avoided decision recorded: ${params.asset} (${params.reason.substring(0, 40)})`
+      );
+
+      return recordId;
+    } catch (error) {
+      logger.debug(`[VinceFeatureStore] Error recording avoided decision: ${error}`);
       return "";
     }
   }

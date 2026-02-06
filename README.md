@@ -143,6 +143,8 @@ Every sprint feeds the paper bot more signal coverage, cleaner features, faster 
 
 </div>
 
+**V4.30 (Feb 2026):** Paper bot now records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning when no trades are taken (e.g. extreme vol days). See [FEATURE-STORE.md](FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data". Use `VINCE_PAPER_AGGRESSIVE=true` and `VINCE_PAPER_ASSETS=BTC` for a faster path to 90+ trades.
+
 ---
 
 ## ═══ Heart of VINCE

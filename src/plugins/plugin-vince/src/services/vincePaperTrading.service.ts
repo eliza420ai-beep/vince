@@ -107,7 +107,9 @@ export class VincePaperTradingService extends Service {
   static async start(runtime: IAgentRuntime): Promise<VincePaperTradingService> {
     const service = new VincePaperTradingService(runtime);
     await service.initialize();
-    logger.info("[VincePaperTrading] ✅ Service started");
+    const aggressive = runtime.getSetting?.("vince_paper_aggressive") === true || runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const assets = getPaperTradeAssets(runtime).join(",");
+    logger.info(`[VincePaperTrading] ✅ Service started | aggressive=${aggressive}, assets=${assets}`);
     return service;
   }
 
@@ -416,6 +418,33 @@ export class VincePaperTradingService extends Service {
 
   // Track last rejection log time per asset to avoid spam
   private lastRejectionLog: Map<string, number> = new Map();
+  /** Rate limit for recording avoided decisions (once per asset per 2 min) so we keep learning without flooding the store */
+  private static readonly AVOIDED_RECORD_INTERVAL_MS = 2 * 60 * 1000;
+  private lastAvoidedRecord: Map<string, number> = new Map();
+
+  /**
+   * Record an evaluated-but-no-trade decision in the feature store so ML can learn from avoid decisions
+   * (e.g. on extreme days when no trades are taken). Rate-limited per asset.
+   */
+  private async recordAvoidedDecisionIfNeeded(
+    asset: string,
+    signal: AggregatedSignal,
+    reason: string
+  ): Promise<void> {
+    const now = Date.now();
+    const last = this.lastAvoidedRecord.get(asset);
+    if (last != null && now - last < VincePaperTradingService.AVOIDED_RECORD_INTERVAL_MS) {
+      return;
+    }
+    this.lastAvoidedRecord.set(asset, now);
+    const featureStore = this.getFeatureStore() as VinceFeatureStoreService | null;
+    if (!featureStore || typeof featureStore.recordAvoidedDecision !== "function") return;
+    try {
+      await featureStore.recordAvoidedDecision({ asset, signal, reason });
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] recordAvoidedDecision failed: ${e}`);
+    }
+  }
 
   // ==========================================
   // Order Simulation
@@ -524,7 +553,9 @@ export class VincePaperTradingService extends Service {
               : null;
           if (threshold != null && (signal as AggregatedSignal).mlQualityScore! < threshold) {
             if (signal.direction !== "neutral" && signal.strength > 30) {
-              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`);
+              const reason = `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`;
+              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+              void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             }
             continue;
           }
@@ -537,11 +568,15 @@ export class VincePaperTradingService extends Service {
           const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
           const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
           if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`);
+            const reason = `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
           }
           if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`);
+            const reason = `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
           }
         }
@@ -550,7 +585,9 @@ export class VincePaperTradingService extends Service {
         const aggSignal = signal as AggregatedSignal;
         if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`);
+            const reason = `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`;
+            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           }
           continue;
         }
@@ -571,7 +608,9 @@ export class VincePaperTradingService extends Service {
           aggressiveMode ? 0.4 : undefined
         );
         if (bookRejection.reject) {
-          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), bookRejection.reason!);
+          const reason = bookRejection.reason!;
+          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
+          void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           continue;
         }
         let fundingRate = 0;
@@ -636,7 +675,9 @@ export class VincePaperTradingService extends Service {
         if (!signalValidation.valid) {
           // Log WHY signal was rejected (only for meaningful signals, not neutral)
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, tradeSignal, signalValidation.reason || "threshold not met");
+            const reason = signalValidation.reason || "threshold not met";
+            this.logSignalRejection(asset, tradeSignal, reason);
+            void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           }
           continue;
         }

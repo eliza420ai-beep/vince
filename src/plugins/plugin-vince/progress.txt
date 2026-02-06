@@ -1,10 +1,18 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-06 (UPLOAD/Discord knowledge path note; Docker volume for knowledge/)
+# Last updated: 2026-02-06 (V4.30 — avoided decisions + collecting more training data)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.30 - Avoided decisions + more training data (2026-02-06) ✅
+- **Avoided decisions in feature store:** When the paper bot evaluates a signal but does not trade (e.g. "SIGNAL EVALUATED - NO TRADE" due to similarity AVOID, ML quality below threshold, strength/confidence below bar, book rejection, or risk-manager threshold), we now record the same feature snapshot (market, session, signal, regime, news) with `avoided: { reason, timestamp }` instead of execution/outcome. ML keeps learning on extreme or quiet days when no trades are taken.
+- **Feature store:** `FeatureRecord.avoided` optional field; `recordAvoidedDecision(asset, signal, reason)` in vinceFeatureStore.service.ts. Records written to JSONL/PGLite/Supabase like executed trades; training script continues to use only records with outcome+labels (closed trades); avoided records available for future avoid-classifier or counterfactual analysis.
+- **Paper trading:** On every NO TRADE path we call `recordAvoidedDecisionIfNeeded(asset, signal, reason)` (rate-limited once per asset per 2 min). Wired for ML quality, report suggestion (strength/confidence), similarity AVOID, book rejection, and risk-manager validation.
+- **Docs:** FEATURE-STORE.md — new sections "Avoided decisions (no-trade evaluations)" and "Collecting more training data" (aggressive mode, single-asset, synthetic bootstrap, optional data-collection mode, max-age, monitoring). Scripts README: training input/output note that avoided records are skipped for current models but kept in store.
+- **Startup log:** Paper trading service logs `aggressive=true|false, assets=BTC|...` on start so .env (VINCE_PAPER_AGGRESSIVE, VINCE_PAPER_ASSETS) is visible at runtime.
+- **Recommended for more data:** VINCE_PAPER_AGGRESSIVE=true and VINCE_PAPER_ASSETS=BTC (or BTC,ETH) until 90+ closed trades; see FEATURE-STORE.md and .env.example.
 
 ## Core Architecture ✅
 - Plugin structure (index.ts) with 27 services, 20 actions, 2 providers, 1 evaluator
@@ -243,6 +251,64 @@ COMPLETED
 - Docs: DEPLOY.md "ML training on Eliza Cloud" and "One-time: Create the vince-ml-models bucket"; FEATURE-STORE.md §5; scripts/supabase-feature-store-bootstrap.sql for feature table.
 
 ================================================================================
+PRD – MVP ENHANCEMENTS (Feb 2026)
+================================================================================
+Source: Product Requirements Document – Enhancements to Self-Improving Paper Trading Bot for Hyperliquid Perps.
+Scope: Performance optimization, expanded testing, real-money safeguards, UI/dashboard, ML pipeline refinements. Out of scope: full rewrite; non–Hyperliquid live; hardware-specific optimizations.
+
+## Current vs target metrics
+- Current (as of PRD): ~31.3% win rate, 16 trades, -$928.88 P&L (paper).
+- Targets: Win rate ≥45%; positive P&L; 100+ trades over 6 months backdata; Sharpe >1.2; max drawdown <20%; AUC >0.75 (holdout); outperform BTC hold by 20%+ annualized for VC appeal.
+- KPIs: 50% reduction in negative P&L trades post-improvements; 2x faster model retraining; 99% uptime paper mode; <100ms inference per decision.
+
+## Success criteria (PRD)
+- Quantitative: Win rate ≥45%, Sharpe >1.2, max drawdown <20% in backtests; AUC >0.75 in ML holdout.
+- Qualitative: Positive feedback on "WHY THIS TRADE" explainability; seamless plugin integration.
+- Technical: Safe path to real-money (risk controls, audit logs, fallback on signal/API failure).
+
+## Prioritized improvements (PRD → progress mapping)
+
+### High – Performance optimization
+- Automated hyperparameter tuning: Extend --tune-hyperparams in train_models.py to full Bayesian optimization (e.g. Optuna). Current: GridSearchCV + TimeSeriesSplit.
+- Reinforcement learning: Add RL module (Stable Baselines3 or Ray RLlib) rewarding positive P&L; integrate with feature store. Backlog.
+- Bandit: Already using Thompson Sampling (VinceWeightBanditService). PRD suggests ensuring multi-armed bandit dynamically tests signal combinations; we record outcomes per source—consider explicit A/B arms for signal combos. Backlog refinement.
+- Risk-adjusted metrics: Add Sortino ratio and/or Value-at-Risk (VaR) in improvement reports; filter trades with >5% potential loss in reporting. Backlog.
+
+### High – Testing and validation
+- Walk-forward optimization: Split data into in-sample / out-of-sample; automate via backtrader or zipline. Backlog.
+- Stress testing: Synthetic black swan data (e.g. 50% flash crashes) with NumPy/SciPy; evaluate model robustness. Backlog.
+- Extended backtesting: 1–2 year historical data from Hyperliquid/Binance; --asset-expansion (e.g. AVAX, LINK). Backlog.
+- CI/CD: GitHub Actions daily backtests; alert on regressions. Backlog.
+
+### Medium – Real-money integration (safeguards)
+- Config flag --live-mode with mandatory simulation pre-check (e.g. 100 profitable paper trades). Backlog.
+- Risk controls: Kelly criterion position sizing (SciPy optimize); stop-loss/take-profit automation; max daily loss cap (e.g. 2% of account). Backlog (Kelly already in backlog).
+- Audit logs: All trades with blockchain timestamps for compliance. Backlog.
+- Fallback: On signal/API failure, default to hold or exit. Partially present (circuit breakers, degraded Binance); formalize "hold or exit" policy. Backlog.
+
+### Medium – UI/Dashboard and explainability
+- Streamlit or Flask dashboard: Trades, P&L curves, feature importances (SHAP), "WHY THIS TRADE" breakdowns. Backlog.
+- Real-time alerts: Telegram/Slack for trade notifications. (VinceNotificationService exists; ensure trade events push.) Verify/expand.
+- Export reports: PDF summaries of improvement cycles and tuned params. Backlog.
+
+### Low – Plugin and extensibility
+- API endpoints for community plugins (e.g. new signal sources like Glassnode). Backlog.
+- Multi-threaded signal fetch: concurrent.futures for parallel signal fetching. (We use Promise.all and withTimeout; consider worker pool for CPU-bound or many sources.) Backlog.
+- ONNX version control: Git-like repo for model versions and rollback. Backlog.
+
+## Implementation timeline (PRD)
+- Sprint 1 (2 weeks): Performance optimization + testing suite.
+- Sprint 2 (2 weeks): Real-money integration + dashboard.
+- Sprint 3 (1 week): Plugins and polish.
+- Total: 5 weeks to MVP enhancements. Resources: 1–2 engineers (Python/ML); Optuna, SHAP, Streamlit; minimal budget.
+
+## Risks and mitigations (PRD)
+- ML overfitting: Enforce cross-validation in all trainings (we have holdout + TimeSeriesSplit).
+- Live mode financial loss: Micro-positions (<$100/trade), auto-shutdown.
+- Scope creep: Strict prioritization; weekly check-ins.
+- Data privacy (API keys): Env vars and encryption (already in place).
+
+================================================================================
 TOP PRIORITY – FIX FIRST
 ================================================================================
 
@@ -291,7 +357,7 @@ PRIORITY (real-time data for paper trading algo)
 IN PROGRESS
 ================================================================================
 
-🔄 Paper trading bot needs more trades to tune Thompson Sampling weights
+🔄 Paper trading bot needs more trades to tune Thompson Sampling weights (PRD: target 100+ trades, win rate ≥45%)
    → Use VINCE_PAPER_AGGRESSIVE=true ($280 TP, 2:1 R:R, 40x, no cooldown) and VINCE_PAPER_ASSETS=BTC (focus BTC first) to get more trades and JSONL for ML.
 🔄 Feature store: 90+ trades available; ONNX training runs automatically (TRAIN_ONNX_WHEN_READY) or manually: python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90. Install: pip3 install onnx onnxmltools.
 🔄 No improvement suggestions generated yet (needs more trading data)
@@ -443,6 +509,18 @@ These use data we already collect (or can add with one small integration) but do
 5. **Optional: DVOL/regime in position cap** – DONE ✅
    - Paper trading already reduces size when dvol > 70 (30%) or > 85 (50%); regime-based sizing multiplier applied from MarketRegimeService. See vincePaperTrading.service.ts evaluateAndTrade().
 
+--------------------------------------------------------------------------------
+PRD-aligned next steps (from PRD – MVP Enhancements)
+--------------------------------------------------------------------------------
+- Optuna (or full Bayesian) for train_models.py hyperparameters; we have GridSearchCV, extend to reduce tuning cycles (PRD: 2x faster retraining).
+- Sortino / VaR in improvement reports and trade filtering (>5% potential loss); improve risk-adjusted view (PRD High).
+- Walk-forward optimization (in-sample / out-of-sample) and stress tests (black swan synthetic data) for robustness (PRD High).
+- RL module (Stable Baselines3 / Ray RLlib) rewarding positive P&L, fed from feature store (PRD High).
+- Dashboard (Streamlit/Flask): P&L curves, SHAP feature importances, "WHY THIS TRADE" breakdowns; PDF export of improvement cycles (PRD Medium).
+- Live-mode safeguards: --live-mode flag, 100 profitable paper trades pre-check, Kelly sizing, max daily loss 2%, audit logs, hold/exit fallback (PRD Medium).
+- CI/CD: GitHub Actions daily backtests with regression alerts (PRD High).
+- ONNX versioning and rollback; community plugin API; multi-threaded signal fetch where beneficial (PRD Low).
+
 ================================================================================
 NEXT / BACKLOG
 ================================================================================
@@ -455,9 +533,17 @@ NEXT / BACKLOG
 📋 Implement ClawdBot integration for self-healing (see WHY.md)
 📋 Add Telegram/Discord notifications for alerts
 📋 Add more meme tokens to constants
-📋 Implement position sizing based on Kelly Criterion ML model
+📋 Implement position sizing based on Kelly Criterion ML model (PRD: live-mode risk controls)
 📋 Add correlation-based position limits
 📋 Implement trailing stop-loss logic
+📋 PRD: Optuna/Bayesian hyperparameter tuning in train_models.py
+📋 PRD: Sortino ratio and VaR in improvement reports; filter >5% loss trades
+📋 PRD: Walk-forward optimization + stress testing (black swan synthetic data)
+📋 PRD: RL module (Stable Baselines3/Ray RLlib) for P&L-rewarded policy
+📋 PRD: Streamlit/Flask dashboard (P&L, SHAP, WHY THIS TRADE, PDF export)
+📋 PRD: Live-mode safeguards (pre-check, Kelly, 2% daily cap, audit logs)
+📋 PRD: GitHub Actions daily backtests + regression alerts
+📋 PRD: ONNX version control; community plugin API; parallel signal fetch
 🟢 Debug log: News sentiment "erases gains" bug — FIXED (2026-02-05); see DEBUG LOG FOCUS #1.
 📋 Debug log: Reduce "Service not found (HYPERLIQUID_SERVICE/DERIBIT_SERVICE)" noise – dedupe or
    register fallback as the named service (see DEBUG LOG FOCUS #2).
@@ -559,6 +645,9 @@ X (Twitter) integration – second thoughts:
 ================================================================================
 SESSION NOTES
 ================================================================================
+
+2026-02-06:
+- PRD (Product Requirements Document) integration: Added "PRD – MVP Enhancements (Feb 2026)" section to progress.txt. Captures current vs target metrics (31.3% win rate, 16 trades, -$928.88 → ≥45% win rate, Sharpe >1.2, max DD <20%, AUC >0.75); success criteria; prioritized improvements (High: perf + testing; Medium: real-money safeguards + UI/dashboard; Low: plugin API, ONNX versioning); 5-week timeline (Sprint 1–3); risks and mitigations. PRD-aligned next steps and backlog items added (Optuna, Sortino/VaR, walk-forward, stress tests, RL module, dashboard, live-mode, CI/CD backtests, ONNX versioning). See PRD section and "PRD-aligned next steps" under THINGS TO DO NEXT.
 
 2026-02-05:
 - Supabase migration (NEXT/BACKLOG): (1) Added SUPABASE_MIGRATION.md with checklist (bootstrap SQL, .env, backfill, verify, deploy). (2) scripts/sync-jsonl-to-supabase.ts for one-off JSONL→Supabase backfill. (3) getSupabaseUrl() in vinceFeatureStore.service.ts now derives SUPABASE_URL from pooler URLs (postgres.PROJECT_REF:...) so SUPABASE_URL optional when using pooler. (4) Updated FEATURE-STORE.md, DEPLOY.md, scripts/README.md. Migration ready for prod.
