@@ -265,11 +265,12 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
     resizeTextarea()
   }, [inputValue, resizeTextarea])
 
-  // When stuck on "Analyzing..." for 15s, show hint (agent reply not reaching UI — usually message-bus / local messaging)
+  // When stuck on "Analyzing..." for 45s, show hint (agent reply not reaching UI — usually message-bus / local messaging).
+  // Use 45s so normal slow (non-streaming) replies don't show the hint while waiting.
   useEffect(() => {
     if (isTyping) {
       setShowReplyHint(false)
-      replyHintTimerRef.current = setTimeout(() => setShowReplyHint(true), 15000)
+      replyHintTimerRef.current = setTimeout(() => setShowReplyHint(true), 45000)
     } else {
       if (replyHintTimerRef.current) {
         clearTimeout(replyHintTimerRef.current)
