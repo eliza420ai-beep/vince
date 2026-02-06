@@ -1,10 +1,17 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-06 (V4.30 — avoided decisions + collecting more training data)
+# Last updated: 2026-02-06 (V4.30 — avoided decisions + competitor lessons)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## Competitor landscape & lessons (2026-02-06) ✅
+- **Context:** Passivbot, Gunbot, 3Commas, Coinrule, Pionex, Cornix, Mizar, Kraken AI, Axiom, Uniswap ecosystem (Hummingbot, Freqtrade) all offer trading bots or automation; most are manual-tuned or signal-following without a self-improving ML loop.
+- **What we do differently:** (1) Self-improving ML loop in production (feature store → train_models.py → ONNX → improvement report → tuner/bandit/similarity) so the bot improves as it trades. (2) "WHY THIS TRADE" explainability (supporting/conflicting factors, strength/confidence) in logs and feature store. (3) 15+ signal sources (CoinGlass, Binance, Deribit, Hyperliquid OI/funding, news, regime, etc.) vs single-signal or TradingView focus. (4) Paper-first, free, open; no subscription.
+- **High-value lessons we're adopting:** (1) Walk-forward optimization (Passivbot/3Commas) — add to training pipeline to reduce overfitting. (2) Fee-aware PnL (Gunbot) — include maker/taker/funding in PnL and improvement report so "positive expectancy" is after costs. (3) Dashboard for WHY + PnL (3Commas) — simple Streamlit/Flask for "WHY THIS TRADE" + PnL + SHAP/feature importance. (4) Backtesting as first-class step (Passivbot/3Commas) — replay historical features/signals to support "backtested + walk-forward" narrative.
+- **Medium / later:** Grid mode for chop (Passivbot), no-code rule layer (Coinrule), multi-exchange (after HL paper/real-money solid). Not copying: exchange-locked bots, scale-first playbooks; we focus on proving alpha in paper then optional real-money.
+- **Integrated in:** progress.txt (this section), repo README.md (Differentiation & competitor lessons), plugin-vince README.md (Differentiation).
 
 ## V4.30 - Avoided decisions + more training data (2026-02-06) ✅
 - **Avoided decisions in feature store:** When the paper bot evaluates a signal but does not trade (e.g. "SIGNAL EVALUATED - NO TRADE" due to similarity AVOID, ML quality below threshold, strength/confidence below bar, book rejection, or risk-manager threshold), we now record the same feature snapshot (market, session, signal, regime, news) with `avoided: { reason, timestamp }` instead of execution/outcome. ML keeps learning on extreme or quiet days when no trades are taken.

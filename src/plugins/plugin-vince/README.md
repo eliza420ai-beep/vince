@@ -26,6 +26,7 @@
 ## Table of Contents
 
 - [Heart of VINCE: Signals → Trades → Learning](#heart-of-vince-signals--trades--learning)
+- [Differentiation & competitor lessons](#differentiation--competitor-lessons)
 - [WHAT - The Plugin's Purpose](#what---the-plugins-purpose)
 - [HOW - Architecture and Implementation](#how---architecture-and-implementation)
 - [V4 - ML-Enhanced Paper Trading](#v4---ml-enhanced-paper-trading)
@@ -55,6 +56,10 @@ The pipeline is a **sophisticated, multi-factor paper trading system** that goes
    The [signal aggregator](src/services/signalAggregator.service.ts) pulls from **10+ sources** (CoinGlass, Binance taker flow, market regime, news sentiment, liquidations, Deribit skew, Sanbase flows, Hyperliquid bias, etc.). Each source can add one or more **factors** (e.g. “Funding negative”, “OI +5% (position buildup)”, “Strong taker buy pressure”).  
    **“WHY THIS TRADE”** in the logs now shows **all contributing factors** (up to 12 in the banner; full list in the feature store and journal), plus **“N factors, M sources agreeing”** so you see exactly how many data points drove the decision.  
    See **[SIGNAL_SOURCES.md](SIGNAL_SOURCES.md)** for which sources exist, how to enable them, and how to **confirm in logs** which sources contributed: at startup look for `[VINCE] 📡 Signal sources available: N/8 (...)`; on each aggregation look for `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`. Use `LOG_LEVEL=debug` to see which sources were tried but didn’t contribute (e.g. thresholds not met).
+
+### Differentiation & competitor lessons
+
+Other bots (Passivbot, Gunbot, 3Commas, Coinrule, Pionex, etc.) are mostly manual-tuned or single-signal. We differentiate with: self-improving ML loop in production, "WHY THIS TRADE" explainability, and 15+ signal sources. Lessons we're adopting: walk-forward optimization (Passivbot/3Commas), fee-aware PnL (Gunbot), dashboard for WHY + PnL (3Commas), backtesting as first-class step. See repo [README.md](../../../README.md#differentiation--competitor-lessons) and [progress.txt](progress.txt) — "Competitor landscape & lessons".
 
 2. **Feature store and decision drivers**  
    Every trading decision is recorded with **50+ features** and **decision drivers** (the human-readable reasons that influenced the open). Market features include not only price, funding, OI, and L/S ratio but **funding 8h delta**, **OI 24h change**, **DVOL**, **RSI**, **order-book imbalance** and **bid-ask spread** (Binance futures depth), and **price vs SMA20** (rolling window). News features include **sentiment score/direction** and **risk event severity**; signal features include **factor-derived sentiment** when sources don’t provide it. Data is written to `.elizadb/vince-paper-bot/features/*.jsonl` and optionally Supabase/PGLite for ML. See **[DATA_LEVERAGE.md](DATA_LEVERAGE.md)** for what’s wired and what’s next.

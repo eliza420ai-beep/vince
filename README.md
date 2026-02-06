@@ -67,6 +67,7 @@
 | [Production](#-production) | Supabase · ML on Cloud |
 | [Configuration](#-configuration) | Env · keys · paths |
 | [Documentation](#-documentation) | Doc index |
+| [Differentiation](#differentiation--competitor-lessons) | How we compare · what we're learning |
 | [Troubleshooting](#-troubleshooting) | DB · SSL · limits |
 
 > **At a glance:** One command (**ALOHA**) → daily vibe check + PERPS + OPTIONS + "trade today?". Paper bot runs in prod, trains when ready, stores models in Supabase — **no redeploy to improve ML.** Supabase Postgres for production persistence.
@@ -198,6 +199,25 @@ flowchart LR
 | ✅ | **Improvement weights** — NewsSentiment↑, CoinGlass↑, MarketRegime↑ |
 
 → Logs: `[VINCE] 📡 Signal sources available:` · `[VinceSignalAggregator] ASSET: N source(s) → M factors` · [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md)
+
+---
+
+## Differentiation & competitor lessons
+
+We’re not the only ones building trading bots (Passivbot, Gunbot, 3Commas, Coinrule, Pionex, Cornix, Mizar, Kraken AI, Uniswap ecosystem, etc.). Most are manual-tuned or signal-following; **our differentiator is the self-improving ML loop + multi-source signals + "WHY THIS TRADE" explainability** on Hyperliquid.
+
+**What we’re learning from them:**
+
+| Lesson | From | For VINCE |
+|--------|------|-----------|
+| Walk-forward optimization | Passivbot, 3Commas | Add to training pipeline to reduce overfitting |
+| Fee-aware PnL (net after fees) | Gunbot | Include maker/taker/funding in PnL and improvement report |
+| Dashboard for WHY + PnL | 3Commas | Simple Streamlit/Flask for "WHY THIS TRADE" + PnL + SHAP |
+| Backtesting as first-class step | Passivbot, 3Commas | Replay historical features/signals for "backtested + walk-forward" |
+
+**Later / optional:** Grid mode for chop (Passivbot), no-code rule layer (Coinrule), multi-exchange after HL is solid. We’re not copying exchange-locked or scale-first playbooks—we focus on proving alpha in paper then optional real-money.
+
+→ Details: [progress.txt](src/plugins/plugin-vince/progress.txt) — "Competitor landscape & lessons".
 
 ---
 
