@@ -1212,15 +1212,12 @@ export class VincePaperTradingService extends Service {
     const totalSourceCount = [...new Set((signal.signals ?? []).map((s) => s.source))].length;
     const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const supporting = (signal.supportingReasons ?? []).slice(0, 10);
-    const conflicting = (signal.conflictingReasons ?? []).slice(0, 6);
-    const maxReasonsShown = 20;
-    const reasons = (signal.reasons ?? []).slice(0, maxReasonsShown);
-    const maxReasonLen = 56;
+    const supporting = signal.supportingReasons ?? [];
+    const conflicting = signal.conflictingReasons ?? [];
     const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
     const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
-    const W = 63;
+    const W = 76;
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
     const wrapToWidth = (text: string, width: number): string[] => {
       if (text.length <= width) return [text];
@@ -1284,14 +1281,17 @@ export class VincePaperTradingService extends Service {
     for (const chunk of decisionWrapped) {
       console.log(line(`  ${chunk}`));
     }
+    const netStr =
+      `Net: Strength ${signal.strength}% / confidence ${signal.confidence}% met threshold. ` +
+      `${supporting.length} supporting, ${conflicting.length} conflicting (full text below).`;
+    for (const chunk of wrapToWidth(netStr, W - 2)) {
+      console.log(line(`  ${chunk}`));
+    }
     console.log(empty);
-    const trunc = (t: string, len: number) =>
-      t.length <= len ? t : (t.slice(0, len + 1).lastIndexOf(" ") > 24 ? t.slice(0, t.slice(0, len + 1).lastIndexOf(" ")) : t.slice(0, len)) + "…";
     if (supporting.length > 0) {
       console.log(line(`  Supporting (${supporting.length}):`));
-      for (const f of supporting.slice(0, 8)) {
-        const txt = trunc(f, maxReasonLen);
-        for (const w of wrapToWidth(txt, W - 6)) {
+      for (const f of supporting) {
+        for (const w of wrapToWidth(f, W - 6)) {
           console.log(line(`    • ${w}`));
         }
       }
@@ -1300,8 +1300,7 @@ export class VincePaperTradingService extends Service {
     if (conflicting.length > 0) {
       console.log(line(`  Conflicting (${conflicting.length}):`));
       for (const f of conflicting) {
-        const txt = trunc(f, maxReasonLen);
-        for (const w of wrapToWidth(txt, W - 6)) {
+        for (const w of wrapToWidth(f, W - 6)) {
           console.log(line(`    • ${w}`));
         }
       }
@@ -1318,17 +1317,6 @@ export class VincePaperTradingService extends Service {
     }
     if (typeof openWindowBoost === "number" && openWindowBoost > 0) {
       console.log(line(`  Open window  +${openWindowBoost.toFixed(0)}% boost`));
-    }
-    console.log(empty);
-    console.log(line(`  All factors (${reasons.length}):`));
-    const reasonParts = reasons.map((r) => trunc(r, maxReasonLen));
-    const perLine = 3;
-    for (let i = 0; i < reasonParts.length; i += perLine) {
-      const chunk = reasonParts.slice(i, i + perLine);
-      if (chunk.length) console.log(line(`  • ${chunk.join("  • ")}`));
-    }
-    if (factorCount > maxReasonsShown) {
-      console.log(line(`  … +${factorCount - maxReasonsShown} more (feature store)`));
     }
     console.log(empty);
     console.log(sep);
