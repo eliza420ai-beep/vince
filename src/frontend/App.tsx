@@ -192,6 +192,22 @@ function App() {
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [isNewChatMode, setIsNewChatMode] = useState(false); // Track if we're in "new chat" mode (no channel yet)
   const [messageServerId, setMessageServerId] = useState<string | null>(null); // Actual message server id from API (backend generates it; required for channel FK)
+  const [selectedAgentId, setSelectedAgentIdState] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("vince-selected-agent-id");
+    } catch {
+      return null;
+    }
+  });
+  const setSelectedAgentId = useCallback((id: string | null) => {
+    setSelectedAgentIdState(id);
+    try {
+      if (id) localStorage.setItem("vince-selected-agent-id", id);
+      else localStorage.removeItem("vince-selected-agent-id");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   /**
    * Sign out handler - revokes JWT token on server before signing out from CDP
@@ -407,7 +423,16 @@ function App() {
     refetchOnWindowFocus: true,
   });
 
-  const agentId = agentsData?.[0]?.id;
+  // Use selected agent, or first agent when list loads; sync selection when list changes (e.g. selected no longer in list)
+  const agentId = selectedAgentId ?? agentsData?.[0]?.id ?? null;
+  useEffect(() => {
+    if (!agentsData?.length) return;
+    const ids = new Set(agentsData.map((a: { id?: string }) => a.id));
+    if (selectedAgentId && !ids.has(selectedAgentId)) {
+      setSelectedAgentId(agentsData[0]?.id ?? null);
+    }
+  }, [agentsData, selectedAgentId, setSelectedAgentId]);
+
   const isWaitingForAgents =
     (isFetchingAgents || (agentsFailureCount > 0 && agentsFailureCount < 8)) &&
     !agentsData?.length;
@@ -576,7 +601,7 @@ function App() {
     queryKey: ["agent", agentId],
     queryFn: async () => {
       if (!agentId) return null;
-      return await elizaClient.agents.getAgent(agentId);
+      return await elizaClient.agents.getAgent(agentId as UUID);
     },
     enabled: !!agentId,
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -788,6 +813,15 @@ function App() {
     setIsNewChatMode(false); // Exit new chat mode when selecting existing channel
   };
 
+  const handleAgentSelect = useCallback((id: string) => {
+    if (id === selectedAgentId) return;
+    setSelectedAgentId(id);
+    setChannels([]);
+    setActiveChannelId(null);
+    setIsNewChatMode(true);
+    setIsLoadingChannels(true);
+  }, [selectedAgentId, setSelectedAgentId]);
+
   // Update user profile (avatar, displayName, bio)
   const updateUserProfile = async (updates: {
     avatarUrl?: string;
@@ -871,6 +905,9 @@ function App() {
     <SidebarProvider>
       <AppContent
         agent={agent}
+        agents={agentsData ?? []}
+        selectedAgentId={agentId}
+        onAgentSelect={handleAgentSelect}
         userId={userId}
         messageServerId={messageServerId}
         connected={connected}
@@ -902,6 +939,9 @@ function App() {
 // Inner component that has access to useSidebar
 function AppContent({
   agent,
+  agents = [],
+  selectedAgentId,
+  onAgentSelect,
   userId,
   messageServerId,
   connected,
@@ -1004,6 +1044,10 @@ function AppContent({
             onAccountClick={onAccountClick}
             onLeaderboardClick={onLeaderboardClick}
             onHomeClick={onHomeClick}
+            agents={agents}
+            selectedAgentId={selectedAgentId}
+            onAgentSelect={onAgentSelect}
+            currentAgentName={agent?.name}
           />
         </div>
 

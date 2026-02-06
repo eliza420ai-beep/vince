@@ -20,7 +20,7 @@ import { cn } from "@/frontend/lib/utils"
 import DotsVerticalIcon from "@/frontend/components/icons/dots-vertical"
 import { Bullet } from "@/frontend/components/ui/bullet"
 import PlusIcon from "@/frontend/components/icons/plus"
-import { LogOut, Trophy, User } from "lucide-react"
+import { ChevronDown, LogOut, Trophy, User } from "lucide-react"
 
 interface Channel {
   id: string
@@ -29,12 +29,22 @@ interface Channel {
   lastMessageAt?: number
 }
 
-interface DashboardSidebarProps extends React.ComponentProps<typeof Sidebar> {
+interface AgentOption {
+  id: string
+  name?: string
+  [key: string]: unknown
+}
+
+export interface DashboardSidebarProps extends React.ComponentProps<typeof Sidebar> {
   channels?: Channel[]
   activeChannelId?: string | null
   onChannelSelect?: (channelId: string) => void
   onNewChat?: () => void
   isCreatingChannel?: boolean
+  agents?: AgentOption[]
+  selectedAgentId?: string | null
+  onAgentSelect?: (agentId: string) => void
+  currentAgentName?: string | null
   userProfile?: {
     avatarUrl: string
     displayName: string
@@ -57,6 +67,10 @@ export function DashboardSidebar({
   onChannelSelect = () => {},
   onNewChat = () => {},
   isCreatingChannel = false,
+  agents = [],
+  selectedAgentId = null,
+  onAgentSelect,
+  currentAgentName = null,
   userProfile,
   onSignOut,
   onAccountClick,
@@ -66,6 +80,10 @@ export function DashboardSidebar({
   ...props
 }: DashboardSidebarProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isAgentPopoverOpen, setIsAgentPopoverOpen] = useState(false);
+  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const displayName = currentAgentName ?? selectedAgent?.name ?? "VINCE";
+  const showAgentSwitcher = agents.length > 1 && onAgentSelect;
 
   // Group channels by date
   const groupChannelsByDate = (channels: Channel[]) => {
@@ -145,18 +163,57 @@ export function DashboardSidebar({
   return (
     <Sidebar {...props} className={cn("py-sides", className)}>
       <SidebarHeader className="rounded-t-lg flex gap-3 flex-row rounded-b-none">
-        <button 
-          onClick={onHomeClick}
-          className="flex gap-3 flex-row flex-1 group cursor-pointer hover:opacity-80 transition-opacity"
-        >
-          <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
-            <img src="/avatars/otaku-pfp.png" alt="VINCE" className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="text-2xl font-display">VINCE</span>
-            <span className="text-xs uppercase">DATA & TRADING AGENT</span>
-          </div>
-        </button>
+        {showAgentSwitcher ? (
+          <Popover open={isAgentPopoverOpen} onOpenChange={setIsAgentPopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                onClick={onHomeClick}
+                className="flex gap-3 flex-row flex-1 group cursor-pointer hover:opacity-80 transition-opacity items-center text-left"
+              >
+                <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
+                  <img src="/avatars/otaku-pfp.png" alt={displayName} className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent" />
+                </div>
+                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
+                  <span className="text-2xl font-display truncate">{displayName}</span>
+                  <span className="text-xs uppercase text-muted-foreground">Select agent</span>
+                </div>
+                <ChevronDown className={cn("size-4 shrink-0 transition-transform", isAgentPopoverOpen && "rotate-180")} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-0" side="bottom" align="start" sideOffset={4}>
+              <div className="flex flex-col py-1">
+                {agents.map((a) => (
+                  <button
+                    key={a.id}
+                    onClick={() => {
+                      onAgentSelect?.(a.id);
+                      setIsAgentPopoverOpen(false);
+                    }}
+                    className={cn(
+                      "flex items-center px-4 py-2.5 text-sm text-left w-full hover:bg-accent",
+                      a.id === selectedAgentId && "bg-accent font-medium",
+                    )}
+                  >
+                    <span className="truncate">{a.name ?? a.id}</span>
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <button 
+            onClick={onHomeClick}
+            className="flex gap-3 flex-row flex-1 group cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
+              <img src="/avatars/otaku-pfp.png" alt={displayName} className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="text-2xl font-display">{displayName}</span>
+              <span className="text-xs uppercase">DATA & TRADING AGENT</span>
+            </div>
+          </button>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
