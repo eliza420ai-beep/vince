@@ -10,9 +10,18 @@
  * Triggers: "watchlist", "watching", "my tokens", "tracked tokens", "watch", "unwatch"
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { VinceWatchlistService, WatchlistToken } from "../services/watchlist.service";
+import type {
+  VinceWatchlistService,
+  WatchlistToken,
+} from "../services/watchlist.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 
 // ==========================================
@@ -39,7 +48,7 @@ function parseWatchCommand(text: string): WatchCommand {
 
   // Add command: "watch $MOLT on solana" or "add MOLT solana entry 2M"
   const watchMatch = lowerText.match(
-    /(?:watch|add|track)\s+\$?(\w+)(?:\s+(?:on\s+)?(\w+))?(?:\s+entry\s+(\d+(?:\.\d+)?[mk]?))?(?:\s+tp\s+(\d+(?:\.\d+)?[mk]?))?/i
+    /(?:watch|add|track)\s+\$?(\w+)(?:\s+(?:on\s+)?(\w+))?(?:\s+entry\s+(\d+(?:\.\d+)?[mk]?))?(?:\s+tp\s+(\d+(?:\.\d+)?[mk]?))?/i,
   );
   if (watchMatch) {
     const symbol = watchMatch[1].toUpperCase();
@@ -50,7 +59,12 @@ function parseWatchCommand(text: string): WatchCommand {
     let chain: WatchCommand["chain"];
     if (chainRaw === "sol" || chainRaw === "solana") chain = "solana";
     else if (chainRaw === "base") chain = "base";
-    else if (chainRaw === "hyper" || chainRaw === "hyperliquid" || chainRaw === "hl") chain = "hyperliquid";
+    else if (
+      chainRaw === "hyper" ||
+      chainRaw === "hyperliquid" ||
+      chainRaw === "hl"
+    )
+      chain = "hyperliquid";
     else if (chainRaw === "eth" || chainRaw === "ethereum") chain = "ethereum";
 
     const parseAmount = (s: string | undefined): number | undefined => {
@@ -71,9 +85,14 @@ function parseWatchCommand(text: string): WatchCommand {
   }
 
   // Status of specific token: "status MOLT" or "MOLT status"
-  const statusMatch = lowerText.match(/(?:status|check)\s+\$?(\w+)|(\w+)\s+status/i);
+  const statusMatch = lowerText.match(
+    /(?:status|check)\s+\$?(\w+)|(\w+)\s+status/i,
+  );
   if (statusMatch) {
-    return { action: "status", symbol: (statusMatch[1] || statusMatch[2]).toUpperCase() };
+    return {
+      action: "status",
+      symbol: (statusMatch[1] || statusMatch[2]).toUpperCase(),
+    };
   }
 
   // Default: list watchlist
@@ -105,9 +124,13 @@ function formatDistance(current: number, target: number): string {
 export const vinceWatchlistAction: Action = {
   name: "VINCE_WATCHLIST",
   similes: ["WATCHLIST", "MY_TOKENS", "TRACKED_TOKENS", "WATCH", "UNWATCH"],
-  description: "Manage token watchlist: view, add, remove tokens with entry/exit targets",
+  description:
+    "Manage token watchlist: view, add, remove tokens with entry/exit targets",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("watchlist") ||
@@ -123,11 +146,15 @@ export const vinceWatchlistAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const watchlistService = runtime.getService("VINCE_WATCHLIST_SERVICE") as VinceWatchlistService | null;
-      const dexService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+      const watchlistService = runtime.getService(
+        "VINCE_WATCHLIST_SERVICE",
+      ) as VinceWatchlistService | null;
+      const dexService = runtime.getService(
+        "VINCE_DEXSCREENER_SERVICE",
+      ) as VinceDexScreenerService | null;
 
       if (!watchlistService) {
         await callback({
@@ -139,7 +166,9 @@ export const vinceWatchlistAction: Action = {
 
       const text = message.content.text || "";
       const command = parseWatchCommand(text);
-      logger.info(`[VINCE_WATCHLIST] Command: ${command.action} ${command.symbol || ""}`);
+      logger.info(
+        `[VINCE_WATCHLIST] Command: ${command.action} ${command.symbol || ""}`,
+      );
 
       // Handle different commands
       switch (command.action) {
@@ -156,9 +185,8 @@ export const vinceWatchlistAction: Action = {
           let chain = command.chain;
           if (!chain && dexService) {
             const searchResults = await dexService.searchToken(command.symbol);
-            if (searchResults.length > 0) {
-              const firstResult = searchResults[0];
-              chain = firstResult.chain as WatchCommand["chain"];
+            if (searchResults) {
+              chain = searchResults.chain as WatchCommand["chain"];
             }
           }
 
@@ -183,8 +211,12 @@ export const vinceWatchlistAction: Action = {
 
           const added = await watchlistService.addToken(newToken);
           if (added) {
-            const entryStr = command.entryTarget ? ` Entry: ${formatMcap(command.entryTarget)}` : "";
-            const tpStr = command.takeProfit ? ` TP: ${formatMcap(command.takeProfit)}` : "";
+            const entryStr = command.entryTarget
+              ? ` Entry: ${formatMcap(command.entryTarget)}`
+              : "";
+            const tpStr = command.takeProfit
+              ? ` TP: ${formatMcap(command.takeProfit)}`
+              : "";
             await callback({
               text: `✅ Added ${command.symbol} (${chain}) to watchlist.${entryStr}${tpStr}\n\nEdit targets in knowledge/trading/watchlist.json`,
               actions: ["VINCE_WATCHLIST"],
@@ -244,9 +276,9 @@ export const vinceWatchlistAction: Action = {
           let priceChange: number | undefined;
           if (dexService) {
             const results = await dexService.searchToken(command.symbol);
-            if (results.length > 0) {
-              currentMcap = results[0].marketCap;
-              priceChange = results[0].priceChange24h;
+            if (results) {
+              currentMcap = results.marketCap;
+              priceChange = results.priceChange24h;
             }
           }
 
@@ -308,21 +340,21 @@ export const vinceWatchlistAction: Action = {
           ];
 
           // Group by priority
-          const highPriority = tokens.filter(t => t.priority === "high");
-          const mediumPriority = tokens.filter(t => t.priority === "medium");
-          const lowPriority = tokens.filter(t => t.priority === "low");
+          const highPriority = tokens.filter((t) => t.priority === "high");
+          const mediumPriority = tokens.filter((t) => t.priority === "medium");
+          const lowPriority = tokens.filter((t) => t.priority === "low");
 
           const formatToken = async (t: WatchlistToken): Promise<string> => {
             let line = `• **${t.symbol}** (${t.chain})`;
-            
+
             // Get current price if available
             if (dexService) {
               try {
                 const results = await dexService.searchToken(t.symbol);
-                if (results.length > 0 && results[0].marketCap) {
-                  const currentMcap = results[0].marketCap;
+                if (results && results.marketCap) {
+                  const currentMcap = results.marketCap;
                   line += ` - ${formatMcap(currentMcap)}`;
-                  
+
                   if (t.entryTarget) {
                     line += ` [${formatDistance(currentMcap, t.entryTarget)} entry]`;
                   }
@@ -331,7 +363,7 @@ export const vinceWatchlistAction: Action = {
                 // Skip price lookup errors
               }
             }
-            
+
             return line;
           };
 
@@ -362,11 +394,15 @@ export const vinceWatchlistAction: Action = {
           // Add status
           lines.push(`Last updated: ${status.lastUpdated}`);
           if (status.isStale) {
-            lines.push(`⚠️ Watchlist is ${status.staleDays} days old - consider updating`);
+            lines.push(
+              `⚠️ Watchlist is ${status.staleDays} days old - consider updating`,
+            );
           }
 
           lines.push("");
-          lines.push("*Commands: 'watch $TOKEN on chain', 'unwatch TOKEN', 'status TOKEN'*");
+          lines.push(
+            "*Commands: 'watch $TOKEN on chain', 'unwatch TOKEN', 'status TOKEN'*",
+          );
 
           await callback({
             text: lines.join("\n"),
@@ -396,7 +432,10 @@ export const vinceWatchlistAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "watch $MOLT on solana entry 2M" } },
+      {
+        name: "{{user1}}",
+        content: { text: "watch $MOLT on solana entry 2M" },
+      },
       {
         name: "VINCE",
         content: {

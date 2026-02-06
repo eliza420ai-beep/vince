@@ -149,7 +149,7 @@ function containsKeyword(content: string, keyword: string): boolean {
  */
 function findKeywordInDirectory(
   dirPath: string,
-  keyword: string
+  keyword: string,
 ): { found: boolean; files: string[] } {
   const files = getMarkdownFiles(dirPath);
   const matchingFiles: string[] = [];
@@ -170,9 +170,11 @@ function findKeywordInDirectory(
 /**
  * Get file statistics for a directory
  */
-function getDirectoryStats(
-  dirPath: string
-): { fileCount: number; totalSize: number; avgSize: number } {
+function getDirectoryStats(dirPath: string): {
+  fileCount: number;
+  totalSize: number;
+  avgSize: number;
+} {
   const files = getMarkdownFiles(dirPath);
   let totalSize = 0;
 
@@ -244,7 +246,7 @@ describe("Knowledge Structure Validation", () => {
     if (emptyFiles.length > maxEmptyAllowed) {
       console.warn(
         `Warning: ${emptyFiles.length} files are nearly empty:`,
-        emptyFiles.slice(0, 10)
+        emptyFiles.slice(0, 10),
       );
     }
     expect(emptyFiles.length).toBeLessThanOrEqual(maxEmptyAllowed);
@@ -312,13 +314,17 @@ describe("Domain Coverage Validation", () => {
     console.log("═".repeat(80));
     console.log("                    KNOWLEDGE COVERAGE SUMMARY");
     console.log("═".repeat(80));
-    console.log("\n| Domain     | Directory              | Files | Keywords  | Status |");
-    console.log("|------------|------------------------|-------|-----------|--------|");
+    console.log(
+      "\n| Domain     | Directory              | Files | Keywords  | Status |",
+    );
+    console.log(
+      "|------------|------------------------|-------|-----------|--------|",
+    );
 
     for (const result of coverageResults) {
       const keywordStr = `${result.keywordsFound}/${result.keywordsTotal}`;
       console.log(
-        `| ${result.domain.padEnd(10)} | ${result.directory.padEnd(22)} | ${String(result.files).padStart(5)} | ${keywordStr.padStart(9)} | ${result.status.padStart(6)} |`
+        `| ${result.domain.padEnd(10)} | ${result.directory.padEnd(22)} | ${String(result.files).padStart(5)} | ${keywordStr.padStart(9)} | ${result.status.padStart(6)} |`,
       );
     }
 
@@ -366,7 +372,7 @@ describe("Methodology Content Validation", () => {
       for (const file of files) {
         const content = readFileSafe(file).toLowerCase();
         const hasMethodology = methodologyTerms.some((term) =>
-          content.includes(term)
+          content.includes(term),
         );
         if (hasMethodology) {
           methodologyFilesFound++;
@@ -377,7 +383,7 @@ describe("Methodology Content Validation", () => {
     // At least 50% of files should contain methodology content
     const methodologyRatio = methodologyFilesFound / totalFiles;
     console.log(
-      `\nMethodology content: ${methodologyFilesFound}/${totalFiles} files (${(methodologyRatio * 100).toFixed(1)}%)`
+      `\nMethodology content: ${methodologyFilesFound}/${totalFiles} files (${(methodologyRatio * 100).toFixed(1)}%)`,
     );
 
     expect(methodologyRatio).toBeGreaterThan(0.3); // At least 30% should have methodology
@@ -447,7 +453,7 @@ describe("Action Knowledge Integration", () => {
    */
   function simulateActionQuery(
     query: string,
-    directories: string[]
+    directories: string[],
   ): { matchingFiles: number; topMatches: string[] } {
     const queryTerms = query.toLowerCase().split(/\s+/);
     const matches: { file: string; score: number }[] = [];
@@ -494,8 +500,7 @@ describe("Action Knowledge Integration", () => {
   });
 
   it("VINCE_PERPS query should find relevant knowledge", () => {
-    const query =
-      "perpetual funding rate liquidation leverage position sizing";
+    const query = "perpetual funding rate liquidation leverage position sizing";
     const result = simulateActionQuery(query, ["perps-trading"]);
 
     expect(result.matchingFiles).toBeGreaterThan(5);
@@ -536,11 +541,9 @@ describe("Semantic Retrieval Tests (Optional)", () => {
 
   it("should skip if no OPENAI_API_KEY", () => {
     if (!hasApiKey) {
+      console.log("\n⚠️  Skipping semantic tests - OPENAI_API_KEY not set\n");
       console.log(
-        "\n⚠️  Skipping semantic tests - OPENAI_API_KEY not set\n"
-      );
-      console.log(
-        "   To run semantic tests: OPENAI_API_KEY=sk-xxx bun test knowledge.integration.test.ts\n"
+        "   To run semantic tests: OPENAI_API_KEY=sk-xxx bun test knowledge.integration.test.ts\n",
       );
     }
     // Always passes - semantic tests are optional
@@ -579,13 +582,13 @@ describe("Knowledge Value Summary", () => {
       const avgKB = (stats.avgSize / 1024).toFixed(1);
 
       console.log(
-        `| ${config.directory.padEnd(22)} | ${String(stats.fileCount).padStart(5)} | ${sizeKB.padStart(9)} | ${avgKB.padStart(8)} |`
+        `| ${config.directory.padEnd(22)} | ${String(stats.fileCount).padStart(5)} | ${sizeKB.padStart(9)} | ${avgKB.padStart(8)} |`,
       );
     }
 
     console.log("|------------------------|-------|-----------|----------|");
     console.log(
-      `| TOTAL                  | ${String(totalFiles).padStart(5)} | ${(totalSize / 1024).toFixed(1).padStart(9)} | ${(totalSize / totalFiles / 1024).toFixed(1).padStart(8)} |`
+      `| TOTAL                  | ${String(totalFiles).padStart(5)} | ${(totalSize / 1024).toFixed(1).padStart(9)} | ${(totalSize / totalFiles / 1024).toFixed(1).padStart(8)} |`,
     );
     console.log("\n");
 
@@ -593,7 +596,9 @@ describe("Knowledge Value Summary", () => {
     expect(totalFiles).toBeGreaterThan(200);
     expect(totalSize).toBeGreaterThan(500 * 1024); // At least 500KB total
 
-    console.log(`✅ Knowledge base validated: ${totalFiles} files, ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(
+      `✅ Knowledge base validated: ${totalFiles} files, ${(totalSize / 1024 / 1024).toFixed(2)} MB`,
+    );
     console.log("\n");
   });
 });

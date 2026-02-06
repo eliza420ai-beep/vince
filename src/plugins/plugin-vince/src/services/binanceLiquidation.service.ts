@@ -12,6 +12,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { LiquidationPressure, LiquidationCascade } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // =============================================================================
 // TYPES
@@ -19,14 +20,14 @@ import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 
 interface BinanceLiquidation {
   symbol: string;
-  side: "BUY" | "SELL";  // BUY = short liquidated, SELL = long liquidated
+  side: "BUY" | "SELL"; // BUY = short liquidated, SELL = long liquidated
   orderType: string;
   quantity: number;
   price: number;
   averagePrice: number;
   status: string;
   tradeTime: number;
-  notionalValue: number;  // USD value
+  notionalValue: number; // USD value
 }
 
 // =============================================================================
@@ -37,7 +38,7 @@ const BINANCE_WS_URL = "wss://fstream.binance.com/ws/!forceOrder@arr";
 const RECONNECT_DELAY_MS = 5000;
 const MAX_RECENT_LIQUIDATIONS = 100;
 const LIQUIDATION_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
-const CASCADE_THRESHOLD_COUNT = 5;  // 5+ liqs in short time
+const CASCADE_THRESHOLD_COUNT = 5; // 5+ liqs in short time
 const CASCADE_THRESHOLD_VALUE = 1000000; // $1M+ in short time
 const CASCADE_WINDOW_MS = 60 * 1000; // 1 minute for cascade detection
 
@@ -47,7 +48,8 @@ const CASCADE_WINDOW_MS = 60 * 1000; // 1 minute for cascade detection
 
 export class VinceBinanceLiquidationService extends Service {
   static serviceType = "VINCE_BINANCE_LIQUIDATION_SERVICE";
-  capabilityDescription = "Tracks real-time Binance Futures liquidations for cascade detection";
+  capabilityDescription =
+    "Tracks real-time Binance Futures liquidations for cascade detection";
 
   declare protected runtime: IAgentRuntime;
   private ws: WebSocket | null = null;
@@ -55,23 +57,31 @@ export class VinceBinanceLiquidationService extends Service {
   private isConnected = false;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastCascade: LiquidationCascade | null = null;
-  private watchSymbols: Set<string> = new Set(["BTCUSDT", "ETHUSDT", "SOLUSDT"]);
+  private watchSymbols: Set<string> = new Set([
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+  ]);
 
   constructor(runtime: IAgentRuntime) {
     super();
     this.runtime = runtime;
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceBinanceLiquidationService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceBinanceLiquidationService> {
     const service = new VinceBinanceLiquidationService(runtime);
     try {
       await service.connect();
     } catch (error) {
       logger.warn(`[VinceBinanceLiq] Failed to connect (will retry): ${error}`);
     }
-    
+
     // Dashboard will be printed once connected (in onopen callback)
-    logger.debug("[VinceBinanceLiq] Service started, connecting to WebSocket...");
+    logger.debug(
+      "[VinceBinanceLiq] Service started, connecting to WebSocket...",
+    );
     return service;
   }
 
@@ -116,25 +126,28 @@ export class VinceBinanceLiquidationService extends Service {
   getTLDR(): string {
     const cascade = this.getCascade();
     const pressure = this.getLiquidationPressure();
-    
+
     // Priority 1: Active cascade
     if (cascade && cascade.detected) {
-      return `CASCADE ACTIVE: ${cascade.direction?.toUpperCase()} $${(cascade.totalValue/1e6).toFixed(1)}M - more coming`;
+      return `CASCADE ACTIVE: ${cascade.direction?.toUpperCase()} $${(cascade.totalValue / 1e6).toFixed(1)}M - more coming`;
     }
-    
+
     // Priority 2: Heavy one-sided pressure
     if (pressure.direction === "long_liquidations" && pressure.intensity > 30) {
-      return `LONGS WIPED: $${(pressure.longLiqsValue/1e6).toFixed(1)}M in 5min - bounce soon?`;
+      return `LONGS WIPED: $${(pressure.longLiqsValue / 1e6).toFixed(1)}M in 5min - bounce soon?`;
     }
-    if (pressure.direction === "short_liquidations" && pressure.intensity > 30) {
-      return `SHORTS SQUEEZED: $${(pressure.shortLiqsValue/1e6).toFixed(1)}M in 5min - fade?`;
+    if (
+      pressure.direction === "short_liquidations" &&
+      pressure.intensity > 30
+    ) {
+      return `SHORTS SQUEEZED: $${(pressure.shortLiqsValue / 1e6).toFixed(1)}M in 5min - fade?`;
     }
-    
+
     // Priority 3: Elevated activity
     if (pressure.intensity > 20) {
       return "LIQS ELEVATED: Watch for cascade trigger";
     }
-    
+
     // Default: Normal
     return "LIQS NORMAL: No unusual activity";
   }
@@ -154,14 +167,18 @@ export class VinceBinanceLiquidationService extends Service {
     }
 
     try {
-      logger.info("[VinceBinanceLiq] Connecting to Binance liquidation stream...");
-      
+      logger.info(
+        "[VinceBinanceLiq] Connecting to Binance liquidation stream...",
+      );
+
       this.ws = new WebSocket(BINANCE_WS_URL);
 
       this.ws.onopen = () => {
         this.isConnected = true;
-        this.printDashboard();
-        logger.info("[VinceBinanceLiq] ✅ Connected to Binance liquidation stream");
+        if (isVinceAgent(this.runtime)) this.printDashboard();
+        logger.info(
+          "[VinceBinanceLiq] ✅ Connected to Binance liquidation stream",
+        );
       };
 
       this.ws.onmessage = (event) => {
@@ -220,7 +237,7 @@ export class VinceBinanceLiquidationService extends Service {
 
   private handleMessage(data: string): void {
     const msg = JSON.parse(data);
-    
+
     // Handle forceOrder event
     if (msg.e === "forceOrder" && msg.o) {
       const order = msg.o;
@@ -231,7 +248,7 @@ export class VinceBinanceLiquidationService extends Service {
 
       const liquidation: BinanceLiquidation = {
         symbol,
-        side: order.S,  // BUY = short liq, SELL = long liq
+        side: order.S, // BUY = short liq, SELL = long liq
         orderType: order.o,
         quantity: parseFloat(order.q),
         price: parseFloat(order.p),
@@ -250,7 +267,10 @@ export class VinceBinanceLiquidationService extends Service {
 
     // Keep only recent liquidations
     if (this.recentLiquidations.length > MAX_RECENT_LIQUIDATIONS) {
-      this.recentLiquidations = this.recentLiquidations.slice(0, MAX_RECENT_LIQUIDATIONS);
+      this.recentLiquidations = this.recentLiquidations.slice(
+        0,
+        MAX_RECENT_LIQUIDATIONS,
+      );
     }
 
     // Check for cascade
@@ -259,7 +279,9 @@ export class VinceBinanceLiquidationService extends Service {
     // Log significant liquidations
     if (liq.notionalValue > 100000) {
       const direction = liq.side === "SELL" ? "LONG" : "SHORT";
-      logger.info(`[VinceBinanceLiq] 💥 ${direction} liquidated: ${liq.symbol} $${(liq.notionalValue / 1000).toFixed(0)}k @ $${liq.averagePrice.toFixed(0)}`);
+      logger.info(
+        `[VinceBinanceLiq] 💥 ${direction} liquidated: ${liq.symbol} $${(liq.notionalValue / 1000).toFixed(0)}k @ $${liq.averagePrice.toFixed(0)}`,
+      );
     }
   }
 
@@ -270,7 +292,7 @@ export class VinceBinanceLiquidationService extends Service {
   private detectCascade(): void {
     const now = Date.now();
     const cascadeWindow = this.recentLiquidations.filter(
-      l => now - l.tradeTime < CASCADE_WINDOW_MS
+      (l) => now - l.tradeTime < CASCADE_WINDOW_MS,
     );
 
     if (cascadeWindow.length < CASCADE_THRESHOLD_COUNT) {
@@ -278,8 +300,8 @@ export class VinceBinanceLiquidationService extends Service {
       return;
     }
 
-    const longLiqs = cascadeWindow.filter(l => l.side === "SELL");
-    const shortLiqs = cascadeWindow.filter(l => l.side === "BUY");
+    const longLiqs = cascadeWindow.filter((l) => l.side === "SELL");
+    const shortLiqs = cascadeWindow.filter((l) => l.side === "BUY");
 
     const longValue = longLiqs.reduce((sum, l) => sum + l.notionalValue, 0);
     const shortValue = shortLiqs.reduce((sum, l) => sum + l.notionalValue, 0);
@@ -293,7 +315,10 @@ export class VinceBinanceLiquidationService extends Service {
       direction = "long";
       totalValue = longValue;
       count = longLiqs.length;
-    } else if (shortValue > longValue * 2 && shortValue > CASCADE_THRESHOLD_VALUE) {
+    } else if (
+      shortValue > longValue * 2 &&
+      shortValue > CASCADE_THRESHOLD_VALUE
+    ) {
       direction = "short";
       totalValue = shortValue;
       count = shortLiqs.length;
@@ -311,7 +336,9 @@ export class VinceBinanceLiquidationService extends Service {
       };
 
       if (!this.lastCascade || this.lastCascade.direction !== direction) {
-        logger.warn(`[VinceBinanceLiq] 🚨 CASCADE DETECTED: ${direction.toUpperCase()} liquidations - ${count} orders, $${(totalValue / 1000000).toFixed(2)}M`);
+        logger.warn(
+          `[VinceBinanceLiq] 🚨 CASCADE DETECTED: ${direction.toUpperCase()} liquidations - ${count} orders, $${(totalValue / 1000000).toFixed(2)}M`,
+        );
       }
 
       this.lastCascade = cascade;
@@ -328,18 +355,21 @@ export class VinceBinanceLiquidationService extends Service {
   getLiquidationPressure(symbol?: string): LiquidationPressure {
     const now = Date.now();
     let liqs = this.recentLiquidations.filter(
-      l => now - l.tradeTime < LIQUIDATION_WINDOW_MS
+      (l) => now - l.tradeTime < LIQUIDATION_WINDOW_MS,
     );
 
     if (symbol) {
-      liqs = liqs.filter(l => l.symbol === symbol);
+      liqs = liqs.filter((l) => l.symbol === symbol);
     }
 
-    const longLiqs = liqs.filter(l => l.side === "SELL");
-    const shortLiqs = liqs.filter(l => l.side === "BUY");
+    const longLiqs = liqs.filter((l) => l.side === "SELL");
+    const shortLiqs = liqs.filter((l) => l.side === "BUY");
 
     const longLiqsValue = longLiqs.reduce((sum, l) => sum + l.notionalValue, 0);
-    const shortLiqsValue = shortLiqs.reduce((sum, l) => sum + l.notionalValue, 0);
+    const shortLiqsValue = shortLiqs.reduce(
+      (sum, l) => sum + l.notionalValue,
+      0,
+    );
     const netPressure = longLiqsValue - shortLiqsValue;
 
     // Determine direction
@@ -410,7 +440,9 @@ export class VinceBinanceLiquidationService extends Service {
       return lines;
     }
 
-    lines.push(`Liquidations (5m): ${pressure.longLiqsCount} longs ($${(pressure.longLiqsValue / 1000000).toFixed(1)}M) vs ${pressure.shortLiqsCount} shorts ($${(pressure.shortLiqsValue / 1000000).toFixed(1)}M)`);
+    lines.push(
+      `Liquidations (5m): ${pressure.longLiqsCount} longs ($${(pressure.longLiqsValue / 1000000).toFixed(1)}M) vs ${pressure.shortLiqsCount} shorts ($${(pressure.shortLiqsValue / 1000000).toFixed(1)}M)`,
+    );
 
     if (pressure.direction === "long_liquidations") {
       lines.push("⚠️ Long liquidation pressure detected");

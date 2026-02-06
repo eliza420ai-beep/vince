@@ -12,8 +12,15 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { FundingData, LongShortRatio, OpenInterestData, FearGreedData, MarketSignal } from "../types/index";
+import type {
+  FundingData,
+  LongShortRatio,
+  OpenInterestData,
+  FearGreedData,
+  MarketSignal,
+} from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // Cache TTL
 const CACHE_TTL_MS = 60 * 1000; // 1 minute
@@ -30,7 +37,8 @@ interface CachedData {
 
 export class VinceCoinGlassService extends Service {
   static serviceType = "VINCE_COINGLASS_SERVICE";
-  capabilityDescription = "CoinGlass market data: L/S ratio, funding, OI, fear/greed";
+  capabilityDescription =
+    "CoinGlass market data: L/S ratio, funding, OI, fear/greed";
 
   private apiKey: string | null = null;
   private cache: CachedData = {
@@ -51,7 +59,9 @@ export class VinceCoinGlassService extends Service {
     try {
       await service.initialize();
     } catch (error) {
-      logger.warn(`[VinceCoinGlass] Initialization error (service still available): ${error}`);
+      logger.warn(
+        `[VinceCoinGlass] Initialization error (service still available): ${error}`,
+      );
     }
     logger.info("[VinceCoinGlass] ✅ Service started");
     return service;
@@ -63,32 +73,41 @@ export class VinceCoinGlassService extends Service {
 
   private async initialize(): Promise<void> {
     this.apiKey = this.runtime.getSetting("COINGLASS_API_KEY") as string | null;
-    
+
     if (!this.apiKey) {
-      logger.warn("[VinceCoinGlass] COINGLASS_API_KEY not configured - using free Binance APIs");
+      logger.warn(
+        "[VinceCoinGlass] COINGLASS_API_KEY not configured - using free Binance APIs",
+      );
       this.isAvailable = false;
     } else {
       // Log key format for debugging (show first 8 and last 4 chars)
-      const keyPreview = this.apiKey.length > 12 
-        ? `${this.apiKey.slice(0, 8)}...${this.apiKey.slice(-4)}` 
-        : "[key too short]";
-      logger.info(`[VinceCoinGlass] Found API key: ${keyPreview}, testing connection...`);
-      
+      const keyPreview =
+        this.apiKey.length > 12
+          ? `${this.apiKey.slice(0, 8)}...${this.apiKey.slice(-4)}`
+          : "[key too short]";
+      logger.info(
+        `[VinceCoinGlass] Found API key: ${keyPreview}, testing connection...`,
+      );
+
       // Test connection (returns boolean, doesn't throw)
       this.isAvailable = await this.testConnection();
-      
+
       if (this.isAvailable) {
-        logger.info("[VinceCoinGlass] ✅ Using CoinGlass API (Hobbyist tier V2)");
+        logger.info(
+          "[VinceCoinGlass] ✅ Using CoinGlass API (Hobbyist tier V2)",
+        );
       } else {
-        logger.warn("[VinceCoinGlass] ⚠️ CoinGlass API test failed - falling back to Binance free APIs");
+        logger.warn(
+          "[VinceCoinGlass] ⚠️ CoinGlass API test failed - falling back to Binance free APIs",
+        );
       }
     }
 
     // Initial data fetch
     await this.refreshData();
-    
-    // Print dashboard
-    this.printCoinGlassDashboard();
+
+    // Print dashboard only for VINCE agent (avoid duplicate when Eliza also loads plugin)
+    if (isVinceAgent(this.runtime)) this.printCoinGlassDashboard();
   }
 
   // ==========================================
@@ -125,7 +144,9 @@ export class VinceCoinGlassService extends Service {
     logLine("🔮 COINGLASS DATA ($350/yr)");
     logEmpty();
     if (this.isAvailable) {
-      logLine("From CoinGlass: Funding, OI (24h). Others: L/S=Binance, F&G=alt.me");
+      logLine(
+        "From CoinGlass: Funding, OI (24h). Others: L/S=Binance, F&G=alt.me",
+      );
     } else {
       logLine("⚠️ No API key - all from free APIs (Binance + alternative.me)");
     }
@@ -140,7 +161,10 @@ export class VinceCoinGlassService extends Service {
     sep();
     logEmpty();
 
-    const timeStr = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const timeStr = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     logLine(`🕐 ${timeStr}`);
 
     sep();
@@ -148,9 +172,21 @@ export class VinceCoinGlassService extends Service {
 
     const fg = this.cache.fearGreed;
     if (fg) {
-      const emoji = fg.value <= 20 ? "😱" : fg.value <= 35 ? "😰" : fg.value <= 50 ? "😐" : fg.value <= 65 ? "😊" : fg.value <= 80 ? "🤑" : "🚀";
+      const emoji =
+        fg.value <= 20
+          ? "😱"
+          : fg.value <= 35
+            ? "😰"
+            : fg.value <= 50
+              ? "😐"
+              : fg.value <= 65
+                ? "😊"
+                : fg.value <= 80
+                  ? "🤑"
+                  : "🚀";
       const bar = this.buildFearGreedBar(fg.value);
-      const signal = fg.value <= 25 ? "← BUY ZONE" : fg.value >= 75 ? "← SELL ZONE" : "";
+      const signal =
+        fg.value <= 25 ? "← BUY ZONE" : fg.value >= 75 ? "← SELL ZONE" : "";
       const labelMap: Record<string, string> = {
         extreme_fear: "EXTREME FEAR",
         fear: "FEAR",
@@ -158,8 +194,11 @@ export class VinceCoinGlassService extends Service {
         greed: "GREED",
         extreme_greed: "EXTREME GREED",
       };
-      const label = labelMap[fg.classification] || fg.classification.toUpperCase();
-      logLine(`${emoji} FEAR & GREED: ${fg.value}/100  ${bar}  ${label} ${signal}`);
+      const label =
+        labelMap[fg.classification] || fg.classification.toUpperCase();
+      logLine(
+        `${emoji} FEAR & GREED: ${fg.value}/100  ${bar}  ${label} ${signal}`,
+      );
     } else {
       logLine("😱 FEAR & GREED: Loading...");
     }
@@ -173,12 +212,13 @@ export class VinceCoinGlassService extends Service {
 
     let highFundingAssets: string[] = [];
     let negFundingAssets: string[] = [];
-    
+
     for (const asset of assets) {
       const funding = this.cache.funding.get(asset);
       if (funding) {
         const rate = funding.rate * 100;
-        const rateStr = rate >= 0 ? `+${rate.toFixed(4)}%` : `${rate.toFixed(4)}%`;
+        const rateStr =
+          rate >= 0 ? `+${rate.toFixed(4)}%` : `${rate.toFixed(4)}%`;
         const bar = this.buildFundingBar(rate);
         const signal = rate > 0.05 ? "🔥 HIGH" : rate < -0.02 ? "❄️ NEG" : "";
         logLine(`   ${asset} ${rateStr.padStart(10)}  ${bar}  ${signal}`);
@@ -186,12 +226,16 @@ export class VinceCoinGlassService extends Service {
         if (rate < -0.02) negFundingAssets.push(asset);
       }
     }
-    
+
     if (this.cache.funding.size === 0) logLine("   (loading funding data...)");
     if (highFundingAssets.length > 0) {
-      logLine(`⚠️  ${highFundingAssets.join(", ")}: Longs crowded, expensive to hold long`);
+      logLine(
+        `⚠️  ${highFundingAssets.join(", ")}: Longs crowded, expensive to hold long`,
+      );
     } else if (negFundingAssets.length > 0) {
-      logLine(`💡 ${negFundingAssets.join(", ")}: Shorts paying longs - bullish bias`);
+      logLine(
+        `💡 ${negFundingAssets.join(", ")}: Shorts paying longs - bullish bias`,
+      );
     } else {
       logLine("✅ Funding neutral - no extreme leverage detected");
     }
@@ -204,8 +248,15 @@ export class VinceCoinGlassService extends Service {
       const ls = this.cache.longShort.get(asset);
       if (ls) {
         const bar = this.buildLongShortBar(ls.longPercent);
-        const crowdSignal = ls.longPercent > 60 ? "🔴 FADE" : ls.longPercent < 40 ? "🟢 FADE" : "";
-        logLine(`   ${asset} L:${ls.longPercent.toFixed(0).padStart(2)}% S:${ls.shortPercent.toFixed(0).padStart(2)}%  ${bar}  ${crowdSignal}`);
+        const crowdSignal =
+          ls.longPercent > 60
+            ? "🔴 FADE"
+            : ls.longPercent < 40
+              ? "🟢 FADE"
+              : "";
+        logLine(
+          `   ${asset} L:${ls.longPercent.toFixed(0).padStart(2)}% S:${ls.shortPercent.toFixed(0).padStart(2)}%  ${bar}  ${crowdSignal}`,
+        );
       }
     }
     if (this.cache.longShort.size === 0) logLine("   (loading L/S data...)");
@@ -220,9 +271,19 @@ export class VinceCoinGlassService extends Service {
         const valueStr = this.formatVolume(oi.value);
         const change = oi.change24h;
         const hasChange = change !== null;
-        const changeEmoji = !hasChange ? "➡️" : change! > 3 ? "📈" : change! < -3 ? "📉" : "➡️";
-        const changeStr = hasChange ? `${change! > 0 ? "+" : ""}${change!.toFixed(1)}%` : "N/A";
-        logLine(`   ${asset} ${valueStr.padEnd(10)} ${changeEmoji} ${changeStr}`);
+        const changeEmoji = !hasChange
+          ? "➡️"
+          : change! > 3
+            ? "📈"
+            : change! < -3
+              ? "📉"
+              : "➡️";
+        const changeStr = hasChange
+          ? `${change! > 0 ? "+" : ""}${change!.toFixed(1)}%`
+          : "N/A";
+        logLine(
+          `   ${asset} ${valueStr.padEnd(10)} ${changeEmoji} ${changeStr}`,
+        );
       }
     }
     if (this.cache.openInterest.size === 0) logLine("   (loading OI data...)");
@@ -233,7 +294,8 @@ export class VinceCoinGlassService extends Service {
 
     const contrarianSignals = this.getContrarianSignals();
     if (contrarianSignals.length > 0) {
-      for (const signal of contrarianSignals.slice(0, 3)) logLine(`   ${signal}`);
+      for (const signal of contrarianSignals.slice(0, 3))
+        logLine(`   ${signal}`);
     } else {
       logLine("   ⚪ No extreme signals detected - market balanced");
     }
@@ -241,20 +303,40 @@ export class VinceCoinGlassService extends Service {
     sep();
     logEmpty();
     const bias = this.calculateOverallBias();
-    const biasEmoji = bias.direction === "bullish" ? "🟢" : bias.direction === "bearish" ? "🔴" : "⚪";
+    const biasEmoji =
+      bias.direction === "bullish"
+        ? "🟢"
+        : bias.direction === "bearish"
+          ? "🔴"
+          : "⚪";
     const biasBar = this.buildBiasBar(bias.score);
-    logLine(`${biasEmoji} OVERALL BIAS: ${bias.direction.toUpperCase()} ${biasBar}  Score: ${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)}`);
+    logLine(
+      `${biasEmoji} OVERALL BIAS: ${bias.direction.toUpperCase()} ${biasBar}  Score: ${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)}`,
+    );
 
     sep();
     logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("BUY") || tldr.includes("BULLISH") || tldr.includes("squeeze UP") ? "💡" :
-                      tldr.includes("SELL") || tldr.includes("BEARISH") || tldr.includes("squeeze DOWN") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("BUY") ||
+      tldr.includes("BULLISH") ||
+      tldr.includes("squeeze UP")
+        ? "💡"
+        : tldr.includes("SELL") ||
+            tldr.includes("BEARISH") ||
+            tldr.includes("squeeze DOWN")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
 
-    const dataCount = this.cache.funding.size + this.cache.longShort.size + this.cache.openInterest.size;
-    logger.debug(`[VinceCoinGlass] ✅ Dashboard: ${dataCount} data points | Bias: ${bias.direction} (${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)})`);
+    const dataCount =
+      this.cache.funding.size +
+      this.cache.longShort.size +
+      this.cache.openInterest.size;
+    logger.debug(
+      `[VinceCoinGlass] ✅ Dashboard: ${dataCount} data points | Bias: ${bias.direction} (${bias.score > 0 ? "+" : ""}${bias.score.toFixed(0)})`,
+    );
   }
 
   /**
@@ -265,13 +347,17 @@ export class VinceCoinGlassService extends Service {
     // Normalize to -5 to +5 scale
     const normalized = Math.max(-5, Math.min(5, rate * 50));
     const center = 5;
-    
+
     if (normalized >= 0) {
       const filled = Math.floor(normalized);
-      return "░".repeat(center) + "│" + "█".repeat(filled) + "░".repeat(5 - filled);
+      return (
+        "░".repeat(center) + "│" + "█".repeat(filled) + "░".repeat(5 - filled)
+      );
     } else {
       const filled = Math.floor(-normalized);
-      return "░".repeat(center - filled) + "█".repeat(filled) + "│" + "░".repeat(5);
+      return (
+        "░".repeat(center - filled) + "█".repeat(filled) + "│" + "░".repeat(5)
+      );
     }
   }
 
@@ -282,7 +368,10 @@ export class VinceCoinGlassService extends Service {
     // Long percent 0-100
     const longBlocks = Math.floor(longPct / 10);
     const shortBlocks = 10 - longBlocks;
-    return "🟢".repeat(Math.min(5, longBlocks)) + "🔴".repeat(Math.min(5, shortBlocks));
+    return (
+      "🟢".repeat(Math.min(5, longBlocks)) +
+      "🔴".repeat(Math.min(5, shortBlocks))
+    );
   }
 
   /**
@@ -292,13 +381,17 @@ export class VinceCoinGlassService extends Service {
     // Score -100 to +100
     const normalized = Math.max(-5, Math.min(5, score / 20));
     const center = 5;
-    
+
     if (normalized >= 0) {
       const filled = Math.floor(normalized);
-      return "░".repeat(center) + "│" + "█".repeat(filled) + "░".repeat(5 - filled);
+      return (
+        "░".repeat(center) + "│" + "█".repeat(filled) + "░".repeat(5 - filled)
+      );
     } else {
       const filled = Math.floor(-normalized);
-      return "░".repeat(center - filled) + "█".repeat(filled) + "│" + "░".repeat(5);
+      return (
+        "░".repeat(center - filled) + "█".repeat(filled) + "│" + "░".repeat(5)
+      );
     }
   }
 
@@ -312,9 +405,13 @@ export class VinceCoinGlassService extends Service {
     // Fear & Greed extremes
     if (fg) {
       if (fg.value <= 20) {
-        signals.push(`🟢 EXTREME FEAR (${fg.value}) → Contrarian BUY opportunity`);
+        signals.push(
+          `🟢 EXTREME FEAR (${fg.value}) → Contrarian BUY opportunity`,
+        );
       } else if (fg.value >= 80) {
-        signals.push(`🔴 EXTREME GREED (${fg.value}) → Contrarian SELL opportunity`);
+        signals.push(
+          `🔴 EXTREME GREED (${fg.value}) → Contrarian SELL opportunity`,
+        );
       }
     }
 
@@ -322,18 +419,26 @@ export class VinceCoinGlassService extends Service {
     for (const [asset, funding] of this.cache.funding) {
       const rate = funding.rate * 100;
       if (rate > 0.05) {
-        signals.push(`🔴 ${asset} Funding HIGH (${rate.toFixed(3)}%) → Longs overleveraged`);
+        signals.push(
+          `🔴 ${asset} Funding HIGH (${rate.toFixed(3)}%) → Longs overleveraged`,
+        );
       } else if (rate < -0.02) {
-        signals.push(`🟢 ${asset} Funding NEG (${rate.toFixed(3)}%) → Shorts overleveraged`);
+        signals.push(
+          `🟢 ${asset} Funding NEG (${rate.toFixed(3)}%) → Shorts overleveraged`,
+        );
       }
     }
 
     // L/S ratio extremes
     for (const [asset, ls] of this.cache.longShort) {
       if (ls.longPercent > 65) {
-        signals.push(`🔴 ${asset} Crowd LONG (${ls.longPercent.toFixed(0)}%) → Fade the crowd`);
+        signals.push(
+          `🔴 ${asset} Crowd LONG (${ls.longPercent.toFixed(0)}%) → Fade the crowd`,
+        );
       } else if (ls.longPercent < 35) {
-        signals.push(`🟢 ${asset} Crowd SHORT (${ls.longPercent.toFixed(0)}%) → Fade the crowd`);
+        signals.push(
+          `🟢 ${asset} Crowd SHORT (${ls.longPercent.toFixed(0)}%) → Fade the crowd`,
+        );
       }
     }
 
@@ -343,7 +448,10 @@ export class VinceCoinGlassService extends Service {
   /**
    * Calculate overall market bias from all indicators
    */
-  private calculateOverallBias(): { direction: "bullish" | "bearish" | "neutral"; score: number } {
+  private calculateOverallBias(): {
+    direction: "bullish" | "bearish" | "neutral";
+    score: number;
+  } {
     let score = 0;
     let factors = 0;
 
@@ -351,7 +459,7 @@ export class VinceCoinGlassService extends Service {
     const fg = this.cache.fearGreed;
     if (fg) {
       // Low fear = bullish, high greed = bearish (contrarian)
-      score += (50 - fg.value);
+      score += 50 - fg.value;
       factors++;
     }
 
@@ -365,15 +473,20 @@ export class VinceCoinGlassService extends Service {
     // L/S ratio contribution (contrarian)
     for (const [, ls] of this.cache.longShort) {
       // More longs = bearish (contrarian), more shorts = bullish
-      score += (50 - ls.longPercent);
+      score += 50 - ls.longPercent;
       factors++;
     }
 
     // Normalize to -100 to +100
     const normalizedScore = factors > 0 ? (score / factors) * 2 : 0;
-    
-    const direction = normalizedScore > 15 ? "bullish" : normalizedScore < -15 ? "bearish" : "neutral";
-    
+
+    const direction =
+      normalizedScore > 15
+        ? "bullish"
+        : normalizedScore < -15
+          ? "bearish"
+          : "neutral";
+
     return { direction, score: normalizedScore };
   }
 
@@ -384,25 +497,29 @@ export class VinceCoinGlassService extends Service {
     const fg = this.cache.fearGreed;
     const signals = this.getContrarianSignals();
     const bias = this.calculateOverallBias();
-    
+
     // Priority 1: Extreme Fear/Greed (strongest signal)
     if (fg) {
       if (fg.value <= 20) {
-        const crowdedLongs = Array.from(this.cache.longShort.values()).some(ls => ls.longPercent > 65);
+        const crowdedLongs = Array.from(this.cache.longShort.values()).some(
+          (ls) => ls.longPercent > 65,
+        );
         if (crowdedLongs) {
           return "EXTREME FEAR + longs crowded - fade longs or wait";
         }
         return "EXTREME FEAR - contrarian BUY zone active";
       }
       if (fg.value >= 80) {
-        const crowdedShorts = Array.from(this.cache.longShort.values()).some(ls => ls.longPercent < 35);
+        const crowdedShorts = Array.from(this.cache.longShort.values()).some(
+          (ls) => ls.longPercent < 35,
+        );
         if (crowdedShorts) {
           return "EXTREME GREED + shorts crowded - fade shorts or wait";
         }
         return "EXTREME GREED - contrarian SELL zone active";
       }
     }
-    
+
     // Priority 2: Funding rate extremes (squeeze potential)
     for (const [asset, funding] of this.cache.funding) {
       const rate = funding.rate * 100;
@@ -413,7 +530,7 @@ export class VinceCoinGlassService extends Service {
         return `${asset} longs paying ${rate.toFixed(3)}% - squeeze DOWN potential`;
       }
     }
-    
+
     // Priority 3: Crowd positioning (fade signals)
     for (const [asset, ls] of this.cache.longShort) {
       if (ls.longPercent > 70) {
@@ -423,7 +540,7 @@ export class VinceCoinGlassService extends Service {
         return `${asset} crowd 70%+ SHORT - fade or wait for squeeze`;
       }
     }
-    
+
     // Priority 4: Overall bias summary
     if (bias.direction === "bullish" && bias.score > 30) {
       return "BULLISH setup - multiple signals aligned long";
@@ -431,7 +548,7 @@ export class VinceCoinGlassService extends Service {
     if (bias.direction === "bearish" && bias.score < -30) {
       return "BEARISH setup - multiple signals aligned short";
     }
-    
+
     // Default: No clear edge
     return "NEUTRAL - no extreme signals, wait for edge";
   }
@@ -441,49 +558,58 @@ export class VinceCoinGlassService extends Service {
       logger.warn("[VinceCoinGlass] No COINGLASS_API_KEY found in settings");
       return false;
     }
-    
+
     try {
       // Use OI endpoint for testing - this works with Hobbyist tier ($350/yr V2 API)
       const response = await fetch(
         "https://open-api.coinglass.com/public/v2/open_interest?symbol=BTC",
         {
-          headers: { Accept: "application/json", coinglassSecret: this.apiKey! },
+          headers: {
+            Accept: "application/json",
+            coinglassSecret: this.apiKey!,
+          },
           signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-        }
+        },
       );
-      
+
       // Get response as text first for debugging
       const responseText = await response.text();
-      logger.debug(`[VinceCoinGlass] Raw API response: ${responseText.slice(0, 500)}`);
-      
+      logger.debug(
+        `[VinceCoinGlass] Raw API response: ${responseText.slice(0, 500)}`,
+      );
+
       if (!response.ok) {
-        logger.error(`[VinceCoinGlass] HTTP ${response.status} ${response.statusText}: ${responseText.slice(0, 200)}`);
+        logger.error(
+          `[VinceCoinGlass] HTTP ${response.status} ${response.statusText}: ${responseText.slice(0, 200)}`,
+        );
         return false;
       }
-      
+
       // Parse the response
       const data = JSON.parse(responseText);
-      
+
       // V2 API: code can be string "0" or number 0
       const isSuccess = data.code === "0" || data.code === 0;
       if (!isSuccess) {
-        logger.error(`[VinceCoinGlass] API error: code=${data.code}, msg=${data.msg || "Unknown"}`);
+        logger.error(
+          `[VinceCoinGlass] API error: code=${data.code}, msg=${data.msg || "Unknown"}`,
+        );
         return false;
       }
-      
+
       // Verify we got actual data
       if (!data.data || (Array.isArray(data.data) && data.data.length === 0)) {
         logger.error("[VinceCoinGlass] API returned empty data array");
         return false;
       }
-      
+
       // Log success with sample data
-      const sampleOI = Array.isArray(data.data) && data.data[0]?.openInterest 
-        ? `$${(data.data[0].openInterest / 1e9).toFixed(1)}B` 
-        : "N/A";
+      const sampleOI =
+        Array.isArray(data.data) && data.data[0]?.openInterest
+          ? `$${(data.data[0].openInterest / 1e9).toFixed(1)}B`
+          : "N/A";
       logger.info(`[VinceCoinGlass] ✅ API verified - BTC OI: ${sampleOI}`);
       return true;
-      
     } catch (error) {
       logger.error(`[VinceCoinGlass] Connection test exception: ${error}`);
       return false;
@@ -530,10 +656,16 @@ export class VinceCoinGlassService extends Service {
     try {
       // Run OI, optional funding, and Binance L/S in parallel
       const [oiRes, fundingRes, _ls] = await Promise.all([
-        fetch(`${baseUrl}/public/v2/open_interest?symbol=${asset}`, { headers, signal: signal() }),
+        fetch(`${baseUrl}/public/v2/open_interest?symbol=${asset}`, {
+          headers,
+          signal: signal(),
+        }),
         this.cache.funding.has(asset)
           ? Promise.resolve(null as Response | null)
-          : fetch(`${baseUrl}/public/v2/funding?symbol=${asset}`, { headers, signal: signal() }),
+          : fetch(`${baseUrl}/public/v2/funding?symbol=${asset}`, {
+              headers,
+              signal: signal(),
+            }),
         this.fetchBinanceLongShort(asset),
       ]);
 
@@ -553,11 +685,16 @@ export class VinceCoinGlassService extends Service {
               assetData.change24h;
             let change24h: number | null = null;
             if (rawChange !== undefined && rawChange !== null) {
-              const parsed = typeof rawChange === "number" ? rawChange : parseFloat(String(rawChange));
+              const parsed =
+                typeof rawChange === "number"
+                  ? rawChange
+                  : parseFloat(String(rawChange));
               if (!isNaN(parsed)) change24h = parsed;
             }
             if (change24h === null) {
-              logger.debug(`[VinceCoinGlass] ${asset} OI: No change24h. Fields: ${Object.keys(assetData).join(", ")}`);
+              logger.debug(
+                `[VinceCoinGlass] ${asset} OI: No change24h. Fields: ${Object.keys(assetData).join(", ")}`,
+              );
             }
             const oiValue = parseFloat(assetData.openInterest) || 0;
             this.cache.openInterest.set(asset, {
@@ -567,7 +704,9 @@ export class VinceCoinGlassService extends Service {
               timestamp: Date.now(),
             });
             if (change24h !== null) {
-              logger.debug(`[VinceCoinGlass] ${asset} OI: $${(oiValue / 1e9).toFixed(2)}B, change: ${change24h > 0 ? "+" : ""}${change24h.toFixed(1)}%`);
+              logger.debug(
+                `[VinceCoinGlass] ${asset} OI: $${(oiValue / 1e9).toFixed(2)}B, change: ${change24h > 0 ? "+" : ""}${change24h.toFixed(1)}%`,
+              );
             }
             if (assetData.avgFundingRateBySymbol !== undefined) {
               this.cache.funding.set(asset, {
@@ -590,8 +729,16 @@ export class VinceCoinGlassService extends Service {
             const rates = assetData.uMarginList
               .map((e: { rate: number }) => e.rate)
               .filter((r: number) => !isNaN(r));
-            const avgRate = rates.length > 0 ? rates.reduce((a: number, b: number) => a + b, 0) / rates.length : 0;
-            this.cache.funding.set(asset, { asset, rate: avgRate, timestamp: Date.now() });
+            const avgRate =
+              rates.length > 0
+                ? rates.reduce((a: number, b: number) => a + b, 0) /
+                  rates.length
+                : 0;
+            this.cache.funding.set(asset, {
+              asset,
+              rate: avgRate,
+              timestamp: Date.now(),
+            });
           }
         }
       }
@@ -609,7 +756,7 @@ export class VinceCoinGlassService extends Service {
       const symbol = `${asset}USDT`;
       const lsRes = await fetch(
         `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`,
-        { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }
+        { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
       );
       if (lsRes.ok) {
         const data = await lsRes.json();
@@ -635,10 +782,22 @@ export class VinceCoinGlassService extends Service {
     const opts = { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) };
     try {
       const [priceRes, fundingRes, lsRes, oiHistRes] = await Promise.all([
-        fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`, opts),
-        fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`, opts),
-        fetch(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`, opts),
-        fetch(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`, opts),
+        fetch(
+          `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`,
+          opts,
+        ),
+        fetch(
+          `https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`,
+          opts,
+        ),
+        fetch(
+          `https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=1h&limit=1`,
+          opts,
+        ),
+        fetch(
+          `https://fapi.binance.com/futures/data/openInterestHist?symbol=${symbol}&period=1h&limit=24`,
+          opts,
+        ),
       ]);
 
       let price = 0;
@@ -671,7 +830,10 @@ export class VinceCoinGlassService extends Service {
       }
 
       if (oiHistRes.ok) {
-        const histData = await oiHistRes.json() as Array<{ sumOpenInterestValue: string; timestamp: number }>;
+        const histData = (await oiHistRes.json()) as Array<{
+          sumOpenInterestValue: string;
+          timestamp: number;
+        }>;
         if (Array.isArray(histData) && histData.length > 0) {
           // Parse and sort by timestamp (newest first)
           const history = histData.map((item) => ({
@@ -682,7 +844,8 @@ export class VinceCoinGlassService extends Service {
 
           const current = history[0]?.value || 0;
           const oldest = history[history.length - 1]?.value || current;
-          const changePercent = oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
+          const changePercent =
+            oldest > 0 ? ((current - oldest) / oldest) * 100 : 0;
 
           this.cache.openInterest.set(asset, {
             asset,
@@ -690,13 +853,18 @@ export class VinceCoinGlassService extends Service {
             change24h: changePercent, // Now properly calculated from historical data!
             timestamp: Date.now(),
           });
-          
-          logger.debug(`[VinceCoinGlass] ${asset} OI from Binance: $${(current / 1e9).toFixed(2)}B, change: ${changePercent > 0 ? "+" : ""}${changePercent.toFixed(1)}%`);
+
+          logger.debug(
+            `[VinceCoinGlass] ${asset} OI from Binance: $${(current / 1e9).toFixed(2)}B, change: ${changePercent > 0 ? "+" : ""}${changePercent.toFixed(1)}%`,
+          );
         }
       }
 
       if (!this.cache.openInterest.has(asset)) {
-        const oiRes = await fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`, opts);
+        const oiRes = await fetch(
+          `https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`,
+          opts,
+        );
         if (oiRes.ok) {
           const data = await oiRes.json();
           const oiQty = parseFloat(data.openInterest) || 0;
@@ -749,7 +917,9 @@ export class VinceCoinGlassService extends Service {
   getStatus(): { available: boolean; source: string; lastUpdate: number } {
     return {
       available: this.cache.lastUpdate > 0,
-      source: this.isAvailable ? "CoinGlass (Hobbyist)" : "Free APIs (Binance, Alternative.me)",
+      source: this.isAvailable
+        ? "CoinGlass (Hobbyist)"
+        : "Free APIs (Binance, Alternative.me)",
       lastUpdate: this.cache.lastUpdate,
     };
   }
@@ -830,7 +1000,9 @@ export class VinceCoinGlassService extends Service {
         } else if (oi.change24h < -2) {
           factors.push(`OI ${oi.change24h.toFixed(1)}% (position flush)`);
         } else {
-          factors.push(`OI 24h ${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%`);
+          factors.push(
+            `OI 24h ${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%`,
+          );
         }
       }
     }

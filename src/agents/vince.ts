@@ -33,7 +33,12 @@
  * - Subreddit (failed experiment)
  */
 
-import { type IAgentRuntime, type ProjectAgent, type Character, type Plugin } from "@elizaos/core";
+import {
+  type IAgentRuntime,
+  type ProjectAgent,
+  type Character,
+  type Plugin,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import sqlPlugin from "@elizaos/plugin-sql";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
@@ -53,17 +58,26 @@ export const vinceCharacter: Character = {
   plugins: [
     "@elizaos/plugin-sql",
     "@elizaos/plugin-bootstrap",
-    ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
+    ...(process.env.ANTHROPIC_API_KEY?.trim()
+      ? ["@elizaos/plugin-anthropic"]
+      : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     // Push notifications: Discord, Slack, Telegram (enable when tokens configured)
-    ...(process.env.DISCORD_API_TOKEN?.trim() ? ["@elizaos/plugin-discord"] : []),
-    ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
-    ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
+    ...(process.env.DISCORD_API_TOKEN?.trim()
+      ? ["@elizaos/plugin-discord"]
+      : []),
+    ...(process.env.SLACK_BOT_TOKEN?.trim()
+      ? ["@elizaos-plugins/client-slack"]
+      : []),
+    ...(process.env.TELEGRAM_BOT_TOKEN?.trim()
+      ? ["@elizaos/plugin-telegram"]
+      : []),
   ],
   settings: {
     secrets: {},
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
-    embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
+    embeddingModel:
+      process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,
     /** Paper trading: take profit at $210, max leverage 10 (set VINCE_PAPER_AGGRESSIVE=true or set this to true) */
     vince_paper_aggressive: process.env.VINCE_PAPER_AGGRESSIVE === "true",
@@ -366,9 +380,7 @@ Your call on execution. Want me to log the selections?`,
       "Skip intros and conclusions. Get to the point.",
       "Highlight actionable insights, not menus",
     ],
-    post: [
-      "Concise. Signals not noise. No corporate speak.",
-    ],
+    post: ["Concise. Signals not noise. No corporate speak."],
   },
 };
 
@@ -386,13 +398,14 @@ const initVince = async ({ runtime }: { runtime: IAgentRuntime }) => {
 // Build Plugins
 // ==========================================
 
-const buildPlugins = (): Plugin[] => [
-  sqlPlugin,
-  bootstrapPlugin,
-  ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
-  ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-  vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
-] as Plugin[];
+const buildPlugins = (): Plugin[] =>
+  [
+    sqlPlugin,
+    bootstrapPlugin,
+    ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
+    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+    vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
+  ] as Plugin[];
 
 // ==========================================
 // Export Agent

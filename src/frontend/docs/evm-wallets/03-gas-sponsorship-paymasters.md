@@ -49,15 +49,18 @@ You sponsor all gas fees for your users.
 const { userOpHash } = await cdp.evm.sendUserOperation({
   smartAccount,
   network: "base",
-  calls: [{
-    to: "0x...",
-    value: parseEther("0.1"),
-  }],
-  paymasterUrl: CDP_PAYMASTER_URL,  // You pay
-})
+  calls: [
+    {
+      to: "0x...",
+      value: parseEther("0.1"),
+    },
+  ],
+  paymasterUrl: CDP_PAYMASTER_URL, // You pay
+});
 ```
 
 **Use cases:**
+
 - Onboarding (first tx free)
 - NFT mints
 - Gaming transactions
@@ -71,18 +74,21 @@ User pays gas in USDC or other ERC-20 instead of ETH.
 const { userOpHash } = await cdp.evm.sendUserOperation({
   smartAccount,
   network: "base",
-  calls: [{
-    to: "0x...",
-    value: 0n,
-  }],
+  calls: [
+    {
+      to: "0x...",
+      value: 0n,
+    },
+  ],
   paymasterUrl: PAYMASTER_URL,
   paymasterContext: {
-    token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"  // USDC on Base
-  }
-})
+    token: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  },
+});
 ```
 
 **How it works:**
+
 ```
 User has USDC, no ETH
      │
@@ -98,6 +104,7 @@ User has USDC, no ETH
 ```
 
 **Use cases:**
+
 - Stablecoin-only users
 - Cross-border payments
 - DeFi apps
@@ -107,13 +114,13 @@ User has USDC, no ETH
 
 ## Paymaster Providers
 
-| Provider | Type | Tokens | Fee | Networks |
-|----------|------|--------|-----|----------|
-| **CDP Paymaster** | Gasless + ERC-20 | USDC, custom | TBD | Base only |
-| **Circle Paymaster** | ERC-20 | USDC only | 10% | Base, Arbitrum |
-| **Pimlico** | Gasless + ERC-20 | Multiple | Varies | Multi-chain |
-| **Alchemy** | Gasless + ERC-20 | Multiple | Varies | Multi-chain |
-| **Stackup** | Gasless + ERC-20 | Multiple | Varies | Multi-chain |
+| Provider             | Type             | Tokens       | Fee    | Networks       |
+| -------------------- | ---------------- | ------------ | ------ | -------------- |
+| **CDP Paymaster**    | Gasless + ERC-20 | USDC, custom | TBD    | Base only      |
+| **Circle Paymaster** | ERC-20           | USDC only    | 10%    | Base, Arbitrum |
+| **Pimlico**          | Gasless + ERC-20 | Multiple     | Varies | Multi-chain    |
+| **Alchemy**          | Gasless + ERC-20 | Multiple     | Varies | Multi-chain    |
+| **Stackup**          | Gasless + ERC-20 | Multiple     | Varies | Multi-chain    |
 
 ---
 
@@ -133,9 +140,9 @@ CDP Paymaster = Bundler + Paymaster (single endpoint)
 
 ### Sponsorship Models
 
-| Network | Default Behavior | Notes |
-|---------|-----------------|-------|
-| Base Sepolia | Auto-sponsored | Free for all Smart Accounts |
+| Network      | Default Behavior    | Notes                         |
+| ------------ | ------------------- | ----------------------------- |
+| Base Sepolia | Auto-sponsored      | Free for all Smart Accounts   |
 | Base Mainnet | Need `paymasterUrl` | You pay (or user with ERC-20) |
 
 ### Setup
@@ -170,10 +177,10 @@ const { userOpHash } = await cdp.evm.sendUserOperation({
 
 ### Supported Tokens (CDP Paymaster)
 
-| Token | Address (Base) | Status |
-|-------|---------------|--------|
-| USDC | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | ✅ Supported |
-| Custom tokens | App-specific | ✅ Early Access |
+| Token         | Address (Base)                               | Status          |
+| ------------- | -------------------------------------------- | --------------- |
+| USDC          | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` | ✅ Supported    |
+| Custom tokens | App-specific                                 | ✅ Early Access |
 
 ### How User Pays in USDC
 
@@ -181,23 +188,25 @@ const { userOpHash } = await cdp.evm.sendUserOperation({
 // User's smart account has USDC, no ETH
 const smartAccount = await cdp.evm.getOrCreateSmartAccount({
   name: "UserAccount",
-  owner
-})
+  owner,
+});
 
 // Send transaction - gas paid in USDC
 const { userOpHash } = await cdp.evm.sendUserOperation({
   smartAccount,
   network: "base",
-  calls: [{
-    to: "0xRecipient...",
-    value: 0n,
-    data: "0x",
-  }],
+  calls: [
+    {
+      to: "0xRecipient...",
+      value: 0n,
+      data: "0x",
+    },
+  ],
   paymasterUrl: CDP_PAYMASTER_URL,
   // Paymaster will:
   // 1. Pay gas in ETH
   // 2. Deduct equivalent USDC from user's account
-})
+});
 ```
 
 ### Under the Hood
@@ -246,11 +255,13 @@ const { userOpHash } = await sendUserOperation({
 ```
 
 **Pricing:**
+
 - **10% markup** on gas cost
 - Example: $0.01 gas → $0.011 total
 - Active since July 1, 2025
 
 **Networks:**
+
 - Base mainnet
 - Arbitrum mainnet
 
@@ -444,9 +455,10 @@ User pays:
 ### 2. Rate Limiting
 
 Protect against abuse:
+
 ```typescript
 // Track per-user gas usage
-const userGasUsed = await trackGasUsage(userAddress)
+const userGasUsed = await trackGasUsage(userAddress);
 if (userGasUsed > DAILY_LIMIT) {
   // Don't sponsor
 }
@@ -456,13 +468,13 @@ if (userGasUsed > DAILY_LIMIT) {
 
 ```typescript
 // Monitor Paymaster balance
-const balance = await getPaymasterBalance()
+const balance = await getPaymasterBalance();
 if (balance < THRESHOLD) {
-  alert("Low Paymaster balance!")
+  alert("Low Paymaster balance!");
 }
 
 // Track costs
-logMetric("paymaster_gas_cost", actualGasCost)
+logMetric("paymaster_gas_cost", actualGasCost);
 ```
 
 ### 4. Fallback Strategy
@@ -470,11 +482,11 @@ logMetric("paymaster_gas_cost", actualGasCost)
 ```typescript
 // Try Paymaster, fall back to user-pays
 try {
-  await sendUserOperation({ paymasterUrl })
+  await sendUserOperation({ paymasterUrl });
 } catch (error) {
   if (error.code === "PAYMASTER_REJECTED") {
     // Ask user to pay gas
-    await sendTransaction({ from: userEOA })
+    await sendTransaction({ from: userEOA });
   }
 }
 ```
@@ -483,35 +495,35 @@ try {
 
 ## Troubleshooting
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| "Paymaster rejected" | Doesn't meet allowlist | Check contract allowlist in Portal |
-| "Insufficient paymaster funds" | Paymaster out of ETH | Top up paymaster balance |
-| "UserOp simulation failed" | Gas estimation wrong | Increase gas limits |
-| "AA33 reverted" | postOp failed | Check paymaster postOp logic |
+| Error                          | Cause                  | Solution                           |
+| ------------------------------ | ---------------------- | ---------------------------------- |
+| "Paymaster rejected"           | Doesn't meet allowlist | Check contract allowlist in Portal |
+| "Insufficient paymaster funds" | Paymaster out of ETH   | Top up paymaster balance           |
+| "UserOp simulation failed"     | Gas estimation wrong   | Increase gas limits                |
+| "AA33 reverted"                | postOp failed          | Check paymaster postOp logic       |
 
 ---
 
 ## Resources
 
-| Resource | URL |
-|----------|-----|
-| CDP Paymaster Docs | https://docs.cdp.coinbase.com/paymaster/introduction/welcome |
-| ERC-4337 Paymasters | https://eips.ethereum.org/EIPS/eip-4337#paymaster |
-| ERC-7677 Spec | https://eips.ethereum.org/EIPS/eip-7677 |
-| Circle Paymaster | https://www.circle.com/paymaster |
-| Pimlico Paymaster | https://docs.pimlico.io/infra/paymaster |
+| Resource            | URL                                                          |
+| ------------------- | ------------------------------------------------------------ |
+| CDP Paymaster Docs  | https://docs.cdp.coinbase.com/paymaster/introduction/welcome |
+| ERC-4337 Paymasters | https://eips.ethereum.org/EIPS/eip-4337#paymaster            |
+| ERC-7677 Spec       | https://eips.ethereum.org/EIPS/eip-7677                      |
+| Circle Paymaster    | https://www.circle.com/paymaster                             |
+| Pimlico Paymaster   | https://docs.pimlico.io/infra/paymaster                      |
 
 ---
 
 ## Quick Reference
 
-| Question | Answer |
-|----------|--------|
-| Can EOA use paymaster? | ❌ No - Smart Account only |
-| Can Server Wallets use paymaster? | ✅ Yes - with Smart Account |
-| Can Embedded Wallets use paymaster? | ✅ Yes - with Smart Account |
-| CDP Paymaster supports ERC-20? | ✅ Yes (USDC, custom) - Early Access |
-| Works on all chains? | ❌ CDP Paymaster = Base only |
-| Cost to sponsor a tx on Base? | ~$0.0001 (very cheap) |
-| Auto-sponsored on testnet? | ✅ Yes (Base Sepolia) |
+| Question                            | Answer                               |
+| ----------------------------------- | ------------------------------------ |
+| Can EOA use paymaster?              | ❌ No - Smart Account only           |
+| Can Server Wallets use paymaster?   | ✅ Yes - with Smart Account          |
+| Can Embedded Wallets use paymaster? | ✅ Yes - with Smart Account          |
+| CDP Paymaster supports ERC-20?      | ✅ Yes (USDC, custom) - Early Access |
+| Works on all chains?                | ❌ CDP Paymaster = Base only         |
+| Cost to sponsor a tx on Base?       | ~$0.0001 (very cheap)                |
+| Auto-sponsored on testnet?          | ✅ Yes (Base Sepolia)                |

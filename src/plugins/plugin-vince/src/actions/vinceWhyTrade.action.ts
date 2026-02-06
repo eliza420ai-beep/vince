@@ -10,7 +10,13 @@
  * - Signal breakdown woven naturally into the narrative
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
@@ -70,22 +76,34 @@ function buildWhyTradeDataContext(ctx: WhyTradeDataContext): string {
   const lines: string[] = [];
 
   lines.push("=== TRADING STATUS ===");
-  lines.push(`Data sources: ${ctx.dataSourcesActive}/${ctx.dataSourcesTotal} active`);
-  lines.push(`Required thresholds: Strength >${ctx.thresholds.strengthRequired}%, Confidence >${ctx.thresholds.confidenceRequired}%, ${ctx.thresholds.confirmingRequired}+ confirming signals`);
+  lines.push(
+    `Data sources: ${ctx.dataSourcesActive}/${ctx.dataSourcesTotal} active`,
+  );
+  lines.push(
+    `Required thresholds: Strength >${ctx.thresholds.strengthRequired}%, Confidence >${ctx.thresholds.confidenceRequired}%, ${ctx.thresholds.confirmingRequired}+ confirming signals`,
+  );
   lines.push("");
 
   if (ctx.hasPositions && ctx.positions.length > 0) {
     lines.push("=== OPEN POSITIONS ===");
     for (const pos of ctx.positions) {
-      lines.push(`${pos.direction.toUpperCase()} ${pos.asset} @ $${pos.entryPrice.toLocaleString()}`);
+      lines.push(
+        `${pos.direction.toUpperCase()} ${pos.asset} @ $${pos.entryPrice.toLocaleString()}`,
+      );
       lines.push(`  Opened: ${pos.openedAgo}`);
-      lines.push(`  Size: $${pos.sizeUsd.toLocaleString()} at ${pos.leverage}x`);
+      lines.push(
+        `  Size: $${pos.sizeUsd.toLocaleString()} at ${pos.leverage}x`,
+      );
       lines.push(`  Strategy: ${pos.strategyName}`);
       lines.push(`  Current: $${pos.markPrice.toLocaleString()}`);
-      lines.push(`  P&L: ${pos.unrealizedPnl >= 0 ? "+" : ""}$${pos.unrealizedPnl.toFixed(2)} (${pos.unrealizedPnlPct >= 0 ? "+" : ""}${pos.unrealizedPnlPct.toFixed(2)}%)`);
+      lines.push(
+        `  P&L: ${pos.unrealizedPnl >= 0 ? "+" : ""}$${pos.unrealizedPnl.toFixed(2)} (${pos.unrealizedPnlPct >= 0 ? "+" : ""}${pos.unrealizedPnlPct.toFixed(2)}%)`,
+      );
       lines.push(`  Stop-Loss: $${pos.stopLossPrice.toLocaleString()}`);
       if (pos.takeProfitPrices.length > 0) {
-        lines.push(`  Take-Profits: ${pos.takeProfitPrices.map(tp => "$" + tp.toLocaleString()).join(", ")}`);
+        lines.push(
+          `  Take-Profits: ${pos.takeProfitPrices.map((tp) => "$" + tp.toLocaleString()).join(", ")}`,
+        );
       }
       lines.push(`  Entry signals: ${pos.triggerSignals.join(" | ")}`);
       lines.push("");
@@ -99,15 +117,23 @@ function buildWhyTradeDataContext(ctx: WhyTradeDataContext): string {
     lines.push("=== CURRENT SIGNALS ===");
     for (const sig of ctx.signals) {
       const meetsStrength = sig.strength >= ctx.thresholds.strengthRequired;
-      const meetsConfidence = sig.confidence >= ctx.thresholds.confidenceRequired;
-      const meetsConfirming = sig.confirmingCount >= ctx.thresholds.confirmingRequired;
+      const meetsConfidence =
+        sig.confidence >= ctx.thresholds.confidenceRequired;
+      const meetsConfirming =
+        sig.confirmingCount >= ctx.thresholds.confirmingRequired;
       const canTrade = meetsStrength && meetsConfidence && meetsConfirming;
 
       lines.push(`${sig.asset}:`);
       lines.push(`  Direction: ${sig.direction.toUpperCase()}`);
-      lines.push(`  Strength: ${sig.strength}% ${meetsStrength ? "(OK)" : "(BELOW THRESHOLD)"}`);
-      lines.push(`  Confidence: ${sig.confidence}% ${meetsConfidence ? "(OK)" : "(BELOW THRESHOLD)"}`);
-      lines.push(`  Confirming signals: ${sig.confirmingCount} ${meetsConfirming ? "(OK)" : "(NEED MORE)"}`);
+      lines.push(
+        `  Strength: ${sig.strength}% ${meetsStrength ? "(OK)" : "(BELOW THRESHOLD)"}`,
+      );
+      lines.push(
+        `  Confidence: ${sig.confidence}% ${meetsConfidence ? "(OK)" : "(BELOW THRESHOLD)"}`,
+      );
+      lines.push(
+        `  Confirming signals: ${sig.confirmingCount} ${meetsConfirming ? "(OK)" : "(NEED MORE)"}`,
+      );
       lines.push(`  Conflicting: ${sig.conflictingCount}`);
       if (sig.factors.length > 0) {
         lines.push(`  Factors: ${sig.factors.join("; ")}`);
@@ -129,7 +155,7 @@ function buildWhyTradeDataContext(ctx: WhyTradeDataContext): string {
 
 async function generateWhyTradeHumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, explaining your trading decisions (or lack thereof) to a friend who wants to understand your reasoning.
 
@@ -224,9 +250,13 @@ export const vinceWhyTradeAction: Action = {
     "TRADE_REASONING",
     "BRIEFING",
   ],
-  description: "Human-style explanation of trading decisions - why in a trade or why sitting out",
+  description:
+    "Human-style explanation of trading decisions - why in a trade or why sitting out",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("why") ||
@@ -241,11 +271,15 @@ export const vinceWhyTradeAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
-      const signalAggregator = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as VinceSignalAggregatorService | null;
+      const positionManager = runtime.getService(
+        "VINCE_POSITION_MANAGER_SERVICE",
+      ) as VincePositionManagerService | null;
+      const signalAggregator = runtime.getService(
+        "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+      ) as VinceSignalAggregatorService | null;
 
       if (!positionManager) {
         await callback({
@@ -274,8 +308,10 @@ export const vinceWhyTradeAction: Action = {
 
           if (signalStatus.dataSources) {
             dataSourcesTotal = signalStatus.dataSources.length;
-            dataSourcesActive = signalStatus.dataSources.filter(d => d.available).length;
-            dataSourcesList = signalStatus.dataSources.map(d => ({
+            dataSourcesActive = signalStatus.dataSources.filter(
+              (d) => d.available,
+            ).length;
+            dataSourcesList = signalStatus.dataSources.map((d) => ({
               name: d.name,
               available: d.available,
             }));
@@ -316,7 +352,10 @@ export const vinceWhyTradeAction: Action = {
       // Generate briefing
       const dataContext = buildWhyTradeDataContext(ctx);
       logger.info("[VINCE_WHY_TRADE] Generating briefing...");
-      const briefing = await generateWhyTradeHumanBriefing(runtime, dataContext);
+      const briefing = await generateWhyTradeHumanBriefing(
+        runtime,
+        dataContext,
+      );
 
       const output = [
         "**Trade Briefing**",

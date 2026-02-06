@@ -116,7 +116,7 @@ export default function TVNoise({
       ref={canvasRef}
       className={cn(
         "pointer-events-none absolute inset-0 w-full h-full z-10",
-        className
+        className,
       )}
       style={{
         opacity,

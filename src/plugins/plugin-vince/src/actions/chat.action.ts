@@ -1,4 +1,10 @@
-import type { Action, HandlerCallback, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type {
+  Action,
+  HandlerCallback,
+  IAgentRuntime,
+  Memory,
+  State,
+} from "@elizaos/core";
 import { ModelType, logger } from "@elizaos/core";
 import fs from "fs";
 import path from "path";
@@ -78,7 +84,10 @@ function gatherKnowledgeFiles(): string[] {
       const fullPath = path.join(current, entry.name);
       if (entry.isDirectory()) {
         stack.push(fullPath);
-      } else if (entry.isFile() && (entry.name.endsWith(".md") || entry.name.endsWith(".txt"))) {
+      } else if (
+        entry.isFile() &&
+        (entry.name.endsWith(".md") || entry.name.endsWith(".txt"))
+      ) {
         results.push(fullPath);
       }
     }
@@ -164,7 +173,9 @@ function loadKnowledgeContext(query: string): KnowledgeHit[] {
           score,
         });
       } catch (error) {
-        logger.debug(`[VINCE_CHAT] Failed reading knowledge file ${filePath}: ${error}`);
+        logger.debug(
+          `[VINCE_CHAT] Failed reading knowledge file ${filePath}: ${error}`,
+        );
       }
     }
 
@@ -178,9 +189,13 @@ function loadKnowledgeContext(query: string): KnowledgeHit[] {
 export const vinceChatAction: Action = {
   name: "VINCE_CHAT",
   similes: ["CHAT", "TALK", "DISCUSS", "VINCE_CHAT"],
-  description: "Have a free-form chat with VINCE using the knowledge/ corpus as primary context",
+  description:
+    "Have a free-form chat with VINCE using the knowledge/ corpus as primary context",
 
-  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    _runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() ?? "";
     if (text.length === 0) return false;
     return (
@@ -196,7 +211,8 @@ export const vinceChatAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-    callback: HandlerCallback
+    _options: unknown,
+    callback: HandlerCallback,
   ): Promise<void> => {
     const rawText = message.content?.text ?? "";
     const userQuery = extractQuery(rawText);
@@ -218,7 +234,7 @@ export const vinceChatAction: Action = {
               (hit, idx) =>
                 `### Knowledge ${idx + 1}: ${hit.title}\n` +
                 `Source: ${hit.path}\n\n` +
-                `${hit.snippet}`
+                `${hit.snippet}`,
             )
             .join("\n\n")
         : "No direct matches in knowledge/. Rely on experience and be honest about gaps.";
@@ -260,7 +276,10 @@ Respond:`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "chat: remind me of the hyperliquid MM plan" } },
+      {
+        name: "{{user1}}",
+        content: { text: "chat: remind me of the hyperliquid MM plan" },
+      },
       {
         name: "VINCE",
         content: {

@@ -123,7 +123,13 @@ describe("VINCE_BOT_PAUSE Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceBotPauseAction.handler(runtime, message, state, {}, callback);
+        await vinceBotPauseAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw - that's expected
       }
@@ -169,7 +175,13 @@ describe("VINCE_BOT_STATUS Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceBotStatusAction.handler(runtime, message, state, {}, callback);
+        await vinceBotStatusAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw - that's expected
       }
@@ -345,7 +357,13 @@ describe("VINCE_WHY_TRADE Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceWhyTradeAction.handler(runtime, message, state, {}, callback);
+        await vinceWhyTradeAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw - that's expected
       }

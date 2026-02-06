@@ -77,7 +77,9 @@ export class XAIFallbackService implements IXAIService {
       this.runtime = runtime;
       this.apiKey = runtime.getSetting("XAI_API_KEY") as string | null;
     }
-    logger.debug(`[XAIFallback] Fallback service initialized (API key: ${this.apiKey ? "yes" : "no"})`);
+    logger.debug(
+      `[XAIFallback] Fallback service initialized (API key: ${this.apiKey ? "yes" : "no"})`,
+    );
   }
 
   /**
@@ -124,13 +126,16 @@ export class XAIFallbackService implements IXAIService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT_MS,
+      );
 
       const response = await fetch(`${XAI_BASE_URL}/chat/completions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
           model: model || DEFAULT_MODEL,
@@ -145,7 +150,7 @@ export class XAIFallbackService implements IXAIService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         let errorMsg = `xAI API error ${response.status}: ${errorText}`;
         if (response.status === 401) {
           errorMsg = "Invalid XAI_API_KEY";
@@ -154,7 +159,7 @@ export class XAIFallbackService implements IXAIService {
         } else if (response.status === 503) {
           errorMsg = "xAI service temporarily unavailable";
         }
-        
+
         return {
           success: false,
           text: "",
@@ -177,25 +182,27 @@ export class XAIFallbackService implements IXAIService {
       if (data.usage) {
         logger.debug(
           `[XAIFallback] Generated ${data.usage.completion_tokens} tokens ` +
-          `(prompt: ${data.usage.prompt_tokens}, total: ${data.usage.total_tokens})`
+            `(prompt: ${data.usage.prompt_tokens}, total: ${data.usage.total_tokens})`,
         );
       }
 
       return {
         success: true,
         text: content,
-        usage: data.usage ? {
-          prompt_tokens: data.usage.prompt_tokens,
-          completion_tokens: data.usage.completion_tokens,
-          total_tokens: data.usage.total_tokens,
-        } : undefined,
+        usage: data.usage
+          ? {
+              prompt_tokens: data.usage.prompt_tokens,
+              completion_tokens: data.usage.completion_tokens,
+              total_tokens: data.usage.total_tokens,
+            }
+          : undefined,
       };
     } catch (error) {
       let errorMsg = error instanceof Error ? error.message : String(error);
       if (error instanceof Error && error.name === "AbortError") {
         errorMsg = "xAI request timed out after 2 minutes";
       }
-      
+
       return {
         success: false,
         text: "",

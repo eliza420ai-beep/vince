@@ -6,12 +6,12 @@
 
 After training **locally** (90+ trades or synthetic data), copy the outputs here and commit:
 
-| File | Description |
-|------|-------------|
-| `signal_quality.onnx` | Signal quality predictor |
-| `position_sizing.onnx` | Position size multiplier model |
-| `tp_optimizer.onnx` | Take-profit optimizer |
-| `sl_optimizer.onnx` | Stop-loss optimizer |
+| File                     | Description                                                 |
+| ------------------------ | ----------------------------------------------------------- |
+| `signal_quality.onnx`    | Signal quality predictor                                    |
+| `position_sizing.onnx`   | Position size multiplier model                              |
+| `tp_optimizer.onnx`      | Take-profit optimizer                                       |
+| `sl_optimizer.onnx`      | Stop-loss optimizer                                         |
 | `training_metadata.json` | Optional: threshold, TP level performance, suggested_tuning |
 
 **One-time copy from local training output:**

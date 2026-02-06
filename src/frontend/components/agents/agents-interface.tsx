@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import type { RebelRanking } from "@/frontend/types/dashboard"
-import AgentCard from "./agent-card"
-import AgentChat from "./agent-chat"
-import DashboardCard from "@/frontend/components/dashboard/card"
+import { useState } from "react";
+import type { RebelRanking } from "@/frontend/types/dashboard";
+import AgentCard from "./agent-card";
+import AgentChat from "./agent-chat";
+import DashboardCard from "@/frontend/components/dashboard/card";
 
 interface AgentsInterfaceProps {
-  agents: RebelRanking[]
+  agents: RebelRanking[];
 }
 
 export default function AgentsInterface({ agents }: AgentsInterfaceProps) {
-  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null)
-  const selectedAgent = agents.find((agent) => agent.id === selectedAgentId)
+  const [selectedAgentId, setSelectedAgentId] = useState<number | null>(null);
+  const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -49,5 +49,5 @@ export default function AgentsInterface({ agents }: AgentsInterfaceProps) {
         </DashboardCard>
       )}
     </div>
-  )
+  );
 }

@@ -19,7 +19,12 @@ import * as fs from "fs";
 import * as path from "path";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { downloadModelsFromSupabase } from "../utils/supabaseMlModels";
-import type { MarketFeatures, SessionFeatures, SignalFeatures, RegimeFeatures } from "./vinceFeatureStore.service";
+import type {
+  MarketFeatures,
+  SessionFeatures,
+  SignalFeatures,
+  RegimeFeatures,
+} from "./vinceFeatureStore.service";
 
 // ==========================================
 // Types
@@ -130,7 +135,7 @@ export interface ImprovementReportTuning {
 const ML_CONFIG = {
   /** Directory for model files */
   modelsDir: "./.elizadb/vince-paper-bot/models",
-  
+
   /** Model filenames */
   models: {
     signalQuality: "signal_quality.onnx",
@@ -138,7 +143,7 @@ const ML_CONFIG = {
     tpOptimizer: "tp_optimizer.onnx",
     slOptimizer: "sl_optimizer.onnx",
   },
-  
+
   /** Fallback thresholds when models unavailable */
   fallback: {
     signalQualityThreshold: 0.6,
@@ -147,10 +152,10 @@ const ML_CONFIG = {
     defaultTPMultiplier: 1.5,
     defaultSLMultiplier: 1.0,
   },
-  
+
   /** Cache settings */
   predictionCacheTTLMs: 5000, // 5 seconds
-  
+
   /** Feature normalization bounds */
   normalization: {
     priceChange: { min: -20, max: 20 },
@@ -174,7 +179,8 @@ export class VinceMLInferenceService extends Service {
 
   private modelsLoaded = false;
   private modelInfo: Map<string, ModelInfo> = new Map();
-  private predictionCache: Map<string, { result: Prediction; expiry: number }> = new Map();
+  private predictionCache: Map<string, { result: Prediction; expiry: number }> =
+    new Map();
   /** Signal quality threshold from improvement report (training_metadata.json); used when no ONNX model. */
   private suggestedSignalQualityThreshold: number | null = null;
   /** Cached improvement report for TP level preference and optional tuning. */
@@ -209,9 +215,14 @@ export class VinceMLInferenceService extends Service {
       fs.existsSync(modelsPath) &&
       fs.readdirSync(modelsPath).some((f) => f.endsWith(".onnx"));
     if (!hasLocalOnnx) {
-      const downloaded = await downloadModelsFromSupabase(this.runtime, modelsPath);
+      const downloaded = await downloadModelsFromSupabase(
+        this.runtime,
+        modelsPath,
+      );
       if (downloaded) {
-        logger.info("[MLInference] Models loaded from Supabase Storage (no redeploy needed).");
+        logger.info(
+          "[MLInference] Models loaded from Supabase Storage (no redeploy needed).",
+        );
       }
     }
     // Load improvement report (threshold, TP level performance, optional tuning)
@@ -226,7 +237,7 @@ export class VinceMLInferenceService extends Service {
     } catch (error) {
       logger.info(
         "[MLInference] ONNX runtime not available - using rule-based fallbacks. " +
-        "Install 'onnxruntime-node' for ML features."
+          "Install 'onnxruntime-node' for ML features.",
       );
     }
   }
@@ -250,7 +261,10 @@ export class VinceMLInferenceService extends Service {
   /** Read improvement report from training_metadata.json (threshold, tp_level_performance, suggested_tuning). */
   private loadImprovementReport(): void {
     try {
-      const metadataPath = path.join(ML_CONFIG.modelsDir, "training_metadata.json");
+      const metadataPath = path.join(
+        ML_CONFIG.modelsDir,
+        "training_metadata.json",
+      );
       const resolved = path.resolve(metadataPath);
       if (!fs.existsSync(resolved)) return;
       const raw = fs.readFileSync(resolved, "utf-8");
@@ -261,13 +275,23 @@ export class VinceMLInferenceService extends Service {
       };
       const report = meta.improvement_report;
       if (report) this.improvementReport = report;
-      if (typeof meta.signal_quality_input_dim === "number" && meta.signal_quality_input_dim > 0) {
+      if (
+        typeof meta.signal_quality_input_dim === "number" &&
+        meta.signal_quality_input_dim > 0
+      ) {
         this.signalQualityInputDim = meta.signal_quality_input_dim;
-        logger.info(`[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`);
+        logger.info(
+          `[MLInference] Signal quality input dim: ${this.signalQualityInputDim}`,
+        );
       }
-      if (Array.isArray(meta.signal_quality_feature_names) && meta.signal_quality_feature_names.length > 0) {
+      if (
+        Array.isArray(meta.signal_quality_feature_names) &&
+        meta.signal_quality_feature_names.length > 0
+      ) {
         this.signalQualityFeatureNames = meta.signal_quality_feature_names;
-        logger.info(`[MLInference] Signal quality feature names: ${this.signalQualityFeatureNames.length} (dynamic vector)`);
+        logger.info(
+          `[MLInference] Signal quality feature names: ${this.signalQualityFeatureNames.length} (dynamic vector)`,
+        );
       } else {
         this.signalQualityFeatureNames = null;
       }
@@ -275,7 +299,9 @@ export class VinceMLInferenceService extends Service {
       const t = report.suggested_signal_quality_threshold;
       if (typeof t === "number" && t >= 0 && t <= 1) {
         this.suggestedSignalQualityThreshold = t;
-        logger.info(`[MLInference] Using suggested signal quality threshold from report: ${t}`);
+        logger.info(
+          `[MLInference] Using suggested signal quality threshold from report: ${t}`,
+        );
       }
     } catch {
       // Ignore missing or invalid file
@@ -284,7 +310,10 @@ export class VinceMLInferenceService extends Service {
 
   /** Threshold for signal quality (from improvement report or fallback config). Used by aggregator and fallback logic. */
   getSignalQualityThreshold(): number {
-    return this.suggestedSignalQualityThreshold ?? ML_CONFIG.fallback.signalQualityThreshold;
+    return (
+      this.suggestedSignalQualityThreshold ??
+      ML_CONFIG.fallback.signalQualityThreshold
+    );
   }
 
   /**
@@ -313,7 +342,9 @@ export class VinceMLInferenceService extends Service {
     const skipIndex = levels.indexOf(worstLevel);
     const indices = [0, 1, 2].filter((i) => i !== skipIndex);
     if (indices.length > 0) {
-      logger.info(`[MLInference] TP level preference: skip level ${worstLevel} (win_rate ${(worstRate * 100).toFixed(0)}%), use indices [${indices.join(", ")}]`);
+      logger.info(
+        `[MLInference] TP level preference: skip level ${worstLevel} (win_rate ${(worstRate * 100).toFixed(0)}%), use indices [${indices.join(", ")}]`,
+      );
     }
     return indices.length > 0 ? indices : [0, 1, 2];
   }
@@ -349,7 +380,7 @@ export class VinceMLInferenceService extends Service {
     if (!this.ort) return;
 
     const modelsPath = path.resolve(ML_CONFIG.modelsDir);
-    
+
     if (!fs.existsSync(modelsPath)) {
       logger.info(`[MLInference] Models directory not found: ${modelsPath}`);
       return;
@@ -384,7 +415,10 @@ export class VinceMLInferenceService extends Service {
       if (typeof this.ort.InferenceSession?.create === "function") {
         sessionOptions.executionProviders = ["cpu"];
       }
-      const session = await this.ort.InferenceSession.create(modelPath, sessionOptions);
+      const session = await this.ort.InferenceSession.create(
+        modelPath,
+        sessionOptions,
+      );
 
       // Store session
       switch (name) {
@@ -422,7 +456,7 @@ export class VinceMLInferenceService extends Service {
         this.ort = null;
         logger.info(
           "[MLInference] ONNX backend not available on this platform - using rule-based fallbacks. " +
-            "Install/build onnxruntime-node for your OS/arch for ML inference."
+            "Install/build onnxruntime-node for your OS/arch for ML inference.",
         );
         return;
       }
@@ -439,7 +473,7 @@ export class VinceMLInferenceService extends Service {
    */
   async predictSignalQuality(input: SignalQualityInput): Promise<Prediction> {
     const startTime = Date.now();
-    
+
     // Check cache
     const cacheKey = `sq_${JSON.stringify(input)}`;
     const cached = this.predictionCache.get(cacheKey);
@@ -451,22 +485,26 @@ export class VinceMLInferenceService extends Service {
     if (this.signalQualitySession && this.ort) {
       try {
         const features = this.prepareSignalQualityFeatures(input);
-        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const tensor = new this.ort.Tensor("float32", features, [
+          1,
+          features.length,
+        ]);
         const results = await this.signalQualitySession.run({ input: tensor });
-        
+
         // Assuming output is probability
         const probability = results.output?.data?.[0] ?? 0.5;
-        
+
         const result: Prediction = {
           value: probability,
           confidence: 0.8, // Would come from model uncertainty estimation
-          modelVersion: this.modelInfo.get("signalQuality")?.version ?? "unknown",
+          modelVersion:
+            this.modelInfo.get("signalQuality")?.version ?? "unknown",
           latencyMs: Date.now() - startTime,
         };
 
         // Update stats
         this.updateModelStats("signalQuality", result.latencyMs);
-        
+
         // Cache result
         this.predictionCache.set(cacheKey, {
           result,
@@ -493,16 +531,22 @@ export class VinceMLInferenceService extends Service {
     if (this.positionSizingSession && this.ort) {
       try {
         const features = this.preparePositionSizingFeatures(input);
-        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const tensor = new this.ort.Tensor("float32", features, [
+          1,
+          features.length,
+        ]);
         const results = await this.positionSizingSession.run({ input: tensor });
-        
+
         const sizeMultiplier = results.output?.data?.[0] ?? 1.0;
-        
+
         const result: Prediction = {
-          value: Math.max(ML_CONFIG.fallback.minPositionSizePct, 
-                         Math.min(ML_CONFIG.fallback.maxPositionSizePct, sizeMultiplier)),
+          value: Math.max(
+            ML_CONFIG.fallback.minPositionSizePct,
+            Math.min(ML_CONFIG.fallback.maxPositionSizePct, sizeMultiplier),
+          ),
           confidence: 0.7,
-          modelVersion: this.modelInfo.get("positionSizing")?.version ?? "unknown",
+          modelVersion:
+            this.modelInfo.get("positionSizing")?.version ?? "unknown",
           latencyMs: Date.now() - startTime,
         };
 
@@ -526,11 +570,15 @@ export class VinceMLInferenceService extends Service {
     if (this.tpOptimizerSession && this.ort) {
       try {
         const features = this.prepareTPSLFeatures(input);
-        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const tensor = new this.ort.Tensor("float32", features, [
+          1,
+          features.length,
+        ]);
         const results = await this.tpOptimizerSession.run({ input: tensor });
-        
-        const tpMultiplier = results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultTPMultiplier;
-        
+
+        const tpMultiplier =
+          results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultTPMultiplier;
+
         return {
           value: Math.max(1.0, Math.min(4.0, tpMultiplier)),
           confidence: 0.6,
@@ -555,11 +603,15 @@ export class VinceMLInferenceService extends Service {
     if (this.slOptimizerSession && this.ort) {
       try {
         const features = this.prepareTPSLFeatures(input);
-        const tensor = new this.ort.Tensor("float32", features, [1, features.length]);
+        const tensor = new this.ort.Tensor("float32", features, [
+          1,
+          features.length,
+        ]);
         const results = await this.slOptimizerSession.run({ input: tensor });
-        
-        const slMultiplier = results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultSLMultiplier;
-        
+
+        const slMultiplier =
+          results.output?.data?.[0] ?? ML_CONFIG.fallback.defaultSLMultiplier;
+
         return {
           value: Math.max(0.5, Math.min(2.5, slMultiplier)),
           confidence: 0.6,
@@ -583,12 +635,20 @@ export class VinceMLInferenceService extends Service {
    * Returns the normalized value for a single signal-quality feature name (training column name).
    * Used when building the feature vector from signal_quality_feature_names. Unknown names return 0.
    */
-  private getSignalQualityFeatureValue(name: string, input: SignalQualityInput): number {
+  private getSignalQualityFeatureValue(
+    name: string,
+    input: SignalQualityInput,
+  ): number {
     const norm = ML_CONFIG.normalization;
-    const n = (v: number, min: number, max: number) => this.normalize(v, min, max);
+    const n = (v: number, min: number, max: number) =>
+      this.normalize(v, min, max);
     switch (name) {
       case "market_priceChange24h":
-        return n(input.priceChange24h, norm.priceChange.min, norm.priceChange.max);
+        return n(
+          input.priceChange24h,
+          norm.priceChange.min,
+          norm.priceChange.max,
+        );
       case "market_volumeRatio":
         return n(input.volumeRatio, norm.volumeRatio.min, norm.volumeRatio.max);
       case "market_fundingPercentile":
@@ -626,7 +686,11 @@ export class VinceMLInferenceService extends Service {
       case "signal_hasOICap":
         return input.hasOICap ?? 0;
       case "news_nasdaqChange":
-        return n(input.newsNasdaqChange ?? 0, norm.nasdaqChange.min, norm.nasdaqChange.max);
+        return n(
+          input.newsNasdaqChange ?? 0,
+          norm.nasdaqChange.min,
+          norm.nasdaqChange.max,
+        );
       case "news_macro_risk_on":
         return input.newsMacroRiskOn ?? 0;
       case "news_macro_risk_off":
@@ -647,11 +711,19 @@ export class VinceMLInferenceService extends Service {
     }
   }
 
-  private prepareSignalQualityFeatures(input: SignalQualityInput): Float32Array {
-    if (this.signalQualityFeatureNames && this.signalQualityFeatureNames.length > 0) {
+  private prepareSignalQualityFeatures(
+    input: SignalQualityInput,
+  ): Float32Array {
+    if (
+      this.signalQualityFeatureNames &&
+      this.signalQualityFeatureNames.length > 0
+    ) {
       const arr = new Float32Array(this.signalQualityFeatureNames.length);
       for (let i = 0; i < this.signalQualityFeatureNames.length; i++) {
-        arr[i] = this.getSignalQualityFeatureValue(this.signalQualityFeatureNames[i], input);
+        arr[i] = this.getSignalQualityFeatureValue(
+          this.signalQualityFeatureNames[i],
+          input,
+        );
       }
       return arr;
     }
@@ -662,8 +734,16 @@ export class VinceMLInferenceService extends Service {
     const newsMacroOff = input.newsMacroRiskOff ?? 0;
     // Order must match train_models.py: base 13, optional signal_hasOICap, optional news_nasdaqChange + news_macro_risk_on/off, then regime 3.
     const base = [
-      this.normalize(input.priceChange24h, norm.priceChange.min, norm.priceChange.max),
-      this.normalize(input.volumeRatio, norm.volumeRatio.min, norm.volumeRatio.max),
+      this.normalize(
+        input.priceChange24h,
+        norm.priceChange.min,
+        norm.priceChange.max,
+      ),
+      this.normalize(
+        input.volumeRatio,
+        norm.volumeRatio.min,
+        norm.volumeRatio.max,
+      ),
       input.fundingPercentile / 100,
       this.normalize(input.longShortRatio, 0.5, 2.0),
       input.strength / 100,
@@ -683,8 +763,19 @@ export class VinceMLInferenceService extends Service {
     ];
     const dim = this.signalQualityInputDim;
     if (dim >= 20) {
-      const nasdaqNorm = this.normalize(newsNasdaq, norm.nasdaqChange.min, norm.nasdaqChange.max);
-      return new Float32Array([...base, hasOICap, nasdaqNorm, newsMacroOn, newsMacroOff, ...regime]);
+      const nasdaqNorm = this.normalize(
+        newsNasdaq,
+        norm.nasdaqChange.min,
+        norm.nasdaqChange.max,
+      );
+      return new Float32Array([
+        ...base,
+        hasOICap,
+        nasdaqNorm,
+        newsMacroOn,
+        newsMacroOff,
+        ...regime,
+      ]);
     }
     if (dim >= 17) {
       return new Float32Array([...base, hasOICap, ...regime]);
@@ -692,15 +783,21 @@ export class VinceMLInferenceService extends Service {
     return new Float32Array([...base, ...regime]);
   }
 
-  private preparePositionSizingFeatures(input: PositionSizingInput): Float32Array {
+  private preparePositionSizingFeatures(
+    input: PositionSizingInput,
+  ): Float32Array {
     const norm = ML_CONFIG.normalization;
-    
+
     return new Float32Array([
       input.signalQualityScore,
       input.strength / 100,
       input.confidence / 100,
       input.volatilityRegime / 2,
-      this.normalize(input.currentDrawdown, norm.drawdown.min, norm.drawdown.max),
+      this.normalize(
+        input.currentDrawdown,
+        norm.drawdown.min,
+        norm.drawdown.max,
+      ),
       input.recentWinRate / 100,
       this.normalize(input.streakMultiplier, 0.5, 1.5),
     ]);
@@ -725,19 +822,22 @@ export class VinceMLInferenceService extends Service {
   // Fallback Methods (Rule-Based)
   // ==========================================
 
-  private fallbackSignalQuality(input: SignalQualityInput, startTime: number): Prediction {
+  private fallbackSignalQuality(
+    input: SignalQualityInput,
+    startTime: number,
+  ): Prediction {
     // Simple rule-based quality score
     let score = 0.5;
-    
+
     // Strength contribution
     score += (input.strength - 60) * 0.005;
-    
+
     // Confidence contribution
     score += (input.confidence - 55) * 0.005;
-    
+
     // Source count bonus
     score += Math.min(0.1, input.sourceCount * 0.02);
-    
+
     // High-value signal bonuses
     if (input.hasCascadeSignal) score += 0.1;
     if (input.hasFundingExtreme) score += 0.08;
@@ -749,10 +849,10 @@ export class VinceMLInferenceService extends Service {
     // Penalties
     if (input.isWeekend) score -= 0.1;
     if (input.volatilityRegimeHigh) score -= 0.05;
-    
+
     // Open window bonus
     if (input.isOpenWindow) score += 0.05;
-    
+
     return {
       value: Math.max(0, Math.min(1, score)),
       confidence: 0.5, // Lower confidence for fallback
@@ -761,9 +861,12 @@ export class VinceMLInferenceService extends Service {
     };
   }
 
-  private fallbackPositionSize(input: PositionSizingInput, startTime: number): Prediction {
+  private fallbackPositionSize(
+    input: PositionSizingInput,
+    startTime: number,
+  ): Prediction {
     let multiplier = 1.0;
-    
+
     // Quality score influence (use threshold from improvement report when available)
     const threshold = this.getSignalQualityThreshold();
     if (input.signalQualityScore > threshold + 0.2) {
@@ -771,30 +874,32 @@ export class VinceMLInferenceService extends Service {
     } else if (input.signalQualityScore < threshold) {
       multiplier *= 0.8;
     }
-    
+
     // Volatility adjustment
     if (input.volatilityRegime === 2) {
       multiplier *= 0.7; // Reduce size in high volatility
     }
-    
+
     // Drawdown adjustment
     if (input.currentDrawdown > 10) {
       multiplier *= 0.8;
     }
-    
+
     // Win rate adjustment
     if (input.recentWinRate > 60) {
       multiplier *= 1.1;
     } else if (input.recentWinRate < 40) {
       multiplier *= 0.9;
     }
-    
+
     // Streak adjustment
     multiplier *= input.streakMultiplier;
-    
+
     return {
-      value: Math.max(ML_CONFIG.fallback.minPositionSizePct,
-                      Math.min(ML_CONFIG.fallback.maxPositionSizePct, multiplier)),
+      value: Math.max(
+        ML_CONFIG.fallback.minPositionSizePct,
+        Math.min(ML_CONFIG.fallback.maxPositionSizePct, multiplier),
+      ),
       confidence: 0.5,
       modelVersion: "fallback_v1",
       latencyMs: Date.now() - startTime,
@@ -803,28 +908,28 @@ export class VinceMLInferenceService extends Service {
 
   private fallbackTakeProfit(input: TPSLInput, startTime: number): Prediction {
     let multiplier = ML_CONFIG.fallback.defaultTPMultiplier;
-    
+
     // Adjust based on strength
     if (input.strength > 75) {
       multiplier *= 1.2; // Target more profit for strong signals
     }
-    
+
     // Adjust for volatility
     if (input.volatilityRegime === 2) {
       multiplier *= 1.3; // Wider TP in high volatility
     } else if (input.volatilityRegime === 0) {
       multiplier *= 0.8; // Tighter TP in low volatility
     }
-    
+
     // Adjust for market regime alignment
-    const aligned = 
+    const aligned =
       (input.direction === 1 && input.marketRegime === 1) ||
       (input.direction === 0 && input.marketRegime === -1);
-    
+
     if (aligned) {
       multiplier *= 1.1; // Can target more when aligned with trend
     }
-    
+
     return {
       value: multiplier,
       confidence: 0.5,
@@ -835,17 +940,17 @@ export class VinceMLInferenceService extends Service {
 
   private fallbackStopLoss(input: TPSLInput, startTime: number): Prediction {
     let multiplier = ML_CONFIG.fallback.defaultSLMultiplier;
-    
+
     // Wider stops in high volatility
     if (input.volatilityRegime === 2) {
       multiplier *= 1.3;
     }
-    
+
     // Tighter stops for weaker signals
     if (input.strength < 60 || input.confidence < 55) {
       multiplier *= 0.9;
     }
-    
+
     return {
       value: multiplier,
       confidence: 0.5,
@@ -862,7 +967,8 @@ export class VinceMLInferenceService extends Service {
     const info = this.modelInfo.get(modelName);
     if (info) {
       const newCount = info.inferenceCount + 1;
-      info.avgLatencyMs = (info.avgLatencyMs * info.inferenceCount + latencyMs) / newCount;
+      info.avgLatencyMs =
+        (info.avgLatencyMs * info.inferenceCount + latencyMs) / newCount;
       info.inferenceCount = newCount;
     }
   }
@@ -881,7 +987,7 @@ export class VinceMLInferenceService extends Service {
     }>;
   } {
     const models = [];
-    
+
     for (const [name, info] of this.modelInfo) {
       models.push({
         name,
@@ -890,7 +996,7 @@ export class VinceMLInferenceService extends Service {
         avgLatencyMs: Math.round(info.avgLatencyMs * 10) / 10,
       });
     }
-    
+
     // Add missing models
     for (const modelName of Object.keys(ML_CONFIG.models)) {
       if (!this.modelInfo.has(modelName)) {
@@ -902,7 +1008,7 @@ export class VinceMLInferenceService extends Service {
         });
       }
     }
-    
+
     return {
       onnxAvailable: this.ort !== null,
       modelsLoaded: this.modelsLoaded,

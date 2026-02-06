@@ -1,5 +1,5 @@
-import type * as React from "react"
-import { useState } from "react"
+import type * as React from "react";
+import { useState } from "react";
 
 import {
   Sidebar,
@@ -13,54 +13,60 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/frontend/components/ui/sidebar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/frontend/components/ui/popover"
-import { Button } from "@/frontend/components/ui/button"
-import { cn } from "@/frontend/lib/utils"
-import DotsVerticalIcon from "@/frontend/components/icons/dots-vertical"
-import { Bullet } from "@/frontend/components/ui/bullet"
-import PlusIcon from "@/frontend/components/icons/plus"
-import { ChevronDown, LogOut, Trophy, User } from "lucide-react"
+} from "@/frontend/components/ui/sidebar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/frontend/components/ui/popover";
+import { Button } from "@/frontend/components/ui/button";
+import { cn } from "@/frontend/lib/utils";
+import DotsVerticalIcon from "@/frontend/components/icons/dots-vertical";
+import { Bullet } from "@/frontend/components/ui/bullet";
+import PlusIcon from "@/frontend/components/icons/plus";
+import { ChevronDown, LogOut, Trophy, User } from "lucide-react";
 
 interface Channel {
-  id: string
-  name: string
-  createdAt?: number
-  lastMessageAt?: number
+  id: string;
+  name: string;
+  createdAt?: number;
+  lastMessageAt?: number;
 }
 
 interface AgentOption {
-  id: string
-  name?: string
-  [key: string]: unknown
+  id: string;
+  name?: string;
+  [key: string]: unknown;
 }
 
-export interface DashboardSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  channels?: Channel[]
-  activeChannelId?: string | null
-  onChannelSelect?: (channelId: string) => void
-  onNewChat?: () => void
-  isCreatingChannel?: boolean
-  agents?: AgentOption[]
-  selectedAgentId?: string | null
-  onAgentSelect?: (agentId: string) => void
-  currentAgentName?: string | null
+export interface DashboardSidebarProps extends React.ComponentProps<
+  typeof Sidebar
+> {
+  channels?: Channel[];
+  activeChannelId?: string | null;
+  onChannelSelect?: (channelId: string) => void;
+  onNewChat?: () => void;
+  isCreatingChannel?: boolean;
+  agents?: AgentOption[];
+  selectedAgentId?: string | null;
+  onAgentSelect?: (agentId: string) => void;
+  currentAgentName?: string | null;
   userProfile?: {
-    avatarUrl: string
-    displayName: string
-    bio: string
-    email: string
-    walletAddress: string
-    memberSince: string
-  } | null
-  onSignOut?: () => void
-  onAccountClick?: () => void
-  onChatClick?: () => void
-  onLeaderboardClick?: () => void
-  onHomeClick?: () => void
+    avatarUrl: string;
+    displayName: string;
+    bio: string;
+    email: string;
+    walletAddress: string;
+    memberSince: string;
+  } | null;
+  onSignOut?: () => void;
+  onAccountClick?: () => void;
+  onChatClick?: () => void;
+  onLeaderboardClick?: () => void;
+  onHomeClick?: () => void;
 }
 
-export function DashboardSidebar({ 
+export function DashboardSidebar({
   className,
   channels = [],
   activeChannelId = null,
@@ -110,10 +116,10 @@ export function DashboardSidebar({
       older: new Map(),
     };
 
-    channels.forEach(channel => {
+    channels.forEach((channel) => {
       const timestamp = channel.lastMessageAt || channel.createdAt;
       if (!timestamp || timestamp <= 0) {
-        const dateKey = 'Unknown Date';
+        const dateKey = "Unknown Date";
         if (!groups.older.has(dateKey)) {
           groups.older.set(dateKey, []);
         }
@@ -122,7 +128,7 @@ export function DashboardSidebar({
       }
 
       const channelDate = new Date(timestamp);
-      
+
       if (channelDate >= today) {
         groups.today.push(channel);
       } else if (channelDate >= yesterday) {
@@ -133,10 +139,10 @@ export function DashboardSidebar({
         groups.lastMonth.push(channel);
       } else {
         // Format date as "MMM DD, YYYY" for items older than 30 days
-        const dateKey = channelDate.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: '2-digit', 
-          year: 'numeric' 
+        const dateKey = channelDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "2-digit",
+          year: "numeric",
         });
         if (!groups.older.has(dateKey)) {
           groups.older.set(dateKey, []);
@@ -146,13 +152,15 @@ export function DashboardSidebar({
     });
 
     // Sort older dates in descending order (most recent first)
-    const sortedOlderEntries = Array.from(groups.older.entries()).sort((a, b) => {
-      // Get the first channel's timestamp from each group
-      const aTime = a[1][0]?.lastMessageAt || a[1][0]?.createdAt || 0;
-      const bTime = b[1][0]?.lastMessageAt || b[1][0]?.createdAt || 0;
-      return bTime - aTime;
-    });
-    
+    const sortedOlderEntries = Array.from(groups.older.entries()).sort(
+      (a, b) => {
+        // Get the first channel's timestamp from each group
+        const aTime = a[1][0]?.lastMessageAt || a[1][0]?.createdAt || 0;
+        const bTime = b[1][0]?.lastMessageAt || b[1][0]?.createdAt || 0;
+        return bTime - aTime;
+      },
+    );
+
     groups.older = new Map(sortedOlderEntries);
 
     return groups;
@@ -164,23 +172,44 @@ export function DashboardSidebar({
     <Sidebar {...props} className={cn("py-sides", className)}>
       <SidebarHeader className="rounded-t-lg flex gap-3 flex-row rounded-b-none">
         {showAgentSwitcher ? (
-          <Popover open={isAgentPopoverOpen} onOpenChange={setIsAgentPopoverOpen}>
+          <Popover
+            open={isAgentPopoverOpen}
+            onOpenChange={setIsAgentPopoverOpen}
+          >
             <PopoverTrigger asChild>
               <button
                 onClick={onHomeClick}
                 className="flex gap-3 flex-row flex-1 group cursor-pointer hover:opacity-80 transition-opacity items-center text-left"
               >
                 <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
-                  <img src="/avatars/otaku-pfp.png" alt={displayName} className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent" />
+                  <img
+                    src="/avatars/otaku-pfp.png"
+                    alt={displayName}
+                    className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent"
+                  />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                  <span className="text-2xl font-display truncate">{displayName}</span>
-                  <span className="text-xs uppercase text-muted-foreground">Select agent</span>
+                  <span className="text-2xl font-display truncate">
+                    {displayName}
+                  </span>
+                  <span className="text-xs uppercase text-muted-foreground">
+                    Select agent
+                  </span>
                 </div>
-                <ChevronDown className={cn("size-4 shrink-0 transition-transform", isAgentPopoverOpen && "rotate-180")} />
+                <ChevronDown
+                  className={cn(
+                    "size-4 shrink-0 transition-transform",
+                    isAgentPopoverOpen && "rotate-180",
+                  )}
+                />
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-56 p-0" side="bottom" align="start" sideOffset={4}>
+            <PopoverContent
+              className="w-56 p-0"
+              side="bottom"
+              align="start"
+              sideOffset={4}
+            >
               <div className="flex flex-col py-1">
                 {agents.map((a) => (
                   <button
@@ -201,12 +230,16 @@ export function DashboardSidebar({
             </PopoverContent>
           </Popover>
         ) : (
-          <button 
+          <button
             onClick={onHomeClick}
             className="flex gap-3 flex-row flex-1 group cursor-pointer hover:opacity-80 transition-opacity"
           >
             <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
-              <img src="/avatars/otaku-pfp.png" alt={displayName} className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent" />
+              <img
+                src="/avatars/otaku-pfp.png"
+                alt={displayName}
+                className="size-11.5 group-hover:scale-[1.7] origin-top-left transition-transform bg-transparent"
+              />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="text-2xl font-display">{displayName}</span>
@@ -231,16 +264,31 @@ export function DashboardSidebar({
               className="h-6 w-6 p-0 hover:bg-sidebar-accent"
             >
               {isCreatingChannel ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="w-4 h-4 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
               ) : (
                 <PlusIcon className="size-4" />
               )}
             </Button>
           </SidebarGroupLabel>
-          
+
           <SidebarGroupContent>
             <div className="max-h-[calc(100vh-24rem)] overflow-y-auto">
               <SidebarMenu>
@@ -346,26 +394,28 @@ export function DashboardSidebar({
                     {/* Older - Group by exact date */}
                     {groupedChannels.older.size > 0 && (
                       <>
-                        {Array.from(groupedChannels.older.entries()).map(([date, channels]) => (
-                          <div key={date}>
-                            <div className="sticky top-0 z-10 bg-background text-[10px] font-mono text-muted-foreground mb-1.5 uppercase tracking-wider border-b border-border/50 pb-1 px-2 mt-2">
-                              {date}
+                        {Array.from(groupedChannels.older.entries()).map(
+                          ([date, channels]) => (
+                            <div key={date}>
+                              <div className="sticky top-0 z-10 bg-background text-[10px] font-mono text-muted-foreground mb-1.5 uppercase tracking-wider border-b border-border/50 pb-1 px-2 mt-2">
+                                {date}
+                              </div>
+                              {channels.map((channel) => (
+                                <SidebarMenuItem key={channel.id}>
+                                  <SidebarMenuButton
+                                    onClick={() => onChannelSelect(channel.id)}
+                                    isActive={activeChannelId === channel.id}
+                                    className="w-full"
+                                  >
+                                    <span className="font-medium text-sm truncate w-full">
+                                      {channel.name}
+                                    </span>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                              ))}
                             </div>
-                            {channels.map((channel) => (
-                              <SidebarMenuItem key={channel.id}>
-                                <SidebarMenuButton
-                                  onClick={() => onChannelSelect(channel.id)}
-                                  isActive={activeChannelId === channel.id}
-                                  className="w-full"
-                                >
-                                  <span className="font-medium text-sm truncate w-full">
-                                    {channel.name}
-                                  </span>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            ))}
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </>
                     )}
                   </>
@@ -406,25 +456,34 @@ export function DashboardSidebar({
                   <PopoverTrigger className="flex gap-0.5 w-full group cursor-pointer">
                     <div className="shrink-0 flex size-14 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground overflow-clip">
                       <img
-                        src={userProfile?.avatarUrl || '/avatars/user_krimson.png'}
-                        alt={userProfile?.displayName || 'User'}
+                        src={
+                          userProfile?.avatarUrl || "/avatars/user_krimson.png"
+                        }
+                        alt={userProfile?.displayName || "User"}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="group/item pl-3 pr-1.5 pt-2 pb-1.5 flex-1 flex bg-sidebar-accent hover:bg-sidebar-accent-active/75 items-center rounded group-data-[state=open]:bg-sidebar-accent-active group-data-[state=open]:hover:bg-sidebar-accent-active group-data-[state=open]:text-sidebar-accent-foreground">
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate text-xl font-display">{userProfile?.displayName || 'Guest'}</span>
+                        <span className="truncate text-xl font-display">
+                          {userProfile?.displayName || "Guest"}
+                        </span>
                         <span className="truncate text-xs uppercase opacity-50 group-hover/item:opacity-100">
-                          {userProfile?.email || ''}
+                          {userProfile?.email || ""}
                         </span>
                       </div>
                       <DotsVerticalIcon className="ml-auto size-4" />
                     </div>
                   </PopoverTrigger>
-                  <PopoverContent className="w-56 p-0" side="bottom" align="end" sideOffset={4}>
+                  <PopoverContent
+                    className="w-56 p-0"
+                    side="bottom"
+                    align="end"
+                    sideOffset={4}
+                  >
                     <div className="flex flex-col">
                       {onAccountClick && (
-                        <button 
+                        <button
                           onClick={() => {
                             onAccountClick();
                             setIsPopoverOpen(false);
@@ -436,7 +495,7 @@ export function DashboardSidebar({
                         </button>
                       )}
                       {onLeaderboardClick && (
-                        <button 
+                        <button
                           onClick={() => {
                             onLeaderboardClick();
                             setIsPopoverOpen(false);
@@ -448,7 +507,7 @@ export function DashboardSidebar({
                         </button>
                       )}
                       {onSignOut && (
-                        <button 
+                        <button
                           onClick={() => {
                             onSignOut();
                             setIsPopoverOpen(false);
@@ -470,5 +529,5 @@ export function DashboardSidebar({
 
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

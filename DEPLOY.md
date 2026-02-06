@@ -76,6 +76,17 @@ It must be:
 --env "POSTGRES_URL=postgresql://..."
 ```
 
+## Docker: Pulse route and plugin routes
+
+The **Market Pulse** API (`GET /api/agents/:agentId/plugins/vince/pulse`) depends on a patch to `@elizaos/server` that fixes plugin route path stripping. The patch is applied in the Dockerfile after `bun install`.
+
+- **After pulling or changing the patch:** Rebuild the image so the patch runs again:  
+  `docker compose build elizaos`  
+  Then start: `docker compose up -d elizaos`.
+- **Pulse URL:** Use the **VINCE** agent ID:  
+  `curl -s http://localhost:3000/api/agents | jq -r '.data.agents[] | select(.name=="VINCE") | .id'`  
+  then `GET /api/agents/<that-id>/plugins/vince/pulse`.
+
 ## Bot status / agent replies not reaching the UI (local)
 
 If you send **"bot status"** (or any message) and the UI stays on "Analyzing your request" and never shows the agent’s reply, check the **terminal** for these lines at **startup**:

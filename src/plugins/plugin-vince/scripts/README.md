@@ -4,16 +4,17 @@ Python scripts for offline ML training used by the VINCE paper-trading ML pipeli
 
 ## Scripts
 
-| Script | Purpose |
-|--------|--------|
-| `train_models.py` | Trains XGBoost models (signal quality, position sizing, TP optimizer) on feature-store data and exports to ONNX for `VinceMLInferenceService`. |
-| `generate_synthetic_features.py` | Generates synthetic feature-store JSONL (same shape as real trades) so you can run `train_models.py` and test the ML pipeline before you have 90+ real trades. |
-| `validate_ml_improvement.py` | **Proves** that ML-derived `suggested_tuning` (min strength/confidence) improves selectivity: loads feature-store data, computes 25th % of profitable trades, simulates applying those thresholds, and reports baseline vs filtered win rate. See [../ML_IMPROVEMENT_PROOF.md](../ML_IMPROVEMENT_PROOF.md). |
+| Script                           | Purpose                                                                                                                                                                                                                                                                                                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `train_models.py`                | Trains XGBoost models (signal quality, position sizing, TP optimizer) on feature-store data and exports to ONNX for `VinceMLInferenceService`.                                                                                                                                                              |
+| `generate_synthetic_features.py` | Generates synthetic feature-store JSONL (same shape as real trades) so you can run `train_models.py` and test the ML pipeline before you have 90+ real trades.                                                                                                                                              |
+| `validate_ml_improvement.py`     | **Proves** that ML-derived `suggested_tuning` (min strength/confidence) improves selectivity: loads feature-store data, computes 25th % of profitable trades, simulates applying those thresholds, and reports baseline vs filtered win rate. See [../ML_IMPROVEMENT_PROOF.md](../ML_IMPROVEMENT_PROOF.md). |
 
 **Input:** Path to a single JSONL file or to the feature directory (e.g. `.elizadb/vince-paper-bot/features`); the script loads all `features_*.jsonl` and `combined.jsonl` in that directory.  
 **Output:** ONNX models, `training_metadata.json`, `improvement_report.md`, and optional joblib backups.
 
 After each run, the script writes an **improvement report** so you can see which parameters and weights to improve. The report includes:
+
 - **Decision drivers that influenced opens** – which data points (reasons/factors) led the bot to open each long or short; these are the same inputs that feed the ML models.
 - **Suggested signal factors** – factors that are often predictive but missing or mostly null in your data (e.g. funding 8h delta, RSI, order book imbalance); consider adding them to the feature store.
 - Feature importances per model, suggested signal-quality threshold, TP level performance (win rate/count), and action items.
@@ -61,6 +62,7 @@ python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-p
 ```
 
 **Generate more synthetic data** (e.g. to stress-test training or get a larger dataset):
+
 - Larger single file: `--count 400 --output .elizadb/vince-paper-bot/features/synthetic_400.jsonl`
 - Append to existing file (timestamps continue after last record): `--count 200 --output features.jsonl --append`
 - `train_models.py --data .elizadb/vince-paper-bot/features` loads all `synthetic_*.jsonl` and `features_*.jsonl` in that directory, so you can mix real and multiple synthetic files.
@@ -90,7 +92,7 @@ The test suite:
 3. **test_learning_improves_over_baseline** — Asserts that the signal quality model has non-trivial feature importances, varying predictions, and AUC ≥ 0.5.
 4. **test_insufficient_data_exits_gracefully** — Ensures that with too few samples, no models are trained.
 5. **test_sl_optimizer_trains_when_label_present** — SL optimizer trains when `label_maxAdverseExcursion` is present.
-6. **test_multi_asset_uses_asset_dummies** — Multi-asset data gets asset_* dummy columns.
+6. **test_multi_asset_uses_asset_dummies** — Multi-asset data gets asset\_\* dummy columns.
 
 ## Reference
 

@@ -2,10 +2,10 @@
 
 ## Quick checklist (see [scripts/README.md](README.md) for tracking)
 
-| Priority | Item |
-|----------|------|
-| Short-term | Load **JSONL** (feature store format); fix or remove **SL Optimizer** in docs; **robust key access**; **requirements.txt**; **logging** |
-| Medium-term | Early stopping; hyperparameter tuning; ONNX validation; unit tests; asset/feature enhancements |
+| Priority    | Item                                                                                                                                    |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Short-term  | Load **JSONL** (feature store format); fix or remove **SL Optimizer** in docs; **robust key access**; **requirements.txt**; **logging** |
+| Medium-term | Early stopping; hyperparameter tuning; ONNX validation; unit tests; asset/feature enhancements                                          |
 
 ---
 
@@ -55,4 +55,3 @@ Scalability: If datasets grow large, switch to Dask for DF ops or XGBoost's dist
 Ethical/Practical Notes: Since this is for Hyperliquid (crypto perps), models could amplify losses in volatile markets—emphasize paper trading validation. Also, sentiment indicators can be noisy; backtest against baselines like random sizing.
 
 If you share sample data (e.g., a small features.json), I could test-run the script or prototype fixes. Overall, this is a thoughtful setup—polish the gaps, and it'd be production-ready for bot optimization!
-

@@ -11,9 +11,19 @@
  * NOT triggered by: "gm", "memes", general greetings
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
-import type { VinceAlertService, AlertType, Alert } from "../services/alert.service";
+import type {
+  VinceAlertService,
+  AlertType,
+  Alert,
+} from "../services/alert.service";
 
 // ==========================================
 // Parse Commands
@@ -29,12 +39,18 @@ function parseAlertCommand(text: string): AlertCommand {
   const lowerText = text.toLowerCase().trim();
 
   // Mark all read: "mark read", "mark all read", "dismiss alerts"
-  if (lowerText.includes("mark") && lowerText.includes("read") || lowerText.includes("dismiss")) {
+  if (
+    (lowerText.includes("mark") && lowerText.includes("read")) ||
+    lowerText.includes("dismiss")
+  ) {
     return { action: "read" };
   }
 
   // Clear old: "clear alerts", "clear old", "delete alerts"
-  if (lowerText.includes("clear") || (lowerText.includes("delete") && lowerText.includes("alert"))) {
+  if (
+    lowerText.includes("clear") ||
+    (lowerText.includes("delete") && lowerText.includes("alert"))
+  ) {
     return { action: "clear" };
   }
 
@@ -67,14 +83,22 @@ function getTimeAgo(timestamp: number): string {
 
 function getAlertEmoji(type: AlertType): string {
   switch (type) {
-    case "WATCHLIST_PUMP": return "🚀";
-    case "WATCHLIST_ENTRY": return "🎯";
-    case "WATCHLIST_STOPLOSS": return "⚠️";
-    case "WATCHLIST_TAKEPROFIT": return "💰";
-    case "WALLET_BUY": return "🐋";
-    case "WALLET_SELL": return "📉";
-    case "NEW_TOKEN": return "✨";
-    default: return "🔔";
+    case "WATCHLIST_PUMP":
+      return "🚀";
+    case "WATCHLIST_ENTRY":
+      return "🎯";
+    case "WATCHLIST_STOPLOSS":
+      return "⚠️";
+    case "WATCHLIST_TAKEPROFIT":
+      return "💰";
+    case "WALLET_BUY":
+      return "🐋";
+    case "WALLET_SELL":
+      return "📉";
+    case "NEW_TOKEN":
+      return "✨";
+    default:
+      return "🔔";
   }
 }
 
@@ -82,7 +106,7 @@ function formatAlertForDisplay(alert: Alert): string {
   const emoji = getAlertEmoji(alert.type);
   const readMarker = alert.read ? "" : "🔴 ";
   const timeAgo = getTimeAgo(alert.timestamp);
-  
+
   return `${readMarker}${emoji} **${alert.title}** (${timeAgo})\n   ${alert.message}`;
 }
 
@@ -93,9 +117,13 @@ function formatAlertForDisplay(alert: Alert): string {
 export const vinceAlertsAction: Action = {
   name: "VINCE_ALERTS",
   similes: ["ALERTS", "NOTIFICATIONS", "MOVES", "ACTIVITY"],
-  description: "View and manage alerts from watchlist, wallet tracking, and token discovery",
+  description:
+    "View and manage alerts from watchlist, wallet tracking, and token discovery",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     // Only trigger on explicit alert commands - not general greetings
     return (
@@ -114,10 +142,12 @@ export const vinceAlertsAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const alertService = runtime.getService("VINCE_ALERT_SERVICE") as VinceAlertService | null;
+      const alertService = runtime.getService(
+        "VINCE_ALERT_SERVICE",
+      ) as VinceAlertService | null;
 
       if (!alertService) {
         await callback({
@@ -159,16 +189,32 @@ export const vinceAlertsAction: Action = {
               alerts = [
                 ...alertService.getAlerts({ type: "WALLET_BUY", limit: 10 }),
                 ...alertService.getAlerts({ type: "WALLET_SELL", limit: 10 }),
-              ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+              ]
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
               filterLabel = "Wallet Activity";
               break;
             case "WATCHLIST_PUMP":
               alerts = [
-                ...alertService.getAlerts({ type: "WATCHLIST_PUMP", limit: 10 }),
-                ...alertService.getAlerts({ type: "WATCHLIST_ENTRY", limit: 10 }),
-                ...alertService.getAlerts({ type: "WATCHLIST_STOPLOSS", limit: 10 }),
-                ...alertService.getAlerts({ type: "WATCHLIST_TAKEPROFIT", limit: 10 }),
-              ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+                ...alertService.getAlerts({
+                  type: "WATCHLIST_PUMP",
+                  limit: 10,
+                }),
+                ...alertService.getAlerts({
+                  type: "WATCHLIST_ENTRY",
+                  limit: 10,
+                }),
+                ...alertService.getAlerts({
+                  type: "WATCHLIST_STOPLOSS",
+                  limit: 10,
+                }),
+                ...alertService.getAlerts({
+                  type: "WATCHLIST_TAKEPROFIT",
+                  limit: 10,
+                }),
+              ]
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
               filterLabel = "Watchlist";
               break;
             case "NEW_TOKEN":
@@ -198,7 +244,9 @@ export const vinceAlertsAction: Action = {
             lines.push("");
           }
 
-          lines.push("*Commands: 'mark read', 'clear alerts', 'wallet alerts', 'watchlist alerts'*");
+          lines.push(
+            "*Commands: 'mark read', 'clear alerts', 'wallet alerts', 'watchlist alerts'*",
+          );
 
           await callback({
             text: lines.join("\n"),
@@ -241,7 +289,9 @@ export const vinceAlertsAction: Action = {
           }
 
           // Other unread alerts
-          const otherUnread = unreadAlerts.filter(a => a.priority !== "high").slice(0, 5);
+          const otherUnread = unreadAlerts
+            .filter((a) => a.priority !== "high")
+            .slice(0, 5);
           if (otherUnread.length > 0) {
             lines.push("**Other Alerts**");
             for (const alert of otherUnread) {
@@ -253,11 +303,19 @@ export const vinceAlertsAction: Action = {
           // Summary by type
           const typeSummary: string[] = [];
           if (summary.byType.WALLET_BUY > 0 || summary.byType.WALLET_SELL > 0) {
-            typeSummary.push(`🐋 ${summary.byType.WALLET_BUY + summary.byType.WALLET_SELL} wallet`);
+            typeSummary.push(
+              `🐋 ${summary.byType.WALLET_BUY + summary.byType.WALLET_SELL} wallet`,
+            );
           }
-          if (summary.byType.WATCHLIST_PUMP > 0 || summary.byType.WATCHLIST_ENTRY > 0) {
-            const watchlistTotal = summary.byType.WATCHLIST_PUMP + summary.byType.WATCHLIST_ENTRY + 
-                                   summary.byType.WATCHLIST_STOPLOSS + summary.byType.WATCHLIST_TAKEPROFIT;
+          if (
+            summary.byType.WATCHLIST_PUMP > 0 ||
+            summary.byType.WATCHLIST_ENTRY > 0
+          ) {
+            const watchlistTotal =
+              summary.byType.WATCHLIST_PUMP +
+              summary.byType.WATCHLIST_ENTRY +
+              summary.byType.WATCHLIST_STOPLOSS +
+              summary.byType.WATCHLIST_TAKEPROFIT;
             typeSummary.push(`📋 ${watchlistTotal} watchlist`);
           }
           if (summary.byType.NEW_TOKEN > 0) {
@@ -269,7 +327,9 @@ export const vinceAlertsAction: Action = {
           }
 
           lines.push("");
-          lines.push("*Commands: 'mark read', 'clear alerts', 'wallet alerts', 'watchlist alerts'*");
+          lines.push(
+            "*Commands: 'mark read', 'clear alerts', 'wallet alerts', 'watchlist alerts'*",
+          );
 
           await callback({
             text: lines.join("\n"),

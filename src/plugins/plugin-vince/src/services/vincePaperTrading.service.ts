@@ -9,9 +9,9 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { 
-  Position, 
-  SimulatedOrder, 
+import type {
+  Position,
+  SimulatedOrder,
   AggregatedTradeSignal,
   TradeSignalDetail,
   TradeMarketContext,
@@ -19,10 +19,16 @@ import type {
 import type { VincePositionManagerService } from "./vincePositionManager.service";
 import type { VinceRiskManagerService } from "./vinceRiskManager.service";
 import type { VinceTradeJournalService } from "./vinceTradeJournal.service";
-import type { VinceSignalAggregatorService, AggregatedSignal } from "./signalAggregator.service";
+import type {
+  VinceSignalAggregatorService,
+  AggregatedSignal,
+} from "./signalAggregator.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceCoinGlassService } from "./coinglass.service";
-import type { VinceMarketRegimeService, MarketRegime } from "./marketRegime.service";
+import type {
+  VinceMarketRegimeService,
+  MarketRegime,
+} from "./marketRegime.service";
 // V4: ML Integration Services
 import type { VinceFeatureStoreService } from "./vinceFeatureStore.service";
 import type { VinceWeightBanditService } from "./weightBandit.service";
@@ -68,24 +74,25 @@ interface PendingEntry {
   asset: string;
   direction: "long" | "short";
   signal: AggregatedTradeSignal;
-  targetPrice: number;       // Price we're waiting for
-  triggerPrice: number;      // Price when signal was generated
+  targetPrice: number; // Price we're waiting for
+  triggerPrice: number; // Price when signal was generated
   sizeUsd: number;
   leverage: number;
   createdAt: number;
-  expiresAt: number;         // Entry expires if not filled within 5 minutes
-  isCascadeSignal: boolean;  // Cascade signals enter immediately, skip pullback
+  expiresAt: number; // Entry expires if not filled within 5 minutes
+  isCascadeSignal: boolean; // Cascade signals enter immediately, skip pullback
 }
 
 // Pullback configuration
 const PULLBACK_CONFIG = {
-  pullbackPct: 0.15,         // Wait for 0.15% pullback (was 0.3% - too aggressive, entries kept expiring)
-  timeoutMs: 3 * 60 * 1000,  // 3 minute timeout (was 5 min)
+  pullbackPct: 0.15, // Wait for 0.15% pullback (was 0.3% - too aggressive, entries kept expiring)
+  timeoutMs: 3 * 60 * 1000, // 3 minute timeout (was 5 min)
 };
 
 export class VincePaperTradingService extends Service {
   static serviceType = "VINCE_PAPER_TRADING_SERVICE";
-  capabilityDescription = "Paper trading orchestration with simulated execution";
+  capabilityDescription =
+    "Paper trading orchestration with simulated execution";
 
   private initialized = false;
   private updateInterval: NodeJS.Timeout | null = null;
@@ -104,7 +111,9 @@ export class VincePaperTradingService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VincePaperTradingService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VincePaperTradingService> {
     const service = new VincePaperTradingService(runtime);
     await service.initialize();
     logger.info("[VincePaperTrading] ✅ Service started");
@@ -125,7 +134,7 @@ export class VincePaperTradingService extends Service {
     try {
       const elizaDbDir = path.join(process.cwd(), ".elizadb");
       this.persistenceDir = path.join(elizaDbDir, PERSISTENCE_DIR);
-      
+
       if (!fs.existsSync(this.persistenceDir)) {
         fs.mkdirSync(this.persistenceDir, { recursive: true });
       }
@@ -146,55 +155,83 @@ export class VincePaperTradingService extends Service {
   // ==========================================
 
   private getPositionManager(): VincePositionManagerService | null {
-    return this.runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
+    return this.runtime.getService(
+      "VINCE_POSITION_MANAGER_SERVICE",
+    ) as VincePositionManagerService | null;
   }
 
   private getRiskManager(): VinceRiskManagerService | null {
-    return this.runtime.getService("VINCE_RISK_MANAGER_SERVICE") as VinceRiskManagerService | null;
+    return this.runtime.getService(
+      "VINCE_RISK_MANAGER_SERVICE",
+    ) as VinceRiskManagerService | null;
   }
 
   private getTradeJournal(): VinceTradeJournalService | null {
-    return this.runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as VinceTradeJournalService | null;
+    return this.runtime.getService(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    ) as VinceTradeJournalService | null;
   }
 
   private getSignalAggregator(): VinceSignalAggregatorService | null {
-    return this.runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as VinceSignalAggregatorService | null;
+    return this.runtime.getService(
+      "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+    ) as VinceSignalAggregatorService | null;
   }
 
   private getMarketData(): VinceMarketDataService | null {
-    return this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+    return this.runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as VinceMarketDataService | null;
   }
 
   private getCoinGlass(): VinceCoinGlassService | null {
-    return this.runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
+    return this.runtime.getService(
+      "VINCE_COINGLASS_SERVICE",
+    ) as VinceCoinGlassService | null;
   }
 
   private getMarketRegime(): VinceMarketRegimeService | null {
-    return this.runtime.getService("VINCE_MARKET_REGIME_SERVICE") as VinceMarketRegimeService | null;
+    return this.runtime.getService(
+      "VINCE_MARKET_REGIME_SERVICE",
+    ) as VinceMarketRegimeService | null;
   }
 
   // V4: ML Services
   private getFeatureStore(): VinceFeatureStoreService | null {
-    return this.runtime.getService("VINCE_FEATURE_STORE_SERVICE") as VinceFeatureStoreService | null;
+    return this.runtime.getService(
+      "VINCE_FEATURE_STORE_SERVICE",
+    ) as VinceFeatureStoreService | null;
   }
 
   private getWeightBandit(): VinceWeightBanditService | null {
-    return this.runtime.getService("VINCE_WEIGHT_BANDIT_SERVICE") as VinceWeightBanditService | null;
+    return this.runtime.getService(
+      "VINCE_WEIGHT_BANDIT_SERVICE",
+    ) as VinceWeightBanditService | null;
   }
 
   private getSignalSimilarity(): VinceSignalSimilarityService | null {
-    return this.runtime.getService("VINCE_SIGNAL_SIMILARITY_SERVICE") as VinceSignalSimilarityService | null;
+    return this.runtime.getService(
+      "VINCE_SIGNAL_SIMILARITY_SERVICE",
+    ) as VinceSignalSimilarityService | null;
   }
-  
+
   private getNewsSentiment(): VinceNewsSentimentService | null {
-    return this.runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+    return this.runtime.getService(
+      "VINCE_NEWS_SENTIMENT_SERVICE",
+    ) as VinceNewsSentimentService | null;
   }
 
   /** TP multipliers to use (from improvement report: skip worst-performing level when applicable). */
   private getTPMultipliersForReport(): number[] {
-    const ml = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
-    const indices = (ml as { getTPLevelIndicesToUse?: () => number[] })?.getTPLevelIndicesToUse?.() ?? [0, 1, 2];
-    const mults = indices.map((i) => DEFAULT_TAKE_PROFIT_TARGETS[i]).filter((m): m is number => m != null);
+    const ml = this.runtime.getService(
+      "VINCE_ML_INFERENCE_SERVICE",
+    ) as VinceMLInferenceService | null;
+    const indices = (
+      ml as { getTPLevelIndicesToUse?: () => number[] }
+    )?.getTPLevelIndicesToUse?.() ?? [0, 1, 2];
+    const mults = indices
+      .map((i) => DEFAULT_TAKE_PROFIT_TARGETS[i])
+      .filter((m): m is number => m != null);
     return mults.length > 0 ? mults : [...DEFAULT_TAKE_PROFIT_TARGETS];
   }
 
@@ -207,31 +244,31 @@ export class VincePaperTradingService extends Service {
    */
   recordTradeOutcome(isWin: boolean): void {
     this.recentTradeOutcomes.push(isWin);
-    
+
     // Keep only last 5 trades
     if (this.recentTradeOutcomes.length > this.MAX_STREAK_HISTORY) {
       this.recentTradeOutcomes.shift();
     }
-    
+
     const streakInfo = this.getStreakInfo();
     logger.debug(
       `[VincePaperTrading] Trade outcome recorded: ${isWin ? "WIN" : "LOSS"} | ` +
-      `Recent: ${this.recentTradeOutcomes.map(w => w ? "W" : "L").join("")} | ` +
-      `Multiplier: ${streakInfo.multiplier}x`
+        `Recent: ${this.recentTradeOutcomes.map((w) => (w ? "W" : "L")).join("")} | ` +
+        `Multiplier: ${streakInfo.multiplier}x`,
     );
   }
 
   /**
    * Get current streak information and size multiplier
-   * 
+   *
    * Returns:
    * - 1.2x for 3+ consecutive wins (confidence boost)
    * - 0.7x for 3+ consecutive losses (risk reduction)
    * - 1.0x otherwise
    */
-  getStreakInfo(): { 
-    consecutiveWins: number; 
-    consecutiveLosses: number; 
+  getStreakInfo(): {
+    consecutiveWins: number;
+    consecutiveLosses: number;
     multiplier: number;
     reason?: string;
   } {
@@ -242,7 +279,7 @@ export class VincePaperTradingService extends Service {
     // Count consecutive wins/losses from the end
     let consecutiveWins = 0;
     let consecutiveLosses = 0;
-    
+
     // Check from most recent
     for (let i = this.recentTradeOutcomes.length - 1; i >= 0; i--) {
       if (this.recentTradeOutcomes[i]) {
@@ -282,7 +319,9 @@ export class VincePaperTradingService extends Service {
   /**
    * Convert AggregatedSignal (from signal aggregator) to AggregatedTradeSignal (full type for logging/validation).
    */
-  private toAggregatedTradeSignal(signal: AggregatedSignal): AggregatedTradeSignal {
+  private toAggregatedTradeSignal(
+    signal: AggregatedSignal,
+  ): AggregatedTradeSignal {
     const factors = signal.factors ?? [];
     const sources = signal.sources ?? [];
     return {
@@ -305,13 +344,21 @@ export class VincePaperTradingService extends Service {
         ? sources.reduce(
             (acc, src) => {
               const k = src as keyof AggregatedTradeSignal["sourceBreakdown"];
-              (acc as Record<string, { count: number; avgStrength: number }>)[k] = {
-                count: ((acc as Record<string, { count: number; avgStrength: number }>)[k]?.count ?? 0) + 1,
+              (acc as Record<string, { count: number; avgStrength: number }>)[
+                k
+              ] = {
+                count:
+                  ((
+                    acc as Record<
+                      string,
+                      { count: number; avgStrength: number }
+                    >
+                  )[k]?.count ?? 0) + 1,
                 avgStrength: signal.strength,
               };
               return acc;
             },
-            {} as AggregatedTradeSignal["sourceBreakdown"]
+            {} as AggregatedTradeSignal["sourceBreakdown"],
           )
         : {}) as AggregatedTradeSignal["sourceBreakdown"],
       timestamp: signal.timestamp,
@@ -325,7 +372,7 @@ export class VincePaperTradingService extends Service {
   private logSignalRejection(
     asset: string,
     signal: AggregatedTradeSignal,
-    reason: string
+    reason: string,
   ): void {
     // Rate limit: only log once per asset per 5 minutes
     const cacheKey = `signal_reject_${asset}`;
@@ -343,12 +390,18 @@ export class VincePaperTradingService extends Service {
     let minStrength = limits?.minSignalStrength ?? 60;
     let minConfidence = limits?.minSignalConfidence ?? 60;
     // HYPE has fewer signal sources, so lower minimum
-    const minConfirming = asset === "HYPE" ? 2 : (limits?.minConfirmingSignals ?? 3);
+    const minConfirming =
+      asset === "HYPE" ? 2 : (limits?.minConfirmingSignals ?? 3);
 
     // When rejection was due to ML "report suggestion", show that stricter bar so the box matches reality
     const usedReportSuggestion = reason.includes("report suggestion");
     if (usedReportSuggestion) {
-      const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as { getSuggestedMinStrength?: () => number | null; getSuggestedMinConfidence?: () => number | null } | null;
+      const mlService = this.runtime.getService(
+        "VINCE_ML_INFERENCE_SERVICE",
+      ) as {
+        getSuggestedMinStrength?: () => number | null;
+        getSuggestedMinConfidence?: () => number | null;
+      } | null;
       if (mlService) {
         const reportStr = mlService.getSuggestedMinStrength?.();
         const reportConf = mlService.getSuggestedMinConfidence?.();
@@ -357,21 +410,47 @@ export class VincePaperTradingService extends Service {
       }
     }
 
-    const dirIcon = signal.direction === "long" ? "🟢" : signal.direction === "short" ? "🔴" : "⚪";
+    const dirIcon =
+      signal.direction === "long"
+        ? "🟢"
+        : signal.direction === "short"
+          ? "🔴"
+          : "⚪";
     const strengthBar = this.createProgressBar(signal.strength, minStrength);
-    const confidenceBar = this.createProgressBar(signal.confidence, minConfidence);
+    const confidenceBar = this.createProgressBar(
+      signal.confidence,
+      minConfidence,
+    );
     const suggLabel = usedReportSuggestion ? " (ML)" : "";
 
     console.log("");
-    console.log(`  ┌─────────────────────────────────────────────────────────────────┐`);
-    console.log(`  │  ⏸️  SIGNAL EVALUATED - NO TRADE: ${asset.padEnd(6)}                        │`);
-    console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Bias: ${dirIcon} ${signal.direction.toUpperCase().padEnd(6)} │ Reason: ${reason.substring(0, 30).padEnd(30)} │`);
-    console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Strength:   ${strengthBar} ${signal.strength.toFixed(0).padStart(3)}% (need ${minStrength}%${suggLabel})   │`);
-    console.log(`  │  Confidence: ${confidenceBar} ${signal.confidence.toFixed(0).padStart(3)}% (need ${minConfidence}%${suggLabel})   │`);
-    console.log(`  │  Confirming: ${signal.confirmingCount} signals (need ${minConfirming})                            │`);
-    console.log(`  └─────────────────────────────────────────────────────────────────┘`);
+    console.log(
+      `  ┌─────────────────────────────────────────────────────────────────┐`,
+    );
+    console.log(
+      `  │  ⏸️  SIGNAL EVALUATED - NO TRADE: ${asset.padEnd(6)}                        │`,
+    );
+    console.log(
+      `  ├─────────────────────────────────────────────────────────────────┤`,
+    );
+    console.log(
+      `  │  Bias: ${dirIcon} ${signal.direction.toUpperCase().padEnd(6)} │ Reason: ${reason.substring(0, 30).padEnd(30)} │`,
+    );
+    console.log(
+      `  ├─────────────────────────────────────────────────────────────────┤`,
+    );
+    console.log(
+      `  │  Strength:   ${strengthBar} ${signal.strength.toFixed(0).padStart(3)}% (need ${minStrength}%${suggLabel})   │`,
+    );
+    console.log(
+      `  │  Confidence: ${confidenceBar} ${signal.confidence.toFixed(0).padStart(3)}% (need ${minConfidence}%${suggLabel})   │`,
+    );
+    console.log(
+      `  │  Confirming: ${signal.confirmingCount} signals (need ${minConfirming})                            │`,
+    );
+    console.log(
+      `  └─────────────────────────────────────────────────────────────────┘`,
+    );
   }
 
   /**
@@ -380,17 +459,27 @@ export class VincePaperTradingService extends Service {
   private logTradeRejection(
     asset: string,
     direction: "long" | "short",
-    reason: string
+    reason: string,
   ): void {
     const dirIcon = direction === "long" ? "🟢" : "🔴";
-    
+
     console.log("");
-    console.log(`  ┌─────────────────────────────────────────────────────────────────┐`);
-    console.log(`  │  🚫 TRADE BLOCKED BY RISK MANAGER: ${asset.padEnd(6)}                      │`);
-    console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Direction: ${dirIcon} ${direction.toUpperCase().padEnd(6)}                                        │`);
+    console.log(
+      `  ┌─────────────────────────────────────────────────────────────────┐`,
+    );
+    console.log(
+      `  │  🚫 TRADE BLOCKED BY RISK MANAGER: ${asset.padEnd(6)}                      │`,
+    );
+    console.log(
+      `  ├─────────────────────────────────────────────────────────────────┤`,
+    );
+    console.log(
+      `  │  Direction: ${dirIcon} ${direction.toUpperCase().padEnd(6)}                                        │`,
+    );
     console.log(`  │  Reason: ${reason.substring(0, 53).padEnd(53)} │`);
-    console.log(`  └─────────────────────────────────────────────────────────────────┘`);
+    console.log(
+      `  └─────────────────────────────────────────────────────────────────┘`,
+    );
   }
 
   /**
@@ -400,7 +489,7 @@ export class VincePaperTradingService extends Service {
     const width = 20;
     const filled = Math.min(width, Math.round((value / 100) * width));
     const thresholdPos = Math.round((threshold / 100) * width);
-    
+
     let bar = "";
     for (let i = 0; i < width; i++) {
       if (i < filled) {
@@ -444,12 +533,15 @@ export class VincePaperTradingService extends Service {
     // For market orders, execute immediately with slippage
     if (type === "market") {
       const marketData = this.getMarketData();
-      const currentPrice = marketData ? (marketData as any).getCurrentPrice?.(asset) : null;
-      
+      const currentPrice = marketData
+        ? (marketData as any).getCurrentPrice?.(asset)
+        : null;
+
       if (currentPrice) {
         // Calculate slippage
         const slippageBps = this.calculateSlippage(sizeUsd);
-        const slippageMultiplier = side === "buy" ? (1 + slippageBps / 10000) : (1 - slippageBps / 10000);
+        const slippageMultiplier =
+          side === "buy" ? 1 + slippageBps / 10000 : 1 - slippageBps / 10000;
         const executedPrice = currentPrice * slippageMultiplier;
 
         // Calculate fees
@@ -473,10 +565,11 @@ export class VincePaperTradingService extends Service {
   private calculateSlippage(sizeUsd: number): number {
     // Base slippage + size impact
     let slippageBps = SLIPPAGE.BASE_BPS;
-    
+
     // Add size impact (2 bps per $10k)
-    slippageBps += Math.floor(sizeUsd / 10000) * SLIPPAGE.SIZE_IMPACT_BPS_PER_10K;
-    
+    slippageBps +=
+      Math.floor(sizeUsd / 10000) * SLIPPAGE.SIZE_IMPACT_BPS_PER_10K;
+
     // Cap at maximum
     return Math.min(slippageBps, SLIPPAGE.MAX_BPS);
   }
@@ -516,15 +609,30 @@ export class VincePaperTradingService extends Service {
         if (!signal) continue;
 
         // Block trade when ML quality is below trained threshold (fewer low-quality trades)
-        const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
-        if (mlService && typeof (signal as AggregatedSignal).mlQualityScore === "number") {
+        const mlService = this.runtime.getService(
+          "VINCE_ML_INFERENCE_SERVICE",
+        ) as VinceMLInferenceService | null;
+        if (
+          mlService &&
+          typeof (signal as AggregatedSignal).mlQualityScore === "number"
+        ) {
           const threshold =
-            typeof (mlService as { getSignalQualityThreshold?: () => number }).getSignalQualityThreshold === "function"
-              ? (mlService as { getSignalQualityThreshold: () => number }).getSignalQualityThreshold()
+            typeof (mlService as { getSignalQualityThreshold?: () => number })
+              .getSignalQualityThreshold === "function"
+              ? (
+                  mlService as { getSignalQualityThreshold: () => number }
+                ).getSignalQualityThreshold()
               : null;
-          if (threshold != null && (signal as AggregatedSignal).mlQualityScore! < threshold) {
+          if (
+            threshold != null &&
+            (signal as AggregatedSignal).mlQualityScore! < threshold
+          ) {
             if (signal.direction !== "neutral" && signal.strength > 30) {
-              this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`);
+              this.logSignalRejection(
+                asset,
+                this.toAggregatedTradeSignal(signal),
+                `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`,
+              );
             }
             continue;
           }
@@ -532,16 +640,40 @@ export class VincePaperTradingService extends Service {
 
         // Improvement report: optional min strength / min confidence (when suggested_tuning is in training_metadata).
         // In aggressive mode we skip this so we take more trades (base thresholds 40/35 only) for ML data.
-        const aggressiveMode = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+        const aggressiveMode =
+          this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+          this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         if (mlService && !aggressiveMode) {
-          const minStr = (mlService as { getSuggestedMinStrength?: () => number | null }).getSuggestedMinStrength?.();
-          const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
-          if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`);
+          const minStr = (
+            mlService as { getSuggestedMinStrength?: () => number | null }
+          ).getSuggestedMinStrength?.();
+          const minConf = (
+            mlService as { getSuggestedMinConfidence?: () => number | null }
+          ).getSuggestedMinConfidence?.();
+          if (
+            typeof minStr === "number" &&
+            signal.strength < minStr &&
+            signal.direction !== "neutral" &&
+            signal.strength > 30
+          ) {
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`,
+            );
             continue;
           }
-          if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`);
+          if (
+            typeof minConf === "number" &&
+            signal.confidence < minConf &&
+            signal.direction !== "neutral" &&
+            signal.strength > 30
+          ) {
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`,
+            );
             continue;
           }
         }
@@ -550,7 +682,11 @@ export class VincePaperTradingService extends Service {
         const aggSignal = signal as AggregatedSignal;
         if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`);
+            this.logSignalRejection(
+              asset,
+              this.toAggregatedTradeSignal(signal),
+              `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`,
+            );
           }
           continue;
         }
@@ -558,9 +694,13 @@ export class VincePaperTradingService extends Service {
         // Extended market snapshot: order-book filter, trend alignment boost, funding reversal (DATA_LEVERAGE)
         const featureStore = this.getFeatureStore();
         let extendedSnapshot: ExtendedSnapshot | null = null;
-        if (featureStore && typeof featureStore.getExtendedMarketSnapshot === "function") {
+        if (
+          featureStore &&
+          typeof featureStore.getExtendedMarketSnapshot === "function"
+        ) {
           try {
-            extendedSnapshot = await featureStore.getExtendedMarketSnapshot(asset);
+            extendedSnapshot =
+              await featureStore.getExtendedMarketSnapshot(asset);
           } catch (e) {
             logger.debug(`[VincePaperTrading] Extended snapshot skip: ${e}`);
           }
@@ -568,10 +708,14 @@ export class VincePaperTradingService extends Service {
         const bookRejection = getBookImbalanceRejection(
           { direction: signal.direction, confidence: signal.confidence },
           extendedSnapshot,
-          aggressiveMode ? 0.4 : undefined
+          aggressiveMode ? 0.4 : undefined,
         );
         if (bookRejection.reject) {
-          this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), bookRejection.reason!);
+          this.logSignalRejection(
+            asset,
+            this.toAggregatedTradeSignal(signal),
+            bookRejection.reason!,
+          );
           continue;
         }
         let fundingRate = 0;
@@ -584,11 +728,14 @@ export class VincePaperTradingService extends Service {
         const adjustedConfidence = getAdjustedConfidence(
           { direction: signal.direction, confidence: signal.confidence },
           extendedSnapshot,
-          fundingRate
+          fundingRate,
         );
-        if (adjustedConfidence > signal.confidence && signal.direction !== "neutral") {
+        if (
+          adjustedConfidence > signal.confidence &&
+          signal.direction !== "neutral"
+        ) {
           logger.debug(
-            `[VincePaperTrading] ${asset} extended snapshot confidence boost: ${signal.confidence} -> ${adjustedConfidence}`
+            `[VincePaperTrading] ${asset} extended snapshot confidence boost: ${signal.confidence} -> ${adjustedConfidence}`,
           );
         }
 
@@ -605,16 +752,21 @@ export class VincePaperTradingService extends Service {
           supportingReasons: agg.supportingFactors,
           conflictingReasons: agg.conflictingFactors,
           signals: signal.factors.map((f, i) => ({
-            source: signal.sources?.[i] || signal.sources?.[0] || "signal_aggregator",
+            source:
+              signal.sources?.[i] || signal.sources?.[0] || "signal_aggregator",
             direction: signal.direction,
             strength: signal.strength,
             description: f,
           })),
           reasons: signal.factors,
-          sourceBreakdown: signal.sources?.reduce((acc, src) => {
-            acc[src] = (acc[src] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>) || {},
+          sourceBreakdown:
+            signal.sources?.reduce(
+              (acc, src) => {
+                acc[src] = (acc[src] || 0) + 1;
+                return acc;
+              },
+              {} as Record<string, number>,
+            ) || {},
           timestamp: Date.now(),
           session: (signal as { session?: string }).session,
           mlQualityScore: (signal as AggregatedSignal).mlQualityScore,
@@ -627,7 +779,7 @@ export class VincePaperTradingService extends Service {
             `[VincePaperTrading] ${asset} extended snapshot: book=${extendedSnapshot.bookImbalance?.toFixed(2) ?? "n/a"} ` +
               `priceVsSma20=${extendedSnapshot.priceVsSma20?.toFixed(1) ?? "n/a"}% ` +
               `fundingDelta=${extendedSnapshot.fundingDelta != null ? (extendedSnapshot.fundingDelta * 100).toFixed(4) + "%" : "n/a"} ` +
-              `dvol=${extendedSnapshot.dvol?.toFixed(0) ?? "n/a"}`
+              `dvol=${extendedSnapshot.dvol?.toFixed(0) ?? "n/a"}`,
           );
         }
 
@@ -636,48 +788,70 @@ export class VincePaperTradingService extends Service {
         if (!signalValidation.valid) {
           // Log WHY signal was rejected (only for meaningful signals, not neutral)
           if (signal.direction !== "neutral" && signal.strength > 30) {
-            this.logSignalRejection(asset, tradeSignal, signalValidation.reason || "threshold not met");
+            this.logSignalRejection(
+              asset,
+              tradeSignal,
+              signalValidation.reason || "threshold not met",
+            );
           }
           continue;
         }
 
         // Calculate position size
         const portfolio = positionManager.getPortfolio();
-        const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+        const aggressive =
+          this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+          this.runtime.getSetting?.("vince_paper_aggressive") === "true";
         // Asset-specific max leverage: BTC 40x, SOL/ETH/HYPE 10x
-        const baseLeverage = aggressive ? AGGRESSIVE_LEVERAGE : DEFAULT_LEVERAGE;
+        const baseLeverage = aggressive
+          ? AGGRESSIVE_LEVERAGE
+          : DEFAULT_LEVERAGE;
         const leverage = Math.min(baseLeverage, getAssetMaxLeverage(asset));
         let baseSizeUsd = aggressive
-          ? (portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
-              ? AGGRESSIVE_MARGIN_USD * leverage
-              : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100))
+          ? portfolio.totalValue >= AGGRESSIVE_MARGIN_USD
+            ? AGGRESSIVE_MARGIN_USD * leverage
+            : portfolio.totalValue * (AGGRESSIVE_BASE_SIZE_PCT / 100)
           : portfolio.totalValue * 0.05;
-        if (aggressive && baseSizeUsd > portfolio.totalValue * (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100)) {
-          baseSizeUsd = portfolio.totalValue * (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100);
+        if (
+          aggressive &&
+          baseSizeUsd >
+            portfolio.totalValue *
+              (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100)
+        ) {
+          baseSizeUsd =
+            portfolio.totalValue *
+            (AGGRESSIVE_RISK_LIMITS.maxPositionSizePct / 100);
         }
 
         // Apply correlation filter (reduce size for correlated positions)
         const correlationResult = riskManager.getCorrelationSizeMultiplier(
           asset,
           signal.direction as "long" | "short",
-          positionManager.getOpenPositions()
+          positionManager.getOpenPositions(),
         );
         baseSizeUsd = baseSizeUsd * correlationResult.multiplier;
         if (correlationResult.reason) {
-          logger.debug(`[VincePaperTrading] ${asset}: ${correlationResult.reason}`);
+          logger.debug(
+            `[VincePaperTrading] ${asset}: ${correlationResult.reason}`,
+          );
         }
 
         // Apply DVOL-adjusted sizing (reduce size in high volatility); prefer extended snapshot when available
         if (asset === "BTC" || asset === "ETH") {
           let dvol: number | null = extendedSnapshot?.dvol ?? null;
-          if (dvol === null && marketData) dvol = await marketData.getDVOL(asset);
+          if (dvol === null && marketData)
+            dvol = await marketData.getDVOL(asset);
           if (dvol !== null) {
             if (dvol > 85) {
               baseSizeUsd = baseSizeUsd * 0.5;
-              logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>85): size reduced 50%`);
+              logger.debug(
+                `[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>85): size reduced 50%`,
+              );
             } else if (dvol > 70) {
               baseSizeUsd = baseSizeUsd * 0.7;
-              logger.debug(`[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>70): size reduced 30%`);
+              logger.debug(
+                `[VincePaperTrading] ${asset} DVOL ${dvol.toFixed(0)} (>70): size reduced 30%`,
+              );
             }
           }
         }
@@ -691,11 +865,13 @@ export class VincePaperTradingService extends Service {
             if (regime.positionSizeMultiplier !== 1.0) {
               baseSizeUsd = baseSizeUsd * regime.positionSizeMultiplier;
               logger.debug(
-                `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`
+                `[VincePaperTrading] ${asset} regime ${regime.regime}: size ${regime.positionSizeMultiplier}x`,
               );
             }
           } catch (e) {
-            logger.debug(`[VincePaperTrading] Could not get regime for ${asset}: ${e}`);
+            logger.debug(
+              `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
+            );
           }
         }
 
@@ -704,7 +880,7 @@ export class VincePaperTradingService extends Service {
         if (timeModifiers.sizeMultiplier !== 1.0) {
           baseSizeUsd = baseSizeUsd * timeModifiers.sizeMultiplier;
           logger.debug(
-            `[VincePaperTrading] ${asset} session (${timeModifiers.session.session}): size ${timeModifiers.sizeMultiplier}x`
+            `[VincePaperTrading] ${asset} session (${timeModifiers.session.session}): size ${timeModifiers.sizeMultiplier}x`,
           );
         }
 
@@ -724,11 +900,21 @@ export class VincePaperTradingService extends Service {
             const drawdownPct = riskState?.currentDrawdownPct ?? 0;
             const lastN = Math.min(20, this.recentTradeOutcomes.length);
             const recentWinRate =
-              lastN === 0 ? 50 : (this.recentTradeOutcomes.slice(-lastN).filter(Boolean).length / lastN) * 100;
+              lastN === 0
+                ? 50
+                : (this.recentTradeOutcomes.slice(-lastN).filter(Boolean)
+                    .length /
+                    lastN) *
+                  100;
             const volatilityRegime =
-              regime?.regime === "volatile" ? 2 : regime?.regime === "neutral" ? 0 : 1;
+              regime?.regime === "volatile"
+                ? 2
+                : regime?.regime === "neutral"
+                  ? 0
+                  : 1;
             const positionInput: PositionSizingInput = {
-              signalQualityScore: (signal as AggregatedSignal).mlQualityScore ?? 0.5,
+              signalQualityScore:
+                (signal as AggregatedSignal).mlQualityScore ?? 0.5,
               strength: signal.strength,
               confidence: signal.confidence,
               volatilityRegime,
@@ -741,7 +927,7 @@ export class VincePaperTradingService extends Service {
             baseSizeUsd = baseSizeUsd * mlMultiplier;
             if (mlMultiplier !== 1.0) {
               logger.debug(
-                `[VincePaperTrading] ${asset} ML position sizing: ${mlMultiplier.toFixed(2)}x (quality=${(positionInput.signalQualityScore * 100).toFixed(0)}% winRate=${recentWinRate.toFixed(0)}%)`
+                `[VincePaperTrading] ${asset} ML position sizing: ${mlMultiplier.toFixed(2)}x (quality=${(positionInput.signalQualityScore * 100).toFixed(0)}% winRate=${recentWinRate.toFixed(0)}%)`,
               );
             }
           } catch (e) {
@@ -759,15 +945,20 @@ export class VincePaperTradingService extends Service {
 
         if (!tradeValidation.valid) {
           // Log WHY trade was rejected by risk manager
-          this.logTradeRejection(asset, signal.direction as "long" | "short", tradeValidation.reason || "risk check failed");
+          this.logTradeRejection(
+            asset,
+            signal.direction as "long" | "short",
+            tradeValidation.reason || "risk check failed",
+          );
           continue;
         }
 
         const finalSize = tradeValidation.adjustedSize || baseSizeUsd;
 
         // Check if this is a cascade signal (requires immediate entry)
-        const isCascadeSignal = signal.sources?.includes("LiquidationCascade") || 
-                                signal.sources?.includes("LiquidationPressure");
+        const isCascadeSignal =
+          signal.sources?.includes("LiquidationCascade") ||
+          signal.sources?.includes("LiquidationPressure");
 
         // Get current price
         let currentPrice = 0;
@@ -784,7 +975,6 @@ export class VincePaperTradingService extends Service {
           leverage,
           signal: tradeSignal,
         });
-
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
       }
@@ -813,12 +1003,20 @@ export class VincePaperTradingService extends Service {
     leverage: number;
     isCascadeSignal: boolean;
   }): void {
-    const { asset, direction, signal, currentPrice, sizeUsd, leverage, isCascadeSignal } = params;
+    const {
+      asset,
+      direction,
+      signal,
+      currentPrice,
+      sizeUsd,
+      leverage,
+      isCascadeSignal,
+    } = params;
 
     // Calculate target price (pullback)
     const pullbackPct = PULLBACK_CONFIG.pullbackPct / 100;
     let targetPrice: number;
-    
+
     if (direction === "long") {
       // For LONG: Wait for price to drop 0.3%
       targetPrice = currentPrice * (1 - pullbackPct);
@@ -842,26 +1040,46 @@ export class VincePaperTradingService extends Service {
     };
 
     this.pendingEntries.set(entry.id, entry);
-    
+
     // Log pending entry with signal context
     const dirIcon = direction === "long" ? "🟢" : "🔴";
     const pullbackDirection = direction === "long" ? "drop" : "rise";
-    
+
     console.log("");
-    console.log(`  ┌─────────────────────────────────────────────────────────────────┐`);
-    console.log(`  │  📝 PENDING ENTRY: ${dirIcon} ${direction.toUpperCase()} ${asset.padEnd(6)}                             │`);
-    console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Waiting for ${PULLBACK_CONFIG.pullbackPct}% ${pullbackDirection} before entry                        │`);
-    console.log(`  │  Current: $${currentPrice.toFixed(2).padEnd(12)} Target: $${targetPrice.toFixed(2).padEnd(12)}       │`);
-    console.log(`  │  Size: ${formatUsd(sizeUsd).padEnd(10)} Leverage: ${leverage}x                          │`);
-    console.log(`  ├─────────────────────────────────────────────────────────────────┤`);
-    console.log(`  │  Signals: Str ${signal.strength.toFixed(0)}% | Conf ${signal.confidence.toFixed(0)}% | ${signal.confirmingCount} confirming              │`);
-    console.log(`  │  Expires in 5 minutes                                          │`);
-    console.log(`  └─────────────────────────────────────────────────────────────────┘`);
-    
+    console.log(
+      `  ┌─────────────────────────────────────────────────────────────────┐`,
+    );
+    console.log(
+      `  │  📝 PENDING ENTRY: ${dirIcon} ${direction.toUpperCase()} ${asset.padEnd(6)}                             │`,
+    );
+    console.log(
+      `  ├─────────────────────────────────────────────────────────────────┤`,
+    );
+    console.log(
+      `  │  Waiting for ${PULLBACK_CONFIG.pullbackPct}% ${pullbackDirection} before entry                        │`,
+    );
+    console.log(
+      `  │  Current: $${currentPrice.toFixed(2).padEnd(12)} Target: $${targetPrice.toFixed(2).padEnd(12)}       │`,
+    );
+    console.log(
+      `  │  Size: ${formatUsd(sizeUsd).padEnd(10)} Leverage: ${leverage}x                          │`,
+    );
+    console.log(
+      `  ├─────────────────────────────────────────────────────────────────┤`,
+    );
+    console.log(
+      `  │  Signals: Str ${signal.strength.toFixed(0)}% | Conf ${signal.confidence.toFixed(0)}% | ${signal.confirmingCount} confirming              │`,
+    );
+    console.log(
+      `  │  Expires in 5 minutes                                          │`,
+    );
+    console.log(
+      `  └─────────────────────────────────────────────────────────────────┘`,
+    );
+
     logger.info(
       `[VincePaperTrading] 📝 Pending ${direction.toUpperCase()} ${asset}: waiting for pullback to $${targetPrice.toFixed(2)} ` +
-      `(current: $${currentPrice.toFixed(2)}, expires in 5m)`
+        `(current: $${currentPrice.toFixed(2)}, expires in 5m)`,
     );
   }
 
@@ -877,7 +1095,9 @@ export class VincePaperTradingService extends Service {
         // Check expiration
         if (now >= entry.expiresAt) {
           this.pendingEntries.delete(id);
-          logger.info(`[VincePaperTrading] ⏰ Pending ${entry.asset} ${entry.direction} EXPIRED (no pullback)`);
+          logger.info(
+            `[VincePaperTrading] ⏰ Pending ${entry.asset} ${entry.direction} EXPIRED (no pullback)`,
+          );
           continue;
         }
 
@@ -897,14 +1117,17 @@ export class VincePaperTradingService extends Service {
         let targetHit = false;
         if (entry.direction === "long" && currentPrice <= entry.targetPrice) {
           targetHit = true;
-        } else if (entry.direction === "short" && currentPrice >= entry.targetPrice) {
+        } else if (
+          entry.direction === "short" &&
+          currentPrice >= entry.targetPrice
+        ) {
           targetHit = true;
         }
 
         if (targetHit) {
           logger.info(
             `[VincePaperTrading] ✅ Pullback target HIT for ${entry.asset} ${entry.direction}: ` +
-            `$${currentPrice.toFixed(2)} (target: $${entry.targetPrice.toFixed(2)})`
+              `$${currentPrice.toFixed(2)} (target: $${entry.targetPrice.toFixed(2)})`,
           );
 
           // Execute the trade at the better price
@@ -919,7 +1142,9 @@ export class VincePaperTradingService extends Service {
           this.pendingEntries.delete(id);
         }
       } catch (error) {
-        logger.error(`[VincePaperTrading] Error checking pending entry ${entry.asset}: ${error}`);
+        logger.error(
+          `[VincePaperTrading] Error checking pending entry ${entry.asset}: ${error}`,
+        );
         this.pendingEntries.delete(id);
       }
     }
@@ -950,27 +1175,39 @@ export class VincePaperTradingService extends Service {
     // Get current price
     let entryPrice: number;
     try {
-      const ctx = marketData ? await (marketData as any).getEnrichedContext(asset) : null;
+      const ctx = marketData
+        ? await (marketData as any).getEnrichedContext(asset)
+        : null;
       entryPrice = ctx?.currentPrice;
       if (!entryPrice) {
         const now = Date.now();
         const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
-        if (now - lastWarn >= VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS) {
-          logger.warn(`[VincePaperTrading] Could not get entry price for ${asset}`);
+        if (
+          now - lastWarn >=
+          VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
+        ) {
+          logger.warn(
+            `[VincePaperTrading] Could not get entry price for ${asset}`,
+          );
           this.lastEntryPriceWarnByAsset.set(asset, now);
         } else {
-          logger.debug(`[VincePaperTrading] Could not get entry price for ${asset} (throttled)`);
+          logger.debug(
+            `[VincePaperTrading] Could not get entry price for ${asset} (throttled)`,
+          );
         }
         return null;
       }
     } catch (error) {
-      logger.error(`[VincePaperTrading] Error getting price for ${asset}: ${error}`);
+      logger.error(
+        `[VincePaperTrading] Error getting price for ${asset}: ${error}`,
+      );
       return null;
     }
 
     // Apply slippage (capture for log)
     const slippageBps = this.calculateSlippage(sizeUsd);
-    const slippageMultiplier = direction === "long" ? (1 + slippageBps / 10000) : (1 - slippageBps / 10000);
+    const slippageMultiplier =
+      direction === "long" ? 1 + slippageBps / 10000 : 1 - slippageBps / 10000;
     entryPrice = entryPrice * slippageMultiplier;
 
     // Calculate ATR-based dynamic stop loss
@@ -982,15 +1219,23 @@ export class VincePaperTradingService extends Service {
         entryATRPct = await marketData.getATRPercent(asset);
         // Use 1.5x ATR for stop loss, capped between 1% and 4%
         stopLossPct = Math.max(1, Math.min(4, entryATRPct * 1.5));
-        logger.debug(`[VincePaperTrading] ${asset} ATR-based SL: ${stopLossPct.toFixed(2)}% (ATR: ${entryATRPct.toFixed(2)}%)`);
+        logger.debug(
+          `[VincePaperTrading] ${asset} ATR-based SL: ${stopLossPct.toFixed(2)}% (ATR: ${entryATRPct.toFixed(2)}%)`,
+        );
       } catch (e) {
-        logger.debug(`[VincePaperTrading] Could not get ATR for ${asset}, using default SL`);
+        logger.debug(
+          `[VincePaperTrading] Could not get ATR for ${asset}, using default SL`,
+        );
       }
     }
 
-    const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const aggressive =
+      this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+      this.runtime.getSetting?.("vince_paper_aggressive") === "true";
     const regimeService = this.getMarketRegime();
-    const mlService = this.runtime.getService("VINCE_ML_INFERENCE_SERVICE") as VinceMLInferenceService | null;
+    const mlService = this.runtime.getService(
+      "VINCE_ML_INFERENCE_SERVICE",
+    ) as VinceMLInferenceService | null;
     const atrPctForMl = entryATRPct ?? 2.0;
 
     // Optional: ML TP/SL (use predicted ATR multipliers when models and ATR available)
@@ -1001,8 +1246,18 @@ export class VincePaperTradingService extends Service {
     if (mlService && regimeService && atrPctForMl > 0) {
       try {
         const regime = await regimeService.getRegime(asset);
-        const volatilityRegime = regime.regime === "volatile" ? 2 : regime.regime === "neutral" ? 0 : 1;
-        const marketRegime = regime.regime === "trending" ? 1 : regime.regime === "volatile" ? -1 : 0;
+        const volatilityRegime =
+          regime.regime === "volatile"
+            ? 2
+            : regime.regime === "neutral"
+              ? 0
+              : 1;
+        const marketRegime =
+          regime.regime === "trending"
+            ? 1
+            : regime.regime === "volatile"
+              ? -1
+              : 0;
         const tpslInput: TPSLInput = {
           direction: direction === "long" ? 1 : 0,
           atrPct: atrPctForMl,
@@ -1019,22 +1274,34 @@ export class VincePaperTradingService extends Service {
         const slMult = Math.max(0.5, Math.min(2.5, slPred.value));
         const baseTpDistancePrice = entryPrice * (atrPctForMl / 100) * tpMult;
         takeProfitPrices = aggressive
-          ? [direction === "long" ? entryPrice + baseTpDistancePrice : entryPrice - baseTpDistancePrice]
+          ? [
+              direction === "long"
+                ? entryPrice + baseTpDistancePrice
+                : entryPrice - baseTpDistancePrice,
+            ]
           : this.getTPMultipliersForReport().map((mult) =>
-              direction === "long" ? entryPrice + baseTpDistancePrice * mult : entryPrice - baseTpDistancePrice * mult
+              direction === "long"
+                ? entryPrice + baseTpDistancePrice * mult
+                : entryPrice - baseTpDistancePrice * mult,
             );
         stopLossPct = Math.max(1, Math.min(4, atrPctForMl * slMult));
         if (aggressive) {
-          stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, stopLossPct));
+          stopLossPct = Math.max(
+            MIN_SL_PCT_AGGRESSIVE,
+            Math.min(MAX_SL_PCT_AGGRESSIVE, stopLossPct),
+          );
           if (entryATRPct != null) {
             const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
             stopLossPct = Math.max(stopLossPct, atrFloorPct);
           }
         }
         stopLossDistance = entryPrice * (stopLossPct / 100);
-        stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
+        stopLossPrice =
+          direction === "long"
+            ? entryPrice - stopLossDistance
+            : entryPrice + stopLossDistance;
         logger.debug(
-          `[VincePaperTrading] ${asset} ML TP/SL: TP=${tpMult.toFixed(2)}×ATR SL=${slMult.toFixed(2)}×ATR → SL ${stopLossPct.toFixed(2)}%`
+          `[VincePaperTrading] ${asset} ML TP/SL: TP=${tpMult.toFixed(2)}×ATR SL=${slMult.toFixed(2)}×ATR → SL ${stopLossPct.toFixed(2)}%`,
         );
       } catch (e) {
         logger.debug(`[VincePaperTrading] ML TP/SL skip: ${e}`);
@@ -1044,17 +1311,26 @@ export class VincePaperTradingService extends Service {
               const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
               const pctMove = (targetUsd / sizeUsd) * 100;
               const tpDistance = entryPrice * (pctMove / 100);
-              const singleTp = direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+              const singleTp =
+                direction === "long"
+                  ? entryPrice + tpDistance
+                  : entryPrice - tpDistance;
               return [singleTp];
             })()
           : this.getTPMultipliersForReport().map((multiplier) => {
               const tpDistance = defaultSlDistance * multiplier;
-              return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
+              return direction === "long"
+                ? entryPrice + tpDistance
+                : entryPrice - tpDistance;
             });
         if (aggressive && takeProfitPrices.length === 1) {
-          const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
+          const targetSlLossUsd =
+            TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
           const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
-          stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
+          stopLossPct = Math.max(
+            MIN_SL_PCT_AGGRESSIVE,
+            Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr),
+          );
           if (entryATRPct != null) {
             const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
             stopLossPct = Math.max(stopLossPct, atrFloorPct);
@@ -1062,39 +1338,58 @@ export class VincePaperTradingService extends Service {
           }
         }
         stopLossDistance = entryPrice * (stopLossPct / 100);
-        stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
+        stopLossPrice =
+          direction === "long"
+            ? entryPrice - stopLossDistance
+            : entryPrice + stopLossDistance;
       }
     } else {
       const defaultSlDistance = entryPrice * (stopLossPct / 100);
       takeProfitPrices = aggressive
-      ? (() => {
-          const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
-          const pctMove = (targetUsd / sizeUsd) * 100;
-          const tpDistance = entryPrice * (pctMove / 100);
-          const singleTp = direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
-          return [singleTp];
-        })()
-      : this.getTPMultipliersForReport().map((multiplier) => {
-          const tpDistance = defaultSlDistance * multiplier;
-          return direction === "long" ? entryPrice + tpDistance : entryPrice - tpDistance;
-        });
+        ? (() => {
+            const targetUsd = TAKE_PROFIT_USD_AGGRESSIVE;
+            const pctMove = (targetUsd / sizeUsd) * 100;
+            const tpDistance = entryPrice * (pctMove / 100);
+            const singleTp =
+              direction === "long"
+                ? entryPrice + tpDistance
+                : entryPrice - tpDistance;
+            return [singleTp];
+          })()
+        : this.getTPMultipliersForReport().map((multiplier) => {
+            const tpDistance = defaultSlDistance * multiplier;
+            return direction === "long"
+              ? entryPrice + tpDistance
+              : entryPrice - tpDistance;
+          });
       if (aggressive && takeProfitPrices.length === 1) {
-        const targetSlLossUsd = TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
+        const targetSlLossUsd =
+          TAKE_PROFIT_USD_AGGRESSIVE / TARGET_RR_AGGRESSIVE;
         const slPctForRr = (targetSlLossUsd / sizeUsd) * 100;
-        stopLossPct = Math.max(MIN_SL_PCT_AGGRESSIVE, Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr));
+        stopLossPct = Math.max(
+          MIN_SL_PCT_AGGRESSIVE,
+          Math.min(MAX_SL_PCT_AGGRESSIVE, slPctForRr),
+        );
         if (entryATRPct != null) {
           const atrFloorPct = entryATRPct * MIN_SL_ATR_MULTIPLIER_AGGRESSIVE;
           stopLossPct = Math.max(stopLossPct, atrFloorPct);
           stopLossPct = Math.min(stopLossPct, MAX_SL_PCT_AGGRESSIVE);
         }
-        logger.debug(`[VincePaperTrading] Aggressive SL for R:R ${TARGET_RR_AGGRESSIVE}:1 → ${stopLossPct.toFixed(2)}%`);
+        logger.debug(
+          `[VincePaperTrading] Aggressive SL for R:R ${TARGET_RR_AGGRESSIVE}:1 → ${stopLossPct.toFixed(2)}%`,
+        );
       }
       stopLossDistance = entryPrice * (stopLossPct / 100);
-      stopLossPrice = direction === "long" ? entryPrice - stopLossDistance : entryPrice + stopLossDistance;
+      stopLossPrice =
+        direction === "long"
+          ? entryPrice - stopLossDistance
+          : entryPrice + stopLossDistance;
     }
 
     // Contributing source names for bandit outcome feedback (weight optimization)
-    const contributingSources = Object.keys(signal.sourceBreakdown ?? {}).filter(Boolean);
+    const contributingSources = Object.keys(
+      signal.sourceBreakdown ?? {},
+    ).filter(Boolean);
 
     // Open position with ATR stored for trailing stop calculations (R:R from SL/TP logic above)
     const position = positionManager.openPosition({
@@ -1147,37 +1442,65 @@ export class VincePaperTradingService extends Service {
     // ==========================================
     // DETAILED TRADE OPENED LOG
     // ==========================================
-    const slPct = Math.abs((stopLossPrice - entryPrice) / entryPrice * 100);
-    const tp1Pct = takeProfitPrices[0] ? Math.abs((takeProfitPrices[0] - entryPrice) / entryPrice * 100) : 0;
+    const slPct = Math.abs(((stopLossPrice - entryPrice) / entryPrice) * 100);
+    const tp1Pct = takeProfitPrices[0]
+      ? Math.abs(((takeProfitPrices[0] - entryPrice) / entryPrice) * 100)
+      : 0;
     const slLoss = sizeUsd * (slPct / 100);
-    const tp1Profit = takeProfitPrices[0] != null ? sizeUsd * (tp1Pct / 100) : 0;
+    const tp1Profit =
+      takeProfitPrices[0] != null ? sizeUsd * (tp1Pct / 100) : 0;
     const rrRatio = slLoss > 0 ? (tp1Profit / slLoss).toFixed(1) : "—";
     const rrNum = slLoss > 0 ? tp1Profit / slLoss : 0;
     const rrLabel =
-      rrNum >= 1.5 ? "🟢 Good" : rrNum >= 1 ? "🟡 OK" : rrNum >= 0.5 ? "🟠 Weak" : rrNum > 0 ? "🔴 Poor" : "—";
+      rrNum >= 1.5
+        ? "🟢 Good"
+        : rrNum >= 1
+          ? "🟡 OK"
+          : rrNum >= 0.5
+            ? "🟠 Weak"
+            : rrNum > 0
+              ? "🔴 Poor"
+              : "—";
     const pnlPer1Pct = sizeUsd / 100;
     const marginUsd = sizeUsd / leverage;
-    const liqPct = position?.liquidationPrice != null
-      ? Math.abs((position.liquidationPrice - entryPrice) / entryPrice * 100)
-      : (100 / leverage) * 0.9;
-    const entryTimeUtc = new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
+    const liqPct =
+      position?.liquidationPrice != null
+        ? Math.abs(
+            ((position.liquidationPrice - entryPrice) / entryPrice) * 100,
+          )
+        : (100 / leverage) * 0.9;
+    const entryTimeUtc =
+      new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
     const sessionRaw = signal.session ?? "";
-    const sessionLabel = sessionRaw ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : "";
-    const isSingleTpAggressive = takeProfitPrices.length === 1 && (this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true");
+    const sessionLabel = sessionRaw
+      ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "";
+    const isSingleTpAggressive =
+      takeProfitPrices.length === 1 &&
+      (this.runtime.getSetting?.("vince_paper_aggressive") === true ||
+        this.runtime.getSetting?.("vince_paper_aggressive") === "true");
 
     const factorCount = signal.reasons?.length ?? 0;
     const sourceCount = signal.confirmingCount ?? 0;
     const conflictingCount = signal.conflictingCount ?? 0;
-    const totalSourceCount = [...new Set((signal.signals ?? []).map((s) => s.source))].length;
-    const sourcesList = [...new Set((signal.signals ?? []).map((s) => s.source))];
+    const totalSourceCount = [
+      ...new Set((signal.signals ?? []).map((s) => s.source)),
+    ].length;
+    const sourcesList = [
+      ...new Set((signal.signals ?? []).map((s) => s.source)),
+    ];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
     const supporting = (signal.supportingReasons ?? []).slice(0, 10);
     const conflicting = (signal.conflictingReasons ?? []).slice(0, 6);
     const maxReasonsShown = 20;
     const reasons = (signal.reasons ?? []).slice(0, maxReasonsShown);
     const maxReasonLen = 56;
-    const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
-    const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
+    const mlQualityScore = (
+      signal as AggregatedTradeSignal & { mlQualityScore?: number }
+    ).mlQualityScore;
+    const openWindowBoost = (
+      signal as AggregatedTradeSignal & { openWindowBoost?: number }
+    ).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
     const W = 63;
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
@@ -1210,20 +1533,36 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(line("  POSITION"));
     console.log(empty);
-    const entryStr = entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    console.log(line(`  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"}  ${asset}  @  $${entryStr}`));
+    const entryStr = entryPrice.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    console.log(
+      line(
+        `  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"}  ${asset}  @  $${entryStr}`,
+      ),
+    );
     console.log(line(`  Entry    ${entryTimeUtc}`));
     console.log(line(`  Notional ${formatUsd(sizeUsd)}`));
     console.log(line(`  Margin   ${formatUsd(marginUsd)}`));
-    console.log(line(`  Leverage ${leverage}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`));
+    console.log(
+      line(`  Leverage ${leverage}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`),
+    );
     console.log(line(`  Strategy VinceSignalFollowing`));
     if (position?.liquidationPrice != null) {
-      const liqStr = position.liquidationPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const liqStr = position.liquidationPrice.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
       console.log(line(`  Liq      $${liqStr}  (~${liqPct.toFixed(1)}%)`));
     }
     if (entryATRPct != null) {
-      console.log(line(`  ATR(14)  ${(entryATRPct).toFixed(2)}%  (volatility → SL floor)`));
-      const slNote = isSingleTpAggressive ? `${TARGET_RR_AGGRESSIVE}:1 R:R target` : "1.5× ATR";
+      console.log(
+        line(`  ATR(14)  ${entryATRPct.toFixed(2)}%  (volatility → SL floor)`),
+      );
+      const slNote = isSingleTpAggressive
+        ? `${TARGET_RR_AGGRESSIVE}:1 R:R target`
+        : "1.5× ATR";
       console.log(line(`  SL       ${stopLossPct.toFixed(2)}% (${slNote})`));
     }
     if (sessionLabel) {
@@ -1245,7 +1584,11 @@ export class VincePaperTradingService extends Service {
     }
     console.log(empty);
     const trunc = (t: string, len: number) =>
-      t.length <= len ? t : (t.slice(0, len + 1).lastIndexOf(" ") > 24 ? t.slice(0, t.slice(0, len + 1).lastIndexOf(" ")) : t.slice(0, len)) + "…";
+      t.length <= len
+        ? t
+        : (t.slice(0, len + 1).lastIndexOf(" ") > 24
+            ? t.slice(0, t.slice(0, len + 1).lastIndexOf(" "))
+            : t.slice(0, len)) + "…";
     if (supporting.length > 0) {
       console.log(line(`  Supporting (${supporting.length}):`));
       for (const f of supporting.slice(0, 8)) {
@@ -1287,30 +1630,61 @@ export class VincePaperTradingService extends Service {
       if (chunk.length) console.log(line(`  • ${chunk.join("  • ")}`));
     }
     if (factorCount > maxReasonsShown) {
-      console.log(line(`  … +${factorCount - maxReasonsShown} more (feature store)`));
+      console.log(
+        line(`  … +${factorCount - maxReasonsShown} more (feature store)`),
+      );
     }
     console.log(empty);
     console.log(sep);
     console.log(empty);
     console.log(line("  SIGNAL"));
     console.log(empty);
-    console.log(line(`  Strength ${signal.strength}%  ·  Confidence ${signal.confidence}%  ·  Confirming ${sourceCount}`));
+    console.log(
+      line(
+        `  Strength ${signal.strength}%  ·  Confidence ${signal.confidence}%  ·  Confirming ${sourceCount}`,
+      ),
+    );
     console.log(empty);
     console.log(sep);
     console.log(empty);
     console.log(line("  RISK MANAGEMENT"));
     console.log(empty);
-    const slStr = stopLossPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    console.log(line(`  SL   $${slStr}  (${slPct.toFixed(1)}%)  If hit -$${slLoss.toFixed(0)}`));
+    const slStr = stopLossPrice.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    console.log(
+      line(
+        `  SL   $${slStr}  (${slPct.toFixed(1)}%)  If hit -$${slLoss.toFixed(0)}`,
+      ),
+    );
     if (takeProfitPrices.length > 0) {
-      const tp1Str = takeProfitPrices[0].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const tp1Suffix = isSingleTpAggressive ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]` : "";
-      console.log(line(`  TP   $${tp1Str}  (${tp1Pct.toFixed(1)}%)  If hit +$${tp1Profit.toFixed(0)}${tp1Suffix}`));
+      const tp1Str = takeProfitPrices[0].toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+      const tp1Suffix = isSingleTpAggressive
+        ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]`
+        : "";
+      console.log(
+        line(
+          `  TP   $${tp1Str}  (${tp1Pct.toFixed(1)}%)  If hit +$${tp1Profit.toFixed(0)}${tp1Suffix}`,
+        ),
+      );
       if (takeProfitPrices.length > 1) {
-        const tp2Pct = Math.abs((takeProfitPrices[1] - entryPrice) / entryPrice * 100);
+        const tp2Pct = Math.abs(
+          ((takeProfitPrices[1] - entryPrice) / entryPrice) * 100,
+        );
         const tp2Profit = sizeUsd * (tp2Pct / 100);
-        const tp2Str = takeProfitPrices[1].toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        console.log(line(`  TP2  $${tp2Str}  (${tp2Pct.toFixed(1)}%)  If hit +$${tp2Profit.toFixed(0)}`));
+        const tp2Str = takeProfitPrices[1].toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+        console.log(
+          line(
+            `  TP2  $${tp2Str}  (${tp2Pct.toFixed(1)}%)  If hit +$${tp2Profit.toFixed(0)}`,
+          ),
+        );
       }
     }
     console.log(line(`  R:R (TP1 vs SL)  ${rrRatio}:1  ${rrLabel}`));
@@ -1319,24 +1693,32 @@ export class VincePaperTradingService extends Service {
     console.log("");
 
     logger.info(
-      `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${sizeUsd.toFixed(0)}, ${leverage}x)`
+      `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${sizeUsd.toFixed(0)}, ${leverage}x)`,
     );
 
     // Push to Discord/Slack/Telegram when connected
-    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as {
+      push?: (t: string) => Promise<number>;
+    } | null;
     if (notif?.push) {
       const dirIcon = direction === "long" ? "🟢" : "🔴";
-      const thesis = totalSourceCount > 0
-        ? `${sourceCount} of ${totalSourceCount} sources agreed`
-        : `${factorCount} factors`;
+      const thesis =
+        totalSourceCount > 0
+          ? `${sourceCount} of ${totalSourceCount} sources agreed`
+          : `${factorCount} factors`;
       const msg = `📈 **PAPER TRADE OPENED**\n${dirIcon} ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)}\nNotional ${formatUsd(sizeUsd)} · ${leverage}x · ${thesis}`;
-      notif.push(msg).catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
+      notif
+        .push(msg)
+        .catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
     }
 
     return position;
   }
 
-  async closeTrade(positionId: string, reason: Position["closeReason"]): Promise<Position | null> {
+  async closeTrade(
+    positionId: string,
+    reason: Position["closeReason"],
+  ): Promise<Position | null> {
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
     const tradeJournal = this.getTradeJournal();
@@ -1351,7 +1733,11 @@ export class VincePaperTradingService extends Service {
     }
 
     // Close at current mark price
-    const closedPosition = positionManager.closePosition(positionId, position.markPrice, reason);
+    const closedPosition = positionManager.closePosition(
+      positionId,
+      position.markPrice,
+      reason,
+    );
     if (!closedPosition) {
       return null;
     }
@@ -1360,13 +1746,16 @@ export class VincePaperTradingService extends Service {
     if (closedPosition.realizedPnl !== undefined) {
       const portfolio = positionManager.getPortfolio();
       const isWin = closedPosition.realizedPnl > 0;
-      
+
       if (isWin) {
         riskManager.recordWin(closedPosition.realizedPnl, portfolio.totalValue);
       } else {
-        riskManager.recordLoss(Math.abs(closedPosition.realizedPnl), portfolio.totalValue);
+        riskManager.recordLoss(
+          Math.abs(closedPosition.realizedPnl),
+          portfolio.totalValue,
+        );
       }
-      
+
       // Track for win-streak sizing
       this.recordTradeOutcome(isWin);
     }
@@ -1401,17 +1790,21 @@ export class VincePaperTradingService extends Service {
     // Price move % (raw) and margin P&L % (leveraged) so stop-loss losses aren't confusing
     const priceMovePct =
       closedPosition.direction === "long"
-        ? ((closedPosition.markPrice - closedPosition.entryPrice) / closedPosition.entryPrice) * 100
-        : ((closedPosition.entryPrice - closedPosition.markPrice) / closedPosition.entryPrice) * 100;
+        ? ((closedPosition.markPrice - closedPosition.entryPrice) /
+            closedPosition.entryPrice) *
+          100
+        : ((closedPosition.entryPrice - closedPosition.markPrice) /
+            closedPosition.entryPrice) *
+          100;
     const lev = closedPosition.leverage ?? 1;
 
     // Prominent one-line log so "PAPER TRADE CLOSED" always appears in terminal/log stream
     logger.info(
       `[VincePaperTrading] ${pnlIcon} PAPER TRADE CLOSED – ${resultText}  ` +
-      `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
-      `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
-      `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
-      `Close Reason: ${closeReason}`
+        `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
+        `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
+        `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
+        `Close Reason: ${closeReason}`,
     );
 
     // Box banner (same style as PAPER TRADE OPENED)
@@ -1420,8 +1813,14 @@ export class VincePaperTradingService extends Service {
     const line = (s: string) => `  ║ ${pad(s, W)} ║`;
     const empty = line("");
     const sep = "  ╟" + "─".repeat(W + 2) + "╢";
-    const entryStr = closedPosition.entryPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const exitStr = closedPosition.markPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const entryStr = closedPosition.entryPrice.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    const exitStr = closedPosition.markPrice.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
     const pnlStr = (isWin ? "+" : "") + "$" + pnl.toFixed(2);
     const priceMoveStr = (isWin ? "+" : "") + priceMovePct.toFixed(2) + "%";
     const marginPnlStr = (isWin ? "+" : "") + pnlPct.toFixed(2) + "%";
@@ -1429,13 +1828,19 @@ export class VincePaperTradingService extends Service {
     console.log("");
     console.log("  ╔" + "═".repeat(W + 2) + "╗");
     console.log(empty);
-    console.log(line(`     💰  P A P E R   T R A D E   C L O S E D  –  ${resultText}`));
+    console.log(
+      line(`     💰  P A P E R   T R A D E   C L O S E D  –  ${resultText}`),
+    );
     console.log(empty);
     console.log(sep);
     console.log(empty);
     console.log(line("  POSITION"));
     console.log(empty);
-    console.log(line(`  ${dirIcon} ${closedPosition.direction.toUpperCase()}  ${closedPosition.asset}  @  $${entryStr}`));
+    console.log(
+      line(
+        `  ${dirIcon} ${closedPosition.direction.toUpperCase()}  ${closedPosition.asset}  @  $${entryStr}`,
+      ),
+    );
     console.log(line(`  Entry    $${entryStr}`));
     console.log(line(`  Exit     $${exitStr}`));
     console.log(empty);
@@ -1444,17 +1849,31 @@ export class VincePaperTradingService extends Service {
     console.log(line("  P&L  (stop loss limits loss; % below is vs margin)"));
     console.log(empty);
     console.log(line(`  ${pnlIcon}  Nominal P&L: ${pnlStr}`));
-    console.log(line(`  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`));
+    console.log(
+      line(
+        `  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`,
+      ),
+    );
     if (closeReason === "stop_loss") {
-      console.log(line(`  ✓ Stop loss limited loss to ${Math.abs(priceMovePct).toFixed(2)}% price move.`));
+      console.log(
+        line(
+          `  ✓ Stop loss limited loss to ${Math.abs(priceMovePct).toFixed(2)}% price move.`,
+        ),
+      );
       // Learning block: signals that led to the trade, sources, and what went against us
       const signals = (closedPosition.triggerSignals ?? []).slice(0, 10);
-      const sources = (closedPosition.metadata?.contributingSources as string[] | undefined) ?? [];
+      const sources =
+        (closedPosition.metadata?.contributingSources as
+          | string[]
+          | undefined) ?? [];
       const maxContent = W - 12; // leave room for "  Label: "
-      const signalsStr = signals.length ? signals.join(", ").slice(0, maxContent) : "—";
-      const sourcesStr = sources.length ? sources.join(", ").slice(0, maxContent) : "—";
-      const againstUs =
-        `Price moved ${Math.abs(priceMovePct).toFixed(2)}% against our ${closedPosition.direction.toUpperCase()}.`;
+      const signalsStr = signals.length
+        ? signals.join(", ").slice(0, maxContent)
+        : "—";
+      const sourcesStr = sources.length
+        ? sources.join(", ").slice(0, maxContent)
+        : "—";
+      const againstUs = `Price moved ${Math.abs(priceMovePct).toFixed(2)}% against our ${closedPosition.direction.toUpperCase()}.`;
       console.log(empty);
       console.log(sep);
       console.log(empty);
@@ -1470,10 +1889,14 @@ export class VincePaperTradingService extends Service {
     console.log("");
 
     // Push to Discord/Slack/Telegram when connected
-    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as {
+      push?: (t: string) => Promise<number>;
+    } | null;
     if (notif?.push) {
       const msg = `💰 **PAPER TRADE CLOSED** – ${resultText}\n${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset} · P&L ${pnlStr} · ${closeReason}`;
-      notif.push(msg).catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
+      notif
+        .push(msg)
+        .catch((e) => logger.debug(`[VincePaperTrading] Push failed: ${e}`));
     }
 
     return closedPosition;
@@ -1489,13 +1912,13 @@ export class VincePaperTradingService extends Service {
   private async recordMLFeatures(
     position: Position,
     signal: AggregatedTradeSignal,
-    entryATRPct?: number
+    entryATRPct?: number,
   ): Promise<void> {
     const featureStore = this.getFeatureStore();
     const similarityService = this.getSignalSimilarity();
     const signalAggregator = this.getSignalAggregator();
     const regimeService = this.getMarketRegime();
-    
+
     // Convert trade signal to aggregated signal format for feature recording
     const aggSignal: AggregatedSignal = {
       asset: position.asset,
@@ -1509,7 +1932,8 @@ export class VincePaperTradingService extends Service {
     };
 
     // Get current regime for similarity/ML (marketRegime + optional volatilityRegime)
-    const regime = (await regimeService?.getCurrentRegime?.(position.asset)) ?? null;
+    const regime =
+      (await regimeService?.getCurrentRegime?.(position.asset)) ?? null;
     const session = signalAggregator?.getSessionInfo?.()?.session || "unknown";
 
     // Record in feature store
@@ -1517,23 +1941,25 @@ export class VincePaperTradingService extends Service {
       try {
         // Get streak info for execution features
         const streakInfo = this.getStreakInfo();
-        
+
         const decisionId = await featureStore.recordDecision({
           asset: position.asset,
           signal: aggSignal,
         });
-        
+
         // Link the trade to the decision
         await featureStore.linkTrade(decisionId, position.id);
-        
+
         // Record execution details (recordId, position, additionalDetails)
         await featureStore.recordExecution(decisionId, position, {
           entryAtrPct: entryATRPct ?? 2.5,
           streakMultiplier: streakInfo.multiplier,
           positionSizePct: 0,
         });
-        
-        logger.debug(`[VincePaperTrading] ML features recorded for ${position.asset} trade`);
+
+        logger.debug(
+          `[VincePaperTrading] ML features recorded for ${position.asset} trade`,
+        );
       } catch (e) {
         logger.debug(`[VincePaperTrading] Could not record ML features: ${e}`);
       }
@@ -1550,7 +1976,9 @@ export class VincePaperTradingService extends Service {
           session,
         });
       } catch (e) {
-        logger.debug(`[VincePaperTrading] Could not record similarity context: ${e}`);
+        logger.debug(
+          `[VincePaperTrading] Could not record similarity context: ${e}`,
+        );
       }
     }
   }
@@ -1560,21 +1988,28 @@ export class VincePaperTradingService extends Service {
    */
   private async recordMLOutcome(
     position: Position,
-    closeReason: Position["closeReason"]
+    closeReason: Position["closeReason"],
   ): Promise<void> {
     const featureStore = this.getFeatureStore();
     const weightBandit = this.getWeightBandit();
     const similarityService = this.getSignalSimilarity();
-    
+
     const pnl = position.realizedPnl || 0;
-    const pnlPct = position.realizedPnlPct ?? (position.realizedPnl != null && position.sizeUsd > 0 ? (position.realizedPnl / (position.sizeUsd / position.leverage)) * 100 : 0);
+    const pnlPct =
+      position.realizedPnlPct ??
+      (position.realizedPnl != null && position.sizeUsd > 0
+        ? (position.realizedPnl / (position.sizeUsd / position.leverage)) * 100
+        : 0);
     const isWin = pnl > 0;
 
     // Calculate R-multiple (profit in units of risk)
     // Risk = distance from entry to stop loss
     let rMultiple = 0;
     if (position.stopLossPrice && position.entryPrice) {
-      const riskPct = Math.abs((position.stopLossPrice - position.entryPrice) / position.entryPrice) * 100;
+      const riskPct =
+        Math.abs(
+          (position.stopLossPrice - position.entryPrice) / position.entryPrice,
+        ) * 100;
       if (riskPct > 0) {
         rMultiple = pnlPct / riskPct;
       }
@@ -1584,7 +2019,10 @@ export class VincePaperTradingService extends Service {
     // This would need to be tracked during trade - using 0 as placeholder
     const maxAdverseExcursion = 0;
 
-    const holdingPeriodMs = position.closedAt != null && position.openedAt != null ? position.closedAt - position.openedAt : 0;
+    const holdingPeriodMs =
+      position.closedAt != null && position.openedAt != null
+        ? position.closedAt - position.openedAt
+        : 0;
 
     // Record in feature store
     if (featureStore) {
@@ -1601,8 +2039,10 @@ export class VincePaperTradingService extends Service {
           trailingStopActivated: position.trailingStopActivated ?? false,
           trailingStopPrice: position.trailingStopPrice ?? null,
         });
-        
-        logger.debug(`[VincePaperTrading] ML outcome recorded: ${isWin ? "WIN" : "LOSS"} ${pnlPct.toFixed(2)}%`);
+
+        logger.debug(
+          `[VincePaperTrading] ML outcome recorded: ${isWin ? "WIN" : "LOSS"} ${pnlPct.toFixed(2)}%`,
+        );
       } catch (e) {
         logger.debug(`[VincePaperTrading] Could not record ML outcome: ${e}`);
       }
@@ -1611,15 +2051,20 @@ export class VincePaperTradingService extends Service {
     // Record in weight bandit for source weight optimization (actual source names from open)
     if (weightBandit) {
       try {
-        const sources = (position.metadata?.contributingSources as string[] | undefined) ?? [];
-        const sourcesToReport = sources.length > 0 ? sources : ["signal_aggregator"];
+        const sources =
+          (position.metadata?.contributingSources as string[] | undefined) ??
+          [];
+        const sourcesToReport =
+          sources.length > 0 ? sources : ["signal_aggregator"];
         await weightBandit.recordOutcome({
           sources: sourcesToReport,
           profitable: isWin,
           pnlPct,
         });
       } catch (e) {
-        logger.debug(`[VincePaperTrading] Could not record bandit outcome: ${e}`);
+        logger.debug(
+          `[VincePaperTrading] Could not record bandit outcome: ${e}`,
+        );
       }
     }
 
@@ -1633,7 +2078,9 @@ export class VincePaperTradingService extends Service {
           exitReason: closeReason || "manual",
         });
       } catch (e) {
-        logger.debug(`[VincePaperTrading] Could not record similarity outcome: ${e}`);
+        logger.debug(
+          `[VincePaperTrading] Could not record similarity outcome: ${e}`,
+        );
       }
     }
   }
@@ -1668,7 +2115,9 @@ export class VincePaperTradingService extends Service {
     const positions = positionManager.getOpenPositions();
     for (const position of positions) {
       try {
-        const ctx = await (marketData as any).getEnrichedContext(position.asset);
+        const ctx = await (marketData as any).getEnrichedContext(
+          position.asset,
+        );
         if (ctx?.currentPrice) {
           positionManager.updateMarkPrice(position.asset, ctx.currentPrice);
         }
@@ -1684,8 +2133,13 @@ export class VincePaperTradingService extends Service {
 
     const triggered = positionManager.checkTriggers();
     for (const { position, trigger } of triggered) {
-      logger.info(`[VincePaperTrading] Trigger hit: ${position.asset} ${trigger}`);
-      await this.closeTrade(position.id, trigger === "liquidation" ? "liquidation" : trigger);
+      logger.info(
+        `[VincePaperTrading] Trigger hit: ${position.asset} ${trigger}`,
+      );
+      await this.closeTrade(
+        position.id,
+        trigger === "liquidation" ? "liquidation" : trigger,
+      );
     }
   }
 
@@ -1728,7 +2182,7 @@ export class VincePaperTradingService extends Service {
         const state = positionManager.getStateForPersistence();
         fs.writeFileSync(
           path.join(this.persistenceDir, "positions.json"),
-          JSON.stringify(state, null, 2)
+          JSON.stringify(state, null, 2),
         );
       }
 
@@ -1736,7 +2190,7 @@ export class VincePaperTradingService extends Service {
         const state = riskManager.getStateForPersistence();
         fs.writeFileSync(
           path.join(this.persistenceDir, "risk-state.json"),
-          JSON.stringify(state, null, 2)
+          JSON.stringify(state, null, 2),
         );
       }
 
@@ -1744,7 +2198,7 @@ export class VincePaperTradingService extends Service {
         const entries = tradeJournal.getEntriesForPersistence();
         fs.writeFileSync(
           path.join(this.persistenceDir, "journal.json"),
-          JSON.stringify(entries, null, 2)
+          JSON.stringify(entries, null, 2),
         );
       }
 

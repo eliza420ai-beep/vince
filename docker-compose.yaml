@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   postgres:
     image: ankane/pgvector:latest
@@ -20,7 +19,10 @@ services:
     networks:
       - eliza-network
   elizaos:
-    image: ${DOCKER_IMAGE}
+    image: ${DOCKER_IMAGE:-vince-elizaos}
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: elizaos
     environment:
       # Core AI providers (at least one required)

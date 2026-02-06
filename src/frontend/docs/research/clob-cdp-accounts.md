@@ -27,12 +27,13 @@ getSigner?: () => Promise<Wallet | JsonRpcSigner> | (Wallet | JsonRpcSigner)
 **Critical signing method**: The client uses `signer._signTypedData(domain, types, value)` for EIP-712 signing.
 
 Example from `src/signing/eip712.ts`:
+
 ```typescript
 // EIP-712 domain for CLOB authentication
 const domain = {
   name: "ClobAuthDomain",
   version: "1",
-  chainId: chainId
+  chainId: chainId,
 };
 
 // eslint-disable-next-line no-underscore-dangle
@@ -59,6 +60,7 @@ async signTypedData<
 ```
 
 Key capabilities:
+
 - **signMessage**: Sign arbitrary messages
 - **signTransaction**: Sign serialized transactions
 - **signTypedData**: Full EIP-712 typed data signing (viem-compatible format)
@@ -76,7 +78,7 @@ The current CDP integration uses viem's `toAccount()` to wrap CDP accounts:
 From `/Users/studio/Documents/GitHub/otaku/src/managers/cdp-transaction-manager.ts`:
 
 ```typescript
-import { toAccount } from 'viem/accounts';
+import { toAccount } from "viem/accounts";
 
 // toAccount() allows viem to use CDP's server-managed wallet signing
 const walletClient = createWalletClient({
@@ -87,6 +89,7 @@ const walletClient = createWalletClient({
 ```
 
 The `CdpTransactionManager` is a singleton that handles:
+
 - Account creation/retrieval via `client.evm.getOrCreateAccount({ name: userId })`
 - Viem client construction for any supported network
 - Token transfers, swaps, NFT transfers
@@ -101,12 +104,12 @@ Networks supported: `ethereum`, `base`, `optimism`, `arbitrum`, `polygon`, `base
 
 **Method signature differences**:
 
-| Aspect | ethers.js v5 | viem/CDP SDK |
-|--------|--------------|--------------|
-| Method name | `_signTypedData()` | `signTypedData()` |
-| Parameters | `(domain, types, value)` | `{ domain, types, primaryType, message }` |
-| Address getter | `getAddress()` | `.address` property |
-| Return type | `Promise<string>` | `Promise<Hex>` |
+| Aspect         | ethers.js v5             | viem/CDP SDK                              |
+| -------------- | ------------------------ | ----------------------------------------- |
+| Method name    | `_signTypedData()`       | `signTypedData()`                         |
+| Parameters     | `(domain, types, value)` | `{ domain, types, primaryType, message }` |
+| Address getter | `getAddress()`           | `.address` property                       |
+| Return type    | `Promise<string>`        | `Promise<Hex>`                            |
 
 The parameters are structurally equivalent, just organized differently.
 
@@ -122,7 +125,7 @@ To bridge CDP wallets to CLOB client, we need an adapter that:
 Example adapter pattern:
 
 ```typescript
-import { Wallet } from '@ethersproject/wallet';
+import { Wallet } from "@ethersproject/wallet";
 
 class CdpSignerAdapter {
   private cdpAccount: EvmServerAccount;
@@ -143,10 +146,10 @@ class CdpSignerAdapter {
   async _signTypedData(
     domain: TypedDataDomain,
     types: Record<string, TypedDataField[]>,
-    value: Record<string, any>
+    value: Record<string, any>,
   ): Promise<string> {
     // Get primary type (first non-EIP712Domain type)
-    const primaryType = Object.keys(types).find(t => t !== 'EIP712Domain')!;
+    const primaryType = Object.keys(types).find((t) => t !== "EIP712Domain")!;
 
     const signature = await this.cdpAccount.signTypedData({
       domain,
@@ -174,11 +177,11 @@ class CdpSignerAdapter {
 
 ### Relevant Files
 
-| File | Purpose |
-|------|---------|
-| `/Users/studio/Documents/GitHub/otaku/src/managers/cdp-transaction-manager.ts` | CDP wallet operations, viem integration |
+| File                                                                                  | Purpose                                 |
+| ------------------------------------------------------------------------------------- | --------------------------------------- |
+| `/Users/studio/Documents/GitHub/otaku/src/managers/cdp-transaction-manager.ts`        | CDP wallet operations, viem integration |
 | `/Users/studio/Documents/GitHub/otaku/src/plugins/plugin-cdp/services/cdp.service.ts` | ElizaOS service wrapper for CDP manager |
-| `/Users/studio/Documents/GitHub/otaku/src/plugins/plugin-cdp/types.ts` | Network type definitions |
+| `/Users/studio/Documents/GitHub/otaku/src/plugins/plugin-cdp/types.ts`                | Network type definitions                |
 
 ### Dependencies
 
@@ -241,10 +244,10 @@ The CHANGELOG confirms `signTypedData` was added in version 1.19.0 (PR #284) wit
 
 ```typescript
 // src/plugins/plugin-polymarket/adapters/cdp-signer-adapter.ts
-import { CdpTransactionManager } from '@/managers/cdp-transaction-manager';
+import { CdpTransactionManager } from "@/managers/cdp-transaction-manager";
 
 export async function getCdpSignerForPolymarket(
-  accountName: string
+  accountName: string,
 ): Promise<CdpSignerAdapter> {
   const manager = CdpTransactionManager.getInstance();
   const cdpClient = manager.getCdpClient();
@@ -254,7 +257,7 @@ export async function getCdpSignerForPolymarket(
 }
 
 // src/plugins/plugin-polymarket/services/polymarket.service.ts
-import { ClobClient } from '@polymarket/clob-client';
+import { ClobClient } from "@polymarket/clob-client";
 
 export class PolymarketService extends Service {
   private clobClient: ClobClient | null = null;
@@ -263,12 +266,12 @@ export class PolymarketService extends Service {
     const signer = await getCdpSignerForPolymarket(accountName);
 
     this.clobClient = new ClobClient(
-      'https://clob.polymarket.com',
+      "https://clob.polymarket.com",
       137, // Polygon chainId
       signer,
       undefined, // creds - derived later
       0, // EOA signature type
-      signer.address // funder address
+      signer.address, // funder address
     );
   }
 }

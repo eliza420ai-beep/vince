@@ -3,8 +3,8 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
@@ -85,15 +85,15 @@ The failure mode is lack of discipline and context preservation.
 
 For plugin-vince, we have a tailored documentation structure:
 
-| File | Purpose |
-|------|---------|
-| **WHAT.md** | Philosophy and purpose—why VINCE exists, who it's for, the six domains it covers |
-| **WHY.md** | Framework decisions—why ElizaOS over ClawdBot, trade-offs, migration paths |
-| **HOW.md** | Hands-on development—adding actions, services, debugging, testing |
-| **CLAUDE.md** | AI operating manual—rules, constraints, patterns AI must follow |
-| **START.md** | This file—the complete system for understanding and extending VINCE |
+| File                  | Purpose                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| **WHAT.md**           | Philosophy and purpose—why VINCE exists, who it's for, the six domains it covers    |
+| **WHY.md**            | Framework decisions—why ElizaOS over ClawdBot, trade-offs, migration paths          |
+| **HOW.md**            | Hands-on development—adding actions, services, debugging, testing                   |
+| **CLAUDE.md**         | AI operating manual—rules, constraints, patterns AI must follow                     |
+| **START.md**          | This file—the complete system for understanding and extending VINCE                 |
 | **SIGNAL_SOURCES.md** | Which signal sources feed the aggregator, how to enable them, how to verify in logs |
-| **README.md** | Plugin overview, install, usage; links to WHAT/WHY/HOW |
+| **README.md**         | Plugin overview, install, usage; links to WHAT/WHY/HOW                              |
 
 These docs cross-reference each other. WHAT defines the vision, WHY explains the architecture, HOW teaches implementation, CLAUDE.md keeps AI aligned, and SIGNAL_SOURCES.md tells you how to get more factors per trade.
 
@@ -118,6 +118,7 @@ You need to speak the same language as the framework. Here's what everything mea
 When a user says "gm" and VINCE responds with a morning briefing, that's the `vinceGmAction` executing. When a user asks about perps and VINCE returns trading signals, that's `vincePerpsAction`.
 
 Actions have three parts:
+
 1. **validate** — Should this action handle this message? Returns true/false.
 2. **handler** — The actual logic that generates the response.
 3. **examples** — Training data for the LLM to learn when to use this action.
@@ -127,22 +128,25 @@ export const vinceGmAction: Action = {
   name: "VINCE_GM",
   similes: ["gm", "good morning", "briefing", "wake up"],
   description: "Morning briefing with market overview",
-  
+
   validate: async (runtime, message) => {
     const text = message.content.text?.toLowerCase() || "";
     return /\b(gm|good morning|briefing)\b/.test(text);
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
     // Fetch data from services
     // Generate response
     // Call callback with response text
   },
-  
+
   examples: [
     [
       { name: "user", content: { text: "gm" } },
-      { name: "VINCE", content: { text: "GM trader! Here's your morning briefing..." } },
+      {
+        name: "VINCE",
+        content: { text: "GM trader! Here's your morning briefing..." },
+      },
     ],
   ],
 };
@@ -158,6 +162,7 @@ Now AI knows exactly what to build.
 **A Service is a data source or capability the agent can use.**
 
 Services maintain state, fetch data, and provide business logic. VINCE has 30+ services:
+
 - `VinceMarketDataService` — aggregated price, RSI, volatility
 - `VinceSignalAggregatorService` — weighted voting across 15+ sources
 - `VincePaperTradingService` — bot orchestration
@@ -168,20 +173,20 @@ Services are accessed via `runtime.getService("service-name")`.
 ```typescript
 export class VinceNewService extends Service {
   static serviceType = "vince-new-service";
-  
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
-  
+
   static async start(runtime: IAgentRuntime): Promise<VinceNewService> {
     const service = new VinceNewService(runtime);
     return service;
   }
-  
+
   async stop(): Promise<void> {
     // Cleanup
   }
-  
+
   async getData(symbol: string): Promise<any> {
     // Implementation
   }
@@ -196,6 +201,7 @@ When you talk to AI about services:
 **A Provider supplies context before the agent decides what to do.**
 
 Providers run during `composeState()` and inject real-time information into the agent's context. VINCE has two key providers:
+
 - `vinceContextProvider` — aggregated market data, session info, regime
 - `trenchKnowledgeProvider` — RAG for meme trading knowledge
 
@@ -203,11 +209,11 @@ Providers run during `composeState()` and inject real-time information into the 
 export const vinceContextProvider: Provider = {
   name: "VINCE_CONTEXT",
   description: "Provides market context for trading decisions",
-  
+
   get: async (runtime, message, state) => {
     const marketData = runtime.getService("vince-market-data");
     const context = await marketData?.getEnrichedContext("BTC");
-    
+
     return {
       text: `BTC: $${context.price}, RSI: ${context.rsi14}`,
       values: { btcPrice: context.price, btcRsi: context.rsi14 },
@@ -218,6 +224,7 @@ export const vinceContextProvider: Provider = {
 ```
 
 The difference:
+
 - **Actions** execute responses
 - **Providers** supply context before actions execute
 - **Services** provide data that both can use
@@ -232,12 +239,12 @@ Evaluators run post-response to learn from interactions. VINCE's `tradePerforman
 export const tradePerformanceEvaluator: Evaluator = {
   name: "TRADE_PERFORMANCE",
   description: "Analyzes trade outcomes and adjusts signal weights",
-  
+
   validate: async (runtime, message) => {
     // Should we evaluate this conversation?
     return message.content.text?.includes("trade") || false;
   },
-  
+
   handler: async (runtime, message, state) => {
     // Extract trade outcomes
     // Update Thompson Sampling weights
@@ -247,6 +254,7 @@ export const tradePerformanceEvaluator: Evaluator = {
 ```
 
 The Action-Provider-Evaluator cycle:
+
 1. **Providers** gather context
 2. **Actions** execute responses
 3. **Evaluators** analyze and learn
@@ -259,6 +267,7 @@ The Action-Provider-Evaluator cycle:
 When the paper bot opens a position, state changed. When the market regime shifts from trending to ranging, state changed. When circuit breakers trip, state changed.
 
 VINCE tracks state in multiple places:
+
 - `.elizadb/vince-paper-bot/portfolio.json` — balance, equity, paused
 - `.elizadb/vince-paper-bot/positions.json` — open positions
 - `.elizadb/vince-paper-bot/risk-state.json` — circuit breaker status
@@ -274,7 +283,7 @@ Everything comes together in the plugin definition:
 export const vincePlugin: Plugin = {
   name: "plugin-vince",
   description: "Quantitative trading assistant with six domains",
-  
+
   // Register components
   services: [
     VinceMarketDataService,
@@ -282,23 +291,18 @@ export const vincePlugin: Plugin = {
     VincePaperTradingService,
     // ... 30+ services
   ],
-  
+
   actions: [
     vinceGmAction,
     vincePerpsAction,
     vinceOptionsAction,
     // ... 20+ actions
   ],
-  
-  providers: [
-    vinceContextProvider,
-    trenchKnowledgeProvider,
-  ],
-  
-  evaluators: [
-    tradePerformanceEvaluator,
-  ],
-  
+
+  providers: [vinceContextProvider, trenchKnowledgeProvider],
+
+  evaluators: [tradePerformanceEvaluator],
+
   init: async (config, runtime) => {
     logger.info("[VINCE] Plugin initialized");
   },
@@ -314,6 +318,7 @@ VINCE operates across six domains. Understanding them is essential for extending
 ### 9: Options
 
 Covered calls on BTC via HYPERSURFACE. Key concepts:
+
 - IV skew (put-heavy vs call-heavy)
 - Strike selection based on funding regime
 - Weekly expiries (Fridays are key)
@@ -324,6 +329,7 @@ Actions: `vinceOptionsAction`
 ### 10: Perps
 
 Signals for longs/shorts with paper execution. Key concepts:
+
 - Funding rate extremes (`> +0.02%` crowded longs, `< -0.02%` crowded shorts)
 - Liquidation cascades
 - Top trader positioning
@@ -334,6 +340,7 @@ Actions: `vincePerpsAction`, `vinceBotTradeAction`
 ### 11: TradFi
 
 Gold, NVDA, SPX via Hyperliquid HIP-3. Key concepts:
+
 - 34 tradeable assets beyond crypto
 - Correlation plays (gold as hedge, NVDA as AI proxy)
 - Session-aware trading (EU/US overlap best)
@@ -344,6 +351,7 @@ Actions: `vinceHip3Action`
 ### 12: Memes
 
 AI tokens in the $1M-$20M sweet spot. Key concepts:
+
 - Liquidity thresholds ($100K+ for safety)
 - Volume/marketcap ratios
 - Narrative momentum
@@ -354,6 +362,7 @@ Actions: `vinceMemeAction`, `vinceMemeDeepDiveAction`
 ### 13: Lifestyle
 
 Day-of-week awareness. Because who trades well on an empty stomach?
+
 - Fridays: ritual days, lighter trading
 - Thursdays: pool day
 - Weekends: reduced confidence multiplier (0.8x)
@@ -364,6 +373,7 @@ Actions: `vinceLifestyleAction`
 ### 14: Art
 
 NFT floors for thin-buy opportunities. Key concepts:
+
 - Floor gaps (thin liquidity = opportunity)
 - Whale tracking
 - Tier classification (blue-chip vs mid-tier)
@@ -381,16 +391,17 @@ This is the heart of VINCE. To see **which sources exist, how to enable them, an
 
 VINCE consults 15+ data sources and votes:
 
-| Source | Weight | What It Measures |
-|--------|--------|------------------|
-| Funding Rate | 1.5x | Crowded positioning |
-| Liquidation Cascades | 2.0x | Forced selling/buying |
-| Top Traders | 1.3x | Smart money direction |
-| RSI Divergence | 1.2x | Momentum exhaustion |
-| Volume Profile | 1.1x | Participation levels |
-| News Sentiment | 1.0x | Narrative shifts |
+| Source               | Weight | What It Measures      |
+| -------------------- | ------ | --------------------- |
+| Funding Rate         | 1.5x   | Crowded positioning   |
+| Liquidation Cascades | 2.0x   | Forced selling/buying |
+| Top Traders          | 1.3x   | Smart money direction |
+| RSI Divergence       | 1.2x   | Momentum exhaustion   |
+| Volume Profile       | 1.1x   | Participation levels  |
+| News Sentiment       | 1.0x   | Narrative shifts      |
 
 The aggregator produces:
+
 - `direction`: LONG, SHORT, or NEUTRAL
 - `strength`: 0-100 (how strong the signal)
 - `confidence`: 0-100 (how many sources agree)
@@ -400,18 +411,19 @@ The aggregator produces:
 
 Not all hours are equal:
 
-| Session | Confidence Multiplier | Size Multiplier |
-|---------|----------------------|-----------------|
-| Asia (0-7 UTC) | 0.9x | 0.8x |
-| Europe (7-13 UTC) | 1.0x | 1.0x |
-| EU/US Overlap (13-16 UTC) | 1.1x | 1.1x |
-| US (16-22 UTC) | 1.0x | 1.0x |
-| Off-Hours (22-24 UTC) | 0.8x | 0.7x |
-| Weekends | Additional 0.8x | Additional 0.8x |
+| Session                   | Confidence Multiplier | Size Multiplier |
+| ------------------------- | --------------------- | --------------- |
+| Asia (0-7 UTC)            | 0.9x                  | 0.8x            |
+| Europe (7-13 UTC)         | 1.0x                  | 1.0x            |
+| EU/US Overlap (13-16 UTC) | 1.1x                  | 1.1x            |
+| US (16-22 UTC)            | 1.0x                  | 1.0x            |
+| Off-Hours (22-24 UTC)     | 0.8x                  | 0.7x            |
+| Weekends                  | Additional 0.8x       | Additional 0.8x |
 
 ### 17: Circuit Breakers
 
 Protection against runaway losses:
+
 - **Daily loss limit**: $200 → pause trading
 - **Drawdown protection**: 15% from peak → pause trading
 - **Position limits**: max 3 concurrent positions
@@ -426,6 +438,7 @@ VINCE learns from its trades through three layers.
 ### 18: Thompson Sampling (Online Learning)
 
 Each signal source has win/loss counts modeled as a Beta distribution:
+
 - After a winning trade, increment `wins` for contributing sources
 - After a losing trade, increment `losses`
 - Sample from Beta(wins, losses) to get exploration-balanced weights
@@ -435,6 +448,7 @@ This happens automatically via `VinceWeightBanditService`.
 ### 19: Feature Store (Training Data)
 
 Every trade captures 40+ features:
+
 - Market state (price, RSI, volatility, funding)
 - Session context (hour, day of week, regime)
 - Signal metadata (strength, confidence, sources)
@@ -445,6 +459,7 @@ Features are stored in `.elizadb/vince-paper-bot/features/*.jsonl` for offline t
 ### 20: ONNX Inference (Offline Models)
 
 After 90+ trades, train offline models:
+
 - **Signal Quality Model** — binary classifier for trade quality
 - **Position Sizing Model** — regression for optimal size
 - **TP/SL Optimizer** — quantile regression for exit levels
@@ -455,11 +470,11 @@ Models export to ONNX for fast inference without Python dependencies.
 
 Every ML component has a fallback:
 
-| Component | ML Available | Fallback |
-|-----------|--------------|----------|
-| Weight Bandit | Beta sampling | Static weights |
-| Signal Similarity | k-NN lookup | Neutral recommendation |
-| ML Inference | ONNX prediction | Rule-based filtering |
+| Component         | ML Available    | Fallback               |
+| ----------------- | --------------- | ---------------------- |
+| Weight Bandit     | Beta sampling   | Static weights         |
+| Signal Similarity | k-NN lookup     | Neutral recommendation |
+| ML Inference      | ONNX prediction | Rule-based filtering   |
 
 If ML fails, rules take over. No drama.
 
@@ -522,6 +537,7 @@ bun run test:e2e
 ```
 
 Tests are not optional. VINCE has coverage for:
+
 - Action validation (does it trigger correctly?)
 - Action handlers (does it produce expected output?)
 - Service methods (does it fetch and cache correctly?)
@@ -652,18 +668,23 @@ const votes = await Promise.all(
   sources.map(async (source) => {
     const signal = await source.getSignal();
     return { ...signal, weight: source.weight, source: source.name };
-  })
+  }),
 );
 
-let longScore = 0, shortScore = 0, totalWeight = 0;
+let longScore = 0,
+  shortScore = 0,
+  totalWeight = 0;
 for (const vote of votes) {
   totalWeight += vote.weight;
-  if (vote.direction === "LONG") longScore += vote.weight * (vote.strength / 100);
-  else if (vote.direction === "SHORT") shortScore += vote.weight * (vote.strength / 100);
+  if (vote.direction === "LONG")
+    longScore += vote.weight * (vote.strength / 100);
+  else if (vote.direction === "SHORT")
+    shortScore += vote.weight * (vote.strength / 100);
 }
 
 const netScore = (longScore - shortScore) / totalWeight;
-const direction = netScore > 0.1 ? "LONG" : netScore < -0.1 ? "SHORT" : "NEUTRAL";
+const direction =
+  netScore > 0.1 ? "LONG" : netScore < -0.1 ? "SHORT" : "NEUTRAL";
 ```
 
 ---
@@ -685,6 +706,7 @@ Art's in there too, because NFTs aren't just flips; they're cultural bets, remin
 > "The IP was never the code—it was the concepts, insights, knowledge, expertise, and logic."
 
 What matters isn't ElizaOS. It's the domain logic that VINCE encodes:
+
 - Signal weights (liquidation cascades 2.0x, funding extremes 1.5x)
 - Funding thresholds (`> +0.02%` = WIDER calls)
 - Session filters (Asia 0.9x, EU/US Overlap 1.1x)
@@ -708,6 +730,7 @@ Trading's already unequal; tools shouldn't widen the gap.
 You now have everything.
 
 **Before building:**
+
 1. Run the interrogation prompt
 2. Answer every question
 3. Update documentation
@@ -715,6 +738,7 @@ You now have everything.
 5. Initialize git branch
 
 **While building:**
+
 1. AI reads CLAUDE.md and progress.txt first
 2. Use Plan mode, then Agent mode
 3. Work in small pieces
@@ -724,12 +748,14 @@ You now have everything.
 7. Run tests
 
 **Before shipping:**
+
 1. Tests pass
 2. Error handling complete
 3. Caching implemented
 4. Documentation updated
 
 **After shipping:**
+
 1. Update docs
 2. Monitor production
 3. Track signal performance

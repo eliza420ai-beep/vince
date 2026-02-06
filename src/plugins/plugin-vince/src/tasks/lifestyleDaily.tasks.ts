@@ -22,16 +22,22 @@ import {
 const DEFAULT_LIFESTYLE_HOUR_UTC = 8;
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
 
-export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promise<void> {
+export async function registerLifestyleDailyTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
   const enabled = process.env.VINCE_LIFESTYLE_DAILY_ENABLED !== "false";
   if (!enabled) {
-    logger.info("[LifestyleDaily] Task disabled (VINCE_LIFESTYLE_DAILY_ENABLED=false)");
+    logger.info(
+      "[LifestyleDaily] Task disabled (VINCE_LIFESTYLE_DAILY_ENABLED=false)",
+    );
     return;
   }
 
   const lifestyleHour =
-    parseInt(process.env.VINCE_LIFESTYLE_HOUR ?? String(DEFAULT_LIFESTYLE_HOUR_UTC), 10) ||
-    DEFAULT_LIFESTYLE_HOUR_UTC;
+    parseInt(
+      process.env.VINCE_LIFESTYLE_HOUR ?? String(DEFAULT_LIFESTYLE_HOUR_UTC),
+      10,
+    ) || DEFAULT_LIFESTYLE_HOUR_UTC;
   const taskWorldId = runtime.agentId as UUID;
 
   runtime.registerTaskWorker({
@@ -42,19 +48,24 @@ export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promis
       const hourUtc = now.getUTCHours();
       if (hourUtc !== lifestyleHour) {
         logger.debug(
-          `[LifestyleDaily] Skipping: current hour ${hourUtc} UTC, target ${lifestyleHour}`
+          `[LifestyleDaily] Skipping: current hour ${hourUtc} UTC, target ${lifestyleHour}`,
         );
         return;
       }
 
-      const lifestyleService = rt.getService("VINCE_LIFESTYLE_SERVICE") as VinceLifestyleService | null;
+      const lifestyleService = rt.getService(
+        "VINCE_LIFESTYLE_SERVICE",
+      ) as VinceLifestyleService | null;
       if (!lifestyleService) {
         logger.warn("[LifestyleDaily] VinceLifestyleService not available");
         return;
       }
 
       const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as {
-        push?: (text: string, opts?: { roomNameContains?: string }) => Promise<number>;
+        push?: (
+          text: string,
+          opts?: { roomNameContains?: string },
+        ) => Promise<number>;
       } | null;
       if (!notif?.push) {
         logger.warn("[LifestyleDaily] VinceNotificationService not available");
@@ -94,7 +105,10 @@ export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promis
         };
 
         const dataContext = buildLifestyleDataContext(ctx);
-        const humanBriefing = await generateLifestyleHumanBriefing(rt, dataContext);
+        const humanBriefing = await generateLifestyleHumanBriefing(
+          rt,
+          dataContext,
+        );
 
         const text = [
           `**${ctx.day}** _${ctx.date}_`,
@@ -110,7 +124,7 @@ export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promis
           logger.info(`[LifestyleDaily] Pushed to ${sent} channel(s)`);
         } else {
           logger.debug(
-            "[LifestyleDaily] No channels matched (room name contains 'lifestyle'). Create e.g. #vince-lifestyle."
+            "[LifestyleDaily] No channels matched (room name contains 'lifestyle'). Create e.g. #vince-lifestyle.",
           );
         }
       } catch (error) {
@@ -121,7 +135,8 @@ export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promis
 
   await runtime.createTask({
     name: "VINCE_LIFESTYLE_DAILY",
-    description: "Daily lifestyle briefing (dining, hotel, health, fitness) pushed to Discord/Slack/Telegram",
+    description:
+      "Daily lifestyle briefing (dining, hotel, health, fitness) pushed to Discord/Slack/Telegram",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["vince", "lifestyle", "repeat"],
@@ -132,6 +147,6 @@ export async function registerLifestyleDailyTask(runtime: IAgentRuntime): Promis
   });
 
   logger.info(
-    `[LifestyleDaily] Task registered (runs at ${lifestyleHour}:00 UTC, push to channels with "lifestyle" in name)`
+    `[LifestyleDaily] Task registered (runs at ${lifestyleHour}:00 UTC, push to channels with "lifestyle" in name)`,
   );
 }

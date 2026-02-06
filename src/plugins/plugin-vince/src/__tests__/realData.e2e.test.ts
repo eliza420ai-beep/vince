@@ -1,14 +1,14 @@
 /**
  * VINCE Real Data E2E Test
- * 
+ *
  * This test pulls REAL live data from all configured services
  * and generates today's actual bull/bear case.
- * 
+ *
  * Requirements:
  * - COINGLASS_API_KEY (Hobbyist tier)
  * - SANTIMENT_API_KEY (optional, free tier)
  * - NANSEN_API_KEY (optional, 100 free credits)
- * 
+ *
  * Run with: bun test src/plugins/plugin-vince/src/__tests__/realData.e2e.test.ts
  */
 
@@ -35,7 +35,7 @@ import type { IAgentRuntime, UUID } from "@elizaos/core";
 
 function createRealRuntime(): IAgentRuntime {
   const services = new Map<string, any>();
-  
+
   // Minimal runtime implementation for service initialization
   const runtime: Partial<IAgentRuntime> = {
     agentId: "vince-e2e-test" as UUID,
@@ -65,9 +65,11 @@ function createRealRuntime(): IAgentRuntime {
 // Initialize Real Services
 // ==========================================
 
-async function initializeRealServices(runtime: IAgentRuntime): Promise<Map<string, any>> {
+async function initializeRealServices(
+  runtime: IAgentRuntime,
+): Promise<Map<string, any>> {
   const services = new Map<string, any>();
-  
+
   console.log("\n📡 Initializing real services...\n");
 
   // CoinGlass (requires API key)
@@ -160,7 +162,7 @@ async function initializeRealServices(runtime: IAgentRuntime): Promise<Map<strin
   }
 
   console.log(`\n📊 ${services.size} services ready\n`);
-  
+
   return services;
 }
 
@@ -175,38 +177,66 @@ function printSnapshot(snapshot: MarketDataSnapshot) {
   console.log("=".repeat(60));
 
   console.log("\n📈 COINGLASS DATA:");
-  console.log(`   Funding Rate:      ${snapshot.fundingRate !== null ? (snapshot.fundingRate * 100).toFixed(4) + "%" : "N/A"}`);
-  console.log(`   Long/Short Ratio:  ${snapshot.longShortRatio?.toFixed(2) || "N/A"}`);
-  console.log(`   Fear & Greed:      ${snapshot.fearGreedValue || "N/A"} (${snapshot.fearGreedLabel || "N/A"})`);
-  console.log(`   OI Change 24h:     ${snapshot.openInterestChange !== null ? snapshot.openInterestChange.toFixed(2) + "%" : "N/A"}`);
+  console.log(
+    `   Funding Rate:      ${snapshot.fundingRate !== null ? (snapshot.fundingRate * 100).toFixed(4) + "%" : "N/A"}`,
+  );
+  console.log(
+    `   Long/Short Ratio:  ${snapshot.longShortRatio?.toFixed(2) || "N/A"}`,
+  );
+  console.log(
+    `   Fear & Greed:      ${snapshot.fearGreedValue || "N/A"} (${snapshot.fearGreedLabel || "N/A"})`,
+  );
+  console.log(
+    `   OI Change 24h:     ${snapshot.openInterestChange !== null ? snapshot.openInterestChange.toFixed(2) + "%" : "N/A"}`,
+  );
 
   console.log("\n📊 DERIBIT OPTIONS DATA:");
-  console.log(`   Spot Price:        $${snapshot.spotPrice?.toLocaleString() || "N/A"}`);
+  console.log(
+    `   Spot Price:        $${snapshot.spotPrice?.toLocaleString() || "N/A"}`,
+  );
   console.log(`   DVOL:              ${snapshot.dvol?.toFixed(1) || "N/A"}`);
-  console.log(`   IV Skew:           ${snapshot.ivSkew?.toFixed(2) || "N/A"}% (${snapshot.skewInterpretation || "N/A"})`);
+  console.log(
+    `   IV Skew:           ${snapshot.ivSkew?.toFixed(2) || "N/A"}% (${snapshot.skewInterpretation || "N/A"})`,
+  );
 
   console.log("\n🔗 SANBASE ON-CHAIN DATA:");
-  console.log(`   Exchange Net Flow: ${snapshot.exchangeNetFlow !== null ? snapshot.exchangeNetFlow.toLocaleString() + " " + snapshot.asset : "N/A"}`);
+  console.log(
+    `   Exchange Net Flow: ${snapshot.exchangeNetFlow !== null ? snapshot.exchangeNetFlow.toLocaleString() + " " + snapshot.asset : "N/A"}`,
+  );
   console.log(`   Exchange Sentiment:${snapshot.exchangeSentiment || "N/A"}`);
   console.log(`   Network Trend:     ${snapshot.networkTrend || "N/A"}`);
   console.log(`   Whale Sentiment:   ${snapshot.whaleSentiment || "N/A"}`);
 
   console.log("\n💰 NANSEN SMART MONEY:");
-  console.log(`   Net Flow:          ${snapshot.smartMoneyNetFlow !== null ? "$" + (snapshot.smartMoneyNetFlow / 1000000).toFixed(2) + "M" : "N/A"}`);
-  console.log(`   Accumulating:      ${snapshot.isSmartMoneyAccumulating !== null ? (snapshot.isSmartMoneyAccumulating ? "YES" : "NO") : "N/A"}`);
-  console.log(`   Confidence:        ${snapshot.smartMoneyConfidence || "N/A"}`);
+  console.log(
+    `   Net Flow:          ${snapshot.smartMoneyNetFlow !== null ? "$" + (snapshot.smartMoneyNetFlow / 1000000).toFixed(2) + "M" : "N/A"}`,
+  );
+  console.log(
+    `   Accumulating:      ${snapshot.isSmartMoneyAccumulating !== null ? (snapshot.isSmartMoneyAccumulating ? "YES" : "NO") : "N/A"}`,
+  );
+  console.log(
+    `   Confidence:        ${snapshot.smartMoneyConfidence || "N/A"}`,
+  );
 
   console.log("\n🐋 TOP TRADERS (HYPERLIQUID):");
   console.log(`   Direction:         ${snapshot.whaleDirection || "N/A"}`);
-  console.log(`   Strength:          ${snapshot.whaleStrength !== null ? snapshot.whaleStrength + "%" : "N/A"}`);
+  console.log(
+    `   Strength:          ${snapshot.whaleStrength !== null ? snapshot.whaleStrength + "%" : "N/A"}`,
+  );
 
   console.log("\n📰 NEWS SENTIMENT:");
   console.log(`   Sentiment:         ${snapshot.newsSentiment || "N/A"}`);
-  console.log(`   Confidence:        ${snapshot.newsConfidence !== null ? snapshot.newsConfidence + "%" : "N/A"}`);
-  console.log(`   Risk Events:       ${snapshot.hasRiskEvents ? "⚠️ YES" : "None"}`);
+  console.log(
+    `   Confidence:        ${snapshot.newsConfidence !== null ? snapshot.newsConfidence + "%" : "N/A"}`,
+  );
+  console.log(
+    `   Risk Events:       ${snapshot.hasRiskEvents ? "⚠️ YES" : "None"}`,
+  );
 
   console.log("\n💵 PRICE ACTION:");
-  console.log(`   24h Change:        ${snapshot.priceChange24h !== null ? snapshot.priceChange24h.toFixed(2) + "%" : "N/A"}`);
+  console.log(
+    `   24h Change:        ${snapshot.priceChange24h !== null ? snapshot.priceChange24h.toFixed(2) + "%" : "N/A"}`,
+  );
 }
 
 function printAnalysisResult(result: AnalysisResult) {
@@ -218,15 +248,23 @@ function printAnalysisResult(result: AnalysisResult) {
   console.log("=".repeat(60));
 
   // Direction with emoji
-  const directionEmoji = conclusion.direction === "bullish" ? "🟢" : 
-                         conclusion.direction === "bearish" ? "🔴" : "🟡";
-  console.log(`\n${directionEmoji} DIRECTION: ${conclusion.direction.toUpperCase()}`);
+  const directionEmoji =
+    conclusion.direction === "bullish"
+      ? "🟢"
+      : conclusion.direction === "bearish"
+        ? "🔴"
+        : "🟡";
+  console.log(
+    `\n${directionEmoji} DIRECTION: ${conclusion.direction.toUpperCase()}`,
+  );
   console.log(`   Conviction: ${conclusion.conviction.toFixed(0)}%`);
   console.log(`   Recommendation: ${conclusion.recommendation.toUpperCase()}`);
 
   // Bull Case
   console.log("\n" + "-".repeat(40));
-  console.log(`🐂 BULL CASE (Strength: ${conclusion.bullCase.strength.toFixed(0)}/100)`);
+  console.log(
+    `🐂 BULL CASE (Strength: ${conclusion.bullCase.strength.toFixed(0)}/100)`,
+  );
   console.log(`   Factors: ${conclusion.bullCase.factorCount}`);
   if (conclusion.bullCase.keyFactors.length > 0) {
     console.log("   Key Factors:");
@@ -239,7 +277,9 @@ function printAnalysisResult(result: AnalysisResult) {
 
   // Bear Case
   console.log("\n" + "-".repeat(40));
-  console.log(`🐻 BEAR CASE (Strength: ${conclusion.bearCase.strength.toFixed(0)}/100)`);
+  console.log(
+    `🐻 BEAR CASE (Strength: ${conclusion.bearCase.strength.toFixed(0)}/100)`,
+  );
   console.log(`   Factors: ${conclusion.bearCase.factorCount}`);
   if (conclusion.bearCase.keyFactors.length > 0) {
     console.log("   Key Factors:");
@@ -261,7 +301,9 @@ function printAnalysisResult(result: AnalysisResult) {
   console.log("\n" + "-".repeat(40));
   console.log("📊 DATA QUALITY");
   console.log(`   Score: ${result.dataQualityScore}%`);
-  console.log(`   Services Available: ${result.availableServices.join(", ") || "None"}`);
+  console.log(
+    `   Services Available: ${result.availableServices.join(", ") || "None"}`,
+  );
   if (result.failedServices.length > 0) {
     console.log(`   Services Failed: ${result.failedServices.join(", ")}`);
   }
@@ -269,10 +311,11 @@ function printAnalysisResult(result: AnalysisResult) {
 }
 
 // ==========================================
-// Test Suite
+// Test Suite (skipped unless RUN_NETWORK_TESTS=1)
 // ==========================================
+const skipNetworkTests = process.env.RUN_NETWORK_TESTS !== "1";
 
-describe("VINCE Real Data E2E Test", () => {
+describe.skipIf(skipNetworkTests)("VINCE Real Data E2E Test", () => {
   let runtime: IAgentRuntime;
   let services: Map<string, any>;
   let analyzer: BullBearAnalyzer;
@@ -280,16 +323,16 @@ describe("VINCE Real Data E2E Test", () => {
   beforeAll(async () => {
     runtime = createRealRuntime();
     services = await initializeRealServices(runtime);
-    
+
     // Update runtime's getService to use initialized services
     (runtime as any).getService = (name: string) => services.get(name) || null;
-    
+
     analyzer = new BullBearAnalyzer();
   }, 60000); // 60s timeout for initialization
 
   it("should pull real data from CoinGlass", async () => {
     const coinglassService = services.get("VINCE_COINGLASS_SERVICE");
-    
+
     if (!coinglassService) {
       console.log("⚠️  Skipping CoinGlass test - service not available");
       return;
@@ -304,17 +347,23 @@ describe("VINCE Real Data E2E Test", () => {
     const fearGreed = coinglassService.getFearGreed();
 
     console.log("\n📈 CoinGlass Live Data:");
-    console.log(`   BTC Funding: ${funding ? (funding.rate * 100).toFixed(4) + "%" : "N/A"}`);
+    console.log(
+      `   BTC Funding: ${funding ? (funding.rate * 100).toFixed(4) + "%" : "N/A"}`,
+    );
     console.log(`   BTC L/S Ratio: ${longShort?.ratio?.toFixed(2) || "N/A"}`);
-    console.log(`   Fear & Greed: ${fearGreed?.value || "N/A"} (${fearGreed?.classification || "N/A"})`);
+    console.log(
+      `   Fear & Greed: ${fearGreed?.value || "N/A"} (${fearGreed?.classification || "N/A"})`,
+    );
 
     // At least one should work
-    expect(funding !== null || longShort !== null || fearGreed !== null).toBe(true);
+    expect(funding !== null || longShort !== null || fearGreed !== null).toBe(
+      true,
+    );
   }, 30000);
 
   it("should pull real data from Deribit", async () => {
     const deribitService = services.get("VINCE_DERIBIT_SERVICE");
-    
+
     if (!deribitService) {
       console.log("⚠️  Skipping Deribit test - service not available");
       return;
@@ -325,16 +374,20 @@ describe("VINCE Real Data E2E Test", () => {
     const ivSurface = await deribitService.getIVSurface("BTC");
 
     console.log("\n📊 Deribit Live Data:");
-    console.log(`   BTC Index Price: $${indexPrice?.toLocaleString() || "N/A"}`);
+    console.log(
+      `   BTC Index Price: $${indexPrice?.toLocaleString() || "N/A"}`,
+    );
     console.log(`   BTC DVOL: ${dvol?.toFixed(1) || "N/A"}`);
-    console.log(`   IV Skew: ${ivSurface?.skew?.toFixed(2) || "N/A"}% (${ivSurface?.skewInterpretation || "N/A"})`);
+    console.log(
+      `   IV Skew: ${ivSurface?.skew?.toFixed(2) || "N/A"}% (${ivSurface?.skewInterpretation || "N/A"})`,
+    );
 
     expect(indexPrice).toBeGreaterThan(0);
   }, 30000);
 
   it("should pull real data from CoinGecko", async () => {
     const coingeckoService = services.get("VINCE_COINGECKO_SERVICE");
-    
+
     if (!coingeckoService) {
       console.log("⚠️  Skipping CoinGecko test - service not available");
       return;
@@ -348,15 +401,19 @@ describe("VINCE Real Data E2E Test", () => {
     const ethPrice = coingeckoService.getPrice("ETH");
 
     console.log("\n💰 CoinGecko Live Data:");
-    console.log(`   BTC: $${btcPrice?.price?.toLocaleString() || "N/A"} (${btcPrice?.change24h?.toFixed(2) || "N/A"}%)`);
-    console.log(`   ETH: $${ethPrice?.price?.toLocaleString() || "N/A"} (${ethPrice?.change24h?.toFixed(2) || "N/A"}%)`);
+    console.log(
+      `   BTC: $${btcPrice?.price?.toLocaleString() || "N/A"} (${btcPrice?.change24h?.toFixed(2) || "N/A"}%)`,
+    );
+    console.log(
+      `   ETH: $${ethPrice?.price?.toLocaleString() || "N/A"} (${ethPrice?.change24h?.toFixed(2) || "N/A"}%)`,
+    );
 
     expect(btcPrice?.price).toBeGreaterThan(0);
   }, 30000);
 
   it("should pull real data from DexScreener", async () => {
     const dexService = services.get("VINCE_DEXSCREENER_SERVICE");
-    
+
     if (!dexService) {
       console.log("⚠️  Skipping DexScreener test - service not available");
       return;
@@ -372,11 +429,13 @@ describe("VINCE Real Data E2E Test", () => {
     console.log("\n🔥 DexScreener Live Data:");
     console.log(`   Trending Tokens: ${trending?.length || 0}`);
     console.log(`   AI Tokens: ${aiTokens?.length || 0}`);
-    
+
     if (trending && trending.length > 0) {
       console.log("   Top 3 Trending:");
       trending.slice(0, 3).forEach((t: any, i: number) => {
-        console.log(`     ${i + 1}. ${t.symbol}: $${t.price?.toFixed(6)} (${t.priceChange24h?.toFixed(1)}%)`);
+        console.log(
+          `     ${i + 1}. ${t.symbol}: $${t.price?.toFixed(6)} (${t.priceChange24h?.toFixed(1)}%)`,
+        );
       });
     }
 
@@ -404,7 +463,7 @@ describe("VINCE Real Data E2E Test", () => {
     expect(result.conclusion.direction).toMatch(/bullish|bearish|neutral/);
     expect(result.conclusion.conviction).toBeGreaterThanOrEqual(0);
     expect(result.conclusion.conviction).toBeLessThanOrEqual(100);
-    
+
     // At least some services should have provided data
     expect(result.availableServices.length).toBeGreaterThan(0);
     expect(result.dataQualityScore).toBeGreaterThan(0);
@@ -436,14 +495,24 @@ describe("VINCE Real Data E2E Test", () => {
     console.log("\n" + "=".repeat(60));
     console.log("📊 BTC vs ETH COMPARISON");
     console.log("=".repeat(60));
-    
+
     console.log("\n           BTC          |         ETH");
     console.log("-".repeat(50));
-    console.log(`Direction: ${btcResult.conclusion.direction.padEnd(12)} | ${ethResult.conclusion.direction}`);
-    console.log(`Conviction:${btcResult.conclusion.conviction.toFixed(0).padStart(4)}%        | ${ethResult.conclusion.conviction.toFixed(0)}%`);
-    console.log(`Bull Str:  ${btcResult.conclusion.bullCase.strength.toFixed(0).padStart(4)}         | ${ethResult.conclusion.bullCase.strength.toFixed(0)}`);
-    console.log(`Bear Str:  ${btcResult.conclusion.bearCase.strength.toFixed(0).padStart(4)}         | ${ethResult.conclusion.bearCase.strength.toFixed(0)}`);
-    console.log(`Action:    ${btcResult.conclusion.recommendation.padEnd(12)} | ${ethResult.conclusion.recommendation}`);
+    console.log(
+      `Direction: ${btcResult.conclusion.direction.padEnd(12)} | ${ethResult.conclusion.direction}`,
+    );
+    console.log(
+      `Conviction:${btcResult.conclusion.conviction.toFixed(0).padStart(4)}%        | ${ethResult.conclusion.conviction.toFixed(0)}%`,
+    );
+    console.log(
+      `Bull Str:  ${btcResult.conclusion.bullCase.strength.toFixed(0).padStart(4)}         | ${ethResult.conclusion.bullCase.strength.toFixed(0)}`,
+    );
+    console.log(
+      `Bear Str:  ${btcResult.conclusion.bearCase.strength.toFixed(0).padStart(4)}         | ${ethResult.conclusion.bearCase.strength.toFixed(0)}`,
+    );
+    console.log(
+      `Action:    ${btcResult.conclusion.recommendation.padEnd(12)} | ${ethResult.conclusion.recommendation}`,
+    );
 
     expect(btcResult.conclusion).toBeDefined();
     expect(ethResult.conclusion).toBeDefined();
@@ -460,25 +529,28 @@ if (import.meta.main) {
   console.log("🎯 VINCE REAL DATA E2E TEST - STANDALONE MODE");
   console.log("=".repeat(60));
   console.log("\nThis will pull REAL data and generate today's analysis.\n");
-  
+
   const runtime = createRealRuntime();
-  
-  initializeRealServices(runtime).then(async (services) => {
-    // Update runtime
-    (runtime as any).getService = (name: string) => services.get(name) || null;
-    
-    const analyzer = new BullBearAnalyzer();
-    
-    console.log("\n⏳ Analyzing BTC...\n");
-    const btcResult = await analyzer.analyze(runtime, "BTC");
-    printSnapshot(btcResult.snapshot);
-    printAnalysisResult(btcResult);
-    
-    console.log("\n\n⏳ Analyzing ETH...\n");
-    const ethResult = await analyzer.analyze(runtime, "ETH");
-    printSnapshot(ethResult.snapshot);
-    printAnalysisResult(ethResult);
-    
-    console.log("\n✅ Analysis complete!\n");
-  }).catch(console.error);
+
+  initializeRealServices(runtime)
+    .then(async (services) => {
+      // Update runtime
+      (runtime as any).getService = (name: string) =>
+        services.get(name) || null;
+
+      const analyzer = new BullBearAnalyzer();
+
+      console.log("\n⏳ Analyzing BTC...\n");
+      const btcResult = await analyzer.analyze(runtime, "BTC");
+      printSnapshot(btcResult.snapshot);
+      printAnalysisResult(btcResult);
+
+      console.log("\n\n⏳ Analyzing ETH...\n");
+      const ethResult = await analyzer.analyze(runtime, "ETH");
+      printSnapshot(ethResult.snapshot);
+      printAnalysisResult(ethResult);
+
+      console.log("\n✅ Analysis complete!\n");
+    })
+    .catch(console.error);
 }

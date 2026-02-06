@@ -11,19 +11,29 @@ import { HyperliquidFallbackService } from "./hyperliquid.fallback";
 /** Registers as DERIBIT_SERVICE; returns built-in fallback so getService never misses. */
 export class DeribitServiceAlias extends Service {
   static serviceType = "DERIBIT_SERVICE";
-  capabilityDescription = "Deribit options data (fallback when plugin-deribit not loaded)";
+  capabilityDescription =
+    "Deribit options data (fallback when plugin-deribit not loaded)";
 
-  static async start(_runtime: IAgentRuntime): Promise<DeribitFallbackService> {
-    return new DeribitFallbackService();
+  static async start(_runtime: IAgentRuntime): Promise<Service> {
+    return new DeribitFallbackService() as unknown as Service;
+  }
+
+  async stop(): Promise<void> {
+    // Alias delegates to fallback; no-op stop
   }
 }
 
 /** Registers as HYPERLIQUID_SERVICE; returns built-in fallback so getService never misses. */
 export class HyperliquidServiceAlias extends Service {
   static serviceType = "HYPERLIQUID_SERVICE";
-  capabilityDescription = "Hyperliquid funding/pulse (fallback when plugin-hyperliquid not loaded)";
+  capabilityDescription =
+    "Hyperliquid funding/pulse (fallback when plugin-hyperliquid not loaded)";
 
-  static async start(_runtime: IAgentRuntime): Promise<HyperliquidFallbackService> {
-    return new HyperliquidFallbackService();
+  static async start(_runtime: IAgentRuntime): Promise<Service> {
+    return new HyperliquidFallbackService() as unknown as Service;
+  }
+
+  async stop(): Promise<void> {
+    // Alias delegates to fallback; no-op stop
   }
 }

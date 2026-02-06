@@ -26,15 +26,20 @@ export interface PushOptions {
 
 export class VinceNotificationService extends Service {
   static serviceType = "VINCE_NOTIFICATION_SERVICE";
-  capabilityDescription = "Pushes proactive messages to Discord, Slack, and Telegram";
+  capabilityDescription =
+    "Pushes proactive messages to Discord, Slack, and Telegram";
 
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceNotificationService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceNotificationService> {
     const service = new VinceNotificationService(runtime);
-    logger.info("[VinceNotification] ✅ Service started (push to Discord/Slack/Telegram when connected)");
+    logger.info(
+      "[VinceNotification] ✅ Service started (push to Discord/Slack/Telegram when connected)",
+    );
     return service;
   }
 
@@ -51,7 +56,9 @@ export class VinceNotificationService extends Service {
 
     const targets = await this.getPushTargets(options);
     if (targets.length === 0) {
-      logger.debug("[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping");
+      logger.debug(
+        "[VinceNotification] No push targets (Discord/Slack/Telegram rooms) — skipping",
+      );
       return 0;
     }
 
@@ -61,23 +68,37 @@ export class VinceNotificationService extends Service {
       try {
         await this.runtime.sendMessageToTarget(target, { text });
         sent++;
-        logger.debug(`[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`);
+        logger.debug(
+          `[VinceNotification] Pushed to ${target.source} room ${target.roomId ?? target.channelId ?? "?"}`,
+        );
       } catch (err) {
         failed.push(`${target.source}: ${err}`);
       }
     }
 
     if (sent > 0) {
-      logger.info(`[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`);
+      logger.info(
+        `[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`,
+      );
     }
     if (failed.length > 0) {
-      logger.warn(`[VinceNotification] Failed ${failed.length}/${targets.length}: ${failed.slice(0, 2).join("; ")}${failed.length > 2 ? "…" : ""}`);
+      logger.warn(
+        `[VinceNotification] Failed ${failed.length}/${targets.length}: ${failed.slice(0, 2).join("; ")}${failed.length > 2 ? "…" : ""}`,
+      );
     }
     return sent;
   }
 
-  private async getPushTargets(options?: PushOptions): Promise<Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }>> {
-    const sources = (options?.sources as readonly string[] | undefined) ?? PUSH_SOURCES;
+  private async getPushTargets(options?: PushOptions): Promise<
+    Array<{
+      source: string;
+      roomId?: UUID;
+      channelId?: string;
+      serverId?: string;
+    }>
+  > {
+    const sources =
+      (options?.sources as readonly string[] | undefined) ?? PUSH_SOURCES;
     const roomIdsFilter = options?.roomIds;
     const nameContains = options?.roomNameContains?.toLowerCase();
 
@@ -87,7 +108,12 @@ export class VinceNotificationService extends Service {
       return name.includes(nameContains);
     };
 
-    const targets: Array<{ source: string; roomId?: UUID; channelId?: string; serverId?: string }> = [];
+    const targets: Array<{
+      source: string;
+      roomId?: UUID;
+      channelId?: string;
+      serverId?: string;
+    }> = [];
 
     try {
       const worlds = await this.runtime.getAllWorlds();
@@ -97,7 +123,12 @@ export class VinceNotificationService extends Service {
         for (const room of rooms) {
           const src = (room.source ?? "").toLowerCase();
           if (!sources.includes(src)) continue;
-          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
+          if (
+            roomIdsFilter?.length &&
+            room.id &&
+            !roomIdsFilter.includes(room.id)
+          )
+            continue;
           if (!room.id) continue;
           if (!matchesRoomName(room)) continue;
 
@@ -105,7 +136,8 @@ export class VinceNotificationService extends Service {
             source: room.source,
             roomId: room.id,
             channelId: room.channelId,
-            serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,
+            serverId:
+              room.messageServerId ?? (room as { serverId?: string }).serverId,
           });
         }
       }
@@ -115,13 +147,19 @@ export class VinceNotificationService extends Service {
         for (const room of fallbackRooms) {
           const src = (room.source ?? "").toLowerCase();
           if (!sources.includes(src)) continue;
-          if (roomIdsFilter?.length && room.id && !roomIdsFilter.includes(room.id)) continue;
+          if (
+            roomIdsFilter?.length &&
+            room.id &&
+            !roomIdsFilter.includes(room.id)
+          )
+            continue;
           if (!matchesRoomName(room)) continue;
           targets.push({
             source: room.source,
             roomId: room.id,
             channelId: room.channelId,
-            serverId: room.messageServerId ?? (room as { serverId?: string }).serverId,
+            serverId:
+              room.messageServerId ?? (room as { serverId?: string }).serverId,
           });
         }
       }

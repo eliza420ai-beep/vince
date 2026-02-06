@@ -27,16 +27,16 @@ export type MarketRegimeType = "trending" | "ranging" | "neutral" | "volatile";
 export interface MarketRegime {
   asset: string;
   regime: MarketRegimeType;
-  adx: number | null;           // ADX value (0-100)
-  dvol: number | null;          // DVOL (Deribit volatility)
-  priceChange24h: number;       // 24h price change %
-  
+  adx: number | null; // ADX value (0-100)
+  dvol: number | null; // DVOL (Deribit volatility)
+  priceChange24h: number; // 24h price change %
+
   // Strategy recommendations
   positionSizeMultiplier: number; // 1.0 = full, 0.5 = half
-  stopLossMultiplier: number;     // 1.0 = normal, 1.5 = wider
-  preferContrarian: boolean;      // True = favor mean-reversion signals
-  preferMomentum: boolean;        // True = favor momentum signals
-  
+  stopLossMultiplier: number; // 1.0 = normal, 1.5 = wider
+  preferContrarian: boolean; // True = favor mean-reversion signals
+  preferMomentum: boolean; // True = favor momentum signals
+
   timestamp: number;
 }
 
@@ -44,20 +44,20 @@ export interface MarketRegime {
 // ADX Thresholds
 // ==========================================
 const ADX_THRESHOLDS = {
-  TRENDING: 25,    // ADX > 25 = strong trend
+  TRENDING: 25, // ADX > 25 = strong trend
   NEUTRAL_HIGH: 25,
   NEUTRAL_LOW: 20,
-  RANGING: 20,     // ADX < 20 = ranging/choppy
+  RANGING: 20, // ADX < 20 = ranging/choppy
 };
 
 // ==========================================
 // DVOL Thresholds
 // ==========================================
 const DVOL_THRESHOLDS = {
-  EXTREME: 85,     // Extreme volatility
-  HIGH: 70,        // High volatility
-  NORMAL: 40,      // Normal volatility
-  LOW: 30,         // Low volatility (breakout imminent)
+  EXTREME: 85, // Extreme volatility
+  HIGH: 70, // High volatility
+  NORMAL: 40, // Normal volatility
+  LOW: 30, // Low volatility (breakout imminent)
 };
 
 // ==========================================
@@ -67,14 +67,19 @@ export class VinceMarketRegimeService extends Service {
   static serviceType = "VINCE_MARKET_REGIME_SERVICE";
   capabilityDescription = "Detects market regime for strategy adaptation";
 
-  private regimeCache: Map<string, { regime: MarketRegime; timestamp: number }> = new Map();
+  private regimeCache: Map<
+    string,
+    { regime: MarketRegime; timestamp: number }
+  > = new Map();
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceMarketRegimeService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceMarketRegimeService> {
     const service = new VinceMarketRegimeService(runtime);
     if (isVinceAgent(runtime)) {
       service.printDashboard();
@@ -114,33 +119,37 @@ export class VinceMarketRegimeService extends Service {
     if (regimes.length === 0) {
       return "REGIME: No data - request regime analysis first";
     }
-    
+
     // Count regime types
     const counts = { trending: 0, ranging: 0, volatile: 0, neutral: 0 };
     for (const r of regimes) {
       counts[r.regime]++;
     }
-    
+
     // Find BTC regime as primary
-    const btc = regimes.find(r => r.asset === "BTC");
-    
+    const btc = regimes.find((r) => r.asset === "BTC");
+
     // Priority 1: Volatile regime (risk management)
     if (counts.volatile > 0) {
-      const volatileAssets = regimes.filter(r => r.regime === "volatile").map(r => r.asset);
+      const volatileAssets = regimes
+        .filter((r) => r.regime === "volatile")
+        .map((r) => r.asset);
       return `VOLATILE: ${volatileAssets.join(", ")} - half size, wider stops`;
     }
-    
+
     // Priority 2: Strong trend
     if (counts.trending >= 2) {
-      const trendingAssets = regimes.filter(r => r.regime === "trending").map(r => r.asset);
+      const trendingAssets = regimes
+        .filter((r) => r.regime === "trending")
+        .map((r) => r.asset);
       return `TRENDING: ${trendingAssets.join(", ")} - ride momentum, follow whales`;
     }
-    
+
     // Priority 3: Range bound
     if (counts.ranging >= 2) {
       return "RANGING: Markets choppy - fade extremes, tight stops";
     }
-    
+
     // Priority 4: BTC specific
     if (btc) {
       if (btc.regime === "trending") {
@@ -150,7 +159,7 @@ export class VinceMarketRegimeService extends Service {
         return `BTC RANGING: ADX ${btc.adx?.toFixed(0) || "N/A"} - mean reversion plays`;
       }
     }
-    
+
     // Default
     return "NEUTRAL: Mixed regimes - standard position sizing";
   }
@@ -166,9 +175,14 @@ export class VinceMarketRegimeService extends Service {
     sep();
     logEmpty();
     for (const r of regimes) {
-      const emoji = r.regime === "trending" ? "📈" :
-                    r.regime === "ranging" ? "↔️" :
-                    r.regime === "volatile" ? "🌊" : "➡️";
+      const emoji =
+        r.regime === "trending"
+          ? "📈"
+          : r.regime === "ranging"
+            ? "↔️"
+            : r.regime === "volatile"
+              ? "🌊"
+              : "➡️";
       const adxStr = r.adx ? `ADX: ${r.adx.toFixed(0)}` : "ADX: N/A";
       const dvolStr = r.dvol ? `DVOL: ${r.dvol.toFixed(0)}` : "";
       const regimeStr = `${emoji} ${r.asset}: ${r.regime.toUpperCase()} ${adxStr} ${dvolStr}`;
@@ -176,10 +190,18 @@ export class VinceMarketRegimeService extends Service {
     }
     sep();
     logEmpty();
-    const btc = regimes.find(r => r.asset === "BTC");
+    const btc = regimes.find((r) => r.asset === "BTC");
     if (btc) {
-      const strategyEmoji = btc.preferMomentum ? "🏃" : btc.preferContrarian ? "🔄" : "⚖️";
-      const strategy = btc.preferMomentum ? "MOMENTUM" : btc.preferContrarian ? "CONTRARIAN" : "NEUTRAL";
+      const strategyEmoji = btc.preferMomentum
+        ? "🏃"
+        : btc.preferContrarian
+          ? "🔄"
+          : "⚖️";
+      const strategy = btc.preferMomentum
+        ? "MOMENTUM"
+        : btc.preferContrarian
+          ? "CONTRARIAN"
+          : "NEUTRAL";
       const sizeStr = `Size: ${(btc.positionSizeMultiplier * 100).toFixed(0)}%`;
       const slStr = `SL: ${btc.stopLossMultiplier.toFixed(1)}x`;
       logLine(`${strategyEmoji} Strategy: ${strategy} ${sizeStr} ${slStr}`);
@@ -187,8 +209,11 @@ export class VinceMarketRegimeService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR(regimes);
-    const tldrEmoji = tldr.includes("TRENDING") ? "💡" :
-                      tldr.includes("VOLATILE") ? "⚠️" : "📋";
+    const tldrEmoji = tldr.includes("TRENDING")
+      ? "💡"
+      : tldr.includes("VOLATILE")
+        ? "⚠️"
+        : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
   }
@@ -201,7 +226,9 @@ export class VinceMarketRegimeService extends Service {
    * Get current regime as a simple shape for ML/similarity (marketRegime + optional volatilityRegime).
    * Used by signal aggregator and paper trading for regime-aware features.
    */
-  async getCurrentRegime(asset: string = "BTC"): Promise<{ marketRegime: string; volatilityRegime?: "high" } | null> {
+  async getCurrentRegime(
+    asset: string = "BTC",
+  ): Promise<{ marketRegime: string; volatilityRegime?: "high" } | null> {
     try {
       const regime = await this.getRegime(asset);
       const marketRegime =
@@ -214,7 +241,9 @@ export class VinceMarketRegimeService extends Service {
               : "neutral";
       return {
         marketRegime,
-        ...(regime.regime === "volatile" ? { volatilityRegime: "high" as const } : {}),
+        ...(regime.regime === "volatile"
+          ? { volatilityRegime: "high" as const }
+          : {}),
       };
     } catch {
       return null;
@@ -231,7 +260,9 @@ export class VinceMarketRegimeService extends Service {
       return cached.regime;
     }
 
-    const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+    const marketData = this.runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as VinceMarketDataService | null;
 
     // Get market context
     let priceChange24h = 0;
@@ -274,8 +305,8 @@ export class VinceMarketRegimeService extends Service {
 
     logger.debug(
       `[VinceMarketRegime] ${asset}: ${regime.type.toUpperCase()} | ` +
-      `ADX: ${adx?.toFixed(1) ?? "N/A"} | DVOL: ${dvol?.toFixed(1) ?? "N/A"} | ` +
-      `Size: ${regime.sizeMultiplier}x | SL: ${regime.slMultiplier}x`
+        `ADX: ${adx?.toFixed(1) ?? "N/A"} | DVOL: ${dvol?.toFixed(1) ?? "N/A"} | ` +
+        `Size: ${regime.sizeMultiplier}x | SL: ${regime.slMultiplier}x`,
     );
 
     return result;
@@ -285,14 +316,17 @@ export class VinceMarketRegimeService extends Service {
    * Estimate ADX from available volatility data
    * This is an approximation - true ADX requires 14-period OHLC calculation
    */
-  private estimateADX(priceChange24h: number, dvol: number | null): number | null {
+  private estimateADX(
+    priceChange24h: number,
+    dvol: number | null,
+  ): number | null {
     // If we have DVOL, use it as a proxy for volatility-adjusted trend strength
     if (dvol !== null) {
       // DVOL 40-60 is normal, scale to ADX-like value
       // High DVOL with directional move = trending
       // High DVOL with small move = choppy/volatile
       const absPriceChange = Math.abs(priceChange24h);
-      
+
       if (absPriceChange > 5) {
         // Strong directional move
         return Math.min(50, 25 + absPriceChange);
@@ -301,12 +335,12 @@ export class VinceMarketRegimeService extends Service {
         return Math.max(10, 20 - absPriceChange * 5);
       }
       // Moderate move
-      return 20 + (absPriceChange * 2);
+      return 20 + absPriceChange * 2;
     }
 
     // Without DVOL, estimate from price change alone
     const absPriceChange = Math.abs(priceChange24h);
-    
+
     if (absPriceChange > 8) {
       return 35; // Strong trend
     } else if (absPriceChange > 5) {
@@ -314,7 +348,7 @@ export class VinceMarketRegimeService extends Service {
     } else if (absPriceChange > 2) {
       return 22; // Weak trend / neutral
     }
-    
+
     return 15; // Ranging
   }
 
@@ -324,7 +358,7 @@ export class VinceMarketRegimeService extends Service {
   private classifyRegime(
     adx: number | null,
     dvol: number | null,
-    priceChange24h: number
+    priceChange24h: number,
   ): {
     type: MarketRegimeType;
     sizeMultiplier: number;
@@ -336,8 +370,8 @@ export class VinceMarketRegimeService extends Service {
     if (dvol !== null && dvol > DVOL_THRESHOLDS.EXTREME) {
       return {
         type: "volatile",
-        sizeMultiplier: 0.5,    // Half position size
-        slMultiplier: 1.5,      // Wider stops
+        sizeMultiplier: 0.5, // Half position size
+        slMultiplier: 1.5, // Wider stops
         preferContrarian: true, // Mean reversion likely
         preferMomentum: false,
       };
@@ -349,15 +383,15 @@ export class VinceMarketRegimeService extends Service {
         return {
           type: "trending",
           sizeMultiplier: 1.0,
-          slMultiplier: 1.2,     // Slightly wider for trends
+          slMultiplier: 1.2, // Slightly wider for trends
           preferContrarian: false,
-          preferMomentum: true,  // Follow the trend
+          preferMomentum: true, // Follow the trend
         };
       } else if (adx < ADX_THRESHOLDS.RANGING) {
         return {
           type: "ranging",
-          sizeMultiplier: 0.8,   // Slightly reduced
-          slMultiplier: 0.8,    // Tighter stops in ranges
+          sizeMultiplier: 0.8, // Slightly reduced
+          slMultiplier: 0.8, // Tighter stops in ranges
           preferContrarian: true, // Mean reversion
           preferMomentum: false,
         };
@@ -367,7 +401,7 @@ export class VinceMarketRegimeService extends Service {
     // Neutral regime
     return {
       type: "neutral",
-      sizeMultiplier: 0.8,      // Slightly reduced
+      sizeMultiplier: 0.8, // Slightly reduced
       slMultiplier: 1.0,
       preferContrarian: false,
       preferMomentum: false,
@@ -381,7 +415,7 @@ export class VinceMarketRegimeService extends Service {
   getSignalAdjustment(
     regime: MarketRegime,
     signalSource: string,
-    signalDirection: "long" | "short"
+    signalDirection: "long" | "short",
   ): number {
     // Define contrarian sources (mean-reversion)
     const contrarianSources = [

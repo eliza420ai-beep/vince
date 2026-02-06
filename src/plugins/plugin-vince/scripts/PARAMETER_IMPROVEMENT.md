@@ -17,7 +17,7 @@ So **yes**: running the script on the JSONL files is part of how the paper tradi
 - **TP optimizer** – which take-profit level to favor (replaces or augments fixed TP multipliers).
 - **SL optimizer** – estimate of max adverse excursion (informs stop placement when label is present).
 
-## What the script does *not* do by default (and what we added)
+## What the script does _not_ do by default (and what we added)
 
 By default the script does **not** print a clear, human-readable list like “raise signal quality threshold to 0.65” or “TP level 2 underperforms.” It only produced ONNX files and a small metadata JSON.
 
@@ -65,8 +65,8 @@ Use them to:
 
 ## Summary
 
-| Question | Answer |
-|----------|--------|
-| Will running the script on JSONL help the paper trading bot get better over time? | **Yes.** It produces ONNX models that the bot uses for signal quality, position sizing, and TP/SL. |
-| Will it clearly identify which parameters and weights can and must be improved? | **Partially by default; explicitly with the improvement report.** The report highlights feature importances, a suggested signal-quality threshold, TP level performance, and action items so you know which parameters to adjust. |
-| True north: bot gets better with ML? | **Yes.** Train regularly on new JSONL, deploy new ONNX models, and use the improvement report to tune rule-based parameters and thresholds. |
+| Question                                                                          | Answer                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Will running the script on JSONL help the paper trading bot get better over time? | **Yes.** It produces ONNX models that the bot uses for signal quality, position sizing, and TP/SL.                                                                                                                                |
+| Will it clearly identify which parameters and weights can and must be improved?   | **Partially by default; explicitly with the improvement report.** The report highlights feature importances, a suggested signal-quality threshold, TP level performance, and action items so you know which parameters to adjust. |
+| True north: bot gets better with ML?                                              | **Yes.** Train regularly on new JSONL, deploy new ONNX models, and use the improvement report to tune rule-based parameters and thresholds.                                                                                       |

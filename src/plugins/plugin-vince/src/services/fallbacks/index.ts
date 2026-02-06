@@ -22,22 +22,30 @@ import { HyperliquidFallbackService } from "./hyperliquid.fallback";
 import { OpenSeaFallbackService } from "./opensea.fallback";
 import { NansenFallbackService } from "./nansen.fallback";
 import { XAIFallbackService, type IXAIService } from "./xai.fallback";
-import { BrowserFallbackService, type IBrowserService } from "./browser.fallback";
+import {
+  BrowserFallbackService,
+  type IBrowserService,
+} from "./browser.fallback";
 
 // Cached fallback instances (singleton per runtime)
-const fallbackInstances = new WeakMap<IAgentRuntime, {
-  deribit?: DeribitFallbackService;
-  hyperliquid?: HyperliquidFallbackService;
-  opensea?: OpenSeaFallbackService;
-  nansen?: NansenFallbackService;
-  xai?: XAIFallbackService;
-  browser?: BrowserFallbackService;
-}>();
+const fallbackInstances = new WeakMap<
+  IAgentRuntime,
+  {
+    deribit?: DeribitFallbackService;
+    hyperliquid?: HyperliquidFallbackService;
+    opensea?: OpenSeaFallbackService;
+    nansen?: NansenFallbackService;
+    xai?: XAIFallbackService;
+    browser?: BrowserFallbackService;
+  }
+>();
 
 /**
  * Get or create fallback instance cache for a runtime
  */
-function getFallbackCache(runtime: IAgentRuntime): NonNullable<ReturnType<typeof fallbackInstances.get>> {
+function getFallbackCache(
+  runtime: IAgentRuntime,
+): NonNullable<ReturnType<typeof fallbackInstances.get>> {
   let cache = fallbackInstances.get(runtime);
   if (!cache) {
     cache = {};
@@ -80,14 +88,20 @@ export function clearServiceSources(): void {
  * @param runtime - Agent runtime
  * @returns Deribit service (external or fallback)
  */
-export function getOrCreateDeribitService(runtime: IAgentRuntime): IDeribitService | null {
+export function getOrCreateDeribitService(
+  runtime: IAgentRuntime,
+): IDeribitService | null {
   // Try external service first
-  const externalService = runtime.getService("DERIBIT_SERVICE") as unknown as IDeribitService | null;
+  const externalService = runtime.getService(
+    "DERIBIT_SERVICE",
+  ) as unknown as IDeribitService | null;
 
   if (externalService) {
     // Verify it has the methods we need
-    if (typeof externalService.getVolatilityIndex === "function" &&
-        typeof externalService.getComprehensiveData === "function") {
+    if (
+      typeof externalService.getVolatilityIndex === "function" &&
+      typeof externalService.getComprehensiveData === "function"
+    ) {
       logger.debug("[FallbackFactory] Using external Deribit service");
 
       // Track source (only once)
@@ -124,14 +138,20 @@ export function getOrCreateDeribitService(runtime: IAgentRuntime): IDeribitServi
  * @param runtime - Agent runtime
  * @returns Hyperliquid service (external or fallback)
  */
-export function getOrCreateHyperliquidService(runtime: IAgentRuntime): IHyperliquidService | null {
+export function getOrCreateHyperliquidService(
+  runtime: IAgentRuntime,
+): IHyperliquidService | null {
   // Try external service first
-  const externalService = runtime.getService("HYPERLIQUID_SERVICE") as unknown as IHyperliquidService | null;
+  const externalService = runtime.getService(
+    "HYPERLIQUID_SERVICE",
+  ) as unknown as IHyperliquidService | null;
 
   if (externalService) {
     // Verify it has the methods we need
-    if (typeof externalService.getOptionsPulse === "function" &&
-        typeof externalService.getCrossVenueFunding === "function") {
+    if (
+      typeof externalService.getOptionsPulse === "function" &&
+      typeof externalService.getCrossVenueFunding === "function"
+    ) {
       logger.debug("[FallbackFactory] Using external Hyperliquid service");
 
       // Track source
@@ -168,9 +188,13 @@ export function getOrCreateHyperliquidService(runtime: IAgentRuntime): IHyperliq
  * @param runtime - Agent runtime
  * @returns OpenSea service (external or fallback)
  */
-export function getOrCreateOpenSeaService(runtime: IAgentRuntime): IOpenSeaService | null {
+export function getOrCreateOpenSeaService(
+  runtime: IAgentRuntime,
+): IOpenSeaService | null {
   // Try external service first
-  const externalService = runtime.getService("opensea") as unknown as IOpenSeaService | null;
+  const externalService = runtime.getService(
+    "opensea",
+  ) as unknown as IOpenSeaService | null;
 
   if (externalService) {
     // Verify it has the methods we need
@@ -214,14 +238,20 @@ export function getOrCreateOpenSeaService(runtime: IAgentRuntime): IOpenSeaServi
  * @param runtime - Agent runtime
  * @returns Nansen service (main or fallback)
  */
-export function getOrCreateNansenService(runtime: IAgentRuntime): INansenService {
+export function getOrCreateNansenService(
+  runtime: IAgentRuntime,
+): INansenService {
   // Try the main Nansen service first
-  const mainService = runtime.getService("VINCE_NANSEN_SERVICE") as unknown as INansenService | null;
+  const mainService = runtime.getService(
+    "VINCE_NANSEN_SERVICE",
+  ) as unknown as INansenService | null;
 
   if (mainService) {
     // Verify it has the methods we need
-    if (typeof mainService.getSmartMoneyTokens === "function" &&
-        typeof mainService.getCreditUsage === "function") {
+    if (
+      typeof mainService.getSmartMoneyTokens === "function" &&
+      typeof mainService.getCreditUsage === "function"
+    ) {
       logger.debug("[FallbackFactory] Using main Nansen service");
 
       // Track source
@@ -236,7 +266,9 @@ export function getOrCreateNansenService(runtime: IAgentRuntime): INansenService
   // Use fallback
   const cache = getFallbackCache(runtime);
   if (!cache.nansen) {
-    logger.info("[FallbackFactory] Creating Nansen fallback service (smart money data unavailable)");
+    logger.info(
+      "[FallbackFactory] Creating Nansen fallback service (smart money data unavailable)",
+    );
     cache.nansen = new NansenFallbackService();
 
     // Track source
@@ -258,14 +290,20 @@ export function getOrCreateNansenService(runtime: IAgentRuntime): INansenService
  * @param runtime - Agent runtime
  * @returns XAI service (external or fallback), or null if not configured
  */
-export function getOrCreateXAIService(runtime: IAgentRuntime): IXAIService | null {
+export function getOrCreateXAIService(
+  runtime: IAgentRuntime,
+): IXAIService | null {
   // Try external service first
-  const externalService = runtime.getService("XAI_SERVICE") as unknown as IXAIService | null;
+  const externalService = runtime.getService(
+    "XAI_SERVICE",
+  ) as unknown as IXAIService | null;
 
   if (externalService) {
     // Verify it has the methods we need
-    if (typeof externalService.isConfigured === "function" &&
-        typeof externalService.generateText === "function") {
+    if (
+      typeof externalService.isConfigured === "function" &&
+      typeof externalService.generateText === "function"
+    ) {
       logger.debug("[FallbackFactory] Using external XAI service");
 
       // Track source
@@ -307,17 +345,19 @@ export function getOrCreateXAIService(runtime: IAgentRuntime): IXAIService | nul
  * @param runtime - Agent runtime
  * @returns Browser service (external or fallback)
  */
-export function getOrCreateBrowserService(runtime: IAgentRuntime): IBrowserService | null {
+export function getOrCreateBrowserService(
+  runtime: IAgentRuntime,
+): IBrowserService | null {
   // Try external services first (multiple possible keys)
-  const externalService = (
-    runtime.getService("BROWSER_AUTOMATION") || 
-    runtime.getService("browser")
-  ) as unknown as IBrowserService | null;
+  const externalService = (runtime.getService("BROWSER_AUTOMATION") ||
+    runtime.getService("browser")) as unknown as IBrowserService | null;
 
   if (externalService) {
     // Verify it has the methods we need (navigate or fetchPage)
-    if (typeof externalService.navigate === "function" || 
-        typeof externalService.fetchPage === "function") {
+    if (
+      typeof externalService.navigate === "function" ||
+      typeof externalService.fetchPage === "function"
+    ) {
       logger.debug("[FallbackFactory] Using external Browser service");
 
       // Track source
@@ -332,7 +372,9 @@ export function getOrCreateBrowserService(runtime: IAgentRuntime): IBrowserServi
   // Use fallback
   const cache = getFallbackCache(runtime);
   if (!cache.browser) {
-    logger.info("[FallbackFactory] Creating Browser fallback service (simple fetch, no JS)");
+    logger.info(
+      "[FallbackFactory] Creating Browser fallback service (simple fetch, no JS)",
+    );
     cache.browser = new BrowserFallbackService(runtime);
 
     // Track source
@@ -353,7 +395,10 @@ export { HyperliquidFallbackService } from "./hyperliquid.fallback";
 export { OpenSeaFallbackService } from "./opensea.fallback";
 export { NansenFallbackService } from "./nansen.fallback";
 export { XAIFallbackService, type IXAIService } from "./xai.fallback";
-export { BrowserFallbackService, type IBrowserService } from "./browser.fallback";
+export {
+  BrowserFallbackService,
+  type IBrowserService,
+} from "./browser.fallback";
 export { PuppeteerBrowserService } from "./puppeteer.browser";
 
 /**
@@ -369,8 +414,12 @@ export function initializeFallbackServices(runtime: IAgentRuntime): void {
   getOrCreateBrowserService(runtime);
 
   const sources = getServiceSources();
-  const external = sources.filter((s) => s.source === "external").map((s) => s.name);
-  const fallback = sources.filter((s) => s.source === "fallback").map((s) => s.name);
+  const external = sources
+    .filter((s) => s.source === "external")
+    .map((s) => s.name);
+  const fallback = sources
+    .filter((s) => s.source === "fallback")
+    .map((s) => s.name);
 
   if (external.length > 0) {
     logger.info(`[FallbackFactory] External services: ${external.join(", ")}`);

@@ -31,9 +31,9 @@ import {
 // ============================================================================
 
 export interface HIP3AssetPrice {
-  symbol: string;           // Normalized (e.g., "NVDA")
-  apiSymbol: string;        // Original (e.g., "xyz:NVDA")
-  dex: HIP3Dex | string;    // "xyz" | "flx" | "vntl" | "km"
+  symbol: string; // Normalized (e.g., "NVDA")
+  apiSymbol: string; // Original (e.g., "xyz:NVDA")
+  dex: HIP3Dex | string; // "xyz" | "flx" | "vntl" | "km"
   category: "commodity" | "index" | "stock" | "ai_tech";
   price: number;
   change24h: number;
@@ -80,8 +80,8 @@ export interface HIP3Pulse {
   fundingExtremes: {
     highest: FundingExtreme | null;
     lowest: FundingExtreme | null;
-    crowdedLongs: string[];   // Symbols with high positive funding
-    crowdedShorts: string[];  // Symbols with high negative funding
+    crowdedLongs: string[]; // Symbols with high positive funding
+    crowdedShorts: string[]; // Symbols with high negative funding
   };
   // Volume and OI leaders
   leaders: {
@@ -129,7 +129,8 @@ const BASE_RETRY_DELAY_MS = 1000;
 
 export class VinceHIP3Service extends Service {
   static serviceType = "VINCE_HIP3_SERVICE";
-  capabilityDescription = "Direct Hyperliquid API integration for HIP-3 asset prices";
+  capabilityDescription =
+    "Direct Hyperliquid API integration for HIP-3 asset prices";
 
   private cache: {
     data: HIP3Pulse | null;
@@ -194,24 +195,40 @@ export class VinceHIP3Service extends Service {
    * Print sexy HIP-3 dashboard to terminal
    */
   private printHIP3Dashboard(pulse: HIP3Pulse): void {
-    const totalAssets = pulse.commodities.length + pulse.indices.length + 
-                        pulse.stocks.length + pulse.aiPlays.length;
-    
+    const totalAssets =
+      pulse.commodities.length +
+      pulse.indices.length +
+      pulse.stocks.length +
+      pulse.aiPlays.length;
+
     // Get key prices
-    const gold = pulse.commodities.find(c => c.symbol === "GOLD");
-    const silver = pulse.commodities.find(c => c.symbol === "SILVER");
-    const spx = pulse.indices.find(i => i.symbol === "SPX" || i.symbol === "INFOTECH");
-    const nvda = pulse.stocks.find(s => s.symbol === "NVDA");
-    const tsla = pulse.stocks.find(s => s.symbol === "TSLA");
-    const spacex = pulse.aiPlays.find(a => a.symbol === "SPACEX") || pulse.stocks.find(s => s.symbol === "SPACEX");
+    const gold = pulse.commodities.find((c) => c.symbol === "GOLD");
+    const silver = pulse.commodities.find((c) => c.symbol === "SILVER");
+    const spx = pulse.indices.find(
+      (i) => i.symbol === "SPX" || i.symbol === "INFOTECH",
+    );
+    const nvda = pulse.stocks.find((s) => s.symbol === "NVDA");
+    const tsla = pulse.stocks.find((s) => s.symbol === "TSLA");
+    const spacex =
+      pulse.aiPlays.find((a) => a.symbol === "SPACEX") ||
+      pulse.stocks.find((s) => s.symbol === "SPACEX");
 
     // Find top movers
-    const allAssets = [...pulse.commodities, ...pulse.indices, ...pulse.stocks, ...pulse.aiPlays];
-    const sortedByChange = [...allAssets].sort((a, b) => Math.abs(b.change24h) - Math.abs(a.change24h));
+    const allAssets = [
+      ...pulse.commodities,
+      ...pulse.indices,
+      ...pulse.stocks,
+      ...pulse.aiPlays,
+    ];
+    const sortedByChange = [...allAssets].sort(
+      (a, b) => Math.abs(b.change24h) - Math.abs(a.change24h),
+    );
     const topMovers = sortedByChange.slice(0, 3);
 
     // Find volume leaders
-    const sortedByVolume = [...allAssets].sort((a, b) => b.volume24h - a.volume24h);
+    const sortedByVolume = [...allAssets].sort(
+      (a, b) => b.volume24h - a.volume24h,
+    );
     const volumeLeaders = sortedByVolume.slice(0, 3);
 
     startBox();
@@ -219,20 +236,27 @@ export class VinceHIP3Service extends Service {
     logEmpty();
     sep();
     logEmpty();
-    logLine(`Commodities: ${pulse.commodities.length}  Indices: ${pulse.indices.length}  Stocks: ${pulse.stocks.length}  AI/Tech: ${pulse.aiPlays.length}`);
+    logLine(
+      `Commodities: ${pulse.commodities.length}  Indices: ${pulse.indices.length}  Stocks: ${pulse.stocks.length}  AI/Tech: ${pulse.aiPlays.length}`,
+    );
     logEmpty();
     sep();
     logEmpty();
     logLine("💰 ALL HIP-3 PRICES");
-    
+
     // Commodities
     if (pulse.commodities.length > 0) {
       logLine("┈┈ COMMODITIES ┈┈");
       for (let i = 0; i < pulse.commodities.length; i += 2) {
         const c1 = pulse.commodities[i];
         const c2 = pulse.commodities[i + 1];
-        const str1 = `${c1.symbol}: $${c1.price.toFixed(2)} (${this.formatChange(c1.change24h)})`.padEnd(32);
-        const str2 = c2 ? `${c2.symbol}: $${c2.price.toFixed(2)} (${this.formatChange(c2.change24h)})` : "";
+        const str1 =
+          `${c1.symbol}: $${c1.price.toFixed(2)} (${this.formatChange(c1.change24h)})`.padEnd(
+            32,
+          );
+        const str2 = c2
+          ? `${c2.symbol}: $${c2.price.toFixed(2)} (${this.formatChange(c2.change24h)})`
+          : "";
         logLine(`${str1}${str2.padEnd(32)}`);
       }
       sep();
@@ -244,8 +268,13 @@ export class VinceHIP3Service extends Service {
       for (let i = 0; i < pulse.indices.length; i += 2) {
         const idx1 = pulse.indices[i];
         const idx2 = pulse.indices[i + 1];
-        const str1 = `${idx1.symbol}: $${idx1.price.toFixed(2)} (${this.formatChange(idx1.change24h)})`.padEnd(32);
-        const str2 = idx2 ? `${idx2.symbol}: $${idx2.price.toFixed(2)} (${this.formatChange(idx2.change24h)})` : "";
+        const str1 =
+          `${idx1.symbol}: $${idx1.price.toFixed(2)} (${this.formatChange(idx1.change24h)})`.padEnd(
+            32,
+          );
+        const str2 = idx2
+          ? `${idx2.symbol}: $${idx2.price.toFixed(2)} (${this.formatChange(idx2.change24h)})`
+          : "";
         logLine(`${str1}${str2.padEnd(32)}`);
       }
       sep();
@@ -257,8 +286,13 @@ export class VinceHIP3Service extends Service {
       for (let i = 0; i < pulse.stocks.length; i += 2) {
         const s1 = pulse.stocks[i];
         const s2 = pulse.stocks[i + 1];
-        const str1 = `${s1.symbol}: $${s1.price.toFixed(2)} (${this.formatChange(s1.change24h)})`.padEnd(32);
-        const str2 = s2 ? `${s2.symbol}: $${s2.price.toFixed(2)} (${this.formatChange(s2.change24h)})` : "";
+        const str1 =
+          `${s1.symbol}: $${s1.price.toFixed(2)} (${this.formatChange(s1.change24h)})`.padEnd(
+            32,
+          );
+        const str2 = s2
+          ? `${s2.symbol}: $${s2.price.toFixed(2)} (${this.formatChange(s2.change24h)})`
+          : "";
         logLine(`${str1}${str2.padEnd(32)}`);
       }
       sep();
@@ -269,8 +303,13 @@ export class VinceHIP3Service extends Service {
       for (let i = 0; i < pulse.aiPlays.length; i += 2) {
         const a1 = pulse.aiPlays[i];
         const a2 = pulse.aiPlays[i + 1];
-        const str1 = `${a1.symbol}: $${a1.price.toFixed(2)} (${this.formatChange(a1.change24h)})`.padEnd(32);
-        const str2 = a2 ? `${a2.symbol}: $${a2.price.toFixed(2)} (${this.formatChange(a2.change24h)})` : "";
+        const str1 =
+          `${a1.symbol}: $${a1.price.toFixed(2)} (${this.formatChange(a1.change24h)})`.padEnd(
+            32,
+          );
+        const str2 = a2
+          ? `${a2.symbol}: $${a2.price.toFixed(2)} (${this.formatChange(a2.change24h)})`
+          : "";
         logLine(`${str1}${str2.padEnd(32)}`);
       }
     }
@@ -304,26 +343,42 @@ export class VinceHIP3Service extends Service {
       { name: "Stocks", avg: sectorStats.stocks.avgChange },
       { name: "AI/Tech", avg: sectorStats.aiPlays.avgChange },
     ].sort((a, b) => b.avg - a.avg);
-    
+
     const hottestEmoji = sectors[0].avg >= 0 ? "🔥" : "❄️";
     const hottestStr = `${hottestEmoji} HOTTEST: ${sectors[0].name} (${this.formatChange(sectors[0].avg)})`;
     const coldestEmoji = sectors[sectors.length - 1].avg >= 0 ? "📈" : "📉";
     const coldestStr = `${coldestEmoji} COLDEST: ${sectors[sectors.length - 1].name} (${this.formatChange(sectors[sectors.length - 1].avg)})`;
     logLine(`${hottestStr}  ${coldestStr}`);
-    const biasEmoji = pulse.summary.overallBias === "bullish" ? "🟢" :
-                      pulse.summary.overallBias === "bearish" ? "🔴" : "⚪";
-    const tradfiVsCrypto = pulse.summary.tradFiVsCrypto === "tradfi_outperforming" ? "TradFi > Crypto" :
-                           pulse.summary.tradFiVsCrypto === "crypto_outperforming" ? "Crypto > TradFi" : "Neutral";
-    logLine(`${biasEmoji} Bias: ${pulse.summary.overallBias.toUpperCase()}  Rotation: ${tradfiVsCrypto}`);
+    const biasEmoji =
+      pulse.summary.overallBias === "bullish"
+        ? "🟢"
+        : pulse.summary.overallBias === "bearish"
+          ? "🔴"
+          : "⚪";
+    const tradfiVsCrypto =
+      pulse.summary.tradFiVsCrypto === "tradfi_outperforming"
+        ? "TradFi > Crypto"
+        : pulse.summary.tradFiVsCrypto === "crypto_outperforming"
+          ? "Crypto > TradFi"
+          : "Neutral";
+    logLine(
+      `${biasEmoji} Bias: ${pulse.summary.overallBias.toUpperCase()}  Rotation: ${tradfiVsCrypto}`,
+    );
     sep();
     logEmpty();
     const tldr = this.getTLDR(pulse);
-    const tldrEmoji = tldr.includes("RISK-ON") || tldr.includes("rotate into") ? "💡" :
-                      tldr.includes("RISK-OFF") || tldr.includes("reduce") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("RISK-ON") || tldr.includes("rotate into")
+        ? "💡"
+        : tldr.includes("RISK-OFF") || tldr.includes("reduce")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
 
-    logger.info(`[VinceHIP3] ✅ Dashboard loaded: ${totalAssets} assets across 4 sectors`);
+    logger.info(
+      `[VinceHIP3] ✅ Dashboard loaded: ${totalAssets} assets across 4 sectors`,
+    );
   }
 
   /**
@@ -331,11 +386,11 @@ export class VinceHIP3Service extends Service {
    */
   private getTLDR(pulse: HIP3Pulse): string {
     const { summary, sectorStats } = pulse;
-    
+
     // Get gold performance for risk sentiment
     const goldChange = summary.goldVsBtc.goldChange;
     const btcChange = summary.goldVsBtc.btcChange;
-    
+
     // Get hottest sector
     const sectors = [
       { name: "Commodities", avg: sectorStats.commodities.avgChange },
@@ -343,10 +398,10 @@ export class VinceHIP3Service extends Service {
       { name: "Stocks", avg: sectorStats.stocks.avgChange },
       { name: "Tech", avg: sectorStats.aiPlays.avgChange },
     ].sort((a, b) => b.avg - a.avg);
-    
+
     const hottestSector = sectors[0];
     const coldestSector = sectors[sectors.length - 1];
-    
+
     // Priority 1: Clear risk-on/risk-off signal
     if (goldChange > 1.5 && btcChange < -1) {
       return "RISK-OFF: Gold up, crypto down - reduce risk exposure";
@@ -354,7 +409,7 @@ export class VinceHIP3Service extends Service {
     if (goldChange < -1 && btcChange > 1.5) {
       return "RISK-ON: Crypto leading, gold weak - favor risk assets";
     }
-    
+
     // Priority 2: TradFi vs Crypto rotation
     if (summary.tradFiVsCrypto === "tradfi_outperforming") {
       return `ROTATION: TradFi leading today, ${hottestSector.name} +${hottestSector.avg.toFixed(1)}%`;
@@ -362,7 +417,7 @@ export class VinceHIP3Service extends Service {
     if (summary.tradFiVsCrypto === "crypto_outperforming") {
       return "ROTATION: Crypto outperforming TradFi today";
     }
-    
+
     // Priority 3: Strong sector moves
     if (hottestSector.avg > 2) {
       return `${hottestSector.name.toUpperCase()} HOT +${hottestSector.avg.toFixed(1)}% - rotate into strength`;
@@ -370,12 +425,12 @@ export class VinceHIP3Service extends Service {
     if (coldestSector.avg < -2) {
       return `${coldestSector.name.toUpperCase()} WEAK ${coldestSector.avg.toFixed(1)}% - avoid or fade`;
     }
-    
+
     // Priority 4: Top performer callout
     if (summary.topPerformer && summary.topPerformer.change > 3) {
       return `${summary.topPerformer.symbol} leading +${summary.topPerformer.change.toFixed(1)}% - momentum play`;
     }
-    
+
     // Default: Overall bias
     if (summary.overallBias === "bullish") {
       return "BULLISH bias - broad strength across sectors";
@@ -383,18 +438,22 @@ export class VinceHIP3Service extends Service {
     if (summary.overallBias === "bearish") {
       return "BEARISH bias - weakness across sectors";
     }
-    
+
     return "MIXED - no clear sector leadership, wait for direction";
   }
 
   /**
    * Test the HIP-3 API connection and return diagnostic info
    */
-  async testConnection(): Promise<{ success: boolean; message: string; data?: unknown }> {
+  async testConnection(): Promise<{
+    success: boolean;
+    message: string;
+    data?: unknown;
+  }> {
     try {
       // Try to fetch data from HIP-3 DEXes
       const hip3Data = await this.fetchAllHIP3Dexes();
-      
+
       if (!hip3Data || hip3Data.length === 0) {
         return { success: false, message: "No HIP-3 DEX data returned" };
       }
@@ -404,33 +463,60 @@ export class VinceHIP3Service extends Service {
       const totalAssets = this.countHIP3Assets(pulse);
 
       if (totalAssets === 0) {
-        return { success: false, message: "No HIP-3 assets found in API response" };
+        return {
+          success: false,
+          message: "No HIP-3 assets found in API response",
+        };
       }
 
       // Get sample prices from each category
-      const samplePrices: { symbol: string; price: number; category: string }[] = [];
-      
+      const samplePrices: {
+        symbol: string;
+        price: number;
+        category: string;
+      }[] = [];
+
       if (pulse.commodities.length > 0) {
-        const gold = pulse.commodities.find(c => c.symbol === "GOLD") || pulse.commodities[0];
-        samplePrices.push({ symbol: gold.symbol, price: gold.price, category: "commodity" });
+        const gold =
+          pulse.commodities.find((c) => c.symbol === "GOLD") ||
+          pulse.commodities[0];
+        samplePrices.push({
+          symbol: gold.symbol,
+          price: gold.price,
+          category: "commodity",
+        });
       }
       if (pulse.indices.length > 0) {
-        const spx = pulse.indices.find(i => i.symbol === "SPX") || pulse.indices[0];
-        samplePrices.push({ symbol: spx.symbol, price: spx.price, category: "index" });
+        const spx =
+          pulse.indices.find((i) => i.symbol === "SPX") || pulse.indices[0];
+        samplePrices.push({
+          symbol: spx.symbol,
+          price: spx.price,
+          category: "index",
+        });
       }
       if (pulse.stocks.length > 0) {
-        const nvda = pulse.stocks.find(s => s.symbol === "NVDA") || pulse.stocks[0];
-        samplePrices.push({ symbol: nvda.symbol, price: nvda.price, category: "stock" });
+        const nvda =
+          pulse.stocks.find((s) => s.symbol === "NVDA") || pulse.stocks[0];
+        samplePrices.push({
+          symbol: nvda.symbol,
+          price: nvda.price,
+          category: "stock",
+        });
       }
       if (pulse.aiPlays.length > 0) {
         const first = pulse.aiPlays[0];
-        samplePrices.push({ symbol: first.symbol, price: first.price, category: "ai_tech" });
+        samplePrices.push({
+          symbol: first.symbol,
+          price: first.price,
+          category: "ai_tech",
+        });
       }
 
       logger.info(
         `[VinceHIP3] 🔗 API TEST SUCCESS | Assets: ${totalAssets} | ` +
-        `Commodities: ${pulse.commodities.length} | Indices: ${pulse.indices.length} | ` +
-        `Stocks: ${pulse.stocks.length} | AI: ${pulse.aiPlays.length}`
+          `Commodities: ${pulse.commodities.length} | Indices: ${pulse.indices.length} | ` +
+          `Stocks: ${pulse.stocks.length} | AI: ${pulse.aiPlays.length}`,
       );
 
       return {
@@ -471,7 +557,9 @@ export class VinceHIP3Service extends Service {
 
   private recordSuccess(): void {
     if (this.circuitOpen) {
-      logger.info("[VinceHIP3] Circuit breaker closed after successful request");
+      logger.info(
+        "[VinceHIP3] Circuit breaker closed after successful request",
+      );
     }
     this.consecutiveErrors = 0;
     this.circuitOpen = false;
@@ -482,7 +570,9 @@ export class VinceHIP3Service extends Service {
     if (this.consecutiveErrors >= this.CIRCUIT_THRESHOLD && !this.circuitOpen) {
       this.circuitOpen = true;
       this.circuitOpenedAt = Date.now();
-      logger.warn("[VinceHIP3] Circuit breaker OPEN - too many consecutive errors");
+      logger.warn(
+        "[VinceHIP3] Circuit breaker OPEN - too many consecutive errors",
+      );
     }
   }
 
@@ -507,8 +597,12 @@ export class VinceHIP3Service extends Service {
         if (!response.ok) {
           if (response.status === 429) {
             // Rate limited - exponential backoff with jitter
-            const backoffMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt) + Math.floor(Math.random() * 500);
-            logger.warn(`[VinceHIP3] Rate limited, backing off ${backoffMs}ms (attempt ${attempt + 1})`);
+            const backoffMs =
+              BASE_RETRY_DELAY_MS * Math.pow(2, attempt) +
+              Math.floor(Math.random() * 500);
+            logger.warn(
+              `[VinceHIP3] Rate limited, backing off ${backoffMs}ms (attempt ${attempt + 1})`,
+            );
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
             continue;
           }
@@ -516,17 +610,21 @@ export class VinceHIP3Service extends Service {
           if (response.status >= 500) {
             // Server error - retry with backoff
             const backoffMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
-            logger.warn(`[VinceHIP3] Server error ${response.status}, retrying in ${backoffMs}ms`);
+            logger.warn(
+              `[VinceHIP3] Server error ${response.status}, retrying in ${backoffMs}ms`,
+            );
             await new Promise((resolve) => setTimeout(resolve, backoffMs));
             continue;
           }
 
-          logger.warn(`[VinceHIP3] API error ${response.status}: ${response.statusText}`);
+          logger.warn(
+            `[VinceHIP3] API error ${response.status}: ${response.statusText}`,
+          );
           this.recordFailure();
           return null;
         }
 
-        const data = await response.json() as T;
+        const data = (await response.json()) as T;
         this.recordSuccess();
         return data;
       } catch (error) {
@@ -534,13 +632,17 @@ export class VinceHIP3Service extends Service {
         const errorMsg = error instanceof Error ? error.message : String(error);
 
         if (isLastAttempt) {
-          logger.warn(`[VinceHIP3] All ${MAX_RETRIES} retry attempts exhausted: ${errorMsg}`);
+          logger.warn(
+            `[VinceHIP3] All ${MAX_RETRIES} retry attempts exhausted: ${errorMsg}`,
+          );
           this.recordFailure();
           return null;
         }
 
         const backoffMs = BASE_RETRY_DELAY_MS * Math.pow(2, attempt);
-        logger.debug(`[VinceHIP3] Transient error, retrying in ${backoffMs}ms: ${errorMsg}`);
+        logger.debug(
+          `[VinceHIP3] Transient error, retrying in ${backoffMs}ms: ${errorMsg}`,
+        );
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
     }
@@ -551,10 +653,12 @@ export class VinceHIP3Service extends Service {
   /**
    * Fetch all perp metas from Hyperliquid API
    */
-  private async fetchAllPerpMetas(): Promise<HyperliquidMetaAndAssetCtxs[] | null> {
+  private async fetchAllPerpMetas(): Promise<
+    HyperliquidMetaAndAssetCtxs[] | null
+  > {
     logger.debug("[VinceHIP3] Calling allPerpMetas endpoint...");
     const data = await this.fetchInfo<any[]>({ type: "allPerpMetas" });
-    
+
     if (!data || !Array.isArray(data) || data.length === 0) {
       logger.debug("[VinceHIP3] allPerpMetas returned no data or empty array");
       return null;
@@ -584,16 +688,24 @@ export class VinceHIP3Service extends Service {
 
       // Log sample symbols from each DEX
       const sampleSymbols = meta.universe.slice(0, 5).map((m: any) => m.name);
-      const hasHip3Prefixes = meta.universe.some((m: any) => m.name?.includes(":"));
-      logger.debug(`[VinceHIP3] DEX ${i}: ${meta.universe.length} assets, hasHIP3=${hasHip3Prefixes}, sample: ${sampleSymbols.join(", ")}`);
+      const hasHip3Prefixes = meta.universe.some((m: any) =>
+        m.name?.includes(":"),
+      );
+      logger.debug(
+        `[VinceHIP3] DEX ${i}: ${meta.universe.length} assets, hasHIP3=${hasHip3Prefixes}, sample: ${sampleSymbols.join(", ")}`,
+      );
 
       results.push([meta, assetCtxs]);
     }
 
     if (invalidCount > 0) {
-      logger.debug(`[VinceHIP3] allPerpMetas: ${invalidCount} of ${data.length} items invalid (not tuples or bad structure)`);
+      logger.debug(
+        `[VinceHIP3] allPerpMetas: ${invalidCount} of ${data.length} items invalid (not tuples or bad structure)`,
+      );
     }
-    logger.debug(`[VinceHIP3] Parsed ${results.length} valid DEX results from ${data.length} items`);
+    logger.debug(
+      `[VinceHIP3] Parsed ${results.length} valid DEX results from ${data.length} items`,
+    );
     return results.length > 0 ? results : null;
   }
 
@@ -616,7 +728,7 @@ export class VinceHIP3Service extends Service {
 
     const seenSymbols = new Set<string>();
     let btcChange = 0;
-    
+
     // Debug: track what we're seeing
     const allSymbols: string[] = [];
     const hip3Matches: string[] = [];
@@ -631,14 +743,15 @@ export class VinceHIP3Service extends Service {
         const rawName = market.name;
         const normalizedSymbol = normalizeHIP3Symbol(rawName);
         const upperSymbol = normalizedSymbol.toUpperCase();
-        
+
         allSymbols.push(rawName);
 
         // Track BTC for comparison
         if (upperSymbol === "BTC") {
           const markPx = parseFloat(ctx.markPx) || 0;
           const prevDayPx = parseFloat(ctx.prevDayPx) || markPx;
-          btcChange = prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
+          btcChange =
+            prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
           continue;
         }
 
@@ -650,7 +763,8 @@ export class VinceHIP3Service extends Service {
 
         const markPx = parseFloat(ctx.markPx) || 0;
         const prevDayPx = parseFloat(ctx.prevDayPx) || markPx;
-        const change24h = prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
+        const change24h =
+          prevDayPx > 0 ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0;
         const volume24h = parseFloat(ctx.dayNtlVlm || "0") || 0;
         const openInterest = parseFloat(ctx.openInterest || "0") || 0;
         const funding8h = this.parseFundingRate(ctx.funding);
@@ -696,7 +810,8 @@ export class VinceHIP3Service extends Service {
     }
 
     // Sort each category by change24h descending
-    const sortByChange = (a: HIP3AssetPrice, b: HIP3AssetPrice) => b.change24h - a.change24h;
+    const sortByChange = (a: HIP3AssetPrice, b: HIP3AssetPrice) =>
+      b.change24h - a.change24h;
     commodities.sort(sortByChange);
     indices.sort(sortByChange);
     stocks.sort(sortByChange);
@@ -704,32 +819,43 @@ export class VinceHIP3Service extends Service {
 
     // Calculate summary
     const allAssets = [...commodities, ...indices, ...stocks, ...aiPlays];
-    
+
     let topPerformer: { symbol: string; change: number } | null = null;
     let worstPerformer: { symbol: string; change: number } | null = null;
-    
+
     if (allAssets.length > 0) {
       const sorted = [...allAssets].sort((a, b) => b.change24h - a.change24h);
       topPerformer = { symbol: sorted[0].symbol, change: sorted[0].change24h };
-      worstPerformer = { symbol: sorted[sorted.length - 1].symbol, change: sorted[sorted.length - 1].change24h };
+      worstPerformer = {
+        symbol: sorted[sorted.length - 1].symbol,
+        change: sorted[sorted.length - 1].change24h,
+      };
     }
 
     // Gold vs BTC comparison
-    const goldAsset = commodities.find(c => c.symbol === "GOLD");
+    const goldAsset = commodities.find((c) => c.symbol === "GOLD");
     const goldChange = goldAsset?.change24h || 0;
     const goldVsBtc = {
       goldChange,
       btcChange,
-      winner: Math.abs(goldChange - btcChange) < 0.5 ? "tie" : 
-              goldChange > btcChange ? "gold" : "btc",
+      winner:
+        Math.abs(goldChange - btcChange) < 0.5
+          ? "tie"
+          : goldChange > btcChange
+            ? "gold"
+            : "btc",
     };
 
     // TradFi vs Crypto rotation
-    const hip3AvgChange = allAssets.length > 0 
-      ? allAssets.reduce((sum, a) => sum + a.change24h, 0) / allAssets.length 
-      : 0;
-    
-    let tradFiVsCrypto: "tradfi_outperforming" | "crypto_outperforming" | "neutral" = "neutral";
+    const hip3AvgChange =
+      allAssets.length > 0
+        ? allAssets.reduce((sum, a) => sum + a.change24h, 0) / allAssets.length
+        : 0;
+
+    let tradFiVsCrypto:
+      | "tradfi_outperforming"
+      | "crypto_outperforming"
+      | "neutral" = "neutral";
     if (hip3AvgChange > btcChange + 2) {
       tradFiVsCrypto = "tradfi_outperforming";
     } else if (btcChange > hip3AvgChange + 2) {
@@ -750,7 +876,8 @@ export class VinceHIP3Service extends Service {
         return { avgChange: 0, totalVolume: 0, totalOI: 0, assetCount: 0 };
       }
       return {
-        avgChange: assets.reduce((sum, a) => sum + a.change24h, 0) / assets.length,
+        avgChange:
+          assets.reduce((sum, a) => sum + a.change24h, 0) / assets.length,
         totalVolume: assets.reduce((sum, a) => sum + a.volume24h, 0),
         totalOI: assets.reduce((sum, a) => sum + a.openInterest, 0),
         assetCount: assets.length,
@@ -765,7 +892,10 @@ export class VinceHIP3Service extends Service {
     };
 
     // Determine hottest sector by average change
-    const sectorAvgs: { sector: "commodities" | "indices" | "stocks" | "ai_tech"; avg: number }[] = [
+    const sectorAvgs: {
+      sector: "commodities" | "indices" | "stocks" | "ai_tech";
+      avg: number;
+    }[] = [
       { sector: "commodities", avg: sectorStatsData.commodities.avgChange },
       { sector: "indices", avg: sectorStatsData.indices.avgChange },
       { sector: "stocks", avg: sectorStatsData.stocks.avgChange },
@@ -776,30 +906,40 @@ export class VinceHIP3Service extends Service {
 
     // Calculate funding extremes
     const FUNDING_THRESHOLD = 0.0001; // 0.01% - consider crowded
-    const allWithFunding = allAssets.filter(a => a.funding8h !== 0);
-    
+    const allWithFunding = allAssets.filter((a) => a.funding8h !== 0);
+
     let highestFunding: FundingExtreme | null = null;
     let lowestFunding: FundingExtreme | null = null;
     const crowdedLongs: string[] = [];
     const crowdedShorts: string[] = [];
 
     if (allWithFunding.length > 0) {
-      const sortedByFunding = [...allWithFunding].sort((a, b) => b.funding8h - a.funding8h);
-      
+      const sortedByFunding = [...allWithFunding].sort(
+        (a, b) => b.funding8h - a.funding8h,
+      );
+
       const highest = sortedByFunding[0];
       highestFunding = {
         symbol: highest.symbol,
         rate: highest.funding8h,
-        interpretation: highest.funding8h > FUNDING_THRESHOLD ? "longs_paying" : 
-                       highest.funding8h < -FUNDING_THRESHOLD ? "shorts_paying" : "neutral",
+        interpretation:
+          highest.funding8h > FUNDING_THRESHOLD
+            ? "longs_paying"
+            : highest.funding8h < -FUNDING_THRESHOLD
+              ? "shorts_paying"
+              : "neutral",
       };
 
       const lowest = sortedByFunding[sortedByFunding.length - 1];
       lowestFunding = {
         symbol: lowest.symbol,
         rate: lowest.funding8h,
-        interpretation: lowest.funding8h > FUNDING_THRESHOLD ? "longs_paying" : 
-                       lowest.funding8h < -FUNDING_THRESHOLD ? "shorts_paying" : "neutral",
+        interpretation:
+          lowest.funding8h > FUNDING_THRESHOLD
+            ? "longs_paying"
+            : lowest.funding8h < -FUNDING_THRESHOLD
+              ? "shorts_paying"
+              : "neutral",
       };
 
       // Find crowded positions
@@ -813,31 +953,41 @@ export class VinceHIP3Service extends Service {
     }
 
     // Calculate volume and OI leaders
-    const sortedByVolume = [...allAssets].sort((a, b) => b.volume24h - a.volume24h);
-    const volumeLeaders = sortedByVolume.slice(0, 5).map(a => ({
+    const sortedByVolume = [...allAssets].sort(
+      (a, b) => b.volume24h - a.volume24h,
+    );
+    const volumeLeaders = sortedByVolume.slice(0, 5).map((a) => ({
       symbol: a.symbol,
       volume: a.volume24h,
     }));
 
-    const sortedByOI = [...allAssets].sort((a, b) => b.openInterest - a.openInterest);
-    const oiLeaders = sortedByOI.slice(0, 5).map(a => ({
+    const sortedByOI = [...allAssets].sort(
+      (a, b) => b.openInterest - a.openInterest,
+    );
+    const oiLeaders = sortedByOI.slice(0, 5).map((a) => ({
       symbol: a.symbol,
       oi: a.openInterest,
     }));
 
     // Debug logging
     if (allAssets.length === 0) {
-      logger.debug(`[VinceHIP3] No HIP-3 assets found. Total symbols seen: ${allSymbols.length}`);
+      logger.debug(
+        `[VinceHIP3] No HIP-3 assets found. Total symbols seen: ${allSymbols.length}`,
+      );
       // Log sample of symbols to help debug
       const sampleSymbols = allSymbols.slice(0, 20);
       logger.debug(`[VinceHIP3] Sample symbols: ${sampleSymbols.join(", ")}`);
       // Check if any HIP-3 prefixed symbols exist
-      const hip3Prefixed = allSymbols.filter(s => s.includes(":"));
+      const hip3Prefixed = allSymbols.filter((s) => s.includes(":"));
       if (hip3Prefixed.length > 0) {
-        logger.debug(`[VinceHIP3] HIP-3 prefixed symbols found: ${hip3Prefixed.slice(0, 10).join(", ")}`);
+        logger.debug(
+          `[VinceHIP3] HIP-3 prefixed symbols found: ${hip3Prefixed.slice(0, 10).join(", ")}`,
+        );
       }
     } else {
-      logger.debug(`[VinceHIP3] Matched ${hip3Matches.length} HIP-3 symbols: ${hip3Matches.slice(0, 10).join(", ")}`);
+      logger.debug(
+        `[VinceHIP3] Matched ${hip3Matches.length} HIP-3 symbols: ${hip3Matches.slice(0, 10).join(", ")}`,
+      );
     }
 
     return {
@@ -880,32 +1030,38 @@ export class VinceHIP3Service extends Service {
   private async getPerpDexs(): Promise<string[]> {
     try {
       const data = await this.fetchInfo<any[]>({ type: "perpDexs" });
-      
+
       if (data && Array.isArray(data) && data.length > 0) {
         // Response format: [null, { name: "xyz" }, { name: "flx" }, ...]
         // First element is null (represents main crypto dex)
-        const dexNames: string[] = [""];  // Empty string = main dex
-        
+        const dexNames: string[] = [""]; // Empty string = main dex
+
         for (const item of data.slice(1)) {
           if (item?.name && typeof item.name === "string") {
             dexNames.push(item.name);
           }
         }
-        
-        logger.debug(`[VinceHIP3] Discovered DEXes from API: ${dexNames.join(", ") || "(main only)"}`);
-        
+
+        logger.debug(
+          `[VinceHIP3] Discovered DEXes from API: ${dexNames.join(", ") || "(main only)"}`,
+        );
+
         // Verify we got at least some HIP-3 DEXes
-        const hasHip3Dexes = dexNames.some(d => VinceHIP3Service.HIP3_DEX_NAMES.includes(d));
+        const hasHip3Dexes = dexNames.some((d) =>
+          VinceHIP3Service.HIP3_DEX_NAMES.includes(d),
+        );
         if (hasHip3Dexes) {
           return dexNames;
         }
-        
-        logger.debug("[VinceHIP3] API response missing HIP-3 DEXes, using fallback");
+
+        logger.debug(
+          "[VinceHIP3] API response missing HIP-3 DEXes, using fallback",
+        );
       }
     } catch (error) {
       logger.debug(`[VinceHIP3] Failed to fetch perpDexs: ${error}`);
     }
-    
+
     // Fallback to hardcoded HIP-3 DEXes
     logger.debug("[VinceHIP3] Using hardcoded DEX list fallback");
     return ["", ...VinceHIP3Service.HIP3_DEX_NAMES];
@@ -914,7 +1070,9 @@ export class VinceHIP3Service extends Service {
   /**
    * Validate metaAndAssetCtxs response structure
    */
-  private validateMetaAndAssetCtxs(data: any): data is [HyperliquidMeta, HyperliquidAssetCtx[]] {
+  private validateMetaAndAssetCtxs(
+    data: any,
+  ): data is [HyperliquidMeta, HyperliquidAssetCtx[]] {
     if (!Array.isArray(data) || data.length < 2) return false;
     const [meta, assetCtxs] = data;
     if (!meta?.universe || !Array.isArray(meta.universe)) return false;
@@ -925,31 +1083,39 @@ export class VinceHIP3Service extends Service {
   /**
    * Fetch metaAndAssetCtxs for a specific DEX
    */
-  private async fetchDexData(dex?: string): Promise<HyperliquidMetaAndAssetCtxs | null> {
+  private async fetchDexData(
+    dex?: string,
+  ): Promise<HyperliquidMetaAndAssetCtxs | null> {
     // Build request body - only include dex if provided (empty string = main dex)
     const body: { type: string; dex?: string } = { type: "metaAndAssetCtxs" };
     if (dex) {
       body.dex = dex;
     }
-    
+
     logger.debug(`[VinceHIP3] Fetching DEX data: ${JSON.stringify(body)}`);
     const data = await this.fetchInfo<[any, any]>(body);
-    
+
     if (this.validateMetaAndAssetCtxs(data)) {
       const [meta, assetCtxs] = data;
       // Log sample symbols for debugging
-      const sampleSymbols = meta.universe.slice(0, 5).map(m => m.name);
-      logger.debug(`[VinceHIP3] DEX ${dex || 'main'}: ${meta.universe.length} assets, sample: ${sampleSymbols.join(", ")}`);
-      
+      const sampleSymbols = meta.universe.slice(0, 5).map((m) => m.name);
+      logger.debug(
+        `[VinceHIP3] DEX ${dex || "main"}: ${meta.universe.length} assets, sample: ${sampleSymbols.join(", ")}`,
+      );
+
       // Validate array length alignment
       if (meta.universe.length !== assetCtxs.length) {
-        logger.warn(`[VinceHIP3] Array length mismatch for DEX ${dex || 'main'}: universe=${meta.universe.length}, ctxs=${assetCtxs.length}`);
+        logger.warn(
+          `[VinceHIP3] Array length mismatch for DEX ${dex || "main"}: universe=${meta.universe.length}, ctxs=${assetCtxs.length}`,
+        );
       }
-      
+
       return [meta, assetCtxs];
     }
-    
-    logger.debug(`[VinceHIP3] Invalid response structure for DEX ${dex || 'main'}`);
+
+    logger.debug(
+      `[VinceHIP3] Invalid response structure for DEX ${dex || "main"}`,
+    );
     return null;
   }
 
@@ -959,15 +1125,19 @@ export class VinceHIP3Service extends Service {
    */
   private async fetchAllHIP3Dexes(): Promise<HyperliquidMetaAndAssetCtxs[]> {
     const results: HyperliquidMetaAndAssetCtxs[] = [];
-    
+
     // Get available DEXes dynamically (with fallback to hardcoded list)
     const allDexes = await this.getPerpDexs();
-    
+
     // Filter to only HIP-3 DEXes (non-empty strings that aren't the main crypto dex)
-    const hip3Dexes = allDexes.filter(d => d !== "" && VinceHIP3Service.HIP3_DEX_NAMES.includes(d));
-    
-    logger.debug(`[VinceHIP3] Fetching from ${hip3Dexes.length} HIP-3 DEXes: ${hip3Dexes.join(", ")}`);
-    
+    const hip3Dexes = allDexes.filter(
+      (d) => d !== "" && VinceHIP3Service.HIP3_DEX_NAMES.includes(d),
+    );
+
+    logger.debug(
+      `[VinceHIP3] Fetching from ${hip3Dexes.length} HIP-3 DEXes: ${hip3Dexes.join(", ")}`,
+    );
+
     // Fetch from each DEX in parallel
     const dexPromises = hip3Dexes.map(async (dex) => {
       try {
@@ -978,9 +1148,9 @@ export class VinceHIP3Service extends Service {
         return null;
       }
     });
-    
+
     const dexResults = await Promise.all(dexPromises);
-    
+
     let totalAssets = 0;
     for (const result of dexResults) {
       if (result) {
@@ -988,22 +1158,28 @@ export class VinceHIP3Service extends Service {
         totalAssets += result[0].universe.length;
       }
     }
-    
-    logger.debug(`[VinceHIP3] Fetched ${results.length}/${hip3Dexes.length} HIP-3 DEXes with ${totalAssets} total assets`);
+
+    logger.debug(
+      `[VinceHIP3] Fetched ${results.length}/${hip3Dexes.length} HIP-3 DEXes with ${totalAssets} total assets`,
+    );
     return results;
   }
 
   /**
    * Fetch standard metaAndAssetCtxs (fallback method - main crypto dex)
    */
-  private async fetchMetaAndAssetCtxs(): Promise<HyperliquidMetaAndAssetCtxs[] | null> {
+  private async fetchMetaAndAssetCtxs(): Promise<
+    HyperliquidMetaAndAssetCtxs[] | null
+  > {
     logger.debug("[VinceHIP3] Trying fallback: metaAndAssetCtxs endpoint...");
-    
+
     const data = await this.fetchDexData(); // No dex = main crypto perps
-    
+
     if (data) {
       const [meta] = data;
-      logger.debug(`[VinceHIP3] Main DEX: ${meta.universe?.length || 0} assets`);
+      logger.debug(
+        `[VinceHIP3] Main DEX: ${meta.universe?.length || 0} assets`,
+      );
       return [data];
     }
 
@@ -1016,8 +1192,12 @@ export class VinceHIP3Service extends Service {
    */
   private countHIP3Assets(pulse: HIP3Pulse | null): number {
     if (!pulse) return 0;
-    return pulse.commodities.length + pulse.indices.length + 
-           pulse.stocks.length + pulse.aiPlays.length;
+    return (
+      pulse.commodities.length +
+      pulse.indices.length +
+      pulse.stocks.length +
+      pulse.aiPlays.length
+    );
   }
 
   /**
@@ -1033,56 +1213,66 @@ export class VinceHIP3Service extends Service {
 
     // Fetch fresh data
     logger.info("[VinceHIP3] Fetching fresh HIP-3 data from Hyperliquid...");
-    
+
     // Strategy 1: Try allPerpMetas (should include all DEXes in one call)
     logger.debug("[VinceHIP3] Strategy 1: Trying allPerpMetas endpoint...");
     let allData = await this.fetchAllPerpMetas();
     let pulse = allData ? this.buildHIP3Pulse(allData) : null;
     let hip3Count = this.countHIP3Assets(pulse);
-    
-    logger.debug(`[VinceHIP3] Strategy 1 result: ${hip3Count} HIP-3 assets found`);
-    
+
+    logger.debug(
+      `[VinceHIP3] Strategy 1 result: ${hip3Count} HIP-3 assets found`,
+    );
+
     // Strategy 2: If no HIP-3 assets, fetch from individual HIP-3 DEXes
     if (hip3Count === 0) {
       logger.debug("[VinceHIP3] Strategy 2: Fetching from individual DEXes...");
-      
+
       // Get main dex for BTC comparison + all HIP-3 dexes
       const mainDexData = await this.fetchMetaAndAssetCtxs();
       const hip3DexData = await this.fetchAllHIP3Dexes();
-      
+
       allData = [];
       if (mainDexData) {
         allData.push(...mainDexData);
-        logger.debug(`[VinceHIP3] Main DEX added: ${mainDexData.length} result(s)`);
+        logger.debug(
+          `[VinceHIP3] Main DEX added: ${mainDexData.length} result(s)`,
+        );
       }
       if (hip3DexData.length > 0) {
         allData.push(...hip3DexData);
-        logger.debug(`[VinceHIP3] HIP-3 DEXes added: ${hip3DexData.length} result(s)`);
+        logger.debug(
+          `[VinceHIP3] HIP-3 DEXes added: ${hip3DexData.length} result(s)`,
+        );
       }
-      
+
       if (allData.length > 0) {
         pulse = this.buildHIP3Pulse(allData);
         hip3Count = this.countHIP3Assets(pulse);
-        logger.debug(`[VinceHIP3] Strategy 2 result: ${hip3Count} HIP-3 assets found`);
+        logger.debug(
+          `[VinceHIP3] Strategy 2 result: ${hip3Count} HIP-3 assets found`,
+        );
       }
     }
-    
+
     // Log diagnostics if still no HIP-3 assets
     if (hip3Count === 0) {
       logger.warn("[VinceHIP3] No HIP-3 assets found from any strategy");
-      logger.debug(`[VinceHIP3] Expected HIP-3 symbols: ${HIP3_ASSETS.slice(0, 10).join(", ")}...`);
-      
+      logger.debug(
+        `[VinceHIP3] Expected HIP-3 symbols: ${HIP3_ASSETS.slice(0, 10).join(", ")}...`,
+      );
+
       if (this.cache.data) {
         logger.info("[VinceHIP3] Returning stale cached data");
         return this.cache.data;
       }
-      
+
       // Return empty pulse rather than null to avoid action failures
       if (pulse) {
         this.cache = { data: pulse, timestamp: now };
         return pulse;
       }
-      
+
       return null;
     }
 
@@ -1093,21 +1283,23 @@ export class VinceHIP3Service extends Service {
     };
 
     // Build summary of key prices
-    const goldPrice = pulse!.commodities.find(c => c.symbol === "GOLD");
-    const spxPrice = pulse!.indices.find(i => i.symbol === "SPX");
-    const nvdaPrice = pulse!.stocks.find(s => s.symbol === "NVDA");
-    
+    const goldPrice = pulse!.commodities.find((c) => c.symbol === "GOLD");
+    const spxPrice = pulse!.indices.find((i) => i.symbol === "SPX");
+    const nvdaPrice = pulse!.stocks.find((s) => s.symbol === "NVDA");
+
     const pricesSummary = [
       goldPrice ? `GOLD: $${goldPrice.price.toFixed(2)}` : null,
       spxPrice ? `SPX: $${spxPrice.price.toFixed(2)}` : null,
       nvdaPrice ? `NVDA: $${nvdaPrice.price.toFixed(2)}` : null,
-    ].filter(Boolean).join(" | ");
+    ]
+      .filter(Boolean)
+      .join(" | ");
 
     logger.info(
       `[VinceHIP3] 📊 PULSE | ${hip3Count} assets | ` +
-      `Commodities: ${pulse!.commodities.length} | Indices: ${pulse!.indices.length} | ` +
-      `Stocks: ${pulse!.stocks.length} | AI: ${pulse!.aiPlays.length}` +
-      (pricesSummary ? ` | ${pricesSummary}` : "")
+        `Commodities: ${pulse!.commodities.length} | Indices: ${pulse!.indices.length} | ` +
+        `Stocks: ${pulse!.stocks.length} | AI: ${pulse!.aiPlays.length}` +
+        (pricesSummary ? ` | ${pricesSummary}` : ""),
     );
 
     return pulse;
@@ -1128,7 +1320,7 @@ export class VinceHIP3Service extends Service {
       ...pulse.aiPlays,
     ];
 
-    return allAssets.find(a => a.symbol === upper) || null;
+    return allAssets.find((a) => a.symbol === upper) || null;
   }
 
   /**
@@ -1138,7 +1330,7 @@ export class VinceHIP3Service extends Service {
     const pulse = await this.getHIP3Pulse();
     if (!pulse) return [];
 
-    const upperSymbols = new Set(symbols.map(s => s.toUpperCase()));
+    const upperSymbols = new Set(symbols.map((s) => s.toUpperCase()));
     const allAssets = [
       ...pulse.commodities,
       ...pulse.indices,
@@ -1146,7 +1338,7 @@ export class VinceHIP3Service extends Service {
       ...pulse.aiPlays,
     ];
 
-    return allAssets.filter(a => upperSymbols.has(a.symbol));
+    return allAssets.filter((a) => upperSymbols.has(a.symbol));
   }
 
   /**
@@ -1156,9 +1348,11 @@ export class VinceHIP3Service extends Service {
     return {
       available: this.cache.data !== null,
       lastUpdate: this.cache.timestamp,
-      assetCount: this.cache.data 
-        ? this.cache.data.commodities.length + this.cache.data.indices.length +
-          this.cache.data.stocks.length + this.cache.data.aiPlays.length
+      assetCount: this.cache.data
+        ? this.cache.data.commodities.length +
+          this.cache.data.indices.length +
+          this.cache.data.stocks.length +
+          this.cache.data.aiPlays.length
         : 0,
     };
   }

@@ -3,8 +3,8 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
@@ -15,16 +15,16 @@
 
 ## Plugin Overview
 
-| Property | Value |
-| --- | --- |
-| **Plugin Name** | `@elizaos/plugin-vince` |
-| **Purpose** | Unified data intelligence for trading, options, perps, memes, and lifestyle |
-| **Services** | 30 services across 7 categories |
-| **Actions** | 20 user-facing actions |
-| **Providers** | 2 context providers |
-| **Evaluators** | 1 trade performance evaluator |
-| **Focus Areas** | OPTIONS, PERPS, HIP-3, MEMETICS, LIFESTYLE, ART |
-| **Core Assets** | BTC, ETH, SOL, HYPE + 34 HIP-3 assets |
+| Property        | Value                                                                       |
+| --------------- | --------------------------------------------------------------------------- |
+| **Plugin Name** | `@elizaos/plugin-vince`                                                     |
+| **Purpose**     | Unified data intelligence for trading, options, perps, memes, and lifestyle |
+| **Services**    | 30 services across 7 categories                                             |
+| **Actions**     | 20 user-facing actions                                                      |
+| **Providers**   | 2 context providers                                                         |
+| **Evaluators**  | 1 trade performance evaluator                                               |
+| **Focus Areas** | OPTIONS, PERPS, HIP-3, MEMETICS, LIFESTYLE, ART                             |
+| **Core Assets** | BTC, ETH, SOL, HYPE + 34 HIP-3 assets                                       |
 
 ## Storage, feature store & deployment
 
@@ -137,114 +137,114 @@ plugin-vince/
 
 ### Market Data Services (10)
 
-| Service | Purpose | API | Cost |
-| --- | --- | --- | --- |
-| `VinceBinanceService` | Top traders, taker flow, OI, funding | Binance Futures | FREE |
-| `VinceBinanceLiquidationService` | Real-time liquidation WebSocket | Binance WS | FREE |
-| `VinceCoinGlassService` | Funding, L/S ratio, Fear/Greed | CoinGlass | $350/yr |
-| `VinceCoinGeckoService` | Prices, exchange health | CoinGecko | FREE |
-| `VinceDeribitService` | IV surface, Greeks, DVOL | Deribit | FREE |
-| `VinceHIP3Service` | HIP-3 asset prices, funding | Hyperliquid | FREE |
-| `VinceMarketDataService` | Aggregated context (RSI, volatility) | Internal | - |
-| `VinceMarketRegimeService` | Regime detection (trending/ranging) | Internal | - |
-| `VinceSignalAggregatorService` | Weighted signal voting with ML | Internal | - |
-| `VinceTopTradersService` | Whale wallet tracking | Hyperliquid, Birdeye | FREE |
+| Service                          | Purpose                              | API                  | Cost    |
+| -------------------------------- | ------------------------------------ | -------------------- | ------- |
+| `VinceBinanceService`            | Top traders, taker flow, OI, funding | Binance Futures      | FREE    |
+| `VinceBinanceLiquidationService` | Real-time liquidation WebSocket      | Binance WS           | FREE    |
+| `VinceCoinGlassService`          | Funding, L/S ratio, Fear/Greed       | CoinGlass            | $350/yr |
+| `VinceCoinGeckoService`          | Prices, exchange health              | CoinGecko            | FREE    |
+| `VinceDeribitService`            | IV surface, Greeks, DVOL             | Deribit              | FREE    |
+| `VinceHIP3Service`               | HIP-3 asset prices, funding          | Hyperliquid          | FREE    |
+| `VinceMarketDataService`         | Aggregated context (RSI, volatility) | Internal             | -       |
+| `VinceMarketRegimeService`       | Regime detection (trending/ranging)  | Internal             | -       |
+| `VinceSignalAggregatorService`   | Weighted signal voting with ML       | Internal             | -       |
+| `VinceTopTradersService`         | Whale wallet tracking                | Hyperliquid, Birdeye | FREE    |
 
 ### On-Chain Analytics (3)
 
-| Service | Purpose | API | Cost |
-| --- | --- | --- | --- |
-| `VinceNansenService` | Smart money flows | Nansen | 100 credits/mo |
-| `VinceSanbaseService` | Network activity, whale flows | Santiment | 1K calls/mo |
-| `VinceNewsSentimentService` | MandoMinutes sentiment | Browser scraping | FREE |
+| Service                     | Purpose                       | API              | Cost           |
+| --------------------------- | ----------------------------- | ---------------- | -------------- |
+| `VinceNansenService`        | Smart money flows             | Nansen           | 100 credits/mo |
+| `VinceSanbaseService`       | Network activity, whale flows | Santiment        | 1K calls/mo    |
+| `VinceNewsSentimentService` | MandoMinutes sentiment        | Browser scraping | FREE           |
 
 ### Memetics and DeFi (3)
 
-| Service | Purpose | API | Cost |
-| --- | --- | --- | --- |
+| Service                   | Purpose                         | API         | Cost |
+| ------------------------- | ------------------------------- | ----------- | ---- |
 | `VinceDexScreenerService` | Meme scanner, traction analysis | DexScreener | FREE |
-| `VinceMeteoraService` | LP pool discovery for DCA | Meteora | FREE |
-| `VinceWatchlistService` | Token watchlist management | Internal | - |
+| `VinceMeteoraService`     | LP pool discovery for DCA       | Meteora     | FREE |
+| `VinceWatchlistService`   | Token watchlist management      | Internal    | -    |
 
 ### Lifestyle and Art (2)
 
-| Service | Purpose | API | Cost |
-| --- | --- | --- | --- |
-| `VinceLifestyleService` | Day-of-week suggestions | Internal | - |
-| `VinceNFTFloorService` | Floor tracking, thickness analysis | OpenSea | FREE |
+| Service                 | Purpose                            | API      | Cost |
+| ----------------------- | ---------------------------------- | -------- | ---- |
+| `VinceLifestyleService` | Day-of-week suggestions            | Internal | -    |
+| `VinceNFTFloorService`  | Floor tracking, thickness analysis | OpenSea  | FREE |
 
 ### Paper Trading Bot (6)
 
-| Service | Purpose |
-| --- | --- |
-| `VincePaperTradingService` | Main orchestration, order simulation, ML integration |
-| `VincePositionManagerService` | Position tracking, P&L updates |
-| `VinceRiskManagerService` | Circuit breakers, session filters |
-| `VinceTradeJournalService` | Trade history, signal performance |
-| `VinceGoalTrackerService` | KPI tracking ($420/day, $10K/month) |
-| `VinceAlertService` | Multi-source alert detection |
+| Service                       | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `VincePaperTradingService`    | Main orchestration, order simulation, ML integration |
+| `VincePositionManagerService` | Position tracking, P&L updates                       |
+| `VinceRiskManagerService`     | Circuit breakers, session filters                    |
+| `VinceTradeJournalService`    | Trade history, signal performance                    |
+| `VinceGoalTrackerService`     | KPI tracking ($420/day, $10K/month)                  |
+| `VinceAlertService`           | Multi-source alert detection                         |
 
 ### ML Enhancement Services (4) - V4
 
-| Service | Purpose | Algorithm |
-| --- | --- | --- |
-| `VinceFeatureStoreService` | Collect 40+ features per trade decision | JSONL persistence |
-| `VinceWeightBanditService` | Adaptive signal source weights | Thompson Sampling |
-| `VinceSignalSimilarityService` | Historical trade similarity lookup | Embedding k-NN |
-| `VinceMLInferenceService` | ONNX model loading and inference | Signal quality, sizing |
+| Service                        | Purpose                                 | Algorithm              |
+| ------------------------------ | --------------------------------------- | ---------------------- |
+| `VinceFeatureStoreService`     | Collect 40+ features per trade decision | JSONL persistence      |
+| `VinceWeightBanditService`     | Adaptive signal source weights          | Thompson Sampling      |
+| `VinceSignalSimilarityService` | Historical trade similarity lookup      | Embedding k-NN         |
+| `VinceMLInferenceService`      | ONNX model loading and inference        | Signal quality, sizing |
 
 ### Self-Improving Architecture (2)
 
-| Service | Purpose |
-| --- | --- |
-| `VinceParameterTunerService` | Bayesian optimization for thresholds |
-| `VinceImprovementJournalService` | Structured improvement suggestions |
+| Service                          | Purpose                              |
+| -------------------------------- | ------------------------------------ |
+| `VinceParameterTunerService`     | Bayesian optimization for thresholds |
+| `VinceImprovementJournalService` | Structured improvement suggestions   |
 
 ## Action Categories
 
 ### Core Trading Actions
 
-| Action | Triggers | Description |
-| --- | --- | --- |
-| `VINCE_GM` | "gm", "good morning", "briefing" | Morning briefing across all domains |
+| Action          | Triggers                            | Description                              |
+| --------------- | ----------------------------------- | ---------------------------------------- |
+| `VINCE_GM`      | "gm", "good morning", "briefing"    | Morning briefing across all domains      |
 | `VINCE_OPTIONS` | "options", "strike", "covered call" | HYPERSURFACE analysis for weekly options |
-| `VINCE_PERPS` | "perps", "trading", "signal" | Perpetual trading signals with narrative |
-| `VINCE_HIP3` | "hip3", "stocks", "gold", "nvda" | HIP-3 asset analysis |
-| `VINCE_INTEL` | "intel", "whales", "liquidations" | Binance market intelligence |
-| `VINCE_NEWS` | "news", "mando", "headlines" | News sentiment analysis |
+| `VINCE_PERPS`   | "perps", "trading", "signal"        | Perpetual trading signals with narrative |
+| `VINCE_HIP3`    | "hip3", "stocks", "gold", "nvda"    | HIP-3 asset analysis                     |
+| `VINCE_INTEL`   | "intel", "whales", "liquidations"   | Binance market intelligence              |
+| `VINCE_NEWS`    | "news", "mando", "headlines"        | News sentiment analysis                  |
 
 ### Memetics and Airdrops
 
-| Action | Triggers | Description |
-| --- | --- | --- |
-| `VINCE_MEMES` | "memes", "trenches", "ai token" | Hot meme scanner with traction analysis |
-| `VINCE_MEME_DEEP_DIVE` | "deep dive $TOKEN", "dd $TOKEN" | Detailed analysis of specific meme |
-| `VINCE_AIRDROPS` | "airdrops", "farming", "treadfi" | Airdrop strategy guidance |
+| Action                 | Triggers                         | Description                             |
+| ---------------------- | -------------------------------- | --------------------------------------- |
+| `VINCE_MEMES`          | "memes", "trenches", "ai token"  | Hot meme scanner with traction analysis |
+| `VINCE_MEME_DEEP_DIVE` | "deep dive $TOKEN", "dd $TOKEN"  | Detailed analysis of specific meme      |
+| `VINCE_AIRDROPS`       | "airdrops", "farming", "treadfi" | Airdrop strategy guidance               |
 
 ### Paper Trading Bot
 
-| Action | Triggers | Description |
-| --- | --- | --- |
-| `VINCE_BOT_TRADE` | "trade", "execute", "go long/short" | Evaluate and trigger paper trade |
-| `VINCE_BOT_STATUS` | "bot status", "portfolio" | Portfolio and position status |
-| `VINCE_BOT_PAUSE` | "pause bot", "resume bot" | Pause/resume trading |
-| `VINCE_WHY_TRADE` | "why", "explain", "reasoning" | Explain trading decisions |
+| Action             | Triggers                            | Description                      |
+| ------------------ | ----------------------------------- | -------------------------------- |
+| `VINCE_BOT_TRADE`  | "trade", "execute", "go long/short" | Evaluate and trigger paper trade |
+| `VINCE_BOT_STATUS` | "bot status", "portfolio"           | Portfolio and position status    |
+| `VINCE_BOT_PAUSE`  | "pause bot", "resume bot"           | Pause/resume trading             |
+| `VINCE_WHY_TRADE`  | "why", "explain", "reasoning"       | Explain trading decisions        |
 
 ### Lifestyle and Art
 
-| Action | Triggers | Description |
-| --- | --- | --- |
-| `VINCE_LIFESTYLE` | "lifestyle", "dining", "hotel" | Day-of-week aware suggestions |
-| `VINCE_NFT_FLOOR` | "nft", "floor", "punk" | Thin floor buying opportunities |
+| Action            | Triggers                       | Description                     |
+| ----------------- | ------------------------------ | ------------------------------- |
+| `VINCE_LIFESTYLE` | "lifestyle", "dining", "hotel" | Day-of-week aware suggestions   |
+| `VINCE_NFT_FLOOR` | "nft", "floor", "punk"         | Thin floor buying opportunities |
 
 ### Knowledge and Research
 
-| Action | Triggers | Description |
-| --- | --- | --- |
-| `VINCE_UPLOAD` | "upload:", "save this:", URLs | Knowledge ingestion |
+| Action              | Triggers                          | Description                |
+| ------------------- | --------------------------------- | -------------------------- |
+| `VINCE_UPLOAD`      | "upload:", "save this:", URLs     | Knowledge ingestion        |
 | `VINCE_GROK_EXPERT` | "grok pulse", "prompt of the day" | Daily research suggestions |
-| `VINCE_WATCHLIST` | "watchlist", "watch $TOKEN" | Manage token watchlist |
-| `VINCE_ALERTS` | "alerts", "notifications" | View and manage alerts |
+| `VINCE_WATCHLIST`   | "watchlist", "watch $TOKEN"       | Manage token watchlist     |
+| `VINCE_ALERTS`      | "alerts", "notifications"         | View and manage alerts     |
 
 ## Key Technical Patterns
 
@@ -261,6 +261,7 @@ if (!deribitService) {
 ```
 
 **Fallback Coverage:**
+
 - Deribit → Built-in API client
 - Hyperliquid → Built-in API client
 - OpenSea → Built-in API client
@@ -275,7 +276,7 @@ Services implement exponential backoff and circuit breakers:
 const CIRCUIT_BREAKER = {
   maxFailures: 3,
   resetTimeMs: 60000,
-  backoffMs: [1000, 2000, 4000]
+  backoffMs: [1000, 2000, 4000],
 };
 ```
 
@@ -283,13 +284,13 @@ const CIRCUIT_BREAKER = {
 
 From `utils/sessionFilters.ts`:
 
-| Session | Hours (UTC) | Confidence | Size |
-| --- | --- | --- | --- |
-| Asia | 00:00-07:00 | 0.9x | 0.8x |
-| Europe | 07:00-13:00 | 1.0x | 1.0x |
-| EU/US Overlap | 13:00-16:00 | 1.1x | 1.1x |
-| US | 16:00-22:00 | 1.0x | 1.0x |
-| Off-Hours | 22:00-00:00 | 0.8x | 0.7x |
+| Session       | Hours (UTC) | Confidence | Size |
+| ------------- | ----------- | ---------- | ---- |
+| Asia          | 00:00-07:00 | 0.9x       | 0.8x |
+| Europe        | 07:00-13:00 | 1.0x       | 1.0x |
+| EU/US Overlap | 13:00-16:00 | 1.1x       | 1.1x |
+| US            | 16:00-22:00 | 1.0x       | 1.0x |
+| Off-Hours     | 22:00-00:00 | 0.8x       | 0.7x |
 
 Weekend trading applies additional 0.8x confidence multiplier.
 
@@ -297,14 +298,14 @@ Weekend trading applies additional 0.8x confidence multiplier.
 
 From `constants/paperTradingDefaults.ts`:
 
-| Source | Weight | Rationale |
-| --- | --- | --- |
-| Top Traders | 40 | Primary signal from whale activity |
-| Market Data | 20 | Funding, OI, L/S ratio |
-| Technical | 15 | RSI, SMA, price action |
-| Sentiment | 10 | Fear/greed index |
-| News | 10 | MandoMinutes sentiment |
-| On-Chain | 5 | Nansen, Sanbase data |
+| Source      | Weight | Rationale                          |
+| ----------- | ------ | ---------------------------------- |
+| Top Traders | 40     | Primary signal from whale activity |
+| Market Data | 20     | Funding, OI, L/S ratio             |
+| Technical   | 15     | RSI, SMA, price action             |
+| Sentiment   | 10     | Fear/greed index                   |
+| News        | 10     | MandoMinutes sentiment             |
+| On-Chain    | 5      | Nansen, Sanbase data               |
 
 Historical performance adjusts weights via Thompson Sampling.
 
@@ -314,10 +315,10 @@ From `services/goalTracker.service.ts`:
 
 ```typescript
 const TRADING_GOALS = {
-  dailyTarget: 420,      // $420/day
-  monthlyTarget: 10000,  // $10K/month
-  maxDailyLoss: 200,     // Stop trading after $200 loss
-  maxDrawdown: 0.15      // 15% portfolio drawdown circuit breaker
+  dailyTarget: 420, // $420/day
+  monthlyTarget: 10000, // $10K/month
+  maxDailyLoss: 200, // Stop trading after $200 loss
+  maxDrawdown: 0.15, // 15% portfolio drawdown circuit breaker
 };
 ```
 
@@ -327,47 +328,48 @@ const TRADING_GOALS = {
 
 **Layer 1: Online Learning (Immediate Adaptation)**
 
-| Component | Algorithm | Persistence |
-| --- | --- | --- |
-| Weight Bandit | Thompson Sampling | `weight-bandit-state.json` |
-| Signal Similarity | Embedding k-NN | `signal-similarity-state.json` |
-| Parameter Tuner | Bayesian Optimization | `bayesian-tuner-state.json` |
+| Component         | Algorithm             | Persistence                    |
+| ----------------- | --------------------- | ------------------------------ |
+| Weight Bandit     | Thompson Sampling     | `weight-bandit-state.json`     |
+| Signal Similarity | Embedding k-NN        | `signal-similarity-state.json` |
+| Parameter Tuner   | Bayesian Optimization | `bayesian-tuner-state.json`    |
 
 **Layer 2: Feature Collection (Training Data)**
 
 The Feature Store captures 40+ features per trading decision:
 
-| Category | Features |
-| --- | --- |
-| Market | Price, 1h/4h/24h changes, volume, ATR, RSI |
-| Session | Current session, overlap flag, weekend flag |
-| Signal | Strength, confidence, confirming count, source breakdown |
-| Regime | Trend direction, strength, volatility quantile |
-| News | Headline sentiment, impact score |
-| Execution | Fill price, slippage, leverage, streak multiplier |
-| Outcome | P&L, R-multiple, MAE, MFE, duration, exit reason |
+| Category  | Features                                                 |
+| --------- | -------------------------------------------------------- |
+| Market    | Price, 1h/4h/24h changes, volume, ATR, RSI               |
+| Session   | Current session, overlap flag, weekend flag              |
+| Signal    | Strength, confidence, confirming count, source breakdown |
+| Regime    | Trend direction, strength, volatility quantile           |
+| News      | Headline sentiment, impact score                         |
+| Execution | Fill price, slippage, leverage, streak multiplier        |
+| Outcome   | P&L, R-multiple, MAE, MFE, duration, exit reason         |
 
 **Layer 3: Offline Training (ONNX Inference)**
 
-| Model | Type | Use Case |
-| --- | --- | --- |
-| Signal Quality | Binary Classification | Filter low-quality signals |
-| Position Sizing | Regression | Dynamic position sizing |
-| TP Optimizer | Multi-class | Optimize take-profit levels |
-| SL Optimizer | Quantile Regression | ATR-calibrated stop losses |
+| Model           | Type                  | Use Case                    |
+| --------------- | --------------------- | --------------------------- |
+| Signal Quality  | Binary Classification | Filter low-quality signals  |
+| Position Sizing | Regression            | Dynamic position sizing     |
+| TP Optimizer    | Multi-class           | Optimize take-profit levels |
+| SL Optimizer    | Quantile Regression   | ATR-calibrated stop losses  |
 
 ### Graceful Degradation
 
 Every ML component has a fallback path:
 
-| Component | If Available | Fallback |
-| --- | --- | --- |
-| Weight Bandit | Sample from Beta distributions | Static weights from `dynamicConfig` |
-| Signal Similarity | k-NN on embeddings | Return neutral recommendation |
-| ML Inference | ONNX model prediction | Rule-based signal filtering |
-| Parameter Tuner | Bayesian proposal | Rule-based threshold adjustment |
+| Component         | If Available                   | Fallback                            |
+| ----------------- | ------------------------------ | ----------------------------------- |
+| Weight Bandit     | Sample from Beta distributions | Static weights from `dynamicConfig` |
+| Signal Similarity | k-NN on embeddings             | Return neutral recommendation       |
+| ML Inference      | ONNX model prediction          | Rule-based signal filtering         |
+| Parameter Tuner   | Bayesian proposal              | Rule-based threshold adjustment     |
 
 **Timeline:**
+
 - Day 1: Bot works with rule-based logic (V3 behavior)
 - Day 30: Online learning kicks in (Thompson Sampling, Similarity)
 - Day 90+: Enough data to train offline models (ONNX inference)
@@ -392,12 +394,12 @@ bun run test:watch
 
 ### Test File Locations
 
-| Type | Location | Description |
-| --- | --- | --- |
-| Unit Tests | `src/__tests__/*.test.ts` | Component tests with mocks |
-| Action Tests | `src/__tests__/actions/*.test.ts` | Action handler tests |
-| E2E Tests | `src/__tests__/*.e2e.test.ts` | Real API integration tests |
-| Test Utilities | `src/__tests__/test-utils.ts` | Mock factories and helpers |
+| Type           | Location                          | Description                |
+| -------------- | --------------------------------- | -------------------------- |
+| Unit Tests     | `src/__tests__/*.test.ts`         | Component tests with mocks |
+| Action Tests   | `src/__tests__/actions/*.test.ts` | Action handler tests       |
+| E2E Tests      | `src/__tests__/*.e2e.test.ts`     | Real API integration tests |
+| Test Utilities | `src/__tests__/test-utils.ts`     | Mock factories and helpers |
 
 ### Testing Patterns
 
@@ -409,7 +411,7 @@ describe("vincePerpsAction", () => {
   it("should generate trading signal", async () => {
     const runtime = createMockRuntime();
     const message = createMockMessage("perps BTC");
-    
+
     const result = await vincePerpsAction.handler(runtime, message);
     expect(result.success).toBe(true);
   });
@@ -462,19 +464,19 @@ Add the plugin to your character's plugins array:
 
 All persistent data is stored in `.elizadb/vince-paper-bot/`:
 
-| File | Purpose |
-| --- | --- |
-| `features/*.jsonl` | Feature store for ML training |
-| `weight-bandit-state.json` | Thompson Sampling win/loss counts |
-| `signal-similarity-state.json` | Embedded trade contexts |
-| `bayesian-tuner-state.json` | Parameter optimization history |
-| `improvement-journal.md` | Structured improvement suggestions |
-| `portfolio.json` | Paper trading portfolio state |
-| `positions.json` | Open position tracking |
-| `journal.json` | Trade history |
-| `risk-state.json` | Circuit breaker state |
-| `goal-tracker.json` | Daily/monthly KPI tracking |
-| `tuned-config.json` | Dynamically tuned parameters |
+| File                           | Purpose                            |
+| ------------------------------ | ---------------------------------- |
+| `features/*.jsonl`             | Feature store for ML training      |
+| `weight-bandit-state.json`     | Thompson Sampling win/loss counts  |
+| `signal-similarity-state.json` | Embedded trade contexts            |
+| `bayesian-tuner-state.json`    | Parameter optimization history     |
+| `improvement-journal.md`       | Structured improvement suggestions |
+| `portfolio.json`               | Paper trading portfolio state      |
+| `positions.json`               | Open position tracking             |
+| `journal.json`                 | Trade history                      |
+| `risk-state.json`              | Circuit breaker state              |
+| `goal-tracker.json`            | Daily/monthly KPI tracking         |
+| `tuned-config.json`            | Dynamically tuned parameters       |
 
 ### Inspecting State
 
@@ -498,22 +500,22 @@ From `src/constants/paperTradingDefaults.ts`:
 ```typescript
 // Trading goals
 const DEFAULT_TRADING_GOAL = {
-  dailyTarget: 420,        // $420/day target
-  monthlyTarget: 10_000,   // $10K/month
-  riskPerTradePct: 1.5,    // 1.5% risk per trade
-  maxDailyDrawdownPct: 5,  // Stop at 5% daily loss
-  targetWinRate: 55,       // 55% win rate target
-  targetRiskReward: 1.5,   // 1.5:1 R:R ratio
+  dailyTarget: 420, // $420/day target
+  monthlyTarget: 10_000, // $10K/month
+  riskPerTradePct: 1.5, // 1.5% risk per trade
+  maxDailyDrawdownPct: 5, // Stop at 5% daily loss
+  targetWinRate: 55, // 55% win rate target
+  targetRiskReward: 1.5, // 1.5:1 R:R ratio
 };
 
 // Risk limits
 const DEFAULT_RISK_LIMITS = {
-  maxPositionSizePct: 10,     // Max 10% per position
-  maxTotalExposurePct: 30,    // Max 30% total exposure
-  maxLeverage: 5,             // Max 5x leverage
-  minSignalStrength: 70,      // Minimum signal strength
-  minSignalConfidence: 65,    // Minimum confidence
-  minConfirmingSignals: 3,    // Need 3 confirming signals
+  maxPositionSizePct: 10, // Max 10% per position
+  maxTotalExposurePct: 30, // Max 30% total exposure
+  maxLeverage: 5, // Max 5x leverage
+  minSignalStrength: 70, // Minimum signal strength
+  minSignalConfidence: 65, // Minimum confidence
+  minConfirmingSignals: 3, // Need 3 confirming signals
 };
 
 // Signal thresholds
@@ -533,6 +535,7 @@ From `src/constants/targetAssets.ts`:
 **Primary Trading Assets:** BTC, ETH, SOL, HYPE
 
 **HIP-3 Assets (34 total):**
+
 - Commodities: GOLD, SILVER, OIL
 - Indices: SPX, NDX, DJI
 - Stocks: NVDA, AAPL, TSLA, MSFT, GOOGL, AMZN, META
@@ -552,23 +555,23 @@ export const vinceNewFeatureAction: Action = {
   name: "VINCE_NEW_FEATURE",
   description: "Description of what this action does",
   similes: ["new feature", "feature", "trigger words"],
-  
+
   validate: async (runtime: IAgentRuntime, message: Memory) => {
     const text = message.content.text?.toLowerCase() || "";
     return text.includes("new feature");
   },
-  
+
   handler: async (runtime, message, state, options, callback) => {
     // Get required services
     const marketData = runtime.getService("vince-market-data");
-    
+
     // Generate response
     const response = "Your response here";
-    
+
     await callback({ text: response });
     return { success: true };
   },
-  
+
   examples: [
     [
       { name: "user", content: { text: "new feature" } },
@@ -604,7 +607,7 @@ describe("vinceNewFeatureAction", () => {
   it("should validate correctly", async () => {
     const runtime = createMockRuntime();
     const message = createMockMessage("new feature");
-    
+
     const valid = await vinceNewFeatureAction.validate(runtime, message);
     expect(valid).toBe(true);
   });
@@ -621,25 +624,25 @@ import { Service, IAgentRuntime, logger } from "@elizaos/core";
 
 export class VinceNewDataService extends Service {
   static serviceType = "vince-new-data";
-  
+
   private cache: Map<string, any> = new Map();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
-  
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
-  
+
   static async start(runtime: IAgentRuntime): Promise<VinceNewDataService> {
     const service = new VinceNewDataService(runtime);
     logger.info("[VinceNewDataService] Started");
     return service;
   }
-  
+
   async stop(): Promise<void> {
     this.cache.clear();
     logger.info("[VinceNewDataService] Stopped");
   }
-  
+
   async getData(): Promise<any> {
     // Implementation with caching
     const cacheKey = "data";
@@ -647,13 +650,13 @@ export class VinceNewDataService extends Service {
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
       return cached.data;
     }
-    
+
     // Fetch fresh data
     const data = await this.fetchData();
     this.cache.set(cacheKey, { data, timestamp: Date.now() });
     return data;
   }
-  
+
   private async fetchData(): Promise<any> {
     // API call implementation
   }
@@ -708,6 +711,7 @@ LOG_LEVEL=debug elizaos start
 ```
 
 Look for log lines like:
+
 ```
 [SignalAggregator] BTC signal: strength=72, confidence=68, sources=["funding", "liquidation", "whale"]
 [SignalAggregator] Session adjustment: EU/US Overlap (1.1x confidence)
@@ -718,11 +722,11 @@ Look for log lines like:
 
 Important: 2 of 3 whale sources were found to provide stale or fake data:
 
-| Source | Weight | Status | Notes |
-| --- | --- | --- | --- |
-| TopTraders | 0.0 (disabled) | No data | Requires manual wallet addresses in `wallets.json` |
-| SanbaseWhales | 0.0 (disabled) | 30-day lag | Santiment free tier has 30-day delay |
-| BinanceTopTraders | 1.0 | Working | Only real whale data currently active |
+| Source            | Weight         | Status     | Notes                                              |
+| ----------------- | -------------- | ---------- | -------------------------------------------------- |
+| TopTraders        | 0.0 (disabled) | No data    | Requires manual wallet addresses in `wallets.json` |
+| SanbaseWhales     | 0.0 (disabled) | 30-day lag | Santiment free tier has 30-day delay               |
+| BinanceTopTraders | 1.0            | Working    | Only real whale data currently active              |
 
 **Upgrade Path:** CoinGlass Startup tier ($79/mo) adds Hyperliquid whale alerts.
 

@@ -1,21 +1,32 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/frontend/components/ui/card"
-import { Button } from "@/frontend/components/ui/button"
-import { Input } from "@/frontend/components/ui/input"
-import { Label } from "@/frontend/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/frontend/components/ui/select"
-import { Slider } from "@/frontend/components/ui/slider"
-import { Bullet } from "@/frontend/components/ui/bullet"
-import { Loader2, Sparkles, Download } from "lucide-react"
+import { useState } from "react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/frontend/components/ui/card";
+import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
+import { Label } from "@/frontend/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/frontend/components/ui/select";
+import { Slider } from "@/frontend/components/ui/slider";
+import { Bullet } from "@/frontend/components/ui/bullet";
+import { Loader2, Sparkles, Download } from "lucide-react";
 
 const MODELS = [
   { id: "flux-pro", name: "FLUX Pro" },
   { id: "flux-dev", name: "FLUX Dev" },
   { id: "stable-diffusion-xl", name: "Stable Diffusion XL" },
   { id: "dalle-3", name: "DALL-E 3" },
-]
+];
 
 const ASPECT_RATIOS = [
   { id: "1:1", name: "Square", value: "1:1" },
@@ -23,7 +34,7 @@ const ASPECT_RATIOS = [
   { id: "9:16", name: "Portrait", value: "9:16" },
   { id: "4:3", name: "Classic", value: "4:3" },
   { id: "3:4", name: "Classic Portrait", value: "3:4" },
-]
+];
 
 const STYLES = [
   { id: "none", name: "None" },
@@ -34,27 +45,27 @@ const STYLES = [
   { id: "watercolor", name: "Watercolor" },
   { id: "3d-render", name: "3D Render" },
   { id: "minimalist", name: "Minimalist" },
-]
+];
 
 interface GeneratedImage {
-  id: string
-  url: string
-  prompt: string
+  id: string;
+  url: string;
+  prompt: string;
 }
 
 export function ImageStudio() {
-  const [model, setModel] = useState(MODELS[0].id)
-  const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0].id)
-  const [style, setStyle] = useState(STYLES[0].id)
-  const [prompt, setPrompt] = useState("")
-  const [variationCount, setVariationCount] = useState([2])
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([])
+  const [model, setModel] = useState(MODELS[0].id);
+  const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0].id);
+  const [style, setStyle] = useState(STYLES[0].id);
+  const [prompt, setPrompt] = useState("");
+  const [variationCount, setVariationCount] = useState([2]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return
+    if (!prompt.trim()) return;
 
-    setIsGenerating(true)
+    setIsGenerating(true);
     try {
       const response = await fetch("/api/generate-image", {
         method: "POST",
@@ -66,18 +77,18 @@ export function ImageStudio() {
           prompt,
           count: variationCount[0],
         }),
-      })
+      });
 
-      if (!response.ok) throw new Error("Generation failed")
+      if (!response.ok) throw new Error("Generation failed");
 
-      const data = await response.json()
-      setGeneratedImages(data.images)
+      const data = await response.json();
+      setGeneratedImages(data.images);
     } catch (error) {
-      console.error("[v0] Image generation error:", error)
+      console.error("[v0] Image generation error:", error);
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,11 +102,17 @@ export function ImageStudio() {
         <CardContent className="flex-1 relative">
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2.5">
-              <Label htmlFor="model" className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <Label
+                htmlFor="model"
+                className="text-xs font-mono text-muted-foreground uppercase tracking-wider"
+              >
                 Model
               </Label>
               <Select value={model} onValueChange={setModel}>
-                <SelectTrigger id="model" className="bg-background/50 border-border/50 font-mono">
+                <SelectTrigger
+                  id="model"
+                  className="bg-background/50 border-border/50 font-mono"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -109,11 +126,17 @@ export function ImageStudio() {
             </div>
 
             <div className="space-y-2.5">
-              <Label htmlFor="aspect" className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <Label
+                htmlFor="aspect"
+                className="text-xs font-mono text-muted-foreground uppercase tracking-wider"
+              >
                 Aspect Ratio
               </Label>
               <Select value={aspectRatio} onValueChange={setAspectRatio}>
-                <SelectTrigger id="aspect" className="bg-background/50 border-border/50 font-mono">
+                <SelectTrigger
+                  id="aspect"
+                  className="bg-background/50 border-border/50 font-mono"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -127,11 +150,17 @@ export function ImageStudio() {
             </div>
 
             <div className="space-y-2.5">
-              <Label htmlFor="style" className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <Label
+                htmlFor="style"
+                className="text-xs font-mono text-muted-foreground uppercase tracking-wider"
+              >
                 Style
               </Label>
               <Select value={style} onValueChange={setStyle}>
-                <SelectTrigger id="style" className="bg-background/50 border-border/50 font-mono">
+                <SelectTrigger
+                  id="style"
+                  className="bg-background/50 border-border/50 font-mono"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,7 +174,10 @@ export function ImageStudio() {
             </div>
 
             <div className="space-y-2.5">
-              <Label htmlFor="variations" className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <Label
+                htmlFor="variations"
+                className="text-xs font-mono text-muted-foreground uppercase tracking-wider"
+              >
                 Variations: {variationCount[0]}
               </Label>
               <Slider
@@ -161,7 +193,10 @@ export function ImageStudio() {
           </div>
 
           <div className="mt-6 space-y-2.5">
-            <Label htmlFor="prompt" className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+            <Label
+              htmlFor="prompt"
+              className="text-xs font-mono text-muted-foreground uppercase tracking-wider"
+            >
               Prompt
             </Label>
             <div className="flex gap-2.5">
@@ -173,8 +208,8 @@ export function ImageStudio() {
                 className="flex-1 bg-background/50 border-border/50 font-mono placeholder:text-muted-foreground/50"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    handleGenerate()
+                    e.preventDefault();
+                    handleGenerate();
                   }
                 }}
               />
@@ -208,7 +243,8 @@ export function ImageStudio() {
               Generated Images
             </CardTitle>
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-mono">
-              {generatedImages.length} {generatedImages.length === 1 ? "Image" : "Images"}
+              {generatedImages.length}{" "}
+              {generatedImages.length === 1 ? "Image" : "Images"}
             </span>
           </CardHeader>
           <CardContent className="flex-1 relative">
@@ -218,7 +254,11 @@ export function ImageStudio() {
                   key={image.id}
                   className="group relative aspect-square overflow-hidden rounded-lg border border-border/50 bg-card/30"
                 >
-                  <img src={image.url || "/placeholder.svg"} alt={image.prompt} className="size-full object-cover" />
+                  <img
+                    src={image.url || "/placeholder.svg"}
+                    alt={image.prompt}
+                    className="size-full object-cover"
+                  />
                   <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <Button size="sm" variant="secondary" asChild>
                       <a href={image.url} download>
@@ -239,7 +279,9 @@ export function ImageStudio() {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Sparkles className="size-16 text-muted-foreground/20 mb-4" />
-              <h3 className="text-xl font-mono text-foreground/80 mb-2 uppercase tracking-wider">Ready to Create</h3>
+              <h3 className="text-xl font-mono text-foreground/80 mb-2 uppercase tracking-wider">
+                Ready to Create
+              </h3>
               <p className="text-xs md:text-sm text-muted-foreground max-w-md leading-relaxed font-mono">
                 Configure your settings and enter a prompt to generate AI images
               </p>
@@ -248,5 +290,5 @@ export function ImageStudio() {
         </Card>
       )}
     </div>
-  )
+  );
 }

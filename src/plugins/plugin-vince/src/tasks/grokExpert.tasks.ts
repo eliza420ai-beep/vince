@@ -5,7 +5,7 @@
  *
  * Automatically runs the Grok Expert daily pulse at a configured time.
  * Default: Once per day (24 hours)
- * 
+ *
  * The task:
  * - Aggregates data from all services
  * - Generates prompt of the day
@@ -54,11 +54,20 @@ interface GrokTaskContext {
   newsData: string[];
 }
 
-async function buildTaskDataContext(runtime: IAgentRuntime): Promise<GrokTaskContext> {
+async function buildTaskDataContext(
+  runtime: IAgentRuntime,
+): Promise<GrokTaskContext> {
   const now = new Date();
   const ctx: GrokTaskContext = {
-    timestamp: now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-    date: now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    timestamp: now.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    date: now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    }),
     day: now.toLocaleDateString("en-US", { weekday: "long" }),
     regime: "unknown",
     fearGreed: null,
@@ -75,9 +84,15 @@ async function buildTaskDataContext(runtime: IAgentRuntime): Promise<GrokTaskCon
   };
 
   // Get services
-  const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
-  const binanceService = runtime.getService("VINCE_BINANCE_SERVICE") as VinceBinanceService | null;
-  const regimeService = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as VinceMarketRegimeService | null;
+  const coinglassService = runtime.getService(
+    "VINCE_COINGLASS_SERVICE",
+  ) as VinceCoinGlassService | null;
+  const binanceService = runtime.getService(
+    "VINCE_BINANCE_SERVICE",
+  ) as VinceBinanceService | null;
+  const regimeService = runtime.getService(
+    "VINCE_MARKET_REGIME_SERVICE",
+  ) as VinceMarketRegimeService | null;
 
   // Market Regime
   if (regimeService) {
@@ -107,9 +122,12 @@ async function buildTaskDataContext(runtime: IAgentRuntime): Promise<GrokTaskCon
   // Binance Data
   if (binanceService) {
     try {
-      const topTraders = await binanceService.getTopTraderPositions?.("BTCUSDT");
+      const topTraders =
+        await binanceService.getTopTraderPositions?.("BTCUSDT");
       if (topTraders) {
-        ctx.binanceData.push(`Top Traders: ${topTraders.longPosition.toFixed(1)}% long`);
+        ctx.binanceData.push(
+          `Top Traders: ${topTraders.longPosition.toFixed(1)}% long`,
+        );
       }
     } catch (e) {
       // Silent fail
@@ -123,14 +141,14 @@ function formatTaskContext(ctx: GrokTaskContext): string {
   const lines: string[] = [];
   lines.push(`=== GROK DAILY PULSE (AUTO) ===`);
   lines.push(`Date: ${ctx.date} | Regime: ${ctx.regime}`);
-  
+
   if (ctx.coinglassData.length > 0) {
     lines.push(...ctx.coinglassData);
   }
   if (ctx.binanceData.length > 0) {
     lines.push(...ctx.binanceData);
   }
-  
+
   return lines.join("\n");
 }
 
@@ -148,10 +166,13 @@ Generate a brief daily pulse (300 words max) with:
 Be direct and actionable. No disclaimers.`;
 }
 
-async function saveTaskResult(content: string, date: string): Promise<string | null> {
+async function saveTaskResult(
+  content: string,
+  date: string,
+): Promise<string | null> {
   try {
     const knowledgeDir = path.join(process.cwd(), "knowledge", "internal-docs");
-    
+
     if (!fs.existsSync(knowledgeDir)) {
       fs.mkdirSync(knowledgeDir, { recursive: true });
     }
@@ -184,8 +205,11 @@ ${content}
 // Register Grok Expert Task
 // ==========================================
 
-export const registerGrokExpertTask = async (runtime: IAgentRuntime, worldId?: UUID) => {
-  const taskWorldId = worldId || runtime.agentId as UUID;
+export const registerGrokExpertTask = async (
+  runtime: IAgentRuntime,
+  worldId?: UUID,
+) => {
+  const taskWorldId = worldId || (runtime.agentId as UUID);
 
   // Clear existing grok tasks
   try {
@@ -213,7 +237,9 @@ export const registerGrokExpertTask = async (runtime: IAgentRuntime, worldId?: U
         // Get XAI service (external or fallback)
         const xaiService = getOrCreateXAIService(runtime);
         if (!xaiService) {
-          logger.warn("[GROK_TASK] XAI service not available (no API key), skipping");
+          logger.warn(
+            "[GROK_TASK] XAI service not available (no API key), skipping",
+          );
           return;
         }
 
@@ -228,7 +254,8 @@ export const registerGrokExpertTask = async (runtime: IAgentRuntime, worldId?: U
           model: "grok-4-1-fast-reasoning",
           temperature: 0.7,
           maxTokens: 1500,
-          system: "You are VINCE's daily research assistant. Be brief and actionable.",
+          system:
+            "You are VINCE's daily research assistant. Be brief and actionable.",
         });
 
         if (!result.success || !result.text) {
@@ -238,8 +265,10 @@ export const registerGrokExpertTask = async (runtime: IAgentRuntime, worldId?: U
 
         // Save to knowledge
         await saveTaskResult(result.text, ctx.date);
-        
-        logger.info(`[GROK_TASK] Daily pulse completed (${result.usage?.total_tokens || "?"} tokens)`);
+
+        logger.info(
+          `[GROK_TASK] Daily pulse completed (${result.usage?.total_tokens || "?"} tokens)`,
+        );
       } catch (error) {
         logger.error(`[GROK_TASK] Failed: ${error}`);
       }

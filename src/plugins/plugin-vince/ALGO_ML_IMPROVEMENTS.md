@@ -6,14 +6,14 @@
 
 ## Current ML Usage
 
-| Component | Used? | Where |
-|-----------|--------|--------|
-| **Signal quality** | ✅ Yes | Signal aggregator: boost/penalize confidence; threshold from `training_metadata.json` (`suggested_signal_quality_threshold`) |
-| **Similarity prediction** | ✅ Yes | Signal aggregator: "proceed" / "caution" / "avoid" → factor + confidence adjust |
-| **Position sizing** | ✅ Yes | `evaluateAndTrade()`: after rule-based size (portfolio %, DVOL, regime, session, streak), calls `predictPositionSize()`; applies multiplier 0.5×–2× then `validateTrade()` |
-| **TP optimizer** | ✅ Yes | `openTrade()` calls `predictTakeProfit()` when ML + ATR available; TP distance = ATR% × model value |
-| **SL optimizer** | ✅ Yes | `openTrade()` calls `predictStopLoss()` when ML + ATR available; SL% = ATR% × model value, clamped |
-| **Improvement report** | ✅ Yes | `suggested_signal_quality_threshold` (ML + aggregator); `tp_level_performance` → skip worst TP level in `openTrade()`; `suggested_tuning.min_strength` / `min_confidence` → filter in `evaluateAndTrade()`. Training writes `suggested_tuning` from profitable-trade percentiles. |
+| Component                 | Used?  | Where                                                                                                                                                                                                                                                                             |
+| ------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Signal quality**        | ✅ Yes | Signal aggregator: boost/penalize confidence; threshold from `training_metadata.json` (`suggested_signal_quality_threshold`)                                                                                                                                                      |
+| **Similarity prediction** | ✅ Yes | Signal aggregator: "proceed" / "caution" / "avoid" → factor + confidence adjust                                                                                                                                                                                                   |
+| **Position sizing**       | ✅ Yes | `evaluateAndTrade()`: after rule-based size (portfolio %, DVOL, regime, session, streak), calls `predictPositionSize()`; applies multiplier 0.5×–2× then `validateTrade()`                                                                                                        |
+| **TP optimizer**          | ✅ Yes | `openTrade()` calls `predictTakeProfit()` when ML + ATR available; TP distance = ATR% × model value                                                                                                                                                                               |
+| **SL optimizer**          | ✅ Yes | `openTrade()` calls `predictStopLoss()` when ML + ATR available; SL% = ATR% × model value, clamped                                                                                                                                                                                |
+| **Improvement report**    | ✅ Yes | `suggested_signal_quality_threshold` (ML + aggregator); `tp_level_performance` → skip worst TP level in `openTrade()`; `suggested_tuning.min_strength` / `min_confidence` → filter in `evaluateAndTrade()`. Training writes `suggested_tuning` from profitable-trade percentiles. |
 
 ---
 
@@ -28,10 +28,11 @@
 
 **Where:** `vincePaperTrading.service.ts` → `evaluateAndTrade()`, after the win-streak adjustment and before `validateTrade()`. We have: signal (strength, confidence), regime, portfolio; we need: signal quality score (from aggregated signal if we pass it through), current drawdown (from trade journal or position manager), recent win rate (from trade journal), streak multiplier (already computed).
 
-**Implementation:**  
-- Get ML service; if null, skip.  
-- Build `PositionSizingInput` from signal + regime + journal/streak.  
-- `multiplier = await mlService.predictPositionSize(input); baseSizeUsd *= clamp(multiplier.value, 0.5, 2.0);`  
+**Implementation:**
+
+- Get ML service; if null, skip.
+- Build `PositionSizingInput` from signal + regime + journal/streak.
+- `multiplier = await mlService.predictPositionSize(input); baseSizeUsd *= clamp(multiplier.value, 0.5, 2.0);`
 - Then run existing `validateTrade()` so risk limits still apply.
 
 **Result:** Size scales with ML-predicted edge (quality, regime, drawdown, win rate) while staying within risk rules.
@@ -51,15 +52,17 @@
 
 **Where:** `vincePaperTrading.service.ts` → `openTrade()`, when computing `takeProfitPrices` and `stopLossPct` / `stopLossPrice`.
 
-**TP:**  
-- Get ATR % (e.g. from market data or existing ATR in openTrade).  
-- `tpPred = await mlService.predictTakeProfit({ direction, atrPct, strength, confidence, volatilityRegime, marketRegime });`  
-- Option A: Single TP at `entry ± (atrPct * tpPred.value)` as price distance.  
-- Option B: Keep multiple TP levels but choose which level to favor (e.g. first TP) using `tpPred.value` (e.g. map 1.0–4.0 to level index).  
+**TP:**
 
-**SL:**  
-- `slPred = await mlService.predictStopLoss(...same TPSLInput);`  
-- `stopLossDistance = atrPct * slPred.value` (then convert to price and clamp to min/max SL %).  
+- Get ATR % (e.g. from market data or existing ATR in openTrade).
+- `tpPred = await mlService.predictTakeProfit({ direction, atrPct, strength, confidence, volatilityRegime, marketRegime });`
+- Option A: Single TP at `entry ± (atrPct * tpPred.value)` as price distance.
+- Option B: Keep multiple TP levels but choose which level to favor (e.g. first TP) using `tpPred.value` (e.g. map 1.0–4.0 to level index).
+
+**SL:**
+
+- `slPred = await mlService.predictStopLoss(...same TPSLInput);`
+- `stopLossDistance = atrPct * slPred.value` (then convert to price and clamp to min/max SL %).
 - Ensures SL is consistent with risk while using ML to adapt to regime/strength.
 
 **Result:** TP and SL become data-driven (trained on your closed trades) instead of purely rule-based.
@@ -72,8 +75,9 @@
 
 **Idea:** If signal quality score is below the trained threshold, optionally **block** the trade in the risk manager (or paper trading), not only penalize confidence.
 
-**Where:**  
-- Option A: In `validateSignal()` (risk manager), if the trade signal includes `mlQualityScore` and it is below `getSignalQualityThreshold()`, return `valid: false` with reason "ML quality below threshold".  
+**Where:**
+
+- Option A: In `validateSignal()` (risk manager), if the trade signal includes `mlQualityScore` and it is below `getSignalQualityThreshold()`, return `valid: false` with reason "ML quality below threshold".
 - Option B: In `evaluateAndTrade()`, after `getSignal()` and before `validateSignal()`, if `signal.mlQualityScore != null` and `signal.mlQualityScore < threshold`, skip (continue to next asset).
 
 **Requires:** Aggregated signal already has `mlQualityScore` from `applyMLEnhancement()`. Pass it on the trade signal or ensure risk manager can see it (e.g. extend `AggregatedTradeSignal` with optional `mlQualityScore`).
@@ -88,13 +92,15 @@
 
 **Idea:** Use `training_metadata.json` beyond the signal-quality threshold.
 
-**Possible levers:**  
-- **Min strength / min confidence:** If improvement report or action items say “raise min strength”, Parameter Tuner or `dynamicConfig` could read a suggested value and apply it (or suggest it in logs).  
-- **TP level preference:** If `tp_level_performance` shows level 2 underperforms, prefer level 1 or 3 when building `takeProfitPrices` (e.g. skip level 2 or reduce its weight).  
+**Possible levers:**
+
+- **Min strength / min confidence:** If improvement report or action items say “raise min strength”, Parameter Tuner or `dynamicConfig` could read a suggested value and apply it (or suggest it in logs).
+- **TP level preference:** If `tp_level_performance` shows level 2 underperforms, prefer level 1 or 3 when building `takeProfitPrices` (e.g. skip level 2 or reduce its weight).
 - **Source weights:** If feature importances show “BinanceFundingExtreme” is top for signal quality, ensure that source’s weight in the aggregator is not reduced; could periodically align `dynamicConfig` source weights with importances.
 
-**Where:**  
-- `dynamicConfig.ts`: optional read of `training_metadata.json` (or a slim “tuning” JSON) and override defaults.  
+**Where:**
+
+- `dynamicConfig.ts`: optional read of `training_metadata.json` (or a slim “tuning” JSON) and override defaults.
 - Or a small “improvement report loader” that runs after training and writes a `suggested_tuning.json` that the bot reads on startup.
 
 **Result:** Algo drifts toward what the improvement report recommends without manual edits every time.
@@ -127,33 +133,35 @@
 
 ## Quick reference: inputs for ML calls
 
-**PositionSizingInput** (for `predictPositionSize`):  
-- `signalQualityScore` – from aggregated signal `mlQualityScore` (or 0.5 if missing)  
-- `strength`, `confidence` – from signal  
-- `volatilityRegime` – 0/1/2 from market regime (low/normal/high)  
-- `currentDrawdown` – from trade journal or portfolio (e.g. peak-to-now % drawdown)  
-- `recentWinRate` – from trade journal (e.g. last 20 trades)  
+**PositionSizingInput** (for `predictPositionSize`):
+
+- `signalQualityScore` – from aggregated signal `mlQualityScore` (or 0.5 if missing)
+- `strength`, `confidence` – from signal
+- `volatilityRegime` – 0/1/2 from market regime (low/normal/high)
+- `currentDrawdown` – from trade journal or portfolio (e.g. peak-to-now % drawdown)
+- `recentWinRate` – from trade journal (e.g. last 20 trades)
 - `streakMultiplier` – already in paper trading (win/loss streak)
 
-**TPSLInput** (for `predictTakeProfit` / `predictStopLoss`):  
-- `direction` – 0 = short, 1 = long  
-- `atrPct` – ATR as % of price (from market data)  
-- `strength`, `confidence` – from signal  
-- `volatilityRegime` – 0/1/2  
+**TPSLInput** (for `predictTakeProfit` / `predictStopLoss`):
+
+- `direction` – 0 = short, 1 = long
+- `atrPct` – ATR as % of price (from market data)
+- `strength`, `confidence` – from signal
+- `volatilityRegime` – 0/1/2
 - `marketRegime` – -1 bearish, 0 neutral, 1 bullish (from regime service)
 
 ---
 
 ## Summary
 
-| # | Improvement | Impact | Effort | Status |
-|---|-------------|--------|--------|--------|
-| 1 | ML position sizing in evaluateAndTrade | High | Medium | ✅ Done |
-| 2 | ML TP/SL in openTrade | High | Medium | ✅ Done |
-| 3 | Block trade when ML quality &lt; threshold | Medium | Low | ✅ Done |
-| 4 | Consume improvement report (thresholds, TP level, weights) | Medium | Medium | ✅ Done |
-| 5 | Hard-filter on similarity "avoid" | Medium | Low | ✅ Done |
-| 6 | Bandit reward from trade outcomes | Ongoing | Medium | ✅ Done |
+| #   | Improvement                                                | Impact  | Effort | Status  |
+| --- | ---------------------------------------------------------- | ------- | ------ | ------- |
+| 1   | ML position sizing in evaluateAndTrade                     | High    | Medium | ✅ Done |
+| 2   | ML TP/SL in openTrade                                      | High    | Medium | ✅ Done |
+| 3   | Block trade when ML quality &lt; threshold                 | Medium  | Low    | ✅ Done |
+| 4   | Consume improvement report (thresholds, TP level, weights) | Medium  | Medium | ✅ Done |
+| 5   | Hard-filter on similarity "avoid"                          | Medium  | Low    | ✅ Done |
+| 6   | Bandit reward from trade outcomes                          | Ongoing | Medium | ✅ Done |
 
 Doing **1** and **2** uses the models you already train (position_sizing, tp_optimizer, sl_optimizer) and makes the algo directly data-driven. **3** and **5** are small code changes that reduce bad trades. **4** and **6** make the system self-tune from the same training and outcome data you already have.
 
@@ -175,7 +183,7 @@ Ideas to improve the end-to-end ML pipeline beyond the table above:
    - Keep TRAIN_ONNX_WHEN_READY (90+ trades, max once per 24h). Optionally trigger retrain when win rate or Sharpe over last N trades drops below a bound (e.g. “retrain when last 50 trades &lt; 45% win rate”).
 
 4. **Feature store → training alignment**
-   - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare*Features). Document the mapping in FEATURE-STORE.md or this file.
+   - Keep feature names and order in sync between `VinceFeatureStoreService` (JSONL), `train_models.py` (flattened columns), and `mlInference.service.ts` (prepare\*Features). Document the mapping in FEATURE-STORE.md or this file.
    - **New signal flags (more data sources):** `hasFundingExtreme` is true for either Binance or Hyperliquid funding extreme; `hasOICap` is set when `HyperliquidOICap` contributed. Training script uses `signal_hasOICap` as an optional feature when present. After retraining with data that includes `signal_hasOICap`, add this input to `SignalQualityInput` and `prepareSignalQualityFeatures()` in `mlInference.service.ts` so the ONNX input dimension matches the new model.
 
 5. **A/B or shadow mode**
@@ -189,30 +197,30 @@ Ideas to improve the end-to-end ML pipeline beyond the table above:
 
 ### Already wired (as of this update)
 
-| Data point | Source | Where |
-|------------|--------|--------|
-| **OI 24h change** | CoinGlass `getOpenInterest(asset).change24h` | Feature store `collectMarketFeatures` → `market.oiChange24h` |
-| **DVOL** | MarketData `getDVOL(asset)` (Deribit) | Feature store → `market.dvol` |
-| **RSI (estimate)** | MarketData `estimateRSI(asset)` | Feature store → `market.rsi14` |
-| **ATR %** | MarketData `getATRPercent(asset)` (Deribit when available) | Feature store → `market.atrPct` (was default only; now live when Deribit available) |
+| Data point         | Source                                                     | Where                                                                               |
+| ------------------ | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **OI 24h change**  | CoinGlass `getOpenInterest(asset).change24h`               | Feature store `collectMarketFeatures` → `market.oiChange24h`                        |
+| **DVOL**           | MarketData `getDVOL(asset)` (Deribit)                      | Feature store → `market.dvol`                                                       |
+| **RSI (estimate)** | MarketData `estimateRSI(asset)`                            | Feature store → `market.rsi14`                                                      |
+| **ATR %**          | MarketData `getATRPercent(asset)` (Deribit when available) | Feature store → `market.atrPct` (was default only; now live when Deribit available) |
 
 Training script (`train_models.py`) now **includes** `market_dvol`, `market_rsi14`, `market_oiChange24h` (and for position sizing, `market_atrPct`) in the feature lists when those columns exist, so new JSONL with these populated will improve signal quality, position sizing, TP, and SL models.
 
 ### Now wired (latest)
 
-| Data point | Where |
-|------------|--------|
-| **Funding 8h delta** | Feature store: per-asset funding history cache; delta = current − rate from ~8h ago. |
-| **Order book imbalance** | Feature store: Binance futures depth (BTC/ETH/SOL/HYPE); (bidVol − askVol) / total. |
-| **Bid-ask spread** | Same depth; (bestAsk − bestBid) / mid × 100. |
-| **Price vs SMA20** | Feature store: rolling window of last 20 prices per asset; (price − SMA) / SMA × 100. |
-| **News sentiment** | `getOverallSentiment()` → sentimentScore (±confidence), sentimentDirection; `getActiveRiskEvents()` → hasActiveRiskEvents, highestRiskSeverity. |
-| **Signal sentiment** | Keyword scan over `signal.factors` → `signal.avgSentiment`; train script uses it as `signal_avg_sentiment` when present. |
+| Data point               | Where                                                                                                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Funding 8h delta**     | Feature store: per-asset funding history cache; delta = current − rate from ~8h ago.                                                            |
+| **Order book imbalance** | Feature store: Binance futures depth (BTC/ETH/SOL/HYPE); (bidVol − askVol) / total.                                                             |
+| **Bid-ask spread**       | Same depth; (bestAsk − bestBid) / mid × 100.                                                                                                    |
+| **Price vs SMA20**       | Feature store: rolling window of last 20 prices per asset; (price − SMA) / SMA × 100.                                                           |
+| **News sentiment**       | `getOverallSentiment()` → sentimentScore (±confidence), sentimentDirection; `getActiveRiskEvents()` → hasActiveRiskEvents, highestRiskSeverity. |
+| **Signal sentiment**     | Keyword scan over `signal.factors` → `signal.avgSentiment`; train script uses it as `signal_avg_sentiment` when present.                        |
 
 ### Still optional (macro / ETF)
 
-| Data point | How to add |
-|------------|------------|
+| Data point                        | How to add                                                                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | **NASDAQ 24h / ETF flow / macro** | Add macro/ETF API and set `news.nasdaqChange`, `news.etfFlowBtc`, `news.etfFlowEth`, `news.macroRiskEnvironment` in the feature record. |
 
 See **DATA_LEVERAGE.md** in this plugin for a short checklist and mapping from "suggested signal factors" to code paths.
@@ -237,7 +245,7 @@ Use this after you have **90+ closed trades** (or enough for a meaningful train 
 3. **Export ONNX**
    - [ ] Export each trained model to ONNX (correct input/output shapes and feature order).
    - [ ] Place ONNX files in the bot’s model directory (e.g. `.elizadb/vince-paper-bot/models/`):  
-     `signal_quality.onnx`, `position_sizing.onnx`, `tp_optimizer.onnx`, `sl_optimizer.onnx` (and similarity if applicable).
+          `signal_quality.onnx`, `position_sizing.onnx`, `tp_optimizer.onnx`, `sl_optimizer.onnx` (and similarity if applicable).
 
 4. **Update metadata**
    - [ ] Update `training_metadata.json` (or equivalent) with:
@@ -259,10 +267,12 @@ Use this after you have **90+ closed trades** (or enough for a meaningful train 
 **Data:** 1,287 records, 1,250 trades with outcomes (real + synthetic). Models trained and deployed to `src/plugins/plugin-vince/models/`.
 
 **Applied from `training_metadata.json`:**
+
 - `suggested_tuning`: min_strength 54, min_confidence 48
 - `suggested_signal_quality_threshold`: 0.48
 
 **TP level performance (win rate):**
+
 - TP0: 59.9% (309 trades)
 - TP1: 54.8% (294)
 - TP2: 53.0% (347) — review weight/tighten conditions
@@ -271,6 +281,7 @@ Use this after you have **90+ closed trades** (or enough for a meaningful train 
 **Top feature importances (signal_quality):** regime_bearish, asset_BTC, regime_volatility_high, signal_hasWhaleSignal, session_utcHour, market_fundingPercentile, signal_confidence, market_oiChange24h.
 
 **Backlog (suggested signal factors to populate):**
+
 - Funding 8h delta
 - Order book imbalance
 - Bid-ask spread
@@ -280,4 +291,3 @@ Use this after you have **90+ closed trades** (or enough for a meaningful train 
 - ETF flow (BTC/ETH)
 - Macro risk environment
 - Signal source sentiment (20% non-null — consider boosting)
-

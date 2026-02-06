@@ -7,6 +7,7 @@
 ## What is Account Abstraction?
 
 Account Abstraction separates:
+
 - **Who signs** (authentication)
 - **Who pays gas** (sponsorship)
 - **Who executes** (the account)
@@ -32,29 +33,29 @@ EOA (signer)  ──►  UserOperation  ──►  Bundler  ──►  EntryPoin
 
 ### Key Components
 
-| Component | Role |
-|-----------|------|
-| **Smart Account** | Contract wallet that holds assets and executes calls |
-| **UserOperation** | Pseudo-transaction signed by EOA, processed off-chain |
-| **Bundler** | Collects UserOps and submits to chain |
-| **EntryPoint** | Singleton contract that validates and executes UserOps |
-| **Paymaster** | Optional contract that sponsors gas |
+| Component         | Role                                                   |
+| ----------------- | ------------------------------------------------------ |
+| **Smart Account** | Contract wallet that holds assets and executes calls   |
+| **UserOperation** | Pseudo-transaction signed by EOA, processed off-chain  |
+| **Bundler**       | Collects UserOps and submits to chain                  |
+| **EntryPoint**    | Singleton contract that validates and executes UserOps |
+| **Paymaster**     | Optional contract that sponsors gas                    |
 
 ### Characteristics
 
-| Aspect | Details |
-|--------|---------|
-| Address | **New address** (smart contract) |
-| Transaction type | UserOperation (not native tx) |
-| Gas overhead | Higher (cross-contract calls) |
-| Requires | Bundler infrastructure |
-| Deployment | Counterfactual (deployed on first use) |
+| Aspect           | Details                                |
+| ---------------- | -------------------------------------- |
+| Address          | **New address** (smart contract)       |
+| Transaction type | UserOperation (not native tx)          |
+| Gas overhead     | Higher (cross-contract calls)          |
+| Requires         | Bundler infrastructure                 |
+| Deployment       | Counterfactual (deployed on first use) |
 
 ### Code Example
 
 ```typescript
-import { toSimpleSmartAccount } from "permissionless/accounts"
-import { createSmartAccountClient } from "permissionless"
+import { toSimpleSmartAccount } from "permissionless/accounts";
+import { createSmartAccountClient } from "permissionless";
 
 // Create smart account from EOA owner
 const smartAccount = await toSimpleSmartAccount({
@@ -64,13 +65,13 @@ const smartAccount = await toSimpleSmartAccount({
     address: entryPoint07Address,
     version: "0.7",
   },
-})
+});
 
 // Send transaction (EOA signs, paymaster pays)
 const txHash = await smartAccountClient.sendTransaction({
   to: "0x...",
   value: parseEther("0.1"),
-})
+});
 ```
 
 ---
@@ -94,13 +95,13 @@ EIP-7702 allows an EOA to **temporarily delegate** its execution to smart contra
 
 ### Characteristics
 
-| Aspect | Details |
-|--------|---------|
-| Address | **Same EOA address** |
-| Transaction type | Native (type 4) |
-| Gas overhead | Lower (direct execution) |
-| Requires | Pectra fork (live) |
-| Delegation | Reversible anytime |
+| Aspect           | Details                  |
+| ---------------- | ------------------------ |
+| Address          | **Same EOA address**     |
+| Transaction type | Native (type 4)          |
+| Gas overhead     | Lower (direct execution) |
+| Requires         | Pectra fork (live)       |
+| Delegation       | Reversible anytime       |
 
 ### The Delegation Flow
 
@@ -115,23 +116,24 @@ EIP-7702 allows an EOA to **temporarily delegate** its execution to smart contra
 
 ## Side-by-Side Comparison
 
-| Feature | ERC-4337 | EIP-7702 |
-|---------|----------|----------|
-| Address | New smart contract | Keep existing EOA |
-| Migration needed | Yes (move assets) | No |
-| Transaction type | UserOperation | Native (type 4) |
-| Gas cost | Higher | Lower |
-| Infrastructure | Bundler required | None (native) |
-| Paymaster support | Yes | Yes (can combine) |
-| Reversible | N/A (permanent contract) | Yes |
-| Batch operations | Yes | Yes |
-| Session keys | Yes | Yes |
+| Feature           | ERC-4337                 | EIP-7702          |
+| ----------------- | ------------------------ | ----------------- |
+| Address           | New smart contract       | Keep existing EOA |
+| Migration needed  | Yes (move assets)        | No                |
+| Transaction type  | UserOperation            | Native (type 4)   |
+| Gas cost          | Higher                   | Lower             |
+| Infrastructure    | Bundler required         | None (native)     |
+| Paymaster support | Yes                      | Yes (can combine) |
+| Reversible        | N/A (permanent contract) | Yes               |
+| Batch operations  | Yes                      | Yes               |
+| Session keys      | Yes                      | Yes               |
 
 ---
 
 ## When to Use Which
 
 ### Use ERC-4337 When:
+
 - Building new applications from scratch
 - Need consistent behavior across all EVM chains
 - Want sophisticated paymaster logic
@@ -139,6 +141,7 @@ EIP-7702 allows an EOA to **temporarily delegate** its execution to smart contra
 - Users don't have existing EOA assets
 
 ### Use EIP-7702 When:
+
 - Users have existing EOA with assets
 - Want to add smart account features without migration
 - Need lower gas costs
@@ -148,6 +151,7 @@ EIP-7702 allows an EOA to **temporarily delegate** its execution to smart contra
 ### Hybrid Approach
 
 EIP-7702 can delegate to ERC-4337 compatible code, getting both:
+
 - Keep existing EOA address
 - Use bundler/paymaster infrastructure
 

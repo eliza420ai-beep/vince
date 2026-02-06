@@ -15,9 +15,19 @@
  * Uses VinceHIP3Service for direct Hyperliquid API integration.
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import type { VinceHIP3Service, HIP3Pulse, HIP3AssetPrice } from "../services/hip3.service";
+import type {
+  VinceHIP3Service,
+  HIP3Pulse,
+  HIP3AssetPrice,
+} from "../services/hip3.service";
 
 // ==========================================
 // Build data context for LLM
@@ -45,50 +55,78 @@ function buildHIP3DataContext(pulse: HIP3Pulse): string {
   // ============ OVERVIEW ============
   lines.push("=== HIP-3 MARKET OVERVIEW ===");
   lines.push(`Overall bias: ${pulse.summary.overallBias.toUpperCase()}`);
-  lines.push(`Rotation signal: ${pulse.summary.tradFiVsCrypto.replace(/_/g, " ")}`);
-  lines.push(`Hottest sector: ${pulse.sectorStats.hottestSector.toUpperCase()}`);
+  lines.push(
+    `Rotation signal: ${pulse.summary.tradFiVsCrypto.replace(/_/g, " ")}`,
+  );
+  lines.push(
+    `Hottest sector: ${pulse.sectorStats.hottestSector.toUpperCase()}`,
+  );
   lines.push("");
 
   // ============ GOLD vs BTC ============
   const { goldVsBtc } = pulse.summary;
   lines.push("GOLD vs BTC (risk appetite indicator):");
-  lines.push(`  GOLD: ${goldVsBtc.goldChange >= 0 ? "+" : ""}${goldVsBtc.goldChange.toFixed(2)}%`);
-  lines.push(`  BTC: ${goldVsBtc.btcChange >= 0 ? "+" : ""}${goldVsBtc.btcChange.toFixed(2)}%`);
+  lines.push(
+    `  GOLD: ${goldVsBtc.goldChange >= 0 ? "+" : ""}${goldVsBtc.goldChange.toFixed(2)}%`,
+  );
+  lines.push(
+    `  BTC: ${goldVsBtc.btcChange >= 0 ? "+" : ""}${goldVsBtc.btcChange.toFixed(2)}%`,
+  );
   lines.push(`  Winner today: ${goldVsBtc.winner.toUpperCase()}`);
   lines.push("");
 
   // ============ TOP & WORST ============
   if (pulse.summary.topPerformer) {
-    lines.push(`TOP PERFORMER: ${pulse.summary.topPerformer.symbol} at +${pulse.summary.topPerformer.change.toFixed(2)}%`);
+    lines.push(
+      `TOP PERFORMER: ${pulse.summary.topPerformer.symbol} at +${pulse.summary.topPerformer.change.toFixed(2)}%`,
+    );
   }
   if (pulse.summary.worstPerformer) {
-    lines.push(`WORST PERFORMER: ${pulse.summary.worstPerformer.symbol} at ${pulse.summary.worstPerformer.change.toFixed(2)}%`);
+    lines.push(
+      `WORST PERFORMER: ${pulse.summary.worstPerformer.symbol} at ${pulse.summary.worstPerformer.change.toFixed(2)}%`,
+    );
   }
   lines.push("");
 
   // ============ SECTOR ANALYSIS ============
   lines.push("=== SECTOR ANALYSIS ===");
   const { sectorStats } = pulse;
-  lines.push(`Commodities: avg ${sectorStats.commodities.avgChange >= 0 ? "+" : ""}${sectorStats.commodities.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.commodities.totalVolume)}, OI ${formatUSD(sectorStats.commodities.totalOI)}`);
-  lines.push(`Indices: avg ${sectorStats.indices.avgChange >= 0 ? "+" : ""}${sectorStats.indices.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.indices.totalVolume)}, OI ${formatUSD(sectorStats.indices.totalOI)}`);
-  lines.push(`Stocks: avg ${sectorStats.stocks.avgChange >= 0 ? "+" : ""}${sectorStats.stocks.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.stocks.totalVolume)}, OI ${formatUSD(sectorStats.stocks.totalOI)}`);
-  lines.push(`AI Plays: avg ${sectorStats.aiPlays.avgChange >= 0 ? "+" : ""}${sectorStats.aiPlays.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.aiPlays.totalVolume)}, OI ${formatUSD(sectorStats.aiPlays.totalOI)}`);
+  lines.push(
+    `Commodities: avg ${sectorStats.commodities.avgChange >= 0 ? "+" : ""}${sectorStats.commodities.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.commodities.totalVolume)}, OI ${formatUSD(sectorStats.commodities.totalOI)}`,
+  );
+  lines.push(
+    `Indices: avg ${sectorStats.indices.avgChange >= 0 ? "+" : ""}${sectorStats.indices.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.indices.totalVolume)}, OI ${formatUSD(sectorStats.indices.totalOI)}`,
+  );
+  lines.push(
+    `Stocks: avg ${sectorStats.stocks.avgChange >= 0 ? "+" : ""}${sectorStats.stocks.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.stocks.totalVolume)}, OI ${formatUSD(sectorStats.stocks.totalOI)}`,
+  );
+  lines.push(
+    `AI Plays: avg ${sectorStats.aiPlays.avgChange >= 0 ? "+" : ""}${sectorStats.aiPlays.avgChange.toFixed(2)}%, Vol ${formatUSD(sectorStats.aiPlays.totalVolume)}, OI ${formatUSD(sectorStats.aiPlays.totalOI)}`,
+  );
   lines.push("");
 
   // ============ FUNDING RATES ============
   lines.push("=== FUNDING RATES (8h) ===");
   const { fundingExtremes } = pulse;
   if (fundingExtremes.highest) {
-    lines.push(`Highest: ${fundingExtremes.highest.symbol} at ${formatFunding(fundingExtremes.highest.rate)}`);
+    lines.push(
+      `Highest: ${fundingExtremes.highest.symbol} at ${formatFunding(fundingExtremes.highest.rate)}`,
+    );
   }
   if (fundingExtremes.lowest) {
-    lines.push(`Lowest: ${fundingExtremes.lowest.symbol} at ${formatFunding(fundingExtremes.lowest.rate)}`);
+    lines.push(
+      `Lowest: ${fundingExtremes.lowest.symbol} at ${formatFunding(fundingExtremes.lowest.rate)}`,
+    );
   }
   if (fundingExtremes.crowdedLongs.length > 0) {
-    lines.push(`Crowded longs (longs paying premium): ${fundingExtremes.crowdedLongs.join(", ")}`);
+    lines.push(
+      `Crowded longs (longs paying premium): ${fundingExtremes.crowdedLongs.join(", ")}`,
+    );
   }
   if (fundingExtremes.crowdedShorts.length > 0) {
-    lines.push(`Crowded shorts (shorts paying premium): ${fundingExtremes.crowdedShorts.join(", ")}`);
+    lines.push(
+      `Crowded shorts (shorts paying premium): ${fundingExtremes.crowdedShorts.join(", ")}`,
+    );
   }
   if (!fundingExtremes.highest && !fundingExtremes.lowest) {
     lines.push("No significant funding imbalances");
@@ -100,14 +138,14 @@ function buildHIP3DataContext(pulse: HIP3Pulse): string {
   if (pulse.leaders.volumeLeaders.length > 0) {
     const volLeadersStr = pulse.leaders.volumeLeaders
       .slice(0, 3)
-      .map(l => `${l.symbol} (${formatUSD(l.volume)})`)
+      .map((l) => `${l.symbol} (${formatUSD(l.volume)})`)
       .join(", ");
     lines.push(`Volume leaders: ${volLeadersStr}`);
   }
   if (pulse.leaders.oiLeaders.length > 0) {
     const oiLeadersStr = pulse.leaders.oiLeaders
       .slice(0, 3)
-      .map(l => `${l.symbol} (${formatUSD(l.oi)})`)
+      .map((l) => `${l.symbol} (${formatUSD(l.oi)})`)
       .join(", ");
     lines.push(`OI leaders: ${oiLeadersStr}`);
   }
@@ -116,11 +154,18 @@ function buildHIP3DataContext(pulse: HIP3Pulse): string {
   // ============ DETAILED ASSET DATA ============
   // Helper to format asset with all data
   const formatAssetFull = (a: HIP3AssetPrice): string => {
-    const change = a.change24h >= 0 ? `+${a.change24h.toFixed(2)}%` : `${a.change24h.toFixed(2)}%`;
+    const change =
+      a.change24h >= 0
+        ? `+${a.change24h.toFixed(2)}%`
+        : `${a.change24h.toFixed(2)}%`;
     const vol = formatUSD(a.volume24h);
     const oi = formatUSD(a.openInterest);
-    const fundingNote = a.funding8h > 0.0001 ? " | funding: longs crowded" :
-                        a.funding8h < -0.0001 ? " | funding: shorts crowded" : "";
+    const fundingNote =
+      a.funding8h > 0.0001
+        ? " | funding: longs crowded"
+        : a.funding8h < -0.0001
+          ? " | funding: shorts crowded"
+          : "";
     return `${a.symbol}: $${a.price.toFixed(2)} | ${change} | Vol: ${vol} | OI: ${oi}${fundingNote}`;
   };
 
@@ -179,7 +224,7 @@ function buildHIP3DataContext(pulse: HIP3Pulse): string {
 
 async function generateHIP3HumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, giving a HIP-3 assets briefing. You're explaining what's happening in commodities, stocks, and indices on Hyperliquid to a trader friend who cares about these TradFi-on-chain plays.
 
@@ -256,9 +301,13 @@ export const vinceHIP3Action: Action = {
     "ANTHROPIC",
     "OPENAI",
   ],
-  description: "Human-style HIP-3 narrative covering commodities, stocks, indices, and AI plays on Hyperliquid",
+  description:
+    "Human-style HIP-3 narrative covering commodities, stocks, indices, and AI plays on Hyperliquid",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("hip3") ||
@@ -286,11 +335,13 @@ export const vinceHIP3Action: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       // Get VinceHIP3Service (local service, no external dependency)
-      const hip3Service = runtime.getService("VINCE_HIP3_SERVICE") as VinceHIP3Service | null;
+      const hip3Service = runtime.getService(
+        "VINCE_HIP3_SERVICE",
+      ) as VinceHIP3Service | null;
 
       if (!hip3Service) {
         await callback({
@@ -314,8 +365,11 @@ export const vinceHIP3Action: Action = {
       }
 
       // Count total assets
-      const totalAssets = pulse.commodities.length + pulse.indices.length + 
-                          pulse.stocks.length + pulse.aiPlays.length;
+      const totalAssets =
+        pulse.commodities.length +
+        pulse.indices.length +
+        pulse.stocks.length +
+        pulse.aiPlays.length;
 
       if (totalAssets === 0) {
         await callback({
@@ -327,7 +381,9 @@ export const vinceHIP3Action: Action = {
 
       // Generate briefing
       const dataContext = buildHIP3DataContext(pulse);
-      logger.info(`[VINCE_HIP3] Generating briefing for ${totalAssets} assets...`);
+      logger.info(
+        `[VINCE_HIP3] Generating briefing for ${totalAssets} assets...`,
+      );
       const briefing = await generateHIP3HumanBriefing(runtime, dataContext);
 
       const output = [

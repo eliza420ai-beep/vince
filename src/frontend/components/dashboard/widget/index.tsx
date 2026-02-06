@@ -9,10 +9,10 @@ import TVNoise from "@/frontend/components/ui/tv-noise";
 // The clock updates every second internally, but shouldn't trigger parent re-renders
 function Widget() {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [userTimezone, setUserTimezone] = useState<string>('');
-  const [utcOffset, setUtcOffset] = useState<string>('');
-  const [userLocation, setUserLocation] = useState<string>('');
-  const [temperature, setTemperature] = useState<string>('');
+  const [userTimezone, setUserTimezone] = useState<string>("");
+  const [utcOffset, setUtcOffset] = useState<string>("");
+  const [userLocation, setUserLocation] = useState<string>("");
+  const [temperature, setTemperature] = useState<string>("");
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -26,25 +26,25 @@ function Widget() {
     // Get user's timezone
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setUserTimezone(timezone);
-    
+
     // Calculate UTC offset
     const offsetMinutes = -new Date().getTimezoneOffset();
     const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
     const offsetMins = Math.abs(offsetMinutes) % 60;
-    const sign = offsetMinutes >= 0 ? '+' : '-';
-    const utcOffsetString = `UTC${sign}${offsetHours}${offsetMins > 0 ? ':' + offsetMins.toString().padStart(2, '0') : ''}`;
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const utcOffsetString = `UTC${sign}${offsetHours}${offsetMins > 0 ? ":" + offsetMins.toString().padStart(2, "0") : ""}`;
     setUtcOffset(utcOffsetString);
 
     // Get approximate location from IP address (no permissions needed)
     const fetchLocationAndWeather = async () => {
       try {
         // Use IP-based geolocation (free, no API key, no permissions)
-        const geoResponse = await fetch('https://get.geojs.io/v1/ip/geo.json');
+        const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
         const geoData = await geoResponse.json();
-        
+
         if (geoData.city || geoData.region) {
-          const city = (geoData.city || '').trim();
-          const region = (geoData.region || '').trim();
+          const city = (geoData.city || "").trim();
+          const region = (geoData.region || "").trim();
 
           if (city && region) {
             // Avoid duplicates like "Belgrade, Belgrade"
@@ -64,21 +64,23 @@ function Widget() {
         if (geoData.latitude && geoData.longitude) {
           try {
             const weatherResponse = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m&temperature_unit=celsius`
+              `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m&temperature_unit=celsius`,
             );
             const weatherData = await weatherResponse.json();
             if (weatherData.current?.temperature_2m) {
-              setTemperature(`${Math.round(weatherData.current.temperature_2m)}°C`);
+              setTemperature(
+                `${Math.round(weatherData.current.temperature_2m)}°C`,
+              );
             }
           } catch (error) {
-            console.error('Error fetching weather:', error);
+            console.error("Error fetching weather:", error);
           }
         }
       } catch (error) {
-        console.error('Error fetching IP-based location:', error);
+        console.error("Error fetching IP-based location:", error);
         // Fallback to timezone-based location
-        const locationParts = timezone.split('/');
-        const city = locationParts[locationParts.length - 1].replace(/_/g, ' ');
+        const locationParts = timezone.split("/");
+        const city = locationParts[locationParts.length - 1].replace(/_/g, " ");
         setUserLocation(city);
       }
     };
@@ -123,11 +125,11 @@ function Widget() {
         </div>
 
         <div className="flex justify-between items-center">
-          <span className="opacity-50">{temperature || '--°C'}</span>
-          <span>{userLocation || 'Loading...'}</span>
+          <span className="opacity-50">{temperature || "--°C"}</span>
+          <span>{userLocation || "Loading..."}</span>
 
           <Badge variant="secondary" className="bg-accent">
-            {utcOffset || 'UTC'}
+            {utcOffset || "UTC"}
           </Badge>
         </div>
 

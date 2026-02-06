@@ -25,7 +25,8 @@ interface CachedData {
 
 export class VinceCoinGeckoService extends Service {
   static serviceType = "VINCE_COINGECKO_SERVICE";
-  capabilityDescription = "CoinGecko market data: exchange health, prices, liquidity";
+  capabilityDescription =
+    "CoinGecko market data: exchange health, prices, liquidity";
 
   private cache: CachedData = {
     exchanges: new Map(),
@@ -62,9 +63,12 @@ export class VinceCoinGeckoService extends Service {
     const prices = this.getAllPrices();
     for (const [symbol, data] of prices) {
       const priceStr = `$${data.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-      const changeEmoji = data.change24h > 0 ? "📈" : data.change24h < 0 ? "📉" : "➡️";
+      const changeEmoji =
+        data.change24h > 0 ? "📈" : data.change24h < 0 ? "📉" : "➡️";
       const changeStr = `${data.change24h > 0 ? "+" : ""}${data.change24h.toFixed(2)}%`;
-      logLine(`    ${symbol.padEnd(6)} ${priceStr.padEnd(14)} ${changeEmoji} ${changeStr}`);
+      logLine(
+        `    ${symbol.padEnd(6)} ${priceStr.padEnd(14)} ${changeEmoji} ${changeStr}`,
+      );
     }
     logEmpty();
     sep();
@@ -81,8 +85,12 @@ export class VinceCoinGeckoService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("UP") || tldr.includes("GREEN") ? "💡" :
-                      tldr.includes("DOWN") || tldr.includes("RED") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("UP") || tldr.includes("GREEN")
+        ? "💡"
+        : tldr.includes("DOWN") || tldr.includes("RED")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
     logger.info("[VinceCoinGecko] ✅ Dashboard loaded");
@@ -95,24 +103,24 @@ export class VinceCoinGeckoService extends Service {
     const prices = this.getAllPrices();
     const btc = prices.get("BTC");
     const eth = prices.get("ETH");
-    
+
     if (!btc && !eth) {
       return "MARKET: No price data - waiting for CoinGecko API";
     }
-    
+
     // Count market direction
     let up = 0;
     let down = 0;
     let totalChange = 0;
-    
+
     for (const [, data] of prices) {
       if (data.change24h > 0) up++;
       else if (data.change24h < 0) down++;
       totalChange += data.change24h;
     }
-    
+
     const avgChange = prices.size > 0 ? totalChange / prices.size : 0;
-    
+
     // Priority 1: Strong directional move
     if (avgChange > 3) {
       return `MARKET GREEN: Avg +${avgChange.toFixed(1)}% - risk-on sentiment`;
@@ -120,7 +128,7 @@ export class VinceCoinGeckoService extends Service {
     if (avgChange < -3) {
       return `MARKET RED: Avg ${avgChange.toFixed(1)}% - risk-off sentiment`;
     }
-    
+
     // Priority 2: BTC specific
     if (btc) {
       if (btc.change24h > 2) {
@@ -130,7 +138,7 @@ export class VinceCoinGeckoService extends Service {
         return `BTC DOWN ${Math.abs(btc.change24h).toFixed(1)}% - caution advised`;
       }
     }
-    
+
     // Priority 3: Mixed market
     if (up > down * 2) {
       return "MARKET: Mostly green, broad strength";
@@ -138,7 +146,7 @@ export class VinceCoinGeckoService extends Service {
     if (down > up * 2) {
       return "MARKET: Mostly red, broad weakness";
     }
-    
+
     // Default
     return "MARKET: Mixed signals, choppy conditions";
   }
@@ -159,10 +167,7 @@ export class VinceCoinGeckoService extends Service {
     }
 
     try {
-      await Promise.all([
-        this.fetchPrices(),
-        this.fetchExchanges(),
-      ]);
+      await Promise.all([this.fetchPrices(), this.fetchExchanges()]);
       this.cache.lastUpdate = now;
     } catch (error) {
       logger.debug(`[VinceCoinGecko] Refresh error: ${error}`);
@@ -173,7 +178,7 @@ export class VinceCoinGeckoService extends Service {
     try {
       const ids = "bitcoin,ethereum,solana,hyperliquid";
       const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`
+        `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
       );
 
       if (res.ok) {
@@ -202,7 +207,7 @@ export class VinceCoinGeckoService extends Service {
   private async fetchExchanges(): Promise<void> {
     try {
       const res = await fetch(
-        "https://api.coingecko.com/api/v3/exchanges?per_page=10"
+        "https://api.coingecko.com/api/v3/exchanges?per_page=10",
       );
 
       if (res.ok) {

@@ -9,6 +9,7 @@
 Actions are TypeScript objects implementing the `Action` interface from `@elizaos/core`:
 
 **Required Properties**:
+
 - `name` - Unique identifier (like tool name)
 - `description` - What the action does (shown to LLM)
 - `parameters` - Schema with type, description, required flags
@@ -16,6 +17,7 @@ Actions are TypeScript objects implementing the `Action` interface from `@elizao
 - `handler` - Function executing the action logic
 
 **Optional Properties**:
+
 - `similes` - Alternative names LLM can use
 - `suppressInitialMessage` - Skip "thinking" message
 
@@ -24,15 +26,19 @@ Actions are TypeScript objects implementing the `Action` interface from `@elizao
 ### 2. Action Registration
 
 **Plugin Level** - Actions bundled into plugins:
+
 ```
 Plugin exports: { actions: [action1, action2, ...] }
 ```
+
 See: `src/plugins/plugin-cdp/src/index.ts`
 
 **Root Level** - Plugins registered in project:
+
 ```
 projectAgent.plugins = [sqlPlugin, bootstrapPlugin, cdpPlugin, ...]
 ```
+
 See: `src/index.ts`
 
 ### 3. How LLM Invokes Actions
@@ -40,6 +46,7 @@ See: `src/index.ts`
 The `bootstrap` plugin's multi-step template presents available actions with parameter schemas to the LLM.
 
 **LLM Output Format** (XML):
+
 ```xml
 <output>
 <response>
@@ -92,18 +99,22 @@ The `bootstrap` plugin's multi-step template presents available actions with par
 ### 5. Parameter Validation Stages
 
 **Stage 1: Service Availability** (`validate` function)
+
 - Checks required services are initialized
 - Returns boolean (false = action unavailable)
 
 **Stage 2: Required Parameter Check** (handler start)
+
 - Verifies required params exist
 - Early return with error if missing
 
 **Stage 3: Type & Enum Validation**
+
 - Validates types (string, number, boolean)
 - Checks enum values (e.g., network in supported list)
 
 **Stage 4: Business Logic Validation**
+
 - Token address validation (via CoinGecko)
 - Balance checks
 - Network compatibility

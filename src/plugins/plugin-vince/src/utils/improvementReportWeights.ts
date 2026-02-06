@@ -7,7 +7,10 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
-import { dynamicConfig, initializeDynamicConfig } from "../config/dynamicConfig";
+import {
+  dynamicConfig,
+  initializeDynamicConfig,
+} from "../config/dynamicConfig";
 
 const MODELS_DIRS = [
   "./.elizadb/vince-paper-bot/models",
@@ -41,7 +44,11 @@ export interface ImprovementReport {
       feature_importances?: Record<string, number>;
     };
   };
-  suggested_signal_factors?: Array<{ name: string; reason?: string; description?: string }>;
+  suggested_signal_factors?: Array<{
+    name: string;
+    reason?: string;
+    description?: string;
+  }>;
 }
 
 function findMetadataPath(): string | null {
@@ -70,10 +77,9 @@ function loadImprovementReport(): ImprovementReport | null {
  * Exported for tests and scripts.
  */
 export function sourceImportancesFromReport(
-  report: ImprovementReport
+  report: ImprovementReport,
 ): Map<string, number> {
-  const imp =
-    report.feature_importances?.signal_quality?.feature_importances;
+  const imp = report.feature_importances?.signal_quality?.feature_importances;
   if (!imp || typeof imp !== "object") return new Map();
 
   const bySource = new Map<string, number>();
@@ -92,25 +98,26 @@ export function sourceImportancesFromReport(
  * Optionally align dynamicConfig source weights with importances (when applyWeights is true).
  */
 export async function logAndApplyImprovementReportWeights(
-  applyWeights: boolean
+  applyWeights: boolean,
 ): Promise<void> {
   await initializeDynamicConfig();
 
   const report = loadImprovementReport();
   if (!report) {
-    logger.debug("[ImprovementReport] No training_metadata.json found; skipping.");
+    logger.debug(
+      "[ImprovementReport] No training_metadata.json found; skipping.",
+    );
     return;
   }
 
-  const imp =
-    report.feature_importances?.signal_quality?.feature_importances;
+  const imp = report.feature_importances?.signal_quality?.feature_importances;
   if (imp && typeof imp === "object") {
     const entries = Object.entries(imp)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
     logger.info(
       "[ImprovementReport] Top signal_quality features: " +
-        entries.map(([n, v]) => `${n}=${(v * 100).toFixed(2)}%`).join(", ")
+        entries.map(([n, v]) => `${n}=${(v * 100).toFixed(2)}%`).join(", "),
     );
   }
 
@@ -121,8 +128,11 @@ export async function logAndApplyImprovementReportWeights(
     logger.info(
       "[ImprovementReport] Source importance (from features): " +
         sorted
-          .map(([s, v]) => `${s}=${total > 0 ? ((v / total) * 100).toFixed(1) : 0}%`)
-          .join(", ")
+          .map(
+            ([s, v]) =>
+              `${s}=${total > 0 ? ((v / total) * 100).toFixed(1) : 0}%`,
+          )
+          .join(", "),
     );
 
     if (applyWeights && sorted.length > 0) {
@@ -133,13 +143,13 @@ export async function logAndApplyImprovementReportWeights(
         const ratio = maxImportance > 0 ? importance / maxImportance : 0;
         const suggested = Math.max(
           0.5,
-          Math.min(2.0, current * (0.85 + 0.3 * ratio))
+          Math.min(2.0, current * (0.85 + 0.3 * ratio)),
         );
         if (Math.abs(suggested - current) > 0.05) {
           await dynamicConfig.updateSourceWeight(
             source,
             suggested,
-            "Improvement report alignment (feature_importances)"
+            "Improvement report alignment (feature_importances)",
           );
         }
       }
@@ -150,7 +160,7 @@ export async function logAndApplyImprovementReportWeights(
   if (suggested && suggested.length > 0) {
     logger.info(
       "[ImprovementReport] Suggested signal factors (populate next): " +
-        suggested.map((f) => f.name).join(", ")
+        suggested.map((f) => f.name).join(", "),
     );
   }
 }

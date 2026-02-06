@@ -1,19 +1,37 @@
-import { Tool } from "@/frontend/components/action-tool"
-import { ToolGroup } from "@/frontend/components/action-tool-group"
-import { AnimatedResponse } from "@/frontend/components/chat/animated-response"
-import { ChatPriceChart } from "@/frontend/components/chat/chat-price-chart"
-import ArrowRightIcon from "@/frontend/components/icons/arrow-right"
-import { Button } from "@/frontend/components/ui/button"
-import { Card, CardContent } from "@/frontend/components/ui/card"
-import { convertActionMessageToToolPart, isActionMessage } from "@/frontend/lib/action-message-utils"
-import { elizaClient } from '@/frontend/lib/elizaClient'
-import { socketManager } from '@/frontend/lib/socketManager'
-import { cn } from "@/frontend/lib/utils"
-import type { Agent, UUID } from '@elizaos/core'
-import { Loader2, ArrowLeft, Wallet, TrendingUp, Search, Repeat, Database, CheckCircle2, BarChart2, Newspaper, Flame, Building2, ImageIcon } from "lucide-react"
-import type React from "react"
-import { useCallback, useEffect, useRef, useState } from "react"
-import { Textarea } from "@/frontend/components/ui/textarea"
+import { Tool } from "@/frontend/components/action-tool";
+import { ToolGroup } from "@/frontend/components/action-tool-group";
+import { AnimatedResponse } from "@/frontend/components/chat/animated-response";
+import { ChatPriceChart } from "@/frontend/components/chat/chat-price-chart";
+import { MarketPulseCard } from "@/frontend/components/chat/market-pulse-card";
+import ArrowRightIcon from "@/frontend/components/icons/arrow-right";
+import { Button } from "@/frontend/components/ui/button";
+import { Card, CardContent } from "@/frontend/components/ui/card";
+import {
+  convertActionMessageToToolPart,
+  isActionMessage,
+} from "@/frontend/lib/action-message-utils";
+import { elizaClient } from "@/frontend/lib/elizaClient";
+import { socketManager } from "@/frontend/lib/socketManager";
+import { cn } from "@/frontend/lib/utils";
+import type { Agent, UUID } from "@elizaos/core";
+import {
+  Loader2,
+  ArrowLeft,
+  Wallet,
+  TrendingUp,
+  Search,
+  Repeat,
+  Database,
+  CheckCircle2,
+  BarChart2,
+  Newspaper,
+  Flame,
+  Building2,
+  ImageIcon,
+} from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Textarea } from "@/frontend/components/ui/textarea";
 
 // Plugin definitions with metadata and sample prompts
 const PLUGIN_ACTIONS = {
@@ -26,7 +44,7 @@ const PLUGIN_ACTIONS = {
       "Transfer 0.01 ETH to 0x...",
       "Swap 100 USDC for ETH",
       "Transfer NFT #123 from collection 0x...",
-    ]
+    ],
   },
   coingecko: {
     name: "Price & Market Data",
@@ -37,7 +55,7 @@ const PLUGIN_ACTIONS = {
       "What's trending on Base?",
       "Show me trending NFT collections",
       "Get Bitcoin price",
-    ]
+    ],
   },
   webSearch: {
     name: "Web & News",
@@ -47,7 +65,7 @@ const PLUGIN_ACTIONS = {
       "Latest DeFi news",
       "Search for Ethereum upgrades",
       "Crypto market news today",
-    ]
+    ],
   },
   defillama: {
     name: "DeFi Analytics",
@@ -57,7 +75,7 @@ const PLUGIN_ACTIONS = {
       "Compare Aave vs Uniswap TVL",
       "Get Uniswap TVL",
       "Compare Eigen vs Morpho",
-    ]
+    ],
   },
   relay: {
     name: "Cross-Chain Bridge",
@@ -67,7 +85,7 @@ const PLUGIN_ACTIONS = {
       "Bridge USDC from Base to Arbitrum",
       "Get bridge quote for 100 USDC from Base to Ethereum",
       "Check bridge status for tx 0x...",
-    ]
+    ],
   },
   etherscan: {
     name: "Transaction Checker",
@@ -77,12 +95,15 @@ const PLUGIN_ACTIONS = {
       "Check confirmation for tx 0x...",
       "Verify transaction status 0x...",
       "How many confirmations for 0x...",
-    ]
-  }
-}
+    ],
+  },
+};
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
-const ALPHA_CATEGORIES: Record<string, { title: string; icon: typeof Wallet; promptToAsk: string }> = {
+const ALPHA_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string }
+> = {
   perps: { title: "PERPS / PRICES", icon: BarChart2, promptToAsk: "aloha" },
   options: { title: "OPTIONS", icon: TrendingUp, promptToAsk: "options" },
   nft: { title: "NFT FLOOR", icon: ImageIcon, promptToAsk: "nft floor" },
@@ -90,9 +111,12 @@ const ALPHA_CATEGORIES: Record<string, { title: string; icon: typeof Wallet; pro
   tradfi: { title: "TRADFI", icon: Building2, promptToAsk: "tradfi" },
   paper: { title: "PAPER", icon: Wallet, promptToAsk: "bot status" },
   news: { title: "NEWS", icon: Newspaper, promptToAsk: "mando minutes" },
-}
+};
 
-const ALPHA_PATTERNS: { key: keyof typeof ALPHA_CATEGORIES; patterns: RegExp[] }[] = [
+const ALPHA_PATTERNS: {
+  key: keyof typeof ALPHA_CATEGORIES;
+  patterns: RegExp[];
+}[] = [
   { key: "perps", patterns: [/BINANCE INTELLIGENCE/i, /COINGECKO MARKET/i] },
   { key: "options", patterns: [/DERIBIT OPTIONS/i] },
   { key: "nft", patterns: [/NFT FLOOR/i] },
@@ -100,456 +124,521 @@ const ALPHA_PATTERNS: { key: keyof typeof ALPHA_CATEGORIES; patterns: RegExp[] }
   { key: "tradfi", patterns: [/HIP-3 TRADFI/i, /TRADFI DASHBOARD/i] },
   { key: "paper", patterns: [/PAPER TRADE OPENED/i] },
   { key: "news", patterns: [/MANDOMINUTES/i] },
-]
+];
 
 function extractAlphaSummary(content: string, maxLen: number = 100): string {
-  const trimmed = content.replace(/\s+/g, " ").trim()
-  return trimmed.length <= maxLen ? trimmed : trimmed.slice(0, maxLen) + "…"
+  const trimmed = content.replace(/\s+/g, " ").trim();
+  return trimmed.length <= maxLen ? trimmed : trimmed.slice(0, maxLen) + "…";
 }
 
 // Helper function to extract chart data from a message
 const extractChartData = (message: Message): any => {
   if (message.rawMessage?.actionResult?.values?.data_points) {
-    return message.rawMessage.actionResult.values
+    return message.rawMessage.actionResult.values;
   }
-  
+
   if (message.rawMessage?.actionResult?.data?.data_points) {
-    return message.rawMessage.actionResult.data
+    return message.rawMessage.actionResult.data;
   }
-  
-  return null
-}
+
+  return null;
+};
 
 // Helper function to find all chart data in an action group
 const findAllChartDataInGroup = (actionGroup: Message[]): any[] => {
-  const charts: any[] = []
+  const charts: any[] = [];
   for (const message of actionGroup) {
-    const chartData = extractChartData(message)
+    const chartData = extractChartData(message);
     if (chartData) {
-      charts.push(chartData)
+      charts.push(chartData);
     }
   }
-  return charts
-}
+  return charts;
+};
 
 interface Message {
-  id: string
-  content: string
-  authorId: string
-  createdAt: number
-  isAgent: boolean
-  senderName?: string
-  sourceType?: string
-  type?: string
-  rawMessage?: any
-  metadata?: any
-  thought?: string
+  id: string;
+  content: string;
+  authorId: string;
+  createdAt: number;
+  isAgent: boolean;
+  senderName?: string;
+  sourceType?: string;
+  type?: string;
+  rawMessage?: any;
+  metadata?: any;
+  thought?: string;
 }
 
 interface ChatInterfaceProps {
-  agent: Agent
-  userId: string
-  serverId: string
-  channelId: string | null
-  isNewChatMode?: boolean
-  connected?: boolean
-  onChannelCreated?: (channelId: string, channelName: string) => void
-  onActionCompleted?: () => void // Callback when agent completes an action
+  agent: Agent;
+  userId: string;
+  serverId: string;
+  channelId: string | null;
+  isNewChatMode?: boolean;
+  connected?: boolean;
+  onChannelCreated?: (channelId: string, channelName: string) => void;
+  onActionCompleted?: () => void; // Callback when agent completes an action
 }
 
 const AnimatedDots = () => {
-  const [dotCount, setDotCount] = useState(1)
-  
+  const [dotCount, setDotCount] = useState(1);
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setDotCount((prev) => (prev % 3) + 1)
-    }, 500)
-    
-    return () => clearInterval(interval)
-  }, [])
-  
-  return <span>{'.'.repeat(dotCount)}</span>
-}
+      setDotCount((prev) => (prev % 3) + 1);
+    }, 500);
 
-export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMode = false, connected = false, onChannelCreated, onActionCompleted }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState("")
-  const [isTyping, setIsTyping] = useState(false)
-  const [isCreatingChannel, setIsCreatingChannel] = useState(false)
-  const [selectedPlugin, setSelectedPlugin] = useState<keyof typeof PLUGIN_ACTIONS | null>(null)
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [connectionCheck, setConnectionCheck] = useState<'idle' | 'checking' | 'ok' | 'fail'>('idle')
-  const [showDummyToolGroup, setShowDummyToolGroup] = useState(false)
-  const [showPromptsModal, setShowPromptsModal] = useState(false)
-  const [lastAlphaByCategory, setLastAlphaByCategory] = useState<Record<string, { summary: string; updatedAt: number }>>({})
-  const [showReplyHint, setShowReplyHint] = useState(false) // Shown when stuck on "Analyzing..." (reply not reaching UI)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const isUserScrollingRef = useRef(false) // Track if user is actively scrolling
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const replyHintTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  
-  const MAX_TEXTAREA_HEIGHT = 160
+    return () => clearInterval(interval);
+  }, []);
+
+  return <span>{".".repeat(dotCount)}</span>;
+};
+
+export function ChatInterface({
+  agent,
+  userId,
+  serverId,
+  channelId,
+  isNewChatMode = false,
+  connected = false,
+  onChannelCreated,
+  onActionCompleted,
+}: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [selectedPlugin, setSelectedPlugin] = useState<
+    keyof typeof PLUGIN_ACTIONS | null
+  >(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [connectionCheck, setConnectionCheck] = useState<
+    "idle" | "checking" | "ok" | "fail"
+  >("idle");
+  const [showDummyToolGroup, setShowDummyToolGroup] = useState(false);
+  const [showPromptsModal, setShowPromptsModal] = useState(false);
+  const [lastAlphaByCategory, setLastAlphaByCategory] = useState<
+    Record<string, { summary: string; updatedAt: number }>
+  >({});
+  const [showReplyHint, setShowReplyHint] = useState(false); // Shown when stuck on "Analyzing..." (reply not reaching UI)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const isUserScrollingRef = useRef(false); // Track if user is actively scrolling
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const replyHintTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const MAX_TEXTAREA_HEIGHT = 160;
 
   // Stabilize agent.id and agent.name to prevent unnecessary re-renders
   // Use refs to store stable values that don't trigger re-renders
-  const agentIdRef = useRef(agent.id)
-  const agentNameRef = useRef(agent.name)
-  
+  const agentIdRef = useRef(agent.id);
+  const agentNameRef = useRef(agent.name);
+
   // Update refs when agent changes, but don't trigger re-renders
   useEffect(() => {
-    agentIdRef.current = agent.id
-    agentNameRef.current = agent.name
-  }, [agent.id, agent.name])
+    agentIdRef.current = agent.id;
+    agentNameRef.current = agent.name;
+  }, [agent.id, agent.name]);
 
   // Helper function to check if user is near bottom of the chat
   const checkIfNearBottom = () => {
-    const container = messagesContainerRef.current
-    if (!container) return true
-    
-    const threshold = 200 // pixels from bottom to consider "near bottom"
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
-    return distanceFromBottom < threshold
-  }
+    const container = messagesContainerRef.current;
+    if (!container) return true;
 
+    const threshold = 200; // pixels from bottom to consider "near bottom"
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceFromBottom < threshold;
+  };
 
   // Helper function to scroll to bottom
-  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    messagesEndRef.current?.scrollIntoView({ behavior })
-  }
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+  };
 
   // Helper function to resize textarea based on content
   const resizeTextarea = useCallback(() => {
-    const textarea = textareaRef.current
+    const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto'
-      textarea.style.height = Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT) + 'px'
+      textarea.style.height = "auto";
+      textarea.style.height =
+        Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT) + "px";
     }
-  }, [MAX_TEXTAREA_HEIGHT])
+  }, [MAX_TEXTAREA_HEIGHT]);
 
   // Track scroll position - detect when user is actively scrolling
   useEffect(() => {
-    const container = messagesContainerRef.current
-    if (!container) return
+    const container = messagesContainerRef.current;
+    if (!container) return;
 
     const handleScroll = () => {
       // User is actively scrolling - disable auto-scroll
-      isUserScrollingRef.current = true
-      
+      isUserScrollingRef.current = true;
+
       // Clear previous timeout
       if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
+        clearTimeout(scrollTimeoutRef.current);
       }
-      
+
       // After user stops scrolling for 150ms, check position
       scrollTimeoutRef.current = setTimeout(() => {
-        const nearBottom = checkIfNearBottom()
+        const nearBottom = checkIfNearBottom();
         // User stopped scrolling - enable auto-scroll only if near bottom
-        isUserScrollingRef.current = !nearBottom
-      }, 150)
-    }
+        isUserScrollingRef.current = !nearBottom;
+      }, 150);
+    };
 
-    container.addEventListener('scroll', handleScroll)
+    container.addEventListener("scroll", handleScroll);
     return () => {
-      container.removeEventListener('scroll', handleScroll)
+      container.removeEventListener("scroll", handleScroll);
       if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current)
+        clearTimeout(scrollTimeoutRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Resize textarea when input value changes
   useEffect(() => {
-    resizeTextarea()
-  }, [inputValue, resizeTextarea])
+    resizeTextarea();
+  }, [inputValue, resizeTextarea]);
 
   // When stuck on "Analyzing..." for 45s, show hint (agent reply not reaching UI — usually message-bus / local messaging).
   // Use 45s so normal slow (non-streaming) replies don't show the hint while waiting.
   useEffect(() => {
     if (isTyping) {
-      setShowReplyHint(false)
-      replyHintTimerRef.current = setTimeout(() => setShowReplyHint(true), 45000)
+      setShowReplyHint(false);
+      replyHintTimerRef.current = setTimeout(
+        () => setShowReplyHint(true),
+        45000,
+      );
     } else {
       if (replyHintTimerRef.current) {
-        clearTimeout(replyHintTimerRef.current)
-        replyHintTimerRef.current = null
+        clearTimeout(replyHintTimerRef.current);
+        replyHintTimerRef.current = null;
       }
-      setShowReplyHint(false)
+      setShowReplyHint(false);
     }
     return () => {
       if (replyHintTimerRef.current) {
-        clearTimeout(replyHintTimerRef.current)
-        replyHintTimerRef.current = null
+        clearTimeout(replyHintTimerRef.current);
+        replyHintTimerRef.current = null;
       }
-    }
-  }, [isTyping])
+    };
+  }, [isTyping]);
 
   // Clear messages when entering new chat mode
   useEffect(() => {
     if (isNewChatMode && !channelId) {
-      console.log(' Entering new chat mode - clearing messages')
-      setMessages([])
+      console.log(" Entering new chat mode - clearing messages");
+      setMessages([]);
     }
-  }, [isNewChatMode, channelId])
+  }, [isNewChatMode, channelId]);
 
   // Load messages when channel changes
   // Only depend on channelId - using agent values directly in the function
   useEffect(() => {
-    if (!channelId) return
+    if (!channelId) return;
 
     async function loadMessages() {
       try {
-        setIsLoadingMessages(true)
-        console.log(' Loading messages for channel:', channelId)
-        const messagesResponse = await elizaClient.messaging.getChannelMessages(channelId as UUID, {
-          limit: 50,
-        })
+        setIsLoadingMessages(true);
+        console.log(" Loading messages for channel:", channelId);
+        const messagesResponse = await elizaClient.messaging.getChannelMessages(
+          channelId as UUID,
+          {
+            limit: 50,
+          },
+        );
 
-        const formattedMessages: Message[] = messagesResponse.messages.map((msg) => {
-          let timestamp: number
-          if (msg.createdAt instanceof Date) {
-            timestamp = msg.createdAt.getTime()
-          } else if (typeof msg.createdAt === 'number') {
-            timestamp = msg.createdAt
-          } else if (typeof msg.createdAt === 'string') {
-            timestamp = Date.parse(msg.createdAt)
-          } else {
-            timestamp = Date.now()
-          }
+        const formattedMessages: Message[] = messagesResponse.messages.map(
+          (msg) => {
+            let timestamp: number;
+            if (msg.createdAt instanceof Date) {
+              timestamp = msg.createdAt.getTime();
+            } else if (typeof msg.createdAt === "number") {
+              timestamp = msg.createdAt;
+            } else if (typeof msg.createdAt === "string") {
+              timestamp = Date.parse(msg.createdAt);
+            } else {
+              timestamp = Date.now();
+            }
 
-          return {
-            id: msg.id,
-            content: msg.content,
-            authorId: msg.authorId,
-            createdAt: timestamp,
-            isAgent: msg.authorId === agentIdRef.current,
-            senderName: msg.metadata?.authorDisplayName || (msg.authorId === agentIdRef.current ? agentNameRef.current : 'User'),
-            sourceType: msg.sourceType,
-            type: msg.sourceType,
-            rawMessage: msg.rawMessage,
-            metadata: msg.metadata,
-            thought: (msg as any).thought,
-          }
-        })
+            return {
+              id: msg.id,
+              content: msg.content,
+              authorId: msg.authorId,
+              createdAt: timestamp,
+              isAgent: msg.authorId === agentIdRef.current,
+              senderName:
+                msg.metadata?.authorDisplayName ||
+                (msg.authorId === agentIdRef.current
+                  ? agentNameRef.current
+                  : "User"),
+              sourceType: msg.sourceType,
+              type: msg.sourceType,
+              rawMessage: msg.rawMessage,
+              metadata: msg.metadata,
+              thought: (msg as any).thought,
+            };
+          },
+        );
 
-        const sortedMessages = formattedMessages.sort((a, b) => a.createdAt - b.createdAt)
-        setMessages(sortedMessages)
-        setIsLoadingMessages(false)
-        isUserScrollingRef.current = false // User is not scrolling when loading messages
-        setTimeout(() => scrollToBottom('smooth'), 0)
-        console.log(` Loaded ${sortedMessages.length} messages`)
+        const sortedMessages = formattedMessages.sort(
+          (a, b) => a.createdAt - b.createdAt,
+        );
+        setMessages(sortedMessages);
+        setIsLoadingMessages(false);
+        isUserScrollingRef.current = false; // User is not scrolling when loading messages
+        setTimeout(() => scrollToBottom("smooth"), 0);
+        console.log(` Loaded ${sortedMessages.length} messages`);
       } catch (error: any) {
-        console.error(' Failed to load messages:', error)
+        console.error(" Failed to load messages:", error);
       } finally {
-        setIsLoadingMessages(false)
+        setIsLoadingMessages(false);
       }
     }
 
-    loadMessages()
-  }, [channelId])
+    loadMessages();
+  }, [channelId]);
 
   // Extract alpha TLDR from agent messages (Option A: reuse last agent reply)
   useEffect(() => {
-    const agentMessages = [...messages].filter((m) => m.isAgent && m.content?.trim()).sort((a, b) => b.createdAt - a.createdAt)
-    const updates: Record<string, { summary: string; updatedAt: number }> = {}
+    const agentMessages = [...messages]
+      .filter((m) => m.isAgent && m.content?.trim())
+      .sort((a, b) => b.createdAt - a.createdAt);
+    const updates: Record<string, { summary: string; updatedAt: number }> = {};
     for (const msg of agentMessages) {
-      const content = msg.content
+      const content = msg.content;
       for (const { key, patterns } of ALPHA_PATTERNS) {
-        if (updates[key]) continue
+        if (updates[key]) continue;
         for (const re of patterns) {
           if (re.test(content)) {
-            updates[key] = { summary: extractAlphaSummary(content), updatedAt: msg.createdAt }
-            break
+            updates[key] = {
+              summary: extractAlphaSummary(content),
+              updatedAt: msg.createdAt,
+            };
+            break;
           }
         }
       }
     }
     if (Object.keys(updates).length > 0) {
-      setLastAlphaByCategory((prev) => ({ ...prev, ...updates }))
+      setLastAlphaByCategory((prev) => ({ ...prev, ...updates }));
     }
-  }, [messages])
+  }, [messages]);
 
   // Listen for new messages (channel joining is handled in App.tsx)
   // Only depend on channelId to avoid re-subscribing when agent object changes
   useEffect(() => {
-    if (!channelId) return undefined
+    if (!channelId) return undefined;
 
     const handleNewMessage = (data: any) => {
-      const payloadChannelId = data.channelId ?? data.roomId ?? data.channel_id ?? data.room_id
+      const payloadChannelId =
+        data.channelId ?? data.roomId ?? data.channel_id ?? data.room_id;
       if (payloadChannelId && payloadChannelId !== channelId) {
-        console.log('[Chat] Ignoring message for different channel', { payloadChannelId, currentChannelId: channelId })
-        return
+        console.log("[Chat] Ignoring message for different channel", {
+          payloadChannelId,
+          currentChannelId: channelId,
+        });
+        return;
       }
-      console.log('[Chat] New message received', {
+      console.log("[Chat] New message received", {
         id: data.id,
         hasContent: !!(data.content ?? data.text ?? data.message),
         senderId: data.senderId,
-        channelId: payloadChannelId || '(none in payload)',
-      })
+        channelId: payloadChannelId || "(none in payload)",
+      });
 
-      const messageId = data.id || crypto.randomUUID()
+      const messageId = data.id || crypto.randomUUID();
       const newMessage: Message = {
         id: messageId,
-        content: data.content || data.text || data.message || '',
+        content: data.content || data.text || data.message || "",
         authorId: data.senderId,
-        createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.parse(data.createdAt as string),
+        createdAt:
+          typeof data.createdAt === "number"
+            ? data.createdAt
+            : Date.parse(data.createdAt as string),
         isAgent: data.senderId === agentIdRef.current,
-        senderName: data.senderName || (data.senderId === agentIdRef.current ? agentNameRef.current : 'User'),
+        senderName:
+          data.senderName ||
+          (data.senderId === agentIdRef.current
+            ? agentNameRef.current
+            : "User"),
         sourceType: data.sourceType || data.source,
         type: data.type || data.sourceType || data.source,
         rawMessage: data.rawMessage || data,
         metadata: data.metadata,
-      }
+      };
 
       // Show dummy tool group when user message arrives
       if (!newMessage.isAgent) {
-        setShowDummyToolGroup(true)
-        isUserScrollingRef.current = false // User is not scrolling when sending message
+        setShowDummyToolGroup(true);
+        isUserScrollingRef.current = false; // User is not scrolling when sending message
         // Wait for DOM to update before scrolling
-        setTimeout(() => scrollToBottom('smooth'), 0)
+        setTimeout(() => scrollToBottom("smooth"), 0);
       }
 
       setMessages((prev) => {
         // Check if message exists - if so, update it (for action status changes)
-        const existingIndex = prev.findIndex((m) => m.id === messageId)
+        const existingIndex = prev.findIndex((m) => m.id === messageId);
         if (existingIndex !== -1) {
-          const updated = [...prev]
-          updated[existingIndex] = newMessage
-          return updated.sort((a, b) => a.createdAt - b.createdAt)
+          const updated = [...prev];
+          updated[existingIndex] = newMessage;
+          return updated.sort((a, b) => a.createdAt - b.createdAt);
         }
         // Add new message and sort by timestamp
-        const updated = [...prev, newMessage]
-        return updated.sort((a, b) => a.createdAt - b.createdAt)
-      })
-      
+        const updated = [...prev, newMessage];
+        return updated.sort((a, b) => a.createdAt - b.createdAt);
+      });
+
       // Stop typing indicator when we receive any agent reply (single-step e.g. VINCE_BOT_STATUS, or multi-step summary)
       if (newMessage.isAgent) {
         // Hide dummy tool group when agent message arrives
-        setShowDummyToolGroup(false)
-        setIsTyping(false)
-        setTimeout(() => scrollToBottom('smooth'), 0)
+        setShowDummyToolGroup(false);
+        setIsTyping(false);
+        setTimeout(() => scrollToBottom("smooth"), 0);
 
-        const actions = newMessage.rawMessage?.actions || newMessage.metadata?.actions || []
-        const isSummaryMessage = actions.includes('MULTI_STEP_SUMMARY')
-        const isErrorMessage = newMessage.content.startsWith(' Error:')
+        const actions =
+          newMessage.rawMessage?.actions || newMessage.metadata?.actions || [];
+        const isSummaryMessage = actions.includes("MULTI_STEP_SUMMARY");
+        const isErrorMessage = newMessage.content.startsWith(" Error:");
 
         if (isSummaryMessage && onActionCompleted) {
-          onActionCompleted()
+          onActionCompleted();
         }
         if (isErrorMessage) {
-          setError(null)
+          setError(null);
         }
       }
-    }
+    };
 
     // Only subscribe if socket is available - prevents errors during reconnection
-    let unsubscribe: (() => void) | undefined
+    let unsubscribe: (() => void) | undefined;
     try {
-      unsubscribe = socketManager.onMessage(handleNewMessage)
+      unsubscribe = socketManager.onMessage(handleNewMessage);
     } catch (error) {
-      console.warn(' Failed to subscribe to messages (socket not ready):', error)
-      return undefined
+      console.warn(
+        " Failed to subscribe to messages (socket not ready):",
+        error,
+      );
+      return undefined;
     }
 
     return () => {
-      unsubscribe?.()
-    }
-  }, [channelId])
+      unsubscribe?.();
+    };
+  }, [channelId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!inputValue.trim() || isCreatingChannel) return
-    
+    e.preventDefault();
+    if (!inputValue.trim() || isCreatingChannel) return;
+
     // Clear any previous errors
-    setError(null)
-    
+    setError(null);
+
     // If in new chat mode, create channel first with generated title
     if (isNewChatMode && !channelId) {
-      console.log(' [ChatInterface] First message in new chat mode, creating channel...')
-      setIsCreatingChannel(true)
-      setIsTyping(true)
-      
+      console.log(
+        " [ChatInterface] First message in new chat mode, creating channel...",
+      );
+      setIsCreatingChannel(true);
+      setIsTyping(true);
+
       try {
         // STEP 1: Try to generate title from user's message (server may not have this endpoint)
-        const fallbackTitle = inputValue.trim().substring(0, 50) || 'New chat'
-        let generatedTitle = fallbackTitle
+        const fallbackTitle = inputValue.trim().substring(0, 50) || "New chat";
+        let generatedTitle = fallbackTitle;
         try {
-          const titleResponse = await elizaClient.messaging.generateChannelTitle(
-            inputValue,
-            agent.id as UUID
-          )
-          if (titleResponse?.title?.trim()) generatedTitle = titleResponse.title.trim()
+          const titleResponse =
+            await elizaClient.messaging.generateChannelTitle(
+              inputValue,
+              agent.id as UUID,
+            );
+          if (titleResponse?.title?.trim())
+            generatedTitle = titleResponse.title.trim();
         } catch (titleErr: any) {
           // 404 / "API endpoint not found" is expected when server has no POST /generate-title
-          console.log(' Title API unavailable, using message preview:', titleErr?.message ?? '')
+          console.log(
+            " Title API unavailable, using message preview:",
+            titleErr?.message ?? "",
+          );
         }
-        console.log(' Using title:', generatedTitle)
+        console.log(" Using title:", generatedTitle);
 
         // STEP 2: Create channel in DB with the generated title
-        console.log(' Creating channel with title:', generatedTitle)
-        const now = Date.now()
+        console.log(" Creating channel with title:", generatedTitle);
+        const now = Date.now();
         const newChannel = await elizaClient.messaging.createGroupChannel({
           name: generatedTitle,
           participantIds: [userId as UUID, agent.id as UUID],
           metadata: {
             server_id: serverId,
-            type: 'DM',
+            type: "DM",
             isDm: true,
             user1: userId,
             user2: agent.id,
             forAgent: agent.id,
             createdAt: new Date(now).toISOString(),
           },
-        })
-        console.log(' Channel created:', newChannel.id)
+        });
+        console.log(" Channel created:", newChannel.id);
 
         // STEP 3: Notify parent component
-        onChannelCreated?.(newChannel.id, generatedTitle)
+        onChannelCreated?.(newChannel.id, generatedTitle);
 
         // STEP 4: Send the message (channel is now created and will be set as active)
         // The socket join will happen automatically via App.tsx's useEffect
         // Wait a brief moment for the channel to be set as active
         setTimeout(() => {
-          console.log(' Sending initial message to new channel:', newChannel.id)
+          console.log(
+            " Sending initial message to new channel:",
+            newChannel.id,
+          );
           socketManager.sendMessage(newChannel.id, inputValue, serverId, {
             userId,
             isDm: true,
             targetUserId: agent.id,
-          })
-        }, 100)
+          });
+        }, 100);
 
-        setInputValue('')
+        setInputValue("");
       } catch (error: any) {
-        console.error(' Failed to create channel:', error)
-        const errorMessage = error?.message || 'Failed to create chat. Please try again.'
-        setError(errorMessage)
-        setIsTyping(false)
+        console.error(" Failed to create channel:", error);
+        const errorMessage =
+          error?.message || "Failed to create chat. Please try again.";
+        setError(errorMessage);
+        setIsTyping(false);
       } finally {
-        setIsCreatingChannel(false)
+        setIsCreatingChannel(false);
       }
-      return
+      return;
     }
-    
+
     // Normal message sending (channel already exists)
     if (!channelId) {
-      console.warn(' Cannot send message: No channel ID')
-      return
+      console.warn(" Cannot send message: No channel ID");
+      return;
     }
-    
-    const defaultServerId = '00000000-0000-0000-0000-000000000000'
-    const isDefaultServer = serverId === defaultServerId
-    console.log(' [ChatInterface] Sending message:', {
+
+    const defaultServerId = "00000000-0000-0000-0000-000000000000";
+    const isDefaultServer = serverId === defaultServerId;
+    console.log(" [ChatInterface] Sending message:", {
       channelId,
       text: inputValue,
       serverId,
-      isDefaultServer: isDefaultServer ? 'YES (replies should work)' : 'NO (replies may not reach UI)',
+      isDefaultServer: isDefaultServer
+        ? "YES (replies should work)"
+        : "NO (replies may not reach UI)",
       userId,
       agentId: agent.id,
-    })
+    });
     if (!isDefaultServer) {
-      console.warn(' [ChatInterface] serverId is not the default message server — set messageServerId/DEFAULT_MESSAGE_SERVER_ID so replies reach the UI.')
+      console.warn(
+        " [ChatInterface] serverId is not the default message server — set messageServerId/DEFAULT_MESSAGE_SERVER_ID so replies reach the UI.",
+      );
     }
 
     // Send via socket (don't add optimistically - server will broadcast back)
@@ -557,86 +646,93 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
       userId,
       isDm: true,
       targetUserId: agent.id,
-    })
-    
-    setInputValue('')
-    setIsTyping(true)
-  }
+    });
+
+    setInputValue("");
+    setIsTyping(true);
+  };
 
   // Callback for when animated text updates - auto-scroll only if user is not scrolling
   const handleAnimationTextUpdate = useCallback(() => {
     // Only auto-scroll if user is not actively scrolling and is near bottom
     if (!isUserScrollingRef.current && checkIfNearBottom()) {
-      scrollToBottom('auto')
+      scrollToBottom("auto");
     }
-  }, []) // Empty deps - scrollToBottom and isUserScrollingRef are stable
+  }, []); // Empty deps - scrollToBottom and isUserScrollingRef are stable
 
   // Handle prompt click - populate input instead of auto-sending
   const handlePromptClick = (message: string) => {
-    if (!message.trim()) return
-    
+    if (!message.trim()) return;
+
     // Close modal if open
-    setShowPromptsModal(false)
-    
+    setShowPromptsModal(false);
+
     // Populate input field with the prompt
-    setInputValue(message)
-    
+    setInputValue(message);
+
     // Focus the input field
-    const inputElement = document.querySelector('textarea');
+    const inputElement = document.querySelector("textarea");
     if (inputElement) {
       inputElement.focus();
     }
-  }
-  
+  };
+
   // Legacy function for backward compatibility (if needed elsewhere)
   const handleQuickPrompt = async (message: string) => {
-    if (isTyping || !message.trim() || isCreatingChannel) return
-    
+    if (isTyping || !message.trim() || isCreatingChannel) return;
+
     // Close modal if open
-    setShowPromptsModal(false)
-    
+    setShowPromptsModal(false);
+
     // Clear any previous errors
-    setError(null)
-    
+    setError(null);
+
     // If in new chat mode, create channel first with generated title
     if (isNewChatMode && !channelId) {
-      console.log(' [ChatInterface] Quick prompt in new chat mode, creating channel...')
-      setIsCreatingChannel(true)
-      setIsTyping(true)
-      
+      console.log(
+        " [ChatInterface] Quick prompt in new chat mode, creating channel...",
+      );
+      setIsCreatingChannel(true);
+      setIsTyping(true);
+
       try {
         // STEP 1: Try to generate title (server may not have POST /generate-title)
-        const fallbackTitle = message.trim().substring(0, 50) || 'New chat'
-        let generatedTitle = fallbackTitle
+        const fallbackTitle = message.trim().substring(0, 50) || "New chat";
+        let generatedTitle = fallbackTitle;
         try {
-          const titleResponse = await elizaClient.messaging.generateChannelTitle(
-            message,
-            agent.id as UUID
-          )
-          if (titleResponse?.title?.trim()) generatedTitle = titleResponse.title.trim()
+          const titleResponse =
+            await elizaClient.messaging.generateChannelTitle(
+              message,
+              agent.id as UUID,
+            );
+          if (titleResponse?.title?.trim())
+            generatedTitle = titleResponse.title.trim();
         } catch (titleErr: any) {
-          console.log(' Title API unavailable, using message preview:', titleErr?.message ?? '')
+          console.log(
+            " Title API unavailable, using message preview:",
+            titleErr?.message ?? "",
+          );
         }
 
         // STEP 2: Create channel in DB with the generated title
-        const now = Date.now()
+        const now = Date.now();
         const newChannel = await elizaClient.messaging.createGroupChannel({
           name: generatedTitle,
           participantIds: [userId as UUID, agent.id as UUID],
           metadata: {
             server_id: serverId,
-            type: 'DM',
+            type: "DM",
             isDm: true,
             user1: userId,
             user2: agent.id,
             forAgent: agent.id,
             createdAt: new Date(now).toISOString(),
           },
-        })
-        console.log(' Channel created:', newChannel.id)
+        });
+        console.log(" Channel created:", newChannel.id);
 
         // STEP 3: Notify parent component
-        onChannelCreated?.(newChannel.id, generatedTitle)
+        onChannelCreated?.(newChannel.id, generatedTitle);
 
         // STEP 4: Send the message (channel is now created and will be set as active)
         setTimeout(() => {
@@ -644,394 +740,553 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
             userId,
             isDm: true,
             targetUserId: agent.id,
-          })
-        }, 100)
+          });
+        }, 100);
       } catch (error: any) {
-        console.error(' Failed to create channel:', error)
-        const errorMessage = error?.message || 'Failed to create chat. Please try again.'
-        setError(errorMessage)
-        setIsTyping(false)
+        console.error(" Failed to create channel:", error);
+        const errorMessage =
+          error?.message || "Failed to create chat. Please try again.";
+        setError(errorMessage);
+        setIsTyping(false);
       } finally {
-        setIsCreatingChannel(false)
+        setIsCreatingChannel(false);
       }
-      return
+      return;
     }
-    
+
     // Normal quick prompt (channel already exists)
     if (!channelId) {
-      console.warn(' Cannot send message: No channel ID')
-      return
+      console.warn(" Cannot send message: No channel ID");
+      return;
     }
-    
-    console.log(' [ChatInterface] Sending quick prompt:', {
+
+    console.log(" [ChatInterface] Sending quick prompt:", {
       channelId,
       text: message,
       serverId,
       userId,
       agentId: agent.id,
-    })
-    
+    });
+
     // Send via socket directly
     socketManager.sendMessage(channelId, message, serverId, {
       userId,
       isDm: true,
       targetUserId: agent.id,
-    })
-    
-    setIsTyping(true)
-  }
+    });
+
+    setIsTyping(true);
+  };
 
   // Group consecutive action messages together
-  const groupedMessages = messages.reduce<Array<Message | Message[]>>((acc, message, index) => {
-    const isAction = isActionMessage(message)
-    const prevItem = acc[acc.length - 1]
-    
-    // If this is an action message and the previous item is an array of actions, add to that array
-    if (isAction && Array.isArray(prevItem) && prevItem.length > 0 && isActionMessage(prevItem[0])) {
-      prevItem.push(message)
-    } 
-    // If this is an action message but previous was not, start a new array
-    else if (isAction) {
-      acc.push([message])
-    }
-    // If this is not an action message, add it as a single message
-    else {
-      acc.push(message)
-    }
-    
-    return acc
-  }, [])
+  const groupedMessages = messages.reduce<Array<Message | Message[]>>(
+    (acc, message, index) => {
+      const isAction = isActionMessage(message);
+      const prevItem = acc[acc.length - 1];
+
+      // If this is an action message and the previous item is an array of actions, add to that array
+      if (
+        isAction &&
+        Array.isArray(prevItem) &&
+        prevItem.length > 0 &&
+        isActionMessage(prevItem[0])
+      ) {
+        prevItem.push(message);
+      }
+      // If this is an action message but previous was not, start a new array
+      else if (isAction) {
+        acc.push([message]);
+      }
+      // If this is not an action message, add it as a single message
+      else {
+        acc.push(message);
+      }
+
+      return acc;
+    },
+    [],
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-0">
       <Card className="flex-1 overflow-hidden">
         <CardContent className="h-full p-0">
-          <div ref={messagesContainerRef} className="h-full overflow-y-auto p-6 pb-2">
+          <div
+            ref={messagesContainerRef}
+            className="h-full overflow-y-auto p-6 pb-2"
+          >
             <div className="space-y-4 h-full flex flex-col">
-            {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}
-            {!connected && (!error || !error.toLowerCase().includes('endpoint not found')) && (
-              <p className="text-sm text-muted-foreground mb-2">
-                Connecting…
-              </p>
-            )}
-            {/* Messages */}
-            <div className="flex-1 space-y-4">
-              {groupedMessages.map((item, groupIndex) => {
-                // Handle grouped action messages
-                if (Array.isArray(item)) {
-                  const actionGroup = item
-                  const firstAction = actionGroup[0]
-                  const isLastGroup = groupIndex === groupedMessages.length - 1
-                  // Find all chart data in this action group
-                  const chartDataArray = findAllChartDataInGroup(actionGroup)
-                  
-                  // Get the latest action's status and name for label
-                  const latestAction = actionGroup[actionGroup.length - 1]
-                  const latestActionStatus = latestAction.metadata?.actionStatus || latestAction.rawMessage?.actionStatus
-                  const latestActionName = latestAction.metadata?.actions?.[0] || latestAction.rawMessage?.actions?.[0] || 'action'
-                  // Determine label based on state
-                  const baseClasses = "px-2 py-1 rounded-md text-xs font-medium border"
-                  let groupLabel = (
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-1">
-                        See execution steps
-                      </div>
-                      <div
-                        className={cn(
-                          baseClasses,
-                          "bg-green-100 text-green-700 border-green-700 dark:bg-green-900/30 dark:text-green-400 dark:border-green-400 uppercase"
-                        )}
-                      >
-                        Completed
-                      </div>
-                    </div>
-                  )
-
-                  if (isLastGroup && isTyping) {
-                    if (latestActionStatus === 'executing' && latestActionName) {
-                      groupLabel = (
-                        <div className="flex items-center w-full">
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
-                          <div className="flex items-center gap-1">
-                            executing {latestActionName} action<AnimatedDots />
-                          </div>
-                        </div>
-                      )
-                    } else if (isTyping) {
-                      groupLabel = (
-                        <div className="flex items-center w-full">
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
-                          <div className="flex items-center gap-1">
-                            OTAKU is thinking<AnimatedDots />
-                          </div>
-                        </div>
-                      )
-                    }
-                  }
-                  
-                  return (
-                    <div
-                      key={`action-group-${groupIndex}-${firstAction.id}`}
-                      className="flex flex-col gap-2 items-start"
-                    >
-                      <div className="max-w-[85%] w-full">
-                        <ToolGroup 
-                          defaultOpen={false}
-                          label={groupLabel}
-                        >
-                          {actionGroup.map((message) => {
-                            // Extract thought from rawMessage
-                            const thought = message.thought || message.rawMessage?.thought || message.metadata?.thought
-                            
-                            return (
-                              <div key={message.id} className="space-y-2">
-                                {thought && (
-                                  <div className="text-sm text-muted-foreground italic px-2">
-                                    {thought}
-                                  </div>
-                                )}
-                                <Tool 
-                                  toolPart={convertActionMessageToToolPart(message)}
-                                  defaultOpen={false}
-                                />
-                              </div>
-                            )
-                          })}
-                        </ToolGroup>
-                      </div>
-                      
-                      {/* Render all charts from this action group */}
-                      {chartDataArray.length > 0 && chartDataArray.map((chartData, chartIndex) => (
-                        <div 
-                          key={`chart-${groupIndex}-${chartIndex}`}
-                          className="max-w-[85%] w-full bg-card rounded-lg border border-border p-4"
-                        >
-                          <ChatPriceChart data={chartData} />
-                        </div>
-                      ))}
-                    </div>
-                  )
-                }
-                
-                // Handle single messages (user or agent text messages)
-                const message = item
-                const messageIndex = messages.indexOf(message)
-                const isLastMessage = messageIndex === messages.length - 1
-                const messageAge = Date.now() - message.createdAt
-                const isRecent = messageAge < 10000 // Less than 10 seconds
-                const shouldAnimate = message.isAgent && isLastMessage && isRecent
-                
-                // Check if this is an error message from the agent
-                const isErrorMessage = message.isAgent && message.content.startsWith(' Error:')
-
-                return (
-                  <div
-                    key={message.id}
-                    className={cn("flex flex-col gap-1", message.isAgent ? "items-start" : "items-end")}
-                  >
-                    <div
+              {/* Market Pulse: LLM insight from terminal dashboard data */}
+              <MarketPulseCard agentId={agent.id} />
+              {/* Quick actions: send TLDR triggers (ALOHA, News, Memes, Perps, Options) into chat */}
+              {agent?.id && (
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
+                    Quick:
+                  </span>
+                  {[
+                    { label: "ALOHA", message: "aloha" },
+                    { label: "News", message: "news" },
+                    { label: "Memes", message: "memes" },
+                    { label: "Perps", message: "perps" },
+                    { label: "Options", message: "options" },
+                  ].map(({ label, message }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => handleQuickPrompt(message)}
+                      disabled={isTyping || isCreatingChannel}
                       className={cn(
-                        "max-w-[70%] rounded-lg px-3 py-2 text-base font-medium break-words whitespace-pre-wrap",
-                        isErrorMessage 
-                          ? "bg-destructive/10 border border-destructive/20 text-destructive"
-                          : message.isAgent 
-                            ? "bg-accent text-foreground" 
-                            : "bg-primary text-primary-foreground",
+                        "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
+                        (isTyping || isCreatingChannel) &&
+                          "opacity-50 pointer-events-none",
                       )}
                     >
-                      <AnimatedResponse 
-                        className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                        shouldAnimate={shouldAnimate && !isErrorMessage}
-                        messageId={message.id}
-                        maxDurationMs={10000}
-                        onTextUpdate={handleAnimationTextUpdate}
-                      >
-                        {message.content}
-                      </AnimatedResponse>
-                      <span className="text-xs opacity-50 mt-1 block">
-                        {new Date(message.createdAt).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-             
-              {/* Dummy Tool Group - Shows while waiting for agent actions */}
-              {isTyping && showDummyToolGroup && (
-                <div className="flex flex-col gap-1 items-start">
-                  <div className="max-w-[85%] w-full">
-                    <ToolGroup 
-                      defaultOpen={false}
-                      animate={true}
-                      label={
-                        <div className="flex items-center w-full">
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
-                          <div className="flex items-center gap-1">
-                            Analyzing your request<AnimatedDots />
-                          </div>
-                        </div>
-                      }
-                    >
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                        <span>Processing your request<AnimatedDots /></span>
-                      </div>
-                    </ToolGroup>
-                  </div>
-                  {showReplyHint && isTyping && (
-                    <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-                      <p className="font-medium">Reply not showing?</p>
-                      <p className="mt-1 text-muted-foreground dark:text-amber-200/80">
-                        In <code className="rounded bg-muted px-1">.env</code> set <code className="rounded bg-muted px-1">ELIZAOS_USE_LOCAL_MESSAGING=true</code> and leave <code className="rounded bg-muted px-1">ELIZAOS_API_KEY</code> unset. Restart the server (<code className="rounded bg-muted px-1">bun start</code>). See DEPLOY.md § &quot;Bot status / agent replies not reaching the UI&quot;.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Error Message */}
-              {error && (
-                <div className="flex flex-col gap-1 items-center">
-                  <div className="max-w-[90%] rounded-lg px-4 py-3 bg-destructive/10 border border-destructive/20 text-destructive break-words whitespace-pre-wrap">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-medium"> {error}</span>
-                    {error.toLowerCase().includes('endpoint not found') && (
-                      <>
-                        <ol className="mt-2 text-xs text-muted-foreground list-decimal list-inside space-y-1">
-                          <li>From the project root, run: <code className="px-1 rounded bg-muted">bun start</code></li>
-                          <li>Wait until the terminal prints a URL (e.g. <code className="px-1 rounded bg-muted">http://localhost:5173</code>).</li>
-                          <li>Open <strong>that exact URL</strong> in your browser (not only port 3000).</li>
-                          <li>If it still fails, run <code className="px-1 rounded bg-muted">bun run build</code> once, then <code className="px-1 rounded bg-muted">bun start</code> again.</li>
-                        </ol>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          You're on: <code className="px-1 rounded bg-muted">{typeof window !== 'undefined' ? window.location.origin : '?'}</code>
-                        </p>
-                        {connectionCheck === 'idle' && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              setConnectionCheck('checking')
-                              try {
-                                await elizaClient.server.checkHealth()
-                                setConnectionCheck('ok')
-                              } catch {
-                                setConnectionCheck('fail')
-                              }
-                            }}
-                            className="mt-2 text-xs underline hover:no-underline text-left"
-                          >
-                            Check if backend is reachable
-                          </button>
-                        )}
-                        {connectionCheck === 'checking' && (
-                          <span className="mt-2 text-xs text-muted-foreground">Checking…</span>
-                        )}
-                        {connectionCheck === 'ok' && (
-                          <span className="mt-2 text-xs text-green-600 dark:text-green-400">Backend is reachable. If the error persists, check the browser Network tab for the failing request.</span>
-                        )}
-                        {connectionCheck === 'fail' && (
-                          <span className="mt-2 text-xs text-amber-600 dark:text-amber-400">Backend not reachable. Start it with <code className="px-1 rounded bg-muted">bun start</code> from the project root.</span>
-                        )}
-                      </>
-                    )}
-                    <button
-                      onClick={() => { setError(null); setConnectionCheck('idle') }}
-                      className="mt-2 text-xs underline hover:no-underline self-start"
-                    >
-                      Dismiss
+                      {label}
                     </button>
-                  </div>
+                  ))}
                 </div>
-              </div>
               )}
-              
-              <div ref={messagesEndRef} />
-            </div>
+              {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}
+              {!connected &&
+                (!error ||
+                  !error.toLowerCase().includes("endpoint not found")) && (
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Connecting…
+                  </p>
+                )}
+              {/* Messages */}
+              <div className="flex-1 space-y-4">
+                {groupedMessages.map((item, groupIndex) => {
+                  // Handle grouped action messages
+                  if (Array.isArray(item)) {
+                    const actionGroup = item;
+                    const firstAction = actionGroup[0];
+                    const isLastGroup =
+                      groupIndex === groupedMessages.length - 1;
+                    // Find all chart data in this action group
+                    const chartDataArray = findAllChartDataInGroup(actionGroup);
 
-            {/* Plugin-Based Quick Actions - Only show when no messages and not creating/typing */}
-            {messages.length === 0 && !isCreatingChannel && !isTyping && !isLoadingMessages && (
-              <div className="pt-3 md:pt-4 border-t border-border">
-                {/* Alpha at a glance - TLDR from terminal dashboards (same card style as Quick Start) */}
-                <div className="mb-4">
-                  <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                    Alpha at a glance
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                    {(Object.keys(ALPHA_CATEGORIES) as Array<keyof typeof ALPHA_CATEGORIES>).map((alphaKey) => {
-                      const alpha = ALPHA_CATEGORIES[alphaKey]
-                      const Icon = alpha.icon
-                      const stored = lastAlphaByCategory[alphaKey]
-                      return (
-                        <button
-                          key={alphaKey}
-                          type="button"
-                          onClick={() => handlePromptClick(alpha.promptToAsk)}
-                          className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                    // Get the latest action's status and name for label
+                    const latestAction = actionGroup[actionGroup.length - 1];
+                    const latestActionStatus =
+                      latestAction.metadata?.actionStatus ||
+                      latestAction.rawMessage?.actionStatus;
+                    const latestActionName =
+                      latestAction.metadata?.actions?.[0] ||
+                      latestAction.rawMessage?.actions?.[0] ||
+                      "action";
+                    // Determine label based on state
+                    const baseClasses =
+                      "px-2 py-1 rounded-md text-xs font-medium border";
+                    let groupLabel = (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1">
+                          See execution steps
+                        </div>
+                        <div
+                          className={cn(
+                            baseClasses,
+                            "bg-green-100 text-green-700 border-green-700 dark:bg-green-900/30 dark:text-green-400 dark:border-green-400 uppercase",
+                          )}
                         >
-                          <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                            <Icon className="size-3 md:size-3.5 text-primary shrink-0" strokeWidth={2} />
-                            <span className="text-foreground">{alpha.title}</span>
+                          Completed
+                        </div>
+                      </div>
+                    );
+
+                    if (isLastGroup && isTyping) {
+                      if (
+                        latestActionStatus === "executing" &&
+                        latestActionName
+                      ) {
+                        groupLabel = (
+                          <div className="flex items-center w-full">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                            <div className="flex items-center gap-1">
+                              executing {latestActionName} action
+                              <AnimatedDots />
+                            </div>
                           </div>
-                          <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                            {stored?.summary ?? `Ask "${alpha.promptToAsk}" for live alpha`}
-                          </p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mb-2 md:mb-3">
-                  {selectedPlugin && (
-                    <button
-                      onClick={() => setSelectedPlugin(null)}
-                      className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <ArrowLeft className="size-3" />
-                      <span className="uppercase tracking-wider font-mono">Back</span>
-                    </button>
-                  )}
-                  <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">
-                    {selectedPlugin ? PLUGIN_ACTIONS[selectedPlugin].name : 'Quick Start'}
-                  </p>
-                </div>
-                
-                {/* Show plugins or plugin-specific prompts */}
-                {!selectedPlugin ? (
-                  // Plugin Grid
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
-                    {(Object.keys(PLUGIN_ACTIONS) as Array<keyof typeof PLUGIN_ACTIONS>).map((pluginKey) => {
-                      const plugin = PLUGIN_ACTIONS[pluginKey]
-                      const Icon = plugin.icon
-                      return (
-                        <button
-                          key={pluginKey}
-                          onClick={() => setSelectedPlugin(pluginKey)}
-                          className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
-                        >
-                          <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                            <Icon className="size-3 md:size-3.5 text-primary shrink-0" strokeWidth={2} />
-                            <span className="text-foreground">{plugin.name}</span>
+                        );
+                      } else if (isTyping) {
+                        groupLabel = (
+                          <div className="flex items-center w-full">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                            <div className="flex items-center gap-1">
+                              OTAKU is thinking
+                              <AnimatedDots />
+                            </div>
                           </div>
-                          <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed">{plugin.description}</p>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  // Plugin-specific prompts
-                  <div className="flex flex-col gap-1.5 md:gap-2">
-                    {PLUGIN_ACTIONS[selectedPlugin].prompts.map((prompt, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handlePromptClick(prompt)}
-                        className="px-2.5 md:px-3 py-2 text-xs md:text-sm bg-accent hover:bg-accent/80 text-foreground rounded border border-border transition-colors text-left"
+                        );
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={`action-group-${groupIndex}-${firstAction.id}`}
+                        className="flex flex-col gap-2 items-start"
                       >
-                        {prompt}
-                      </button>
-                    ))}
+                        <div className="max-w-[85%] w-full">
+                          <ToolGroup defaultOpen={false} label={groupLabel}>
+                            {actionGroup.map((message) => {
+                              // Extract thought from rawMessage
+                              const thought =
+                                message.thought ||
+                                message.rawMessage?.thought ||
+                                message.metadata?.thought;
+
+                              return (
+                                <div key={message.id} className="space-y-2">
+                                  {thought && (
+                                    <div className="text-sm text-muted-foreground italic px-2">
+                                      {thought}
+                                    </div>
+                                  )}
+                                  <Tool
+                                    toolPart={convertActionMessageToToolPart(
+                                      message,
+                                    )}
+                                    defaultOpen={false}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </ToolGroup>
+                        </div>
+
+                        {/* Render all charts from this action group */}
+                        {chartDataArray.length > 0 &&
+                          chartDataArray.map((chartData, chartIndex) => (
+                            <div
+                              key={`chart-${groupIndex}-${chartIndex}`}
+                              className="max-w-[85%] w-full bg-card rounded-lg border border-border p-4"
+                            >
+                              <ChatPriceChart data={chartData} />
+                            </div>
+                          ))}
+                      </div>
+                    );
+                  }
+
+                  // Handle single messages (user or agent text messages)
+                  const message = item;
+                  const messageIndex = messages.indexOf(message);
+                  const isLastMessage = messageIndex === messages.length - 1;
+                  const messageAge = Date.now() - message.createdAt;
+                  const isRecent = messageAge < 10000; // Less than 10 seconds
+                  const shouldAnimate =
+                    message.isAgent && isLastMessage && isRecent;
+
+                  // Check if this is an error message from the agent
+                  const isErrorMessage =
+                    message.isAgent && message.content.startsWith(" Error:");
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={cn(
+                        "flex flex-col gap-1",
+                        message.isAgent ? "items-start" : "items-end",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "max-w-[70%] rounded-lg px-3 py-2 text-base font-medium break-words whitespace-pre-wrap",
+                          isErrorMessage
+                            ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                            : message.isAgent
+                              ? "bg-accent text-foreground"
+                              : "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        <AnimatedResponse
+                          className="[&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                          shouldAnimate={shouldAnimate && !isErrorMessage}
+                          messageId={message.id}
+                          maxDurationMs={10000}
+                          onTextUpdate={handleAnimationTextUpdate}
+                        >
+                          {message.content}
+                        </AnimatedResponse>
+                        <span className="text-xs opacity-50 mt-1 block">
+                          {new Date(message.createdAt).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Dummy Tool Group - Shows while waiting for agent actions */}
+                {isTyping && showDummyToolGroup && (
+                  <div className="flex flex-col gap-1 items-start">
+                    <div className="max-w-[85%] w-full">
+                      <ToolGroup
+                        defaultOpen={false}
+                        animate={true}
+                        label={
+                          <div className="flex items-center w-full">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-500 mr-2" />
+                            <div className="flex items-center gap-1">
+                              Analyzing your request
+                              <AnimatedDots />
+                            </div>
+                          </div>
+                        }
+                      >
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                          <span>
+                            Processing your request
+                            <AnimatedDots />
+                          </span>
+                        </div>
+                      </ToolGroup>
+                    </div>
+                    {showReplyHint && isTyping && (
+                      <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                        <p className="font-medium">Reply not showing?</p>
+                        <p className="mt-1 text-muted-foreground dark:text-amber-200/80">
+                          In <code className="rounded bg-muted px-1">.env</code>{" "}
+                          set{" "}
+                          <code className="rounded bg-muted px-1">
+                            ELIZAOS_USE_LOCAL_MESSAGING=true
+                          </code>{" "}
+                          and leave{" "}
+                          <code className="rounded bg-muted px-1">
+                            ELIZAOS_API_KEY
+                          </code>{" "}
+                          unset. Restart the server (
+                          <code className="rounded bg-muted px-1">
+                            bun start
+                          </code>
+                          ). See DEPLOY.md § &quot;Bot status / agent replies
+                          not reaching the UI&quot;.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* Error Message */}
+                {error && (
+                  <div className="flex flex-col gap-1 items-center">
+                    <div className="max-w-[90%] rounded-lg px-4 py-3 bg-destructive/10 border border-destructive/20 text-destructive break-words whitespace-pre-wrap">
+                      <div className="flex flex-col gap-2">
+                        <span className="text-sm font-medium"> {error}</span>
+                        {error.toLowerCase().includes("endpoint not found") && (
+                          <>
+                            <ol className="mt-2 text-xs text-muted-foreground list-decimal list-inside space-y-1">
+                              <li>
+                                From the project root, run:{" "}
+                                <code className="px-1 rounded bg-muted">
+                                  bun start
+                                </code>
+                              </li>
+                              <li>
+                                Wait until the terminal prints a URL (e.g.{" "}
+                                <code className="px-1 rounded bg-muted">
+                                  http://localhost:5173
+                                </code>
+                                ).
+                              </li>
+                              <li>
+                                Open <strong>that exact URL</strong> in your
+                                browser (not only port 3000).
+                              </li>
+                              <li>
+                                If it still fails, run{" "}
+                                <code className="px-1 rounded bg-muted">
+                                  bun run build
+                                </code>{" "}
+                                once, then{" "}
+                                <code className="px-1 rounded bg-muted">
+                                  bun start
+                                </code>{" "}
+                                again.
+                              </li>
+                            </ol>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              You're on:{" "}
+                              <code className="px-1 rounded bg-muted">
+                                {typeof window !== "undefined"
+                                  ? window.location.origin
+                                  : "?"}
+                              </code>
+                            </p>
+                            {connectionCheck === "idle" && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setConnectionCheck("checking");
+                                  try {
+                                    await elizaClient.server.checkHealth();
+                                    setConnectionCheck("ok");
+                                  } catch {
+                                    setConnectionCheck("fail");
+                                  }
+                                }}
+                                className="mt-2 text-xs underline hover:no-underline text-left"
+                              >
+                                Check if backend is reachable
+                              </button>
+                            )}
+                            {connectionCheck === "checking" && (
+                              <span className="mt-2 text-xs text-muted-foreground">
+                                Checking…
+                              </span>
+                            )}
+                            {connectionCheck === "ok" && (
+                              <span className="mt-2 text-xs text-green-600 dark:text-green-400">
+                                Backend is reachable. If the error persists,
+                                check the browser Network tab for the failing
+                                request.
+                              </span>
+                            )}
+                            {connectionCheck === "fail" && (
+                              <span className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                                Backend not reachable. Start it with{" "}
+                                <code className="px-1 rounded bg-muted">
+                                  bun start
+                                </code>{" "}
+                                from the project root.
+                              </span>
+                            )}
+                          </>
+                        )}
+                        <button
+                          onClick={() => {
+                            setError(null);
+                            setConnectionCheck("idle");
+                          }}
+                          className="mt-2 text-xs underline hover:no-underline self-start"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
               </div>
-            )}
+
+              {/* Plugin-Based Quick Actions - Only show when no messages and not creating/typing */}
+              {messages.length === 0 &&
+                !isCreatingChannel &&
+                !isTyping &&
+                !isLoadingMessages && (
+                  <div className="pt-3 md:pt-4 border-t border-border">
+                    {/* Alpha at a glance - TLDR from terminal dashboards (same card style as Quick Start) */}
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        Alpha at a glance
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(ALPHA_CATEGORIES) as Array<
+                            keyof typeof ALPHA_CATEGORIES
+                          >
+                        ).map((alphaKey) => {
+                          const alpha = ALPHA_CATEGORIES[alphaKey];
+                          const Icon = alpha.icon;
+                          const stored = lastAlphaByCategory[alphaKey];
+                          return (
+                            <button
+                              key={alphaKey}
+                              type="button"
+                              onClick={() =>
+                                handlePromptClick(alpha.promptToAsk)
+                              }
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {alpha.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {stored?.summary ??
+                                  `Ask "${alpha.promptToAsk}" for live alpha`}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2 md:mb-3">
+                      {selectedPlugin && (
+                        <button
+                          onClick={() => setSelectedPlugin(null)}
+                          className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <ArrowLeft className="size-3" />
+                          <span className="uppercase tracking-wider font-mono">
+                            Back
+                          </span>
+                        </button>
+                      )}
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                        {selectedPlugin
+                          ? PLUGIN_ACTIONS[selectedPlugin].name
+                          : "Quick Start"}
+                      </p>
+                    </div>
+
+                    {/* Show plugins or plugin-specific prompts */}
+                    {!selectedPlugin ? (
+                      // Plugin Grid
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+                        {(
+                          Object.keys(PLUGIN_ACTIONS) as Array<
+                            keyof typeof PLUGIN_ACTIONS
+                          >
+                        ).map((pluginKey) => {
+                          const plugin = PLUGIN_ACTIONS[pluginKey];
+                          const Icon = plugin.icon;
+                          return (
+                            <button
+                              key={pluginKey}
+                              onClick={() => setSelectedPlugin(pluginKey)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {plugin.name}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed">
+                                {plugin.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      // Plugin-specific prompts
+                      <div className="flex flex-col gap-1.5 md:gap-2">
+                        {PLUGIN_ACTIONS[selectedPlugin].prompts.map(
+                          (prompt, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handlePromptClick(prompt)}
+                              className="px-2.5 md:px-3 py-2 text-xs md:text-sm bg-accent hover:bg-accent/80 text-foreground rounded border border-border transition-colors text-left"
+                            >
+                              {prompt}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
           </div>
         </CardContent>
@@ -1048,13 +1303,13 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
             disabled={isTyping || isCreatingChannel}
             className={cn(
               "flex-1 rounded-none border-none text-foreground placeholder-foreground/40 text-sm font-mono resize-none overflow-y-auto min-h-10 py-2.5",
-              "focus-visible:outline-none focus-visible:ring-0"
+              "focus-visible:outline-none focus-visible:ring-0",
             )}
             style={{ maxHeight: `${MAX_TEXTAREA_HEIGHT}px` }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSubmit(e)
+                e.preventDefault();
+                handleSubmit(e);
               }
               // Shift+Enter will insert a newline (default behavior)
             }}
@@ -1081,12 +1336,11 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
             className="h-10"
           />
           <div className="ml-auto text-[10px] text-muted-foreground text-right max-w-xs">
-            {agent.name} is in beta. We recommend starting with smaller amounts for testing.
+            {agent.name} is in beta. We recommend starting with smaller amounts
+            for testing.
           </div>
         </div>
       </div>
     </div>
-
-
-  )  
+  );
 }

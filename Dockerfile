@@ -30,11 +30,16 @@ RUN echo '#!/bin/bash\nexec /app/node_modules/.bin/elizaos "$@"' > /usr/local/bi
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files and local workspace deps (file:./packages/api-client) for install
 COPY package.json bun.lock* ./
+COPY packages/api-client packages/api-client
 
 # Install dependencies
 RUN bun install
+
+# Apply plugin-route path fix so GET /api/agents/:id/plugins/vince/pulse works (Express strips /api from req.path)
+COPY scripts/patch-elizaos-server-plugin-routes.cjs scripts/
+RUN node scripts/patch-elizaos-server-plugin-routes.cjs
 
 # Copy the rest of the application
 COPY . .

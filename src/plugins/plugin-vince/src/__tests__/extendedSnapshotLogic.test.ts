@@ -38,97 +38,224 @@ describe("extendedSnapshotLogic", () => {
   describe("getBookImbalanceRejection", () => {
     it("returns reject for long when bookImbalance < -0.2", () => {
       expect(
-        getBookImbalanceRejection({ direction: "long", confidence: 70 }, snap({ bookImbalance: -0.25 }))
-      ).toEqual({ reject: true, reason: "Order book favors sellers (imbalance -0.25)" });
+        getBookImbalanceRejection(
+          { direction: "long", confidence: 70 },
+          snap({ bookImbalance: -0.25 }),
+        ),
+      ).toEqual({
+        reject: true,
+        reason: "Order book favors sellers (imbalance -0.25)",
+      });
       expect(
-        getBookImbalanceRejection({ direction: "long", confidence: 70 }, snap({ bookImbalance: -0.2 }))
+        getBookImbalanceRejection(
+          { direction: "long", confidence: 70 },
+          snap({ bookImbalance: -0.2 }),
+        ),
       ).toEqual({ reject: false });
     });
 
     it("returns reject for short when bookImbalance > 0.2", () => {
       expect(
-        getBookImbalanceRejection({ direction: "short", confidence: 70 }, snap({ bookImbalance: 0.3 }))
-      ).toEqual({ reject: true, reason: "Order book favors buyers (imbalance 0.30)" });
+        getBookImbalanceRejection(
+          { direction: "short", confidence: 70 },
+          snap({ bookImbalance: 0.3 }),
+        ),
+      ).toEqual({
+        reject: true,
+        reason: "Order book favors buyers (imbalance 0.30)",
+      });
       expect(
-        getBookImbalanceRejection({ direction: "short", confidence: 70 }, snap({ bookImbalance: 0.2 }))
+        getBookImbalanceRejection(
+          { direction: "short", confidence: 70 },
+          snap({ bookImbalance: 0.2 }),
+        ),
       ).toEqual({ reject: false });
     });
 
     it("does not reject long when bookImbalance >= -0.2", () => {
-      expect(getBookImbalanceRejection({ direction: "long", confidence: 70 }, snap({ bookImbalance: 0 }))).toEqual({
+      expect(
+        getBookImbalanceRejection(
+          { direction: "long", confidence: 70 },
+          snap({ bookImbalance: 0 }),
+        ),
+      ).toEqual({
         reject: false,
       });
-      expect(getBookImbalanceRejection({ direction: "long", confidence: 70 }, snap({ bookImbalance: 0.1 }))).toEqual({
+      expect(
+        getBookImbalanceRejection(
+          { direction: "long", confidence: 70 },
+          snap({ bookImbalance: 0.1 }),
+        ),
+      ).toEqual({
         reject: false,
       });
     });
 
     it("does not reject short when bookImbalance <= 0.2", () => {
-      expect(getBookImbalanceRejection({ direction: "short", confidence: 70 }, snap({ bookImbalance: -0.1 }))).toEqual({
+      expect(
+        getBookImbalanceRejection(
+          { direction: "short", confidence: 70 },
+          snap({ bookImbalance: -0.1 }),
+        ),
+      ).toEqual({
         reject: false,
       });
-      expect(getBookImbalanceRejection({ direction: "short", confidence: 70 }, snap({ bookImbalance: 0 }))).toEqual({
+      expect(
+        getBookImbalanceRejection(
+          { direction: "short", confidence: 70 },
+          snap({ bookImbalance: 0 }),
+        ),
+      ).toEqual({
         reject: false,
       });
     });
 
     it("does not reject when direction is neutral", () => {
       expect(
-        getBookImbalanceRejection({ direction: "neutral", confidence: 70 }, snap({ bookImbalance: -0.5 }))
+        getBookImbalanceRejection(
+          { direction: "neutral", confidence: 70 },
+          snap({ bookImbalance: -0.5 }),
+        ),
       ).toEqual({ reject: false });
     });
 
     it("does not reject when snapshot is null or bookImbalance is null", () => {
-      expect(getBookImbalanceRejection({ direction: "long", confidence: 70 }, null)).toEqual({ reject: false });
-      expect(getBookImbalanceRejection({ direction: "long", confidence: 70 }, snap())).toEqual({ reject: false });
+      expect(
+        getBookImbalanceRejection({ direction: "long", confidence: 70 }, null),
+      ).toEqual({ reject: false });
+      expect(
+        getBookImbalanceRejection(
+          { direction: "long", confidence: 70 },
+          snap(),
+        ),
+      ).toEqual({ reject: false });
     });
   });
 
   describe("getSma20ConfidenceBoost", () => {
     it("adds 5 for long when priceVsSma20 > 0", () => {
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap({ priceVsSma20: 1.5 }))).toBe(5);
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap({ priceVsSma20: 0.1 }))).toBe(5);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "long", confidence: 70 },
+          snap({ priceVsSma20: 1.5 }),
+        ),
+      ).toBe(5);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "long", confidence: 70 },
+          snap({ priceVsSma20: 0.1 }),
+        ),
+      ).toBe(5);
     });
 
     it("adds 5 for short when priceVsSma20 < 0", () => {
-      expect(getSma20ConfidenceBoost({ direction: "short", confidence: 70 }, snap({ priceVsSma20: -1.2 }))).toBe(5);
-      expect(getSma20ConfidenceBoost({ direction: "short", confidence: 70 }, snap({ priceVsSma20: -0.1 }))).toBe(5);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "short", confidence: 70 },
+          snap({ priceVsSma20: -1.2 }),
+        ),
+      ).toBe(5);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "short", confidence: 70 },
+          snap({ priceVsSma20: -0.1 }),
+        ),
+      ).toBe(5);
     });
 
     it("adds 0 for long when priceVsSma20 <= 0", () => {
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap({ priceVsSma20: 0 }))).toBe(0);
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap({ priceVsSma20: -1 }))).toBe(0);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "long", confidence: 70 },
+          snap({ priceVsSma20: 0 }),
+        ),
+      ).toBe(0);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "long", confidence: 70 },
+          snap({ priceVsSma20: -1 }),
+        ),
+      ).toBe(0);
     });
 
     it("adds 0 for short when priceVsSma20 >= 0", () => {
-      expect(getSma20ConfidenceBoost({ direction: "short", confidence: 70 }, snap({ priceVsSma20: 0 }))).toBe(0);
-      expect(getSma20ConfidenceBoost({ direction: "short", confidence: 70 }, snap({ priceVsSma20: 1 }))).toBe(0);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "short", confidence: 70 },
+          snap({ priceVsSma20: 0 }),
+        ),
+      ).toBe(0);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "short", confidence: 70 },
+          snap({ priceVsSma20: 1 }),
+        ),
+      ).toBe(0);
     });
 
     it("adds 0 for neutral direction", () => {
-      expect(getSma20ConfidenceBoost({ direction: "neutral", confidence: 70 }, snap({ priceVsSma20: 2 }))).toBe(0);
+      expect(
+        getSma20ConfidenceBoost(
+          { direction: "neutral", confidence: 70 },
+          snap({ priceVsSma20: 2 }),
+        ),
+      ).toBe(0);
     });
 
     it("adds 0 when snapshot or priceVsSma20 is null", () => {
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, null)).toBe(0);
-      expect(getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap())).toBe(0);
+      expect(
+        getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, null),
+      ).toBe(0);
+      expect(
+        getSma20ConfidenceBoost({ direction: "long", confidence: 70 }, snap()),
+      ).toBe(0);
     });
   });
 
   describe("getFundingReversalConfidenceBoost", () => {
     it("adds 5 when |fundingDelta| > 0.0003 and signs opposite", () => {
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: 0.0005 }), -0.0001)).toBe(5);
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: -0.0004 }), 0.0002)).toBe(5);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: 0.0005 }),
+          -0.0001,
+        ),
+      ).toBe(5);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: -0.0004 }),
+          0.0002,
+        ),
+      ).toBe(5);
     });
 
     it("adds 0 when delta and funding same sign", () => {
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: 0.0005 }), 0.0001)).toBe(0);
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: -0.0004 }), -0.0002)).toBe(0);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: 0.0005 }),
+          0.0001,
+        ),
+      ).toBe(0);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: -0.0004 }),
+          -0.0002,
+        ),
+      ).toBe(0);
     });
 
     it("adds 0 when |fundingDelta| <= 0.0003", () => {
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: 0.0003 }), -0.001)).toBe(0);
-      expect(getFundingReversalConfidenceBoost(snap({ fundingDelta: 0.0002 }), -0.001)).toBe(0);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: 0.0003 }),
+          -0.001,
+        ),
+      ).toBe(0);
+      expect(
+        getFundingReversalConfidenceBoost(
+          snap({ fundingDelta: 0.0002 }),
+          -0.001,
+        ),
+      ).toBe(0);
     });
 
     it("adds 0 when snapshot or fundingDelta is null", () => {
@@ -151,18 +278,22 @@ describe("extendedSnapshotLogic", () => {
     });
 
     it("returns base confidence when no boosts apply", () => {
-      expect(getAdjustedConfidence({ direction: "long", confidence: 65 }, snap(), 0)).toBe(65);
+      expect(
+        getAdjustedConfidence({ direction: "long", confidence: 65 }, snap(), 0),
+      ).toBe(65);
       expect(
         getAdjustedConfidence(
           { direction: "long", confidence: 65 },
           snap({ priceVsSma20: -1, fundingDelta: 0.0001 }),
-          0.001
-        )
+          0.001,
+        ),
       ).toBe(65);
     });
 
     it("never returns negative confidence", () => {
-      expect(getAdjustedConfidence({ direction: "long", confidence: 0 }, snap(), 0)).toBe(0);
+      expect(
+        getAdjustedConfidence({ direction: "long", confidence: 0 }, snap(), 0),
+      ).toBe(0);
     });
   });
 

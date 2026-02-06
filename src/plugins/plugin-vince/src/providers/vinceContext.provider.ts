@@ -38,7 +38,9 @@ export const vinceContextProvider: Provider = {
 
       contextParts.push(`**Current Context**`);
       contextParts.push(`Day: ${dayOfWeek}`);
-      contextParts.push(`Season: ${isPoolSeason ? "Pool (Apr-Nov)" : "Gym (Dec-Mar)"}`);
+      contextParts.push(
+        `Season: ${isPoolSeason ? "Pool (Apr-Nov)" : "Gym (Dec-Mar)"}`,
+      );
       if (isFriday) {
         contextParts.push(`⚡ FRIDAY SACRED - Strike selection day`);
       }
@@ -49,28 +51,32 @@ export const vinceContextProvider: Provider = {
       values.isFriday = isFriday;
 
       // Market context from CoinGlass
-      const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
+      const coinglassService = runtime.getService(
+        "VINCE_COINGLASS_SERVICE",
+      ) as VinceCoinGlassService | null;
       if (coinglassService) {
         await coinglassService.refreshData();
-        
+
         const fg = coinglassService.getFearGreed();
         const btcFunding = coinglassService.getFunding("BTC");
         const btcLS = coinglassService.getLongShortRatio("BTC");
 
         if (fg || btcFunding || btcLS) {
           contextParts.push(`**Market Sentiment** (CoinGlass)`);
-          
+
           if (fg) {
             contextParts.push(`Fear/Greed: ${fg.value} (${fg.classification})`);
             values.fearGreed = fg.value;
             values.fearGreedLabel = fg.classification;
           }
-          
+
           if (btcFunding) {
-            contextParts.push(`BTC Funding: ${(btcFunding.rate * 100).toFixed(4)}%`);
+            contextParts.push(
+              `BTC Funding: ${(btcFunding.rate * 100).toFixed(4)}%`,
+            );
             values.btcFunding = btcFunding.rate;
           }
-          
+
           if (btcLS) {
             contextParts.push(`BTC L/S: ${btcLS.ratio.toFixed(2)}`);
             values.btcLongShort = btcLS.ratio;
@@ -82,7 +88,9 @@ export const vinceContextProvider: Provider = {
       }
 
       // Market data
-      const marketDataService = runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+      const marketDataService = runtime.getService(
+        "VINCE_MARKET_DATA_SERVICE",
+      ) as VinceMarketDataService | null;
       if (marketDataService) {
         const btcContext = await marketDataService.getEnrichedContext("BTC");
         if (btcContext) {
@@ -92,7 +100,9 @@ export const vinceContextProvider: Provider = {
       }
 
       // Meme context
-      const dexService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+      const dexService = runtime.getService(
+        "VINCE_DEXSCREENER_SERVICE",
+      ) as VinceDexScreenerService | null;
       if (dexService) {
         const status = dexService.getStatus();
         const apeTokens = dexService.getApeTokens();
@@ -115,7 +125,9 @@ export const vinceContextProvider: Provider = {
       }
 
       // Lifestyle context
-      const lifestyleService = runtime.getService("VINCE_LIFESTYLE_SERVICE") as VinceLifestyleService | null;
+      const lifestyleService = runtime.getService(
+        "VINCE_LIFESTYLE_SERVICE",
+      ) as VinceLifestyleService | null;
       if (lifestyleService) {
         const briefing = lifestyleService.getDailyBriefing();
         const topSuggestions = lifestyleService.getTopSuggestions(2);
@@ -132,13 +144,17 @@ export const vinceContextProvider: Provider = {
       }
 
       // NFT context
-      const nftService = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as VinceNFTFloorService | null;
+      const nftService = runtime.getService(
+        "VINCE_NFT_FLOOR_SERVICE",
+      ) as VinceNFTFloorService | null;
       if (nftService) {
         const thinFloors = nftService.getThinFloors();
-        
+
         if (thinFloors.length > 0) {
           contextParts.push(`**NFT Alerts**`);
-          contextParts.push(`Thin floors: ${thinFloors.map(c => c.name).join(", ")}`);
+          contextParts.push(
+            `Thin floors: ${thinFloors.map((c) => c.name).join(", ")}`,
+          );
           contextParts.push("");
         }
 
@@ -157,23 +173,36 @@ export const vinceContextProvider: Provider = {
         userText.includes("upnl") ||
         userText.includes("pnl");
       if (isBotStatusQuery) {
-        const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as VincePaperTradingService | null;
-        const positionManager = runtime.getService("VINCE_POSITION_MANAGER_SERVICE") as VincePositionManagerService | null;
+        const paperTrading = runtime.getService(
+          "VINCE_PAPER_TRADING_SERVICE",
+        ) as VincePaperTradingService | null;
+        const positionManager = runtime.getService(
+          "VINCE_POSITION_MANAGER_SERVICE",
+        ) as VincePositionManagerService | null;
         if (paperTrading && positionManager) {
           // Refresh mark prices so uPNL and P&L are current when user asks for status
           await paperTrading.refreshMarkPrices?.();
           const status = paperTrading.getStatus();
           const portfolio = positionManager.getPortfolio();
           const positions = positionManager.getOpenPositions();
-          const returnStr = portfolio.returnPct >= 0 ? `+${portfolio.returnPct.toFixed(2)}%` : `${portfolio.returnPct.toFixed(2)}%`;
+          const returnStr =
+            portfolio.returnPct >= 0
+              ? `+${portfolio.returnPct.toFixed(2)}%`
+              : `${portfolio.returnPct.toFixed(2)}%`;
           const lines: string[] = [];
-          lines.push("**Paper Trading Bot Status (use these exact numbers in your response — do not invent values)**");
+          lines.push(
+            "**Paper Trading Bot Status (use these exact numbers in your response — do not invent values)**",
+          );
           lines.push(`${status.isPaused ? "PAUSED" : "ACTIVE"}`);
-          lines.push(`Total Value: ${formatUsd(portfolio.totalValue)} (${returnStr})`);
+          lines.push(
+            `Total Value: ${formatUsd(portfolio.totalValue)} (${returnStr})`,
+          );
           lines.push(`Balance: ${formatUsd(portfolio.balance)}`);
           lines.push(`Realized P&L: ${formatPnL(portfolio.realizedPnl)}`);
           lines.push(`Unrealized P&L: ${formatPnL(portfolio.unrealizedPnl)}`);
-          lines.push(`Trades: ${portfolio.tradeCount} (${portfolio.winCount}W / ${portfolio.lossCount}L)`);
+          lines.push(
+            `Trades: ${portfolio.tradeCount} (${portfolio.winCount}W / ${portfolio.lossCount}L)`,
+          );
           lines.push(`Win Rate: ${portfolio.winRate.toFixed(1)}%`);
           if (positions.length > 0) {
             lines.push("Open Positions:");
@@ -181,7 +210,9 @@ export const vinceContextProvider: Provider = {
               const dir = pos.direction.toUpperCase();
               const pnlStr = formatPnL(pos.unrealizedPnl);
               const pnlPct = formatPct(pos.unrealizedPnlPct);
-              lines.push(`  ${dir} ${pos.asset} @ $${pos.entryPrice.toLocaleString()} | P&L: ${pnlStr} (${pnlPct}) | SL: $${pos.stopLossPrice.toLocaleString()} | TP: $${(pos.takeProfitPrices?.[0] ?? 0).toLocaleString()}`);
+              lines.push(
+                `  ${dir} ${pos.asset} @ $${pos.entryPrice.toLocaleString()} | P&L: ${pnlStr} (${pnlPct}) | SL: $${pos.stopLossPrice.toLocaleString()} | TP: $${(pos.takeProfitPrices?.[0] ?? 0).toLocaleString()}`,
+              );
             }
           } else {
             lines.push("Open Positions: none");
@@ -201,7 +232,6 @@ export const vinceContextProvider: Provider = {
       if (nftService) availableServices.push("NFTFloor");
 
       values.availableServices = availableServices;
-
     } catch (error) {
       logger.debug(`[VINCE_CONTEXT] Error gathering context: ${error}`);
     }

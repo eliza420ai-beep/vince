@@ -33,7 +33,8 @@ function readFileSafe(filePath: string): string | null {
 
 export const protocolWriteupProvider: Provider = {
   name: "PROTOCOL_WRITEUP",
-  description: "Injects known protocol writeups from knowledge/ when the user asks about them (Eliza only)",
+  description:
+    "Injects known protocol writeups from knowledge/ when the user asks about them (Eliza only)",
   position: -15, // Run early, after teammate
 
   get: async (runtime: IAgentRuntime, message: Memory, _state: State) => {
@@ -54,7 +55,10 @@ export const protocolWriteupProvider: Provider = {
         continue;
       }
 
-      const capped = content.length > 12_000 ? content.slice(0, 12_000) + "\n\n[... truncated ...]" : content;
+      const capped =
+        content.length > 12_000
+          ? content.slice(0, 12_000) + "\n\n[... truncated ...]"
+          : content;
       const block = `## Protocol writeup (from knowledge/${relPath})\n\n${capped}`;
       return {
         text: block,

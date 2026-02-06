@@ -9,7 +9,10 @@
 
 type FetchLike = typeof fetch;
 
-export function wrapFetchWithPayment(fetchImpl: FetchLike, ..._rest: unknown[]) {
+export function wrapFetchWithPayment(
+  fetchImpl: FetchLike,
+  ..._rest: unknown[]
+) {
   // Frontend never does paid requests, return the original fetch intact.
   return fetchImpl;
 }
@@ -17,4 +20,3 @@ export function wrapFetchWithPayment(fetchImpl: FetchLike, ..._rest: unknown[]) 
 export function decodeXPaymentResponse<T = Response>(response: T): T {
   return response;
 }
-

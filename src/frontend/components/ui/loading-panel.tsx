@@ -6,11 +6,16 @@ import { Check, X } from "lucide-react";
 interface LoadingPanelProps {
   title: string;
   messages: string | string[];
-  type?: 'loading' | 'success' | 'error';
+  type?: "loading" | "success" | "error";
   onClose?: () => void;
 }
 
-export function LoadingPanel({ title, messages, type = 'loading', onClose }: LoadingPanelProps) {
+export function LoadingPanel({
+  title,
+  messages,
+  type = "loading",
+  onClose,
+}: LoadingPanelProps) {
   const messageArray = Array.isArray(messages) ? messages : [messages];
 
   return (
@@ -25,17 +30,17 @@ export function LoadingPanel({ title, messages, type = 'loading', onClose }: Loa
         <CardContent className="bg-pop">
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             {/* Icon based on type */}
-            {type === 'loading' && (
+            {type === "loading" && (
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0052FF]"></div>
             )}
-            
-            {type === 'success' && (
+
+            {type === "success" && (
               <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center">
                 <Check className="h-8 w-8 text-green-500" />
               </div>
             )}
-            
-            {type === 'error' && (
+
+            {type === "error" && (
               <div className="h-12 w-12 rounded-full bg-destructive/20 flex items-center justify-center">
                 <X className="h-8 w-8 text-destructive" />
               </div>
@@ -43,14 +48,21 @@ export function LoadingPanel({ title, messages, type = 'loading', onClose }: Loa
 
             {/* Messages */}
             {messageArray.map((message, index) => (
-              <p key={index} className="text-sm text-muted-foreground text-center">
+              <p
+                key={index}
+                className="text-sm text-muted-foreground text-center"
+              >
                 {message}
               </p>
             ))}
 
             {/* Close button for success/error states */}
-            {type !== 'loading' && onClose && (
-              <Button onClick={onClose} className="mt-2 w-full" variant={type === 'error' ? 'destructive' : 'default'}>
+            {type !== "loading" && onClose && (
+              <Button
+                onClick={onClose}
+                className="mt-2 w-full"
+                variant={type === "error" ? "destructive" : "default"}
+              >
                 Close
               </Button>
             )}
@@ -60,4 +72,3 @@ export function LoadingPanel({ title, messages, type = 'loading', onClose }: Loa
     </div>
   );
 }
-

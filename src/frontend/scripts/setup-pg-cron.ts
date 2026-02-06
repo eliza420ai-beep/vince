@@ -1,38 +1,39 @@
 #!/usr/bin/env bun
 /**
  * Setup pg_cron jobs for gamification scheduled tasks
- * 
+ *
  * Usage:
  *   bun run scripts/setup-pg-cron.ts            # Quiet in dev, verbose in prod
  *   bun run scripts/setup-pg-cron.ts --verbose  # Force verbose output
  *   bun run scripts/setup-pg-cron.ts --force    # Replace existing jobs
- *   
+ *
  * Environment:
  *   DATABASE_URL     - Required for database connection
  *   NODE_ENV=production - Enables verbose output automatically
- * 
+ *
  * Runs as prestart hook - see package.json
  */
 
-import postgres from 'postgres';
+import postgres from "postgres";
 
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
-  const forceReplace = process.argv.includes('--force');
-  const isProd = process.env.NODE_ENV === 'production';
-  const verbose = isProd || process.argv.includes('--verbose');
-  
+  const forceReplace = process.argv.includes("--force");
+  const isProd = process.env.NODE_ENV === "production";
+  const verbose = isProd || process.argv.includes("--verbose");
+
   if (!databaseUrl) {
-    if (verbose) console.log('⏭️  pg_cron setup skipped (DATABASE_URL not set)');
+    if (verbose)
+      console.log("⏭️  pg_cron setup skipped (DATABASE_URL not set)");
     process.exit(0);
   }
 
   if (verbose) {
-    console.log('🔧 Setting up pg_cron jobs for gamification...');
+    console.log("🔧 Setting up pg_cron jobs for gamification...");
     if (forceReplace) {
-      console.log('   (--force mode: will replace existing jobs)\n');
+      console.log("   (--force mode: will replace existing jobs)\n");
     } else {
-      console.log('   (use --force to replace existing jobs)\n');
+      console.log("   (use --force to replace existing jobs)\n");
     }
   }
 
@@ -45,11 +46,15 @@ async function main() {
     try {
       await sql`ALTER TABLE IF EXISTS user_registry DISABLE ROW LEVEL SECURITY`;
       await sql`DROP POLICY IF EXISTS entity_isolation_policy ON user_registry`;
-      if (verbose) console.log('✅ RLS disabled on user_registry (auth lookup table)\n');
+      if (verbose)
+        console.log("✅ RLS disabled on user_registry (auth lookup table)\n");
     } catch (rlsErr: any) {
       // Table might not exist yet, or already disabled - that's OK
-      if (!rlsErr.message?.includes('does not exist')) {
-        if (verbose) console.log(`⚠️  Could not modify user_registry RLS: ${rlsErr.message}\n`);
+      if (!rlsErr.message?.includes("does not exist")) {
+        if (verbose)
+          console.log(
+            `⚠️  Could not modify user_registry RLS: ${rlsErr.message}\n`,
+          );
       }
     }
 
@@ -61,32 +66,50 @@ async function main() {
     `;
 
     if (!exists) {
-      if (verbose) console.log('📦 pg_cron extension not found, attempting to install...');
-      
+      if (verbose)
+        console.log("📦 pg_cron extension not found, attempting to install...");
+
       try {
         await sql`CREATE EXTENSION IF NOT EXISTS pg_cron`;
-        if (verbose) console.log('✅ pg_cron extension installed successfully\n');
+        if (verbose)
+          console.log("✅ pg_cron extension installed successfully\n");
       } catch (err: any) {
         // Handle race condition: concurrent processes may both try to create extension
-        if (err.code === '42710') {
+        if (err.code === "42710") {
           // Extension already exists (created by concurrent process) - OK
-          if (verbose) console.log('✅ pg_cron extension already installed (concurrent)\n');
-        } else if (err.code === '42501' || err.message?.includes('permission denied')) {
+          if (verbose)
+            console.log(
+              "✅ pg_cron extension already installed (concurrent)\n",
+            );
+        } else if (
+          err.code === "42501" ||
+          err.message?.includes("permission denied")
+        ) {
           // Permission denied - need superuser or cloud provider dashboard
           if (verbose) {
-            console.log('⏭️  Cannot install pg_cron (requires superuser privileges)');
-            console.log('   For managed databases, enable via provider dashboard:');
-            console.log('   • Supabase: Dashboard → Database → Extensions → pg_cron');
-            console.log('   • AWS RDS: Add to shared_preload_libraries parameter group');
-            console.log('   • Neon: Extensions panel in dashboard');
-            console.log('   See: src/plugins/plugin-gamification/migrations/README.md\n');
+            console.log(
+              "⏭️  Cannot install pg_cron (requires superuser privileges)",
+            );
+            console.log(
+              "   For managed databases, enable via provider dashboard:",
+            );
+            console.log(
+              "   • Supabase: Dashboard → Database → Extensions → pg_cron",
+            );
+            console.log(
+              "   • AWS RDS: Add to shared_preload_libraries parameter group",
+            );
+            console.log("   • Neon: Extensions panel in dashboard");
+            console.log(
+              "   See: src/plugins/plugin-gamification/migrations/README.md\n",
+            );
           }
           await sql.end();
           process.exit(0);
         } else {
           // Other error - might be unsupported
           if (verbose) {
-            console.log('⏭️  pg_cron not available on this database');
+            console.log("⏭️  pg_cron not available on this database");
             console.log(`   Error: ${err.message}\n`);
           }
           await sql.end();
@@ -94,30 +117,41 @@ async function main() {
         }
       }
     } else {
-      if (verbose) console.log('✅ pg_cron extension is available\n');
+      if (verbose) console.log("✅ pg_cron extension is available\n");
     }
 
     // Check existing jobs once (with schedule and command for comparison)
-    const existingJobs = await sql`SELECT jobname, schedule, command FROM cron.job`;
-    const existingJobMap = new Map(existingJobs.map(j => [j.jobname, { schedule: j.schedule, command: j.command }]));
+    const existingJobs =
+      await sql`SELECT jobname, schedule, command FROM cron.job`;
+    const existingJobMap = new Map(
+      existingJobs.map((j) => [
+        j.jobname,
+        { schedule: j.schedule, command: j.command },
+      ]),
+    );
 
     // Normalize SQL for comparison (collapse whitespace)
     function normalizeSQL(s: string): string {
-      return s.replace(/\s+/g, ' ').trim();
+      return s.replace(/\s+/g, " ").trim();
     }
 
     // Helper to schedule a job (skip if same, warn if different, replace with --force)
-    async function scheduleJob(name: string, schedule: string, command: string): Promise<'created' | 'unchanged' | 'outdated' | 'replaced' | 'error'> {
+    async function scheduleJob(
+      name: string,
+      schedule: string,
+      command: string,
+    ): Promise<"created" | "unchanged" | "outdated" | "replaced" | "error"> {
       const existing = existingJobMap.get(name);
-      
+
       if (existing) {
         const scheduleMatch = existing.schedule === schedule;
-        const commandMatch = normalizeSQL(existing.command) === normalizeSQL(command);
-        
+        const commandMatch =
+          normalizeSQL(existing.command) === normalizeSQL(command);
+
         if (scheduleMatch && commandMatch) {
-          return 'unchanged'; // Already up to date
+          return "unchanged"; // Already up to date
         }
-        
+
         // Job exists but is different
         if (forceReplace) {
           // Atomic replacement: unschedule then schedule, restore on failure
@@ -125,41 +159,47 @@ async function main() {
             await sql`SELECT cron.unschedule(${name})`;
             try {
               await sql`SELECT cron.schedule(${name}, ${schedule}, ${command})`;
-              return 'replaced';
+              return "replaced";
             } catch (scheduleErr: any) {
               // Schedule failed - restore old job to prevent job loss
-              console.error(`❌ Failed to schedule new job '${name}': ${scheduleErr.message}`);
+              console.error(
+                `❌ Failed to schedule new job '${name}': ${scheduleErr.message}`,
+              );
               console.log(`   Restoring previous job configuration...`);
               try {
                 await sql`SELECT cron.schedule(${name}, ${existing.schedule}, ${existing.command})`;
                 console.log(`   ✅ Previous job restored`);
               } catch (restoreErr: any) {
-                console.error(`   ❌ Failed to restore job: ${restoreErr.message}`);
+                console.error(
+                  `   ❌ Failed to restore job: ${restoreErr.message}`,
+                );
               }
-              return 'error';
+              return "error";
             }
           } catch (unscheduleErr: any) {
-            console.error(`❌ Failed to unschedule job '${name}': ${unscheduleErr.message}`);
-            return 'error';
+            console.error(
+              `❌ Failed to unschedule job '${name}': ${unscheduleErr.message}`,
+            );
+            return "error";
           }
         }
-        return 'outdated'; // Needs update but --force not provided
+        return "outdated"; // Needs update but --force not provided
       }
-      
+
       try {
         await sql`SELECT cron.schedule(${name}, ${schedule}, ${command})`;
-        return 'created';
+        return "created";
       } catch (err: any) {
         console.error(`❌ Failed to create job '${name}': ${err.message}`);
-        return 'error';
+        return "error";
       }
     }
 
     // Schedule leaderboard snapshot job (every 5 minutes)
-    if (verbose) console.log('📊 Scheduling leaderboard-snapshot-5min...');
+    if (verbose) console.log("📊 Scheduling leaderboard-snapshot-5min...");
     const leaderboardResult = await scheduleJob(
-      'leaderboard-snapshot-5min',
-      '*/5 * * * *',
+      "leaderboard-snapshot-5min",
+      "*/5 * * * *",
       `
         BEGIN;
         DELETE FROM gamification.leaderboard_snapshots WHERE scope = 'all_time';
@@ -176,27 +216,27 @@ async function main() {
         WHERE weekly_points > 0 AND (is_agent = FALSE OR is_agent IS NULL)
         ORDER BY weekly_points DESC LIMIT 100;
         COMMIT;
-      `
+      `,
     );
     if (verbose) {
-      if (leaderboardResult === 'unchanged') {
-        console.log('   ✅ Up to date\n');
-      } else if (leaderboardResult === 'outdated') {
-        console.log('   ⚠️  Exists but differs - run with --force to update\n');
-      } else if (leaderboardResult === 'replaced') {
-        console.log('   🔄 Updated\n');
-      } else if (leaderboardResult === 'error') {
-        console.log('   ❌ Error (see above)\n');
+      if (leaderboardResult === "unchanged") {
+        console.log("   ✅ Up to date\n");
+      } else if (leaderboardResult === "outdated") {
+        console.log("   ⚠️  Exists but differs - run with --force to update\n");
+      } else if (leaderboardResult === "replaced") {
+        console.log("   🔄 Updated\n");
+      } else if (leaderboardResult === "error") {
+        console.log("   ❌ Error (see above)\n");
       } else {
-        console.log('   ✅ Created\n');
+        console.log("   ✅ Created\n");
       }
     }
 
     // Schedule weekly points reset (Monday 00:00 UTC)
-    if (verbose) console.log('🔄 Scheduling weekly-points-reset...');
+    if (verbose) console.log("🔄 Scheduling weekly-points-reset...");
     const weeklyResult = await scheduleJob(
-      'weekly-points-reset',
-      '0 0 * * 1',
+      "weekly-points-reset",
+      "0 0 * * 1",
       `
         UPDATE gamification.point_balances SET weekly_points = 0, updated_at = NOW();
         
@@ -207,28 +247,28 @@ async function main() {
           0,
           jsonb_build_object('reset_at', NOW(), 'job', 'weekly-points-reset')
         );
-      `
+      `,
     );
     if (verbose) {
-      if (weeklyResult === 'unchanged') {
-        console.log('   ✅ Up to date\n');
-      } else if (weeklyResult === 'outdated') {
-        console.log('   ⚠️  Exists but differs - run with --force to update\n');
-      } else if (weeklyResult === 'replaced') {
-        console.log('   🔄 Updated\n');
-      } else if (weeklyResult === 'error') {
-        console.log('   ❌ Error (see above)\n');
+      if (weeklyResult === "unchanged") {
+        console.log("   ✅ Up to date\n");
+      } else if (weeklyResult === "outdated") {
+        console.log("   ⚠️  Exists but differs - run with --force to update\n");
+      } else if (weeklyResult === "replaced") {
+        console.log("   🔄 Updated\n");
+      } else if (weeklyResult === "error") {
+        console.log("   ❌ Error (see above)\n");
       } else {
-        console.log('   ✅ Created\n');
+        console.log("   ✅ Created\n");
       }
     }
 
     // Schedule daily analytics (03:00 UTC)
     // NOTE: SQL must match migrations/001_pg_cron_setup.sql for idempotency
-    if (verbose) console.log('📈 Scheduling daily-analytics-aggregate...');
+    if (verbose) console.log("📈 Scheduling daily-analytics-aggregate...");
     const dailyResult = await scheduleJob(
-      'daily-analytics-aggregate',
-      '0 3 * * *',
+      "daily-analytics-aggregate",
+      "0 3 * * *",
       `
         CREATE TABLE IF NOT EXISTS gamification.daily_stats (
           stat_date DATE PRIMARY KEY,
@@ -262,54 +302,60 @@ async function main() {
           unique_users = EXCLUDED.unique_users,
           total_points_awarded = EXCLUDED.total_points_awarded,
           events_by_type = EXCLUDED.events_by_type;
-      `
+      `,
     );
     if (verbose) {
-      if (dailyResult === 'unchanged') {
-        console.log('   ✅ Up to date\n');
-      } else if (dailyResult === 'outdated') {
-        console.log('   ⚠️  Exists but differs - run with --force to update\n');
-      } else if (dailyResult === 'replaced') {
-        console.log('   🔄 Updated\n');
-      } else if (dailyResult === 'error') {
-        console.log('   ❌ Error (see above)\n');
+      if (dailyResult === "unchanged") {
+        console.log("   ✅ Up to date\n");
+      } else if (dailyResult === "outdated") {
+        console.log("   ⚠️  Exists but differs - run with --force to update\n");
+      } else if (dailyResult === "replaced") {
+        console.log("   🔄 Updated\n");
+      } else if (dailyResult === "error") {
+        console.log("   ❌ Error (see above)\n");
       } else {
-        console.log('   ✅ Created\n');
+        console.log("   ✅ Created\n");
       }
     }
 
     // Summary
     const results = [leaderboardResult, weeklyResult, dailyResult];
-    const outdatedCount = results.filter(r => r === 'outdated').length;
-    const createdCount = results.filter(r => r === 'created').length;
-    const replacedCount = results.filter(r => r === 'replaced').length;
-    const errorCount = results.filter(r => r === 'error').length;
-    
+    const outdatedCount = results.filter((r) => r === "outdated").length;
+    const createdCount = results.filter((r) => r === "created").length;
+    const replacedCount = results.filter((r) => r === "replaced").length;
+    const errorCount = results.filter((r) => r === "error").length;
+
     // Always show if there are issues, changes, or new jobs
     if (errorCount > 0) {
-      console.log(`❌ pg_cron: ${errorCount} job(s) failed - check errors above`);
+      console.log(
+        `❌ pg_cron: ${errorCount} job(s) failed - check errors above`,
+      );
     } else if (outdatedCount > 0) {
-      console.log(`⚠️  pg_cron: ${outdatedCount} job(s) need update - run with --force`);
+      console.log(
+        `⚠️  pg_cron: ${outdatedCount} job(s) need update - run with --force`,
+      );
     } else if (replacedCount > 0) {
       console.log(`✅ pg_cron: ${replacedCount} job(s) updated`);
     } else if (createdCount > 0) {
       console.log(`✅ pg_cron: ${createdCount} job(s) created`);
     } else if (verbose) {
-      console.log('✅ pg_cron: all jobs up to date');
-      
-      // Show job table only in verbose mode
-      const jobs = await sql`SELECT jobid, jobname, schedule, active FROM cron.job ORDER BY jobname`;
-      console.table(jobs.map(j => ({
-        ID: j.jobid,
-        Name: j.jobname,
-        Schedule: j.schedule,
-        Active: j.active ? '✅' : '❌'
-      })));
-    }
+      console.log("✅ pg_cron: all jobs up to date");
 
+      // Show job table only in verbose mode
+      const jobs =
+        await sql`SELECT jobid, jobname, schedule, active FROM cron.job ORDER BY jobname`;
+      console.table(
+        jobs.map((j) => ({
+          ID: j.jobid,
+          Name: j.jobname,
+          Schedule: j.schedule,
+          Active: j.active ? "✅" : "❌",
+        })),
+      );
+    }
   } catch (error: any) {
     // Always show errors
-    console.error('❌ pg_cron setup error:', error.message || error);
+    console.error("❌ pg_cron setup error:", error.message || error);
     process.exit(1);
   } finally {
     await sql.end();

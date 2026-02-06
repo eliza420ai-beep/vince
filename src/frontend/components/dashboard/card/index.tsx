@@ -1,9 +1,16 @@
 import React from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/frontend/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/frontend/components/ui/card";
 import { Bullet } from "@/frontend/components/ui/bullet";
 
-interface DashboardCardProps
-  extends Omit<React.ComponentProps<typeof Card>, "title"> {
+interface DashboardCardProps extends Omit<
+  React.ComponentProps<typeof Card>,
+  "title"
+> {
   title: string;
   subtitle?: string;
   addon?: React.ReactNode;
@@ -29,7 +36,9 @@ export default function DashboardCard({
             {title}
           </CardTitle>
           {subtitle && (
-            <p className="text-xs text-muted-foreground mt-1 ml-5">{subtitle}</p>
+            <p className="text-xs text-muted-foreground mt-1 ml-5">
+              {subtitle}
+            </p>
           )}
         </div>
         {addon && <div>{addon}</div>}

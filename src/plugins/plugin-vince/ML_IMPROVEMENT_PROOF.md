@@ -6,14 +6,14 @@
 
 ## 1. What “Essential Parameters” ML Adjusts
 
-| Parameter | Source | Where applied | Effect |
-|-----------|--------|----------------|--------|
-| **min_strength / min_confidence** | Offline: `train_models.py` → 25th percentile of **profitable** trades’ strength/confidence → `training_metadata.json` → `suggested_tuning` | `evaluateAndTrade()`: reject signals below these when not in aggressive mode | Fewer trades; only those above the bar that historically won |
-| **Signal quality threshold** | Offline: Signal Quality model + improvement report → `suggested_signal_quality_threshold` | Aggregator + `evaluateAndTrade()`: reject when `mlQualityScore < threshold` | Filters low-quality regimes the model learned to avoid |
-| **TP / SL multipliers** | Offline: TP and SL ONNX models trained on outcomes (R-multiple, MAE) | `openTrade()`: `predictTakeProfit()`, `predictStopLoss()` → ATR × multiplier | TP/SL distances adapt to regime and signal strength |
-| **Position size multiplier** | Offline: Position Sizing ONNX model | `evaluateAndTrade()`: `predictPositionSize()` → 0.5×–2× on base size | Size scales with predicted edge (quality, drawdown, win rate) |
-| **minStrength / minConfidence / minConfirming** (runtime) | Online: **Parameter Tuner** (Bayesian optimization) from trade outcomes | `dynamicConfig` → risk manager `validateSignal()` | Thresholds drift toward parameter sets that performed well |
-| **Source weights** | Online: **Weight Bandit** (Thompson Sampling) from PnL per source | `dynamicConfig` source weights → signal aggregator | More weight to sources that contributed to wins |
+| Parameter                                                 | Source                                                                                                                                     | Where applied                                                                | Effect                                                        |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| **min_strength / min_confidence**                         | Offline: `train_models.py` → 25th percentile of **profitable** trades’ strength/confidence → `training_metadata.json` → `suggested_tuning` | `evaluateAndTrade()`: reject signals below these when not in aggressive mode | Fewer trades; only those above the bar that historically won  |
+| **Signal quality threshold**                              | Offline: Signal Quality model + improvement report → `suggested_signal_quality_threshold`                                                  | Aggregator + `evaluateAndTrade()`: reject when `mlQualityScore < threshold`  | Filters low-quality regimes the model learned to avoid        |
+| **TP / SL multipliers**                                   | Offline: TP and SL ONNX models trained on outcomes (R-multiple, MAE)                                                                       | `openTrade()`: `predictTakeProfit()`, `predictStopLoss()` → ATR × multiplier | TP/SL distances adapt to regime and signal strength           |
+| **Position size multiplier**                              | Offline: Position Sizing ONNX model                                                                                                        | `evaluateAndTrade()`: `predictPositionSize()` → 0.5×–2× on base size         | Size scales with predicted edge (quality, drawdown, win rate) |
+| **minStrength / minConfidence / minConfirming** (runtime) | Online: **Parameter Tuner** (Bayesian optimization) from trade outcomes                                                                    | `dynamicConfig` → risk manager `validateSignal()`                            | Thresholds drift toward parameter sets that performed well    |
+| **Source weights**                                        | Online: **Weight Bandit** (Thompson Sampling) from PnL per source                                                                          | `dynamicConfig` source weights → signal aggregator                           | More weight to sources that contributed to wins               |
 
 So we have **offline** levers (training → metadata → bot) and **online** levers (tuner + bandit → dynamicConfig → bot).
 

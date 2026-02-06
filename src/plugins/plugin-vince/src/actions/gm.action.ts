@@ -13,7 +13,13 @@
  * - ART/NFT floors
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceCoinGlassService } from "../services/coinglass.service";
 import type { VinceMarketDataService } from "../services/marketData.service";
@@ -111,7 +117,7 @@ function buildGmDataContext(ctx: GmDataContext): string {
 async function generateGmHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string,
-  isFriday: boolean
+  isFriday: boolean,
 ): Promise<string> {
   const fridayNote = isFriday
     ? "It's FRIDAY - strike selection day. Make sure to mention this prominently."
@@ -161,10 +167,20 @@ Write the briefing:`;
 
 export const vinceGmAction: Action = {
   name: "VINCE_GM",
-  similes: ["GM", "GOOD_MORNING", "MORNING_BRIEFING", "VINCE_BRIEFING", "DAILY_BRIEFING"],
-  description: "Human-style morning briefing across all focus areas - OPTIONS, PERPS, MEMES, LIFESTYLE, and ART",
+  similes: [
+    "GM",
+    "GOOD_MORNING",
+    "MORNING_BRIEFING",
+    "VINCE_BRIEFING",
+    "DAILY_BRIEFING",
+  ],
+  description:
+    "Human-style morning briefing across all focus areas - OPTIONS, PERPS, MEMES, LIFESTYLE, and ART",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("gm") ||
@@ -181,12 +197,15 @@ export const vinceGmAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       const now = new Date();
       const day = now.toLocaleDateString("en-US", { weekday: "long" });
-      const date = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const date = now.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
       const isFriday = day === "Friday";
 
       logger.info("[VINCE_GM] Building morning briefing...");
@@ -206,8 +225,12 @@ export const vinceGmAction: Action = {
       };
 
       // OPTIONS
-      const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
-      const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
+      const deribitService = runtime.getService(
+        "VINCE_DERIBIT_SERVICE",
+      ) as VinceDeribitService | null;
+      const coinglassService = runtime.getService(
+        "VINCE_COINGLASS_SERVICE",
+      ) as VinceCoinGlassService | null;
 
       if (deribitService) {
         const btcCtx = await deribitService.getOptionsContext("BTC");
@@ -215,15 +238,21 @@ export const vinceGmAction: Action = {
           ctx.options.push(`BTC: $${btcCtx.spotPrice.toLocaleString()}`);
           if (btcCtx.dvol) ctx.options.push(`DVOL: ${btcCtx.dvol.toFixed(1)}%`);
           if (btcCtx.ivSurface) {
-            ctx.options.push(`Skew: ${btcCtx.ivSurface.skewInterpretation} (${btcCtx.ivSurface.skew.toFixed(1)}%)`);
+            ctx.options.push(
+              `Skew: ${btcCtx.ivSurface.skewInterpretation} (${btcCtx.ivSurface.skew.toFixed(1)}%)`,
+            );
           }
           if (btcCtx.bestCoveredCalls.length > 0) {
             const topCC = btcCtx.bestCoveredCalls[0];
-            ctx.options.push(`Top covered call: $${topCC.strike.toLocaleString()} @ ${topCC.yield7Day.toFixed(2)}%/week`);
+            ctx.options.push(
+              `Top covered call: $${topCC.strike.toLocaleString()} @ ${topCC.yield7Day.toFixed(2)}%/week`,
+            );
           }
           if (btcCtx.bestCashSecuredPuts.length > 0) {
             const topPut = btcCtx.bestCashSecuredPuts[0];
-            ctx.options.push(`Top put: $${topPut.strike.toLocaleString()} @ ${topPut.yield7Day.toFixed(2)}%/week`);
+            ctx.options.push(
+              `Top put: $${topPut.strike.toLocaleString()} @ ${topPut.yield7Day.toFixed(2)}%/week`,
+            );
           }
         }
       }
@@ -242,15 +271,27 @@ export const vinceGmAction: Action = {
         const ethSignal = coinglassService.generateSignal("ETH");
         const btcFunding = coinglassService.getFunding("BTC");
         const btcLS = coinglassService.getLongShortRatio("BTC");
-        
-        if (btcSignal) ctx.perps.push(`BTC signal: ${btcSignal.direction.toUpperCase()} (${btcSignal.strength}% strength)`);
-        if (ethSignal) ctx.perps.push(`ETH signal: ${ethSignal.direction.toUpperCase()} (${ethSignal.strength}% strength)`);
-        if (btcFunding) ctx.perps.push(`BTC Funding: ${(btcFunding.rate * 100).toFixed(4)}%`);
-        if (btcLS) ctx.perps.push(`BTC L/S: ${btcLS.ratio.toFixed(2)} (${btcLS.longPercent.toFixed(0)}% long)`);
+
+        if (btcSignal)
+          ctx.perps.push(
+            `BTC signal: ${btcSignal.direction.toUpperCase()} (${btcSignal.strength}% strength)`,
+          );
+        if (ethSignal)
+          ctx.perps.push(
+            `ETH signal: ${ethSignal.direction.toUpperCase()} (${ethSignal.strength}% strength)`,
+          );
+        if (btcFunding)
+          ctx.perps.push(`BTC Funding: ${(btcFunding.rate * 100).toFixed(4)}%`);
+        if (btcLS)
+          ctx.perps.push(
+            `BTC L/S: ${btcLS.ratio.toFixed(2)} (${btcLS.longPercent.toFixed(0)}% long)`,
+          );
       }
 
       // NEWS
-      const newsService = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+      const newsService = runtime.getService(
+        "VINCE_NEWS_SENTIMENT_SERVICE",
+      ) as VinceNewsSentimentService | null;
       if (newsService) {
         await newsService.refreshData();
         if (newsService.hasData()) {
@@ -262,7 +303,9 @@ export const vinceGmAction: Action = {
       }
 
       // BINANCE INTEL
-      const binanceService = runtime.getService("VINCE_BINANCE_SERVICE") as VinceBinanceService | null;
+      const binanceService = runtime.getService(
+        "VINCE_BINANCE_SERVICE",
+      ) as VinceBinanceService | null;
       if (binanceService) {
         const intel = await binanceService.getIntelligence("BTC");
         const intelLines = binanceService.formatIntelligence(intel);
@@ -270,29 +313,44 @@ export const vinceGmAction: Action = {
       }
 
       // ON-CHAIN
-      const sanbaseService = runtime.getService("VINCE_SANBASE_SERVICE") as VinceSanbaseService | null;
+      const sanbaseService = runtime.getService(
+        "VINCE_SANBASE_SERVICE",
+      ) as VinceSanbaseService | null;
       if (sanbaseService && sanbaseService.isConfigured()) {
         const btcOnChain = await sanbaseService.getOnChainContext("BTC");
-        if (btcOnChain.networkActivity) ctx.onChain.push(`Network: ${btcOnChain.networkActivity.trend}`);
-        if (btcOnChain.exchangeFlows) ctx.onChain.push(`Exchange Flows: ${btcOnChain.exchangeFlows.sentiment}`);
-        if (btcOnChain.whaleActivity) ctx.onChain.push(`Whales: ${btcOnChain.whaleActivity.sentiment}`);
+        if (btcOnChain.networkActivity)
+          ctx.onChain.push(`Network: ${btcOnChain.networkActivity.trend}`);
+        if (btcOnChain.exchangeFlows)
+          ctx.onChain.push(
+            `Exchange Flows: ${btcOnChain.exchangeFlows.sentiment}`,
+          );
+        if (btcOnChain.whaleActivity)
+          ctx.onChain.push(`Whales: ${btcOnChain.whaleActivity.sentiment}`);
       }
 
       // MEMES
-      const dexService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
-      const nansenService = runtime.getService("VINCE_NANSEN_SERVICE") as VinceNansenService | null;
+      const dexService = runtime.getService(
+        "VINCE_DEXSCREENER_SERVICE",
+      ) as VinceDexScreenerService | null;
+      const nansenService = runtime.getService(
+        "VINCE_NANSEN_SERVICE",
+      ) as VinceNansenService | null;
 
       if (dexService) {
         await dexService.refreshData();
         const aiTokens = dexService.getAiTokens();
         const apeTokens = dexService.getApeTokens();
-        
+
         if (aiTokens.length > 0) {
           const top = aiTokens[0];
-          ctx.memes.push(`Top AI token: ${top.symbol} - ${top.verdict} (${top.volumeLiquidityRatio.toFixed(1)}x vol/liq)`);
+          ctx.memes.push(
+            `Top AI token: ${top.symbol} - ${top.verdict} (${top.volumeLiquidityRatio.toFixed(1)}x vol/liq)`,
+          );
         }
         if (apeTokens.length > 0) {
-          ctx.memes.push(`APE signals: ${apeTokens.length} tokens with high traction`);
+          ctx.memes.push(
+            `APE signals: ${apeTokens.length} tokens with high traction`,
+          );
         }
       }
 
@@ -302,13 +360,17 @@ export const vinceGmAction: Action = {
           const hotMemes = await nansenService.getHotMemeTokens();
           if (hotMemes.length > 0) {
             const top = hotMemes[0];
-            ctx.memes.push(`Smart money accumulating: ${top.tokenSymbol} (${top.smartMoneyBuyers} buyers)`);
+            ctx.memes.push(
+              `Smart money accumulating: ${top.tokenSymbol} (${top.smartMoneyBuyers} buyers)`,
+            );
           }
         }
       }
 
       // LIFESTYLE
-      const lifestyleService = runtime.getService("VINCE_LIFESTYLE_SERVICE") as VinceLifestyleService | null;
+      const lifestyleService = runtime.getService(
+        "VINCE_LIFESTYLE_SERVICE",
+      ) as VinceLifestyleService | null;
       if (lifestyleService) {
         const briefing = lifestyleService.getDailyBriefing();
         const topSuggestions = lifestyleService.getTopSuggestions(2);
@@ -321,20 +383,25 @@ export const vinceGmAction: Action = {
       }
 
       // NFT FLOORS
-      const nftService = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as VinceNFTFloorService | null;
+      const nftService = runtime.getService(
+        "VINCE_NFT_FLOOR_SERVICE",
+      ) as VinceNFTFloorService | null;
       if (nftService) {
         const allFloors = nftService.getAllFloors();
-        const opportunities = allFloors.filter(c => {
-          const gapPct = c.floorPrice > 0 ? (c.gaps.to2nd / c.floorPrice) * 100 : 0;
+        const opportunities = allFloors.filter((c) => {
+          const gapPct =
+            c.floorPrice > 0 ? (c.gaps.to2nd / c.floorPrice) * 100 : 0;
           const hasRealData = c.nftsNearFloor > 0 || c.gaps.to2nd > 0;
           return c.floorThicknessScore < 40 && hasRealData && gapPct >= 5;
         });
-        
+
         if (opportunities.length > 0) {
           ctx.nft.push(`${opportunities.length} thin floor opportunities`);
           for (const c of opportunities.slice(0, 2)) {
             const gapPct = ((c.gaps.to2nd / c.floorPrice) * 100).toFixed(0);
-            ctx.nft.push(`${c.name}: ${c.floorPrice.toFixed(2)} ETH (${gapPct}% gap to 2nd)`);
+            ctx.nft.push(
+              `${c.name}: ${c.floorPrice.toFixed(2)} ETH (${gapPct}% gap to 2nd)`,
+            );
           }
         } else {
           ctx.nft.push("No thin floors - all collections have thick floors");
@@ -344,14 +411,19 @@ export const vinceGmAction: Action = {
       // Generate LLM briefing
       const dataContext = buildGmDataContext(ctx);
       logger.info("[VINCE_GM] Generating briefing...");
-      const briefing = await generateGmHumanBriefing(runtime, dataContext, isFriday);
+      const briefing = await generateGmHumanBriefing(
+        runtime,
+        dataContext,
+        isFriday,
+      );
 
       // Build source attribution (exclude Lifestyle, NFT)
       const sources: string[] = [];
       if (deribitService) sources.push("Deribit");
       if (coinglassService) sources.push("CoinGlass");
       if (binanceService) sources.push("Binance");
-      if (sanbaseService && sanbaseService.isConfigured()) sources.push("Sanbase");
+      if (sanbaseService && sanbaseService.isConfigured())
+        sources.push("Sanbase");
       if (dexService) sources.push("DexScreener");
       if (nansenService) sources.push("Nansen");
       if (newsService) sources.push("News Sentiment");
@@ -365,7 +437,9 @@ export const vinceGmAction: Action = {
         "",
         "---",
         "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
-      ].filter(line => line !== "").join("\n");
+      ]
+        .filter((line) => line !== "")
+        .join("\n");
 
       await callback({
         text: output,
