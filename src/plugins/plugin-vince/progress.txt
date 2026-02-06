@@ -1,5 +1,5 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-05 (TOP PRIORITY: VINCE Discord send-handler fix; train_models, docs)
+# Last updated: 2026-02-06 (UPLOAD/Discord knowledge path note; Docker volume for knowledge/)
 # Update this file after every feature completion or session end.
 
 ================================================================================
@@ -142,6 +142,13 @@ COMPLETED
 - UPLOAD robustness: runSummarizeCli retries once on non-zero exit; on failure the reply includes a short stderr snippet from summarize for debugging. Saved files from URL/YouTube get frontmatter ingestedWith: summarize (chat uploads: vince-upload).
 - Batch script: --concurrency <n> (default 3) runs up to n jobs in parallel; at end the script lists failed inputs. Written files get ingestedWith: ingest-urls in frontmatter.
 - Docs: scripts/README.md has "Knowledge ingestion playbook", ingest-urls usage, and a Troubleshooting subsection (API keys, timeout, too little content, rate limits). PDF/podcast URLs supported by summarize (same flow).
+
+## UPLOAD / Discord: knowledge path when running in Docker or cloud (2026-02-06) ✅
+- Issue: User ran UPLOAD via Discord (Eliza); agent confirmed "Saved to macro-economy/why-tokens-cant-compound.md" but the file was not visible in the repo's knowledge/macro-economy/ folder.
+- Cause: UPLOAD writes to process.cwd() + "knowledge/" (or plugin-knowledge-ingestion's base path). When the app runs in Docker, cwd is /app inside the container—writes go to the container filesystem, not the host repo. When running on Eliza Cloud or any remote host, writes go to that server's disk.
+- Fix (local Docker): docker-compose.yaml now mounts ./knowledge:/app/knowledge:rw so the container's knowledge/ is the host repo's knowledge/. After `docker compose down` and `docker compose up -d`, new uploads appear in knowledge/<category>/ on the host.
+- Caveat (Eliza Cloud / remote): If the agent runs on a remote server, uploads still save to that server's knowledge/ directory. To have files in the repo, run the agent locally (bun start from repo) when ingestion should write into this repo, or add a sync/export from the cloud instance.
+- Doc: This note is in progress.txt; docker-compose volume is the single source of truth for local Docker knowledge persistence.
 
 ## Why knowledge is essential for VINCE
 - **Data vs methodology:** Actions and services supply *current* data (prices, funding, OI, signals). The knowledge base supplies *how to think*—frameworks, methodologies, and strategic patterns. Without knowledge, VINCE would only echo numbers; with it, VINCE interprets data through proven lenses (e.g. funding → strike distance, TVL red flags, meme lifecycle, options skew).

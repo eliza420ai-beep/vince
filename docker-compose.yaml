@@ -64,6 +64,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      # Mount host knowledge/ so UPLOAD and ingestion write to your repo (visible in knowledge/macro-economy/, etc.)
+      - ./knowledge:/app/knowledge:rw
     restart: always
     networks:
       - eliza-network
