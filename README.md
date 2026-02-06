@@ -401,6 +401,18 @@ elizaos test e2e          # E2E only
 | Teammate context | `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md |
 | Dynamic config | `dynamicConfig.ts` — tuned via `tuned-config.json` |
 
+### Push schedule & Discord (core objective)
+
+**VINCE = push, not chat.** Daily report (ALOHA + OPTIONS + PERPS + HIP-3), lifestyle, and news are pushed to Discord/Slack on a schedule. No need to "chat" with VINCE for the day report—he pings you.
+
+| Push | Default (UTC) | Channel name must contain |
+|:---|:---|:---|
+| Daily report | 18:00 | `daily` (e.g. `#vince-daily-reports`) |
+| Lifestyle | 08:00 | `lifestyle` (e.g. `#vince-lifestyle`) |
+| News (MandoMinutes) | 07:00 | `news` (e.g. `#vince-news`) |
+
+Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](DISCORD.md) · [NOTIFICATIONS.md](NOTIFICATIONS.md)
+
 ### Key Env Vars
 
 | Variable | Purpose |
@@ -408,6 +420,10 @@ elizaos test e2e          # E2E only
 | `POSTGRES_URL` | Supabase/Postgres. Empty = PGLite |
 | `SUPABASE_SERVICE_ROLE_KEY` | Feature-store dual-write, ML bucket |
 | `SUPABASE_URL` | Optional if direct; required if pooler |
+| `VINCE_DISCORD_APPLICATION_ID` / `VINCE_DISCORD_API_TOKEN` | VINCE's Discord bot (push to channels with "daily", "lifestyle", "news") |
+| `VINCE_DAILY_REPORT_ENABLED` / `VINCE_DAILY_REPORT_HOUR` | Daily report push (default on, 18 UTC) |
+| `VINCE_LIFESTYLE_DAILY_ENABLED` / `VINCE_LIFESTYLE_HOUR` | Lifestyle push (default on, 8 UTC) |
+| `VINCE_NEWS_DAILY_ENABLED` / `VINCE_NEWS_HOUR` | News push (default on, 7 UTC) |
 | `VINCE_PAPER_AGGRESSIVE` | `true` = higher leverage, $210 TP, 2:1 R:R |
 | `VINCE_PAPER_ASSETS` | e.g. `BTC` or `BTC,ETH,SOL` |
 | `VINCE_APPLY_IMPROVEMENT_WEIGHTS` | `true` = align weights with training metadata |

@@ -1,10 +1,16 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-06 (V4.31 — fee-aware PnL)
+# Last updated: 2026-02-06 (V4.32 — Discord + push unlock)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.32 - Discord + push unlock (2026-02-06) ✅
+- **Both bots in one server:** VINCE and Eliza can run in the same Discord server at the same time. Each agent uses its own Discord app (VINCE_DISCORD_* vs ELIZA_DISCORD_*). No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to enable VINCE's Discord; removed VINCE_DISCORD_ENABLED everywhere.
+- **Eliza loads Discord from agent:** Eliza's agent now includes @elizaos/plugin-discord when ELIZA_DISCORD_* or DISCORD_* is set (so both runtimes get their own send handler). Optional DELAY_SECOND_DISCORD_MS=3000 staggers the second bot so both connect in one process.
+- **Push schedule = core objective:** Daily report (18 UTC), lifestyle (8 UTC), and news (7 UTC) are explicitly enabled in .env. Channels: name must contain "daily" | "lifestyle" | "news" (e.g. #vince-daily-reports, #vince-lifestyle, #vince-news). VINCE's job is push, not chat or upload (Eliza does research/upload).
+- **Docs:** DISCORD.md (enable both bots, no VINCE_DISCORD_ENABLED), README.md Configuration (push schedule), NOTIFICATIONS.md, .env.example (VINCE_* only). TOP PRIORITY "Send handler not found" resolved via two-app setup + source normalization + optional stagger.
 
 ## V4.31 - Fee-aware PnL (net of costs) (2026-02-06) ✅
 - **Competitor lesson (Gunbot):** PnL and improvement report are now **after trading fees** so "positive expectancy" is net of costs.
@@ -326,13 +332,9 @@ Scope: Performance optimization, expanded testing, real-money safeguards, UI/das
 TOP PRIORITY – FIX FIRST
 ================================================================================
 
-1. **VINCE Discord: "Send handler not found" + can't reply or push day report to #daily**
-   - Symptom: Logs spam "Send handler not found (handlerSource=discord)". VINCE is visible in Discord but "not active" (offline / can't reply or post day report). Eliza works fine on Discord. With VINCE_DISCORD_ENABLED=false the errors stop.
-   - Cause (two parts):
-     (a) **Handler lookup is case-sensitive.** The Discord plugin registers the send handler under the key "discord" (lowercase). If rooms in the DB or targets passed to sendMessageToTarget have source "Discord" (capital D), the runtime does sendHandlers.get("Discord") and finds nothing → "Send handler not found". **Fix applied:** VinceNotificationService now normalizes room.source to lowercase when building push targets so our pushes use "discord" and the handler is found.
-     (b) **"Visible but not active"** may mean VINCE's Discord client never fully connected (e.g. second bot in same process, or login failed). If the handler is still not found after (a), or the bot stays offline: try temporarily disabling Eliza's Discord (unset ELIZA_DISCORD_* or remove Discord from Eliza's plugins) and run with only VINCE_DISCORD_ENABLED=true. If VINCE then connects and works, the limitation is two Discord bots in one process; workaround = run VINCE in a separate process or use one shared Discord app for both (would require different wiring).
-   - Config: Create a **separate** Discord application for VINCE. In .env set VINCE_DISCORD_ENABLED=true, VINCE_DISCORD_APPLICATION_ID, VINCE_DISCORD_API_TOKEN. Invite VINCE's bot to the server and add it to #daily. Restart.
-   - Refs: NOTIFICATIONS.md, src/agents/vince.ts (vinceHasOwnDiscord), plugin-vince notification.service (getPushTargets; source normalized to lowercase).
+1. **VINCE Discord: "Send handler not found" + can't reply or push day report** — RESOLVED ✅ (see V4.32 above)
+   - **Fix:** Two Discord apps (VINCE_DISCORD_* and ELIZA_DISCORD_* with different IDs). No VINCE_DISCORD_ENABLED; set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN only. Eliza loads Discord from agent plugins when her token is set. Optional DELAY_SECOND_DISCORD_MS=3000 if second bot fails to connect.
+   - Handler lookup: room.source normalized to lowercase ("discord"). Refs: DISCORD.md, src/agents/vince.ts (vinceHasOwnDiscord), notification.service (getPushTargets).
 
 ================================================================================
 PRIORITY (real-time data for paper trading algo)
