@@ -537,14 +537,20 @@ export function ChatInterface({ agent, userId, serverId, channelId, isNewChatMod
       return
     }
     
+    const defaultServerId = '00000000-0000-0000-0000-000000000000'
+    const isDefaultServer = serverId === defaultServerId
     console.log(' [ChatInterface] Sending message:', {
       channelId,
       text: inputValue,
       serverId,
+      isDefaultServer: isDefaultServer ? 'YES (replies should work)' : 'NO (replies may not reach UI)',
       userId,
       agentId: agent.id,
     })
-    
+    if (!isDefaultServer) {
+      console.warn(' [ChatInterface] serverId is not the default message server — set messageServerId/DEFAULT_MESSAGE_SERVER_ID so replies reach the UI.')
+    }
+
     // Send via socket (don't add optimistically - server will broadcast back)
     socketManager.sendMessage(channelId, inputValue, serverId, {
       userId,
