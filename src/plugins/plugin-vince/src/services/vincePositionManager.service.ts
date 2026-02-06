@@ -16,7 +16,7 @@ import type {
   AggregatedTradeSignal,
   PositionSizingRecommendation,
 } from "../types/paperTrading";
-import { INITIAL_BALANCE, DEFAULT_STOP_LOSS_PCT, DEFAULT_LEVERAGE, DEFAULT_RISK_LIMITS, TAKE_PROFIT_USD, TAKE_PROFIT_USD_AGGRESSIVE } from "../constants/paperTradingDefaults";
+import { INITIAL_BALANCE, DEFAULT_STOP_LOSS_PCT, DEFAULT_LEVERAGE, DEFAULT_RISK_LIMITS, TAKE_PROFIT_USD, TAKE_PROFIT_USD_AGGRESSIVE, FEES } from "../constants/paperTradingDefaults";
 import { v4 as uuidv4 } from "uuid";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceRiskManagerService } from "./vinceRiskManager.service";
@@ -364,26 +364,29 @@ export class VincePositionManagerService extends Service {
       return null;
     }
 
-    // Calculate final P&L
-    const priceDiff = position.direction === "long" 
-      ? exitPrice - position.entryPrice 
+    // Calculate final P&L (gross then net of fees)
+    const priceDiff = position.direction === "long"
+      ? exitPrice - position.entryPrice
       : position.entryPrice - exitPrice;
     const pnlPercent = (priceDiff / position.entryPrice) * 100;
-    const realizedPnl = (position.sizeUsd * pnlPercent) / 100;
+    const grossPnl = (position.sizeUsd * pnlPercent) / 100;
+    const feesUsd = (position.sizeUsd * FEES.ROUND_TRIP_BPS) / 10_000;
+    const realizedPnl = grossPnl - feesUsd;
+    const margin = position.marginUsd ?? position.sizeUsd / position.leverage;
+    const realizedPnlPct = margin > 0 ? (realizedPnl / margin) * 100 : 0;
 
-    // Update position
-    const realizedPnlPct = pnlPercent * position.leverage;
+    // Update position (net PnL; fees stored for logs/feature store)
     position.status = "closed";
     position.markPrice = exitPrice;
     position.realizedPnl = realizedPnl;
+    position.feesUsd = feesUsd;
     position.realizedPnlPct = realizedPnlPct;
     position.closedAt = Date.now();
     position.closeReason = reason;
     position.unrealizedPnl = 0;
     position.unrealizedPnlPct = 0;
 
-    // Update portfolio
-    const margin = position.marginUsd ?? position.sizeUsd / position.leverage;
+    // Update portfolio (net PnL)
     this.portfolio.balance += margin + realizedPnl;
     this.portfolio.realizedPnl += realizedPnl;
     
@@ -398,7 +401,7 @@ export class VincePositionManagerService extends Service {
 
     const pnlStr = realizedPnl >= 0 ? `+$${realizedPnl.toFixed(2)}` : `-$${Math.abs(realizedPnl).toFixed(2)}`;
     logger.info(
-      `[VincePositionManager] Closed ${position.asset} (${reason}) @ $${exitPrice} - P&L: ${pnlStr}`
+      `[VincePositionManager] Closed ${position.asset} (${reason}) @ $${exitPrice} - P&L: ${pnlStr} (fees -$${feesUsd.toFixed(2)})`
     );
 
     return position;

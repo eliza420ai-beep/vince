@@ -1,10 +1,17 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-06 (V4.30 — avoided decisions + competitor lessons)
+# Last updated: 2026-02-06 (V4.31 — fee-aware PnL)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.31 - Fee-aware PnL (net of costs) (2026-02-06) ✅
+- **Competitor lesson (Gunbot):** PnL and improvement report are now **after trading fees** so "positive expectancy" is net of costs.
+- **Position manager:** On close, gross PnL minus round-trip fee (FEES.ROUND_TRIP_BPS = 5 bps of notional, Hyperliquid-like). Position.realizedPnl and realizedPnlPct are net; position.feesUsd stores fee for logs/feature store. Portfolio balance and win/loss counts use net PnL.
+- **Feature store:** outcome.realizedPnl and realizedPnlPct are net; optional outcome.feesUsd. Labels (profitable, winAmount, lossAmount, rMultiple) derived from net PnL. Training and improvement report are fee-aware.
+- **Logs:** Position manager log and paper trading "PAPER TRADE CLOSED" one-liner show "Net P&L" and "fees -$X"; closed banner shows "Net P&L" and "Fees -$X".
+- **Constants:** paperTradingDefaults.ts FEES.ROUND_TRIP_BPS = 5 (2 × TAKER_BPS). See FEATURE-STORE.md — "Fee-aware PnL".
 
 ## Competitor landscape & lessons (2026-02-06) ✅
 - **Context:** Passivbot, Gunbot, 3Commas, Coinrule, Pionex, Cornix, Mizar, Kraken AI, Axiom, Uniswap ecosystem (Hummingbot, Freqtrade) all offer trading bots or automation; most are manual-tuned or signal-following without a self-improving ML loop.

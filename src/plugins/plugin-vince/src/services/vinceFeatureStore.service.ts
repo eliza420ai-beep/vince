@@ -204,10 +204,12 @@ export interface TradeExecutionFeatures {
 export interface TradeOutcomeFeatures {
   /** Exit price */
   exitPrice: number;
-  /** Realized P&L in USD */
+  /** Realized P&L in USD (net of fees) */
   realizedPnl: number;
-  /** Realized P&L as % */
+  /** Realized P&L as % (vs margin) */
   realizedPnlPct: number;
+  /** Trading fees (round-trip) in USD */
+  feesUsd?: number;
   /** Holding period in minutes */
   holdingPeriodMinutes: number;
   /** Exit reason */
@@ -618,6 +620,7 @@ export class VinceFeatureStoreService extends Service {
       realizedPnl: number;
       realizedPnlPct: number;
       exitReason: string;
+      feesUsd?: number;
       maxUnrealizedProfit?: number;
       maxUnrealizedLoss?: number;
       partialProfitsTaken?: number;
@@ -650,6 +653,7 @@ export class VinceFeatureStoreService extends Service {
       exitPrice: outcome.exitPrice,
       realizedPnl: outcome.realizedPnl,
       realizedPnlPct: outcome.realizedPnlPct,
+      feesUsd: outcome.feesUsd,
       holdingPeriodMinutes,
       exitReason: outcome.exitReason,
       maxFavorableExcursion: outcome.maxUnrealizedProfit ?? 0,

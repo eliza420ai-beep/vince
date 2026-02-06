@@ -1434,12 +1434,12 @@ export class VincePaperTradingService extends Service {
         : ((closedPosition.entryPrice - closedPosition.markPrice) / closedPosition.entryPrice) * 100;
     const lev = closedPosition.leverage ?? 1;
 
-    // Prominent one-line log so "PAPER TRADE CLOSED" always appears in terminal/log stream
+    const feesUsdLog = closedPosition.feesUsd != null && closedPosition.feesUsd > 0 ? ` fees -$${closedPosition.feesUsd.toFixed(2)}` : "";
     logger.info(
       `[VincePaperTrading] ${pnlIcon} PAPER TRADE CLOSED – ${resultText}  ` +
       `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
       `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
-      `P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
+      `Net P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)}${feesUsdLog} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
       `Close Reason: ${closeReason}`
     );
 
@@ -1470,9 +1470,11 @@ export class VincePaperTradingService extends Service {
     console.log(empty);
     console.log(sep);
     console.log(empty);
-    console.log(line("  P&L  (stop loss limits loss; % below is vs margin)"));
+    const feesUsd = closedPosition.feesUsd ?? 0;
+    const feesStr = feesUsd > 0 ? `  |  Fees -$${feesUsd.toFixed(2)}` : "";
+    console.log(line("  P&L  (net of fees; % vs margin)"));
     console.log(empty);
-    console.log(line(`  ${pnlIcon}  Nominal P&L: ${pnlStr}`));
+    console.log(line(`  ${pnlIcon}  Net P&L: ${pnlStr}${feesStr}`));
     console.log(line(`  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`));
     if (closeReason === "stop_loss") {
       console.log(line(`  ✓ Stop loss limited loss to ${Math.abs(priceMovePct).toFixed(2)}% price move.`));
@@ -1622,6 +1624,7 @@ export class VincePaperTradingService extends Service {
           exitPrice: position.markPrice,
           realizedPnl: pnl,
           realizedPnlPct: pnlPct,
+          feesUsd: position.feesUsd,
           exitReason: closeReason || "manual",
           holdingPeriodMs,
           maxUnrealizedProfit: position.maxUnrealizedProfit,

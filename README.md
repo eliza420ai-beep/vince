@@ -211,7 +211,7 @@ We’re not the only ones building trading bots (Passivbot, Gunbot, 3Commas, Coi
 | Lesson | From | For VINCE |
 |--------|------|-----------|
 | Walk-forward optimization | Passivbot, 3Commas | Add to training pipeline to reduce overfitting |
-| Fee-aware PnL (net after fees) | Gunbot | Include maker/taker/funding in PnL and improvement report |
+| Fee-aware PnL (net after fees) | Gunbot | ✅ Done — round-trip fees deducted; PnL and improvement report are net. See [FEATURE-STORE.md](FEATURE-STORE.md#fee-aware-pnl-net-of-costs). |
 | Dashboard for WHY + PnL | 3Commas | Simple Streamlit/Flask for "WHY THIS TRADE" + PnL + SHAP |
 | Backtesting as first-class step | Passivbot, 3Commas | Replay historical features/signals for "backtested + walk-forward" |
 

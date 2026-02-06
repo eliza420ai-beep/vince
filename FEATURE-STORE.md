@@ -115,6 +115,10 @@ When the paper bot **evaluates a signal but does not trade** (e.g. “SIGNAL EVA
   - **Filter in SQL/JSONL:** `payload->'avoided' IS NOT NULL` (Supabase) or filter in Python: `r.get('avoided')` to get “evaluated but no trade” rows.
   - **Possible uses:** (1) Train an “should we trade?” / avoid classifier. (2) Counterfactual analysis: e.g. “if we had traded this avoided signal, what would have happened?” using later price action. (3) Analytics: distribution of avoid reasons by regime, asset, or session.
 
+## Fee-aware PnL (net of costs)
+
+**Realized PnL in the feature store is net of trading fees.** When a position closes, we subtract round-trip fees (open + close, taker) from gross PnL before writing to the position, portfolio, journal, and feature store. So `outcome.realizedPnl` and `outcome.realizedPnlPct` are **after fees**; the improvement report and training labels (profitable, winAmount, lossAmount, rMultiple) are therefore fee-aware. Optional `outcome.feesUsd` is stored so you can see the fee per trade (e.g. for analytics). Fee rate: `FEES.ROUND_TRIP_BPS` (5 bps = 0.05% of notional, Hyperliquid-like) in `paperTradingDefaults.ts`.
+
 ## Collecting more training data
 
 Ways to get to 90+ closed trades (and more avoided snapshots) faster:
@@ -175,7 +179,7 @@ When you add or change a feature, update **all three** places so training and in
 
 | Layer | Where | Rule |
 |-------|--------|------|
-| **Feature store** | `vinceFeatureStore.service.ts` — `FeatureRecord.market`, `.session`, `.signal`, `.regime`, `.news`, `.execution`, `.outcome`, `.labels`, `.avoided` | Nested keys (e.g. `market.priceChange24h`) are written to JSONL as-is in the record. `.avoided` = no-trade evaluations (V4.30). |
+| **Feature store** | `vinceFeatureStore.service.ts` — `FeatureRecord.market`, `.session`, `.signal`, `.regime`, `.news`, `.execution`, `.outcome`, `.labels`, `.avoided` | Nested keys (e.g. `market.priceChange24h`) are written to JSONL as-is. `.outcome.realizedPnl` is **net of fees**; `.outcome.feesUsd` optional. `.avoided` = no-trade evaluations (V4.30). |
 | **Flattened column (training)** | `train_models.py` — `load_features()` flattens each record | `record.section.key` → **`section_key`** (e.g. `market.priceChange24h` → `market_priceChange24h`). Lists/objects: `signal.sources` → derived `signal_source_count`, `signal_avg_sentiment`; `news.macroRiskEnvironment` → `news_macro_risk_on` / `news_macro_risk_off` (0/1); `regime.volatilityRegime` → `regime_volatility_high` (1 if high); `regime.marketRegime` → `regime_bullish`, `regime_bearish`. |
 | **Inference input** | `mlInference.service.ts` — `SignalQualityInput`, `getSignalQualityFeatureValue()` | Flattened column name (e.g. `market_priceChange24h`) is mapped to an input field (e.g. `priceChange24h`) and normalized. Order is defined by **`training_metadata.signal_quality_feature_names`** after each train; inference builds the vector from that list. |
 
