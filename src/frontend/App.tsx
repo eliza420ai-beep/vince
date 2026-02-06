@@ -720,8 +720,15 @@ function App() {
         const response = await elizaClient.messaging.getServerChannels(
           serverIdForQuery as UUID,
         );
+        // Only show channels for the selected agent. Backend only routes messages to agents that are channel participants;
+        // we create channels with participantIds [userId, agent.id], so filter by metadata we set (forAgent / user2).
+        const agentIdStr = agent.id as string;
+        const channelsForAgent = response.channels.filter((ch: any) => {
+          const forAgent = ch.metadata?.forAgent ?? ch.metadata?.user2;
+          return forAgent === agentIdStr;
+        });
         const dmChannels = await Promise.all(
-          response.channels.map(async (ch: any) => {
+          channelsForAgent.map(async (ch: any) => {
             let createdAt = 0;
             if (ch.createdAt instanceof Date) {
               createdAt = ch.createdAt.getTime();
