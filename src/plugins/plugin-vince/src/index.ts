@@ -29,6 +29,7 @@ import { buildPulseResponse } from "./routes/dashboardPulse";
 import { buildLeaderboardsResponse } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
+import { processDashboardUpload } from "./routes/dashboardUpload";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -362,6 +363,82 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-knowledge-quality-results",
+      path: "/vince/knowledge-quality-results",
+      type: "GET",
+      handler: async (
+        _req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+      ) => {
+        try {
+          const fs = await import("fs");
+          const path = await import("path");
+          const outPath = path.join(process.cwd(), "data", "knowledge-quality-results.json");
+          if (!fs.existsSync(outPath)) {
+            res.status(404).json({
+              error: "No knowledge quality results yet",
+              hint: "Run: RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts",
+            });
+            return;
+          }
+          const raw = fs.readFileSync(outPath, "utf8");
+          const data = JSON.parse(raw);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Knowledge quality results route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to read knowledge quality results",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-upload",
+      path: "/vince/upload",
+      type: "POST",
+      handler: async (
+        req: { params?: Record<string, string>; body?: unknown; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Upload requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/upload",
+          });
+          return;
+        }
+        try {
+          const body = (req.body ?? {}) as { type?: string; content?: string };
+          const type = body.type === "youtube" ? "youtube" : "text";
+          const result = await processDashboardUpload(agentRuntime, { type, content: body.content ?? "" });
+          if (!result.success) {
+            res.status(400).json(result);
+            return;
+          }
+          res.json(result);
+        } catch (err) {
+          logger.warn(`[VINCE] Upload route error: ${err}`);
+          res.status(500).json({
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },

@@ -1,0 +1,123 @@
+{
+  "ranAt": "2026-02-07T22:07:20.437Z",
+  "summary": {
+    "avgBaseline": 56,
+    "avgEnhanced": 86,
+    "avgImprovement": 30,
+    "improvementPercent": "54.4",
+    "avgKIImprovement": 42
+  },
+  "results": [
+    {
+      "domain": "OPTIONS",
+      "folder": "options",
+      "improvement": 40,
+      "knowledgeIntegration": 85,
+      "baselineScore": 46,
+      "enhancedScore": 86
+    },
+    {
+      "domain": "PERPS",
+      "folder": "perps-trading",
+      "improvement": 26,
+      "knowledgeIntegration": 85,
+      "baselineScore": 60,
+      "enhancedScore": 86
+    },
+    {
+      "domain": "MEMES",
+      "folder": "grinding-the-trenches",
+      "improvement": 43,
+      "knowledgeIntegration": 85,
+      "baselineScore": 41,
+      "enhancedScore": 84
+    },
+    {
+      "domain": "AIRDROPS",
+      "folder": "airdrops",
+      "improvement": 45,
+      "knowledgeIntegration": 85,
+      "baselineScore": 39,
+      "enhancedScore": 84
+    },
+    {
+      "domain": "LIFESTYLE",
+      "folder": "the-good-life",
+      "improvement": 24,
+      "knowledgeIntegration": 85,
+      "baselineScore": 65,
+      "enhancedScore": 89
+    },
+    {
+      "domain": "ART",
+      "folder": "art-collections",
+      "improvement": 35,
+      "knowledgeIntegration": 85,
+      "baselineScore": 54,
+      "enhancedScore": 89
+    },
+    {
+      "domain": "RESEARCH",
+      "folder": "substack-essays",
+      "improvement": 10,
+      "knowledgeIntegration": 75,
+      "baselineScore": 69,
+      "enhancedScore": 79
+    },
+    {
+      "domain": "BRAINSTORM",
+      "folder": "internal-docs",
+      "improvement": 36,
+      "knowledgeIntegration": 85,
+      "baselineScore": 49,
+      "enhancedScore": 85
+    },
+    {
+      "domain": "PROMPT_DESIGN",
+      "folder": "prompt-templates",
+      "improvement": 23,
+      "knowledgeIntegration": 85,
+      "baselineScore": 65,
+      "enhancedScore": 88
+    },
+    {
+      "domain": "STRIKE_RITUAL",
+      "folder": "options",
+      "improvement": 33,
+      "knowledgeIntegration": 85,
+      "baselineScore": 56,
+      "enhancedScore": 89
+    },
+    {
+      "domain": "YIELD_STACK",
+      "folder": "defi-metrics",
+      "improvement": 47,
+      "knowledgeIntegration": 85,
+      "baselineScore": 42,
+      "enhancedScore": 89
+    },
+    {
+      "domain": "SEVEN_PILLARS",
+      "folder": "internal-docs",
+      "improvement": 0,
+      "knowledgeIntegration": 70,
+      "baselineScore": 80,
+      "enhancedScore": 80
+    }
+  ],
+  "gaps": [
+    {
+      "domain": "SEVEN_PILLARS",
+      "folder": "internal-docs",
+      "improvement": 0,
+      "knowledgeIntegration": 70,
+      "recommendation": "Consider adding more content to knowledge/internal-docs/. Improvement +0 is modest."
+    }
+  ],
+  "recommendations": [
+    "EXCELLENT: Knowledge base provides significant value. Keep adding methodology-focused content.",
+    "Focus first on: internal-docs",
+    "Use KNOWLEDGE-QUALITY-CHECKLIST.md when adding new files."
+  ],
+  "note": "Eliza (chat, brainstorm), VINCE (execution), Solus (wealth architect). Each agent uses knowledge differently."
+}

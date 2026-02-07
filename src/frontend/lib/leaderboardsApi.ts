@@ -386,6 +386,7 @@ export interface KnowledgeFileEntry {
   name: string;
   mtime: number;
   relativePath: string;
+  folder?: string;
 }
 
 export interface KnowledgeGroup {
@@ -397,6 +398,43 @@ export interface KnowledgeResponse {
   weekly: KnowledgeGroup;
   allTime: KnowledgeGroup;
   updatedAt: number;
+}
+
+function toDisplayString(raw: unknown): string {
+  if (typeof raw === "string") return raw;
+  if (raw && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    return String(obj.message ?? obj.code ?? obj.error ?? JSON.stringify(raw));
+  }
+  return String(raw ?? "");
+}
+
+export async function submitKnowledgeUpload(
+  agentId: string,
+  payload: { type: "text" | "youtube"; content: string },
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/upload?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(120000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      return { success: false, error: toDisplayString(raw) };
+    }
+    return {
+      success: Boolean(body?.success),
+      message: body?.message != null ? toDisplayString(body.message) : undefined,
+      error: body?.error != null ? toDisplayString(body.error) : undefined,
+    };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "Network or timeout error" };
+  }
 }
 
 export async function fetchKnowledgeWithError(
@@ -417,6 +455,66 @@ export async function fetchKnowledgeWithError(
       return { data: null, error: msg, status: res.status };
     }
     return { data: body as KnowledgeResponse, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge quality results (from RUN_NETWORK_TESTS=1 bun test knowledgeQuality.e2e.test.ts)
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeQualityResult {
+  domain: string;
+  folder: string;
+  improvement: number;
+  knowledgeIntegration: number;
+  baselineScore: number;
+  enhancedScore: number;
+}
+
+export interface KnowledgeQualityGap {
+  domain: string;
+  folder: string;
+  improvement: number;
+  knowledgeIntegration: number;
+  recommendation: string;
+}
+
+export interface KnowledgeQualityResponse {
+  ranAt: string;
+  summary: {
+    avgBaseline: number;
+    avgEnhanced: number;
+    avgImprovement: number;
+    improvementPercent: string;
+    avgKIImprovement: number;
+  };
+  results: KnowledgeQualityResult[];
+  gaps: KnowledgeQualityGap[];
+  recommendations: string[];
+  note?: string;
+}
+
+export async function fetchKnowledgeQualityResults(
+  agentId: string,
+): Promise<{ data: KnowledgeQualityResponse | null; error: string | null; status: number | null }> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/knowledge-quality-results?agentId=${encodeURIComponent(agentId)}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return { data: body as KnowledgeQualityResponse, error: null, status: res.status };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Network or timeout error";
     return { data: null, error: msg, status: null };

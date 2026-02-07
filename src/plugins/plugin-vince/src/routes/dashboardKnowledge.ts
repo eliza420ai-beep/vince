@@ -16,6 +16,7 @@ export interface KnowledgeFileEntry {
   name: string;
   mtime: number;
   relativePath: string;
+  folder: string;
 }
 
 export interface KnowledgeGroup {
@@ -45,11 +46,13 @@ function walkDir(
     } else if (EXTENSIONS.has(path.extname(e.name).toLowerCase())) {
       try {
         const stat = fs.statSync(full);
+        const folder = relative.includes(path.sep) ? path.dirname(relative) : "root";
         out.push({
           path: full,
           name: e.name,
           mtime: stat.mtimeMs,
           relativePath: relative,
+          folder,
         });
       } catch {
         // skip unreadable

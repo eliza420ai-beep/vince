@@ -4,6 +4,7 @@ import DashboardPageLayout from "@/frontend/components/dashboard/layout";
 import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
+import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
 import {
   Tabs,
@@ -16,6 +17,8 @@ import {
   fetchLeaderboardsWithError,
   fetchPaperWithError,
   fetchKnowledgeWithError,
+  fetchKnowledgeQualityResults,
+  submitKnowledgeUpload,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
@@ -23,7 +26,7 @@ import type {
   LeaderboardEntry,
   ReferralCodeResponse,
 } from "@elizaos/api-client";
-import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink, Palette } from "lucide-react";
+import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink, Palette, Upload, Youtube } from "lucide-react";
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 
@@ -50,6 +53,16 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
+  const [uploadText, setUploadText] = useState("");
+  const [uploadTextStatus, setUploadTextStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [uploadTextMessage, setUploadTextMessage] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeStatus, setYoutubeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [youtubeMessage, setYoutubeMessage] = useState("");
+  const [testQualityCopied, setTestQualityCopied] = useState(false);
+
+  const KNOWLEDGE_QUALITY_COMMAND =
+    "RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts";
 
   const { data: leaderboardsResult, isLoading: leaderboardsLoading, refetch: refetchLeaderboards, isFetching: leaderboardsFetching } = useQuery({
     queryKey: ["leaderboards", leaderboardsAgentId],
@@ -70,6 +83,14 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     queryFn: () => fetchKnowledgeWithError(leaderboardsAgentId),
     enabled: mainTab === "knowledge" && !!leaderboardsAgentId,
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: qualityResult, isLoading: qualityLoading, refetch: refetchQuality } = useQuery({
+    queryKey: ["knowledge-quality", leaderboardsAgentId],
+    queryFn: () => fetchKnowledgeQualityResults(leaderboardsAgentId),
+    enabled: mainTab === "knowledge" && !!leaderboardsAgentId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
   const leaderboardsData = leaderboardsResult?.data ?? null;
   const leaderboardsError = leaderboardsResult?.error ?? null;
@@ -1687,8 +1708,55 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             </div>
           </TabsContent>
 
-          {/* Knowledge tab: newly added knowledge overview + points leaderboard + referral */}
+          {/* Knowledge tab: categories explanation + newly added knowledge + points leaderboard + referral */}
           <TabsContent value="knowledge" className="mt-6 flex-1 min-h-0 flex flex-col">
+            {/* Knowledge categories: what we focus on and why they matter */}
+            <div className="mb-6">
+              <DashboardCard title="Knowledge Categories">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Our knowledge base is organized by category. Each category feeds VINCE&apos;s RAG (Retrieval-Augmented Generation) so responses use methodology and frameworks, not just live APIs.
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Trading & Crypto</p>
+                    <p className="text-muted-foreground">
+                      <strong>bitcoin-maxi</strong>, <strong>perps-trading</strong>, <strong>options</strong>, <strong>defi-metrics</strong>, <strong>altcoins</strong>, <strong>grinding-the-trenches</strong>, <strong>airdrops</strong>. Why: Cycle analysis, funding/IV interpretation, protocol evaluation, meme psychology—methodology for reading markets.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Macro & Traditional</p>
+                    <p className="text-muted-foreground">
+                      <strong>macro-economy</strong>, <strong>stocks</strong>, <strong>venture-capital</strong>, <strong>commodities</strong>. Why: Debt cycles, liquidity regimes, risk-on/risk-off—context for crypto and cross-asset views.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Specialized</p>
+                    <p className="text-muted-foreground">
+                      <strong>art-collections</strong>, <strong>privacy</strong>, <strong>security</strong>, <strong>regulation</strong>, <strong>rwa</strong>. Why: NFT valuation, on-chain privacy, smart contract risk, real-world asset tokenization.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Lifestyle & Personal</p>
+                    <p className="text-muted-foreground">
+                      <strong>the-good-life</strong>, <strong>substack-essays</strong>. Why: Day-of-week aware suggestions, luxury, real estate, curated essays—the lifestyle overlay that sets VINCE apart.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Technical</p>
+                    <p className="text-muted-foreground">
+                      <strong>prompt-templates</strong>, <strong>setup-guides</strong>, <strong>internal-docs</strong>. Why: Structured prompts, tool config, quality standards—how we keep output consistent.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-foreground">Uncategorized</p>
+                    <p className="text-muted-foreground">
+                      Uploads that don&apos;t yet fit a category. Use <code className="bg-muted px-1 rounded text-xs">upload:</code> in chat; LLM categorization (plugin-knowledge-ingestion) or simple fallback assigns a folder.
+                    </p>
+                  </div>
+                </div>
+              </DashboardCard>
+            </div>
+
             {/* Knowledge overview: newly added files (weekly + all-time) */}
             {knowledgeLoading && !knowledgeResult?.data ? (
               <div className="h-32 bg-muted/50 rounded-xl animate-pulse mb-6" />
@@ -1701,12 +1769,20 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       <p className="text-2xl font-mono font-bold">{knowledgeResult.data.weekly.count}</p>
                       <p className="text-xs text-muted-foreground mt-1">files added in the last 7 days</p>
                       {knowledgeResult.data.weekly.files.length > 0 && (
-                        <ul className="mt-2 space-y-1 text-xs text-muted-foreground max-h-48 overflow-y-auto">
-                          {knowledgeResult.data.weekly.files.map((f, i) => (
-                            <li key={i} className="truncate" title={f.relativePath}>
-                              {f.relativePath}
-                            </li>
-                          ))}
+                        <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-48 overflow-y-auto">
+                          {knowledgeResult.data.weekly.files.map((f, i) => {
+                            const folder = f.folder ?? f.relativePath.split("/")[0] ?? "root";
+                            const dateStr = new Date(f.mtime).toLocaleDateString();
+                            return (
+                              <li key={`${f.path}-${i}`} className="flex items-center gap-2 flex-wrap" title={f.relativePath}>
+                                <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0">
+                                  {folder}
+                                </Badge>
+                                <span className="truncate min-w-0 flex-1">{f.name}</span>
+                                <span className="shrink-0 text-muted-foreground/80">{dateStr}</span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
@@ -1715,12 +1791,20 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       <p className="text-2xl font-mono font-bold">{knowledgeResult.data.allTime.count}</p>
                       <p className="text-xs text-muted-foreground mt-1">files in knowledge base</p>
                       {knowledgeResult.data.allTime.files.length > 0 && (
-                        <ul className="mt-2 space-y-1 text-xs text-muted-foreground max-h-48 overflow-y-auto">
-                          {knowledgeResult.data.allTime.files.map((f, i) => (
-                            <li key={i} className="truncate" title={f.relativePath}>
-                              {f.relativePath}
-                            </li>
-                          ))}
+                        <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-48 overflow-y-auto">
+                          {knowledgeResult.data.allTime.files.map((f, i) => {
+                            const folder = f.folder ?? f.relativePath.split("/")[0] ?? "root";
+                            const dateStr = new Date(f.mtime).toLocaleDateString();
+                            return (
+                              <li key={`${f.path}-${i}`} className="flex items-center gap-2 flex-wrap" title={f.relativePath}>
+                                <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0">
+                                  {folder}
+                                </Badge>
+                                <span className="truncate min-w-0 flex-1">{f.name}</span>
+                                <span className="shrink-0 text-muted-foreground/80">{dateStr}</span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
@@ -1729,135 +1813,185 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               </div>
             ) : null}
 
-            <Tabs
-              value={scope}
-              onValueChange={(value) => setScope(value as "weekly" | "all_time")}
-              className="flex flex-col flex-1 min-h-0"
-            >
-              <div className="flex items-center justify-between flex-shrink-0">
-                <TabsList>
-                  <TabsTrigger value="weekly">Weekly</TabsTrigger>
-                  <TabsTrigger value="all_time">All-Time</TabsTrigger>
-                </TabsList>
+            {/* Test knowledge quality - runs A/B comparison (with vs without knowledge) */}
+            <DashboardCard title="Test knowledge quality" className="mt-6">
+              <p className="text-sm text-muted-foreground mb-3">
+                Runs the knowledge quality E2E test: A/B comparison (with vs without knowledge) across 9 domains (OPTIONS, PERPS, MEMES, AIRDROPS, LIFESTYLE, ART + Eliza: RESEARCH, BRAINSTORM, PROMPT_DESIGN). Eliza is the primary knowledge consumer (chat, brainstorm). Requires <code className="bg-muted px-1 rounded text-xs">OPENAI_API_KEY</code>. Takes ~5–10 min.
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleRefresh}
-                  disabled={isLoading}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(KNOWLEDGE_QUALITY_COMMAND);
+                      setTestQualityCopied(true);
+                      setTimeout(() => setTestQualityCopied(false), 2000);
+                    } catch {
+                      // fallback: show command in alert
+                      window.prompt("Copy this command:", KNOWLEDGE_QUALITY_COMMAND);
+                    }
+                  }}
                 >
-                  <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} />
+                  {testQualityCopied ? (
+                    <Check className="w-4 h-4 mr-2 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-2" />
+                  )}
+                  {testQualityCopied ? "Copied!" : "Copy command"}
+                </Button>
+                <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-full">
+                  {KNOWLEDGE_QUALITY_COMMAND}
+                </code>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Run in your project root. Results show improvement per domain (Knowledge Integration, overall score) and whether the knowledge base adds measurable value.
+              </p>
+            </DashboardCard>
+
+            {/* Latest quality results (after running the test) */}
+            {qualityLoading && (
+              <div className="h-24 bg-muted/50 rounded-xl animate-pulse mt-6" />
+            )}
+            {!qualityLoading && qualityResult?.data && (
+              <DashboardCard title="Latest quality results" className="mt-6">
+                <p className="text-xs text-muted-foreground mb-3">
+                  Ran {new Date(qualityResult.data.ranAt).toLocaleString()}. Eliza is the primary knowledge consumer (chat, brainstorm).
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Avg baseline</p>
+                      <p className="text-lg font-mono font-bold">{qualityResult.data.summary.avgBaseline}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Avg enhanced</p>
+                      <p className="text-lg font-mono font-bold">{qualityResult.data.summary.avgEnhanced}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground">Improvement</p>
+                      <p className={cn("text-lg font-mono font-bold", qualityResult.data.summary.avgImprovement >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")}>
+                        {qualityResult.data.summary.avgImprovement >= 0 ? "+" : ""}{qualityResult.data.summary.avgImprovement}
+                      </p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg px-3 py-2">
+                      <p className="text-xs text-muted-foreground">KI delta</p>
+                      <p className="text-lg font-mono font-bold text-green-600 dark:text-green-400">
+                        +{qualityResult.data.summary.avgKIImprovement}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Per domain</p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-1.5">Domain</th>
+                            <th className="text-left py-1.5">Folder</th>
+                            <th className="text-right py-1.5">Base</th>
+                            <th className="text-right py-1.5">Enh</th>
+                            <th className="text-right py-1.5">Impr</th>
+                            <th className="text-right py-1.5">KI</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {qualityResult.data.results.map((r, i) => (
+                            <tr key={`${r.domain}-${i}`} className="border-b border-muted/50">
+                              <td className="py-1.5">{r.domain}</td>
+                              <td className="py-1.5 text-muted-foreground font-mono text-xs">{r.folder}</td>
+                              <td className="text-right py-1.5">{r.baselineScore}</td>
+                              <td className="text-right py-1.5">{r.enhancedScore}</td>
+                              <td className={cn("text-right py-1.5 font-mono", r.improvement >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive")}>
+                                {r.improvement >= 0 ? "+" : ""}{r.improvement}
+                              </td>
+                              <td className="text-right py-1.5">{r.knowledgeIntegration}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  {qualityResult.data.gaps.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-amber-600 dark:text-amber-500 uppercase mb-2">
+                        Gaps — add content to these folders
+                      </p>
+                      <ul className="space-y-2 text-sm">
+                        {qualityResult.data.gaps.map((g, i) => (
+                          <li key={`${g.domain}-${i}`} className="flex flex-col gap-0.5">
+                            <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{g.folder}</code>
+                            <p className="text-muted-foreground text-xs">{g.recommendation}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Recommendations</p>
+                    <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                      {qualityResult.data.recommendations.map((rec, i) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchQuality()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>
+              </DashboardCard>
+            )}
+
+            {/* Upload knowledge text - disabled: use #vince-upload / #vince-upload-youtube on Discord instead */}
+            {/*
+            <DashboardCard title="Upload knowledge text" className="mt-6">
+              <p className="text-sm text-muted-foreground mb-3">
+                Paste text (articles, notes, analysis) to add to the knowledge base. Content is saved under an auto-detected category.
+              </p>
+              <textarea
+                value={uploadText}
+                onChange={(e) => setUploadText(e.target.value)}
+                placeholder="Paste your text here (min ~50 chars)..."
+                className="w-full min-h-[120px] px-3 py-2 rounded-lg border bg-background text-sm resize-y"
+                disabled={uploadTextStatus === "loading"}
+              />
+              <div className="mt-3 flex items-center gap-3">
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={!uploadText.trim() || uploadText.trim().length < 50 || uploadTextStatus === "loading"}
+                  onClick={async () => {
+                    setUploadTextStatus("loading");
+                    setUploadTextMessage("");
+                    const result = await submitKnowledgeUpload(leaderboardsAgentId, {
+                      type: "text",
+                      content: uploadText.trim(),
+                    });
+                    setUploadTextStatus(result.success ? "success" : "error");
+                    const msg = result.message ?? result.error ?? "";
+                    setUploadTextMessage(typeof msg === "string" ? msg : String(msg?.message ?? msg?.code ?? msg));
+                    if (result.success) {
+                      setUploadText("");
+                      refetchKnowledge();
+                    }
+                  }}
+                >
+                  {uploadTextStatus === "loading" ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  {uploadTextStatus === "loading" ? "Uploading…" : "Upload"}
+                </Button>
+                {(uploadTextStatus === "success" || uploadTextStatus === "error") && (
+                  <span className={cn("text-sm", uploadTextStatus === "success" ? "text-green-600 dark:text-green-400" : "text-destructive")}>
+                    {uploadTextMessage}
+                  </span>
+                )}
               </div>
-
-          <TabsContent
-            value="weekly"
-            className="mt-6 flex-1 min-h-0 flex flex-col"
-          >
-            {error && !isLoading ? (
-              <DashboardCard title="WEEKLY LEADERBOARD">
-                <div className="text-center py-12">
-                  <p className="text-destructive mb-2">
-                    Error loading leaderboard
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {error instanceof Error ? error.message : "Unknown error"}
-                  </p>
-                  <Button onClick={() => refetch()} variant="outline" size="sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
-              </DashboardCard>
-            ) : isLoading ? (
-              <DashboardCard title="WEEKLY LEADERBOARD">
-                <div className="space-y-4">
-                  {[...Array(10)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 animate-pulse"
-                    >
-                      <div className="h-8 w-8 bg-muted rounded" />
-                      <div className="h-12 w-12 bg-muted rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-1/3" />
-                        <div className="h-3 bg-muted rounded w-1/4" />
-                      </div>
-                      <div className="h-6 bg-muted rounded w-20" />
-                    </div>
-                  ))}
-                </div>
-              </DashboardCard>
-            ) : rebels.length > 0 ? (
-              <RebelsRanking rebels={rebels} maxHeight={leaderboardMaxHeight} />
-            ) : (
-              <DashboardCard title="WEEKLY LEADERBOARD">
-                <div className="text-center py-12">
-                  <Trophy className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    No rankings yet this week
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Complete actions to earn points and climb the leaderboard!
-                  </p>
-                </div>
-              </DashboardCard>
-            )}
-          </TabsContent>
-
-          <TabsContent
-            value="all_time"
-            className="mt-6 flex-1 min-h-0 flex flex-col"
-          >
-            {error && !isLoading ? (
-              <DashboardCard title="ALL-TIME LEADERBOARD">
-                <div className="text-center py-12">
-                  <p className="text-destructive mb-2">
-                    Error loading leaderboard
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {error instanceof Error ? error.message : "Unknown error"}
-                  </p>
-                  <Button onClick={() => refetch()} variant="outline" size="sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Retry
-                  </Button>
-                </div>
-              </DashboardCard>
-            ) : isLoading ? (
-              <DashboardCard title="ALL-TIME LEADERBOARD">
-                <div className="space-y-4">
-                  {[...Array(10)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 animate-pulse"
-                    >
-                      <div className="h-8 w-8 bg-muted rounded" />
-                      <div className="h-12 w-12 bg-muted rounded-lg" />
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-1/3" />
-                        <div className="h-3 bg-muted rounded w-1/4" />
-                      </div>
-                      <div className="h-6 bg-muted rounded w-20" />
-                    </div>
-                  ))}
-                </div>
-              </DashboardCard>
-            ) : rebels.length > 0 ? (
-              <RebelsRanking rebels={rebels} maxHeight={leaderboardMaxHeight} />
-            ) : (
-              <DashboardCard title="ALL-TIME LEADERBOARD">
-                <div className="text-center py-12">
-                  <Trophy className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No rankings yet</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Complete actions to earn points and climb the leaderboard!
-                  </p>
-                </div>
-              </DashboardCard>
-            )}
-          </TabsContent>
-            </Tabs>
+            </DashboardCard>
+            */}
           </TabsContent>
         </Tabs>
 
@@ -1880,89 +2014,58 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
           </div>
         )}
 
-        {/* Referral Link Card - requires authentication, only when Knowledge tab */}
-        {mainTab === "knowledge" && agentId && (
-          <DashboardCard title="Referral Link">
-            {isLoadingReferral ? (
-              <div className="space-y-3">
-                <div className="h-10 bg-muted rounded animate-pulse" />
-                <div className="h-9 bg-muted rounded w-32 animate-pulse" />
-              </div>
-            ) : referralData ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 p-3 bg-muted rounded-lg border">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      Your Referral Link
-                    </div>
-                    <div className="text-sm font-mono break-all">
-                      {referralData.referralLink}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleCopyReferralLink}
-                    variant="outline"
-                    size="sm"
-                    className="shrink-0"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2 text-green-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-2" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Signups: </span>
-                    <span className="font-semibold">
-                      {referralData.stats.totalReferrals}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Activated: </span>
-                    <span className="font-semibold">
-                      {referralData.stats.activatedReferrals}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">
-                      Points Earned:{" "}
-                    </span>
-                    <span className="font-semibold">
-                      {referralData.stats.totalPointsEarned.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Share your referral link to earn points when friends sign up
-                  and activate their accounts!
-                </p>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">
-                  Unable to load referral code
-                </p>
-                <Button
-                  onClick={() => refetchReferral()}
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Retry
-                </Button>
-              </div>
+        {/* Add YouTube video - disabled: use #vince-upload-youtube on Discord instead */}
+        {/*
+        {mainTab === "knowledge" && leaderboardsAgentId && (
+          <DashboardCard title="Add YouTube video" className="mt-6">
+            <p className="text-sm text-muted-foreground mb-3">
+              Paste a YouTube URL to transcribe and summarize the video, then save it to the knowledge base. Requires <code className="bg-muted px-1 rounded text-xs">@steipete/summarize</code> and an API key.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="flex-1 px-3 py-2 rounded-lg border bg-background text-sm"
+                disabled={youtubeStatus === "loading"}
+              />
+              <Button
+                variant="default"
+                size="sm"
+                disabled={!youtubeUrl.trim() || youtubeStatus === "loading"}
+                onClick={async () => {
+                  setYoutubeStatus("loading");
+                  setYoutubeMessage("");
+                  const result = await submitKnowledgeUpload(leaderboardsAgentId, {
+                    type: "youtube",
+                    content: youtubeUrl.trim(),
+                  });
+                  setYoutubeStatus(result.success ? "success" : "error");
+                  const msg = result.message ?? result.error ?? "";
+                  setYoutubeMessage(typeof msg === "string" ? msg : String(msg?.message ?? msg?.code ?? msg));
+                  if (result.success) {
+                    setYoutubeUrl("");
+                    refetchKnowledge();
+                  }
+                }}
+              >
+                {youtubeStatus === "loading" ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Youtube className="w-4 h-4 mr-2" />
+                )}
+                {youtubeStatus === "loading" ? "Processing…" : "Add"}
+              </Button>
+            </div>
+            {(youtubeStatus === "success" || youtubeStatus === "error") && (
+              <p className={cn("mt-2 text-sm", youtubeStatus === "success" ? "text-green-600 dark:text-green-400" : "text-destructive")}>
+                {youtubeMessage}
+              </p>
             )}
           </DashboardCard>
         )}
+        */}
       </div>
     </DashboardPageLayout>
   );

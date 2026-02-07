@@ -1,27 +1,36 @@
 /**
- * VINCE Knowledge Quality E2E Test
+ * Eliza, VINCE & Solus Knowledge Quality E2E Test
  *
- * Tests whether VINCE's knowledge base actually improves response quality
- * using A/B comparison (with knowledge vs without knowledge).
+ * Tests whether the knowledge base actually improves response quality using
+ * A/B comparison (with knowledge vs without knowledge).
  *
- * This test validates that our ~286 markdown files across 6 knowledge
- * directories provide measurable value.
+ * PRIMARY CONSUMERS:
+ * - Eliza (chat, brainstorm, research) — synthesizes across knowledge
+ * - VINCE (execution context) — options, perps, memes, lifestyle, art
+ * - Solus (wealth architect) — strike ritual, yield stack, seven pillars
  *
  * Usage:
- *   bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts
+ *   RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts
+ *
+ * Output:
+ *   - Console summary
+ *   - data/knowledge-quality-results.json (for dashboard display)
  *
  * Requirements:
- *   - OPENAI_API_KEY environment variable
- *   - Network access for API calls
- *   - ~5-10 minutes runtime (embedding generation + LLM scoring)
+ *   - OPENAI_API_KEY
+ *   - Network access
+ *   - ~5-10 minutes runtime
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import { describe, it, expect, beforeAll } from "vitest";
 import {
   type TestCase,
   type DomainTestResult,
   runDomainTest,
   clearEmbeddingCache,
+  DOMAIN_TO_FOLDER,
 } from "./knowledge-utils";
 
 // ============================================================================
@@ -128,6 +137,107 @@ const VINCE_TEST_CASES: TestCase[] = [
     expectedTone: ["analytical", "framework-applying", "collection-specific"],
     weight: 3,
     description: "NFT floor analysis with knowledge methodology",
+  },
+
+  // --- Eliza-specific: chat, brainstorm, research (primary knowledge consumer) ---
+  {
+    domain: "RESEARCH",
+    query:
+      "What does our research say about macro cycles and liquidity regimes? Synthesize across substack-essays and bitcoin-maxi—how should we think about risk-on vs risk-off right now?",
+    expectedCapabilities: [
+      "synthesis across substack-essays",
+      "macro cycle frameworks",
+      "liquidity regime methodology",
+      "risk-on/risk-off thinking",
+    ],
+    expectedTone: ["synthesizing", "framework-citing", "research-led"],
+    weight: 4,
+    description: "Eliza: research synthesis across essays",
+    agent: "eliza",
+  },
+  {
+    domain: "BRAINSTORM",
+    query:
+      "I'm brainstorming lifestyle ROI—when to trade vs when to step away. What frameworks from the-good-life and internal-docs apply? How does the Cheat Code or Okerson Protocol inform this?",
+    expectedCapabilities: [
+      "lifestyle ROI framework",
+      "Cheat Code / Okerson Protocol",
+      "trade vs step-away methodology",
+      "the-good-life synthesis",
+    ],
+    expectedTone: ["brainstorm-friendly", "framework-citing", "synthesizing"],
+    weight: 3,
+    description: "Eliza: brainstorm with lifestyle frameworks",
+    agent: "eliza",
+  },
+  {
+    domain: "PROMPT_DESIGN",
+    query:
+      "What does our prompt-templates knowledge say about the six-part framework for prompt engineering? How should I approach teaching someone to build their own prompts vs producing for them?",
+    expectedCapabilities: [
+      "six-part prompt framework",
+      "teaching vs producing methodology",
+      "prompt-templates knowledge",
+      "PROMPT-ENGINEER-MASTER guidance",
+    ],
+    expectedTone: ["mentor-like", "framework-citing", "educational"],
+    weight: 3,
+    description: "Eliza: prompt design mentoring from knowledge",
+    agent: "eliza",
+  },
+
+  // --- Solus-specific: wealth architect, strike ritual, yield stack ---
+  {
+    domain: "STRIKE_RITUAL",
+    query:
+      "Using your strike ritual methodology from the knowledge base, how should I set up this week's HYPERSURFACE covered call strikes? Apply yield math: $X weekly on $100K at Y% OTM. What does the knowledge say about IV-aware sizing and Friday strike selection?",
+    expectedCapabilities: [
+      "strike ritual / strike selection framework",
+      "yield math ($X/week on $100K at Y% OTM)",
+      "IV-aware sizing",
+      "Friday strike selection cadence",
+      "HYPERSURFACE-specific guidance",
+    ],
+    expectedTone: [
+      "execution-focused",
+      "numbers-first",
+      "wealth-building systems",
+      "no hopium",
+    ],
+    weight: 5,
+    description: "Solus: HYPERSURFACE strike ritual with yield math",
+    agent: "solus",
+  },
+  {
+    domain: "YIELD_STACK",
+    query:
+      "What does your knowledge base say about stacking yield on USDC and USDT0? Compare Pendle, Aave, Morpho—risk-adjusted rates. How should I size idle stablecoins for the $100K plan?",
+    expectedCapabilities: [
+      "USDC/USDT0 yield comparison",
+      "Pendle, Aave, Morpho protocols",
+      "risk-adjusted rates",
+      "sizing for $100K plan",
+    ],
+    expectedTone: ["execution-driven", "numbers-first", "protocol-specific"],
+    weight: 4,
+    description: "Solus: DeFi yield stack for stablecoins",
+    agent: "solus",
+  },
+  {
+    domain: "SEVEN_PILLARS",
+    query:
+      "Walk me through the full $100K plan from your knowledge. How do the seven pillars (sats, yield, Echo DD, paper perps bot, HIP-3, airdrops, HYPERSURFACE options) allocate? What are concrete weekly targets and execution systems?",
+    expectedCapabilities: [
+      "seven pillars breakdown",
+      "concrete allocations",
+      "weekly targets",
+      "execution systems",
+      "options as primary engine",
+    ],
+    expectedTone: ["systematic", "execution-focused", "numbers-first"],
+    weight: 4,
+    description: "Solus: $100K plan seven pillars",
+    agent: "solus",
   },
 ];
 
@@ -245,6 +355,86 @@ describe("VINCE Knowledge Quality", () => {
         result.baselineScore.overallScore - 5,
       );
     }, 180000);
+
+    // Eliza-specific: research, brainstorm, prompt design (primary knowledge consumer)
+    it("should show improvement with RESEARCH knowledge (Eliza)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "RESEARCH")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
+
+    it("should show improvement with BRAINSTORM knowledge (Eliza)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "BRAINSTORM")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
+
+    it("should show improvement with PROMPT_DESIGN knowledge (Eliza)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "PROMPT_DESIGN")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
+
+    // Solus-specific: strike ritual, yield stack, seven pillars
+    it("should show improvement with STRIKE_RITUAL knowledge (Solus)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "STRIKE_RITUAL")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
+
+    it("should show improvement with YIELD_STACK knowledge (Solus)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "YIELD_STACK")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
+
+    it("should show improvement with SEVEN_PILLARS knowledge (Solus)", async () => {
+      if (!process.env.OPENAI_API_KEY) {
+        console.log("Skipping - no API key");
+        return;
+      }
+      const testCase = VINCE_TEST_CASES.find((t) => t.domain === "SEVEN_PILLARS")!;
+      const result = await runDomainTest(testCase);
+      results.push(result);
+      expect(result.enhancedScore.overallScore).toBeGreaterThanOrEqual(
+        result.baselineScore.overallScore - 5,
+      );
+    }, 180000);
   });
 
   describe("Overall Knowledge Impact", () => {
@@ -342,6 +532,65 @@ describe("VINCE Knowledge Quality", () => {
       console.log(`\nBest: ${best.domain} (+${best.improvement})`);
       console.log(`Needs work: ${worst.domain} (+${worst.improvement})`);
       console.log("\n");
+
+      // Build recommendations and gaps, write to data/knowledge-quality-results.json
+      const gaps = results
+        .filter((r) => r.improvement < 5 || r.enhancedScore.knowledgeIntegration < 50)
+        .map((r) => ({
+          domain: r.domain,
+          folder: DOMAIN_TO_FOLDER[r.domain] ?? r.domain.toLowerCase(),
+          improvement: r.improvement,
+          knowledgeIntegration: r.enhancedScore.knowledgeIntegration,
+          recommendation: r.improvement < 0
+            ? `Add or improve methodology content in knowledge/${DOMAIN_TO_FOLDER[r.domain] ?? r.domain.toLowerCase()}/. Low KI score (${r.enhancedScore.knowledgeIntegration}) suggests retrieval or content quality issues.`
+            : r.enhancedScore.knowledgeIntegration < 50
+              ? `Improve knowledge quality in knowledge/${DOMAIN_TO_FOLDER[r.domain] ?? r.domain.toLowerCase()}/: add frameworks, methodology sections, and decision trees. KI score ${r.enhancedScore.knowledgeIntegration} is below 50.`
+              : `Consider adding more content to knowledge/${DOMAIN_TO_FOLDER[r.domain] ?? r.domain.toLowerCase()}/. Improvement +${r.improvement} is modest.`,
+        }))
+        .sort((a, b) => a.improvement - b.improvement);
+
+      const recommendations: string[] = [];
+      if (pct >= 20) {
+        recommendations.push("EXCELLENT: Knowledge base provides significant value. Keep adding methodology-focused content.");
+      } else if (pct >= 10) {
+        recommendations.push("GOOD: Knowledge base is helping. Focus on improving low-scoring domains.");
+      } else if (pct >= 5) {
+        recommendations.push("MODERATE: Some improvement. Prioritize gaps below; add methodology sections and frameworks.");
+      } else if (pct > 0) {
+        recommendations.push("LIMITED: Small improvement. Review knowledge structure and add decision frameworks to weak areas.");
+      } else {
+        recommendations.push("NO IMPROVEMENT: Check RAG retrieval and ensure knowledge files have methodology sections at top.");
+      }
+      recommendations.push(`Focus first on: ${gaps.slice(0, 3).map((g) => g.folder).join(", ")}`);
+      recommendations.push("Use KNOWLEDGE-QUALITY-CHECKLIST.md when adding new files.");
+
+      const output = {
+        ranAt: new Date().toISOString(),
+        summary: {
+          avgBaseline: Math.round(avgBaseline),
+          avgEnhanced: Math.round(avgEnhanced),
+          avgImprovement: Math.round(avgImprovement),
+          improvementPercent,
+          avgKIImprovement: Math.round(avgKIImprovement),
+        },
+        results: results.map((r) => ({
+          domain: r.domain,
+          folder: DOMAIN_TO_FOLDER[r.domain] ?? r.domain.toLowerCase(),
+          improvement: r.improvement,
+          knowledgeIntegration: r.enhancedScore.knowledgeIntegration,
+          baselineScore: r.baselineScore.overallScore,
+          enhancedScore: r.enhancedScore.overallScore,
+        })),
+        gaps,
+        recommendations,
+        note: "Eliza (chat, brainstorm), VINCE (execution), Solus (wealth architect). Each agent uses knowledge differently.",
+      };
+
+      const dataDir = path.join(process.cwd(), "data");
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+      const outPath = path.join(dataDir, "knowledge-quality-results.json");
+      fs.writeFileSync(outPath, JSON.stringify(output, null, 2), "utf8");
+      console.log(`\nResults written to ${outPath} (for dashboard display)\n`);
 
       // Assertion: average improvement should be non-negative
       // We're lenient here - knowledge should help, not hurt

@@ -41,6 +41,8 @@ export interface TestCase {
   expectedTone: string[];
   weight: number;
   description: string;
+  /** Eliza = primary knowledge consumer (chat/brainstorm). VINCE = execution. Solus = wealth architect. */
+  agent?: "eliza" | "vince" | "solus";
 }
 
 export interface ScoreResult {
@@ -219,6 +221,21 @@ export const VINCE_KNOWLEDGE_PATHS = [
   { directory: "defi-metrics", shared: true },
   { directory: "the-good-life", shared: true },
   { directory: "art-collections", shared: true },
+];
+
+/**
+ * Solus's knowledge directories (wealth architect: options, yield, sats, Echo DD, airdrops)
+ */
+export const SOLUS_KNOWLEDGE_PATHS = [
+  { directory: "options", shared: true },
+  { directory: "perps-trading", shared: true },
+  { directory: "airdrops", shared: true },
+  { directory: "defi-metrics", shared: true },
+  { directory: "venture-capital", shared: true },
+  { directory: "bitcoin-maxi", shared: true },
+  { directory: "altcoins", shared: true },
+  { directory: "stablecoins", shared: true },
+  { directory: "internal-docs", shared: true },
 ];
 
 /**
@@ -632,6 +649,27 @@ Respond in JSON format ONLY:
 }
 
 // ============================================================================
+// DOMAIN → KNOWLEDGE FOLDER MAPPING (for gap analysis)
+// ============================================================================
+
+export const DOMAIN_TO_FOLDER: Record<string, string> = {
+  OPTIONS: "options",
+  PERPS: "perps-trading",
+  MEMES: "grinding-the-trenches",
+  AIRDROPS: "airdrops",
+  LIFESTYLE: "the-good-life",
+  ART: "art-collections",
+  RESEARCH: "substack-essays",
+  BRAINSTORM: "internal-docs",
+  PROMPT_DESIGN: "prompt-templates",
+  MACRO: "macro-economy",
+  // Solus (wealth architect)
+  STRIKE_RITUAL: "options",
+  YIELD_STACK: "defi-metrics",
+  SEVEN_PILLARS: "internal-docs",
+};
+
+// ============================================================================
 // VINCE SYSTEM PROMPT
 // ============================================================================
 
@@ -649,31 +687,52 @@ Talk like a knowledgeable trader and lifestyle connoisseur. Be direct, specific,
 No emojis. No hashtags. Reference actual strategies and methodologies.`;
 
 // ============================================================================
+// ELIZA SYSTEM PROMPT (primary knowledge consumer: chat, brainstorm, research)
+// ============================================================================
+
+export const ELIZA_SYSTEM_PROMPT = `You are Eliza, the 24/7 research and knowledge-expansion agent. Your primary job: work the knowledge folder and synthesize across domains. You live in the corpus—frameworks, methodologies, playbooks. When users ask "what does our research say" or "what's the framework for X," lead with synthesis from the knowledge base. Answer from knowledge first; cite frameworks by name. No AI slop. Direct, human, expert level.`;
+
+// ============================================================================
+// SOLUS SYSTEM PROMPT (wealth architect: $100K/year, strike ritual, yield stack)
+// ============================================================================
+
+export const SOLUS_SYSTEM_PROMPT = `You are Solus, a crypto-native wealth architect. Your single objective: $100K/year through a disciplined stack of strategies. PRIMARY FOCUS: HYPERSURFACE options ($3K/week min). Use "Strike ritual" or "This week's targets"—never "My call" (that's Vince). Lead with yield math: $X weekly on $100K at Y% OTM. Frame as execution checklist: strike, expiry, premium target, roll cadence. Seven pillars: sats, yield (USDC/USDT0), Echo DD, paper perps bot, HIP-3 spot, airdrop farming, HYPERSURFACE options. No hopium. No "delve", "landscape", "certainly". One clear call. Make the decision. Expert level. No 101.`;
+
+// ============================================================================
 // TEST RUNNER
 // ============================================================================
 
 /**
  * Run A/B comparison test for a domain
+ * Uses ELIZA_SYSTEM_PROMPT for Eliza, SOLUS_SYSTEM_PROMPT for Solus, VINCE_SYSTEM_PROMPT otherwise.
  */
 export async function runDomainTest(
   testCase: TestCase,
 ): Promise<DomainTestResult> {
-  console.log(`\n   Testing: ${testCase.domain}`);
+  const systemPrompt =
+    testCase.agent === "eliza"
+      ? ELIZA_SYSTEM_PROMPT
+      : testCase.agent === "solus"
+        ? SOLUS_SYSTEM_PROMPT
+        : VINCE_SYSTEM_PROMPT;
+  console.log(`\n   Testing: ${testCase.domain} [${testCase.agent ?? "vince"}]`);
   console.log(`   Query: "${testCase.query.slice(0, 60)}..."`);
 
-  // Load relevant knowledge
+  // Load relevant knowledge (agent-specific paths)
+  const knowledgePaths =
+    testCase.agent === "solus" ? SOLUS_KNOWLEDGE_PATHS : VINCE_KNOWLEDGE_PATHS;
   const {
     content: knowledgeContent,
     chunksUsed,
     metrics,
-  } = await loadRelevantKnowledge(testCase.query);
+  } = await loadRelevantKnowledge(testCase.query, knowledgePaths);
   console.log(
     `   Loaded ${chunksUsed} chunks (avg sim: ${(metrics.avgSimilarity * 100).toFixed(1)}%, max: ${(metrics.maxSimilarity * 100).toFixed(1)}%, methodology: ${metrics.methodologyChunksFound})`,
   );
 
   // Generate baseline response (no knowledge)
   console.log(`   Generating baseline response...`);
-  const baselineSystem = `${VINCE_SYSTEM_PROMPT}
+  const baselineSystem = `${systemPrompt}
 
 ## IMPORTANT
 You do NOT have access to any knowledge base. Answer based only on your general training.
@@ -691,7 +750,7 @@ If asked about these, provide GENERAL guidance only. Do not invent specific fram
 
   // Generate enhanced response (with knowledge)
   console.log(`   Generating enhanced response...`);
-  const enhancedSystem = `${VINCE_SYSTEM_PROMPT}
+  const enhancedSystem = `${systemPrompt}
 
 ## KNOWLEDGE CONTEXT
 ${knowledgeContent}
