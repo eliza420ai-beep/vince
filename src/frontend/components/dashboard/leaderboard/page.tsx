@@ -529,7 +529,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                   {p.binWidth != null ? (p.binWidth * 100).toFixed(0) : "—"}
                                 </td>
                                 <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
-                                  {p.apy != null ? `${p.apy.toFixed(1)}%` : "—"}
+                                  {p.apy != null ? `${(p.apy * 100).toFixed(1)}%` : "—"}
                                 </td>
                               </tr>
                             ))}
