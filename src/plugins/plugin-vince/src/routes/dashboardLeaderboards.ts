@@ -129,6 +129,21 @@ export interface NewsLeaderboardSection {
   oneLiner: string;
 }
 
+export interface DigitalArtCollectionRow {
+  name: string;
+  slug: string;
+  floorPrice: number;
+  floorPriceUsd?: number;
+  floorThickness: string;
+  gapTo2nd: number;
+}
+
+export interface DigitalArtLeaderboardSection {
+  title: string;
+  collections: DigitalArtCollectionRow[];
+  oneLiner: string;
+}
+
 export interface MoreLeaderboardSection {
   fearGreed: { value: number; label: string; classification: string } | null;
   options: {
@@ -187,6 +202,7 @@ export interface LeaderboardsResponse {
   memes: MemesLeaderboardSection | null;
   meteora: MeteoraLeaderboardSection | null;
   news: NewsLeaderboardSection | null;
+  digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
 }
 
@@ -523,6 +539,47 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
   };
 }
 
+async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalArtLeaderboardSection | null> {
+  const nftFloor = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as {
+    refreshData?: () => Promise<void>;
+    getAllFloors?: () => Array<{
+      name: string;
+      slug: string;
+      floorPrice: number;
+      floorThickness: string;
+      gaps?: { to2nd: number };
+    }>;
+    getTLDR?: () => string;
+  } | null;
+  if (!nftFloor?.getAllFloors) return null;
+
+  await safe("Digital Art refresh", () => Promise.resolve(nftFloor.refreshData?.() ?? Promise.resolve()));
+  const floors = await safe("Digital Art floors", () => Promise.resolve(nftFloor.getAllFloors?.() ?? []));
+  const tldr = await safe("Digital Art TLDR", () => Promise.resolve(nftFloor.getTLDR?.() ?? "NFT floor data"));
+
+  if (!floors || floors.length === 0) {
+    return {
+      title: "Digital Art",
+      collections: [],
+      oneLiner: tldr ?? "NFT: No data yet — set OPENSEA_API_KEY for floor prices.",
+    };
+  }
+
+  const collections: DigitalArtCollectionRow[] = floors.map((c) => ({
+    name: c.name,
+    slug: c.slug,
+    floorPrice: c.floorPrice,
+    floorThickness: c.floorThickness,
+    gapTo2nd: c.gaps?.to2nd ?? 0,
+  }));
+
+  return {
+    title: "Digital Art",
+    collections,
+    oneLiner: tldr ?? "Curated NFT collections — floor prices and thin-floor opportunities.",
+  };
+}
+
 async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboardSection> {
   const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
     getFearGreed?: () => { value: number; classification: string } | null;
@@ -773,12 +830,13 @@ export async function buildLeaderboardsResponse(
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
 
-  const [hip3, hlCrypto, memes, meteora, news, more] = await Promise.all([
+  const [hip3, hlCrypto, memes, meteora, news, digitalArt, more] = await Promise.all([
     buildHIP3Section(runtime),
     buildHLCryptoSection(runtime),
     buildMemesSection(runtime),
     buildMeteoraSection(runtime),
     buildNewsSection(runtime),
+    buildDigitalArtSection(runtime),
     buildMoreSection(runtime),
   ]);
 
@@ -789,6 +847,7 @@ export async function buildLeaderboardsResponse(
     memes,
     meteora,
     news,
+    digitalArt,
     more,
   };
 }

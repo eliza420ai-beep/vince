@@ -77,6 +77,21 @@ export interface MeteoraLeaderboardSection {
   oneLiner: string;
 }
 
+export interface DigitalArtCollectionRow {
+  name: string;
+  slug: string;
+  floorPrice: number;
+  floorPriceUsd?: number;
+  floorThickness: string;
+  gapTo2nd: number;
+}
+
+export interface DigitalArtLeaderboardSection {
+  title: string;
+  collections: DigitalArtCollectionRow[];
+  oneLiner: string;
+}
+
 export interface NewsLeaderboardSection {
   title: string;
   headlines: { text: string; sentiment?: string; url?: string }[];
@@ -142,6 +157,7 @@ export interface LeaderboardsResponse {
   memes: MemesLeaderboardSection | null;
   meteora: MeteoraLeaderboardSection | null;
   news: NewsLeaderboardSection | null;
+  digitalArt: DigitalArtLeaderboardSection | null;
   more: MoreLeaderboardSection | null;
 }
 

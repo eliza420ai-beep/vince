@@ -23,13 +23,13 @@ import type {
   LeaderboardEntry,
   ReferralCodeResponse,
 } from "@elizaos/api-client";
-import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink } from "lucide-react";
+import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink, Palette } from "lucide-react";
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
-type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot";
+type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art";
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -47,14 +47,14 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   // Markets (HIP-3, Crypto, Memes, etc.) come from plugin-vince — use VINCE agent so the route exists
   const vinceAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "VINCE");
   const leaderboardsAgentId = (vinceAgent?.id ?? agents?.[0]?.id ?? agentId) as string;
-  const [mainTab, setMainTab] = useState<MainTab>("markets");
+  const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
 
   const { data: leaderboardsResult, isLoading: leaderboardsLoading, refetch: refetchLeaderboards, isFetching: leaderboardsFetching } = useQuery({
     queryKey: ["leaderboards", leaderboardsAgentId],
     queryFn: () => fetchLeaderboardsWithError(leaderboardsAgentId),
-    enabled: (mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more") && !!leaderboardsAgentId,
+    enabled: (mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more" || mainTab === "digital_art") && !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
 
@@ -214,7 +214,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             ? "MandoMinutes headlines with TLDR and deep dive"
             : mainTab === "more"
               ? "Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts"
-              : "Open paper trades and portfolio overview";
+              : mainTab === "digital_art"
+                ? "Curated NFT collections — floor prices and thin-floor opportunities"
+                : "Open paper trades and portfolio overview";
 
   return (
     <DashboardPageLayout
@@ -231,14 +233,15 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
         >
           <div className="flex items-center justify-between flex-shrink-0 gap-2">
             <TabsList>
-              <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
-              <TabsTrigger value="markets">Markets</TabsTrigger>
-              <TabsTrigger value="memetics">Memetics</TabsTrigger>
-              <TabsTrigger value="news">News</TabsTrigger>
-              <TabsTrigger value="more">More</TabsTrigger>
               <TabsTrigger value="trading_bot">Trading Bot</TabsTrigger>
+              <TabsTrigger value="news">News</TabsTrigger>
+              <TabsTrigger value="markets">Markets</TabsTrigger>
+              <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
+              <TabsTrigger value="memetics">Memetics</TabsTrigger>
+              <TabsTrigger value="digital_art">Digital Art</TabsTrigger>
+              <TabsTrigger value="more">More</TabsTrigger>
             </TabsList>
-            {(mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more") && (
+            {(mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more" || mainTab === "digital_art") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -723,6 +726,63 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <Newspaper className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                 <p className="font-medium text-foreground">No news data</p>
                 <p className="text-sm text-muted-foreground mt-1">Switch to Markets to load data, or ask VINCE for &quot;mando minutes&quot;.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Digital Art tab: curated NFT collections — floor prices and thin-floor opportunities */}
+          <TabsContent value="digital_art" className="mt-6 flex-1 min-h-0 overflow-auto">
+            {(leaderboardsLoading || leaderboardsFetching) && !leaderboardsData?.digitalArt ? (
+              <div className="space-y-4">
+                <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
+                <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
+              </div>
+            ) : leaderboardsData?.digitalArt ? (
+              <div className="space-y-6">
+                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                  <p className="text-sm font-medium text-foreground/90">{leaderboardsData.digitalArt.oneLiner}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {leaderboardsData.updatedAt != null
+                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
+                      : "Live data"}
+                  </p>
+                </div>
+                <DashboardCard title={leaderboardsData.digitalArt.title}>
+                  {(leaderboardsData.digitalArt.collections ?? []).length > 0 ? (
+                    <div className="rounded-md border border-border/60 overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/60 bg-muted/30">
+                            <th className="py-2.5 px-3 text-left font-semibold">Collection</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Floor (ETH)</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Thickness</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Gap to 2nd</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leaderboardsData.digitalArt.collections.map((c) => (
+                            <tr key={c.slug} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                              <td className="py-2 px-3 font-medium">{c.name}</td>
+                              <td className="py-2 px-3 text-right tabular-nums">{c.floorPrice.toFixed(2)}</td>
+                              <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
+                              <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
+                                {c.gapTo2nd > 0 ? `${c.gapTo2nd.toFixed(3)} ETH` : "—"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground py-6">No NFT data yet. Set OPENSEA_API_KEY for curated collection floor prices.</p>
+                  )}
+                </DashboardCard>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
+                <Palette className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <p className="font-medium text-foreground">No Digital Art data</p>
+                <p className="text-sm text-muted-foreground mt-1">Switch to Markets to load data, or set OPENSEA_API_KEY for NFT floor prices.</p>
               </div>
             )}
           </TabsContent>
