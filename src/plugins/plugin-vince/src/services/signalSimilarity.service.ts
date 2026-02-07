@@ -123,7 +123,9 @@ export class VinceSignalSimilarityService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceSignalSimilarityService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceSignalSimilarityService> {
     const service = new VinceSignalSimilarityService(runtime);
     await service.initialize();
     return service;
@@ -145,12 +147,14 @@ export class VinceSignalSimilarityService extends Service {
         const data = JSON.parse(fs.readFileSync(this.statePath, "utf-8"));
         this.contexts = data.contexts || [];
         logger.info(
-          `[SignalSimilarity] Loaded ${this.contexts.length} historical trade contexts`
+          `[SignalSimilarity] Loaded ${this.contexts.length} historical trade contexts`,
         );
       }
 
       this.initialized = true;
-      logger.info("[SignalSimilarity] ✅ Embedding-based similarity initialized");
+      logger.info(
+        "[SignalSimilarity] ✅ Embedding-based similarity initialized",
+      );
     } catch (error) {
       logger.error(`[SignalSimilarity] Initialization error: ${error}`);
     }
@@ -196,7 +200,9 @@ export class VinceSignalSimilarityService extends Service {
     // Add factor summary
     if (signal.factors && signal.factors.length > 0) {
       // Take top 3 factors
-      const topFactors = signal.factors.slice(0, 3).map((f) => f.replace(/[^a-zA-Z0-9\s]/g, ""));
+      const topFactors = signal.factors
+        .slice(0, 3)
+        .map((f) => f.replace(/[^a-zA-Z0-9\s]/g, ""));
       parts.push(`Key factors: ${topFactors.join("; ")}`);
     }
 
@@ -220,7 +226,9 @@ export class VinceSignalSimilarityService extends Service {
         return (result as { embedding: number[] }).embedding;
       }
 
-      logger.debug("[SignalSimilarity] Could not extract embedding from result");
+      logger.debug(
+        "[SignalSimilarity] Could not extract embedding from result",
+      );
       return [];
     } catch (error) {
       logger.debug(`[SignalSimilarity] Embedding error: ${error}`);
@@ -307,7 +315,9 @@ export class VinceSignalSimilarityService extends Service {
       this.contexts = this.contexts.slice(-MAX_STORED_CONTEXTS);
     }
 
-    logger.debug(`[SignalSimilarity] Recorded context for ${params.asset} trade`);
+    logger.debug(
+      `[SignalSimilarity] Recorded context for ${params.asset} trade`,
+    );
     return context.id;
   }
 
@@ -322,7 +332,9 @@ export class VinceSignalSimilarityService extends Service {
   }): Promise<void> {
     const context = this.contexts.find((c) => c.id === params.tradeId);
     if (!context) {
-      logger.debug(`[SignalSimilarity] Context not found for trade ${params.tradeId}`);
+      logger.debug(
+        `[SignalSimilarity] Context not found for trade ${params.tradeId}`,
+      );
       return;
     }
 
@@ -338,7 +350,7 @@ export class VinceSignalSimilarityService extends Service {
     }
 
     logger.debug(
-      `[SignalSimilarity] Recorded outcome for ${context.asset}: ${params.profitable ? "WIN" : "LOSS"}`
+      `[SignalSimilarity] Recorded outcome for ${context.asset}: ${params.profitable ? "WIN" : "LOSS"}`,
     );
   }
 
@@ -360,12 +372,12 @@ export class VinceSignalSimilarityService extends Service {
       (c) =>
         c.outcome !== undefined &&
         c.direction === params.signal.direction &&
-        c.embedding !== undefined
+        c.embedding !== undefined,
     );
 
     if (completedContexts.length < MIN_SAMPLES_FOR_PREDICTION) {
       logger.debug(
-        `[SignalSimilarity] Not enough samples (${completedContexts.length}/${MIN_SAMPLES_FOR_PREDICTION})`
+        `[SignalSimilarity] Not enough samples (${completedContexts.length}/${MIN_SAMPLES_FOR_PREDICTION})`,
       );
       return null;
     }
@@ -385,7 +397,10 @@ export class VinceSignalSimilarityService extends Service {
     for (const context of completedContexts) {
       if (!context.embedding) continue;
 
-      const similarity = this.cosineSimilarity(queryEmbedding, context.embedding);
+      const similarity = this.cosineSimilarity(
+        queryEmbedding,
+        context.embedding,
+      );
 
       if (similarity >= MIN_SIMILARITY_THRESHOLD) {
         similarities.push({ context, similarity });
@@ -400,7 +415,7 @@ export class VinceSignalSimilarityService extends Service {
 
     if (topSimilar.length < MIN_SAMPLES_FOR_PREDICTION) {
       logger.debug(
-        `[SignalSimilarity] Only ${topSimilar.length} similar trades found above threshold`
+        `[SignalSimilarity] Only ${topSimilar.length} similar trades found above threshold`,
       );
       return null;
     }
@@ -430,13 +445,15 @@ export class VinceSignalSimilarityService extends Service {
 
     // Format top similar for display
     const now = Date.now();
-    const topSimilarDisplay = topSimilar.slice(0, 5).map(({ context, similarity }) => ({
-      similarity: Math.round(similarity * 100) / 100,
-      profitable: context.outcome!.profitable,
-      pnlPct: Math.round(context.outcome!.pnlPct * 100) / 100,
-      sources: context.sources.slice(0, 3),
-      age: this.formatAge(now - context.timestamp),
-    }));
+    const topSimilarDisplay = topSimilar
+      .slice(0, 5)
+      .map(({ context, similarity }) => ({
+        similarity: Math.round(similarity * 100) / 100,
+        profitable: context.outcome!.profitable,
+        pnlPct: Math.round(context.outcome!.pnlPct * 100) / 100,
+        sources: context.sources.slice(0, 3),
+        age: this.formatAge(now - context.timestamp),
+      }));
 
     // Generate recommendation
     let recommendation: "proceed" | "caution" | "avoid";
@@ -457,7 +474,7 @@ export class VinceSignalSimilarityService extends Service {
     }
 
     logger.debug(
-      `[SignalSimilarity] Prediction: ${Math.round(winProbability * 100)}% win prob, ${topSimilar.length} similar trades`
+      `[SignalSimilarity] Prediction: ${Math.round(winProbability * 100)}% win prob, ${topSimilar.length} similar trades`,
     );
 
     return {
@@ -483,7 +500,7 @@ export class VinceSignalSimilarityService extends Service {
       (c) =>
         c.outcome !== undefined &&
         c.direction === params.signal.direction &&
-        c.embedding !== undefined
+        c.embedding !== undefined,
     );
 
     if (completedContexts.length < MIN_SAMPLES_FOR_PREDICTION) {
@@ -498,12 +515,15 @@ export class VinceSignalSimilarityService extends Service {
     for (const context of completedContexts) {
       // Jaccard similarity on sources
       const contextSet = new Set(context.sources);
-      const intersection = new Set([...sourceSet].filter((x) => contextSet.has(x)));
+      const intersection = new Set(
+        [...sourceSet].filter((x) => contextSet.has(x)),
+      );
       const union = new Set([...sourceSet, ...contextSet]);
       const jaccardSim = union.size > 0 ? intersection.size / union.size : 0;
 
       // Direction and strength match bonus
-      const strengthDiff = Math.abs(params.signal.strength - context.strength) / 100;
+      const strengthDiff =
+        Math.abs(params.signal.strength - context.strength) / 100;
       const strengthSim = 1 - strengthDiff;
 
       const similarity = (jaccardSim + strengthSim) / 2;
@@ -545,14 +565,18 @@ export class VinceSignalSimilarityService extends Service {
     winRate: number;
   } {
     const completed = this.contexts.filter((c) => c.outcome !== undefined);
-    const withEmbedding = this.contexts.filter((c) => c.embedding !== undefined);
+    const withEmbedding = this.contexts.filter(
+      (c) => c.embedding !== undefined,
+    );
     const wins = completed.filter((c) => c.outcome!.profitable).length;
 
     return {
       totalContexts: this.contexts.length,
       completedContexts: completed.length,
       embeddingCoverage:
-        this.contexts.length > 0 ? withEmbedding.length / this.contexts.length : 0,
+        this.contexts.length > 0
+          ? withEmbedding.length / this.contexts.length
+          : 0,
       winRate: completed.length > 0 ? wins / completed.length : 0,
     };
   }
@@ -573,7 +597,11 @@ export class VinceSignalSimilarityService extends Service {
 
       fs.writeFileSync(
         this.statePath,
-        JSON.stringify({ contexts: contextsForSave, version: "1.0.0" }, null, 2)
+        JSON.stringify(
+          { contexts: contextsForSave, version: "1.0.0" },
+          null,
+          2,
+        ),
       );
       logger.debug("[SignalSimilarity] State saved");
     } catch (error) {
@@ -584,7 +612,10 @@ export class VinceSignalSimilarityService extends Service {
   /**
    * Regenerate embeddings for contexts that don't have them
    */
-  async regenerateEmbeddings(): Promise<{ regenerated: number; failed: number }> {
+  async regenerateEmbeddings(): Promise<{
+    regenerated: number;
+    failed: number;
+  }> {
     let regenerated = 0;
     let failed = 0;
 
@@ -602,7 +633,7 @@ export class VinceSignalSimilarityService extends Service {
 
     await this.saveState();
     logger.info(
-      `[SignalSimilarity] Regenerated ${regenerated} embeddings, ${failed} failed`
+      `[SignalSimilarity] Regenerated ${regenerated} embeddings, ${failed} failed`,
     );
 
     return { regenerated, failed };

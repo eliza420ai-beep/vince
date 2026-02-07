@@ -1,16 +1,16 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 // Predefined avatars available in the public/avatars folder
 const PREDEFINED_AVATARS = [
-  '/avatars/user_joyboy.png',
-  '/avatars/user_krimson.png',
-  '/avatars/user_mati.png',
-  '/avatars/user_pek.png',
+  "/avatars/user_joyboy.png",
+  "/avatars/user_krimson.png",
+  "/avatars/user_mati.png",
+  "/avatars/user_pek.png",
 ] as const;
 
 /**

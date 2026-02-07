@@ -30,7 +30,8 @@ import { AboutModalContent } from "@/frontend/components/about/about-modal-conte
 import { getRandomAvatar } from "@/frontend/lib/utils";
 
 /** Default message server ID the message bus is subscribed to (local messaging). Use this when getCurrentMessageServer() returns null so replies reach the UI. */
-const DEFAULT_MESSAGE_SERVER_ID = "00000000-0000-0000-0000-000000000000" as UUID;
+const DEFAULT_MESSAGE_SERVER_ID =
+  "00000000-0000-0000-0000-000000000000" as UUID;
 
 // Auth migration version - increment this when auth methodology changes
 // to force users to re-authenticate
@@ -192,13 +193,15 @@ function App() {
   const [isLoadingUserProfile, setIsLoadingUserProfile] = useState(true);
   const [isNewChatMode, setIsNewChatMode] = useState(false); // Track if we're in "new chat" mode (no channel yet)
   const [messageServerId, setMessageServerId] = useState<string | null>(null); // Actual message server id from API (backend generates it; required for channel FK)
-  const [selectedAgentId, setSelectedAgentIdState] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem("vince-selected-agent-id");
-    } catch {
-      return null;
-    }
-  });
+  const [selectedAgentId, setSelectedAgentIdState] = useState<string | null>(
+    () => {
+      try {
+        return localStorage.getItem("vince-selected-agent-id");
+      } catch {
+        return null;
+      }
+    },
+  );
   const setSelectedAgentId = useCallback((id: string | null) => {
     setSelectedAgentIdState(id);
     try {
@@ -698,17 +701,24 @@ function App() {
         // STEP 1: Prefer the server's default message server ID so the message bus delivers replies (local-only).
         // If we use a different server (createServer), the message bus may ignore messages (not in subscribedMessageServers).
         let serverIdForQuery: string = userId;
-        const currentServer = await elizaClient.messaging.getCurrentMessageServer();
+        const currentServer =
+          await elizaClient.messaging.getCurrentMessageServer();
         if (currentServer?.messageServerId) {
           serverIdForQuery = currentServer.messageServerId;
           setMessageServerId(currentServer.messageServerId);
-          console.log(" Using server default message server (replies will reach UI):", serverIdForQuery);
+          console.log(
+            " Using server default message server (replies will reach UI):",
+            serverIdForQuery,
+          );
         } else {
           // Use default message server ID so the message bus (subscribed to this ID) processes messages and delivers replies.
           // Creating a user server would use an ID the bus is not subscribed to → "Agent not subscribed to server, ignoring message".
           serverIdForQuery = DEFAULT_MESSAGE_SERVER_ID;
           setMessageServerId(DEFAULT_MESSAGE_SERVER_ID);
-          console.log(" Using default message server (replies will reach UI):", serverIdForQuery);
+          console.log(
+            " Using default message server (replies will reach UI):",
+            serverIdForQuery,
+          );
         }
 
         // STEP 2: Load channels from the message server (use actual server id for FK)
@@ -820,14 +830,17 @@ function App() {
     setIsNewChatMode(false); // Exit new chat mode when selecting existing channel
   };
 
-  const handleAgentSelect = useCallback((id: string) => {
-    if (id === selectedAgentId) return;
-    setSelectedAgentId(id);
-    setChannels([]);
-    setActiveChannelId(null);
-    setIsNewChatMode(true);
-    setIsLoadingChannels(true);
-  }, [selectedAgentId, setSelectedAgentId]);
+  const handleAgentSelect = useCallback(
+    (id: string) => {
+      if (id === selectedAgentId) return;
+      setSelectedAgentId(id);
+      setChannels([]);
+      setActiveChannelId(null);
+      setIsNewChatMode(true);
+      setIsLoadingChannels(true);
+    },
+    [selectedAgentId, setSelectedAgentId],
+  );
 
   // Update user profile (avatar, displayName, bio)
   const updateUserProfile = async (updates: {
@@ -875,12 +888,15 @@ function App() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground uppercase tracking-wider text-sm font-mono">
-            {isWaitingForAgents ? "Waiting for agent to start…" : "Loading agent..."}
+            {isWaitingForAgents
+              ? "Waiting for agent to start…"
+              : "Loading agent..."}
           </p>
           {isWaitingForAgents && (
             <p className="text-xs text-muted-foreground mt-2 font-mono max-w-sm mx-auto">
               Backend may still be starting. If this persists, ensure you ran{" "}
-              <code className="bg-muted px-1 rounded">bun start</code> and use the URL it prints (e.g. :5173).
+              <code className="bg-muted px-1 rounded">bun start</code> and use
+              the URL it prints (e.g. :5173).
             </p>
           )}
         </div>
@@ -896,12 +912,18 @@ function App() {
             No agent available
           </p>
           <p className="text-sm text-muted-foreground mt-2 font-mono">
-            Start the server with an agent: run <code className="bg-muted px-1 rounded">bun start</code> (or{" "}
-            <code className="bg-muted px-1 rounded">bun run start:custom-ui</code>) and open the URL it prints.
+            Start the server with an agent: run{" "}
+            <code className="bg-muted px-1 rounded">bun start</code> (or{" "}
+            <code className="bg-muted px-1 rounded">
+              bun run start:custom-ui
+            </code>
+            ) and open the URL it prints.
           </p>
           <p className="text-xs text-muted-foreground mt-3 font-mono">
-            If the backend is already running, run <code className="bg-muted px-1 rounded">bun run build</code> once so{" "}
-            <code className="bg-muted px-1 rounded">dist/index.js</code> exists, then restart.
+            If the backend is already running, run{" "}
+            <code className="bg-muted px-1 rounded">bun run build</code> once so{" "}
+            <code className="bg-muted px-1 rounded">dist/index.js</code> exists,
+            then restart.
           </p>
         </div>
       </div>
@@ -1097,38 +1119,40 @@ function AppContent({
 
               {/* Content Area */}
               <div className="min-h-0 flex-1 flex flex-col gap-8 md:gap-14 px-3 lg:px-6 pt-10 md:pt-6 ring-2 ring-pop bg-background">
-                {userId && !isLoadingChannels && (activeChannelId || isNewChatMode) ? (
-                    <div className="flex-1 min-h-0">
-                      <ChatInterface
-                        agent={agent}
-                        userId={userId}
-                        serverId={messageServerId ?? DEFAULT_MESSAGE_SERVER_ID}
-                        channelId={activeChannelId}
-                        isNewChatMode={isNewChatMode}
-                        connected={connected}
-                        onChannelCreated={(channelId, channelName) => {
-                          // Add new channel to the list and set it as active
-                          const now = Date.now();
-                          setChannels((prev: Channel[]) => [
-                            {
-                              id: channelId,
-                              name: channelName,
-                              createdAt: now,
-                            },
-                            ...prev,
-                          ]);
-                          setActiveChannelId(channelId);
-                          setIsNewChatMode(false);
-                        }}
-                        onActionCompleted={async () => {
-                          // Refresh wallet data when agent completes an action
-                          console.log(
-                            " Agent action completed - refreshing wallet...",
-                          );
-                          await walletRef.current?.refreshAll();
-                        }}
-                      />
-                    </div>
+                {userId &&
+                !isLoadingChannels &&
+                (activeChannelId || isNewChatMode) ? (
+                  <div className="flex-1 min-h-0">
+                    <ChatInterface
+                      agent={agent}
+                      userId={userId}
+                      serverId={messageServerId ?? DEFAULT_MESSAGE_SERVER_ID}
+                      channelId={activeChannelId}
+                      isNewChatMode={isNewChatMode}
+                      connected={connected}
+                      onChannelCreated={(channelId, channelName) => {
+                        // Add new channel to the list and set it as active
+                        const now = Date.now();
+                        setChannels((prev: Channel[]) => [
+                          {
+                            id: channelId,
+                            name: channelName,
+                            createdAt: now,
+                          },
+                          ...prev,
+                        ]);
+                        setActiveChannelId(channelId);
+                        setIsNewChatMode(false);
+                      }}
+                      onActionCompleted={async () => {
+                        // Refresh wallet data when agent completes an action
+                        console.log(
+                          " Agent action completed - refreshing wallet...",
+                        );
+                        await walletRef.current?.refreshAll();
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-muted-foreground">
                     {!userId ? (

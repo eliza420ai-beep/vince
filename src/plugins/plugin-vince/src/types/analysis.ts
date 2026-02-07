@@ -1,6 +1,6 @@
 /**
  * VINCE Bull/Bear Analysis Types
- * 
+ *
  * Type definitions for the daily market analysis system.
  * Supports building bull and bear cases from multiple data sources
  * and generating a final conclusion with conviction score.
@@ -10,7 +10,7 @@
 // Data Source Indicators
 // ==========================================
 
-export type DataSource = 
+export type DataSource =
   | "coinglass"
   | "deribit"
   | "sanbase"
@@ -57,25 +57,25 @@ export type IndicatorType =
 export interface CaseFactor {
   /** Source of this data point */
   source: DataSource;
-  
+
   /** Type of indicator */
   indicator: IndicatorType;
-  
+
   /** Human-readable value (e.g., "-0.015%", "Extreme Fear") */
   value: string;
-  
+
   /** Raw numeric value for calculations */
   rawValue: number;
-  
+
   /** Weight of this factor (0-100) */
   weight: number;
-  
+
   /** Explanation of why this is bullish/bearish */
   explanation: string;
-  
+
   /** Confidence in this signal (0-100) */
   confidence: number;
-  
+
   /** When this data was collected */
   timestamp: number;
 }
@@ -90,22 +90,22 @@ export interface CaseFactor {
 export interface MarketCase {
   /** Type of case */
   type: "bull" | "bear";
-  
+
   /** Overall strength of the case (0-100) */
   strength: number;
-  
+
   /** Number of supporting factors */
   factorCount: number;
-  
+
   /** All factors supporting this case */
   factors: CaseFactor[];
-  
+
   /** Top 3 most important factors */
   keyFactors: CaseFactor[];
-  
+
   /** Generated narrative explaining the case */
   narrative: string;
-  
+
   /** When this case was generated */
   timestamp: number;
 }
@@ -116,7 +116,7 @@ export interface MarketCase {
 
 export type MarketDirection = "bullish" | "bearish" | "neutral";
 
-export type RecommendedAction = 
+export type RecommendedAction =
   | "accumulate"
   | "hold"
   | "reduce"
@@ -129,34 +129,34 @@ export type RecommendedAction =
 export interface DailyConclusion {
   /** Date of analysis (YYYY-MM-DD) */
   date: string;
-  
+
   /** Asset being analyzed */
   asset: string;
-  
+
   /** The bull case */
   bullCase: MarketCase;
-  
+
   /** The bear case */
   bearCase: MarketCase;
-  
+
   /** Net direction based on case comparison */
   direction: MarketDirection;
-  
+
   /** Conviction level (0-100) */
   conviction: number;
-  
+
   /** Key factors driving the conclusion */
   keyFactors: string[];
-  
+
   /** Recommended action */
   recommendation: RecommendedAction;
-  
+
   /** Human-readable recommendation text */
   recommendationText: string;
-  
+
   /** Full narrative summary */
   summary: string;
-  
+
   /** Generation timestamp */
   timestamp: number;
 }
@@ -171,40 +171,40 @@ export interface DailyConclusion {
 export interface MarketDataSnapshot {
   asset: string;
   timestamp: number;
-  
+
   // CoinGlass
   fundingRate: number | null;
   longShortRatio: number | null;
   fearGreedValue: number | null;
   fearGreedLabel: string | null;
   openInterestChange: number | null;
-  
+
   // Deribit
   spotPrice: number | null;
   dvol: number | null;
   ivSkew: number | null;
   skewInterpretation: "fearful" | "neutral" | "bullish" | null;
-  
+
   // Sanbase
   exchangeNetFlow: number | null;
   exchangeSentiment: "accumulation" | "neutral" | "distribution" | null;
   networkTrend: "increasing" | "stable" | "decreasing" | null;
   whaleSentiment: "bullish" | "neutral" | "bearish" | null;
-  
+
   // Nansen
   smartMoneyNetFlow: number | null;
   isSmartMoneyAccumulating: boolean | null;
   smartMoneyConfidence: "high" | "medium" | "low" | null;
-  
+
   // TopTraders
   whaleDirection: "long" | "short" | "neutral" | null;
   whaleStrength: number | null;
-  
+
   // News
   newsSentiment: "bullish" | "neutral" | "bearish" | null;
   newsConfidence: number | null;
   hasRiskEvents: boolean;
-  
+
   // Price
   priceChange24h: number | null;
 }
@@ -230,13 +230,13 @@ export interface AnalysisWeights {
  * Default weights (sum to 100)
  */
 export const DEFAULT_ANALYSIS_WEIGHTS: AnalysisWeights = {
-  coinglass: 20,      // Funding, L/S, sentiment
-  deribit: 15,        // Options, IV
-  sanbase: 15,        // On-chain flows
-  nansen: 15,         // Smart money
-  topTraders: 15,     // Whale positioning
-  newsSentiment: 10,  // News
-  priceAction: 10,    // Price momentum
+  coinglass: 20, // Funding, L/S, sentiment
+  deribit: 15, // Options, IV
+  sanbase: 15, // On-chain flows
+  nansen: 15, // Smart money
+  topTraders: 15, // Whale positioning
+  newsSentiment: 10, // News
+  priceAction: 10, // Price momentum
 };
 
 /**
@@ -244,24 +244,24 @@ export const DEFAULT_ANALYSIS_WEIGHTS: AnalysisWeights = {
  */
 export interface SignalThresholds {
   // CoinGlass
-  fundingBullish: number;      // Below this = bullish (shorts paying)
-  fundingBearish: number;      // Above this = bearish (longs paying)
-  longShortBullish: number;    // Below this = bullish (shorts crowded)
-  longShortBearish: number;    // Above this = bearish (longs crowded)
-  fearGreedBullish: number;    // Below this = bullish (extreme fear)
-  fearGreedBearish: number;    // Above this = bearish (extreme greed)
-  
+  fundingBullish: number; // Below this = bullish (shorts paying)
+  fundingBearish: number; // Above this = bearish (longs paying)
+  longShortBullish: number; // Below this = bullish (shorts crowded)
+  longShortBearish: number; // Above this = bearish (longs crowded)
+  fearGreedBullish: number; // Below this = bullish (extreme fear)
+  fearGreedBearish: number; // Above this = bearish (extreme greed)
+
   // Deribit
-  skewBullish: number;         // Below this = bullish (call demand)
-  skewBearish: number;         // Above this = bearish (put demand)
-  
+  skewBullish: number; // Below this = bullish (call demand)
+  skewBearish: number; // Above this = bearish (put demand)
+
   // Sanbase
   exchangeFlowBullish: number; // Below this = bullish (outflows)
   exchangeFlowBearish: number; // Above this = bearish (inflows)
-  
+
   // Price
-  momentumBullish: number;     // Above this = bullish momentum
-  momentumBearish: number;     // Below this = bearish momentum
+  momentumBullish: number; // Above this = bullish momentum
+  momentumBearish: number; // Below this = bearish momentum
 }
 
 export const DEFAULT_THRESHOLDS: SignalThresholds = {
@@ -289,19 +289,19 @@ export const DEFAULT_THRESHOLDS: SignalThresholds = {
 export interface AnalysisResult {
   /** The data snapshot used */
   snapshot: MarketDataSnapshot;
-  
+
   /** The generated conclusion */
   conclusion: DailyConclusion;
-  
+
   /** Services that were available */
   availableServices: DataSource[];
-  
+
   /** Services that failed */
   failedServices: DataSource[];
-  
+
   /** Total data quality score (0-100) */
   dataQualityScore: number;
-  
+
   /** Generation time in ms */
   generationTimeMs: number;
 }

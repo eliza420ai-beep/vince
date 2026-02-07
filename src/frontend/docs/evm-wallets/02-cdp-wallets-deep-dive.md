@@ -79,50 +79,52 @@ export CDP_WALLET_SECRET="..."
 
 ### Account Types
 
-| Type | When to Use | Gas Sponsorship |
-|------|-------------|-----------------|
-| **EOA** | Standard operations, lower gas | ❌ No |
-| **Smart Account** | Agents, automation, sponsored gas | ✅ Yes |
+| Type              | When to Use                       | Gas Sponsorship |
+| ----------------- | --------------------------------- | --------------- |
+| **EOA**           | Standard operations, lower gas    | ❌ No           |
+| **Smart Account** | Agents, automation, sponsored gas | ✅ Yes          |
 
 ### Code Example
 
 ```typescript
-import { CdpClient } from "@coinbase/cdp-sdk"
+import { CdpClient } from "@coinbase/cdp-sdk";
 
-const cdp = new CdpClient()
+const cdp = new CdpClient();
 
 // EOA - traditional account
-const eoaAccount = await cdp.evm.createAccount()
+const eoaAccount = await cdp.evm.createAccount();
 
 // Smart Account - for gas sponsorship
-const owner = await cdp.evm.getOrCreateAccount({ name: "Owner" })
+const owner = await cdp.evm.getOrCreateAccount({ name: "Owner" });
 const smartAccount = await cdp.evm.getOrCreateSmartAccount({
   name: "MyAgent",
-  owner
-})
+  owner,
+});
 
 // Send with gas sponsorship
 const { userOpHash } = await cdp.evm.sendUserOperation({
   smartAccount,
   network: "base",
-  calls: [{
-    to: "0x...",
-    value: parseEther("0.1"),
-    data: "0x",
-  }],
+  calls: [
+    {
+      to: "0x...",
+      value: parseEther("0.1"),
+      data: "0x",
+    },
+  ],
   paymasterUrl: PAYMASTER_URL, // Optional on Base Sepolia
-})
+});
 ```
 
 ### Use Cases
 
-| Use Case | Why Server Wallets |
-|----------|-------------------|
-| AI Agents | No user confirmation needed |
-| Automated Trading | Sub-200ms signing, 225+ TPS on Solana |
-| Treasury Management | Policy engine controls |
-| Backend Operations | Programmatic at scale |
-| AgentKit Integration | Built for autonomous agents |
+| Use Case             | Why Server Wallets                    |
+| -------------------- | ------------------------------------- |
+| AI Agents            | No user confirmation needed           |
+| Automated Trading    | Sub-200ms signing, 225+ TPS on Solana |
+| Treasury Management  | Policy engine controls                |
+| Backend Operations   | Programmatic at scale                 |
+| AgentKit Integration | Built for autonomous agents           |
 
 ### Policy Engine
 
@@ -154,6 +156,7 @@ const { userOpHash } = await cdp.evm.sendUserOperation({
 ```
 
 **Available Policies:**
+
 - Recipient allowlist/denylist
 - Transfer amount limits (min/max)
 - USD spend limits
@@ -187,12 +190,12 @@ User Device
 
 ### Authentication Options
 
-| Method | UX | Security |
-|--------|-----|----------|
-| Email + OTP | Familiar | SMS-level |
-| SMS + OTP | Familiar | SMS-level |
+| Method                | UX        | Security    |
+| --------------------- | --------- | ----------- |
+| Email + OTP           | Familiar  | SMS-level   |
+| SMS + OTP             | Familiar  | SMS-level   |
 | OAuth (Google, Apple) | One-click | OAuth-level |
-| Passkeys | Biometric | Highest |
+| Passkeys              | Biometric | Highest     |
 
 ### Account Types
 
@@ -200,14 +203,14 @@ User Device
 const cdpConfig = {
   projectId: "your-project-id",
   ethereum: {
-    createOnLogin: "eoa"    // or "smart"
-  }
-}
+    createOnLogin: "eoa", // or "smart"
+  },
+};
 ```
 
-| Type | Features |
-|------|----------|
-| **EOA** | Simple, lower gas, user needs ETH |
+| Type              | Features                                 |
+| ----------------- | ---------------------------------------- |
+| **EOA**           | Simple, lower gas, user needs ETH        |
 | **Smart Account** | Gas sponsorship, batch ops, session keys |
 
 ### React Integration
@@ -261,38 +264,38 @@ function SendTx() {
 
 ### Use Cases
 
-| Use Case | Why Embedded Wallets |
-|----------|---------------------|
-| Consumer Apps | Web2 onboarding (email/social) |
-| Agent UI | Each user has self-custody wallet |
-| Gaming | Instant wallet on signup |
-| NFT Apps | No seed phrases, passkey auth |
-| Payments | Built-in onramp, USDC rewards |
+| Use Case      | Why Embedded Wallets              |
+| ------------- | --------------------------------- |
+| Consumer Apps | Web2 onboarding (email/social)    |
+| Agent UI      | Each user has self-custody wallet |
+| Gaming        | Instant wallet on signup          |
+| NFT Apps      | No seed phrases, passkey auth     |
+| Payments      | Built-in onramp, USDC rewards     |
 
 ---
 
 ## Key Differences
 
-| Feature | Server Wallets | Embedded Wallets |
-|---------|---------------|------------------|
-| **Control** | Developer | User (after auth) |
-| **Auth** | API credentials | Email/OAuth/Passkey |
-| **User confirmation** | Never | None (after session) |
-| **Policy Engine** | ✅ Full | ❌ Coming soon |
-| **Multi-device** | N/A | ✅ Up to 5 devices |
-| **React SDK** | ❌ | ✅ Full |
-| **Origin-bound** | ❌ | ✅ Yes |
-| **Wagmi support** | Via viem | ✅ Native |
-| **AgentKit** | ✅ Native | ❌ |
+| Feature               | Server Wallets  | Embedded Wallets     |
+| --------------------- | --------------- | -------------------- |
+| **Control**           | Developer       | User (after auth)    |
+| **Auth**              | API credentials | Email/OAuth/Passkey  |
+| **User confirmation** | Never           | None (after session) |
+| **Policy Engine**     | ✅ Full         | ❌ Coming soon       |
+| **Multi-device**      | N/A             | ✅ Up to 5 devices   |
+| **React SDK**         | ❌              | ✅ Full              |
+| **Origin-bound**      | ❌              | ✅ Yes               |
+| **Wagmi support**     | Via viem        | ✅ Native            |
+| **AgentKit**          | ✅ Native       | ❌                   |
 
 ---
 
 ## Pricing (Same for Both)
 
-| Tier | Cost |
-|------|------|
-| Free | 5,000 operations/month |
-| Pay-as-you-go | $0.005/operation |
+| Tier          | Cost                   |
+| ------------- | ---------------------- |
+| Free          | 5,000 operations/month |
+| Pay-as-you-go | $0.005/operation       |
 
 **Operations:** wallet creation, signing, broadcasting, policy evaluation
 **Free:** all read operations
@@ -301,21 +304,23 @@ function SendTx() {
 
 ## Performance (Same for Both)
 
-| Metric | Performance |
-|--------|-------------|
-| Wallet creation | < 500ms |
-| Signing latency | < 200ms |
-| Solana TPS | 225+ |
-| Availability | 99.99% |
+| Metric          | Performance |
+| --------------- | ----------- |
+| Wallet creation | < 500ms     |
+| Signing latency | < 200ms     |
+| Solana TPS      | 225+        |
+| Availability    | 99.99%      |
 
 ---
 
 ## Supported Chains (Same for Both)
 
 ### EVM Networks (Smart Account + EOA)
+
 - Base, Ethereum L1, Arbitrum, Optimism, Polygon, Avalanche, BNB, Zora
 
 ### Solana (EOA only)
+
 - Mainnet, Devnet
 
 ---
@@ -324,22 +329,22 @@ function SendTx() {
 
 ### Server Wallets
 
-| Limitation | Impact |
-|-----------|--------|
-| Rate limit: 500 writes/10s | Implement queuing |
-| Wallets not visible in Portal | No UI management (coming) |
-| Python requires 3.10+ | Upgrade runtime |
-| ESM-only package | Use `moduleResolution: "node16"` |
+| Limitation                    | Impact                           |
+| ----------------------------- | -------------------------------- |
+| Rate limit: 500 writes/10s    | Implement queuing                |
+| Wallets not visible in Portal | No UI management (coming)        |
+| Python requires 3.10+         | Upgrade runtime                  |
+| ESM-only package              | Use `moduleResolution: "node16"` |
 
 ### Embedded Wallets
 
-| Limitation | Impact |
-|-----------|--------|
-| **Origin-bound** | Plan domain strategy early |
-| 5 device limit | Educate users |
-| No Policy Engine yet | Use Paymaster allowlists |
+| Limitation                      | Impact                     |
+| ------------------------------- | -------------------------- |
+| **Origin-bound**                | Plan domain strategy early |
+| 5 device limit                  | Educate users              |
+| No Policy Engine yet            | Use Paymaster allowlists   |
 | Can't connect to external dApps | Not a MetaMask replacement |
-| Passkey loss = funds lost | Recovery signer coming |
+| Passkey loss = funds lost       | Recovery signer coming     |
 
 ---
 
@@ -418,24 +423,24 @@ npm create cdp-app@latest
 
 ## Resources
 
-| Resource | URL |
-|----------|-----|
-| Server Wallets Docs | https://docs.cdp.coinbase.com/server-wallets/v2/introduction/welcome |
-| Embedded Wallets Docs | https://docs.cdp.coinbase.com/embedded-wallets/welcome |
-| AgentKit | https://docs.cdp.coinbase.com/agent-kit/welcome |
-| CDP Portal | https://portal.cdp.coinbase.com |
-| Status Page | https://cdpstatus.coinbase.com |
-| Discord | https://discord.gg/coinbasedev |
+| Resource              | URL                                                                  |
+| --------------------- | -------------------------------------------------------------------- |
+| Server Wallets Docs   | https://docs.cdp.coinbase.com/server-wallets/v2/introduction/welcome |
+| Embedded Wallets Docs | https://docs.cdp.coinbase.com/embedded-wallets/welcome               |
+| AgentKit              | https://docs.cdp.coinbase.com/agent-kit/welcome                      |
+| CDP Portal            | https://portal.cdp.coinbase.com                                      |
+| Status Page           | https://cdpstatus.coinbase.com                                       |
+| Discord               | https://discord.gg/coinbasedev                                       |
 
 ---
 
 ## Bottom Line
 
-| Question | Answer |
-|----------|--------|
-| Who controls signing? | Server: You / Embedded: User (after auth) |
+| Question                | Answer                                    |
+| ----------------------- | ----------------------------------------- |
+| Who controls signing?   | Server: You / Embedded: User (after auth) |
 | Need user confirmation? | Server: No / Embedded: No (after session) |
 | Can connect to Uniswap? | Server: N/A / Embedded: No (origin-bound) |
-| Can sponsor gas? | Both: Yes (Smart Account only) |
-| Best for agents? | Server: Yes / Embedded: For agent UI |
-| Best for consumers? | Server: No / Embedded: Yes |
+| Can sponsor gas?        | Both: Yes (Smart Account only)            |
+| Best for agents?        | Server: Yes / Embedded: For agent UI      |
+| Best for consumers?     | Server: No / Embedded: Yes                |

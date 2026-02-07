@@ -10,7 +10,11 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { NFTCollection, CuratedCollection, IOpenSeaService } from "../types/index";
+import type {
+  NFTCollection,
+  CuratedCollection,
+  IOpenSeaService,
+} from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { getOrCreateOpenSeaService } from "./fallbacks";
 import { isVinceAgent } from "../utils/dashboard";
@@ -21,20 +25,70 @@ const MIN_GAP_TO_2ND_ETH = 0.21; // Dashboard only shows collections with gap to
 // Curated collections - Bluechips, Art Blocks, XCOPY, Photography
 const CURATED_COLLECTIONS: CuratedCollection[] = [
   // Tier 1 Bluechips
-  { slug: "cryptopunks", name: "CryptoPunks", category: "blue_chip", priority: 1 },
-  { slug: "official-v1-punks", name: "V1 Punks", category: "blue_chip", priority: 2 },
+  {
+    slug: "cryptopunks",
+    name: "CryptoPunks",
+    category: "blue_chip",
+    priority: 1,
+  },
+  {
+    slug: "official-v1-punks",
+    name: "V1 Punks",
+    category: "blue_chip",
+    priority: 2,
+  },
   { slug: "meebits", name: "Meebits", category: "blue_chip", priority: 4 },
-  { slug: "beeple-everydays", name: "Beeple Everydays", category: "blue_chip", priority: 5 },
-  { slug: "terraforms", name: "Terraforms", category: "blue_chip", priority: 11 },
+  {
+    slug: "beeple-everydays",
+    name: "Beeple Everydays",
+    category: "blue_chip",
+    priority: 5,
+  },
+  {
+    slug: "terraforms",
+    name: "Terraforms",
+    category: "blue_chip",
+    priority: 11,
+  },
   // Art Blocks Curated
-  { slug: "chromie-squiggle-by-snowfro", name: "Chromie Squiggle", category: "generative", priority: 12 },
-  { slug: "ringers-by-dmitri-cherniak", name: "Ringers", category: "generative", priority: 13 },
-  { slug: "fidenza-by-tyler-hobbs", name: "Fidenza", category: "generative", priority: 14 },
-  { slug: "meridian-by-matt-deslauriers", name: "Meridian", category: "generative", priority: 15 },
+  {
+    slug: "chromie-squiggle-by-snowfro",
+    name: "Chromie Squiggle",
+    category: "generative",
+    priority: 12,
+  },
+  {
+    slug: "ringers-by-dmitri-cherniak",
+    name: "Ringers",
+    category: "generative",
+    priority: 13,
+  },
+  {
+    slug: "fidenza-by-tyler-hobbs",
+    name: "Fidenza",
+    category: "generative",
+    priority: 14,
+  },
+  {
+    slug: "meridian-by-matt-deslauriers",
+    name: "Meridian",
+    category: "generative",
+    priority: 15,
+  },
   // XCOPY
-  { slug: "xcopy-editions", name: "XCOPY Editions", category: "blue_chip", priority: 16 },
+  {
+    slug: "xcopy-editions",
+    name: "XCOPY Editions",
+    category: "blue_chip",
+    priority: 16,
+  },
   // Photography
-  { slug: "drive-dave-krugman", name: "DRIVE", category: "photography", priority: 21 },
+  {
+    slug: "drive-dave-krugman",
+    name: "DRIVE",
+    category: "photography",
+    priority: 21,
+  },
 ];
 
 export class VinceNFTFloorService extends Service {
@@ -70,7 +124,9 @@ export class VinceNFTFloorService extends Service {
    */
   private printDashboardWithData(): void {
     const floors = this.getAllFloors();
-    const thinOnly = floors.filter(c => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH);
+    const thinOnly = floors.filter(
+      (c) => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH,
+    );
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD");
     logEmpty();
@@ -94,7 +150,9 @@ export class VinceNFTFloorService extends Service {
     logEmpty();
     for (const nft of thinOnly) {
       const gap = (nft.gaps?.to2nd ?? 0).toFixed(2);
-      logLine(`   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`);
+      logLine(
+        `   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`,
+      );
     }
     logEmpty();
     const tldr = this.getTLDR();
@@ -111,31 +169,31 @@ export class VinceNFTFloorService extends Service {
     if (floors.length === 0) {
       return "NFT: No data yet - refresh to load floors";
     }
-    
+
     // Check for top movers
     const movers = this.getTopMovers();
-    const bigMover = movers.find(m => Math.abs(m.floorPriceChange24h) > 5);
+    const bigMover = movers.find((m) => Math.abs(m.floorPriceChange24h) > 5);
     if (bigMover) {
       const dir = bigMover.floorPriceChange24h > 0 ? "UP" : "DOWN";
       const pct = Math.abs(bigMover.floorPriceChange24h).toFixed(1);
       return `${bigMover.name} ${dir} ${pct}% - ${dir === "UP" ? "momentum" : "watch floor"}`;
     }
-    
+
     // Check for thin floors (risk)
     const thinFloors = this.getThinFloors();
     if (thinFloors.length > 0) {
       return `THIN FLOOR: ${thinFloors[0].name} - gap down risk if sold`;
     }
-    
+
     // Check bluechips
     const bluechips = this.getBlueChips();
     if (bluechips.length > 0) {
-      const punks = bluechips.find(b => b.slug === "cryptopunks");
+      const punks = bluechips.find((b) => b.slug === "cryptopunks");
       if (punks) {
         return `PUNKS: ${punks.floorPrice.toFixed(1)} ETH, ${punks.floorThickness} floor`;
       }
     }
-    
+
     // Default
     return "NFT: Stable floors across curated collections";
   }
@@ -146,7 +204,9 @@ export class VinceNFTFloorService extends Service {
   async printLiveDashboard(): Promise<void> {
     await this.refreshData();
     const floors = this.getAllFloors();
-    const thinOnly = floors.filter(c => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH);
+    const thinOnly = floors.filter(
+      (c) => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH,
+    );
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD (LIVE)");
     logEmpty();
@@ -161,8 +221,14 @@ export class VinceNFTFloorService extends Service {
       logLine("No thin floors (gap to 2nd listing > 0.21 ETH) right now.");
       logEmpty();
       const tldr = this.getTLDR();
-      const tldrEmoji = tldr.includes("UP") || tldr.includes("momentum") ? "💡" :
-                        tldr.includes("DOWN") || tldr.includes("THIN") || tldr.includes("risk") ? "⚠️" : "📋";
+      const tldrEmoji =
+        tldr.includes("UP") || tldr.includes("momentum")
+          ? "💡"
+          : tldr.includes("DOWN") ||
+              tldr.includes("THIN") ||
+              tldr.includes("risk")
+            ? "⚠️"
+            : "📋";
       logLine(`${tldrEmoji} ${tldr}`);
       endBox();
       return;
@@ -171,12 +237,20 @@ export class VinceNFTFloorService extends Service {
     logEmpty();
     for (const nft of thinOnly) {
       const gap = (nft.gaps?.to2nd ?? 0).toFixed(2);
-      logLine(`   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`);
+      logLine(
+        `   ${nft.name.padEnd(20)} ${nft.floorPrice.toFixed(2)} ETH    gap to 2nd: ${gap} ETH`,
+      );
     }
     logEmpty();
     const tldr = this.getTLDR();
-    const tldrEmoji = tldr.includes("UP") || tldr.includes("momentum") ? "💡" :
-                      tldr.includes("DOWN") || tldr.includes("THIN") || tldr.includes("risk") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("UP") || tldr.includes("momentum")
+        ? "💡"
+        : tldr.includes("DOWN") ||
+            tldr.includes("THIN") ||
+            tldr.includes("risk")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
   }
@@ -197,15 +271,19 @@ export class VinceNFTFloorService extends Service {
    */
   private ensureInitialized(): boolean {
     if (this.initialized) return true;
-    
+
     const opensea = this.getOpenSeaService();
     if (!opensea) {
       logger.warn("[VinceNFTFloor] OpenSeaService not available yet");
       return false;
     }
-    
-    logger.info("[VinceNFTFloor] ✅ Connected to OpenSeaService from plugin-nft-collections");
-    logger.info(`[VinceNFTFloor] Tracking ${CURATED_COLLECTIONS.length} curated collections`);
+
+    logger.info(
+      "[VinceNFTFloor] ✅ Connected to OpenSeaService from plugin-nft-collections",
+    );
+    logger.info(
+      `[VinceNFTFloor] Tracking ${CURATED_COLLECTIONS.length} curated collections`,
+    );
     this.initialized = true;
     return true;
   }
@@ -213,32 +291,42 @@ export class VinceNFTFloorService extends Service {
   async refreshData(): Promise<void> {
     // Lazy initialization on first use
     if (!this.ensureInitialized()) {
-      logger.warn("[VinceNFTFloor] Cannot refresh - waiting for OpenSeaService to become available");
+      logger.warn(
+        "[VinceNFTFloor] Cannot refresh - waiting for OpenSeaService to become available",
+      );
       return;
     }
 
     const now = Date.now();
     if (now - this.lastUpdate < CACHE_TTL_MS) {
-      logger.debug(`[VinceNFTFloor] Using cached data (${Math.round((now - this.lastUpdate) / 1000)}s old)`);
+      logger.debug(
+        `[VinceNFTFloor] Using cached data (${Math.round((now - this.lastUpdate) / 1000)}s old)`,
+      );
       return;
     }
 
     const opensea = this.getOpenSeaService();
     if (!opensea) {
-      logger.warn("[VinceNFTFloor] Cannot refresh - OpenSeaService not available");
+      logger.warn(
+        "[VinceNFTFloor] Cannot refresh - OpenSeaService not available",
+      );
       return;
     }
 
-    logger.info(`[VinceNFTFloor] Refreshing ${CURATED_COLLECTIONS.length} collections via OpenSeaService...`);
+    logger.info(
+      `[VinceNFTFloor] Refreshing ${CURATED_COLLECTIONS.length} collections via OpenSeaService...`,
+    );
 
     for (const collection of CURATED_COLLECTIONS) {
       try {
         await this.fetchCollectionFloor(opensea, collection);
         // Rate limit: wait between requests
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
-        logger.warn(`[VinceNFTFloor] Error fetching ${collection.slug}: ${errorMsg}`);
+        logger.warn(
+          `[VinceNFTFloor] Error fetching ${collection.slug}: ${errorMsg}`,
+        );
       }
     }
 
@@ -246,31 +334,43 @@ export class VinceNFTFloorService extends Service {
     if (this.floorCache.size > 0) {
       logger.info(`[VinceNFTFloor] Cached ${this.floorCache.size} collections`);
     } else {
-      logger.debug("[VinceNFTFloor] No collections cached (set OPENSEA_API_KEY for NFT floor data)");
+      logger.debug(
+        "[VinceNFTFloor] No collections cached (set OPENSEA_API_KEY for NFT floor data)",
+      );
     }
   }
 
-  private async fetchCollectionFloor(opensea: IOpenSeaService, collection: CuratedCollection): Promise<void> {
+  private async fetchCollectionFloor(
+    opensea: IOpenSeaService,
+    collection: CuratedCollection,
+  ): Promise<void> {
     try {
       // Use analyzeFloorOpportunities() for REAL floor thickness with actual listing gaps
-      const analysis = await opensea.analyzeFloorOpportunities(collection.slug, {
-        maxListings: 20, // Fetch enough listings to calculate gaps
-      });
-      
+      const analysis = await opensea.analyzeFloorOpportunities(
+        collection.slug,
+        {
+          maxListings: 20, // Fetch enough listings to calculate gaps
+        },
+      );
+
       if (!analysis) {
-        logger.warn(`[VinceNFTFloor] No analysis returned for ${collection.slug}`);
+        logger.warn(
+          `[VinceNFTFloor] No analysis returned for ${collection.slug}`,
+        );
         return;
       }
-      
+
       // Check for empty data (expected when OpenSea API key is missing / 401)
       if (analysis.floorPrice === 0) {
-        logger.debug(`[VinceNFTFloor] No floor data for ${collection.slug} (OpenSea key may be unset)`);
+        logger.debug(
+          `[VinceNFTFloor] No floor data for ${collection.slug} (OpenSea key may be unset)`,
+        );
         return;
       }
-      
+
       // Extract real floor thickness data
       const thickness = analysis.floorThickness;
-      
+
       // Map description to our simplified type
       const desc = thickness.description.toLowerCase();
       let thicknessType: NFTCollection["floorThickness"] = "medium";
@@ -279,7 +379,7 @@ export class VinceNFTFloorService extends Service {
       } else if (desc.includes("thick")) {
         thicknessType = "thick";
       }
-      
+
       const nftCollection: NFTCollection = {
         slug: collection.slug,
         name: collection.name,
@@ -304,12 +404,15 @@ export class VinceNFTFloorService extends Service {
 
       // Only log collections worth displaying: gap to 2nd listing > 0.21 ETH
       if (thickness.gaps.to2nd > MIN_GAP_TO_2ND_ETH) {
-        logger.info(`[VinceNFTFloor] ✅ ${collection.slug}: ${analysis.floorPrice.toFixed(2)} ETH | ${thickness.description} (score: ${thickness.score}) | Gap to 2nd: ${thickness.gaps.to2nd.toFixed(3)} ETH`);
+        logger.info(
+          `[VinceNFTFloor] ✅ ${collection.slug}: ${analysis.floorPrice.toFixed(2)} ETH | ${thickness.description} (score: ${thickness.score}) | Gap to 2nd: ${thickness.gaps.to2nd.toFixed(3)} ETH`,
+        );
       }
-      
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.warn(`[VinceNFTFloor] Failed to fetch ${collection.slug}: ${errorMsg}`);
+      logger.warn(
+        `[VinceNFTFloor] Failed to fetch ${collection.slug}: ${errorMsg}`,
+      );
     }
   }
 
@@ -333,50 +436,54 @@ export class VinceNFTFloorService extends Service {
   }
 
   getAllFloors(): NFTCollection[] {
-    return Array.from(this.floorCache.values())
-      .sort((a, b) => {
-        // Sort by priority from curated list
-        const aPriority = CURATED_COLLECTIONS.find(c => c.slug === a.slug)?.priority || 99;
-        const bPriority = CURATED_COLLECTIONS.find(c => c.slug === b.slug)?.priority || 99;
-        return aPriority - bPriority;
-      });
+    return Array.from(this.floorCache.values()).sort((a, b) => {
+      // Sort by priority from curated list
+      const aPriority =
+        CURATED_COLLECTIONS.find((c) => c.slug === a.slug)?.priority || 99;
+      const bPriority =
+        CURATED_COLLECTIONS.find((c) => c.slug === b.slug)?.priority || 99;
+      return aPriority - bPriority;
+    });
   }
 
   getBlueChips(): NFTCollection[] {
-    const bluechipSlugs = CURATED_COLLECTIONS
-      .filter(c => c.category === "blue_chip")
-      .map(c => c.slug);
-    
-    return this.getAllFloors().filter(c => bluechipSlugs.includes(c.slug));
+    const bluechipSlugs = CURATED_COLLECTIONS.filter(
+      (c) => c.category === "blue_chip",
+    ).map((c) => c.slug);
+
+    return this.getAllFloors().filter((c) => bluechipSlugs.includes(c.slug));
   }
 
   getGenerativeArt(): NFTCollection[] {
-    const artSlugs = CURATED_COLLECTIONS
-      .filter(c => c.category === "generative")
-      .map(c => c.slug);
-    
-    return this.getAllFloors().filter(c => artSlugs.includes(c.slug));
+    const artSlugs = CURATED_COLLECTIONS.filter(
+      (c) => c.category === "generative",
+    ).map((c) => c.slug);
+
+    return this.getAllFloors().filter((c) => artSlugs.includes(c.slug));
   }
 
   getPhotography(): NFTCollection[] {
-    const photoSlugs = CURATED_COLLECTIONS
-      .filter(c => c.category === "photography")
-      .map(c => c.slug);
-    
-    return this.getAllFloors().filter(c => photoSlugs.includes(c.slug));
+    const photoSlugs = CURATED_COLLECTIONS.filter(
+      (c) => c.category === "photography",
+    ).map((c) => c.slug);
+
+    return this.getAllFloors().filter((c) => photoSlugs.includes(c.slug));
   }
 
   getThinFloors(): NFTCollection[] {
-    return this.getAllFloors().filter(c => c.floorThickness === "thin");
+    return this.getAllFloors().filter((c) => c.floorThickness === "thin");
   }
 
   getThickFloors(): NFTCollection[] {
-    return this.getAllFloors().filter(c => c.floorThickness === "thick");
+    return this.getAllFloors().filter((c) => c.floorThickness === "thick");
   }
 
   getTopMovers(): NFTCollection[] {
     return this.getAllFloors()
-      .sort((a, b) => Math.abs(b.floorPriceChange24h) - Math.abs(a.floorPriceChange24h))
+      .sort(
+        (a, b) =>
+          Math.abs(b.floorPriceChange24h) - Math.abs(a.floorPriceChange24h),
+      )
       .slice(0, 5);
   }
 }

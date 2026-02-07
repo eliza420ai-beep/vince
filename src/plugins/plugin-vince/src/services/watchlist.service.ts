@@ -21,13 +21,13 @@ export interface WatchlistToken {
   symbol: string;
   chain: "solana" | "base" | "hyperliquid" | "ethereum";
   address: string;
-  entryTarget?: number;      // Market cap target for entry
-  stopLoss?: number;         // Market cap for stop loss
-  takeProfit?: number;       // Market cap for take profit
+  entryTarget?: number; // Market cap target for entry
+  stopLoss?: number; // Market cap for stop loss
+  takeProfit?: number; // Market cap for take profit
   notes?: string;
   addedDate: string;
   priority: "high" | "medium" | "low";
-  source?: string;           // Where this token was found
+  source?: string; // Where this token was found
 }
 
 export interface WatchlistData {
@@ -42,7 +42,7 @@ export interface WatchlistStatus {
   tokenCount: number;
   highPriorityCount: number;
   lastUpdated: string;
-  isStale: boolean;          // True if not updated in 7+ days
+  isStale: boolean; // True if not updated in 7+ days
   staleDays: number;
 }
 
@@ -52,7 +52,8 @@ export interface WatchlistStatus {
 
 export class VinceWatchlistService extends Service {
   static serviceType = "VINCE_WATCHLIST_SERVICE";
-  capabilityDescription = "Token watchlist management: track tokens with entry/exit targets";
+  capabilityDescription =
+    "Token watchlist management: track tokens with entry/exit targets";
 
   private watchlist: WatchlistData | null = null;
   private watchlistPath: string;
@@ -61,7 +62,12 @@ export class VinceWatchlistService extends Service {
 
   constructor(protected runtime: IAgentRuntime) {
     super();
-    this.watchlistPath = path.join(process.cwd(), "knowledge", "trading", "watchlist.json");
+    this.watchlistPath = path.join(
+      process.cwd(),
+      "knowledge",
+      "trading",
+      "watchlist.json",
+    );
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceWatchlistService> {
@@ -91,7 +97,9 @@ export class VinceWatchlistService extends Service {
   private async loadWatchlist(): Promise<void> {
     try {
       if (!fs.existsSync(this.watchlistPath)) {
-        logger.warn(`[VinceWatchlist] Watchlist file not found at ${this.watchlistPath}`);
+        logger.warn(
+          `[VinceWatchlist] Watchlist file not found at ${this.watchlistPath}`,
+        );
         this.watchlist = this.getEmptyWatchlist();
         return;
       }
@@ -101,14 +109,18 @@ export class VinceWatchlistService extends Service {
 
       // Validate structure
       if (!data.tokens || !Array.isArray(data.tokens)) {
-        logger.warn("[VinceWatchlist] Invalid watchlist format, using empty watchlist");
+        logger.warn(
+          "[VinceWatchlist] Invalid watchlist format, using empty watchlist",
+        );
         this.watchlist = this.getEmptyWatchlist();
         return;
       }
 
       this.watchlist = data;
       this.lastLoadTime = Date.now();
-      logger.info(`[VinceWatchlist] Loaded ${data.tokens.length} tokens from watchlist`);
+      logger.info(
+        `[VinceWatchlist] Loaded ${data.tokens.length} tokens from watchlist`,
+      );
     } catch (error) {
       logger.error(`[VinceWatchlist] Failed to load watchlist: ${error}`);
       this.watchlist = this.getEmptyWatchlist();
@@ -160,7 +172,7 @@ export class VinceWatchlistService extends Service {
    * Get tokens by priority
    */
   getTokensByPriority(priority: "high" | "medium" | "low"): WatchlistToken[] {
-    return this.getWatchedTokens().filter(t => t.priority === priority);
+    return this.getWatchedTokens().filter((t) => t.priority === priority);
   }
 
   /**
@@ -174,7 +186,7 @@ export class VinceWatchlistService extends Service {
    * Get tokens by chain
    */
   getTokensByChain(chain: string): WatchlistToken[] {
-    return this.getWatchedTokens().filter(t => t.chain === chain);
+    return this.getWatchedTokens().filter((t) => t.chain === chain);
   }
 
   /**
@@ -183,7 +195,7 @@ export class VinceWatchlistService extends Service {
   isWatched(symbol: string): boolean {
     const normalized = symbol.toUpperCase().replace("$", "");
     return this.getWatchedTokens().some(
-      t => t.symbol.toUpperCase() === normalized
+      (t) => t.symbol.toUpperCase() === normalized,
     );
   }
 
@@ -192,9 +204,11 @@ export class VinceWatchlistService extends Service {
    */
   getWatchedToken(symbol: string): WatchlistToken | null {
     const normalized = symbol.toUpperCase().replace("$", "");
-    return this.getWatchedTokens().find(
-      t => t.symbol.toUpperCase() === normalized
-    ) || null;
+    return (
+      this.getWatchedTokens().find(
+        (t) => t.symbol.toUpperCase() === normalized,
+      ) || null
+    );
   }
 
   /**
@@ -230,20 +244,22 @@ export class VinceWatchlistService extends Service {
   getStatus(): WatchlistStatus {
     const tokens = this.getWatchedTokens();
     const lastUpdated = this.watchlist?.lastUpdated || "";
-    
+
     // Calculate staleness
     let staleDays = 0;
     let isStale = false;
     if (lastUpdated) {
       const lastDate = new Date(lastUpdated);
       const now = new Date();
-      staleDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+      staleDays = Math.floor(
+        (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24),
+      );
       isStale = staleDays >= 7;
     }
 
     return {
       tokenCount: tokens.length,
-      highPriorityCount: tokens.filter(t => t.priority === "high").length,
+      highPriorityCount: tokens.filter((t) => t.priority === "high").length,
       lastUpdated,
       isStale,
       staleDays,
@@ -262,15 +278,15 @@ export class VinceWatchlistService extends Service {
    */
   getMaintenanceReminder(): string | null {
     const status = this.getStatus();
-    
+
     if (status.isStale) {
       return `⚠️ Watchlist hasn't been updated in ${status.staleDays} days. Update knowledge/trading/watchlist.json with new tickers from fomo.family.`;
     }
-    
+
     if (status.highPriorityCount === 0) {
       return "📋 No high-priority tokens on watchlist. Consider adding tokens from fomo.family or Frank DeGods.";
     }
-    
+
     return null;
   }
 
@@ -286,7 +302,9 @@ export class VinceWatchlistService extends Service {
       // Check if already exists
       const exists = this.isWatched(token.symbol);
       if (exists) {
-        logger.warn(`[VinceWatchlist] Token ${token.symbol} already on watchlist`);
+        logger.warn(
+          `[VinceWatchlist] Token ${token.symbol} already on watchlist`,
+        );
         return false;
       }
 
@@ -299,8 +317,11 @@ export class VinceWatchlistService extends Service {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
-      fs.writeFileSync(this.watchlistPath, JSON.stringify(this.watchlist, null, 2));
-      
+      fs.writeFileSync(
+        this.watchlistPath,
+        JSON.stringify(this.watchlist, null, 2),
+      );
+
       logger.info(`[VinceWatchlist] Added ${token.symbol} to watchlist`);
       return true;
     } catch (error) {
@@ -318,9 +339,9 @@ export class VinceWatchlistService extends Service {
 
       const normalized = symbol.toUpperCase().replace("$", "");
       const initialLength = this.watchlist.tokens.length;
-      
+
       this.watchlist.tokens = this.watchlist.tokens.filter(
-        t => t.symbol.toUpperCase() !== normalized
+        (t) => t.symbol.toUpperCase() !== normalized,
       );
 
       if (this.watchlist.tokens.length === initialLength) {
@@ -331,8 +352,11 @@ export class VinceWatchlistService extends Service {
       this.watchlist.lastUpdated = new Date().toISOString().split("T")[0];
 
       // Write to file
-      fs.writeFileSync(this.watchlistPath, JSON.stringify(this.watchlist, null, 2));
-      
+      fs.writeFileSync(
+        this.watchlistPath,
+        JSON.stringify(this.watchlist, null, 2),
+      );
+
       logger.info(`[VinceWatchlist] Removed ${symbol} from watchlist`);
       return true;
     } catch (error) {

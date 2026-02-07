@@ -1,5 +1,5 @@
-import * as React from 'react';
-import { Response } from './response';
+import * as React from "react";
+import { Response } from "./response";
 
 interface AnimatedResponseProps {
   children: string;
@@ -18,7 +18,9 @@ export const AnimatedResponse: React.FC<AnimatedResponseProps> = ({
   maxDurationMs = 10000,
   onTextUpdate,
 }) => {
-  const [visibleText, setVisibleText] = React.useState(shouldAnimate ? '' : children);
+  const [visibleText, setVisibleText] = React.useState(
+    shouldAnimate ? "" : children,
+  );
 
   React.useEffect(() => {
     if (!shouldAnimate || !children.trim()) {
@@ -28,7 +30,7 @@ export const AnimatedResponse: React.FC<AnimatedResponseProps> = ({
 
     const safeDuration = Math.max(1000, maxDurationMs);
 
-    setVisibleText('');
+    setVisibleText("");
 
     const TYPING_INTERVAL = 20;
     const totalChars = children.length;
@@ -51,10 +53,5 @@ export const AnimatedResponse: React.FC<AnimatedResponseProps> = ({
     return () => clearInterval(interval);
   }, [children, shouldAnimate, messageId, maxDurationMs, onTextUpdate]);
 
-  return (
-    <Response className={className}>
-      {visibleText}
-    </Response>
-  );
+  return <Response className={className}>{visibleText}</Response>;
 };
-

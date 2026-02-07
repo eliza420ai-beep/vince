@@ -1,6 +1,6 @@
 /**
  * VINCE Plugin Type Definitions
- * 
+ *
  * Unified types for all data sources and services.
  */
 
@@ -57,7 +57,7 @@ export interface FundingData {
 export interface OpenInterestData {
   asset: string;
   value: number;
-  change24h: number | null;  // null when data unavailable, 0 is valid (no change)
+  change24h: number | null; // null when data unavailable, 0 is valid (no change)
   timestamp: number;
 }
 
@@ -71,7 +71,12 @@ export interface LongShortRatio {
 
 export interface FearGreedData {
   value: number;
-  classification: "extreme_fear" | "fear" | "neutral" | "greed" | "extreme_greed";
+  classification:
+    | "extreme_fear"
+    | "fear"
+    | "neutral"
+    | "greed"
+    | "extreme_greed";
   timestamp: number;
 }
 
@@ -138,8 +143,8 @@ export interface NFTCollection {
   floorThickness: "thin" | "medium" | "thick";
   floorThicknessScore: number; // 0-100 (lower = thinner = more opportunity)
   gaps: {
-    to2nd: number;  // ETH gap to 2nd listing
-    to5th: number;  // ETH gap to 5th listing
+    to2nd: number; // ETH gap to 2nd listing
+    to5th: number; // ETH gap to 5th listing
     to10th: number; // ETH gap to 10th listing
   };
   nftsNearFloor: number; // Count within 5% of floor
@@ -157,7 +162,14 @@ export interface CuratedCollection {
 // Lifestyle Types
 // ==========================================
 
-export type DayOfWeek = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+export type DayOfWeek =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
 
 export interface LifestyleSuggestion {
   category: "health" | "dining" | "hotel" | "activity";
@@ -212,8 +224,8 @@ export interface AirdropProtocol {
  */
 export interface BinanceTopTraderPositions {
   symbol: string;
-  longPosition: number;   // % of positions that are long
-  shortPosition: number;  // % of positions that are short
+  longPosition: number; // % of positions that are long
+  shortPosition: number; // % of positions that are short
   longShortRatio: number; // ratio (>1 = more longs)
   timestamp: number;
 }
@@ -224,9 +236,9 @@ export interface BinanceTopTraderPositions {
  */
 export interface BinanceTakerVolume {
   symbol: string;
-  buyVol: number;         // Buy volume ratio
-  sellVol: number;        // Sell volume ratio
-  buySellRatio: number;   // > 1 = more buying pressure
+  buyVol: number; // Buy volume ratio
+  sellVol: number; // Sell volume ratio
+  buySellRatio: number; // > 1 = more buying pressure
   timestamp: number;
 }
 
@@ -236,10 +248,10 @@ export interface BinanceTakerVolume {
  */
 export interface BinanceOITrend {
   symbol: string;
-  current: number;        // Current OI value in USD
-  previous: number;       // Oldest OI value in window
-  change: number;         // Absolute change
-  changePercent: number;  // % change
+  current: number; // Current OI value in USD
+  previous: number; // Oldest OI value in window
+  change: number; // Absolute change
+  changePercent: number; // % change
   trend: "rising" | "falling" | "stable";
 }
 
@@ -249,9 +261,9 @@ export interface BinanceOITrend {
  */
 export interface BinanceLongShortRatio {
   symbol: string;
-  longShortRatio: number;   // > 1 means more longs
-  longAccount: number;      // % of accounts long
-  shortAccount: number;     // % of accounts short
+  longShortRatio: number; // > 1 means more longs
+  longAccount: number; // % of accounts long
+  shortAccount: number; // % of accounts short
   timestamp: number;
 }
 
@@ -261,11 +273,11 @@ export interface BinanceLongShortRatio {
  */
 export interface BinanceFundingTrend {
   symbol: string;
-  current: number;            // Current funding rate
-  average: number;            // Average over history
-  max: number;                // Max in history
-  min: number;                // Min in history
-  isExtreme: boolean;         // > 0.1% or < -0.1%
+  current: number; // Current funding rate
+  average: number; // Average over history
+  max: number; // Max in history
+  min: number; // Min in history
+  isExtreme: boolean; // > 0.1% or < -0.1%
   extremeDirection: "long_paying" | "short_paying" | "neutral";
 }
 
@@ -278,10 +290,10 @@ export interface CrossExchangeFunding {
   binance: number | null;
   bybit: number | null;
   hyperliquid: number | null;
-  spread: number;             // Diff between highest and lowest
-  bestLong: string;           // Exchange to go long (lowest funding)
-  bestShort: string;          // Exchange to go short (highest funding)
-  annualizedSpread: number;   // % annualized
+  spread: number; // Diff between highest and lowest
+  bestLong: string; // Exchange to go long (lowest funding)
+  bestShort: string; // Exchange to go short (highest funding)
+  annualizedSpread: number; // % annualized
   timestamp: number;
 }
 
@@ -289,8 +301,8 @@ export interface CrossExchangeFunding {
  * Fear & Greed Index from Alternative.me (FREE)
  */
 export interface AlternativeFearGreed {
-  value: number;              // 0-100
-  classification: string;     // "Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"
+  value: number; // 0-100
+  classification: string; // "Extreme Fear", "Fear", "Neutral", "Greed", "Extreme Greed"
   timestamp: number;
 }
 
@@ -299,12 +311,12 @@ export interface AlternativeFearGreed {
  */
 export interface LiquidationPressure {
   direction: "long_liquidations" | "short_liquidations" | "neutral";
-  intensity: number;          // 0-100
+  intensity: number; // 0-100
   longLiqsCount: number;
   shortLiqsCount: number;
-  longLiqsValue: number;      // USD
-  shortLiqsValue: number;     // USD
-  netPressure: number;        // positive = more long liqs
+  longLiqsValue: number; // USD
+  shortLiqsValue: number; // USD
+  netPressure: number; // positive = more long liqs
   timestamp: number;
 }
 
@@ -314,8 +326,8 @@ export interface LiquidationPressure {
 export interface LiquidationCascade {
   detected: boolean;
   direction: "long" | "short" | null;
-  intensity: number;          // 0-100
-  totalValue: number;         // USD
+  intensity: number; // 0-100
+  totalValue: number; // USD
   count: number;
   startTime: number;
   lastTime: number;
@@ -342,26 +354,26 @@ export interface BinanceIntelligence {
 export interface VinceContext {
   timestamp: number;
   dayOfWeek: DayOfWeek;
-  
+
   // Trading
   marketSignals: MarketSignal[];
   funding: FundingData[];
   longShortRatios: LongShortRatio[];
   fearGreed?: FearGreedData;
-  
+
   // Memetics
   hotMemes: MemeToken[];
   meteoraPools: MeteoraPool[];
-  
+
   // NFT
   nftFloors: NFTCollection[];
-  
+
   // Lifestyle
   dailySuggestions: LifestyleSuggestion[];
-  
+
   // Options
   optionsContext: OptionsContext[];
-  
+
   // Service status
   serviceStatus: Record<string, ServiceStatus>;
 }

@@ -15,17 +15,21 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { VinceWatchlistService, WatchlistToken } from "./watchlist.service";
+import type {
+  VinceWatchlistService,
+  WatchlistToken,
+} from "./watchlist.service";
 import type { VinceTopTradersService } from "./topTraders.service";
 import type { VinceDexScreenerService } from "./dexscreener.service";
+import type { MemeToken } from "../types/index";
 
 // ==========================================
 // Types
 // ==========================================
 
-export type AlertType = 
+export type AlertType =
   | "WATCHLIST_PUMP"
-  | "WATCHLIST_ENTRY" 
+  | "WATCHLIST_ENTRY"
   | "WATCHLIST_STOPLOSS"
   | "WATCHLIST_TAKEPROFIT"
   | "WALLET_BUY"
@@ -66,7 +70,8 @@ export interface AlertSummary {
 
 export class VinceAlertService extends Service {
   static serviceType = "VINCE_ALERT_SERVICE";
-  capabilityDescription = "Detects and stores alerts for watchlist/wallet activity";
+  capabilityDescription =
+    "Detects and stores alerts for watchlist/wallet activity";
 
   private alerts: Alert[] = [];
   private readonly MAX_ALERTS = 100;
@@ -99,7 +104,7 @@ export class VinceAlertService extends Service {
   async checkForAlerts(
     watchlistService: VinceWatchlistService | null,
     topTradersService: VinceTopTradersService | null,
-    dexScreenerService: VinceDexScreenerService | null
+    dexScreenerService: VinceDexScreenerService | null,
   ): Promise<Alert[]> {
     const now = Date.now();
     if (now - this.lastCheckTimestamp < this.CHECK_INTERVAL_MS) {
@@ -111,7 +116,10 @@ export class VinceAlertService extends Service {
 
     // Check watchlist tokens
     if (watchlistService && dexScreenerService) {
-      const watchlistAlerts = await this.checkWatchlistAlerts(watchlistService, dexScreenerService);
+      const watchlistAlerts = await this.checkWatchlistAlerts(
+        watchlistService,
+        dexScreenerService,
+      );
       newAlerts.push(...watchlistAlerts);
     }
 
@@ -137,7 +145,7 @@ export class VinceAlertService extends Service {
 
   private async checkWatchlistAlerts(
     watchlistService: VinceWatchlistService,
-    dexScreenerService: VinceDexScreenerService
+    dexScreenerService: VinceDexScreenerService,
   ): Promise<Alert[]> {
     const alerts: Alert[] = [];
     const watchedTokens = watchlistService.getWatchedTokens();
@@ -146,76 +154,90 @@ export class VinceAlertService extends Service {
       try {
         // Get current token data
         const tokenData = await dexScreenerService.searchToken(token.symbol);
-        if (!tokenData || tokenData.length === 0) continue;
+        if (!tokenData) continue;
 
-        const currentToken = tokenData[0];
-        const currentMcap = currentToken.marketCap || 0;
-        const priceChange24h = currentToken.priceChange24h || 0;
+        const currentMcap = tokenData.marketCap || 0;
+        const priceChange24h = tokenData.priceChange24h || 0;
 
         // Check for pump (+30% in 24h)
         if (priceChange24h >= 30) {
-          alerts.push(this.createAlert({
-            type: "WATCHLIST_PUMP",
-            priority: token.priority,
-            title: `🚀 ${token.symbol} Pumping!`,
-            message: `${token.symbol} is up ${priceChange24h.toFixed(1)}% in 24h. Current mcap: $${this.formatNumber(currentMcap)}`,
-            data: {
-              symbol: token.symbol,
-              chain: token.chain,
-              currentMcap,
-              priceChange: priceChange24h,
-            },
-          }));
+          alerts.push(
+            this.createAlert({
+              type: "WATCHLIST_PUMP",
+              priority: token.priority,
+              title: `🚀 ${token.symbol} Pumping!`,
+              message: `${token.symbol} is up ${priceChange24h.toFixed(1)}% in 24h. Current mcap: $${this.formatNumber(currentMcap)}`,
+              data: {
+                symbol: token.symbol,
+                chain: token.chain,
+                currentMcap,
+                priceChange: priceChange24h,
+              },
+            }),
+          );
         }
 
         // Check for entry target
-        if (token.entryTarget && currentMcap <= token.entryTarget && currentMcap > 0) {
-          alerts.push(this.createAlert({
-            type: "WATCHLIST_ENTRY",
-            priority: "high",
-            title: `🎯 ${token.symbol} at Entry!`,
-            message: `${token.symbol} hit entry target. Current: $${this.formatNumber(currentMcap)}, Target: $${this.formatNumber(token.entryTarget)}`,
-            data: {
-              symbol: token.symbol,
-              chain: token.chain,
-              currentMcap,
-              targetMcap: token.entryTarget,
-            },
-          }));
+        if (
+          token.entryTarget &&
+          currentMcap <= token.entryTarget &&
+          currentMcap > 0
+        ) {
+          alerts.push(
+            this.createAlert({
+              type: "WATCHLIST_ENTRY",
+              priority: "high",
+              title: `🎯 ${token.symbol} at Entry!`,
+              message: `${token.symbol} hit entry target. Current: $${this.formatNumber(currentMcap)}, Target: $${this.formatNumber(token.entryTarget)}`,
+              data: {
+                symbol: token.symbol,
+                chain: token.chain,
+                currentMcap,
+                targetMcap: token.entryTarget,
+              },
+            }),
+          );
         }
 
         // Check for stop loss
-        if (token.stopLoss && currentMcap <= token.stopLoss && currentMcap > 0) {
-          alerts.push(this.createAlert({
-            type: "WATCHLIST_STOPLOSS",
-            priority: "high",
-            title: `⚠️ ${token.symbol} Stop Loss!`,
-            message: `${token.symbol} hit stop loss. Current: $${this.formatNumber(currentMcap)}, SL: $${this.formatNumber(token.stopLoss)}`,
-            data: {
-              symbol: token.symbol,
-              chain: token.chain,
-              currentMcap,
-              targetMcap: token.stopLoss,
-            },
-          }));
+        if (
+          token.stopLoss &&
+          currentMcap <= token.stopLoss &&
+          currentMcap > 0
+        ) {
+          alerts.push(
+            this.createAlert({
+              type: "WATCHLIST_STOPLOSS",
+              priority: "high",
+              title: `⚠️ ${token.symbol} Stop Loss!`,
+              message: `${token.symbol} hit stop loss. Current: $${this.formatNumber(currentMcap)}, SL: $${this.formatNumber(token.stopLoss)}`,
+              data: {
+                symbol: token.symbol,
+                chain: token.chain,
+                currentMcap,
+                targetMcap: token.stopLoss,
+              },
+            }),
+          );
         }
 
         // Check for take profit
         if (token.takeProfit && currentMcap >= token.takeProfit) {
-          alerts.push(this.createAlert({
-            type: "WATCHLIST_TAKEPROFIT",
-            priority: "high",
-            title: `💰 ${token.symbol} Take Profit!`,
-            message: `${token.symbol} hit take profit! Current: $${this.formatNumber(currentMcap)}, TP: $${this.formatNumber(token.takeProfit)}`,
-            data: {
-              symbol: token.symbol,
-              chain: token.chain,
-              currentMcap,
-              targetMcap: token.takeProfit,
-            },
-          }));
+          alerts.push(
+            this.createAlert({
+              type: "WATCHLIST_TAKEPROFIT",
+              priority: "high",
+              title: `💰 ${token.symbol} Take Profit!`,
+              message: `${token.symbol} hit take profit! Current: $${this.formatNumber(currentMcap)}, TP: $${this.formatNumber(token.takeProfit)}`,
+              data: {
+                symbol: token.symbol,
+                chain: token.chain,
+                currentMcap,
+                targetMcap: token.takeProfit,
+              },
+            }),
+          );
         }
-
       } catch (error) {
         logger.debug(`[VinceAlert] Error checking ${token.symbol}: ${error}`);
       }
@@ -224,7 +246,9 @@ export class VinceAlertService extends Service {
     return alerts;
   }
 
-  private checkWalletAlerts(topTradersService: VinceTopTradersService): Alert[] {
+  private checkWalletAlerts(
+    topTradersService: VinceTopTradersService,
+  ): Alert[] {
     const alerts: Alert[] = [];
     const recentSignals = topTradersService.getHighPrioritySignals(20);
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
@@ -234,7 +258,7 @@ export class VinceAlertService extends Service {
       if (signal.timestamp < fiveMinutesAgo) continue;
 
       const alertId = `wallet-${signal.address}-${signal.asset}-${signal.timestamp}`;
-      if (this.alerts.some(a => a.id === alertId)) continue;
+      if (this.alerts.some((a) => a.id === alertId)) continue;
 
       if (signal.action === "bought" || signal.action === "opened_long") {
         alerts.push({
@@ -251,7 +275,11 @@ export class VinceAlertService extends Service {
           timestamp: signal.timestamp,
           read: false,
         });
-      } else if (signal.action === "sold" || signal.action === "opened_short" || signal.action === "closed") {
+      } else if (
+        signal.action === "sold" ||
+        signal.action === "opened_short" ||
+        signal.action === "closed"
+      ) {
         alerts.push({
           id: alertId,
           type: "WALLET_SELL",
@@ -272,16 +300,20 @@ export class VinceAlertService extends Service {
     return alerts;
   }
 
-  private async checkNewTokenAlerts(dexScreenerService: VinceDexScreenerService): Promise<Alert[]> {
+  private async checkNewTokenAlerts(
+    dexScreenerService: VinceDexScreenerService,
+  ): Promise<Alert[]> {
     const alerts: Alert[] = [];
-    
+
     try {
       // Get AI memes in sweet spot range
-      const aiMemes = await dexScreenerService.scanAIMemes();
-      
-      for (const token of aiMemes) {
+      const aiMemes =
+        (dexScreenerService as { scanAIMemes?: () => Promise<MemeToken[]> })
+          .scanAIMemes?.() ?? Promise.resolve(dexScreenerService.getTrendingTokens(15));
+
+      for (const token of await aiMemes) {
         const tokenId = `${token.chain}-${token.address || token.symbol}`;
-        
+
         // Only alert on new tokens we haven't seen
         if (this.seenTokens.has(tokenId)) continue;
         this.seenTokens.add(tokenId);
@@ -289,21 +321,25 @@ export class VinceAlertService extends Service {
         // Sweet spot: $1M-$5M mcap with good vol/liq ratio
         const mcap = token.marketCap || 0;
         const isInSweetSpot = mcap >= 1_000_000 && mcap <= 5_000_000;
-        const volLiqRatio = token.liquidity ? (token.volume24h || 0) / token.liquidity : 0;
+        const volLiqRatio = token.liquidity
+          ? (token.volume24h || 0) / token.liquidity
+          : 0;
         const hasGoodTraction = volLiqRatio >= 3;
 
         if (isInSweetSpot && hasGoodTraction) {
-          alerts.push(this.createAlert({
-            type: "NEW_TOKEN",
-            priority: "medium",
-            title: `✨ New AI Token: ${token.symbol}`,
-            message: `${token.symbol} spotted in sweet spot. Mcap: $${this.formatNumber(mcap)}, Vol/Liq: ${volLiqRatio.toFixed(1)}x`,
-            data: {
-              symbol: token.symbol,
-              chain: token.chain,
-              currentMcap: mcap,
-            },
-          }));
+          alerts.push(
+            this.createAlert({
+              type: "NEW_TOKEN",
+              priority: "medium",
+              title: `✨ New AI Token: ${token.symbol}`,
+              message: `${token.symbol} spotted in sweet spot. Mcap: $${this.formatNumber(mcap)}, Vol/Liq: ${volLiqRatio.toFixed(1)}x`,
+              data: {
+                symbol: token.symbol,
+                chain: token.chain,
+                currentMcap: mcap,
+              },
+            }),
+          );
         }
       }
 
@@ -312,7 +348,6 @@ export class VinceAlertService extends Service {
         const tokensArray = Array.from(this.seenTokens);
         this.seenTokens = new Set(tokensArray.slice(-300));
       }
-
     } catch (error) {
       logger.debug(`[VinceAlert] Error checking new tokens: ${error}`);
     }
@@ -346,9 +381,10 @@ export class VinceAlertService extends Service {
   private addAlert(alert: Alert): void {
     // Check for duplicate
     const isDuplicate = this.alerts.some(
-      a => a.type === alert.type && 
-           a.data.symbol === alert.data.symbol &&
-           a.timestamp > Date.now() - 10 * 60 * 1000 // Within 10 minutes
+      (a) =>
+        a.type === alert.type &&
+        a.data.symbol === alert.data.symbol &&
+        a.timestamp > Date.now() - 10 * 60 * 1000, // Within 10 minutes
     );
     if (isDuplicate) return;
 
@@ -362,10 +398,14 @@ export class VinceAlertService extends Service {
     logger.info(`[VinceAlert] New alert: ${alert.title}`);
 
     // Push to Discord/Slack/Telegram when connected
-    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as { push?: (t: string) => Promise<number> } | null;
+    const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as {
+      push?: (t: string) => Promise<number>;
+    } | null;
     if (notif?.push) {
       const text = `${alert.title}\n${alert.message}`;
-      notif.push(text).catch((e) => logger.debug(`[VinceAlert] Push failed: ${e}`));
+      notif
+        .push(text)
+        .catch((e) => logger.debug(`[VinceAlert] Push failed: ${e}`));
     }
   }
 
@@ -382,24 +422,24 @@ export class VinceAlertService extends Service {
     let filtered = [...this.alerts];
 
     if (options?.type) {
-      filtered = filtered.filter(a => a.type === options.type);
+      filtered = filtered.filter((a) => a.type === options.type);
     }
     if (options?.unreadOnly) {
-      filtered = filtered.filter(a => !a.read);
+      filtered = filtered.filter((a) => !a.read);
     }
     if (options?.priority) {
-      filtered = filtered.filter(a => a.priority === options.priority);
+      filtered = filtered.filter((a) => a.priority === options.priority);
     }
 
     return filtered.slice(0, options?.limit || 50);
   }
 
   getUnreadAlerts(): Alert[] {
-    return this.alerts.filter(a => !a.read);
+    return this.alerts.filter((a) => !a.read);
   }
 
   getHighPriorityAlerts(): Alert[] {
-    return this.alerts.filter(a => a.priority === "high" && !a.read);
+    return this.alerts.filter((a) => a.priority === "high" && !a.read);
   }
 
   getSummary(): AlertSummary {
@@ -419,14 +459,15 @@ export class VinceAlertService extends Service {
 
     return {
       total: this.alerts.length,
-      unread: this.alerts.filter(a => !a.read).length,
+      unread: this.alerts.filter((a) => !a.read).length,
       byType,
-      highPriority: this.alerts.filter(a => a.priority === "high" && !a.read).length,
+      highPriority: this.alerts.filter((a) => a.priority === "high" && !a.read)
+        .length,
     };
   }
 
   markAsRead(alertId: string): boolean {
-    const alert = this.alerts.find(a => a.id === alertId);
+    const alert = this.alerts.find((a) => a.id === alertId);
     if (alert) {
       alert.read = true;
       return true;
@@ -448,7 +489,7 @@ export class VinceAlertService extends Service {
   clearOldAlerts(olderThanMs: number = 24 * 60 * 60 * 1000): number {
     const cutoff = Date.now() - olderThanMs;
     const initialLength = this.alerts.length;
-    this.alerts = this.alerts.filter(a => a.timestamp > cutoff);
+    this.alerts = this.alerts.filter((a) => a.timestamp > cutoff);
     return initialLength - this.alerts.length;
   }
 
@@ -472,7 +513,7 @@ export class VinceAlertService extends Service {
     }
 
     const lines: string[] = [];
-    
+
     for (const alert of alerts) {
       const timeAgo = this.getTimeAgo(alert.timestamp);
       const readMarker = alert.read ? "" : "🔴 ";

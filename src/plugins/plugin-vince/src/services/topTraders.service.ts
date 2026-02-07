@@ -39,7 +39,16 @@ interface WhaleSignal {
   address: string;
   asset: string;
   chain: "hyperliquid" | "solana";
-  action: "opened_long" | "opened_short" | "closed" | "increased" | "decreased" | "bought" | "sold";
+  action:
+    | "opened_long"
+    | "opened_short"
+    | "closed"
+    | "increased"
+    | "decreased"
+    | "increased_long"
+    | "increased_short"
+    | "bought"
+    | "sold";
   size: number;
   timestamp: number;
   traderName?: string;
@@ -95,7 +104,12 @@ export class VinceTopTradersService extends Service {
 
   constructor(protected runtime: IAgentRuntime) {
     super();
-    this.walletsPath = path.join(process.cwd(), "knowledge", "trading", "wallets.json");
+    this.walletsPath = path.join(
+      process.cwd(),
+      "knowledge",
+      "trading",
+      "wallets.json",
+    );
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceTopTradersService> {
@@ -103,7 +117,9 @@ export class VinceTopTradersService extends Service {
     try {
       await service.initialize();
     } catch (error) {
-      logger.warn(`[VinceTopTraders] Initialization error (service still available): ${error}`);
+      logger.warn(
+        `[VinceTopTraders] Initialization error (service still available): ${error}`,
+      );
     }
     if (isVinceAgent(runtime)) {
       service.printDashboard();
@@ -136,8 +152,12 @@ export class VinceTopTradersService extends Service {
       if (signals.length > 0) {
         logLine("📡 RECENT SIGNALS:");
         for (const sig of signals) {
-          const emoji = sig.action.includes("long") || sig.action === "bought" ? "🟢" :
-                        sig.action.includes("short") || sig.action === "sold" ? "🔴" : "⚪";
+          const emoji =
+            sig.action.includes("long") || sig.action === "bought"
+              ? "🟢"
+              : sig.action.includes("short") || sig.action === "sold"
+                ? "🔴"
+                : "⚪";
           const name = sig.traderName || sig.address.slice(0, 8);
           const action = sig.action.replace("_", " ").toUpperCase();
           logLine(`${emoji} ${name}: ${action} ${sig.asset}`);
@@ -149,8 +169,12 @@ export class VinceTopTradersService extends Service {
       sep();
       logEmpty();
       const tldr = this.getTLDR();
-      const tldrEmoji = tldr.includes("BUYING") || tldr.includes("LONG") ? "💡" :
-                        tldr.includes("SELLING") || tldr.includes("SHORT") ? "⚠️" : "📋";
+      const tldrEmoji =
+        tldr.includes("BUYING") || tldr.includes("LONG")
+          ? "💡"
+          : tldr.includes("SELLING") || tldr.includes("SHORT")
+            ? "⚠️"
+            : "📋";
       logLine(`${tldrEmoji} ${tldr}`);
     } else {
       logLine("📊 FREE DATA SOURCES:");
@@ -173,20 +197,21 @@ export class VinceTopTradersService extends Service {
     if (signals.length === 0) {
       return "WHALES QUIET: No significant moves, wait for signal";
     }
-    
+
     // Count by action type
     let longOpens = 0;
     let shortOpens = 0;
     let buys = 0;
     let sells = 0;
-    
+
     for (const sig of signals) {
-      if (sig.action === "opened_long" || sig.action === "increased") longOpens++;
+      if (sig.action === "opened_long" || sig.action === "increased")
+        longOpens++;
       if (sig.action === "opened_short") shortOpens++;
       if (sig.action === "bought") buys++;
       if (sig.action === "sold") sells++;
     }
-    
+
     // High priority signals
     const highPriority = this.getHighPrioritySignals(5);
     if (highPriority.length > 0) {
@@ -202,7 +227,7 @@ export class VinceTopTradersService extends Service {
         return `${hpName} BUYING ${hp.asset} - whale accumulation`;
       }
     }
-    
+
     // Aggregate sentiment
     if (longOpens > shortOpens * 2 && longOpens >= 2) {
       return `WHALES LONG: ${longOpens} long opens vs ${shortOpens} shorts`;
@@ -213,7 +238,7 @@ export class VinceTopTradersService extends Service {
     if (buys > sells * 2 && buys >= 2) {
       return `WHALES BUYING: ${buys} buys on Solana - accumulation`;
     }
-    
+
     // Default
     return `WHALES MIXED: ${signals.length} moves, no clear direction`;
   }
@@ -225,7 +250,7 @@ export class VinceTopTradersService extends Service {
   private async initialize(): Promise<void> {
     // Load wallets from JSON file
     await this.loadWalletsFromFile();
-    
+
     // Fallback to defaults if no wallets loaded
     if (this.trackedTraders.size === 0) {
       for (const address of DEFAULT_WHALE_ADDRESSES) {
@@ -244,8 +269,10 @@ export class VinceTopTradersService extends Service {
 
     const hlCount = this.trackedTraders.size;
     const solCount = this.solanaTraders.size;
-    logger.debug(`[VinceTopTraders] Tracking ${hlCount} Hyperliquid + ${solCount} Solana wallets`);
-    
+    logger.debug(
+      `[VinceTopTraders] Tracking ${hlCount} Hyperliquid + ${solCount} Solana wallets`,
+    );
+
     // Initial refresh
     await this.refreshData();
   }
@@ -253,7 +280,9 @@ export class VinceTopTradersService extends Service {
   private async loadWalletsFromFile(): Promise<void> {
     try {
       if (!fs.existsSync(this.walletsPath)) {
-        logger.debug(`[VinceTopTraders] Wallets file not found at ${this.walletsPath}`);
+        logger.debug(
+          `[VinceTopTraders] Wallets file not found at ${this.walletsPath}`,
+        );
         return;
       }
 
@@ -271,8 +300,10 @@ export class VinceTopTradersService extends Service {
               accountValue: 0,
               lastPosition: null,
               lastUpdate: 0,
-              priority: (wallet.priority as "high" | "medium" | "low") || "medium",
-              copyMode: (wallet.copyMode as "signal" | "mirror" | "ignore") || "signal",
+              priority:
+                (wallet.priority as "high" | "medium" | "low") || "medium",
+              copyMode:
+                (wallet.copyMode as "signal" | "mirror" | "ignore") || "signal",
             });
           }
         }
@@ -289,14 +320,18 @@ export class VinceTopTradersService extends Service {
               accountValue: 0,
               lastPosition: null,
               lastUpdate: 0,
-              priority: (wallet.priority as "high" | "medium" | "low") || "medium",
-              copyMode: (wallet.copyMode as "signal" | "mirror" | "ignore") || "signal",
+              priority:
+                (wallet.priority as "high" | "medium" | "low") || "medium",
+              copyMode:
+                (wallet.copyMode as "signal" | "mirror" | "ignore") || "signal",
             });
           }
         }
       }
 
-      logger.info(`[VinceTopTraders] Loaded ${this.solanaTraders.size} Solana + ${this.trackedTraders.size} Hyperliquid wallets from file`);
+      logger.info(
+        `[VinceTopTraders] Loaded ${this.solanaTraders.size} Solana + ${this.trackedTraders.size} Hyperliquid wallets from file`,
+      );
     } catch (error) {
       logger.error(`[VinceTopTraders] Failed to load wallets file: ${error}`);
     }
@@ -304,14 +339,16 @@ export class VinceTopTradersService extends Service {
 
   async refreshData(): Promise<void> {
     const now = Date.now();
-    
+
     // Refresh Hyperliquid data
     if (now - this.lastUpdate >= this.CACHE_TTL_MS) {
       for (const [address] of this.trackedTraders) {
         try {
           await this.fetchTraderData(address);
         } catch (error) {
-          logger.debug(`[VinceTopTraders] Error fetching HL ${address}: ${error}`);
+          logger.debug(
+            `[VinceTopTraders] Error fetching HL ${address}: ${error}`,
+          );
         }
       }
       this.lastUpdate = now;
@@ -324,7 +361,9 @@ export class VinceTopTradersService extends Service {
           try {
             await this.fetchSolanaWalletActivity(address);
           } catch (error) {
-            logger.debug(`[VinceTopTraders] Error fetching SOL ${address}: ${error}`);
+            logger.debug(
+              `[VinceTopTraders] Error fetching SOL ${address}: ${error}`,
+            );
           }
         }
       }
@@ -340,12 +379,14 @@ export class VinceTopTradersService extends Service {
       // Birdeye has a free tier for basic wallet info
       // For full transaction history, you'd need the paid tier
       // This is a simplified version that checks for recent swaps
-      
+
       const apiKey = String(this.runtime.getSetting("BIRDEYE_API_KEY") || "");
       if (!apiKey) {
         // Without API key, we can still use DexScreener for token discovery
         // but can't track specific wallet transactions
-        logger.debug("[VinceTopTraders] No BIRDEYE_API_KEY, skipping Solana wallet tracking");
+        logger.debug(
+          "[VinceTopTraders] No BIRDEYE_API_KEY, skipping Solana wallet tracking",
+        );
         return;
       }
 
@@ -356,12 +397,14 @@ export class VinceTopTradersService extends Service {
             "X-API-KEY": apiKey,
             "x-chain": "solana",
           },
-        }
+        },
       );
 
       if (!res.ok) {
         if (res.status === 401) {
-          logger.debug("[VinceTopTraders] Birdeye API key invalid or rate limited");
+          logger.debug(
+            "[VinceTopTraders] Birdeye API key invalid or rate limited",
+          );
         }
         return;
       }
@@ -373,7 +416,7 @@ export class VinceTopTradersService extends Service {
       // Process transactions for swap detection
       if (data.data?.items && Array.isArray(data.data.items)) {
         const previousSwaps = this.solanaSwapHistory.get(address) || [];
-        const previousSigs = new Set(previousSwaps.map(s => s.signature));
+        const previousSigs = new Set(previousSwaps.map((s) => s.signature));
 
         for (const tx of data.data.items) {
           // Skip if we've already seen this transaction
@@ -388,7 +431,8 @@ export class VinceTopTradersService extends Service {
 
             // Create signal if it's a significant swap
             if (tokenIn !== tokenOut) {
-              const action = tokenIn === "SOL" || tokenIn === "USDC" ? "bought" : "sold";
+              const action =
+                tokenIn === "SOL" || tokenIn === "USDC" ? "bought" : "sold";
               const asset = action === "bought" ? tokenOut : tokenIn;
 
               this.recentSignals.push({
@@ -401,7 +445,9 @@ export class VinceTopTradersService extends Service {
                 traderName: trader.label || undefined,
               });
 
-              logger.info(`[VinceTopTraders] ${trader.label || address.slice(0, 8)} ${action} ${asset}`);
+              logger.info(
+                `[VinceTopTraders] ${trader.label || address.slice(0, 8)} ${action} ${asset}`,
+              );
             }
           }
         }
@@ -411,18 +457,28 @@ export class VinceTopTradersService extends Service {
           .filter((tx: any) => tx.txType === "swap")
           .map((tx: any) => ({
             signature: tx.txHash,
-            tokenIn: { symbol: tx.from?.symbol || "", amount: tx.from?.amount || 0 },
-            tokenOut: { symbol: tx.to?.symbol || "", amount: tx.to?.amount || 0 },
+            tokenIn: {
+              symbol: tx.from?.symbol || "",
+              amount: tx.from?.amount || 0,
+            },
+            tokenOut: {
+              symbol: tx.to?.symbol || "",
+              amount: tx.to?.amount || 0,
+            },
             timestamp: tx.blockTime * 1000 || Date.now(),
           }));
 
-        this.solanaSwapHistory.set(address, [...newSwaps, ...previousSwaps].slice(0, 50));
+        this.solanaSwapHistory.set(
+          address,
+          [...newSwaps, ...previousSwaps].slice(0, 50),
+        );
       }
 
       trader.lastUpdate = Date.now();
-
     } catch (error) {
-      logger.debug(`[VinceTopTraders] Solana fetch error for ${address}: ${error}`);
+      logger.debug(
+        `[VinceTopTraders] Solana fetch error for ${address}: ${error}`,
+      );
     }
   }
 
@@ -456,7 +512,7 @@ export class VinceTopTradersService extends Service {
         for (const pos of data.assetPositions) {
           const asset = pos.position?.coin;
           const size = parseFloat(pos.position?.szi) || 0;
-          const side: "long" | "short" | "none" = 
+          const side: "long" | "short" | "none" =
             size > 0 ? "long" : size < 0 ? "short" : "none";
 
           // Detect position changes
@@ -527,8 +583,9 @@ export class VinceTopTradersService extends Service {
 
       // Keep only recent signals (last hour)
       const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      this.recentSignals = this.recentSignals.filter(s => s.timestamp > oneHourAgo);
-
+      this.recentSignals = this.recentSignals.filter(
+        (s) => s.timestamp > oneHourAgo,
+      );
     } catch (error) {
       logger.debug(`[VinceTopTraders] Fetch error for ${address}: ${error}`);
     }
@@ -538,14 +595,16 @@ export class VinceTopTradersService extends Service {
   // Public API
   // ==========================================
 
-  getStatus(): { 
-    hyperliquidCount: number; 
+  getStatus(): {
+    trackedCount: number;
+    hyperliquidCount: number;
     solanaCount: number;
-    signalCount: number; 
+    signalCount: number;
     lastUpdate: number;
     lastSolanaUpdate: number;
   } {
     return {
+      trackedCount: this.trackedTraders.size + this.solanaTraders.size,
       hyperliquidCount: this.trackedTraders.size,
       solanaCount: this.solanaTraders.size,
       signalCount: this.recentSignals.length,
@@ -563,9 +622,12 @@ export class VinceTopTradersService extends Service {
   /**
    * Get signals by chain
    */
-  getSignalsByChain(chain: "hyperliquid" | "solana", limit: number = 10): WhaleSignal[] {
+  getSignalsByChain(
+    chain: "hyperliquid" | "solana",
+    limit: number = 10,
+  ): WhaleSignal[] {
     return this.recentSignals
-      .filter(s => s.chain === chain)
+      .filter((s) => s.chain === chain)
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
   }
@@ -575,19 +637,24 @@ export class VinceTopTradersService extends Service {
    */
   getHighPrioritySignals(limit: number = 10): WhaleSignal[] {
     const highPriorityAddresses = new Set([
-      ...Array.from(this.trackedTraders.values()).filter(t => t.priority === "high").map(t => t.address),
-      ...Array.from(this.solanaTraders.values()).filter(t => t.priority === "high").map(t => t.address),
+      ...Array.from(this.trackedTraders.values())
+        .filter((t) => t.priority === "high")
+        .map((t) => t.address),
+      ...Array.from(this.solanaTraders.values())
+        .filter((t) => t.priority === "high")
+        .map((t) => t.address),
     ]);
 
     return this.recentSignals
-      .filter(s => highPriorityAddresses.has(s.address))
+      .filter((s) => highPriorityAddresses.has(s.address))
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, limit);
   }
 
   getTraderPositions(): TrackedTrader[] {
-    return Array.from(this.trackedTraders.values())
-      .filter(t => t.lastPosition !== null);
+    return Array.from(this.trackedTraders.values()).filter(
+      (t) => t.lastPosition !== null,
+    );
   }
 
   /**
@@ -600,17 +667,21 @@ export class VinceTopTradersService extends Service {
   /**
    * Check if a specific token was recently bought by tracked wallets
    */
-  wasRecentlyBoughtByWhales(tokenSymbol: string): { bought: boolean; buyers: string[] } {
+  wasRecentlyBoughtByWhales(tokenSymbol: string): {
+    bought: boolean;
+    buyers: string[];
+  } {
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     const buySignals = this.recentSignals.filter(
-      s => s.asset.toUpperCase() === tokenSymbol.toUpperCase() &&
-           s.action === "bought" &&
-           s.timestamp > oneHourAgo
+      (s) =>
+        s.asset.toUpperCase() === tokenSymbol.toUpperCase() &&
+        s.action === "bought" &&
+        s.timestamp > oneHourAgo,
     );
 
     return {
       bought: buySignals.length > 0,
-      buyers: buySignals.map(s => s.traderName || s.address.slice(0, 8)),
+      buyers: buySignals.map((s) => s.traderName || s.address.slice(0, 8)),
     };
   }
 
@@ -628,7 +699,7 @@ export class VinceTopTradersService extends Service {
    * Generate aggregated signal from whale activity
    */
   generateSignal(asset: string): MarketSignal | null {
-    const assetSignals = this.recentSignals.filter(s => s.asset === asset);
+    const assetSignals = this.recentSignals.filter((s) => s.asset === asset);
     if (assetSignals.length === 0) return null;
 
     let longWeight = 0;
@@ -636,12 +707,18 @@ export class VinceTopTradersService extends Service {
     const factors: string[] = [];
 
     for (const signal of assetSignals) {
-      if (signal.action === "opened_long" || 
-          (signal.action === "increased" && this.getTraderPosition(signal.address, asset)?.side === "long")) {
+      if (
+        signal.action === "opened_long" ||
+        (signal.action === "increased" &&
+          this.getTraderPosition(signal.address, asset)?.side === "long")
+      ) {
         longWeight += signal.size;
         factors.push(`Whale opened/increased LONG`);
-      } else if (signal.action === "opened_short" ||
-          (signal.action === "increased" && this.getTraderPosition(signal.address, asset)?.side === "short")) {
+      } else if (
+        signal.action === "opened_short" ||
+        (signal.action === "increased" &&
+          this.getTraderPosition(signal.address, asset)?.side === "short")
+      ) {
         shortWeight += signal.size;
         factors.push(`Whale opened/increased SHORT`);
       }
@@ -649,8 +726,16 @@ export class VinceTopTradersService extends Service {
 
     if (longWeight === 0 && shortWeight === 0) return null;
 
-    const direction = longWeight > shortWeight ? "long" : shortWeight > longWeight ? "short" : "neutral";
-    const strength = Math.min(100, 50 + (Math.abs(longWeight - shortWeight) / 1000000) * 50);
+    const direction =
+      longWeight > shortWeight
+        ? "long"
+        : shortWeight > longWeight
+          ? "short"
+          : "neutral";
+    const strength = Math.min(
+      100,
+      50 + (Math.abs(longWeight - shortWeight) / 1000000) * 50,
+    );
 
     return {
       asset,
@@ -663,7 +748,10 @@ export class VinceTopTradersService extends Service {
     };
   }
 
-  private getTraderPosition(address: string, asset: string): TrackedTrader["lastPosition"] {
+  private getTraderPosition(
+    address: string,
+    asset: string,
+  ): TrackedTrader["lastPosition"] {
     const trader = this.trackedTraders.get(address);
     if (trader?.lastPosition?.asset === asset) {
       return trader.lastPosition;

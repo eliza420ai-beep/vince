@@ -50,7 +50,10 @@ function readFileSafe(filePath: string): string | null {
 }
 
 /** Returns [longTermPath?] and paths of up to MAX_DAILY_MEMORY_FILES most recent daily logs (excluding LONG-TERM and README). */
-function getMemoryFiles(memoryDir: string): { longTerm: string | null; dailyLogs: string[] } {
+function getMemoryFiles(memoryDir: string): {
+  longTerm: string | null;
+  dailyLogs: string[];
+} {
   try {
     if (!fs.existsSync(memoryDir)) return { longTerm: null, dailyLogs: [] };
     const longTermPath = path.join(memoryDir, LONG_TERM_FILENAME);
@@ -63,10 +66,13 @@ function getMemoryFiles(memoryDir: string): { longTerm: string | null; dailyLogs
           e.name.endsWith(".md") &&
           e.name !== ".gitkeep" &&
           e.name.toLowerCase() !== "readme.md" &&
-          e.name !== LONG_TERM_FILENAME
+          e.name !== LONG_TERM_FILENAME,
       )
       .map((e) => path.join(memoryDir, e.name));
-    const stats = mdFiles.map((f) => ({ path: f, mtime: fs.statSync(f).mtime.getTime() }));
+    const stats = mdFiles.map((f) => ({
+      path: f,
+      mtime: fs.statSync(f).mtime.getTime(),
+    }));
     stats.sort((a, b) => b.mtime - a.mtime);
     const dailyLogs = stats.slice(0, MAX_DAILY_MEMORY_FILES).map((s) => s.path);
     return { longTerm, dailyLogs };
@@ -77,7 +83,8 @@ function getMemoryFiles(memoryDir: string): { longTerm: string | null; dailyLogs
 
 export const teammateContextProvider: Provider = {
   name: "TEAMMATE_CONTEXT",
-  description: "User, soul, tools and optional memory — loaded every session (identity = Character)",
+  description:
+    "User, soul, tools and optional memory — loaded every session (identity = Character)",
   position: -20, // Run early so teammate context is always present
 
   get: async (_runtime: IAgentRuntime, _message: Memory, _state: State) => {
@@ -97,7 +104,7 @@ export const teammateContextProvider: Provider = {
       "## TEAMMATE CONTEXT (loaded every session)",
       "USER/SOUL/TOOLS/MEMORY below — use this to behave like a teammate who knows the user, not a generic chatbot.",
       "---",
-      ""
+      "",
     );
 
     for (const filename of TEAMMATE_FILES) {
@@ -112,7 +119,8 @@ export const teammateContextProvider: Provider = {
     }
 
     const memoryDir = path.join(basePath, MEMORY_DIR);
-    const { longTerm: longTermPath, dailyLogs: dailyLogPaths } = getMemoryFiles(memoryDir);
+    const { longTerm: longTermPath, dailyLogs: dailyLogPaths } =
+      getMemoryFiles(memoryDir);
     const allMemoryPaths: string[] = [];
     if (longTermPath) {
       const content = readFileSafe(longTermPath);
@@ -145,7 +153,7 @@ export const teammateContextProvider: Provider = {
     if (text) {
       data.teammate_loaded = true;
       data.teammate_files = TEAMMATE_FILES.filter((f) =>
-        readFileSafe(path.join(basePath, f))
+        readFileSafe(path.join(basePath, f)),
       );
     }
 

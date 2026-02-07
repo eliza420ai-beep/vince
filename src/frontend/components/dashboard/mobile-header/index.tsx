@@ -2,7 +2,15 @@ import * as React from "react";
 import { Button } from "@/frontend/components/ui/button";
 import { Badge } from "@/frontend/components/ui/badge";
 import { SidebarTrigger } from "@/frontend/components/ui/sidebar";
-import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle, SheetDescription } from "@/frontend/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/frontend/components/ui/sheet";
 import { CDPWalletCard } from "@/frontend/components/dashboard/cdp-wallet-card";
 import { useCDPWallet } from "@/frontend/hooks/useCDPWallet";
 import { Wallet } from "lucide-react";
@@ -13,7 +21,7 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
   const { currentUser } = useCDPWallet();
-  const userId = currentUser?.userId || '';
+  const userId = currentUser?.userId || "";
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
   return (
@@ -23,13 +31,17 @@ export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
         <SidebarTrigger />
 
         {/* Center: Otaku Logo + Time */}
-        <button 
+        <button
           onClick={onHomeClick}
           className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <div className="h-8 w-16 bg-primary rounded flex items-center justify-center">
-              <img src="/avatars/otaku-pfp.png" alt="VINCE" className="size-8 text-primary-foreground bg-transparent" />
+              <img
+                src="/avatars/otaku-pfp.png"
+                alt="VINCE"
+                className="size-8 text-primary-foreground bg-transparent"
+              />
             </div>
           </div>
         </button>
@@ -71,7 +83,7 @@ export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
               {/* Wallet Content */}
               <div className="flex-1 overflow-y-auto p-4 bg-muted">
                 {userId && (
-                  <CDPWalletCard 
+                  <CDPWalletCard
                     userId={userId}
                     onActionClick={() => setIsSheetOpen(false)}
                   />

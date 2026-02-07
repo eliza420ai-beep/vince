@@ -11,7 +11,13 @@
  * - Asset-specific news filtering
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 
@@ -23,8 +29,18 @@ export interface NewsDataContext {
   overallSentiment: string;
   overallConfidence: number;
   riskEvents: { severity: string; description: string; assets: string[] }[];
-  assetSentiments: { asset: string; sentiment: string; confidence: number; newsCount: number }[];
-  topHeadlines: { title: string; source: string; sentiment: string; impact: string }[];
+  assetSentiments: {
+    asset: string;
+    sentiment: string;
+    confidence: number;
+    newsCount: number;
+  }[];
+  topHeadlines: {
+    title: string;
+    source: string;
+    sentiment: string;
+    impact: string;
+  }[];
   stats: { total: number; bullish: number; bearish: number; neutral: number };
 }
 
@@ -32,7 +48,9 @@ export function buildNewsDataContext(ctx: NewsDataContext): string {
   const lines: string[] = [];
 
   lines.push("=== MARKET NEWS SUMMARY ===");
-  lines.push(`Overall sentiment: ${ctx.overallSentiment} (${ctx.overallConfidence}% confidence)`);
+  lines.push(
+    `Overall sentiment: ${ctx.overallSentiment} (${ctx.overallConfidence}% confidence)`,
+  );
   lines.push("");
 
   if (ctx.riskEvents.length > 0) {
@@ -47,7 +65,9 @@ export function buildNewsDataContext(ctx: NewsDataContext): string {
   if (ctx.assetSentiments.length > 0) {
     lines.push("ASSET-SPECIFIC SENTIMENT:");
     for (const a of ctx.assetSentiments) {
-      lines.push(`${a.asset}: ${a.sentiment} (${a.confidence}% conf, ${a.newsCount} mentions)`);
+      lines.push(
+        `${a.asset}: ${a.sentiment} (${a.confidence}% conf, ${a.newsCount} mentions)`,
+      );
     }
     lines.push("");
   }
@@ -63,7 +83,9 @@ export function buildNewsDataContext(ctx: NewsDataContext): string {
   }
 
   lines.push("STATS:");
-  lines.push(`Total: ${ctx.stats.total} articles | Bullish: ${ctx.stats.bullish} | Bearish: ${ctx.stats.bearish} | Neutral: ${ctx.stats.neutral}`);
+  lines.push(
+    `Total: ${ctx.stats.total} articles | Bullish: ${ctx.stats.bullish} | Bearish: ${ctx.stats.bearish} | Neutral: ${ctx.stats.neutral}`,
+  );
 
   return lines.join("\n");
 }
@@ -74,7 +96,7 @@ export function buildNewsDataContext(ctx: NewsDataContext): string {
 
 export async function generateNewsHumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, giving a news briefing to a trader friend. Cut through the noise and tell them what actually matters.
 
@@ -117,10 +139,21 @@ Write the briefing:`;
 
 export const vinceNewsAction: Action = {
   name: "VINCE_NEWS",
-  similes: ["NEWS", "HEADLINES", "MANDO", "WHAT_NEWS", "NEWS_UPDATE", "MARKET_NEWS"],
-  description: "Human-style news analysis - cuts through noise to explain what matters",
+  similes: [
+    "NEWS",
+    "HEADLINES",
+    "MANDO",
+    "WHAT_NEWS",
+    "NEWS_UPDATE",
+    "MARKET_NEWS",
+  ],
+  description:
+    "Human-style news analysis - cuts through noise to explain what matters",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("news") ||
@@ -137,10 +170,12 @@ export const vinceNewsAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const newsService = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+      const newsService = runtime.getService(
+        "VINCE_NEWS_SENTIMENT_SERVICE",
+      ) as VinceNewsSentimentService | null;
 
       if (!newsService) {
         await callback({
@@ -183,13 +218,13 @@ export const vinceNewsAction: Action = {
       const ctx: NewsDataContext = {
         overallSentiment: sentiment.sentiment,
         overallConfidence: Math.round(sentiment.confidence),
-        riskEvents: riskEvents.slice(0, 3).map(e => ({
+        riskEvents: riskEvents.slice(0, 3).map((e) => ({
           severity: e.severity,
           description: e.description,
           assets: e.assets,
         })),
         assetSentiments,
-        topHeadlines: topNews.map(n => ({
+        topHeadlines: topNews.map((n) => ({
           title: n.title,
           source: n.source,
           sentiment: n.sentiment,

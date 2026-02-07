@@ -39,8 +39,25 @@ interface TrenchFramework {
 // ==========================================
 
 const FRAMEWORK_KEYWORDS: Record<string, string[]> = {
-  "meteora.md": ["lp", "liquidity", "dlmm", "dca", "impermanent", "fees", "volatility", "pool"],
-  "pumpdotfun.md": ["pump", "launch", "fair", "bonding", "curve", "graduation", "raydium"],
+  "meteora.md": [
+    "lp",
+    "liquidity",
+    "dlmm",
+    "dca",
+    "impermanent",
+    "fees",
+    "volatility",
+    "pool",
+  ],
+  "pumpdotfun.md": [
+    "pump",
+    "launch",
+    "fair",
+    "bonding",
+    "curve",
+    "graduation",
+    "raydium",
+  ],
   "ten-ten.md": ["10-10", "framework", "screening", "criteria", "evaluation"],
   "fair-launch.md": ["fair", "launch", "distribution", "allocation"],
   "eternal-casino.md": ["casino", "gambling", "odds", "risk", "management"],
@@ -50,9 +67,20 @@ const FRAMEWORK_KEYWORDS: Record<string, string[]> = {
   "the-throne.md": ["throne", "competition", "positioning", "market"],
   "biggest-fish.md": ["whale", "fish", "size", "accumulation"],
   "crypto-bandits.md": ["bandit", "strategy", "tactics", "edge"],
-  "the-memetics-era.md": ["meme", "memetics", "narrative", "culture", "virality"],
+  "the-memetics-era.md": [
+    "meme",
+    "memetics",
+    "narrative",
+    "culture",
+    "virality",
+  ],
   "the-reckoning.md": ["reckoning", "cycle", "market", "correction"],
-  "treadfi-optimization-framework.md": ["tread", "optimization", "framework", "yield"],
+  "treadfi-optimization-framework.md": [
+    "tread",
+    "optimization",
+    "framework",
+    "yield",
+  ],
   "patronage.md": ["patron", "support", "community", "ecosystem"],
   "the-poly-strat.md": ["poly", "polymarket", "prediction", "betting"],
 };
@@ -72,8 +100,12 @@ export const trenchKnowledgeProvider: Provider = {
     const data: Record<string, unknown> = {};
 
     try {
-      const knowledgePath = path.join(process.cwd(), "knowledge", "grinding-the-trenches");
-      
+      const knowledgePath = path.join(
+        process.cwd(),
+        "knowledge",
+        "grinding-the-trenches",
+      );
+
       if (!fs.existsSync(knowledgePath)) {
         logger.debug("[TrenchKnowledge] Knowledge directory not found");
         return { text: "", values: {}, data: {} };
@@ -123,14 +155,21 @@ export const trenchKnowledgeProvider: Provider = {
 
         values.hasFrameworks = true;
         values.frameworkCount = frameworks.length;
-        values.frameworkNames = frameworks.map(f => f.name);
+        values.frameworkNames = frameworks.map((f) => f.name);
         data.frameworks = frameworks;
       }
 
       // Check if LP strategy is relevant
-      const lpKeywords = ["lp", "liquidity", "pool", "meteora", "dlmm", "provide"];
-      const isLpRelevant = lpKeywords.some(kw => messageText.includes(kw));
-      
+      const lpKeywords = [
+        "lp",
+        "liquidity",
+        "pool",
+        "meteora",
+        "dlmm",
+        "provide",
+      ];
+      const isLpRelevant = lpKeywords.some((kw) => messageText.includes(kw));
+
       if (isLpRelevant) {
         const lpSummary = getLpDcaSummary();
         if (lpSummary) {
@@ -146,7 +185,6 @@ export const trenchKnowledgeProvider: Provider = {
       if (reminder) {
         data.knowledgeReminder = reminder;
       }
-
     } catch (error) {
       logger.debug(`[TrenchKnowledge] Error: ${error}`);
     }
@@ -178,28 +216,37 @@ function findRelevantFiles(messageText: string): string[] {
     }
   }
 
-  return scores
-    .sort((a, b) => b.score - a.score)
-    .map(s => s.file);
+  return scores.sort((a, b) => b.score - a.score).map((s) => s.file);
 }
 
-function extractFramework(filename: string, content: string): TrenchFramework | null {
+function extractFramework(
+  filename: string,
+  content: string,
+): TrenchFramework | null {
   try {
     // Extract title from first # heading
     const titleMatch = content.match(/^#\s+(.+)$/m);
-    const title = titleMatch ? titleMatch[1].trim() : filename.replace(".md", "");
+    const title = titleMatch
+      ? titleMatch[1].trim()
+      : filename.replace(".md", "");
 
     // Extract methodology section
-    const methodologyMatch = content.match(/## Methodology & Framework\s*\n([\s\S]*?)(?=\n##|\n---|\*\*Important)/);
+    const methodologyMatch = content.match(
+      /## Methodology & Framework\s*\n([\s\S]*?)(?=\n##|\n---|\*\*Important)/,
+    );
     const methodology = methodologyMatch ? methodologyMatch[1].trim() : "";
 
     // Extract key concepts
-    const keyConceptsMatch = methodology.match(/\*\*Key Concepts:\*\*\s*\n([\s\S]*?)(?=\n\*\*|\n\n)/);
+    const keyConceptsMatch = methodology.match(
+      /\*\*Key Concepts:\*\*\s*\n([\s\S]*?)(?=\n\*\*|\n\n)/,
+    );
     const keyConcepts = keyConceptsMatch ? keyConceptsMatch[1].trim() : "";
 
     // Parse key points
     const keyPoints: string[] = [];
-    const bulletPoints = keyConcepts.match(/-\s+\*\*([^*]+)\*\*:?\s*([^-\n]+)?/g);
+    const bulletPoints = keyConcepts.match(
+      /-\s+\*\*([^*]+)\*\*:?\s*([^-\n]+)?/g,
+    );
     if (bulletPoints) {
       for (const point of bulletPoints.slice(0, 5)) {
         const cleaned = point.replace(/^-\s+/, "").replace(/\*\*/g, "").trim();
@@ -223,7 +270,9 @@ function extractFramework(filename: string, content: string): TrenchFramework | 
       keyPoints,
     };
   } catch (error) {
-    logger.debug(`[TrenchKnowledge] Error extracting framework from ${filename}: ${error}`);
+    logger.debug(
+      `[TrenchKnowledge] Error extracting framework from ${filename}: ${error}`,
+    );
     return null;
   }
 }
@@ -232,27 +281,29 @@ function getLpDcaSummary(): string | null {
   return `Meteora DLMM LP as automated DCA: Instead of timing entries, provide liquidity across a price range. The market buys your tokens on pumps, sells them back on dumps. Works best with 20-100% daily volatility memes. High volume = high fees. "Let the market time you."`;
 }
 
-async function getKnowledgeReminder(knowledgePath: string): Promise<string | null> {
+async function getKnowledgeReminder(
+  knowledgePath: string,
+): Promise<string | null> {
   try {
     const files = fs.readdirSync(knowledgePath);
-    const mdFiles = files.filter(f => f.endsWith(".md") && f !== "README.md");
-    
+    const mdFiles = files.filter((f) => f.endsWith(".md") && f !== "README.md");
+
     if (mdFiles.length === 0) {
       return "Consider adding methodology frameworks to knowledge/grinding-the-trenches/";
     }
 
     // Check for staleness (if no files modified in 30 days)
-    const stats = mdFiles.map(f => {
+    const stats = mdFiles.map((f) => {
       try {
         return fs.statSync(path.join(knowledgePath, f)).mtime.getTime();
       } catch {
         return 0;
       }
     });
-    
+
     const mostRecent = Math.max(...stats);
     const daysSinceUpdate = (Date.now() - mostRecent) / (1000 * 60 * 60 * 24);
-    
+
     if (daysSinceUpdate > 30) {
       return `Trench knowledge hasn't been updated in ${Math.floor(daysSinceUpdate)} days. Consider adding new frameworks.`;
     }
@@ -270,9 +321,15 @@ async function getKnowledgeReminder(knowledgePath: string): Promise<string | nul
 /**
  * Get a specific framework by keyword
  */
-export async function getFrameworkForTopic(topic: string): Promise<TrenchFramework | null> {
-  const knowledgePath = path.join(process.cwd(), "knowledge", "grinding-the-trenches");
-  
+export async function getFrameworkForTopic(
+  topic: string,
+): Promise<TrenchFramework | null> {
+  const knowledgePath = path.join(
+    process.cwd(),
+    "knowledge",
+    "grinding-the-trenches",
+  );
+
   if (!fs.existsSync(knowledgePath)) {
     return null;
   }
@@ -291,16 +348,20 @@ export async function getFrameworkForTopic(topic: string): Promise<TrenchFramewo
  * List all available frameworks
  */
 export function listAvailableFrameworks(): string[] {
-  const knowledgePath = path.join(process.cwd(), "knowledge", "grinding-the-trenches");
-  
+  const knowledgePath = path.join(
+    process.cwd(),
+    "knowledge",
+    "grinding-the-trenches",
+  );
+
   if (!fs.existsSync(knowledgePath)) {
     return [];
   }
 
   const files = fs.readdirSync(knowledgePath);
   return files
-    .filter(f => f.endsWith(".md") && f !== "README.md")
-    .map(f => f.replace(".md", ""));
+    .filter((f) => f.endsWith(".md") && f !== "README.md")
+    .map((f) => f.replace(".md", ""));
 }
 
 export default trenchKnowledgeProvider;

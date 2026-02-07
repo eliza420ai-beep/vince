@@ -1,28 +1,35 @@
-import { useState } from 'react';
-import { Button } from '@/frontend/components/ui/button';
-import { Copy, Check } from 'lucide-react';
-import { useModal } from '@/frontend/contexts/ModalContext';
-import { SUPPORTED_CHAINS, CHAIN_UI_CONFIGS, getChainWalletIcon } from '@/frontend/constants/chains';
+import { useState } from "react";
+import { Button } from "@/frontend/components/ui/button";
+import { Copy, Check } from "lucide-react";
+import { useModal } from "@/frontend/contexts/ModalContext";
+import {
+  SUPPORTED_CHAINS,
+  CHAIN_UI_CONFIGS,
+  getChainWalletIcon,
+} from "@/frontend/constants/chains";
 
 interface FundModalContentProps {
   walletAddress?: string;
   shortAddress: string;
 }
 
-export function FundModalContent({ walletAddress, shortAddress }: FundModalContentProps) {
+export function FundModalContent({
+  walletAddress,
+  shortAddress,
+}: FundModalContentProps) {
   const { hideModal } = useModal();
-  const modalId = 'fund-modal';
+  const modalId = "fund-modal";
   const [copiedChain, setCopiedChain] = useState<string | null>(null);
 
   const handleCopyChainAddress = async (chain: string) => {
     if (!walletAddress) return;
-    
+
     try {
       await navigator.clipboard.writeText(walletAddress);
       setCopiedChain(chain);
       setTimeout(() => setCopiedChain(null), 2000);
     } catch (err) {
-      console.error('Failed to copy address:', err);
+      console.error("Failed to copy address:", err);
     }
   };
 
@@ -32,7 +39,7 @@ export function FundModalContent({ walletAddress, shortAddress }: FundModalConte
       <p className="text-sm text-muted-foreground">
         Transfer assets to your wallet on any supported network
       </p>
-      
+
       {/* Network Address List - Each chain in its own card */}
       <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         {SUPPORTED_CHAINS.map((chain) => {
@@ -47,8 +54,8 @@ export function FundModalContent({ walletAddress, shortAddress }: FundModalConte
               <div className="flex items-center gap-2.5 shrink-0">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white">
                   {chainWalletIcon ? (
-                    <img 
-                      src={chainWalletIcon} 
+                    <img
+                      src={chainWalletIcon}
                       alt={config.name}
                       className="w-full h-full object-contain"
                     />
@@ -58,13 +65,17 @@ export function FundModalContent({ walletAddress, shortAddress }: FundModalConte
                     </span>
                   )}
                 </div>
-                <span className="text-sm font-medium">{config.displayName}</span>
+                <span className="text-sm font-medium">
+                  {config.displayName}
+                </span>
               </div>
-              
+
               {/* Second Group: Address & Copy Button */}
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-[10px] text-muted-foreground font-mono">
-                  {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : ''}
+                  {walletAddress
+                    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+                    : ""}
                 </span>
                 <Button
                   onClick={() => handleCopyChainAddress(chain)}
@@ -96,4 +107,3 @@ export function FundModalContent({ walletAddress, shortAddress }: FundModalConte
     </div>
   );
 }
-

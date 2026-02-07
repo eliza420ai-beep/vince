@@ -1,8 +1,8 @@
 /**
  * VINCE Plugin - Unified Data Intelligence
- * 
+ *
  * Consolidates all working data sources into a single coherent system:
- * 
+ *
  * TRADING DATA:
  * - CoinGlassService - Hobbyist API: L/S ratio, funding, OI, fear/greed
  * - CoinGeckoService - FREE: Exchange health, liquidity
@@ -10,21 +10,22 @@
  * - SignalAggregatorService - Aggregates signals from all sources
  * - TopTradersService - Whale wallet tracking via Hyperliquid
  * - NewsSentimentService - News impact and Mandominutes
- * 
+ *
  * MEMETICS DATA:
  * - DexScreenerService - Hot memes on SOLANA + BASE
  * - MeteoraService - LP pool discovery for DCA strategy
- * 
+ *
  * LIFESTYLE + ART:
  * - LifestyleService - Daily suggestions based on day of week
  * - NFTFloorService - Floor tracking for ~12 curated collections
- * 
+ *
  * @module @elizaos/plugin-vince
  */
 
 import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { buildPulseResponse } from "./routes/dashboardPulse";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -48,10 +49,18 @@ import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
 
 // Fallback services factory (for external service source tracking)
-import { initializeFallbackServices, getServiceSources, clearServiceSources, getOrCreateHyperliquidService } from "./services/fallbacks";
-import { DeribitServiceAlias, HyperliquidServiceAlias } from "./services/fallbacks/aliasServices";
+import {
+  initializeFallbackServices,
+  getServiceSources,
+  clearServiceSources,
+  getOrCreateHyperliquidService,
+} from "./services/fallbacks";
+import {
+  DeribitServiceAlias,
+  HyperliquidServiceAlias,
+} from "./services/fallbacks/aliasServices";
 import { startBox, endBox, logLine, logEmpty, sep } from "./utils/boxLogger";
-import { isVinceAgent } from "./utils/dashboard";
+import { isVinceAgent, getStartupSummaryLine } from "./utils/dashboard";
 
 // Services - Paper Trading Bot
 import { VincePaperTradingService } from "./services/vincePaperTrading.service";
@@ -83,7 +92,10 @@ import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
 import { vinceHIP3Action } from "./actions/hip3.action";
-import { vinceHlCryptoAction, printHlCryptoDashboard } from "./actions/hlCrypto.action";
+import {
+  vinceHlCryptoAction,
+  printHlCryptoDashboard,
+} from "./actions/hlCrypto.action";
 import { vinceChatAction } from "./actions/chat.action";
 
 // Actions - Paper Trading Bot
@@ -130,7 +142,7 @@ import { paperTradesSchema } from "./schema/paperTrades";
 
 export const vincePlugin: Plugin = {
   name: "plugin-vince",
-  description: 
+  description:
     "Unified data intelligence for VINCE agent. " +
     "Consolidates: Deribit, Nansen, Sanbase, CoinGlass, CoinGecko, DexScreener, Meteora, NFT floors, Lifestyle. " +
     "Core assets: BTC, ETH, SOL, HYPE + HIP-3 tokens. Focus: OPTIONS, PERPS, MEMETICS, AIRDROPS, LIFESTYLE, ART.",
@@ -142,9 +154,10 @@ export const vincePlugin: Plugin = {
   // DeribitServiceAlias/HyperliquidServiceAlias: register under DERIBIT_SERVICE/HYPERLIQUID_SERVICE so
   // runtime.getService() never returns null when external plugins aren't loaded. Must be in services
   // array (not init registerService) to avoid blocking initPromise → 30s timeout deadlock.
+  // Cast via unknown: start() returns fallback impls (IDeribitService/IHyperliquidService), not Service subclass.
   services: [
-    DeribitServiceAlias,
-    HyperliquidServiceAlias,
+    DeribitServiceAlias as unknown as typeof Service,
+    HyperliquidServiceAlias as unknown as typeof Service,
     VinceCoinGlassService,
     VinceCoinGeckoService,
     VinceMarketDataService,
@@ -169,7 +182,7 @@ export const vincePlugin: Plugin = {
     // Paper Trading Bot (order matters - dependencies first)
     VinceRiskManagerService,
     VinceTradeJournalService,
-    VinceGoalTrackerService,   // Goal-aware trading KPI system
+    VinceGoalTrackerService, // Goal-aware trading KPI system
     VincePositionManagerService,
     VincePaperTradingService,
     // Self-Improving Architecture
@@ -181,7 +194,7 @@ export const vincePlugin: Plugin = {
     VinceSignalSimilarityService,
     VinceMLInferenceService,
   ],
-  
+
   // Actions - focus areas + paper trading bot controls
   actions: [
     vinceGmAction,
@@ -212,7 +225,45 @@ export const vincePlugin: Plugin = {
     vinceWatchlistAction,
     vinceAlertsAction,
   ],
-  
+
+  // API route: dashboard pulse (snapshot + LLM insight) for frontend
+  routes: [
+    {
+      name: "vince-pulse",
+      path: "/vince/pulse",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+      ) => {
+        const runtime =
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!runtime) {
+          res.status(503).json({
+            error: "Pulse requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/vince/pulse (ElizaOS mounts plugin routes under /plugins).",
+          });
+          return;
+        }
+        try {
+          const pulse = await buildPulseResponse(runtime as IAgentRuntime);
+          res.json(pulse);
+        } catch (err) {
+          logger.warn(`[VINCE] Pulse route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build pulse",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+  ],
+
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
   providers: [
     teammateContextProvider,
@@ -220,12 +271,10 @@ export const vincePlugin: Plugin = {
     vinceContextProvider,
     trenchKnowledgeProvider,
   ],
-  
+
   // Evaluators - Self-Improving Architecture
-  evaluators: [
-    tradePerformanceEvaluator,
-  ],
-  
+  evaluators: [tradePerformanceEvaluator],
+
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
     // Guard: any runtime that does NOT have the Discord plugin must get a no-op discord send handler
@@ -256,142 +305,199 @@ export const vincePlugin: Plugin = {
 
     // Banner + MARKET PULSE: only for VINCE (Eliza also loads this plugin → would print twice)
     if (isVinceAgent(runtime)) {
-    // Fetch live prices and 24h change from CoinGecko
-    let prices: { btc?: number; eth?: number; sol?: number; hype?: number } = {};
-    let changes: { btc?: number; eth?: number; sol?: number; hype?: number } = {};
-    try {
-      const res = await fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,hyperliquid&vs_currencies=usd&include_24hr_change=true",
-        { signal: AbortSignal.timeout(5000) }
+      // Fetch live prices and 24h change from CoinGecko
+      let prices: { btc?: number; eth?: number; sol?: number; hype?: number } =
+        {};
+      let changes: { btc?: number; eth?: number; sol?: number; hype?: number } =
+        {};
+      try {
+        const res = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,hyperliquid&vs_currencies=usd&include_24hr_change=true",
+          { signal: AbortSignal.timeout(5000) },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          prices = {
+            btc: data.bitcoin?.usd,
+            eth: data.ethereum?.usd,
+            sol: data.solana?.usd,
+            hype: data.hyperliquid?.usd,
+          };
+          changes = {
+            btc: data.bitcoin?.usd_24h_change,
+            eth: data.ethereum?.usd_24h_change,
+            sol: data.solana?.usd_24h_change,
+            hype: data.hyperliquid?.usd_24h_change,
+          };
+        }
+      } catch {
+        // Silent fallback - prices will show as "..."
+      }
+
+      // Fetch Hyperliquid options pulse (funding, crowding, OI, vol) — HIP-3 style overview
+      let optionsPulse: Awaited<
+        ReturnType<
+          NonNullable<
+            ReturnType<typeof getOrCreateHyperliquidService>
+          >["getOptionsPulse"]
+        >
+      > = null;
+      try {
+        const hlService = getOrCreateHyperliquidService(runtime);
+        if (hlService && typeof hlService.getOptionsPulse === "function") {
+          optionsPulse = await Promise.race([
+            hlService.getOptionsPulse(),
+            new Promise<null>((r) => setTimeout(() => r(null), 5000)),
+          ]);
+        }
+      } catch {
+        // Silent fallback
+      }
+
+      const formatPrice = (p: number | undefined) => {
+        if (!p) return "...";
+        if (p >= 1000) return `$${(p / 1000).toFixed(1)}K`;
+        return `$${p.toFixed(2)}`;
+      };
+      const formatChange = (c: number | undefined) => {
+        if (c == null || Number.isNaN(c)) return "";
+        const s = c >= 0 ? `+${c.toFixed(2)}` : c.toFixed(2);
+        return ` (${s}%)`;
+      };
+      const formatFunding = (f: number | undefined) =>
+        f != null ? `${f >= 0 ? "+" : ""}${f.toFixed(2)}%` : "-";
+      const formatOI = (v: number | undefined) => {
+        if (v == null || v <= 0) return "";
+        if (v >= 1e6) return ` OI ${(v / 1e6).toFixed(2)}M`;
+        if (v >= 1e3) return ` OI ${(v / 1e3).toFixed(1)}k`;
+        return "";
+      };
+
+      const assets = [
+        {
+          key: "btc" as const,
+          symbol: "BTC",
+          price: prices.btc,
+          change: changes.btc,
+        },
+        {
+          key: "eth" as const,
+          symbol: "ETH",
+          price: prices.eth,
+          change: changes.eth,
+        },
+        {
+          key: "sol" as const,
+          symbol: "SOL",
+          price: prices.sol,
+          change: changes.sol,
+        },
+        {
+          key: "hype" as const,
+          symbol: "HYPE",
+          price: prices.hype,
+          change: changes.hype,
+        },
+      ];
+      const assetLines: string[] = [];
+      for (const a of assets) {
+        const pulse = optionsPulse?.assets?.[a.key];
+        const fund =
+          pulse?.fundingAnnualized != null
+            ? formatFunding(pulse.fundingAnnualized)
+            : "";
+        const crowd =
+          pulse?.crowdingLevel && pulse.crowdingLevel !== "neutral"
+            ? ` ${pulse.crowdingLevel.replace("extreme_", "ext ")}`
+            : "";
+        const oi =
+          pulse?.openInterest != null ? formatOI(pulse.openInterest) : "";
+        const parts = [
+          `${a.symbol}: ${formatPrice(a.price)}${formatChange(a.change)}`,
+        ];
+        if (fund || crowd || oi) parts.push(` | fund ${fund}${crowd}${oi}`);
+        assetLines.push("   ├─ " + parts.join(""));
+      }
+      const bias = optionsPulse?.overallBias?.toUpperCase() ?? "—";
+      const crowded: string[] = [];
+      for (const a of assets) {
+        const c = optionsPulse?.assets?.[a.key]?.crowdingLevel;
+        if (c === "extreme_long" || c === "long")
+          crowded.push(`${a.symbol} longs`);
+        if (c === "extreme_short" || c === "short")
+          crowded.push(`${a.symbol} shorts`);
+      }
+      const leader = assets.reduce<{ sym: string; ch: number } | null>(
+        (best, a) => {
+          const ch = a.change ?? 0;
+          if (best == null || ch > best.ch) return { sym: a.symbol, ch };
+          return best;
+        },
+        null,
       );
-      if (res.ok) {
-        const data = await res.json();
-        prices = {
-          btc: data.bitcoin?.usd,
-          eth: data.ethereum?.usd,
-          sol: data.solana?.usd,
-          hype: data.hyperliquid?.usd,
-        };
-        changes = {
-          btc: data.bitcoin?.usd_24h_change,
-          eth: data.ethereum?.usd_24h_change,
-          sol: data.solana?.usd_24h_change,
-          hype: data.hyperliquid?.usd_24h_change,
-        };
-      }
-    } catch {
-      // Silent fallback - prices will show as "..."
-    }
+      const tldrParts: string[] = [`Bias: ${bias}`];
+      if (crowded.length)
+        tldrParts.push(`Crowded: ${crowded.slice(0, 2).join(", ")}`);
+      if (leader && Math.abs(leader.ch) > 0.1)
+        tldrParts.push(
+          `${leader.ch >= 0 ? "Leading" : "Dragging"}: ${leader.sym}`,
+        );
 
-    // Fetch Hyperliquid options pulse (funding, crowding, OI, vol) — HIP-3 style overview
-    let optionsPulse: Awaited<ReturnType<NonNullable<ReturnType<typeof getOrCreateHyperliquidService>>["getOptionsPulse"]>> = null;
-    try {
-      const hlService = getOrCreateHyperliquidService(runtime);
-      if (hlService && typeof hlService.getOptionsPulse === "function") {
-        optionsPulse = await Promise.race([
-          hlService.getOptionsPulse(),
-          new Promise<null>((r) => setTimeout(() => r(null), 5000)),
-        ]);
-      }
-    } catch {
-      // Silent fallback
-    }
+      // Banner (same box style as paper trade-opened and dashboards)
+      startBox();
+      logLine("   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗");
+      logLine("   ██║   ██║██║████╗  ██║██╔════╝██╔════╝");
+      logLine("   ██║   ██║██║██╔██╗ ██║██║     █████╗");
+      logLine("   ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝");
+      logLine("    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗");
+      logLine("     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝");
+      logEmpty();
+      logLine("   UNIFIED DATA INTELLIGENCE");
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("   MARKET PULSE (HL perps: BTC, ETH, SOL, HYPE)");
+      for (const ln of assetLines) logLine(ln);
+      logLine("   └─ TLDR: " + tldrParts.join(" | "));
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("   FOCUS AREAS");
+      logLine("   ├─ OPTIONS    Covered calls / secured puts (Hypersurface)");
+      logLine("   ├─ PERPS      LLM narrative + paper bot (Hyperliquid)");
+      logLine("   ├─ HIP-3      Stocks, commodities, indices (34 assets)");
+      logLine("   ├─ PAPER BOT  Signal-following with risk management");
+      logLine("   ├─ NEWS       MandoMinutes sentiment analysis");
+      logLine("   ├─ MEMETICS   Hot memes BASE + SOL (DexScreener)");
+      logLine("   ├─ AIRDROPS   treadfi focus");
+      logLine("   ├─ DEFI       PENDLE, AAVE, UNI knowledge");
+      logLine("   ├─ LIFESTYLE  Daily suggestions");
+      logLine("   ├─ ART        NFT floors (CryptoPunks, Meridian)");
+      logEmpty();
+      sep();
+      logEmpty();
+      logLine("   DATA SOURCES");
+      logLine("   ├─ MandoMins   News sentiment, risk events");
+      logLine("   ├─ Deribit     Options IV, Greeks, strikes");
+      logLine("   ├─ Hyperliquid Perps, top traders");
+      logLine("   ├─ CoinGlass   Funding, OI, L/S ratio");
+      logLine("   ├─ CoinGecko   Prices, exchange health");
+      logLine("   ├─ Binance     Top traders, taker flow, liqs (FREE!)");
+      logLine("   ├─ DexScreener Meme scanner, traction");
+      logLine("   ├─ Meteora     LP pools, DCA strategy");
+      logLine("   ├─ Nansen      Smart money (100 credits)");
+      logLine("   └─ Sanbase     On-chain analytics (1K/mo)");
+      endBox();
 
-    const formatPrice = (p: number | undefined) => {
-      if (!p) return "...";
-      if (p >= 1000) return `$${(p / 1000).toFixed(1)}K`;
-      return `$${p.toFixed(2)}`;
-    };
-    const formatChange = (c: number | undefined) => {
-      if (c == null || Number.isNaN(c)) return "";
-      const s = c >= 0 ? `+${c.toFixed(2)}` : c.toFixed(2);
-      return ` (${s}%)`;
-    };
-    const formatFunding = (f: number | undefined) => (f != null ? `${f >= 0 ? "+" : ""}${f.toFixed(2)}%` : "-");
-    const formatOI = (v: number | undefined) => {
-      if (v == null || v <= 0) return "";
-      if (v >= 1e6) return ` OI ${(v / 1e6).toFixed(2)}M`;
-      if (v >= 1e3) return ` OI ${(v / 1e3).toFixed(1)}k`;
-      return "";
-    };
-
-    const assets = [
-      { key: "btc" as const, symbol: "BTC", price: prices.btc, change: changes.btc },
-      { key: "eth" as const, symbol: "ETH", price: prices.eth, change: changes.eth },
-      { key: "sol" as const, symbol: "SOL", price: prices.sol, change: changes.sol },
-      { key: "hype" as const, symbol: "HYPE", price: prices.hype, change: changes.hype },
-    ];
-    const assetLines: string[] = [];
-    for (const a of assets) {
-      const pulse = optionsPulse?.assets?.[a.key];
-      const fund = pulse?.fundingAnnualized != null ? formatFunding(pulse.fundingAnnualized) : "";
-      const crowd = pulse?.crowdingLevel && pulse.crowdingLevel !== "neutral" ? ` ${pulse.crowdingLevel.replace("extreme_", "ext ")}` : "";
-      const oi = pulse?.openInterest != null ? formatOI(pulse.openInterest) : "";
-      const parts = [`${a.symbol}: ${formatPrice(a.price)}${formatChange(a.change)}`];
-      if (fund || crowd || oi) parts.push(` | fund ${fund}${crowd}${oi}`);
-      assetLines.push("   ├─ " + parts.join(""));
-    }
-    const bias = optionsPulse?.overallBias?.toUpperCase() ?? "—";
-    const crowded: string[] = [];
-    for (const a of assets) {
-      const c = optionsPulse?.assets?.[a.key]?.crowdingLevel;
-      if (c === "extreme_long" || c === "long") crowded.push(`${a.symbol} longs`);
-      if (c === "extreme_short" || c === "short") crowded.push(`${a.symbol} shorts`);
-    }
-    const leader = assets.reduce<{ sym: string; ch: number } | null>((best, a) => {
-      const ch = a.change ?? 0;
-      if (best == null || ch > best.ch) return { sym: a.symbol, ch };
-      return best;
-    }, null);
-    const tldrParts: string[] = [`Bias: ${bias}`];
-    if (crowded.length) tldrParts.push(`Crowded: ${crowded.slice(0, 2).join(", ")}`);
-    if (leader && Math.abs(leader.ch) > 0.1) tldrParts.push(`${leader.ch >= 0 ? "Leading" : "Dragging"}: ${leader.sym}`);
-
-    // Banner (same box style as paper trade-opened and dashboards)
-    startBox();
-    logLine("   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗");
-    logLine("   ██║   ██║██║████╗  ██║██╔════╝██╔════╝");
-    logLine("   ██║   ██║██║██╔██╗ ██║██║     █████╗");
-    logLine("   ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝");
-    logLine("    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗");
-    logLine("     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝");
-    logEmpty();
-    logLine("   UNIFIED DATA INTELLIGENCE");
-    logEmpty();
-    sep();
-    logEmpty();
-    logLine("   MARKET PULSE (HL perps: BTC, ETH, SOL, HYPE)");
-    for (const ln of assetLines) logLine(ln);
-    logLine("   └─ TLDR: " + tldrParts.join(" | "));
-    logEmpty();
-    sep();
-    logEmpty();
-    logLine("   FOCUS AREAS");
-    logLine("   ├─ OPTIONS    Covered calls / secured puts (Hypersurface)");
-    logLine("   ├─ PERPS      LLM narrative + paper bot (Hyperliquid)");
-    logLine("   ├─ HIP-3      Stocks, commodities, indices (34 assets)");
-    logLine("   ├─ PAPER BOT  Signal-following with risk management");
-    logLine("   ├─ NEWS       MandoMinutes sentiment analysis");
-    logLine("   ├─ MEMETICS   Hot memes BASE + SOL (DexScreener)");
-    logLine("   ├─ AIRDROPS   treadfi focus");
-    logLine("   ├─ DEFI       PENDLE, AAVE, UNI knowledge");
-    logLine("   ├─ LIFESTYLE  Daily suggestions");
-    logLine("   ├─ ART        NFT floors (CryptoPunks, Meridian)");
-    logEmpty();
-    sep();
-    logEmpty();
-    logLine("   DATA SOURCES");
-    logLine("   ├─ MandoMins   News sentiment, risk events");
-    logLine("   ├─ Deribit     Options IV, Greeks, strikes");
-    logLine("   ├─ Hyperliquid Perps, top traders");
-    logLine("   ├─ CoinGlass   Funding, OI, L/S ratio");
-    logLine("   ├─ CoinGecko   Prices, exchange health");
-    logLine("   ├─ Binance     Top traders, taker flow, liqs (FREE!)");
-    logLine("   ├─ DexScreener Meme scanner, traction");
-    logLine("   ├─ Meteora     LP pools, DCA strategy");
-    logLine("   ├─ Nansen      Smart money (100 credits)");
-    logLine("   └─ Sanbase     On-chain analytics (1K/mo)");
-    endBox();
+      // Single aggregated startup summary (one line) after services have started
+      setImmediate(() => {
+        setTimeout(() => {
+          const summary = getStartupSummaryLine(runtime);
+          startBox();
+          logLine("   VINCE startup: " + summary);
+          endBox();
+        }, 3500);
+      });
     }
 
     logger.info("[VINCE] Plugin initialized successfully");
@@ -403,40 +509,54 @@ export const vincePlugin: Plugin = {
     clearServiceSources(); // Clear any previous state
     initializeFallbackServices(runtime);
     const serviceSources = getServiceSources();
-    
+
     const externalServices = serviceSources
       .filter((s) => s.source === "external")
       .map((s) => {
         switch (s.name) {
-          case "deribit": return "Deribit (DVOL, P/C ratio)";
-          case "hyperliquid": return "Hyperliquid (funding, crowding)";
-          case "opensea": return "OpenSea (NFT floors)";
+          case "deribit":
+            return "Deribit (DVOL, P/C ratio)";
+          case "hyperliquid":
+            return "Hyperliquid (funding, crowding)";
+          case "opensea":
+            return "OpenSea (NFT floors)";
           // case "xai": return "XAI (Grok)";
-          case "browser": return "Browser (news)";
-          default: return s.name;
+          case "browser":
+            return "Browser (news)";
+          default:
+            return s.name;
         }
       });
     const fallbackServices = serviceSources
       .filter((s) => s.source === "fallback")
       .map((s) => {
         switch (s.name) {
-          case "deribit": return "Deribit";
-          case "hyperliquid": return "Hyperliquid";
-          case "opensea": return "OpenSea";
+          case "deribit":
+            return "Deribit";
+          case "hyperliquid":
+            return "Hyperliquid";
+          case "opensea":
+            return "OpenSea";
           // case "xai": return "XAI";
-          case "browser": return "Browser";
-          default: return s.name;
+          case "browser":
+            return "Browser";
+          default:
+            return s.name;
         }
       });
-    
+
     // Check if XAI is configured (Grok Expert commented out)
     // const xaiConfigured = serviceSources.find((s) => s.name === "xai") !== undefined;
 
     if (externalServices.length > 0) {
-      logger.debug(`  [VINCE] ✅ Using external plugins: ${externalServices.join(", ")}`);
+      logger.debug(
+        `  [VINCE] ✅ Using external plugins: ${externalServices.join(", ")}`,
+      );
     }
     if (fallbackServices.length > 0) {
-      logger.debug(`  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`);
+      logger.debug(
+        `  [VINCE] 🔄 Using built-in API fallbacks: ${fallbackServices.join(", ")}`,
+      );
     }
     // Signal sources available for aggregator (see SIGNAL_SOURCES.md)
     const signalSourceChecks: [string, string][] = [
@@ -452,56 +572,75 @@ export const vincePlugin: Plugin = {
     const availableSources = signalSourceChecks
       .filter(([type]) => !!runtime.getService(type))
       .map(([, label]) => label);
-    logger.debug(`  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`);
+    logger.debug(
+      `  [VINCE] 📡 Signal sources available: ${availableSources.length}/${signalSourceChecks.length} (${availableSources.join(", ")})`,
+    );
 
     // Improvement report → aggregator weights (THINGS TO DO #3): log top features, optionally align weights
-    const { logAndApplyImprovementReportWeights } = await import("./utils/improvementReportWeights");
-    const applyWeights = runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === true || runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === "true";
+    const { logAndApplyImprovementReportWeights } =
+      await import("./utils/improvementReportWeights");
+    const applyWeights =
+      runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === true ||
+      runtime.getSetting?.("VINCE_APPLY_IMPROVEMENT_WEIGHTS") === "true";
     logAndApplyImprovementReportWeights(applyWeights).catch((e) =>
-      logger.debug(`[VINCE] Improvement report weights: ${e}`)
+      logger.debug(`[VINCE] Improvement report weights: ${e}`),
     );
-    logger.debug(`  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`);
+    logger.debug(
+      `  [VINCE]    Confirm contributing sources in logs: [VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ...`,
+    );
 
     // Verify Hyperliquid API + HL Crypto dashboard: VINCE only (Eliza shares plugin, skip duplicate output)
     if (isVinceAgent(runtime)) {
-    (async () => {
-      try {
-        const hlService = getOrCreateHyperliquidService(runtime);
-        if (hlService && typeof (hlService as any).testConnection === "function") {
-          const testResult = await (hlService as any).testConnection();
-          if (testResult.success) {
-            logger.debug(`  [VINCE] 🔗 Hyperliquid API: ${testResult.message}`);
-            if (testResult.data) {
-              const { btcFunding8h, ethFunding8h } = testResult.data;
-              logger.debug(`  [VINCE]    BTC funding: ${btcFunding8h !== null ? (btcFunding8h * 100).toFixed(4) + "%" : "N/A"} | ETH: ${ethFunding8h !== null ? (ethFunding8h * 100).toFixed(4) + "%" : "N/A"}`);
+      (async () => {
+        try {
+          const hlService = getOrCreateHyperliquidService(runtime);
+          if (
+            hlService &&
+            typeof (hlService as any).testConnection === "function"
+          ) {
+            const testResult = await (hlService as any).testConnection();
+            if (testResult.success) {
+              logger.debug(
+                `  [VINCE] 🔗 Hyperliquid API: ${testResult.message}`,
+              );
+              if (testResult.data) {
+                const { btcFunding8h, ethFunding8h } = testResult.data;
+                logger.debug(
+                  `  [VINCE]    BTC funding: ${btcFunding8h !== null ? (btcFunding8h * 100).toFixed(4) + "%" : "N/A"} | ETH: ${ethFunding8h !== null ? (ethFunding8h * 100).toFixed(4) + "%" : "N/A"}`,
+                );
+              }
+            } else {
+              logger.warn(
+                `  [VINCE] ⚠️  Hyperliquid API: ${testResult.message}`,
+              );
             }
-          } else {
-            logger.warn(`  [VINCE] ⚠️  Hyperliquid API: ${testResult.message}`);
           }
+        } catch (e) {
+          logger.warn(`  [VINCE] ⚠️  Hyperliquid API test failed: ${e}`);
         }
-      } catch (e) {
-        logger.warn(`  [VINCE] ⚠️  Hyperliquid API test failed: ${e}`);
-      }
-    })();
+      })();
 
-    // HL Crypto dashboard (HIP-3 style for all HL crypto perps) — async, non-blocking
-    (async () => {
-      try {
-        const hlService = getOrCreateHyperliquidService(runtime);
-        if (hlService && typeof (hlService as any).getAllCryptoPulse === "function") {
-          const pulse = await Promise.race([
-            (hlService as any).getAllCryptoPulse(),
-            new Promise<null>((r) => setTimeout(() => r(null), 8000)),
-          ]);
-          if (pulse?.assets?.length) {
-            const dashboard = printHlCryptoDashboard(pulse);
-            dashboard.split("\n").forEach((line) => console.log(line));
+      // HL Crypto dashboard (HIP-3 style for all HL crypto perps) — async, non-blocking
+      (async () => {
+        try {
+          const hlService = getOrCreateHyperliquidService(runtime);
+          if (
+            hlService &&
+            typeof (hlService as any).getAllCryptoPulse === "function"
+          ) {
+            const pulse = await Promise.race([
+              (hlService as any).getAllCryptoPulse(),
+              new Promise<null>((r) => setTimeout(() => r(null), 8000)),
+            ]);
+            if (pulse?.assets?.length) {
+              const dashboard = printHlCryptoDashboard(pulse);
+              dashboard.split("\n").forEach((line) => console.log(line));
+            }
           }
+        } catch {
+          // Silent — HL crypto dashboard is best-effort
         }
-      } catch {
-        // Silent — HL crypto dashboard is best-effort
-      }
-    })();
+      })();
     }
 
     // Register Grok Expert daily task (commented out - low value)
@@ -520,7 +659,9 @@ export const vincePlugin: Plugin = {
           await registerTrainOnnxTask(runtime);
         } catch (e) {
           const msg = String((e as Error)?.message ?? e);
-          const adapterMissing = /adapter|undefined is not an object/i.test(msg);
+          const adapterMissing = /adapter|undefined is not an object/i.test(
+            msg,
+          );
           if (adapterMissing && attempt < 3) {
             setTimeout(() => tryRegister(attempt + 1), 500 * (attempt + 1));
           } else {
@@ -663,7 +804,10 @@ export { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 // Analysis Exports
 // ==========================================
 
-export { BullBearAnalyzer, getBullBearAnalyzer } from "./analysis/bullBearAnalyzer";
+export {
+  BullBearAnalyzer,
+  getBullBearAnalyzer,
+} from "./analysis/bullBearAnalyzer";
 
 // ==========================================
 // Evaluator Exports
@@ -682,4 +826,8 @@ export {
   getSourceWeight,
   meetsThresholds,
 } from "./config/dynamicConfig";
-export type { SourceWeights, AdjustmentRecord, TunedConfig } from "./config/dynamicConfig";
+export type {
+  SourceWeights,
+  AdjustmentRecord,
+  TunedConfig,
+} from "./config/dynamicConfig";

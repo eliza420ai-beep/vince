@@ -26,17 +26,22 @@ function getSupabaseUrl(postgresUrl: string | null): string | null {
   return `https://${match[1]}.supabase.co`;
 }
 
-export function getSupabaseClient(runtime: IAgentRuntime): SupabaseClient | null {
+export function getSupabaseClient(
+  runtime: IAgentRuntime,
+): SupabaseClient | null {
   const supabaseUrl =
     (runtime.getSetting("SUPABASE_URL") as string) ||
     (typeof process !== "undefined" && process.env?.SUPABASE_URL) ||
     getSupabaseUrl(
       (runtime.getSetting("POSTGRES_URL") as string) ||
-        (typeof process !== "undefined" ? process.env?.POSTGRES_URL ?? null : null)
+        (typeof process !== "undefined"
+          ? (process.env?.POSTGRES_URL ?? null)
+          : null),
     );
   const supabaseKey =
     (runtime.getSetting("SUPABASE_SERVICE_ROLE_KEY") as string) ||
-    (typeof process !== "undefined" && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
+    (typeof process !== "undefined" &&
+      process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
     (runtime.getSetting("SUPABASE_ANON_KEY") as string) ||
     (typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : null);
   if (!supabaseUrl || !supabaseKey) return null;
@@ -49,7 +54,7 @@ export function getSupabaseClient(runtime: IAgentRuntime): SupabaseClient | null
  */
 export async function uploadModelsToSupabase(
   runtime: IAgentRuntime,
-  modelsDir: string
+  modelsDir: string,
 ): Promise<boolean> {
   const supabase = getSupabaseClient(runtime);
   if (!supabase) {
@@ -68,11 +73,15 @@ export async function uploadModelsToSupabase(
     try {
       const buf = fs.readFileSync(filePath);
       const { error } = await supabase.storage.from(BUCKET).upload(name, buf, {
-        contentType: name.endsWith(".json") ? "application/json" : "application/octet-stream",
+        contentType: name.endsWith(".json")
+          ? "application/json"
+          : "application/octet-stream",
         upsert: true,
       });
       if (error) {
-        logger.warn(`[SupabaseMLModels] Upload ${name} failed: ${error.message}`);
+        logger.warn(
+          `[SupabaseMLModels] Upload ${name} failed: ${error.message}`,
+        );
         continue;
       }
       uploaded++;
@@ -81,7 +90,9 @@ export async function uploadModelsToSupabase(
     }
   }
   if (uploaded > 0) {
-    logger.info(`[SupabaseMLModels] Uploaded ${uploaded} model file(s) to ${BUCKET}`);
+    logger.info(
+      `[SupabaseMLModels] Uploaded ${uploaded} model file(s) to ${BUCKET}`,
+    );
     return true;
   }
   return false;
@@ -93,7 +104,7 @@ export async function uploadModelsToSupabase(
  */
 export async function downloadModelsFromSupabase(
   runtime: IAgentRuntime,
-  modelsDir: string
+  modelsDir: string,
 ): Promise<boolean> {
   const supabase = getSupabaseClient(runtime);
   if (!supabase) return false;
@@ -108,7 +119,9 @@ export async function downloadModelsFromSupabase(
   let downloaded = 0;
   for (const name of MODEL_FILES) {
     try {
-      const { data, error } = await supabase.storage.from(BUCKET).download(name);
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .download(name);
       if (error || !data) continue;
       const filePath = path.join(resolved, name);
       const buf = Buffer.from(await data.arrayBuffer());
@@ -119,7 +132,9 @@ export async function downloadModelsFromSupabase(
     }
   }
   if (downloaded > 0) {
-    logger.info(`[SupabaseMLModels] Downloaded ${downloaded} model file(s) from ${BUCKET}`);
+    logger.info(
+      `[SupabaseMLModels] Downloaded ${downloaded} model file(s) from ${BUCKET}`,
+    );
     return true;
   }
   return false;

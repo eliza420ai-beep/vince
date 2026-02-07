@@ -35,7 +35,7 @@ export default function CollapsibleNotifications() {
         <motion.div layout className="flex items-center gap-2 flex-1">
           {/* Unread Badge/Bullet */}
           {unreadCount > 0 ? <Badge>{unreadCount}</Badge> : <Bullet />}
-          
+
           {/* Title */}
           <span className="text-sm font-medium uppercase">
             {isExpanded ? "Notifications" : "Notifications"}
@@ -86,7 +86,7 @@ export default function CollapsibleNotifications() {
                       You're all caught up!
                     </p>
                   </div>
-                  
+
                   {/* Future: Notification items will go here */}
                   {/* Example structure when there are notifications:
                   <div className="space-y-2 p-3">
@@ -102,4 +102,3 @@ export default function CollapsibleNotifications() {
     </motion.div>
   );
 }
-

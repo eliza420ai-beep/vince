@@ -5,6 +5,7 @@ Context-aware plugin activation to reduce LLM context size.
 ## Problem
 
 With many plugins installed, all actions are shown to the LLM in every request, leading to:
+
 - Large context windows
 - Slower response times
 - Higher costs
@@ -46,11 +47,14 @@ With many plugins installed, all actions are shown to the LLM in every request, 
 Reusable matcher that checks recent messages against keyword patterns:
 
 ```typescript
-import { matchesPluginContext, type PluginKeywordPatterns } from "../../utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "../../utils/plugin-context-matcher";
 
 const patterns: PluginKeywordPatterns = {
   keywords: ["swap", "trade", "wallet"],
-  regexPatterns: [/send.*eth/i]
+  regexPatterns: [/send.*eth/i],
 };
 
 // Checks last 5 messages (default) for keywords
@@ -64,14 +68,26 @@ Each plugin defines its activation patterns:
 ```typescript
 // src/plugins/plugin-cdp/matcher.ts
 import type { State } from "@elizaos/core";
-import { matchesPluginContext, type PluginKeywordPatterns } from "../../utils/plugin-context-matcher";
+import {
+  matchesPluginContext,
+  type PluginKeywordPatterns,
+} from "../../utils/plugin-context-matcher";
 
 export const cdpKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
-    "wallet", "balance", "address",
-    "send", "transfer", "pay",
-    "swap", "trade", "exchange",
-    "token", "eth", "usdc", "dai",
+    "wallet",
+    "balance",
+    "address",
+    "send",
+    "transfer",
+    "pay",
+    "swap",
+    "trade",
+    "exchange",
+    "token",
+    "eth",
+    "usdc",
+    "dai",
   ],
   regexPatterns: [
     /send.*(?:eth|usdc|dai|token)/i,
@@ -95,7 +111,7 @@ validate: async (_runtime: IAgentRuntime, message: Memory) => {
   const service = _runtime.getService(ServiceType) as Service;
   if (!service) return false;
   return true;
-}
+};
 
 // AFTER
 import { shouldCdpPluginBeActive } from "../matcher";
@@ -110,7 +126,7 @@ validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
   const service = _runtime.getService(ServiceType) as Service;
   if (!service) return false;
   return true;
-}
+};
 ```
 
 ## Status
@@ -120,9 +136,11 @@ validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
 The plugin context matcher is fully implemented across all plugins.
 
 **Core Infrastructure:**
+
 - ✅ Core utility (`src/utils/plugin-context-matcher.ts`)
 
 **CDP Plugin** (9/9 actions via `validateCdpService` helper):
+
 - ✅ `cdp-check-tx-confirmation.ts`
 - ✅ `cdp-resolve-ens.ts`
 - ✅ `cdp-tx-explorer-link.ts`
@@ -134,6 +152,7 @@ The plugin context matcher is fully implemented across all plugins.
 - ✅ `cdp-wallet-token-transfer.ts`
 
 **Other Plugins** (all have matchers):
+
 - ✅ Biconomy (`src/plugins/plugin-biconomy/src/matcher.ts`)
 - ✅ Polymarket (`src/plugins/plugin-polymarket-discovery/matcher.ts`)
 - ✅ Morpho (`src/plugins/plugin-morpho/matcher.ts`)
@@ -144,6 +163,7 @@ The plugin context matcher is fully implemented across all plugins.
 - ✅ Clanker (`src/plugins/plugin-clanker/matcher.ts`)
 
 **Always-Active Plugins** (skip matcher by design):
+
 - Bootstrap (orchestration - always needed)
 - Web Search (general utility - always needed)
 
@@ -161,7 +181,7 @@ export function validateCdpService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
-  message?: Memory
+  message?: Memory,
 ): boolean {
   // Check plugin context first
   if (!shouldCdpPluginBeInContext(state, message)) {
@@ -174,8 +194,8 @@ export function validateCdpService(
 
 // In action file:
 validate: async (runtime, message, state) => {
-  return validateCdpService(runtime, 'ACTION_NAME', state, message);
-}
+  return validateCdpService(runtime, "ACTION_NAME", state, message);
+};
 ```
 
 ### Option 2: Direct Import
@@ -191,15 +211,19 @@ validate: async (_runtime: IAgentRuntime, message: Memory, state?: State) => {
   // Then check service
   const service = _runtime.getService(ServiceType);
   return !!service;
-}
+};
 ```
 
 ## How to Apply to New Plugins
 
 1. **Create `matcher.ts`** in plugin directory:
+
    ```typescript
    import type { State } from "@elizaos/core";
-   import { matchesPluginContext, type PluginKeywordPatterns } from "../../utils/plugin-context-matcher";
+   import {
+     matchesPluginContext,
+     type PluginKeywordPatterns,
+   } from "../../utils/plugin-context-matcher";
 
    export const pluginNameKeywordPatterns: PluginKeywordPatterns = {
      keywords: ["keyword1", "keyword2"],
@@ -228,6 +252,7 @@ To verify context reduction:
 3. **Check logs**: Actions returning false from validate won't appear
 
 Example test conversation:
+
 ```
 User: "What's the weather like?"
 Expected: CDP actions NOT shown (no wallet keywords)

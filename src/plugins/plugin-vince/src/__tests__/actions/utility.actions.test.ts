@@ -98,7 +98,13 @@ describe("VINCE_LIFESTYLE Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceLifestyleAction.handler(runtime, message, state, {}, callback);
+        await vinceLifestyleAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw if service method is missing - that's expected
       }
@@ -173,7 +179,13 @@ describe("VINCE_AIRDROPS Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceAirdropsAction.handler(runtime, message, state, {}, callback);
+        await vinceAirdropsAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw - that's expected
       }
@@ -191,38 +203,48 @@ describe("VINCE_AIRDROPS Action", () => {
 describe("VINCE_UPLOAD Action", () => {
   describe("validate", () => {
     // Note: Upload action requires MIN_TEXT_LENGTH (20 chars) to validate
-    
+
     it("should return true for 'upload' keyword with sufficient content", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("upload this content: important data about market analysis");
+      const message = createMockMessage(
+        "upload this content: important data about market analysis",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
 
     it("should return true for 'ingest' keyword with sufficient content", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("ingest this document: detailed trading strategy notes");
+      const message = createMockMessage(
+        "ingest this document: detailed trading strategy notes",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
 
     it("should return true for 'remember this' keyword with content", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("remember this: The key insight about market cycles is that...");
+      const message = createMockMessage(
+        "remember this: The key insight about market cycles is that...",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
 
     it("should return true for 'add to knowledge' keyword", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("add to knowledge base: This is critical information about");
+      const message = createMockMessage(
+        "add to knowledge base: This is critical information about",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
 
     it("should return true for 'store this' keyword with content", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("store this important info: Market fundamentals and analysis");
+      const message = createMockMessage(
+        "store this important info: Market fundamentals and analysis",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
@@ -236,14 +258,18 @@ describe("VINCE_UPLOAD Action", () => {
 
     it("should return true for YouTube URL (with upload intent or standalone)", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+      const message = createMockMessage(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
 
     it("should return true for upload: <article URL>", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("upload: https://example.com/some-article-about-trading");
+      const message = createMockMessage(
+        "upload: https://example.com/some-article-about-trading",
+      );
       const result = await vinceUploadAction.validate(runtime, message);
       expect(result).toBe(true);
     });
@@ -259,7 +285,9 @@ describe("VINCE_UPLOAD Action", () => {
   describe("handler", () => {
     it("should call callback (with result or error)", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("upload this: important data that needs to be saved for later reference");
+      const message = createMockMessage(
+        "upload this: important data that needs to be saved for later reference",
+      );
       const state = createMockState();
       const callback = createMockCallback();
 
@@ -312,7 +340,9 @@ describe("Utility Actions - Error Handling", () => {
 
   it("VINCE_UPLOAD should call callback even when missing storage", async () => {
     const runtime = createMockRuntime({ services: {} });
-    const message = createMockMessage("upload: test data for knowledge base storage");
+    const message = createMockMessage(
+      "upload: test data for knowledge base storage",
+    );
     const state = createMockState();
     const callback = createMockCallback();
 

@@ -8,12 +8,12 @@ interface RebelsRankingProps {
   maxHeight?: string;
 }
 
-export default function RebelsRanking({ rebels, maxHeight = '65vh' }: RebelsRankingProps) {
+export default function RebelsRanking({
+  rebels,
+  maxHeight = "65vh",
+}: RebelsRankingProps) {
   return (
-    <DashboardCard
-      title="Leaderboard"
-      intent="default"
-    >
+    <DashboardCard title="Leaderboard" intent="default">
       <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight }}>
         {rebels.map((rebel) => (
           <div key={rebel.id} className="flex items-center w-full">
@@ -23,7 +23,7 @@ export default function RebelsRanking({ rebels, maxHeight = '65vh' }: RebelsRank
                   "flex items-center justify-center rounded text-sm font-bold px-1.5 mr-1 md:mr-2",
                   rebel.featured
                     ? "h-10 bg-primary text-primary-foreground"
-                    : "h-8 bg-secondary text-secondary-foreground"
+                    : "h-8 bg-secondary text-secondary-foreground",
                 )}
               >
                 {rebel.id}
@@ -31,7 +31,7 @@ export default function RebelsRanking({ rebels, maxHeight = '65vh' }: RebelsRank
               <div
                 className={cn(
                   "rounded-lg overflow-hidden bg-muted",
-                  rebel.featured ? "size-14 md:size-16" : "size-10 md:size-12"
+                  rebel.featured ? "size-14 md:size-16" : "size-10 md:size-12",
                 )}
               >
                 {rebel.avatar ? (
@@ -47,7 +47,7 @@ export default function RebelsRanking({ rebels, maxHeight = '65vh' }: RebelsRank
               <div
                 className={cn(
                   "flex flex-1 h-full items-center justify-between py-2 px-2.5 rounded",
-                  rebel.featured && "bg-accent"
+                  rebel.featured && "bg-accent",
                 )}
               >
                 <div className="flex flex-col flex-1">
@@ -58,7 +58,7 @@ export default function RebelsRanking({ rebels, maxHeight = '65vh' }: RebelsRank
                           "font-display",
                           rebel.featured
                             ? "text-xl md:text-2xl"
-                            : "text-lg md:text-xl"
+                            : "text-lg md:text-xl",
                         )}
                       >
                         {rebel.name}

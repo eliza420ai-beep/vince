@@ -11,7 +11,13 @@
  * - Dining and hotel recommendations
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceLifestyleService } from "../services/lifestyle.service";
 
@@ -38,7 +44,9 @@ export function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   const lines: string[] = [];
 
   lines.push(`=== LIFESTYLE (${ctx.day}, ${ctx.date}) ===`);
-  lines.push(`Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`);
+  lines.push(
+    `Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`,
+  );
   if (ctx.isFriday) {
     lines.push("FRIDAY - Strike selection ritual day");
   }
@@ -83,7 +91,9 @@ export function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   }
 
   if (ctx.curatedHotels.length > 0) {
-    lines.push("HOTELS (curated, open this season — suggest ONLY from this list):");
+    lines.push(
+      "HOTELS (curated, open this season — suggest ONLY from this list):",
+    );
     for (const h of ctx.curatedHotels) {
       lines.push(`- ${h}`);
     }
@@ -104,7 +114,7 @@ export function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
 
 export async function generateLifestyleHumanBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, giving lifestyle suggestions to a friend who trades for a living. You know their rhythm - trading in the morning, living well the rest of the day.
 
@@ -148,10 +158,23 @@ Write the briefing:`;
 
 export const vinceLifestyleAction: Action = {
   name: "VINCE_LIFESTYLE",
-  similes: ["LIFESTYLE", "DAILY", "SUGGESTIONS", "HEALTH", "DINING", "HOTEL", "SWIM", "GYM"],
-  description: "Human-style lifestyle suggestions that integrate with trading rhythm",
+  similes: [
+    "LIFESTYLE",
+    "DAILY",
+    "SUGGESTIONS",
+    "HEALTH",
+    "DINING",
+    "HOTEL",
+    "SWIM",
+    "GYM",
+  ],
+  description:
+    "Human-style lifestyle suggestions that integrate with trading rhythm",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("lifestyle") ||
@@ -173,10 +196,12 @@ export const vinceLifestyleAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const lifestyleService = runtime.getService("VINCE_LIFESTYLE_SERVICE") as VinceLifestyleService | null;
+      const lifestyleService = runtime.getService(
+        "VINCE_LIFESTYLE_SERVICE",
+      ) as VinceLifestyleService | null;
 
       if (!lifestyleService) {
         await callback({
@@ -199,17 +224,21 @@ export const vinceLifestyleAction: Action = {
         isFriday: briefing.day.toLowerCase() === "friday",
         specialNotes: briefing.specialNotes,
         health: briefing.suggestions
-          .filter(s => s.category === "health")
-          .map(s => ({ suggestion: s.suggestion, reason: s.reason })),
+          .filter((s) => s.category === "health")
+          .map((s) => ({ suggestion: s.suggestion, reason: s.reason })),
         dining: briefing.suggestions
-          .filter(s => s.category === "dining")
-          .map(s => ({ suggestion: s.suggestion, reason: s.reason, daySpecific: s.daySpecific || false })),
+          .filter((s) => s.category === "dining")
+          .map((s) => ({
+            suggestion: s.suggestion,
+            reason: s.reason,
+            daySpecific: s.daySpecific || false,
+          })),
         hotel: briefing.suggestions
-          .filter(s => s.category === "hotel")
-          .map(s => ({ suggestion: s.suggestion, reason: s.reason })),
+          .filter((s) => s.category === "hotel")
+          .map((s) => ({ suggestion: s.suggestion, reason: s.reason })),
         activity: briefing.suggestions
-          .filter(s => s.category === "activity")
-          .map(s => ({ suggestion: s.suggestion, reason: s.reason })),
+          .filter((s) => s.category === "activity")
+          .map((s) => ({ suggestion: s.suggestion, reason: s.reason })),
         curatedRestaurants: curated?.restaurants ?? [],
         curatedHotels: curated?.hotels ?? [],
       };
@@ -217,7 +246,10 @@ export const vinceLifestyleAction: Action = {
       // Generate briefing
       const dataContext = buildLifestyleDataContext(ctx);
       logger.info("[VINCE_LIFESTYLE] Generating briefing...");
-      const humanBriefing = await generateLifestyleHumanBriefing(runtime, dataContext);
+      const humanBriefing = await generateLifestyleHumanBriefing(
+        runtime,
+        dataContext,
+      );
 
       const output = [
         `**${ctx.day}** _${ctx.date}_`,

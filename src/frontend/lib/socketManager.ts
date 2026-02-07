@@ -1,4 +1,4 @@
-import { io, Socket } from 'socket.io-client';
+import { io, Socket } from "socket.io-client";
 
 // Socket message types (must match server's SOCKET_MESSAGE_TYPE enum)
 const SOCKET_MESSAGE_TYPE = {
@@ -20,12 +20,14 @@ class SocketManager {
     // Server requires a valid UUID entityId in auth; don't connect until we have it
     const validUserId = userId?.trim();
     if (!validUserId) {
-      console.warn('Socket connect skipped: userId is required for server auth (entityId)');
+      console.warn(
+        "Socket connect skipped: userId is required for server auth (entityId)",
+      );
       return this.socket ?? null;
     }
 
     if (this.socket?.connected) {
-      console.log('Socket already connected');
+      console.log("Socket already connected");
       if (userName) this.userName = userName;
       return this.socket;
     }
@@ -33,12 +35,12 @@ class SocketManager {
     this.userId = validUserId;
     this.userName = userName || null;
 
-    const token = localStorage.getItem('auth-token');
+    const token = localStorage.getItem("auth-token");
     if (!token) {
-      console.warn('No auth token found for socket connection');
+      console.warn("No auth token found for socket connection");
     }
 
-    this.socket = io(window.location.origin + '/', {
+    this.socket = io(window.location.origin + "/", {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
@@ -49,16 +51,16 @@ class SocketManager {
       },
     });
 
-    this.socket.on('connect', () => {
-      console.log(' Connected to Eliza server');
+    this.socket.on("connect", () => {
+      console.log(" Connected to Eliza server");
     });
 
-    this.socket.on('disconnect', (reason) => {
-      console.log(' Disconnected from Eliza server:', reason);
+    this.socket.on("disconnect", (reason) => {
+      console.log(" Disconnected from Eliza server:", reason);
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.error('Connection error:', error);
+    this.socket.on("connect_error", (error) => {
+      console.error("Connection error:", error);
     });
 
     return this.socket;
@@ -71,14 +73,18 @@ class SocketManager {
     this.userName = userName;
   }
 
-  joinChannel(channelId: string, serverId: string, metadata?: Record<string, any>) {
+  joinChannel(
+    channelId: string,
+    serverId: string,
+    metadata?: Record<string, any>,
+  ) {
     if (!this.socket) {
-      throw new Error('Socket not connected. Call connect() first.');
+      throw new Error("Socket not connected. Call connect() first.");
     }
-    
+
     this.activeChannels.add(channelId);
-    
-    this.socket.emit('message', {
+
+    this.socket.emit("message", {
       type: SOCKET_MESSAGE_TYPE.ROOM_JOINING,
       payload: {
         channelId,
@@ -87,7 +93,6 @@ class SocketManager {
         metadata,
       },
     });
-    
   }
 
   leaveChannel(channelId: string) {
@@ -95,12 +100,19 @@ class SocketManager {
     console.log(`Left channel: ${channelId}`);
   }
 
-  sendMessage(channelId: string, message: string, serverId: string, metadata?: Record<string, any>) {
+  sendMessage(
+    channelId: string,
+    message: string,
+    serverId: string,
+    metadata?: Record<string, any>,
+  ) {
     if (!this.socket) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
     if (!this.userId) {
-      throw new Error('Socket sendMessage: userId (entityId) is required for author_id');
+      throw new Error(
+        "Socket sendMessage: userId (entityId) is required for author_id",
+      );
     }
     // Server requires: channelId, messageServerId (or message_server_id), senderId (or author_id), message
     const senderName = this.userName || `User-${this.userId.substring(0, 8)}`;
@@ -112,11 +124,11 @@ class SocketManager {
       author_id: this.userId,
       message,
       senderName,
-      source: 'custom_ui',
+      source: "custom_ui",
       metadata,
     };
-    console.log(' [SocketManager] Emitting SEND_MESSAGE:', payload);
-    this.socket.emit('message', {
+    console.log(" [SocketManager] Emitting SEND_MESSAGE:", payload);
+    this.socket.emit("message", {
       type: SOCKET_MESSAGE_TYPE.SEND_MESSAGE,
       payload,
     });
@@ -124,10 +136,10 @@ class SocketManager {
 
   onMessage(callback: (data: any) => void) {
     if (!this.socket) {
-      throw new Error('Socket not connected');
+      throw new Error("Socket not connected");
     }
-    this.socket.on('messageBroadcast', callback);
-    return () => this.socket?.off('messageBroadcast', callback);
+    this.socket.on("messageBroadcast", callback);
+    return () => this.socket?.off("messageBroadcast", callback);
   }
 
   disconnect() {
@@ -144,4 +156,3 @@ class SocketManager {
 }
 
 export const socketManager = new SocketManager();
-

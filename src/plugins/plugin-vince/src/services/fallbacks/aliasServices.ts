@@ -25,7 +25,8 @@ import type {
 /** Registers as DERIBIT_SERVICE; returns a Service that delegates to the built-in fallback. */
 export class DeribitServiceAlias extends Service implements IDeribitService {
   static serviceType = "DERIBIT_SERVICE";
-  capabilityDescription = "Deribit options data (fallback when plugin-deribit not loaded)";
+  capabilityDescription =
+    "Deribit options data (fallback when plugin-deribit not loaded)";
 
   private readonly fallback = new DeribitFallbackService();
 
@@ -49,7 +50,8 @@ export class DeribitServiceAlias extends Service implements IDeribitService {
 /** Registers as HYPERLIQUID_SERVICE; returns a Service that delegates to the built-in fallback. */
 export class HyperliquidServiceAlias extends Service implements IHyperliquidService {
   static serviceType = "HYPERLIQUID_SERVICE";
-  capabilityDescription = "Hyperliquid funding/pulse (fallback when plugin-hyperliquid not loaded)";
+  capabilityDescription =
+    "Hyperliquid funding/pulse (fallback when plugin-hyperliquid not loaded)";
 
   private readonly fallback = new HyperliquidFallbackService();
 

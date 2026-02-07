@@ -1,11 +1,11 @@
-import { type Project, logger } from '@elizaos/core';
+import { type Project, logger } from "@elizaos/core";
 
 // Suppress "Send handler not found (handlerSource=discord)" at the process level — core uses runtime.logger
 // (per-agent) and we can't patch its createLogger from outside. Filter the actual stderr output.
 (function suppressDiscordSendHandlerErrorsOnStderr() {
   const stderrWrite = process.stderr.write.bind(process.stderr);
   const suppress = (chunk: Buffer | string): boolean => {
-    const s = typeof chunk === 'string' ? chunk : chunk.toString();
+    const s = typeof chunk === "string" ? chunk : chunk.toString();
     return /Send handler not found/i.test(s) && /discord|handlerSource/i.test(s);
   };
   process.stderr.write = function (chunk: any, ...args: any[]): boolean {
@@ -14,9 +14,9 @@ import { type Project, logger } from '@elizaos/core';
   };
 })();
 
-import { vinceAgent } from './agents/vince.ts';
-import { elizaAgent } from './agents/eliza.ts';
-import logFilterPlugin from './plugins/plugin-log-filter/src/index.ts';
+import { vinceAgent } from "./agents/vince.ts";
+import { elizaAgent } from "./agents/eliza.ts";
+import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 
 // --- Multi-agent Discord: require two different Discord apps ---
 // Each agent gets Discord from its own character.settings.secrets (VINCE_* → VINCE, ELIZA_* → Eliza).
@@ -50,7 +50,7 @@ const project: Project = {
   ],
 };
 
-export { vinceAgent } from './agents/vince.ts';
-export { elizaAgent } from './agents/eliza.ts';
-
+export { vinceAgent } from "./agents/vince.ts";
+export { elizaAgent } from "./agents/eliza.ts";
+export { character } from "./character.ts";
 export default project;

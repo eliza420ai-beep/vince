@@ -141,7 +141,8 @@ describe("VINCE_MEMES Action", () => {
 
     it("should return false for unrelated message", async () => {
       const runtime = createMockRuntime();
-      const message = createMockMessage("good morning");
+      // Use a message that does not match any VINCE_MEMES trigger (e.g. not "good morning", "gm", "meme", etc.)
+      const message = createMockMessage("execute trade");
       const result = await vinceMemesAction.validate(runtime, message);
       expect(result).toBe(false);
     });
@@ -223,7 +224,13 @@ describe("VINCE_NFT_FLOOR Action", () => {
       const callback = createMockCallback();
 
       try {
-        await vinceNftFloorAction.handler(runtime, message, state, {}, callback);
+        await vinceNftFloorAction.handler(
+          runtime,
+          message,
+          state,
+          {},
+          callback,
+        );
       } catch (e) {
         // Handler may throw if service method is missing - that's expected
       }

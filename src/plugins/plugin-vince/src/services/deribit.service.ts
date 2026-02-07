@@ -1,9 +1,9 @@
 /**
  * Vince Deribit Service
- * 
+ *
  * Simplified Deribit integration for VINCE OPTIONS analysis.
  * Focuses on: index prices, options chains, IV surface, strike selection.
- * 
+ *
  * Data Source: Deribit Public API (FREE, no auth required)
  * Endpoint: https://www.deribit.com/api/v2/public/*
  */
@@ -86,7 +86,8 @@ interface CacheEntry<T> {
 
 export class VinceDeribitService extends Service {
   static serviceType = "VINCE_DERIBIT_SERVICE";
-  capabilityDescription = "Provides Deribit options data for strike selection and premium analysis";
+  capabilityDescription =
+    "Provides Deribit options data for strike selection and premium analysis";
 
   private cache: Map<string, CacheEntry<unknown>> = new Map();
   private lastRequestTime = 0;
@@ -101,19 +102,19 @@ export class VinceDeribitService extends Service {
   // Rate limit helper - ensures minimum interval between requests
   private async throttle(): Promise<void> {
     const now = Date.now();
-    
+
     // Check if we're in backoff period
     if (now < this.backoffUntil) {
       const waitTime = this.backoffUntil - now;
       await new Promise((r) => setTimeout(r, waitTime));
     }
-    
+
     // Ensure minimum interval between requests
     const elapsed = now - this.lastRequestTime;
     if (elapsed < MIN_REQUEST_INTERVAL) {
       await new Promise((r) => setTimeout(r, MIN_REQUEST_INTERVAL - elapsed));
     }
-    
+
     this.lastRequestTime = Date.now();
   }
 
@@ -123,7 +124,7 @@ export class VinceDeribitService extends Service {
     // Exponential backoff: 2s, 4s, 8s, 16s, max 30s
     const backoff = Math.min(
       RATE_LIMIT_BACKOFF_BASE * Math.pow(2, this.consecutiveRateLimits - 1),
-      30000
+      30000,
     );
     this.backoffUntil = Date.now() + backoff;
   }
@@ -135,14 +136,17 @@ export class VinceDeribitService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceDeribitService> {
     const service = new VinceDeribitService(runtime);
-    
+
     // Fetch BTC context and print dashboard with live data (only for VINCE agent to avoid duplicate)
     if (isVinceAgent(runtime)) {
-      service.getOptionsContext("BTC").then((ctx) => {
-        service.printDashboardWithData(ctx);
-      }).catch((err) => {
-        logger.warn(`[VinceDeribit] Failed to load options data: ${err}`);
-      });
+      service
+        .getOptionsContext("BTC")
+        .then((ctx) => {
+          service.printDashboardWithData(ctx);
+        })
+        .catch((err) => {
+          logger.warn(`[VinceDeribit] Failed to load options data: ${err}`);
+        });
     }
     return service;
   }
@@ -151,9 +155,13 @@ export class VinceDeribitService extends Service {
    * Print dashboard (same box style as paper trade-opened banner).
    */
   private printDashboardWithData(ctx: OptionsContext): void {
-    const spotStr = ctx.spotPrice ? `$${ctx.spotPrice.toLocaleString()}` : "N/A";
+    const spotStr = ctx.spotPrice
+      ? `$${ctx.spotPrice.toLocaleString()}`
+      : "N/A";
     const dvolStr = ctx.dvol ? `${ctx.dvol.toFixed(1)}%` : "N/A";
-    const hvStr = ctx.historicalVolatility ? `${ctx.historicalVolatility.toFixed(1)}%` : "N/A";
+    const hvStr = ctx.historicalVolatility
+      ? `${ctx.historicalVolatility.toFixed(1)}%`
+      : "N/A";
 
     startBox();
     logLine("📊 DERIBIT OPTIONS DASHBOARD");
@@ -164,7 +172,12 @@ export class VinceDeribitService extends Service {
     if (ctx.ivSurface) {
       const atmStr = `ATM: ${ctx.ivSurface.atmIV.toFixed(1)}%`;
       const skewStr = `Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`;
-      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "⚠️" : ctx.ivSurface.skewInterpretation === "bullish" ? "🟢" : "⚪";
+      const skewEmoji =
+        ctx.ivSurface.skewInterpretation === "fearful"
+          ? "⚠️"
+          : ctx.ivSurface.skewInterpretation === "bullish"
+            ? "🟢"
+            : "⚪";
       logLine(`IV Surface: ${atmStr}  ${skewStr}  ${skewEmoji}`);
     }
     logEmpty();
@@ -172,11 +185,15 @@ export class VinceDeribitService extends Service {
     logEmpty();
     if (ctx.bestCoveredCalls.length > 0) {
       const cc = ctx.bestCoveredCalls[0];
-      logLine(`📈 Best Covered Call: ${cc.delta.toFixed(0)}D @ ${cc.strike}, ${cc.yield7Day.toFixed(2)}%/wk`);
+      logLine(
+        `📈 Best Covered Call: ${cc.delta.toFixed(0)}D @ ${cc.strike}, ${cc.yield7Day.toFixed(2)}%/wk`,
+      );
     }
     if (ctx.bestCashSecuredPuts.length > 0) {
       const csp = ctx.bestCashSecuredPuts[0];
-      logLine(`📉 Best Cash-Secured Put: ${csp.delta.toFixed(0)}D @ ${csp.strike}, ${csp.yield7Day.toFixed(2)}%/wk`);
+      logLine(
+        `📉 Best Cash-Secured Put: ${csp.delta.toFixed(0)}D @ ${csp.strike}, ${csp.yield7Day.toFixed(2)}%/wk`,
+      );
     }
     logEmpty();
     sep();
@@ -201,17 +218,23 @@ export class VinceDeribitService extends Service {
         return `IV RICH: DVOL ${ctx.dvol.toFixed(0)} > HV ${ctx.historicalVolatility.toFixed(0)} - sell premium`;
       }
     }
-    
+
     // Priority 2: Skew analysis
     if (ctx.ivSurface) {
-      if (ctx.ivSurface.skewInterpretation === "fearful" && ctx.ivSurface.skew > 5) {
+      if (
+        ctx.ivSurface.skewInterpretation === "fearful" &&
+        ctx.ivSurface.skew > 5
+      ) {
         return `SKEW FEARFUL: Puts +${ctx.ivSurface.skew.toFixed(1)}% - hedge with puts`;
       }
-      if (ctx.ivSurface.skewInterpretation === "bullish" && ctx.ivSurface.skew < -5) {
+      if (
+        ctx.ivSurface.skewInterpretation === "bullish" &&
+        ctx.ivSurface.skew < -5
+      ) {
         return `SKEW BULLISH: Calls bid up - upside protection cheap`;
       }
     }
-    
+
     // Priority 3: Premium yields
     if (ctx.bestCoveredCalls.length > 0) {
       const bestCC = ctx.bestCoveredCalls[0];
@@ -219,7 +242,7 @@ export class VinceDeribitService extends Service {
         return `YIELD: ${bestCC.delta.toFixed(0)}D CCs paying ${bestCC.yield7Day.toFixed(1)}%/wk`;
       }
     }
-    
+
     // Priority 4: DVOL level
     if (ctx.dvol !== null) {
       if (ctx.dvol > 80) {
@@ -229,7 +252,7 @@ export class VinceDeribitService extends Service {
         return `DVOL LOW: ${ctx.dvol.toFixed(0)}% - sell premium, expect breakout`;
       }
     }
-    
+
     // Default
     return "OPTIONS: Normal IV, no extreme signals";
   }
@@ -239,9 +262,13 @@ export class VinceDeribitService extends Service {
    */
   async printLiveDashboard(currency: DeribitCurrency = "BTC"): Promise<void> {
     const ctx = await this.getOptionsContext(currency);
-    const spotStr = ctx.spotPrice ? `$${ctx.spotPrice.toLocaleString()}` : "N/A";
+    const spotStr = ctx.spotPrice
+      ? `$${ctx.spotPrice.toLocaleString()}`
+      : "N/A";
     const dvolStr = ctx.dvol ? `${ctx.dvol.toFixed(1)}%` : "N/A";
-    const hvStr = ctx.historicalVolatility ? `${ctx.historicalVolatility.toFixed(1)}%` : "N/A";
+    const hvStr = ctx.historicalVolatility
+      ? `${ctx.historicalVolatility.toFixed(1)}%`
+      : "N/A";
 
     startBox();
     logLine(`📊 DERIBIT ${currency} OPTIONS DASHBOARD`);
@@ -251,8 +278,15 @@ export class VinceDeribitService extends Service {
     logLine(`💰 SPOT: ${spotStr}  DVOL: ${dvolStr}  HV: ${hvStr}`);
     if (ctx.ivSurface) {
       const atmStr = `ATM: ${ctx.ivSurface.atmIV.toFixed(1)}%`;
-      const skewEmoji = ctx.ivSurface.skewInterpretation === "fearful" ? "📉" : ctx.ivSurface.skewInterpretation === "bullish" ? "📈" : "➡️";
-      logLine(`📊 IV: ${atmStr}  ${skewEmoji} Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`);
+      const skewEmoji =
+        ctx.ivSurface.skewInterpretation === "fearful"
+          ? "📉"
+          : ctx.ivSurface.skewInterpretation === "bullish"
+            ? "📈"
+            : "➡️";
+      logLine(
+        `📊 IV: ${atmStr}  ${skewEmoji} Skew: ${ctx.ivSurface.skew > 0 ? "+" : ""}${ctx.ivSurface.skew.toFixed(1)}%`,
+      );
     }
     logEmpty();
     sep();
@@ -260,7 +294,9 @@ export class VinceDeribitService extends Service {
     logLine("🔵 BEST COVERED CALLS:");
     if (ctx.bestCoveredCalls.length > 0) {
       for (const cc of ctx.bestCoveredCalls.slice(0, 2)) {
-        logLine(`   ${cc.delta.toFixed(0)}D $${cc.strike.toLocaleString()} → ${cc.yield7Day.toFixed(2)}%/wk`);
+        logLine(
+          `   ${cc.delta.toFixed(0)}D $${cc.strike.toLocaleString()} → ${cc.yield7Day.toFixed(2)}%/wk`,
+        );
       }
     } else {
       logLine("   No data available");
@@ -268,7 +304,9 @@ export class VinceDeribitService extends Service {
     logLine("🟠 BEST CASH-SECURED PUTS:");
     if (ctx.bestCashSecuredPuts.length > 0) {
       for (const csp of ctx.bestCashSecuredPuts.slice(0, 2)) {
-        logLine(`   ${Math.abs(csp.delta).toFixed(0)}D $${csp.strike.toLocaleString()} → ${csp.yield7Day.toFixed(2)}%/wk`);
+        logLine(
+          `   ${Math.abs(csp.delta).toFixed(0)}D $${csp.strike.toLocaleString()} → ${csp.yield7Day.toFixed(2)}%/wk`,
+        );
       }
     } else {
       logLine("   No data available");
@@ -277,7 +315,12 @@ export class VinceDeribitService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR(ctx);
-    const tldrEmoji = tldr.includes("CHEAP") || tldr.includes("YIELD") ? "💡" : tldr.includes("RICH") || tldr.includes("HIGH") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("CHEAP") || tldr.includes("YIELD")
+        ? "💡"
+        : tldr.includes("RICH") || tldr.includes("HIGH")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
   }
@@ -302,7 +345,10 @@ export class VinceDeribitService extends Service {
   }
 
   // HTTP helper with rate limiting and backoff
-  private async fetchDeribit<T>(endpoint: string, params?: Record<string, string>): Promise<T | null> {
+  private async fetchDeribit<T>(
+    endpoint: string,
+    params?: Record<string, string>,
+  ): Promise<T | null> {
     const cacheKey = `${endpoint}:${JSON.stringify(params || {})}`;
     const cached = this.getCached<T>(cacheKey);
     if (cached) return cached;
@@ -332,7 +378,10 @@ export class VinceDeribitService extends Service {
           return null;
         }
         // Only log non-429 errors
-        logger.debug({ status: response.status, endpoint }, "[VinceDeribitService] API error");
+        logger.debug(
+          { status: response.status, endpoint },
+          "[VinceDeribitService] API error",
+        );
         return null;
       }
 
@@ -358,7 +407,7 @@ export class VinceDeribitService extends Service {
   async getIndexPrice(currency: DeribitCurrency): Promise<number | null> {
     const result = await this.fetchDeribit<{ index_price: number }>(
       "/get_index_price",
-      { index_name: `${currency.toLowerCase()}_usd` }
+      { index_name: `${currency.toLowerCase()}_usd` },
     );
     return result?.index_price || null;
   }
@@ -375,10 +424,11 @@ export class VinceDeribitService extends Service {
         start_timestamp: String(now - 24 * 60 * 60 * 1000),
         end_timestamp: String(now),
         resolution: "60",
-      }
+      },
     );
-    if (result?.data?.length > 0) {
-      return result.data[result.data.length - 1][4]; // Close price
+    const len = result?.data?.length;
+    if (len != null && len > 0 && result?.data) {
+      return result.data[len - 1][4]; // Close price
     }
     return null;
   }
@@ -386,10 +436,16 @@ export class VinceDeribitService extends Service {
   /**
    * Get historical volatility for a currency
    */
-  async getHistoricalVolatility(currency: DeribitCurrency): Promise<number | null> {
-    const result = await this.fetchDeribit<{ hv: number }[]>("/get_historical_volatility", { currency });
-    if (result?.length > 0) {
-      return result[result.length - 1]?.hv || null;
+  async getHistoricalVolatility(
+    currency: DeribitCurrency,
+  ): Promise<number | null> {
+    const result = await this.fetchDeribit<{ hv: number }[]>(
+      "/get_historical_volatility",
+      { currency },
+    );
+    const len = result?.length;
+    if (len != null && len > 0 && result) {
+      return result[len - 1]?.hv ?? null;
     }
     return null;
   }
@@ -399,12 +455,12 @@ export class VinceDeribitService extends Service {
    */
   async getFundingRate(currency: DeribitCurrency): Promise<number | null> {
     if (currency === "SOL") return null; // SOL-PERPETUAL not active on Deribit
-    
+
     const instrumentName = `${currency}-PERPETUAL`;
-    const result = await this.fetchDeribit<{ current_funding?: number; funding_8h?: number }>(
-      "/ticker",
-      { instrument_name: instrumentName }
-    );
+    const result = await this.fetchDeribit<{
+      current_funding?: number;
+      funding_8h?: number;
+    }>("/ticker", { instrument_name: instrumentName });
     return result?.current_funding || result?.funding_8h || null;
   }
 
@@ -435,7 +491,7 @@ export class VinceDeribitService extends Service {
     targetDeltaMin: number,
     targetDeltaMax: number,
     type: "call" | "put",
-    daysToExpiry: { min: number; max: number } = { min: 4, max: 10 }
+    daysToExpiry: { min: number; max: number } = { min: 4, max: 10 },
   ): Promise<DeribitStrike[]> {
     try {
       const spotPrice = await this.getIndexPrice(currency);
@@ -460,7 +516,7 @@ export class VinceDeribitService extends Service {
       // Process in smaller batches of 3 with longer delays
       for (let i = 0; i < toFetch.length; i += 3) {
         const batch = toFetch.slice(i, i + 3);
-        
+
         // Sequential fetching within batch to respect rate limits
         const tickers: (any | null)[] = [];
         for (const inst of batch) {
@@ -476,14 +532,17 @@ export class VinceDeribitService extends Service {
           const delta = Math.abs(ticker.greeks.delta);
           if (delta < targetDeltaMin || delta > targetDeltaMax) continue;
 
-          const days = (inst.expiration_timestamp - now) / (24 * 60 * 60 * 1000);
+          const days =
+            (inst.expiration_timestamp - now) / (24 * 60 * 60 * 1000);
           const markPriceUsd = ticker.mark_price * spotPrice;
 
           results.push({
             instrumentName: inst.instrument_name,
             strike: inst.strike || 0,
             type: inst.option_type,
-            expiry: new Date(inst.expiration_timestamp).toISOString().split("T")[0],
+            expiry: new Date(inst.expiration_timestamp)
+              .toISOString()
+              .split("T")[0],
             daysToExpiry: Math.round(days * 10) / 10,
             spotPrice,
             bidPrice: ticker.best_bid_price || 0,
@@ -507,11 +566,18 @@ export class VinceDeribitService extends Service {
 
       // Sort by delta (closest to target midpoint)
       const targetMid = (targetDeltaMin + targetDeltaMax) / 2;
-      results.sort((a, b) => Math.abs(Math.abs(a.delta) - targetMid) - Math.abs(Math.abs(b.delta) - targetMid));
+      results.sort(
+        (a, b) =>
+          Math.abs(Math.abs(a.delta) - targetMid) -
+          Math.abs(Math.abs(b.delta) - targetMid),
+      );
 
       return results;
     } catch (error) {
-      logger.error({ error, currency }, "[VinceDeribitService] Failed getStrikesByDelta");
+      logger.error(
+        { error, currency },
+        "[VinceDeribitService] Failed getStrikesByDelta",
+      );
       return [];
     }
   }
@@ -544,8 +610,10 @@ export class VinceDeribitService extends Service {
   /**
    * Get best covered call strikes (20-30 delta)
    */
-  async getBestCoveredCalls(currency: DeribitCurrency): Promise<PremiumYield[]> {
-    const strikes = await this.getStrikesByDelta(currency, 0.20, 0.30, "call");
+  async getBestCoveredCalls(
+    currency: DeribitCurrency,
+  ): Promise<PremiumYield[]> {
+    const strikes = await this.getStrikesByDelta(currency, 0.2, 0.3, "call");
     if (strikes.length === 0) return [];
 
     const yields = strikes.map((s) => this.calculatePremiumYield(s));
@@ -556,8 +624,10 @@ export class VinceDeribitService extends Service {
   /**
    * Get best cash-secured put strikes (20-30 delta)
    */
-  async getBestCashSecuredPuts(currency: DeribitCurrency): Promise<PremiumYield[]> {
-    const strikes = await this.getStrikesByDelta(currency, 0.20, 0.30, "put");
+  async getBestCashSecuredPuts(
+    currency: DeribitCurrency,
+  ): Promise<PremiumYield[]> {
+    const strikes = await this.getStrikesByDelta(currency, 0.2, 0.3, "put");
     if (strikes.length === 0) return [];
 
     const yields = strikes.map((s) => this.calculatePremiumYield(s));
@@ -575,12 +645,14 @@ export class VinceDeribitService extends Service {
 
       // Get 25-delta calls and puts
       const [calls, puts] = await Promise.all([
-        this.getStrikesByDelta(currency, 0.20, 0.30, "call"),
-        this.getStrikesByDelta(currency, 0.20, 0.30, "put"),
+        this.getStrikesByDelta(currency, 0.2, 0.3, "call"),
+        this.getStrikesByDelta(currency, 0.2, 0.3, "put"),
       ]);
 
       // Find closest to 25 delta
-      const call25 = calls.find((c) => Math.abs(Math.abs(c.delta) - 0.25) < 0.1);
+      const call25 = calls.find(
+        (c) => Math.abs(Math.abs(c.delta) - 0.25) < 0.1,
+      );
       const put25 = puts.find((p) => Math.abs(Math.abs(p.delta) - 0.25) < 0.1);
 
       const call25IV = call25?.iv || 50;
@@ -603,7 +675,10 @@ export class VinceDeribitService extends Service {
         timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error({ error, currency }, "[VinceDeribitService] Failed getIVSurface");
+      logger.error(
+        { error, currency },
+        "[VinceDeribitService] Failed getIVSurface",
+      );
       return null;
     }
   }
@@ -613,9 +688,19 @@ export class VinceDeribitService extends Service {
    */
   async getOptionsContext(currency: DeribitCurrency): Promise<OptionsContext> {
     try {
-      const [spotPrice, dvol, hv, fundingRate, ivSurface, coveredCalls, cashSecuredPuts] = await Promise.all([
+      const [
+        spotPrice,
+        dvol,
+        hv,
+        fundingRate,
+        ivSurface,
+        coveredCalls,
+        cashSecuredPuts,
+      ] = await Promise.all([
         this.getIndexPrice(currency),
-        currency !== "SOL" ? this.getDVOL(currency as "BTC" | "ETH") : Promise.resolve(null),
+        currency !== "SOL"
+          ? this.getDVOL(currency as "BTC" | "ETH")
+          : Promise.resolve(null),
         this.getHistoricalVolatility(currency),
         this.getFundingRate(currency),
         this.getIVSurface(currency),
@@ -635,7 +720,10 @@ export class VinceDeribitService extends Service {
         timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error({ error, currency }, "[VinceDeribitService] Failed getOptionsContext");
+      logger.error(
+        { error, currency },
+        "[VinceDeribitService] Failed getOptionsContext",
+      );
       return {
         currency,
         spotPrice: null,
@@ -653,7 +741,11 @@ export class VinceDeribitService extends Service {
   /**
    * Get options context for all supported currencies
    */
-  async getAllOptionsContext(): Promise<{ btc: OptionsContext; eth: OptionsContext; sol: OptionsContext }> {
+  async getAllOptionsContext(): Promise<{
+    btc: OptionsContext;
+    eth: OptionsContext;
+    sol: OptionsContext;
+  }> {
     const [btc, eth, sol] = await Promise.all([
       this.getOptionsContext("BTC"),
       this.getOptionsContext("ETH"),

@@ -9,8 +9,8 @@
  * This plugin wraps the logger to filter out noisy but non-critical log messages.
  */
 
-import type { Plugin, IAgentRuntime } from '@elizaos/core';
-import { logger as coreLogger } from '@elizaos/core';
+import type { Plugin, IAgentRuntime } from "@elizaos/core";
+import { logger as coreLogger } from "@elizaos/core";
 
 /** Known MESSAGE-BUS/central_messages errors we suppress. Non-blocking for UI delivery. */
 const SUPPRESS_ERROR_PATTERNS = [
@@ -55,15 +55,19 @@ function isDiscordSendHandlerError(fullMessage: string): boolean {
 }
 
 function shouldSuppressError(message: string): boolean {
-  if (!message || typeof message !== 'string') return false;
+  if (!message || typeof message !== "string") return false;
   return SUPPRESS_ERROR_PATTERNS.some((p) => p.test(message));
 }
 
 /** Deribit noise suppression - 429 rate limits, SOL-PERPETUAL, general API errors */
 function shouldSuppressDeribitNoise(message: string): boolean {
-  if (!message || typeof message !== 'string') return false;
+  if (!message || typeof message !== "string") return false;
   // SOL-PERPETUAL 400 errors - we skip that instrument
-  if (/SOL-PERPETUAL/i.test(message) && /Deribit|get_funding_rate_value|ticker/i.test(message)) return true;
+  if (
+    /SOL-PERPETUAL/i.test(message) &&
+    /Deribit|get_funding_rate_value|ticker/i.test(message)
+  )
+    return true;
   // Deribit 429 rate limiting - expected under load, handled gracefully
   if (/VinceDeribitService.*API error.*429/i.test(message)) return true;
   if (/\[VinceDeribitService\].*status=429/i.test(message)) return true;
@@ -74,26 +78,32 @@ function shouldSuppressDeribitNoise(message: string): boolean {
 
 /** Suppress expected "missing API key" warnings - these are informational, not errors */
 function shouldSuppressMissingApiKeyWarning(message: string): boolean {
-  if (!message || typeof message !== 'string') return false;
+  if (!message || typeof message !== "string") return false;
   // These are expected notices, not actionable warnings
   if (/No API key.*using free alternatives/i.test(message)) return true;
   if (/No OpenSea API key.*limited functionality/i.test(message)) return true;
   if (/SECRET_SALT is not set/i.test(message)) return true;
   if (/Invalid input format for embedding/i.test(message)) return true;
   // HTTP auth disabled notice - expected for local dev
-  if (/Authentication middleware configured.*API Key: DISABLED/i.test(message)) return true;
+  if (/Authentication middleware configured.*API Key: DISABLED/i.test(message))
+    return true;
   // AI SDK model compatibility - frequencyPenalty/presencePenalty not supported by some models (harmless)
   if (/frequencyPenalty.*not supported/i.test(message)) return true;
   if (/presencePenalty.*not supported/i.test(message)) return true;
-  if (/AI SDK Warning/i.test(message) && /not supported by this model/i.test(message)) return true;
+  if (
+    /AI SDK Warning/i.test(message) &&
+    /not supported by this model/i.test(message)
+  )
+    return true;
   return false;
 }
 
 /** OpenSea 401 / NFT floor - expected when OPENSEA_API_KEY is unset; plugin logs once and returns empty data */
 function shouldSuppressOpenSeaNoise(message: string): boolean {
-  if (!message || typeof message !== 'string') return false;
+  if (!message || typeof message !== "string") return false;
   if (/\[OpenSeaFallback\].*HTTP error: 401/i.test(message)) return true;
-  if (/\[OpenSeaFallback\].*analyzeFloorOpportunities error/i.test(message)) return true;
+  if (/\[OpenSeaFallback\].*analyzeFloorOpportunities error/i.test(message))
+    return true;
   if (/\[VinceNFTFloor\].*Empty floor price for/i.test(message)) return true;
   return false;
 }
@@ -141,120 +151,135 @@ const SUPPRESS_ROUTINE_INFO_PATTERNS = [
 
 // Patterns to suppress (case-insensitive) - comprehensive list
 const SUPPRESS_PATTERNS = [
-    // CoinGecko MCP tool messages - catch ALL get_* patterns
-    /\[coingecko\].*get_.*:/i,
-    /\[coingecko\].*get_/i,
-    /coingecko.*tool/i,
-    // Schema patterns - comprehensive
-    /response schema/i,
-    /json schema/i,
-    /Response Schema/i,
-    /additionalProperties/i,
-    /"type":\s*"(object|array|string|number|boolean|integer)"/i,
-    /type.*object/i,
-    /type.*array/i,
-    /type.*string/i,
-    /type.*number/i,
-    /type.*integer/i,
-    /description.*endpoint/i,
-    // jq_filter and performance recommendations
-    /jq_filter/i,
-    /when using this tool/i,
-    /always use.*jq_filter/i,
-    /reduce.*response.*size/i,
-    /improve.*performance/i,
-    // Endpoint descriptions
-    /this endpoint allows you/i,
-    /this endpoint/i,
-    /allows you to.*query/i,
-    /query.*token.*price/i,
-    /query.*supported.*currencies/i,
-    /query.*trades.*24.*hours/i,
-    /query.*last.*300.*trades/i,
-    // Schema field definitions - comprehensive
-    /block_number.*integer/i,
-    /block_timestamp.*string/i,
-    /from_token_address.*string/i,
-    /pool_address.*string/i,
-    /pool_dex.*string/i,
-    /price_from_in_usd.*string/i,
-    /from_token_amount.*string/i,
-    /to_token.*string/i,
-    /attributes.*object/i,
-    /items.*array/i,
-    /properties.*object/i,
-    // Info tags
-    /^Info\s*\[/i,
-    /^Info:/i,
+  // CoinGecko MCP tool messages - catch ALL get_* patterns
+  /\[coingecko\].*get_.*:/i,
+  /\[coingecko\].*get_/i,
+  /coingecko.*tool/i,
+  // Schema patterns - comprehensive
+  /response schema/i,
+  /json schema/i,
+  /Response Schema/i,
+  /additionalProperties/i,
+  /"type":\s*"(object|array|string|number|boolean|integer)"/i,
+  /type.*object/i,
+  /type.*array/i,
+  /type.*string/i,
+  /type.*number/i,
+  /type.*integer/i,
+  /description.*endpoint/i,
+  // jq_filter and performance recommendations
+  /jq_filter/i,
+  /when using this tool/i,
+  /always use.*jq_filter/i,
+  /reduce.*response.*size/i,
+  /improve.*performance/i,
+  // Endpoint descriptions
+  /this endpoint allows you/i,
+  /this endpoint/i,
+  /allows you to.*query/i,
+  /query.*token.*price/i,
+  /query.*supported.*currencies/i,
+  /query.*trades.*24.*hours/i,
+  /query.*last.*300.*trades/i,
+  // Schema field definitions - comprehensive
+  /block_number.*integer/i,
+  /block_timestamp.*string/i,
+  /from_token_address.*string/i,
+  /pool_address.*string/i,
+  /pool_dex.*string/i,
+  /price_from_in_usd.*string/i,
+  /from_token_amount.*string/i,
+  /to_token.*string/i,
+  /attributes.*object/i,
+  /items.*array/i,
+  /properties.*object/i,
+  // Info tags
+  /^Info\s*\[/i,
+  /^Info:/i,
 ];
 
 /** Quiet mode: suppress routine startup/info noise. Default true. Set VINCE_QUIET=false for verbose. */
 function isQuietMode(): boolean {
-  return process.env.VINCE_QUIET !== 'false';
+  return process.env.VINCE_QUIET !== "false";
 }
 
 // Check if a log message should be suppressed
 function shouldSuppress(message: string): boolean {
-    // Only suppress info-level verbose documentation
-    // Keep errors, warnings, and important info
-    if (!message || message.length < 20) return false;
+  // Only suppress info-level verbose documentation
+  // Keep errors, warnings, and important info
+  if (!message || message.length < 20) return false;
 
-    // Routine startup/info noise – keep terminal focused on boxes, warnings, errors
-    if (isQuietMode() && SUPPRESS_ROUTINE_INFO_PATTERNS.some((p) => p.test(message))) {
-        return true;
-    }
+  // Routine startup/info noise – keep terminal focused on boxes, warnings, errors
+  if (
+    isQuietMode() &&
+    SUPPRESS_ROUTINE_INFO_PATTERNS.some((p) => p.test(message))
+  ) {
+    return true;
+  }
 
-    // Check for server ownership info patterns (direct client noise)
-    if (SUPPRESS_INFO_PATTERNS.some(pattern => pattern.test(message))) {
-        return true;
+  // Check for server ownership info patterns (direct client noise)
+  if (SUPPRESS_INFO_PATTERNS.some((pattern) => pattern.test(message))) {
+    return true;
+  }
+
+  // Aggressive: Any message >300 chars with schema-like content (lowered threshold)
+  if (message.length > 300) {
+    const schemaIndicators = [
+      '"type":',
+      "additionalProperties",
+      "Response Schema",
+      "response schema",
+      "json schema",
+      "JSON Schema",
+      "schema",
+      "Schema",
+    ];
+    if (schemaIndicators.some((indicator) => message.includes(indicator))) {
+      return true;
     }
-    
-    // Aggressive: Any message >300 chars with schema-like content (lowered threshold)
-    if (message.length > 300) {
-        const schemaIndicators = [
-            '"type":', 'additionalProperties', 'Response Schema', 'response schema',
-            'json schema', 'JSON Schema', 'schema', 'Schema'
-        ];
-        if (schemaIndicators.some(indicator => message.includes(indicator))) {
-            return true;
-        }
-    }
-    
-    // Check against suppression patterns
-    if (SUPPRESS_PATTERNS.some(pattern => pattern.test(message))) {
-        return true;
-    }
-    
-    // Check if message contains multiple JSON schema-like patterns (lowered threshold)
-    const schemaPatternCount = (message.match(/"type":\s*"[^"]*"/gi) || []).length;
-    if (schemaPatternCount >= 2) { // Lowered from 3 to 2
-        return true; // Likely a full schema definition
-    }
-    
-    // Check for object/array structure patterns
-    if (message.includes('"properties":') || message.includes('"items":')) {
-        return true;
-    }
-    
-    // Check if it's a multi-line schema dump
-    if (message.includes('\n') && schemaPatternCount >= 1) {
-        return true; // Multi-line with type patterns = likely schema
-    }
-    
-    return false;
+  }
+
+  // Check against suppression patterns
+  if (SUPPRESS_PATTERNS.some((pattern) => pattern.test(message))) {
+    return true;
+  }
+
+  // Check if message contains multiple JSON schema-like patterns (lowered threshold)
+  const schemaPatternCount = (message.match(/"type":\s*"[^"]*"/gi) || [])
+    .length;
+  if (schemaPatternCount >= 2) {
+    // Lowered from 3 to 2
+    return true; // Likely a full schema definition
+  }
+
+  // Check for object/array structure patterns
+  if (message.includes('"properties":') || message.includes('"items":')) {
+    return true;
+  }
+
+  // Check if it's a multi-line schema dump
+  if (message.includes("\n") && schemaPatternCount >= 1) {
+    return true; // Multi-line with type patterns = likely schema
+  }
+
+  return false;
 }
 
 function buildFullMessage(message: any, args: any[]): string {
   let messageStr: string;
-  if (typeof message === 'string') {
+  if (typeof message === "string") {
     messageStr = message;
-  } else if (typeof message === 'object' && message !== null) {
+  } else if (typeof message === "object" && message !== null) {
     messageStr = JSON.stringify({ message, args });
   } else {
     messageStr = String(message);
   }
   if (args.length === 0) return messageStr;
-  return messageStr + ' ' + args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+  return (
+    messageStr +
+    " " +
+    args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
+  );
 }
 
 // Original logger methods (will be stored)
@@ -288,66 +313,90 @@ function patchRuntimeLogger(agentLogger: { error: (...a: any[]) => void; warn?: 
 
 /** AI SDK and similar libs log to console.warn directly - suppress known harmless model warnings */
 function shouldSuppressConsoleWarn(message: string): boolean {
-  if (!message || typeof message !== 'string') return false;
+  if (!message || typeof message !== "string") return false;
   if (/frequencyPenalty.*not supported/i.test(message)) return true;
   if (/presencePenalty.*not supported/i.test(message)) return true;
-  if (/AI SDK Warning/i.test(message) && /not supported by this model/i.test(message)) return true;
+  if (
+    /AI SDK Warning/i.test(message) &&
+    /not supported by this model/i.test(message)
+  )
+    return true;
   return false;
 }
 
 export const logFilterPlugin: Plugin = {
-    name: 'log-filter',
-    description: 'Filters verbose logs to keep terminal output clean',
-    
-    init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
-        // Patch global core logger once (used by code that imports logger from @elizaos/core)
-        if (!isPatched) {
-            originalInfo = coreLogger.info.bind(coreLogger);
-            originalDebug = coreLogger.debug.bind(coreLogger);
-            originalError = coreLogger.error.bind(coreLogger);
-            originalWarn = coreLogger.warn.bind(coreLogger);
+  name: "log-filter",
+  description: "Filters verbose logs to keep terminal output clean",
 
-            coreLogger.info = function (message: any, ...args: any[]) {
-                const fullMessage = buildFullMessage(message, args);
-                if (!shouldSuppress(fullMessage)) originalInfo(message, ...args);
-                else if (process.env.LOG_LEVEL === 'debug') originalDebug('[LogFilter] Suppressed:', fullMessage.substring(0, 150) + '...');
-            } as typeof coreLogger.info;
+  init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Patch global core logger once (used by code that imports logger from @elizaos/core)
+    if (!isPatched) {
+      originalInfo = coreLogger.info.bind(coreLogger);
+      originalDebug = coreLogger.debug.bind(coreLogger);
+      originalError = coreLogger.error.bind(coreLogger);
+      originalWarn = coreLogger.warn.bind(coreLogger);
 
-            coreLogger.debug = function (message: any, ...args: any[]) {
-                const fullMessage = buildFullMessage(message, args);
-                if (!shouldSuppress(fullMessage)) originalDebug(message, ...args);
-            } as typeof coreLogger.debug;
+      coreLogger.info = function (message: any, ...args: any[]) {
+        const fullMessage = buildFullMessage(message, args);
+        if (!shouldSuppress(fullMessage)) originalInfo(message, ...args);
+        else if (process.env.LOG_LEVEL === "debug")
+          originalDebug("[LogFilter] Suppressed:", fullMessage.substring(0, 150) + "...");
+      } as typeof coreLogger.info;
 
-            coreLogger.error = function (message: any, ...args: any[]) {
-                const fullMessage = buildFullMessage(message, args);
-                if (shouldSuppressError(fullMessage) || isDiscordSendHandlerError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
-                originalError(message, ...args);
-            } as typeof coreLogger.error;
+      coreLogger.debug = function (message: any, ...args: any[]) {
+        const fullMessage = buildFullMessage(message, args);
+        if (!shouldSuppress(fullMessage)) originalDebug(message, ...args);
+      } as typeof coreLogger.debug;
 
-            coreLogger.warn = function (message: any, ...args: any[]) {
-                const fullMessage = buildFullMessage(message, args);
-                if (shouldSuppressError(fullMessage) || shouldSuppressDeribitNoise(fullMessage) || shouldSuppressMissingApiKeyWarning(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
-                originalWarn(message, ...args);
-            } as typeof coreLogger.warn;
+      coreLogger.error = function (message: any, ...args: any[]) {
+        const fullMessage = buildFullMessage(message, args);
+        if (
+          shouldSuppressError(fullMessage) ||
+          isDiscordSendHandlerError(fullMessage) ||
+          shouldSuppressOpenSeaNoise(fullMessage)
+        )
+          return;
+        originalError(message, ...args);
+      } as typeof coreLogger.error;
 
-            const originalConsoleWarn = console.warn;
-            console.warn = function (...args: unknown[]) {
-                const msg = args.map((a) => (typeof a === 'string' ? a : String(a))).join(' ');
-                if (shouldSuppressConsoleWarn(msg)) return;
-                originalConsoleWarn.apply(console, args);
-            };
+      coreLogger.warn = function (message: any, ...args: any[]) {
+        const fullMessage = buildFullMessage(message, args);
+        if (
+          shouldSuppressError(fullMessage) ||
+          shouldSuppressDeribitNoise(fullMessage) ||
+          shouldSuppressMissingApiKeyWarning(fullMessage) ||
+          shouldSuppressOpenSeaNoise(fullMessage)
+        )
+          return;
+        originalWarn(message, ...args);
+      } as typeof coreLogger.warn;
 
-            isPatched = true;
-            coreLogger.info('[LogFilter] ✅ Logger filter active - suppressing MCP schemas, MESSAGE-BUS/SQL/embedding noise, Send handler not found (discord), AI SDK warnings');
-        }
+      const originalConsoleWarn = console.warn;
+      console.warn = function (...args: unknown[]) {
+        const msg = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ");
+        if (shouldSuppressConsoleWarn(msg)) return;
+        originalConsoleWarn.apply(console, args);
+      };
 
-        // Core uses runtime.logger (per-agent child logger), not the global logger — patch each runtime so "Send handler not found (handlerSource=discord)" is suppressed
-        const agentLogger = runtime?.logger as { error: (...a: any[]) => void; warn?: (...a: any[]) => void } | undefined;
-        if (agentLogger && typeof agentLogger.error === 'function' && !patchedRuntimeLoggers.has(agentLogger)) {
-            patchRuntimeLogger(agentLogger);
-            patchedRuntimeLoggers.add(agentLogger);
-        }
-    },
+      isPatched = true;
+      coreLogger.info(
+        "[LogFilter] ✅ Logger filter active - suppressing MCP schemas, MESSAGE-BUS/SQL/embedding noise, Send handler not found (discord), AI SDK warnings",
+      );
+    }
+
+    // Core uses runtime.logger (per-agent child logger) — patch each runtime so "Send handler not found (handlerSource=discord)" is suppressed
+    const agentLogger = runtime?.logger as
+      | { error: (...a: any[]) => void; warn?: (...a: any[]) => void }
+      | undefined;
+    if (
+      agentLogger &&
+      typeof agentLogger.error === "function" &&
+      !patchedRuntimeLoggers.has(agentLogger)
+    ) {
+      patchRuntimeLogger(agentLogger);
+      patchedRuntimeLoggers.add(agentLogger);
+    }
+  },
 };
 
 export default logFilterPlugin;

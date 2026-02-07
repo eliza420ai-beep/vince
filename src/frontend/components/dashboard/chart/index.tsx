@@ -9,7 +9,12 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/frontend/components/ui/chart";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/frontend/components/ui/tabs";
 import { Bullet } from "@/frontend/components/ui/bullet";
 import type { TimePeriod } from "@/frontend/types/dashboard";
 

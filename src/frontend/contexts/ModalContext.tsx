@@ -1,5 +1,11 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Modal } from '@/frontend/components/ui/modal';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
+import { Modal } from "@/frontend/components/ui/modal";
 
 interface ModalState {
   isVisible: boolean;
@@ -31,17 +37,20 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     options: undefined,
   });
 
-  const showModal = useCallback((content: ReactNode, id?: string, options?: ModalOptions) => {
-    setState({
-      isVisible: true,
-      content,
-      id: id || null,
-      options,
-    });
-  }, []);
+  const showModal = useCallback(
+    (content: ReactNode, id?: string, options?: ModalOptions) => {
+      setState({
+        isVisible: true,
+        content,
+        id: id || null,
+        options,
+      });
+    },
+    [],
+  );
 
   const hideModal = useCallback((id?: string) => {
-    setState(prev => {
+    setState((prev) => {
       // If an ID is provided, only hide if it matches the current ID
       // This prevents race conditions where one component hides another's modal
       if (id && prev.id !== id) {
@@ -52,13 +61,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleClose = useCallback(() => {
-    setState(prev => ({ ...prev, isVisible: false, content: null }));
+    setState((prev) => ({ ...prev, isVisible: false, content: null }));
   }, []);
 
   return (
-    <ModalContext.Provider value={{ showModal, hideModal, isVisible: state.isVisible }}>
+    <ModalContext.Provider
+      value={{ showModal, hideModal, isVisible: state.isVisible }}
+    >
       {children}
-      
+
       {/* Single Modal instance */}
       {state.isVisible && state.content && (
         <Modal
@@ -79,8 +90,7 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 export function useModal() {
   const context = useContext(ModalContext);
   if (context === undefined) {
-    throw new Error('useModal must be used within a ModalProvider');
+    throw new Error("useModal must be used within a ModalProvider");
   }
   return context;
 }
-

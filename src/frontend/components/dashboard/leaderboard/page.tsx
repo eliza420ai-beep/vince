@@ -1,16 +1,24 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import DashboardPageLayout from "@/frontend/components/dashboard/layout";
 import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/frontend/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/frontend/components/ui/tabs";
 import { elizaClient } from "@/frontend/lib/elizaClient";
 import type { RebelRanking } from "@/frontend/types/dashboard";
-import type { LeaderboardEntry, ReferralCodeResponse } from '@elizaos/api-client';
+import type {
+  LeaderboardEntry,
+  ReferralCodeResponse,
+} from "@elizaos/api-client";
 import { Trophy, RefreshCw, Copy, Check } from "lucide-react";
-import { UUID } from '@elizaos/core';
+import { UUID } from "@elizaos/core";
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -20,20 +28,25 @@ interface LeaderboardPageProps {
 }
 
 export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
-  const [scope, setScope] = useState<'weekly' | 'all_time'>('weekly');
+  const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
 
-  const { data: leaderboardData, isLoading, error, refetch } = useQuery({
-    queryKey: ['leaderboard', agentId, scope],
+  const {
+    data: leaderboardData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["leaderboard", agentId, scope],
     queryFn: async () => {
       if (!gamificationClient) {
-        throw new Error('Gamification service not available');
+        throw new Error("Gamification service not available");
       }
       try {
         // Auth token is automatically included by elizaClient for userRank
         return await gamificationClient.getLeaderboard(agentId, scope, 50);
       } catch (err: any) {
-        console.error('[LeaderboardPage] Error fetching leaderboard:', err);
+        console.error("[LeaderboardPage] Error fetching leaderboard:", err);
         // If 404, return empty data instead of throwing
         if (err?.response?.status === 404 || err?.status === 404) {
           return {
@@ -53,10 +66,10 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
 
   // Available default avatars for randomization
   const defaultAvatars = [
-    '/avatars/user_joyboy.png',
-    '/avatars/user_krimson.png',
-    '/avatars/user_mati.png',
-    '/avatars/user_pek.png',
+    "/avatars/user_joyboy.png",
+    "/avatars/user_krimson.png",
+    "/avatars/user_mati.png",
+    "/avatars/user_pek.png",
   ];
 
   // Simple hash function to deterministically select avatar based on username
@@ -65,7 +78,7 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
     let hash = 0;
     for (let i = 0; i < username.length; i++) {
       const char = username.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     const index = Math.abs(hash) % defaultAvatars.length;
@@ -75,39 +88,48 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
   // Check if avatar is the default krimson avatar (early users have this)
   const isKrimsonAvatar = (avatar: string | undefined): boolean => {
     if (!avatar) return false;
-    return avatar.includes('user_krimson.png') || avatar.includes('user_krimson');
+    return (
+      avatar.includes("user_krimson.png") || avatar.includes("user_krimson")
+    );
   };
 
   // Transform leaderboard entries to RebelRanking format
   // API already limits to 50 entries - entries no longer contain userId (privacy)
-  const rebels: RebelRanking[] = (leaderboardData?.entries || []).map((entry: LeaderboardEntry, index: number) => {
+  const rebels: RebelRanking[] = (leaderboardData?.entries || []).map(
+    (entry: LeaderboardEntry, index: number) => {
       const username = entry.username;
       // Randomize if no avatar or if avatar is the default krimson avatar
-      const avatar = (!entry.avatar || isKrimsonAvatar(entry.avatar)) 
-        ? getRandomAvatar(username)
-        : entry.avatar;
+      const avatar =
+        !entry.avatar || isKrimsonAvatar(entry.avatar)
+          ? getRandomAvatar(username)
+          : entry.avatar;
       return {
         id: entry.rank,
         name: username,
         handle: username.toUpperCase(), // Use uppercase username as handle
-        streak: '', // Could add streak info if available
+        streak: "", // Could add streak info if available
         points: entry.points,
         avatar, // Use randomized avatar if missing or if it's the default krimson avatar
         featured: index < 3, // Top 3 are featured
         subtitle: undefined, // Removed redundant rank and level name subtitle
       };
-    });
+    },
+  );
 
   const handleRefresh = () => {
     refetch();
   };
 
   // Query for referral code (requires authentication via Bearer token)
-  const { data: referralData, isLoading: isLoadingReferral, refetch: refetchReferral } = useQuery({
-    queryKey: ['referralCode', agentId],
+  const {
+    data: referralData,
+    isLoading: isLoadingReferral,
+    refetch: refetchReferral,
+  } = useQuery({
+    queryKey: ["referralCode", agentId],
     queryFn: async () => {
       if (!gamificationClient) {
-        throw new Error('Gamification service not available');
+        throw new Error("Gamification service not available");
       }
       // Auth token is automatically included by elizaClient
       return await gamificationClient.getReferralCode(agentId);
@@ -118,40 +140,47 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
 
   const handleCopyReferralLink = async () => {
     if (!referralData?.referralLink) return;
-    
+
     try {
       await navigator.clipboard.writeText(referralData.referralLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy referral link:', err);
+      console.error("Failed to copy referral link:", err);
     }
   };
 
   // Calculate if we need to account for "Your Rank" card and referral card in height
-  const hasUserRank = leaderboardData?.userRank != null && leaderboardData.userRank > 0;
+  const hasUserRank =
+    leaderboardData?.userRank != null && leaderboardData.userRank > 0;
   const hasReferralCard = !!agentId; // Referral card shown if agent context available (auth required)
-  
+
   // Calculate max-height for leaderboard: viewport height minus header, tabs, user rank card, referral card, and spacing
   // Approximate heights: header ~80px, tabs ~60px, user rank ~100px, referral ~200px, spacing ~100px
-  const leaderboardMaxHeight = hasUserRank && hasReferralCard 
-    ? 'calc(100vh - 540px)' // Account for all elements
-    : hasUserRank 
-    ? 'calc(100vh - 340px)' // Account for user rank only
-    : hasReferralCard
-    ? 'calc(100vh - 440px)' // Account for referral only
-    : 'calc(100vh - 240px)'; // Just header and tabs
+  const leaderboardMaxHeight =
+    hasUserRank && hasReferralCard
+      ? "calc(100vh - 540px)" // Account for all elements
+      : hasUserRank
+        ? "calc(100vh - 340px)" // Account for user rank only
+        : hasReferralCard
+          ? "calc(100vh - 440px)" // Account for referral only
+          : "calc(100vh - 240px)"; // Just header and tabs
 
   return (
     <DashboardPageLayout
       header={{
         title: "Leaderboard",
-        description: scope === 'weekly' ? 'Weekly Sprint Rankings' : 'All-Time Rankings',
+        description:
+          scope === "weekly" ? "Weekly Sprint Rankings" : "All-Time Rankings",
       }}
     >
       <div className="flex flex-col h-full">
         {/* Scope Tabs */}
-        <Tabs value={scope} onValueChange={(value) => setScope(value as 'weekly' | 'all_time')} className="flex flex-col flex-1 min-h-0">
+        <Tabs
+          value={scope}
+          onValueChange={(value) => setScope(value as "weekly" | "all_time")}
+          className="flex flex-col flex-1 min-h-0"
+        >
           <div className="flex items-center justify-between flex-shrink-0">
             <TabsList>
               <TabsTrigger value="weekly">Weekly</TabsTrigger>
@@ -163,18 +192,25 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
               onClick={handleRefresh}
               disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+              />
               Refresh
             </Button>
           </div>
 
-          <TabsContent value="weekly" className="mt-6 flex-1 min-h-0 flex flex-col">
+          <TabsContent
+            value="weekly"
+            className="mt-6 flex-1 min-h-0 flex flex-col"
+          >
             {error && !isLoading ? (
               <DashboardCard title="WEEKLY LEADERBOARD">
                 <div className="text-center py-12">
-                  <p className="text-destructive mb-2">Error loading leaderboard</p>
+                  <p className="text-destructive mb-2">
+                    Error loading leaderboard
+                  </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {error instanceof Error ? error.message : 'Unknown error'}
+                    {error instanceof Error ? error.message : "Unknown error"}
                   </p>
                   <Button onClick={() => refetch()} variant="outline" size="sm">
                     <RefreshCw className="w-4 h-4 mr-2" />
@@ -186,7 +222,10 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
               <DashboardCard title="WEEKLY LEADERBOARD">
                 <div className="space-y-4">
                   {[...Array(10)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 animate-pulse">
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 animate-pulse"
+                    >
                       <div className="h-8 w-8 bg-muted rounded" />
                       <div className="h-12 w-12 bg-muted rounded-lg" />
                       <div className="flex-1 space-y-2">
@@ -204,7 +243,9 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
               <DashboardCard title="WEEKLY LEADERBOARD">
                 <div className="text-center py-12">
                   <Trophy className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No rankings yet this week</p>
+                  <p className="text-muted-foreground">
+                    No rankings yet this week
+                  </p>
                   <p className="text-sm text-muted-foreground mt-2">
                     Complete actions to earn points and climb the leaderboard!
                   </p>
@@ -213,13 +254,18 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="all_time" className="mt-6 flex-1 min-h-0 flex flex-col">
+          <TabsContent
+            value="all_time"
+            className="mt-6 flex-1 min-h-0 flex flex-col"
+          >
             {error && !isLoading ? (
               <DashboardCard title="ALL-TIME LEADERBOARD">
                 <div className="text-center py-12">
-                  <p className="text-destructive mb-2">Error loading leaderboard</p>
+                  <p className="text-destructive mb-2">
+                    Error loading leaderboard
+                  </p>
                   <p className="text-sm text-muted-foreground mb-4">
-                    {error instanceof Error ? error.message : 'Unknown error'}
+                    {error instanceof Error ? error.message : "Unknown error"}
                   </p>
                   <Button onClick={() => refetch()} variant="outline" size="sm">
                     <RefreshCw className="w-4 h-4 mr-2" />
@@ -231,7 +277,10 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
               <DashboardCard title="ALL-TIME LEADERBOARD">
                 <div className="space-y-4">
                   {[...Array(10)].map((_, i) => (
-                    <div key={i} className="flex items-center gap-4 animate-pulse">
+                    <div
+                      key={i}
+                      className="flex items-center gap-4 animate-pulse"
+                    >
                       <div className="h-8 w-8 bg-muted rounded" />
                       <div className="h-12 w-12 bg-muted rounded-lg" />
                       <div className="flex-1 space-y-2">
@@ -265,9 +314,11 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
             <DashboardCard title="Your Rank">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold font-mono">#{leaderboardData.userRank}</div>
+                  <div className="text-3xl font-bold font-mono">
+                    #{leaderboardData.userRank}
+                  </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    {scope === 'weekly' ? 'Weekly Ranking' : 'All-Time Ranking'}
+                    {scope === "weekly" ? "Weekly Ranking" : "All-Time Ranking"}
                   </div>
                 </div>
                 {/* Points are shown on user's account page - no userId in entries for privacy */}
@@ -288,8 +339,12 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 p-3 bg-muted rounded-lg border">
-                    <div className="text-xs text-muted-foreground mb-1">Your Referral Link</div>
-                    <div className="text-sm font-mono break-all">{referralData.referralLink}</div>
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Your Referral Link
+                    </div>
+                    <div className="text-sm font-mono break-all">
+                      {referralData.referralLink}
+                    </div>
                   </div>
                   <Button
                     onClick={handleCopyReferralLink}
@@ -313,24 +368,35 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
                 <div className="flex items-center gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Signups: </span>
-                    <span className="font-semibold">{referralData.stats.totalReferrals}</span>
+                    <span className="font-semibold">
+                      {referralData.stats.totalReferrals}
+                    </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Activated: </span>
-                    <span className="font-semibold">{referralData.stats.activatedReferrals}</span>
+                    <span className="font-semibold">
+                      {referralData.stats.activatedReferrals}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Points Earned: </span>
-                    <span className="font-semibold">{referralData.stats.totalPointsEarned.toLocaleString()}</span>
+                    <span className="text-muted-foreground">
+                      Points Earned:{" "}
+                    </span>
+                    <span className="font-semibold">
+                      {referralData.stats.totalPointsEarned.toLocaleString()}
+                    </span>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Share your referral link to earn points when friends sign up and activate their accounts!
+                  Share your referral link to earn points when friends sign up
+                  and activate their accounts!
                 </p>
               </div>
             ) : (
               <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">Unable to load referral code</p>
+                <p className="text-sm text-muted-foreground">
+                  Unable to load referral code
+                </p>
                 <Button
                   onClick={() => refetchReferral()}
                   variant="outline"
@@ -348,4 +414,3 @@ export default function LeaderboardPage({ agentId }: LeaderboardPageProps) {
     </DashboardPageLayout>
   );
 }
-

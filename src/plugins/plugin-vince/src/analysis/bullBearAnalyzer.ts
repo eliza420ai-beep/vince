@@ -1,10 +1,10 @@
 /**
  * VINCE Bull/Bear Case Analyzer
- * 
+ *
  * Core analysis engine that aggregates data from all VINCE services
  * to build coherent bull and bear cases, then generates a final
  * conclusion with conviction score.
- * 
+ *
  * Data Sources:
  * - CoinGlass: Funding rates, L/S ratio, Fear/Greed, OI
  * - Deribit: IV surface, options skew, DVOL
@@ -42,6 +42,25 @@ import type { VinceNansenService } from "../services/nansen.service";
 import type { VinceTopTradersService } from "../services/topTraders.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import type { VinceCoinGeckoService } from "../services/coingecko.service";
+import type { NansenChain } from "../services/nansen.service";
+
+/** Map asset symbol to Nansen (chain, tokenAddress) for isSmartMoneyAccumulating; null if unsupported. */
+function assetToNansenChainAndAddress(
+  asset: string,
+): { chain: NansenChain; tokenAddress: string } | null {
+  const a = asset.toUpperCase();
+  if (a === "BTC")
+    return {
+      chain: "ethereum",
+      tokenAddress: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // wBTC
+    };
+  if (a === "ETH")
+    return {
+      chain: "ethereum",
+      tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", // WETH
+    };
+  return null;
+}
 
 // ==========================================
 // Bull/Bear Case Analyzer Class
@@ -53,7 +72,7 @@ export class BullBearAnalyzer {
 
   constructor(
     weights: AnalysisWeights = DEFAULT_ANALYSIS_WEIGHTS,
-    thresholds: SignalThresholds = DEFAULT_THRESHOLDS
+    thresholds: SignalThresholds = DEFAULT_THRESHOLDS,
   ) {
     this.weights = weights;
     this.thresholds = thresholds;
@@ -64,7 +83,7 @@ export class BullBearAnalyzer {
    */
   async analyze(
     runtime: IAgentRuntime,
-    asset: string = "BTC"
+    asset: string = "BTC",
   ): Promise<AnalysisResult> {
     const startTime = Date.now();
     const availableServices: DataSource[] = [];
@@ -75,7 +94,7 @@ export class BullBearAnalyzer {
       runtime,
       asset,
       availableServices,
-      failedServices
+      failedServices,
     );
 
     // Build bull and bear cases
@@ -88,7 +107,7 @@ export class BullBearAnalyzer {
     // Calculate data quality
     const dataQualityScore = this.calculateDataQuality(
       availableServices,
-      failedServices
+      failedServices,
     );
 
     return {
@@ -108,7 +127,7 @@ export class BullBearAnalyzer {
     runtime: IAgentRuntime,
     asset: string,
     availableServices: DataSource[],
-    failedServices: DataSource[]
+    failedServices: DataSource[],
   ): Promise<MarketDataSnapshot> {
     const snapshot: MarketDataSnapshot = {
       asset,
@@ -139,13 +158,15 @@ export class BullBearAnalyzer {
 
     // CoinGlass
     try {
-      const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
+      const coinglassService = runtime.getService(
+        "VINCE_COINGLASS_SERVICE",
+      ) as VinceCoinGlassService | null;
       if (coinglassService) {
         // Refresh data if available (async)
         if (typeof coinglassService.refreshData === "function") {
           await coinglassService.refreshData();
         }
-        
+
         // Get cached data (sync)
         const funding = coinglassService.getFunding(asset);
         const longShort = coinglassService.getLongShortRatio(asset);
@@ -168,7 +189,9 @@ export class BullBearAnalyzer {
 
     // Deribit
     try {
-      const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
+      const deribitService = runtime.getService(
+        "VINCE_DERIBIT_SERVICE",
+      ) as VinceDeribitService | null;
       if (deribitService) {
         const price = await deribitService.getIndexPrice(asset as any);
         const dvol = await deribitService.getDVOL(asset as any);
@@ -189,7 +212,9 @@ export class BullBearAnalyzer {
 
     // Sanbase
     try {
-      const sanbaseService = runtime.getService("VINCE_SANBASE_SERVICE") as VinceSanbaseService | null;
+      const sanbaseService = runtime.getService(
+        "VINCE_SANBASE_SERVICE",
+      ) as VinceSanbaseService | null;
       if (sanbaseService && sanbaseService.isConfigured()) {
         const exchangeFlows = await sanbaseService.getExchangeFlows(asset);
         const network = await sanbaseService.getNetworkActivity(asset);
@@ -208,11 +233,22 @@ export class BullBearAnalyzer {
       failedServices.push("sanbase");
     }
 
-    // Nansen
+    // Nansen (requires chain + token address; only for supported assets)
     try {
-      const nansenService = runtime.getService("VINCE_NANSEN_SERVICE") as VinceNansenService | null;
-      if (nansenService && nansenService.isConfigured()) {
-        const accumulation = await nansenService.isSmartMoneyAccumulating(asset);
+      const nansenService = runtime.getService(
+        "VINCE_NANSEN_SERVICE",
+      ) as VinceNansenService | null;
+      const nansenPair = assetToNansenChainAndAddress(asset);
+      if (
+        nansenService &&
+        nansenService.isConfigured() &&
+        nansenPair
+      ) {
+        const accumulation =
+          await nansenService.isSmartMoneyAccumulating(
+            nansenPair.chain,
+            nansenPair.tokenAddress,
+          );
 
         if (accumulation) {
           snapshot.smartMoneyNetFlow = accumulation.netFlow;
@@ -228,7 +264,9 @@ export class BullBearAnalyzer {
 
     // TopTraders
     try {
-      const topTradersService = runtime.getService("VINCE_TOP_TRADERS_SERVICE") as VinceTopTradersService | null;
+      const topTradersService = runtime.getService(
+        "VINCE_TOP_TRADERS_SERVICE",
+      ) as VinceTopTradersService | null;
       if (topTradersService) {
         const signal = await topTradersService.generateSignal(asset);
 
@@ -245,7 +283,9 @@ export class BullBearAnalyzer {
 
     // News Sentiment
     try {
-      const newsService = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+      const newsService = runtime.getService(
+        "VINCE_NEWS_SENTIMENT_SERVICE",
+      ) as VinceNewsSentimentService | null;
       if (newsService) {
         const sentiment = await newsService.getOverallSentiment();
         const riskEvents = await newsService.getActiveRiskEvents();
@@ -264,13 +304,15 @@ export class BullBearAnalyzer {
 
     // CoinGecko
     try {
-      const coingeckoService = runtime.getService("VINCE_COINGECKO_SERVICE") as VinceCoinGeckoService | null;
+      const coingeckoService = runtime.getService(
+        "VINCE_COINGECKO_SERVICE",
+      ) as VinceCoinGeckoService | null;
       if (coingeckoService) {
         // Refresh data if available (async)
         if (typeof coingeckoService.refreshData === "function") {
           await coingeckoService.refreshData();
         }
-        
+
         // Get cached data (sync)
         const price = coingeckoService.getPrice(asset);
 
@@ -295,42 +337,54 @@ export class BullBearAnalyzer {
     const timestamp = Date.now();
 
     // CoinGlass: Negative funding = bullish
-    if (snapshot.fundingRate !== null && snapshot.fundingRate < this.thresholds.fundingBullish) {
+    if (
+      snapshot.fundingRate !== null &&
+      snapshot.fundingRate < this.thresholds.fundingBullish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "funding_rate",
         value: `${(snapshot.fundingRate * 100).toFixed(3)}%`,
         rawValue: snapshot.fundingRate,
         weight: this.weights.coinglass * 0.35,
-        explanation: "Negative funding indicates shorts are paying longs - squeeze potential",
+        explanation:
+          "Negative funding indicates shorts are paying longs - squeeze potential",
         confidence: Math.min(90, Math.abs(snapshot.fundingRate) * 5000),
         timestamp,
       });
     }
 
     // CoinGlass: Low L/S ratio = bullish (shorts crowded)
-    if (snapshot.longShortRatio !== null && snapshot.longShortRatio < this.thresholds.longShortBullish) {
+    if (
+      snapshot.longShortRatio !== null &&
+      snapshot.longShortRatio < this.thresholds.longShortBullish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "long_short_ratio",
         value: snapshot.longShortRatio.toFixed(2),
         rawValue: snapshot.longShortRatio,
         weight: this.weights.coinglass * 0.35,
-        explanation: "Low L/S ratio shows shorts are crowded - contrarian bullish",
+        explanation:
+          "Low L/S ratio shows shorts are crowded - contrarian bullish",
         confidence: Math.min(85, (1 - snapshot.longShortRatio) * 100),
         timestamp,
       });
     }
 
     // CoinGlass: Extreme fear = bullish (buy the fear)
-    if (snapshot.fearGreedValue !== null && snapshot.fearGreedValue < this.thresholds.fearGreedBullish) {
+    if (
+      snapshot.fearGreedValue !== null &&
+      snapshot.fearGreedValue < this.thresholds.fearGreedBullish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "fear_greed",
         value: `${snapshot.fearGreedValue} (${snapshot.fearGreedLabel})`,
         rawValue: snapshot.fearGreedValue,
         weight: this.weights.coinglass * 0.3,
-        explanation: "Extreme fear typically marks local bottoms - contrarian buy signal",
+        explanation:
+          "Extreme fear typically marks local bottoms - contrarian buy signal",
         confidence: Math.min(80, (25 - snapshot.fearGreedValue) * 3),
         timestamp,
       });
@@ -358,7 +412,8 @@ export class BullBearAnalyzer {
         value: `${snapshot.dvol.toFixed(1)}`,
         rawValue: snapshot.dvol,
         weight: this.weights.deribit * 0.5,
-        explanation: "Low implied volatility suggests complacency - often precedes moves up",
+        explanation:
+          "Low implied volatility suggests complacency - often precedes moves up",
         confidence: 60,
         timestamp,
       });
@@ -372,7 +427,8 @@ export class BullBearAnalyzer {
         value: `Net ${(snapshot.exchangeNetFlow || 0).toLocaleString()} ${snapshot.asset}`,
         rawValue: snapshot.exchangeNetFlow || 0,
         weight: this.weights.sanbase * 0.4,
-        explanation: "Net outflows from exchanges indicate accumulation by long-term holders",
+        explanation:
+          "Net outflows from exchanges indicate accumulation by long-term holders",
         confidence: 75,
         timestamp,
       });
@@ -414,14 +470,23 @@ export class BullBearAnalyzer {
         value: `Accumulating ($${((snapshot.smartMoneyNetFlow || 0) / 1000000).toFixed(1)}M)`,
         rawValue: snapshot.smartMoneyNetFlow || 0,
         weight: this.weights.nansen,
-        explanation: "Smart money wallets are net buyers - follow the informed money",
-        confidence: snapshot.smartMoneyConfidence === "high" ? 85 : snapshot.smartMoneyConfidence === "medium" ? 70 : 55,
+        explanation:
+          "Smart money wallets are net buyers - follow the informed money",
+        confidence:
+          snapshot.smartMoneyConfidence === "high"
+            ? 85
+            : snapshot.smartMoneyConfidence === "medium"
+              ? 70
+              : 55,
         timestamp,
       });
     }
 
     // TopTraders: Whales long = bullish
-    if (snapshot.whaleDirection === "long" && (snapshot.whaleStrength || 0) > 60) {
+    if (
+      snapshot.whaleDirection === "long" &&
+      (snapshot.whaleStrength || 0) > 60
+    ) {
       factors.push({
         source: "top_traders",
         indicator: "whale_positioning",
@@ -449,7 +514,10 @@ export class BullBearAnalyzer {
     }
 
     // Price: Strong momentum = bullish
-    if (snapshot.priceChange24h !== null && snapshot.priceChange24h > this.thresholds.momentumBullish) {
+    if (
+      snapshot.priceChange24h !== null &&
+      snapshot.priceChange24h > this.thresholds.momentumBullish
+    ) {
       factors.push({
         source: "coingecko",
         indicator: "price_momentum",
@@ -464,7 +532,9 @@ export class BullBearAnalyzer {
 
     // Calculate overall strength
     const strength = this.calculateCaseStrength(factors);
-    const keyFactors = factors.sort((a, b) => b.weight * b.confidence - a.weight * a.confidence).slice(0, 3);
+    const keyFactors = factors
+      .sort((a, b) => b.weight * b.confidence - a.weight * a.confidence)
+      .slice(0, 3);
     const narrative = this.generateCaseNarrative("bull", factors, keyFactors);
 
     return {
@@ -486,42 +556,54 @@ export class BullBearAnalyzer {
     const timestamp = Date.now();
 
     // CoinGlass: High positive funding = bearish
-    if (snapshot.fundingRate !== null && snapshot.fundingRate > this.thresholds.fundingBearish) {
+    if (
+      snapshot.fundingRate !== null &&
+      snapshot.fundingRate > this.thresholds.fundingBearish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "funding_rate",
         value: `+${(snapshot.fundingRate * 100).toFixed(3)}%`,
         rawValue: snapshot.fundingRate,
         weight: this.weights.coinglass * 0.35,
-        explanation: "High positive funding indicates overleveraged longs - liquidation risk",
+        explanation:
+          "High positive funding indicates overleveraged longs - liquidation risk",
         confidence: Math.min(90, snapshot.fundingRate * 4000),
         timestamp,
       });
     }
 
     // CoinGlass: High L/S ratio = bearish (longs crowded)
-    if (snapshot.longShortRatio !== null && snapshot.longShortRatio > this.thresholds.longShortBearish) {
+    if (
+      snapshot.longShortRatio !== null &&
+      snapshot.longShortRatio > this.thresholds.longShortBearish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "long_short_ratio",
         value: snapshot.longShortRatio.toFixed(2),
         rawValue: snapshot.longShortRatio,
         weight: this.weights.coinglass * 0.35,
-        explanation: "High L/S ratio shows longs are crowded - contrarian bearish",
+        explanation:
+          "High L/S ratio shows longs are crowded - contrarian bearish",
         confidence: Math.min(85, (snapshot.longShortRatio - 1) * 60),
         timestamp,
       });
     }
 
     // CoinGlass: Extreme greed = bearish (sell the greed)
-    if (snapshot.fearGreedValue !== null && snapshot.fearGreedValue > this.thresholds.fearGreedBearish) {
+    if (
+      snapshot.fearGreedValue !== null &&
+      snapshot.fearGreedValue > this.thresholds.fearGreedBearish
+    ) {
       factors.push({
         source: "coinglass",
         indicator: "fear_greed",
         value: `${snapshot.fearGreedValue} (${snapshot.fearGreedLabel})`,
         rawValue: snapshot.fearGreedValue,
         weight: this.weights.coinglass * 0.3,
-        explanation: "Extreme greed typically marks local tops - contrarian sell signal",
+        explanation:
+          "Extreme greed typically marks local tops - contrarian sell signal",
         confidence: Math.min(80, (snapshot.fearGreedValue - 75) * 3),
         timestamp,
       });
@@ -549,7 +631,8 @@ export class BullBearAnalyzer {
         value: `${snapshot.dvol.toFixed(1)}`,
         rawValue: snapshot.dvol,
         weight: this.weights.deribit * 0.5,
-        explanation: "Elevated implied volatility suggests fear - often precedes sell-offs",
+        explanation:
+          "Elevated implied volatility suggests fear - often precedes sell-offs",
         confidence: 65,
         timestamp,
       });
@@ -563,7 +646,8 @@ export class BullBearAnalyzer {
         value: `Net +${(snapshot.exchangeNetFlow || 0).toLocaleString()} ${snapshot.asset}`,
         rawValue: snapshot.exchangeNetFlow || 0,
         weight: this.weights.sanbase * 0.4,
-        explanation: "Net inflows to exchanges indicate distribution - selling pressure ahead",
+        explanation:
+          "Net inflows to exchanges indicate distribution - selling pressure ahead",
         confidence: 75,
         timestamp,
       });
@@ -598,21 +682,33 @@ export class BullBearAnalyzer {
     }
 
     // Nansen: Smart money selling = bearish
-    if (snapshot.isSmartMoneyAccumulating === false && (snapshot.smartMoneyNetFlow || 0) < 0) {
+    if (
+      snapshot.isSmartMoneyAccumulating === false &&
+      (snapshot.smartMoneyNetFlow || 0) < 0
+    ) {
       factors.push({
         source: "nansen",
         indicator: "smart_money_flow",
         value: `Distributing ($${((snapshot.smartMoneyNetFlow || 0) / 1000000).toFixed(1)}M)`,
         rawValue: snapshot.smartMoneyNetFlow || 0,
         weight: this.weights.nansen,
-        explanation: "Smart money wallets are net sellers - follow the informed money",
-        confidence: snapshot.smartMoneyConfidence === "high" ? 85 : snapshot.smartMoneyConfidence === "medium" ? 70 : 55,
+        explanation:
+          "Smart money wallets are net sellers - follow the informed money",
+        confidence:
+          snapshot.smartMoneyConfidence === "high"
+            ? 85
+            : snapshot.smartMoneyConfidence === "medium"
+              ? 70
+              : 55,
         timestamp,
       });
     }
 
     // TopTraders: Whales short = bearish
-    if (snapshot.whaleDirection === "short" && (snapshot.whaleStrength || 0) > 60) {
+    if (
+      snapshot.whaleDirection === "short" &&
+      (snapshot.whaleStrength || 0) > 60
+    ) {
       factors.push({
         source: "top_traders",
         indicator: "whale_positioning",
@@ -630,19 +726,28 @@ export class BullBearAnalyzer {
       factors.push({
         source: "news_sentiment",
         indicator: snapshot.hasRiskEvents ? "risk_events" : "sentiment",
-        value: snapshot.hasRiskEvents ? "Active Risk Events" : `Bearish (${Math.round(snapshot.newsConfidence || 0)}% confidence)`,
-        rawValue: snapshot.hasRiskEvents ? -100 : -(snapshot.newsConfidence || 0),
+        value: snapshot.hasRiskEvents
+          ? "Active Risk Events"
+          : `Bearish (${Math.round(snapshot.newsConfidence || 0)}% confidence)`,
+        rawValue: snapshot.hasRiskEvents
+          ? -100
+          : -(snapshot.newsConfidence || 0),
         weight: this.weights.newsSentiment * (snapshot.hasRiskEvents ? 1.5 : 1),
-        explanation: snapshot.hasRiskEvents 
-          ? "Active risk events require caution" 
+        explanation: snapshot.hasRiskEvents
+          ? "Active risk events require caution"
           : "News flow is negative - headwinds ahead",
-        confidence: snapshot.hasRiskEvents ? 80 : Math.round(snapshot.newsConfidence || 60),
+        confidence: snapshot.hasRiskEvents
+          ? 80
+          : Math.round(snapshot.newsConfidence || 60),
         timestamp,
       });
     }
 
     // Price: Strong down momentum = bearish
-    if (snapshot.priceChange24h !== null && snapshot.priceChange24h < this.thresholds.momentumBearish) {
+    if (
+      snapshot.priceChange24h !== null &&
+      snapshot.priceChange24h < this.thresholds.momentumBearish
+    ) {
       factors.push({
         source: "coingecko",
         indicator: "price_momentum",
@@ -657,7 +762,9 @@ export class BullBearAnalyzer {
 
     // Calculate overall strength
     const strength = this.calculateCaseStrength(factors);
-    const keyFactors = factors.sort((a, b) => b.weight * b.confidence - a.weight * a.confidence).slice(0, 3);
+    const keyFactors = factors
+      .sort((a, b) => b.weight * b.confidence - a.weight * a.confidence)
+      .slice(0, 3);
     const narrative = this.generateCaseNarrative("bear", factors, keyFactors);
 
     return {
@@ -677,7 +784,7 @@ export class BullBearAnalyzer {
   generateConclusion(
     asset: string,
     bullCase: MarketCase,
-    bearCase: MarketCase
+    bearCase: MarketCase,
   ): DailyConclusion {
     const timestamp = Date.now();
     const date = new Date().toISOString().split("T")[0];
@@ -721,8 +828,8 @@ export class BullBearAnalyzer {
 
     // Extract key factors
     const allKeyFactors = [
-      ...bullCase.keyFactors.map(f => `BULL: ${f.explanation}`),
-      ...bearCase.keyFactors.map(f => `BEAR: ${f.explanation}`),
+      ...bullCase.keyFactors.map((f) => `BULL: ${f.explanation}`),
+      ...bearCase.keyFactors.map((f) => `BEAR: ${f.explanation}`),
     ].slice(0, 5);
 
     // Generate summary
@@ -731,7 +838,7 @@ export class BullBearAnalyzer {
       direction,
       conviction,
       bullCase,
-      bearCase
+      bearCase,
     );
 
     return {
@@ -755,10 +862,16 @@ export class BullBearAnalyzer {
   private calculateCaseStrength(factors: CaseFactor[]): number {
     if (factors.length === 0) return 0;
 
-    const weightedSum = factors.reduce((sum, f) => sum + f.weight * (f.confidence / 100), 0);
+    const weightedSum = factors.reduce(
+      (sum, f) => sum + f.weight * (f.confidence / 100),
+      0,
+    );
     const maxPossible = Object.values(this.weights).reduce((a, b) => a + b, 0);
-    
-    return Math.min(100, (weightedSum / maxPossible) * 100 + factors.length * 5);
+
+    return Math.min(
+      100,
+      (weightedSum / maxPossible) * 100 + factors.length * 5,
+    );
   }
 
   /**
@@ -766,11 +879,11 @@ export class BullBearAnalyzer {
    */
   private calculateDataQuality(
     available: DataSource[],
-    failed: DataSource[]
+    failed: DataSource[],
   ): number {
     const totalServices = available.length + failed.length;
     if (totalServices === 0) return 0;
-    
+
     return Math.round((available.length / 7) * 100); // 7 main services
   }
 
@@ -780,14 +893,19 @@ export class BullBearAnalyzer {
   private generateCaseNarrative(
     type: "bull" | "bear",
     factors: CaseFactor[],
-    keyFactors: CaseFactor[]
+    keyFactors: CaseFactor[],
   ): string {
     if (factors.length === 0) {
       return `No significant ${type}ish signals detected.`;
     }
 
-    const strength = factors.length >= 5 ? "strong" : factors.length >= 3 ? "moderate" : "weak";
-    const keyPoints = keyFactors.map(f => f.explanation).join(". ");
+    const strength =
+      factors.length >= 5
+        ? "strong"
+        : factors.length >= 3
+          ? "moderate"
+          : "weak";
+    const keyPoints = keyFactors.map((f) => f.explanation).join(". ");
 
     return `${strength.charAt(0).toUpperCase() + strength.slice(1)} ${type} case with ${factors.length} supporting factors. Key signals: ${keyPoints}`;
   }
@@ -800,10 +918,11 @@ export class BullBearAnalyzer {
     direction: MarketDirection,
     conviction: number,
     bullCase: MarketCase,
-    bearCase: MarketCase
+    bearCase: MarketCase,
   ): string {
-    const convictionLabel = conviction > 75 ? "high" : conviction > 55 ? "moderate" : "low";
-    
+    const convictionLabel =
+      conviction > 75 ? "high" : conviction > 55 ? "moderate" : "low";
+
     if (direction === "neutral") {
       return `${asset} shows mixed signals with ${bullCase.factorCount} bullish and ${bearCase.factorCount} bearish factors. Conviction is ${convictionLabel} at ${conviction.toFixed(0)}%. Wait for clearer direction.`;
     }
@@ -811,9 +930,11 @@ export class BullBearAnalyzer {
     const winningCase = direction === "bullish" ? bullCase : bearCase;
     const losingCase = direction === "bullish" ? bearCase : bullCase;
 
-    return `${asset} leans ${direction} with ${convictionLabel} conviction (${conviction.toFixed(0)}%). ` +
+    return (
+      `${asset} leans ${direction} with ${convictionLabel} conviction (${conviction.toFixed(0)}%). ` +
       `Bull case (${bullCase.strength.toFixed(0)}) vs Bear case (${bearCase.strength.toFixed(0)}). ` +
-      `${winningCase.keyFactors[0]?.explanation || "Multiple factors"} outweigh ${losingCase.keyFactors[0]?.explanation || "opposing signals"}.`;
+      `${winningCase.keyFactors[0]?.explanation || "Multiple factors"} outweigh ${losingCase.keyFactors[0]?.explanation || "opposing signals"}.`
+    );
   }
 }
 
@@ -825,7 +946,7 @@ let analyzerInstance: BullBearAnalyzer | null = null;
 
 export function getBullBearAnalyzer(
   weights?: AnalysisWeights,
-  thresholds?: SignalThresholds
+  thresholds?: SignalThresholds,
 ): BullBearAnalyzer {
   if (!analyzerInstance || weights || thresholds) {
     analyzerInstance = new BullBearAnalyzer(weights, thresholds);

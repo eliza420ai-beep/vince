@@ -5,7 +5,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import * as fs from "fs";
-import { VinceMLInferenceService, type SignalQualityInput } from "../services/mlInference.service";
+import {
+  VinceMLInferenceService,
+  type SignalQualityInput,
+} from "../services/mlInference.service";
 import { createMockRuntime } from "./test-utils";
 
 vi.mock("../utils/supabaseMlModels", () => ({
@@ -91,7 +94,9 @@ const testMetadataWithFullFeatureNames = {
   signal_quality_feature_names: FULL_SIGNAL_QUALITY_FEATURE_NAMES,
 };
 
-function fullSignalQualityInput(overrides?: Partial<SignalQualityInput>): SignalQualityInput {
+function fullSignalQualityInput(
+  overrides?: Partial<SignalQualityInput>,
+): SignalQualityInput {
   return {
     priceChange24h: 2,
     volumeRatio: 1.2,
@@ -124,18 +129,26 @@ describe("VinceMLInferenceService", () => {
   let fsReadDirSyncSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    fsExistsSyncSpy = vi.spyOn(fs, "existsSync").mockImplementation((p: fs.PathLike) => {
-      const s = String(p);
-      if (s.includes(".onnx")) return false;
-      return s.includes("training_metadata.json") || s.includes("models") || s.includes("vince-paper-bot");
-    });
-    fsReadFileSyncSpy = vi.spyOn(fs, "readFileSync").mockImplementation((p: fs.PathLike, encoding?: BufferEncoding) => {
-      const s = String(p);
-      if (s.includes("training_metadata.json")) {
-        return JSON.stringify(testMetadataWithFeatureNames);
-      }
-      return Buffer.from("[]");
-    });
+    fsExistsSyncSpy = vi
+      .spyOn(fs, "existsSync")
+      .mockImplementation((p: fs.PathLike) => {
+        const s = String(p);
+        if (s.includes(".onnx")) return false;
+        return (
+          s.includes("training_metadata.json") ||
+          s.includes("models") ||
+          s.includes("vince-paper-bot")
+        );
+      });
+    fsReadFileSyncSpy = vi
+      .spyOn(fs, "readFileSync")
+      .mockImplementation((p: fs.PathLike, encoding?: BufferEncoding) => {
+        const s = String(p);
+        if (s.includes("training_metadata.json")) {
+          return JSON.stringify(testMetadataWithFeatureNames);
+        }
+        return Buffer.from("[]");
+      });
     fsReadDirSyncSpy = vi.spyOn(fs, "readdirSync").mockReturnValue([]);
   });
 

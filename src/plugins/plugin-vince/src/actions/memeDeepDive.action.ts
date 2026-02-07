@@ -7,9 +7,18 @@
  * Trigger: "deep dive [token]", "analyze [token]", "dd [token]", "[token address]"
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import type { VinceDexScreenerService, TokenDeepDive } from "../services/dexscreener.service";
+import type {
+  VinceDexScreenerService,
+  TokenDeepDive,
+} from "../services/dexscreener.service";
 import {
   formatVolume,
   isSolanaAddress,
@@ -34,11 +43,15 @@ function buildDeepDiveContext(token: TokenDeepDive): string {
   // Market data
   lines.push("=== MARKET DATA ===");
   lines.push(`Price: $${token.price.toFixed(6)}`);
-  lines.push(`Market Cap: ${token.marketCap ? formatVolume(token.marketCap) : "Unknown"}`);
+  lines.push(
+    `Market Cap: ${token.marketCap ? formatVolume(token.marketCap) : "Unknown"}`,
+  );
   lines.push(`Liquidity: ${formatVolume(token.liquidity)}`);
   lines.push(`24h Volume: ${formatVolume(token.volume24h)}`);
   lines.push(`Vol/Liq Ratio: ${token.volumeLiquidityRatio.toFixed(1)}x`);
-  lines.push(`24h Change: ${token.priceChange24h >= 0 ? "+" : ""}${token.priceChange24h.toFixed(1)}%`);
+  lines.push(
+    `24h Change: ${token.priceChange24h >= 0 ? "+" : ""}${token.priceChange24h.toFixed(1)}%`,
+  );
   lines.push(`Momentum: ${token.momentumSignal}`);
   if (token.retracementFromAth) {
     lines.push(`From ATH: ${token.retracementFromAth.toFixed(0)}%`);
@@ -55,10 +68,14 @@ function buildDeepDiveContext(token: TokenDeepDive): string {
   // Entry guidance
   lines.push("=== ENTRY GUIDANCE ===");
   lines.push(`Timing: ${token.entryGuidance.timing.toUpperCase()}`);
-  lines.push(`Suggested Action: ${token.entryGuidance.suggestedAction.replace(/_/g, " ").toUpperCase()}`);
+  lines.push(
+    `Suggested Action: ${token.entryGuidance.suggestedAction.replace(/_/g, " ").toUpperCase()}`,
+  );
   lines.push(`Rationale: ${token.entryGuidance.rationale}`);
   if (token.entryGuidance.expectedRetracement) {
-    lines.push(`Expected Retracement: ${token.entryGuidance.expectedRetracement}`);
+    lines.push(
+      `Expected Retracement: ${token.entryGuidance.expectedRetracement}`,
+    );
   }
   lines.push("");
 
@@ -67,7 +84,9 @@ function buildDeepDiveContext(token: TokenDeepDive): string {
   lines.push(`Top 10 Holders: ~${token.holderAnalysis.top10Pct}% of supply`);
   lines.push(`Top 1 Holder: ~${token.holderAnalysis.top1Pct}% of supply`);
   lines.push(`Holder Count: ~${token.holderAnalysis.holderCount}`);
-  lines.push(`Distribution: ${token.holderAnalysis.isHealthy ? "HEALTHY" : "CONCERNING"}`);
+  lines.push(
+    `Distribution: ${token.holderAnalysis.isHealthy ? "HEALTHY" : "CONCERNING"}`,
+  );
   if (token.holderAnalysis.warnings.length > 0) {
     lines.push(`Warnings: ${token.holderAnalysis.warnings.join("; ")}`);
   }
@@ -104,7 +123,7 @@ function buildDeepDiveContext(token: TokenDeepDive): string {
 
 async function generateDeepDiveBriefing(
   runtime: IAgentRuntime,
-  dataContext: string
+  dataContext: string,
 ): Promise<string> {
   const prompt = `You are VINCE, providing a comprehensive deep dive on a specific token.
 
@@ -140,7 +159,9 @@ Write the deep dive:`;
     const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
     return String(response).trim();
   } catch (error) {
-    logger.error(`[VINCE_MEME_DEEP_DIVE] Failed to generate briefing: ${error}`);
+    logger.error(
+      `[VINCE_MEME_DEEP_DIVE] Failed to generate briefing: ${error}`,
+    );
     return "Couldn't generate the deep dive analysis. The model's having issues. Try again.";
   }
 }
@@ -180,29 +201,41 @@ function extractTokenIdentifier(text: string): string | null {
 
 export const vinceMemeDeepDiveAction: Action = {
   name: "VINCE_MEME_DEEP_DIVE",
-  similes: ["DEEP_DIVE", "DD", "TOKEN_ANALYSIS", "ANALYZE_TOKEN", "CHECK_TOKEN"],
-  description: "Deep dive analysis of a specific meme token with lifecycle stage, entry guidance, and enhanced verdict",
+  similes: [
+    "DEEP_DIVE",
+    "DD",
+    "TOKEN_ANALYSIS",
+    "ANALYZE_TOKEN",
+    "CHECK_TOKEN",
+  ],
+  description:
+    "Deep dive analysis of a specific meme token with lifecycle stage, entry guidance, and enhanced verdict",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
-    
+
     // Check for deep dive keywords with a token reference
-    const hasDeepDiveKeyword = (
+    const hasDeepDiveKeyword =
       text.includes("deep dive") ||
       text.includes("dd ") ||
       text.includes("analyze ") ||
       text.includes("check ") ||
       text.includes("scoop on") ||
       text.includes("deal with") ||
-      text.includes("take on")
-    );
+      text.includes("take on");
 
     // Check for token address patterns
-    const hasTokenAddress = /[1-9A-HJ-NP-Za-km-z]{32,44}/.test(message.content.text || "") ||
-                            /0x[a-fA-F0-9]{40}/.test(message.content.text || "");
+    const hasTokenAddress =
+      /[1-9A-HJ-NP-Za-km-z]{32,44}/.test(message.content.text || "") ||
+      /0x[a-fA-F0-9]{40}/.test(message.content.text || "");
 
     // Check for $SYMBOL pattern
-    const hasSymbolPattern = /\$[A-Z0-9]{2,10}/i.test(message.content.text || "");
+    const hasSymbolPattern = /\$[A-Z0-9]{2,10}/i.test(
+      message.content.text || "",
+    );
 
     return hasDeepDiveKeyword || hasTokenAddress || hasSymbolPattern;
   },
@@ -212,10 +245,12 @@ export const vinceMemeDeepDiveAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      const dexService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+      const dexService = runtime.getService(
+        "VINCE_DEXSCREENER_SERVICE",
+      ) as VinceDexScreenerService | null;
 
       if (!dexService) {
         await callback({
@@ -266,12 +301,16 @@ export const vinceMemeDeepDiveAction: Action = {
         "---",
         "",
         `**Quick Links:**`,
-        deepDive.dexscreenerUrl ? `• [DexScreener](${deepDive.dexscreenerUrl})` : "",
+        deepDive.dexscreenerUrl
+          ? `• [DexScreener](${deepDive.dexscreenerUrl})`
+          : "",
         deepDive.gmgnUrl ? `• [GMGN (SL/TP)](${deepDive.gmgnUrl})` : "",
         deepDive.birdeyeUrl ? `• [Birdeye](${deepDive.birdeyeUrl})` : "",
         "",
         "*Commands: MEMES, DD [token], OPTIONS, PERPS, NEWS*",
-      ].filter(line => line !== "").join("\n");
+      ]
+        .filter((line) => line !== "")
+        .join("\n");
 
       await callback({
         text: output,
@@ -300,7 +339,12 @@ export const vinceMemeDeepDiveAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Analyze 7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr" } },
+      {
+        name: "{{user1}}",
+        content: {
+          text: "Analyze 7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+        },
+      },
       {
         name: "VINCE",
         content: {

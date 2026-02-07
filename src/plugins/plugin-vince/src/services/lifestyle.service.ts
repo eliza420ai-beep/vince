@@ -15,9 +15,14 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-import type { DayOfWeek, LifestyleSuggestion, DailyBriefing } from "../types/index";
+import type {
+  DayOfWeek,
+  LifestyleSuggestion,
+  DailyBriefing,
+} from "../types/index";
 
-const CURATED_SCHEDULE_PATH = "knowledge/the-good-life/curated-open-schedule.md";
+const CURATED_SCHEDULE_PATH =
+  "knowledge/the-good-life/curated-open-schedule.md";
 
 export interface CuratedOpenContext {
   restaurants: string[];
@@ -66,7 +71,10 @@ export class VinceLifestyleService extends Service {
       const hotelSection = isWinter
         ? this.extractSection(content, "### Winter (January–February)")
         : this.extractSection(content, "### March–November");
-      const fitnessSection = this.extractSection(content, "## Fitness / Health");
+      const fitnessSection = this.extractSection(
+        content,
+        "## Fitness / Health",
+      );
 
       const restaurants = this.parseRestaurantLines(daySection);
       const hotels = this.parseHotelLines(hotelSection);
@@ -74,7 +82,8 @@ export class VinceLifestyleService extends Service {
       return {
         restaurants,
         hotels,
-        fitnessNote: fitnessSection?.split("\n").slice(0, 4).join(" ").trim() || "",
+        fitnessNote:
+          fitnessSection?.split("\n").slice(0, 4).join(" ").trim() || "",
         rawSection: [daySection, hotelSection].filter(Boolean).join("\n\n"),
       };
     } catch (e) {
@@ -89,17 +98,25 @@ export class VinceLifestyleService extends Service {
     const afterHeader = content.slice(start + header.length);
     const nextH2 = afterHeader.search(/\n## /);
     const nextH3 = afterHeader.search(/\n### /);
-    const end = nextH2 === -1 && nextH3 === -1
-      ? afterHeader.length
-      : Math.min(nextH2 === -1 ? Infinity : nextH2, nextH3 === -1 ? Infinity : nextH3);
+    const end =
+      nextH2 === -1 && nextH3 === -1
+        ? afterHeader.length
+        : Math.min(
+            nextH2 === -1 ? Infinity : nextH2,
+            nextH3 === -1 ? Infinity : nextH3,
+          );
     return afterHeader.slice(0, end).trim();
   }
 
   private parseRestaurantLines(section: string): string[] {
-    const lines = section.split("\n").filter((l) => l.trim().startsWith("- **"));
+    const lines = section
+      .split("\n")
+      .filter((l) => l.trim().startsWith("- **"));
     return lines.map((l) => {
       const match = l.match(/^- \*\*([^*]+)\*\* \| (.+)$/);
-      return match ? `${match[1]} | ${match[2]}` : l.replace(/^-\s*\*\*|\*\*/g, "").trim();
+      return match
+        ? `${match[1]} | ${match[2]}`
+        : l.replace(/^-\s*\*\*|\*\*/g, "").trim();
     });
   }
 
@@ -117,8 +134,13 @@ export class VinceLifestyleService extends Service {
 
   private getDayOfWeek(): DayOfWeek {
     const days: DayOfWeek[] = [
-      "sunday", "monday", "tuesday", "wednesday", 
-      "thursday", "friday", "saturday"
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
     ];
     return days[new Date().getDay()];
   }
@@ -260,7 +282,8 @@ export class VinceLifestyleService extends Service {
     if (day === "friday") {
       suggestions.push({
         category: "activity",
-        suggestion: "Friday Sacred: Strike selection for covered calls / secured puts",
+        suggestion:
+          "Friday Sacred: Strike selection for covered calls / secured puts",
         reason: "Weekly options expiry - review and roll positions",
         priority: 1,
         daySpecific: true,
@@ -320,9 +343,11 @@ export class VinceLifestyleService extends Service {
     };
   }
 
-  getSuggestionsByCategory(category: LifestyleSuggestion["category"]): LifestyleSuggestion[] {
+  getSuggestionsByCategory(
+    category: LifestyleSuggestion["category"],
+  ): LifestyleSuggestion[] {
     const briefing = this.getDailyBriefing();
-    return briefing.suggestions.filter(s => s.category === category);
+    return briefing.suggestions.filter((s) => s.category === category);
   }
 
   getTopSuggestions(limit: number = 3): LifestyleSuggestion[] {

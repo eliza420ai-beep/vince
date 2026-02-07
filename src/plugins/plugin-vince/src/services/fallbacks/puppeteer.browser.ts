@@ -43,7 +43,7 @@ export class PuppeteerBrowserService implements IBrowserService {
       retryDelay?: number;
       timeout?: number;
       waitForSelector?: string;
-    }
+    },
   ): Promise<{ success: boolean; content?: string; error?: string }> {
     const timeout = options?.timeout ?? DEFAULT_TIMEOUT;
     const retries = options?.retries ?? 3;
@@ -54,8 +54,10 @@ export class PuppeteerBrowserService implements IBrowserService {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const command = `${this.agentBrowserPath} open "${url}" --session ${this.sessionId}`;
-        logger.debug(`[AgentBrowser] Navigating to ${url} (attempt ${attempt}/${retries})`);
-        
+        logger.debug(
+          `[AgentBrowser] Navigating to ${url} (attempt ${attempt}/${retries})`,
+        );
+
         await execAsync(command, { timeout });
 
         // Wait for content to load
@@ -79,16 +81,18 @@ export class PuppeteerBrowserService implements IBrowserService {
 
         if (isRetryable && attempt < retries) {
           logger.debug(
-            `[AgentBrowser] Navigation attempt ${attempt}/${retries} failed, retrying in ${retryDelay}ms...`
+            `[AgentBrowser] Navigation attempt ${attempt}/${retries} failed, retrying in ${retryDelay}ms...`,
           );
-          await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelay * attempt),
+          );
           continue;
         }
 
         // Only log error on final attempt
         if (attempt === retries) {
           logger.warn(
-            `[AgentBrowser] Navigation to ${url} failed after ${retries} attempts: ${errorMsg.split("\n")[0]}`
+            `[AgentBrowser] Navigation to ${url} failed after ${retries} attempts: ${errorMsg.split("\n")[0]}`,
           );
         }
 
@@ -103,14 +107,12 @@ export class PuppeteerBrowserService implements IBrowserService {
    * Wait for dynamic content to load
    * Polls the page until content stabilizes
    */
-  private async waitForContent(
-    options?: {
-      maxWaitMs?: number;
-      pollIntervalMs?: number;
-      minContentLength?: number;
-      minLines?: number;
-    }
-  ): Promise<string> {
+  private async waitForContent(options?: {
+    maxWaitMs?: number;
+    pollIntervalMs?: number;
+    minContentLength?: number;
+    minLines?: number;
+  }): Promise<string> {
     const maxWaitMs = options?.maxWaitMs ?? 30000;
     const pollIntervalMs = options?.pollIntervalMs ?? 2000;
     const minContentLength = options?.minContentLength ?? 1000;
@@ -144,19 +146,24 @@ export class PuppeteerBrowserService implements IBrowserService {
         lastContent = content;
 
         // Content is ready if stable or meets criteria
-        if ((!stillLoading && hasMinLength && hasMinLines) || stableCount >= 2) {
+        if (
+          (!stillLoading && hasMinLength && hasMinLines) ||
+          stableCount >= 2
+        ) {
           logger.debug(
-            `[AgentBrowser] Content ready: ${content.length} chars, ${lineCount} lines after ${Date.now() - startTime}ms`
+            `[AgentBrowser] Content ready: ${content.length} chars, ${lineCount} lines after ${Date.now() - startTime}ms`,
           );
           return content;
         }
 
         logger.debug(
-          `[AgentBrowser] Waiting for content... (${content.length} chars, ${lineCount} lines, loading=${stillLoading})`
+          `[AgentBrowser] Waiting for content... (${content.length} chars, ${lineCount} lines, loading=${stillLoading})`,
         );
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
       } catch (error) {
-        logger.debug(`[AgentBrowser] Error getting content during wait: ${error}`);
+        logger.debug(
+          `[AgentBrowser] Error getting content during wait: ${error}`,
+        );
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
       }
     }
@@ -164,7 +171,7 @@ export class PuppeteerBrowserService implements IBrowserService {
     // Return whatever we have after timeout
     const finalLineCount = (lastContent.match(/\n/g) || []).length + 1;
     logger.warn(
-      `[AgentBrowser] Timeout waiting for content, returning current state (${lastContent.length} chars, ${finalLineCount} lines)`
+      `[AgentBrowser] Timeout waiting for content, returning current state (${lastContent.length} chars, ${finalLineCount} lines)`,
     );
     return lastContent;
   }
@@ -191,7 +198,10 @@ export class PuppeteerBrowserService implements IBrowserService {
 
       // Handle literal \n sequences
       if (typeof text === "string" && text.includes("\\n")) {
-        text = text.replace(/\\n/g, "\n").replace(/\\t/g, "\t").replace(/\\r/g, "\r");
+        text = text
+          .replace(/\\n/g, "\n")
+          .replace(/\\t/g, "\t")
+          .replace(/\\r/g, "\r");
       }
 
       return text;
@@ -231,7 +241,9 @@ export class PuppeteerBrowserService implements IBrowserService {
   /**
    * Browse to URL (alternative interface)
    */
-  async browse(url: string): Promise<{ content?: string; text?: string } | null> {
+  async browse(
+    url: string,
+  ): Promise<{ content?: string; text?: string } | null> {
     const result = await this.navigate(url);
     if (result.success) {
       return { content: result.content, text: result.content };

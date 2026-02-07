@@ -1,6 +1,21 @@
 # VINCE Frontend Progress Tracker
-# Last updated: 2026-02-05
+# Last updated: 2026-02-06
 # Otaku-style UI (Vite) integrated and branded as VINCE. Update after feature or fix.
+
+================================================================================
+DOCUMENTATION
+================================================================================
+
+- **This file (progress.txt):** Progress tracker, known issues, key files, session notes.
+  Update it when you ship features or hit new issues.
+
+- **Frontend docs index:** src/frontend/docs/README.md
+  - Explains what this file contains (this table) and links to progress.txt.
+  - Quick start, reference docs table (architecture, development, troubleshooting,
+    character-config, plugin-actions, plugin-context-matcher, x402, evm-wallets, research).
+
+- **Repo-level:** README.md (Chat UI troubleshooting), DEPLOY.md (bot reply / local messaging),
+  .env.example (MESSAGING), tasks/FRONTEND-ALPHA-QUICKSTART.md (how to run and test UI).
 
 ================================================================================
 OVERVIEW
@@ -54,8 +69,27 @@ COMPLETED
 - Removed tw-animate-css import (package not present)
 - Local @elizaos/api-client: packages/api-client, built and aliased in vite.config.ts
 
+## Market Pulse (dashboard data + LLM insight) ✅
+- Backend: plugin-vince route GET /vince/pulse builds a snapshot from all dashboard services
+  (Binance, CoinGlass, CoinGecko, Deribit, HIP-3, News, DexScreener, Meteora, Regime, Aggregator)
+  and generates a 2–3 sentence LLM insight via runtime.useModel(TEXT_SMALL). Returns
+  { sections, insight, updatedAt }. See src/plugins/plugin-vince/src/routes/dashboardPulse.ts.
+- Pulse sections enriched with TLDRs: DexScreener uses getMarketMood() + hot/ape symbols;
+  NFT Floors section (nftFloor.getTLDR()); Paper trades section (open positions one-liner from
+  positionManager.getOpenPositions()). Same data as terminal, in digestible form.
+- Frontend: lib/pulseApi.ts fetches GET /api/agents/:agentId/plugins/vince/pulse; components/chat/
+  market-pulse-card.tsx shows the insight at the top of the chat and optional expandable
+  sections. Refetches every 2 minutes when tab is visible.
+- Quick actions: row of chips below the pulse (ALOHA, News, Memes, Perps, Options) that send
+  the trigger message on click (handleQuickPrompt) so the user gets the full narrative reply
+  in chat without typing. chat-interface.tsx.
+- Chat interface: MarketPulseCard rendered above connection status and messages when agent.id
+  is set. If the server does not pass runtime to the plugin route handler, the API returns
+  503 and the card is hidden (no crash).
+
 ## Docs ✅
 - README (repo root) § "Chat UI: API endpoint not found" troubleshooting
+- src/frontend/docs/README.md — Frontend docs index and link to this progress file
 - src/plugins/plugin-vince/progress.txt: KNOWN ISSUES + session note for this frontend issue
 - OTAKU.md: full Otaku reference — canonical link (elizaOS/otaku), project structure with
   managers/ (cdp-transaction-manager.ts), packages/ (api-client, server), all 12 plugins;
@@ -100,6 +134,13 @@ KNOWN ISSUES / LIMITATIONS
    ELIZAOS_USE_LOCAL_MESSAGING=true or leave ELIZAOS_API_KEY unset; restart. See DEPLOY.md
    § "Bot status / agent replies not reaching the UI (local)" and .env.example § MESSAGING.
 
+⚠️ Market Pulse card not showing
+   The Market Pulse card (LLM insight from dashboard data) fetches GET /api/agents/:agentId/plugins/vince/pulse.
+   ElizaOS mounts plugin routes under /api/agents/:id/plugins + route.path — so the path must include
+   "plugins" (not /api/agents/:id/vince/pulse). 404 "API endpoint not found" usually means wrong path.
+   If the server does not pass the agent runtime to the plugin route handler, the API returns 503
+   and the card is not rendered. See plugin-vince routes in index.ts.
+
 ================================================================================
 IN PROGRESS / BACKLOG
 ================================================================================
@@ -116,13 +157,16 @@ KEY FILES
 ================================================================================
 
 - App.tsx                    — Main app, guest mode, channels, chat view, error fallbacks
-- components/chat/chat-interface.tsx — Messages, input, quick prompts, error display
+- components/chat/chat-interface.tsx — Messages, input, quick prompts, Market Pulse, quick actions (ALOHA, News, Memes, Perps, Options), error display
+- components/chat/market-pulse-card.tsx — Market Pulse card (LLM insight + expandable sections)
 - lib/elizaClient.ts         — API client (baseUrl: window.location.origin)
+- lib/pulseApi.ts            — Fetch dashboard pulse (GET /api/agents/:agentId/plugins/vince/pulse)
 - lib/socketManager.ts       — Socket.IO connection and channel join/leave
 - vite.config.ts             — Proxy, aliases (api-client, CDP stubs), Tailwind
 - stubs/cdp-react.tsx, stubs/cdp-hooks.ts — No-op CDP when not configured
-- docs/architecture.md, docs/development.md, docs/troubleshooting.md
-- OTAKU.md (repo root) — Otaku agent: full reference (elizaOS/otaku), plugins, deps, structure
+- docs/README.md             — Frontend docs index; docs/architecture.md, development.md, troubleshooting.md
+- progress.txt               — This file: progress, known issues, session notes
+- OTAKU.md (repo root)       — Otaku agent: full reference (elizaOS/otaku), plugins, deps, structure
 
 ================================================================================
 SESSION NOTES
@@ -171,3 +215,25 @@ SESSION NOTES
 - .env.example: new § MESSAGING (LOCAL-ONLY VS ELIZA CLOUD); ELIZAOS_USE_LOCAL_MESSAGING=true uncommented (default local-only).
 - DEPLOY.md: added recommended local-only step (set ELIZAOS_USE_LOCAL_MESSAGING=true or unset ELIZAOS_API_KEY).
 - progress.txt: Fix for "no reply" updated to recommend local-only and reference .env.example § MESSAGING.
+
+2026-02-06 (Market Pulse / dashboard data + LLM insight):
+- Backend: plugin-vince GET /vince/pulse route (dashboardPulse.ts) aggregates snapshot from
+  Binance, CoinGlass, CoinGecko, Deribit, HIP-3, News, DexScreener, Meteora, Regime, Aggregator;
+  generates 2–3 sentence LLM insight via useModel(TEXT_SMALL). Route handler expects runtime
+  on req.runtime / req.agentRuntime; returns 503 if missing.
+- Frontend: pulseApi.ts fetchPulse(agentId); MarketPulseCard shows insight at top of chat,
+  optional expandable "N data sections"; refetch every 2 min when tab visible. Rendered in
+  chat-interface.tsx above connection status and messages.
+- progress.txt: COMPLETED § Market Pulse; KNOWN ISSUES § Market Pulse card not showing; KEY FILES
+  updated (market-pulse-card.tsx, pulseApi.ts, docs/README.md, progress.txt).
+- Frontend README (docs/README.md): updated with overview, quick start, and link to progress.txt.
+
+2026-02-06 (TLDR data access – pulse enrichment + quick actions):
+- Backend (dashboardPulse.ts): DexScreener section now uses getMarketMood() and appends hot/ape
+  symbols; added NFT Floors section (nftFloor.getTLDR()); added Paper trades section (open
+  positions one-liner from positionManager.getOpenPositions()). Imports VinceNFTFloorService,
+  VincePositionManagerService.
+- Frontend (chat-interface.tsx): quick-action row below Market Pulse – chips ALOHA, News, Memes,
+  Perps, Options that call handleQuickPrompt(message) on click so user gets full narrative in chat.
+- progress.txt: Market Pulse § updated with pulse TLDR enrichment and quick actions; docs/README
+  updated with quick actions and pulse sections (memes, NFT, paper).

@@ -24,6 +24,7 @@ import type {
   BinanceIntelligence,
 } from "../types/index";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
+import { isVinceAgent } from "../utils/dashboard";
 
 // =============================================================================
 // CACHE CONFIGURATION
@@ -47,18 +48,27 @@ interface CacheEntry<T> {
 
 export class VinceBinanceService extends Service {
   static serviceType = "VINCE_BINANCE_SERVICE";
-  capabilityDescription = "Provides FREE Binance public API data for market intelligence";
+  capabilityDescription =
+    "Provides FREE Binance public API data for market intelligence";
 
   declare protected runtime: IAgentRuntime;
 
   // Caches
-  private topTraderCache: Map<string, CacheEntry<BinanceTopTraderPositions>> = new Map();
-  private takerVolumeCache: Map<string, CacheEntry<BinanceTakerVolume>> = new Map();
+  private topTraderCache: Map<string, CacheEntry<BinanceTopTraderPositions>> =
+    new Map();
+  private takerVolumeCache: Map<string, CacheEntry<BinanceTakerVolume>> =
+    new Map();
   private oiTrendCache: Map<string, CacheEntry<BinanceOITrend>> = new Map();
-  private fundingTrendCache: Map<string, CacheEntry<BinanceFundingTrend>> = new Map();
-  private longShortCache: Map<string, CacheEntry<BinanceLongShortRatio>> = new Map();
-  private crossFundingCache: Map<string, CacheEntry<CrossExchangeFunding>> = new Map();
-  private fearGreedCache: CacheEntry<AlternativeFearGreed> = { data: null, timestamp: 0 };
+  private fundingTrendCache: Map<string, CacheEntry<BinanceFundingTrend>> =
+    new Map();
+  private longShortCache: Map<string, CacheEntry<BinanceLongShortRatio>> =
+    new Map();
+  private crossFundingCache: Map<string, CacheEntry<CrossExchangeFunding>> =
+    new Map();
+  private fearGreedCache: CacheEntry<AlternativeFearGreed> = {
+    data: null,
+    timestamp: 0,
+  };
   /** Last time we logged a warn per endpoint (for cooldown to avoid log flood on Eliza Cloud) */
   private lastHttpWarnByEndpoint: Map<string, number> = new Map();
   /** Consecutive 451 count across endpoints; when >= CONSECUTIVE_451_DEGRADE, aggregator skips Binance (graceful degradation) */
@@ -75,7 +85,9 @@ export class VinceBinanceService extends Service {
     try {
       await service.initialize();
     } catch (error) {
-      logger.warn(`[VinceBinance] Initialization error (service still available): ${error}`);
+      logger.warn(
+        `[VinceBinance] Initialization error (service still available): ${error}`,
+      );
     }
     logger.info("[VinceBinance] ✅ Service started (FREE APIs)");
     return service;
@@ -95,12 +107,14 @@ export class VinceBinanceService extends Service {
   private async initialize(): Promise<void> {
     // Pre-fetch BTC data to validate connectivity and display dashboard
     const intel = await this.getIntelligence("BTC");
-    this.printBinanceDashboard(intel);
+    if (isVinceAgent(this.runtime)) this.printBinanceDashboard(intel);
   }
 
   /** Base URL for Binance Futures API (env/proxy for 451 regions). */
   private getBaseUrl(): string {
-    const url = this.runtime?.getSetting?.("VINCE_BINANCE_BASE_URL") ?? process.env.VINCE_BINANCE_BASE_URL;
+    const url =
+      this.runtime?.getSetting?.("VINCE_BINANCE_BASE_URL") ??
+      process.env.VINCE_BINANCE_BASE_URL;
     if (url && typeof url === "string") return String(url).replace(/\/$/, "");
     return DEFAULT_BINANCE_BASE;
   }
@@ -114,7 +128,10 @@ export class VinceBinanceService extends Service {
     const now = Date.now();
     const last = this.lastHttpWarnByEndpoint.get(key) ?? 0;
     const onCooldown = now - last < HTTP_WARN_COOLDOWN_MS;
-    const hint451 = status === 451 ? " (Unavailable For Legal Reasons – check region/restrictions)" : "";
+    const hint451 =
+      status === 451
+        ? " (Unavailable For Legal Reasons – check region/restrictions)"
+        : "";
     if (status === 451) this.record451();
     if (onCooldown) {
       logger.debug(`[VinceBinance] ${endpoint} returned ${status}${hint451}`);
@@ -134,7 +151,9 @@ export class VinceBinanceService extends Service {
 
   /** True when 451 has occurred CONSECUTIVE_451_DEGRADE times; signal aggregator should skip Binance for graceful degradation. */
   isDegraded(): boolean {
-    return this.consecutive451Count >= VinceBinanceService.CONSECUTIVE_451_DEGRADE;
+    return (
+      this.consecutive451Count >= VinceBinanceService.CONSECUTIVE_451_DEGRADE
+    );
   }
 
   // =============================================================================
@@ -170,11 +189,19 @@ export class VinceBinanceService extends Service {
     logEmpty();
 
     if (intel.topTraderPositions) {
-      const { longPosition, shortPosition, longShortRatio } = intel.topTraderPositions;
+      const { longPosition, shortPosition, longShortRatio } =
+        intel.topTraderPositions;
       const emoji = longPosition > 55 ? "🟢" : longPosition < 45 ? "🔴" : "⚪";
-      const bias = longPosition > 55 ? "BULLISH" : longPosition < 45 ? "BEARISH" : "NEUTRAL";
+      const bias =
+        longPosition > 55
+          ? "BULLISH"
+          : longPosition < 45
+            ? "BEARISH"
+            : "NEUTRAL";
       logLine("🐋 TOP TRADERS (by size)");
-      logLine(`${emoji} ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short │ Ratio: ${longShortRatio.toFixed(2)} │ ${bias}`);
+      logLine(
+        `${emoji} ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short │ Ratio: ${longShortRatio.toFixed(2)} │ ${bias}`,
+      );
       logEmpty();
     }
 
@@ -183,10 +210,18 @@ export class VinceBinanceService extends Service {
 
     if (intel.takerVolume) {
       const { buySellRatio } = intel.takerVolume;
-      const emoji = buySellRatio > 1.1 ? "🟢" : buySellRatio < 0.9 ? "🔴" : "⚪";
-      const pressure = buySellRatio > 1.1 ? "BUYING PRESSURE" : buySellRatio < 0.9 ? "SELLING PRESSURE" : "BALANCED";
+      const emoji =
+        buySellRatio > 1.1 ? "🟢" : buySellRatio < 0.9 ? "🔴" : "⚪";
+      const pressure =
+        buySellRatio > 1.1
+          ? "BUYING PRESSURE"
+          : buySellRatio < 0.9
+            ? "SELLING PRESSURE"
+            : "BALANCED";
       logLine("📈 TAKER FLOW");
-      logLine(`${emoji} Buy/Sell Ratio: ${buySellRatio.toFixed(3)} │ ${pressure}`);
+      logLine(
+        `${emoji} Buy/Sell Ratio: ${buySellRatio.toFixed(3)} │ ${pressure}`,
+      );
       logEmpty();
     }
 
@@ -195,15 +230,27 @@ export class VinceBinanceService extends Service {
 
     if (intel.oiTrend) {
       const { trend, changePercent, current } = intel.oiTrend;
-      const emoji = trend === "rising" ? "📈" : trend === "falling" ? "📉" : "➡️";
-      const conviction = trend === "rising" ? "conviction increasing" : trend === "falling" ? "positions closing" : "stable";
+      const emoji =
+        trend === "rising" ? "📈" : trend === "falling" ? "📉" : "➡️";
+      const conviction =
+        trend === "rising"
+          ? "conviction increasing"
+          : trend === "falling"
+            ? "positions closing"
+            : "stable";
       logLine("📊 OPEN INTEREST");
-      logLine(`${emoji} ${this.formatVolume(current)} │ ${this.formatChange(changePercent)} │ ${conviction}`);
+      logLine(
+        `${emoji} ${this.formatVolume(current)} │ ${this.formatChange(changePercent)} │ ${conviction}`,
+      );
       let oiInsight = "";
-      if (trend === "rising" && changePercent > 3) oiInsight = "💡 New money entering - trend continuation likely";
-      else if (trend === "falling" && changePercent < -3) oiInsight = "⚠️ Positions unwinding - volatility spike possible";
-      else if (trend === "rising" && changePercent > 0) oiInsight = "📈 Leverage building - watch for breakout or squeeze";
-      else if (trend === "falling") oiInsight = "📉 Deleveraging - price may stabilize after flush";
+      if (trend === "rising" && changePercent > 3)
+        oiInsight = "💡 New money entering - trend continuation likely";
+      else if (trend === "falling" && changePercent < -3)
+        oiInsight = "⚠️ Positions unwinding - volatility spike possible";
+      else if (trend === "rising" && changePercent > 0)
+        oiInsight = "📈 Leverage building - watch for breakout or squeeze";
+      else if (trend === "falling")
+        oiInsight = "📉 Deleveraging - price may stabilize after flush";
       else oiInsight = "➡️ Neutral OI - wait for directional signal";
       logLine(oiInsight);
       logEmpty();
@@ -215,16 +262,27 @@ export class VinceBinanceService extends Service {
     if (intel.fundingTrend) {
       const { current, isExtreme, extremeDirection } = intel.fundingTrend;
       const fundingPct = (current * 100).toFixed(4);
-      const emoji = isExtreme ? "⚠️" : current > 0 ? "🔵" : current < 0 ? "🟠" : "⚪";
+      const emoji = isExtreme
+        ? "⚠️"
+        : current > 0
+          ? "🔵"
+          : current < 0
+            ? "🟠"
+            : "⚪";
       logLine("💰 FUNDING RATE");
       let fundingStr = `${emoji} ${fundingPct}%`;
-      if (isExtreme) fundingStr += ` │ ${extremeDirection.replace("_", " ").toUpperCase()} │ Mean reversion signal`;
+      if (isExtreme)
+        fundingStr += ` │ ${extremeDirection.replace("_", " ").toUpperCase()} │ Mean reversion signal`;
       logLine(fundingStr);
       let fundingInsight = "";
-      if (isExtreme && extremeDirection === "long_paying") fundingInsight = "⚠️ Longs paying high fees - squeeze risk, fade longs";
-      else if (isExtreme && extremeDirection === "short_paying") fundingInsight = "💡 Shorts paying - bullish, longs get paid to hold";
-      else if (current > 0.0005) fundingInsight = "🔵 Slight long bias - market leaning bullish";
-      else if (current < -0.0001) fundingInsight = "🟠 Slight short bias - caution, bears in control";
+      if (isExtreme && extremeDirection === "long_paying")
+        fundingInsight = "⚠️ Longs paying high fees - squeeze risk, fade longs";
+      else if (isExtreme && extremeDirection === "short_paying")
+        fundingInsight = "💡 Shorts paying - bullish, longs get paid to hold";
+      else if (current > 0.0005)
+        fundingInsight = "🔵 Slight long bias - market leaning bullish";
+      else if (current < -0.0001)
+        fundingInsight = "🟠 Slight short bias - caution, bears in control";
       else fundingInsight = "⚪ Neutral funding - no leverage signal";
       logLine(fundingInsight);
       logEmpty();
@@ -235,7 +293,16 @@ export class VinceBinanceService extends Service {
 
     if (intel.fearGreed) {
       const { value, classification } = intel.fearGreed;
-      const emoji = value < 25 ? "😱" : value < 45 ? "😰" : value < 55 ? "😐" : value < 75 ? "😊" : "🤑";
+      const emoji =
+        value < 25
+          ? "😱"
+          : value < 45
+            ? "😰"
+            : value < 55
+              ? "😐"
+              : value < 75
+                ? "😊"
+                : "🤑";
       const bar = this.buildFearGreedBar(value);
       logLine("😱 FEAR & GREED INDEX");
       logLine(`${emoji} ${value}/100 (${classification}) ${bar}`);
@@ -245,8 +312,14 @@ export class VinceBinanceService extends Service {
     sep();
     logEmpty();
     const tldr = this.getTLDR(intel);
-    const tldrEmoji = tldr.includes("longs") || tldr.includes("LONG") || tldr.includes("UP") ? "💡" :
-                      tldr.includes("shorts") || tldr.includes("SHORT") || tldr.includes("DOWN") ? "⚠️" : "📋";
+    const tldrEmoji =
+      tldr.includes("longs") || tldr.includes("LONG") || tldr.includes("UP")
+        ? "💡"
+        : tldr.includes("shorts") ||
+            tldr.includes("SHORT") ||
+            tldr.includes("DOWN")
+          ? "⚠️"
+          : "📋";
     logLine(`${tldrEmoji} ${tldr}`);
     endBox();
     logger.info("[VinceBinance] ✅ Dashboard loaded - BTC intelligence ready");
@@ -266,24 +339,25 @@ export class VinceBinanceService extends Service {
    */
   private getTLDR(intel: BinanceIntelligence): string {
     const parts: string[] = [];
-    
+
     // Analyze top trader positioning
     const whalesLong = intel.topTraderPositions?.longPosition ?? 50;
-    const whalesBias = whalesLong > 60 ? "LONG" : whalesLong < 40 ? "SHORT" : null;
-    
+    const whalesBias =
+      whalesLong > 60 ? "LONG" : whalesLong < 40 ? "SHORT" : null;
+
     // Analyze OI trend
     const oiTrend = intel.oiTrend?.trend;
     const oiChange = intel.oiTrend?.changePercent ?? 0;
-    
+
     // Analyze taker flow
     const takerRatio = intel.takerVolume?.buySellRatio ?? 1;
     const buyersHeavy = takerRatio > 1.15;
     const sellersHeavy = takerRatio < 0.85;
-    
+
     // Analyze funding
     const fundingExtreme = intel.fundingTrend?.isExtreme;
     const fundingDirection = intel.fundingTrend?.extremeDirection;
-    
+
     // Priority 1: Funding extremes (squeeze signals)
     if (fundingExtreme && fundingDirection) {
       if (fundingDirection === "short_paying") {
@@ -291,18 +365,18 @@ export class VinceBinanceService extends Service {
       }
       return "LONGS PAYING extreme - squeeze DOWN potential";
     }
-    
+
     // Priority 2: Whales + OI combination (conviction signals)
     if (whalesBias === "LONG" && oiTrend === "rising") {
       return `WHALES ${whalesLong.toFixed(0)}% LONG + OI rising - conviction longs`;
     }
     if (whalesBias === "SHORT" && oiTrend === "rising") {
-      return `WHALES ${(100-whalesLong).toFixed(0)}% SHORT + OI rising - conviction shorts`;
+      return `WHALES ${(100 - whalesLong).toFixed(0)}% SHORT + OI rising - conviction shorts`;
     }
     if (oiTrend === "falling" && Math.abs(oiChange) > 2) {
       return `OI falling ${Math.abs(oiChange).toFixed(1)}% - position flush in progress`;
     }
-    
+
     // Priority 3: Taker flow (order flow)
     if (buyersHeavy && whalesBias === "LONG") {
       return "BUYERS HEAVY + whales long - momentum favors longs";
@@ -310,12 +384,16 @@ export class VinceBinanceService extends Service {
     if (sellersHeavy && whalesBias === "SHORT") {
       return "SELLERS HEAVY + whales short - momentum favors shorts";
     }
-    
+
     // Priority 4: Conflicting signals
-    if (whalesBias && ((whalesBias === "LONG" && sellersHeavy) || (whalesBias === "SHORT" && buyersHeavy))) {
+    if (
+      whalesBias &&
+      ((whalesBias === "LONG" && sellersHeavy) ||
+        (whalesBias === "SHORT" && buyersHeavy))
+    ) {
       return "CONFLICTING signals - whales vs flow, wait for clarity";
     }
-    
+
     // Default: No clear edge
     return "MIXED signals - no clear directional edge";
   }
@@ -326,7 +404,10 @@ export class VinceBinanceService extends Service {
 
   async getFearGreed(): Promise<AlternativeFearGreed | null> {
     // Check cache
-    if (this.fearGreedCache.data && Date.now() - this.fearGreedCache.timestamp < FEAR_GREED_CACHE_TTL) {
+    if (
+      this.fearGreedCache.data &&
+      Date.now() - this.fearGreedCache.timestamp < FEAR_GREED_CACHE_TTL
+    ) {
       return this.fearGreedCache.data;
     }
 
@@ -340,11 +421,19 @@ export class VinceBinanceService extends Service {
       clearTimeout(timeout);
 
       if (!response.ok) {
-        logger.warn(`[VinceBinance] Alternative.me returned ${response.status}`);
+        logger.warn(
+          `[VinceBinance] Alternative.me returned ${response.status}`,
+        );
         return this.fearGreedCache.data;
       }
 
-      const json = await response.json() as { data?: Array<{ value: string; value_classification: string; timestamp: string }> };
+      const json = (await response.json()) as {
+        data?: Array<{
+          value: string;
+          value_classification: string;
+          timestamp: string;
+        }>;
+      };
 
       if (!json.data || json.data.length === 0) {
         logger.warn("[VinceBinance] Alternative.me returned empty data");
@@ -359,7 +448,9 @@ export class VinceBinanceService extends Service {
       };
 
       this.fearGreedCache = { data: result, timestamp: Date.now() };
-      logger.debug(`[VinceBinance] Fear & Greed: ${result.value} (${result.classification})`);
+      logger.debug(
+        `[VinceBinance] Fear & Greed: ${result.value} (${result.classification})`,
+      );
       return result;
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
@@ -375,7 +466,9 @@ export class VinceBinanceService extends Service {
   // TOP TRADER POSITIONS (by SIZE - what whales are actually doing)
   // =============================================================================
 
-  async getTopTraderPositions(symbol: string = "BTCUSDT"): Promise<BinanceTopTraderPositions | null> {
+  async getTopTraderPositions(
+    symbol: string = "BTCUSDT",
+  ): Promise<BinanceTopTraderPositions | null> {
     const cached = this.topTraderCache.get(symbol);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -388,7 +481,7 @@ export class VinceBinanceService extends Service {
       const limit = 5; // use last 3 for smoothing (BINANCE_DATA_IMPROVEMENTS)
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/topLongShortPositionRatio?symbol=${symbol}&period=5m&limit=${limit}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
@@ -398,7 +491,12 @@ export class VinceBinanceService extends Service {
       }
       this.recordSuccess();
 
-      const json = await response.json() as Array<{ longShortRatio: string; longAccount: string; shortAccount: string; timestamp: number }>;
+      const json = (await response.json()) as Array<{
+        longShortRatio: string;
+        longAccount: string;
+        shortAccount: string;
+        timestamp: number;
+      }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
@@ -423,10 +521,14 @@ export class VinceBinanceService extends Service {
       };
 
       this.topTraderCache.set(symbol, { data: result, timestamp: Date.now() });
-      logger.debug(`[VinceBinance] Top Traders ${symbol}: ${longPct.toFixed(0)}% long / ${shortPct.toFixed(0)}% short`);
+      logger.debug(
+        `[VinceBinance] Top Traders ${symbol}: ${longPct.toFixed(0)}% long / ${shortPct.toFixed(0)}% short`,
+      );
       return result;
     } catch (error) {
-      logger.warn(`[VinceBinance] Failed to fetch top trader positions: ${error}`);
+      logger.warn(
+        `[VinceBinance] Failed to fetch top trader positions: ${error}`,
+      );
       return cached?.data ?? null;
     }
   }
@@ -435,7 +537,10 @@ export class VinceBinanceService extends Service {
   // TAKER BUY/SELL VOLUME (order flow)
   // =============================================================================
 
-  async getTakerVolume(symbol: string = "BTCUSDT", period: string = "5m"): Promise<BinanceTakerVolume | null> {
+  async getTakerVolume(
+    symbol: string = "BTCUSDT",
+    period: string = "5m",
+  ): Promise<BinanceTakerVolume | null> {
     const cacheKey = `${symbol}_${period}`;
     const cached = this.takerVolumeCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -449,7 +554,7 @@ export class VinceBinanceService extends Service {
       const limit = 5;
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/takerlongshortRatio?symbol=${symbol}&period=${period}&limit=${limit}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
@@ -459,7 +564,12 @@ export class VinceBinanceService extends Service {
       }
       this.recordSuccess();
 
-      const json = await response.json() as Array<{ buyVol: string; sellVol: string; buySellRatio: string; timestamp: number }>;
+      const json = (await response.json()) as Array<{
+        buyVol: string;
+        sellVol: string;
+        buySellRatio: string;
+        timestamp: number;
+      }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
@@ -480,8 +590,13 @@ export class VinceBinanceService extends Service {
         timestamp: latest.timestamp || Date.now(),
       };
 
-      this.takerVolumeCache.set(cacheKey, { data: result, timestamp: Date.now() });
-      logger.debug(`[VinceBinance] Taker ${symbol}: ratio ${result.buySellRatio.toFixed(2)}`);
+      this.takerVolumeCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+      });
+      logger.debug(
+        `[VinceBinance] Taker ${symbol}: ratio ${result.buySellRatio.toFixed(2)}`,
+      );
       return result;
     } catch (error) {
       logger.warn(`[VinceBinance] Failed to fetch taker volume: ${error}`);
@@ -493,7 +608,9 @@ export class VinceBinanceService extends Service {
   // LONG/SHORT RATIO (by accounts)
   // =============================================================================
 
-  async getLongShortRatio(symbol: string = "BTCUSDT"): Promise<BinanceLongShortRatio | null> {
+  async getLongShortRatio(
+    symbol: string = "BTCUSDT",
+  ): Promise<BinanceLongShortRatio | null> {
     const cached = this.longShortCache.get(symbol);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -505,7 +622,7 @@ export class VinceBinanceService extends Service {
 
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
@@ -515,7 +632,12 @@ export class VinceBinanceService extends Service {
       }
       this.recordSuccess();
 
-      const json = await response.json() as Array<{ longShortRatio: string; longAccount: string; shortAccount: string; timestamp: number }>;
+      const json = (await response.json()) as Array<{
+        longShortRatio: string;
+        longAccount: string;
+        shortAccount: string;
+        timestamp: number;
+      }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
@@ -523,8 +645,14 @@ export class VinceBinanceService extends Service {
       const latest = json[0];
       const rawRatio = parseFloat(latest.longShortRatio || "1");
       const longShortRatio = Math.max(0.1, Math.min(10, rawRatio));
-      const longAccount = Math.max(0, Math.min(100, parseFloat(latest.longAccount || "0.5") * 100));
-      const shortAccount = Math.max(0, Math.min(100, parseFloat(latest.shortAccount || "0.5") * 100));
+      const longAccount = Math.max(
+        0,
+        Math.min(100, parseFloat(latest.longAccount || "0.5") * 100),
+      );
+      const shortAccount = Math.max(
+        0,
+        Math.min(100, parseFloat(latest.shortAccount || "0.5") * 100),
+      );
       const result: BinanceLongShortRatio = {
         symbol,
         longShortRatio,
@@ -545,7 +673,11 @@ export class VinceBinanceService extends Service {
   // OI HISTORY (divergence detection)
   // =============================================================================
 
-  async getOITrend(symbol: string = "BTCUSDT", period: string = "5m", limit: number = 10): Promise<BinanceOITrend | null> {
+  async getOITrend(
+    symbol: string = "BTCUSDT",
+    period: string = "5m",
+    limit: number = 10,
+  ): Promise<BinanceOITrend | null> {
     const cacheKey = `${symbol}_${period}`;
     const cached = this.oiTrendCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
@@ -558,7 +690,7 @@ export class VinceBinanceService extends Service {
 
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
@@ -568,7 +700,10 @@ export class VinceBinanceService extends Service {
       }
       this.recordSuccess();
 
-      const json = await response.json() as Array<{ sumOpenInterestValue: string; timestamp: number }>;
+      const json = (await response.json()) as Array<{
+        sumOpenInterestValue: string;
+        timestamp: number;
+      }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
@@ -591,7 +726,12 @@ export class VinceBinanceService extends Service {
         previous,
         change,
         changePercent,
-        trend: changePercent > 1 ? "rising" : changePercent < -1 ? "falling" : "stable",
+        trend:
+          changePercent > 1
+            ? "rising"
+            : changePercent < -1
+              ? "falling"
+              : "stable",
       };
 
       this.oiTrendCache.set(cacheKey, { data: result, timestamp: Date.now() });
@@ -609,7 +749,10 @@ export class VinceBinanceService extends Service {
   /** Percentile threshold for "extreme" funding (top/bottom of recent distribution). */
   private static readonly FUNDING_EXTREME_PERCENTILE = 0.1;
 
-  async getFundingTrend(symbol: string = "BTCUSDT", limit: number = 30): Promise<BinanceFundingTrend | null> {
+  async getFundingTrend(
+    symbol: string = "BTCUSDT",
+    limit: number = 30,
+  ): Promise<BinanceFundingTrend | null> {
     const cached = this.fundingTrendCache.get(symbol);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -621,7 +764,7 @@ export class VinceBinanceService extends Service {
 
       const response = await fetch(
         `${this.getBaseUrl()}/fapi/v1/fundingRate?symbol=${symbol}&limit=${limit}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
@@ -631,7 +774,10 @@ export class VinceBinanceService extends Service {
       }
       this.recordSuccess();
 
-      const json = await response.json() as Array<{ fundingRate: string; fundingTime: number }>;
+      const json = (await response.json()) as Array<{
+        fundingRate: string;
+        fundingTime: number;
+      }>;
       if (!Array.isArray(json) || json.length === 0) {
         return cached?.data ?? null;
       }
@@ -648,10 +794,16 @@ export class VinceBinanceService extends Service {
       // Extreme = current in top or bottom 10% of recent (adaptive to regime)
       const below = rates.filter((r) => r < current).length;
       const pctBelow = rates.length > 0 ? below / rates.length : 0.5;
-      const topTail = pctBelow >= 1 - VinceBinanceService.FUNDING_EXTREME_PERCENTILE;   // few below = high rate
-      const bottomTail = pctBelow <= VinceBinanceService.FUNDING_EXTREME_PERCENTILE;   // many below = low rate
+      const topTail =
+        pctBelow >= 1 - VinceBinanceService.FUNDING_EXTREME_PERCENTILE; // few below = high rate
+      const bottomTail =
+        pctBelow <= VinceBinanceService.FUNDING_EXTREME_PERCENTILE; // many below = low rate
       const isExtreme = topTail || bottomTail;
-      const extremeDirection = topTail ? "long_paying" : bottomTail ? "short_paying" : "neutral";
+      const extremeDirection = topTail
+        ? "long_paying"
+        : bottomTail
+          ? "short_paying"
+          : "neutral";
 
       const result: BinanceFundingTrend = {
         symbol,
@@ -663,7 +815,10 @@ export class VinceBinanceService extends Service {
         extremeDirection,
       };
 
-      this.fundingTrendCache.set(symbol, { data: result, timestamp: Date.now() });
+      this.fundingTrendCache.set(symbol, {
+        data: result,
+        timestamp: Date.now(),
+      });
       return result;
     } catch (error) {
       logger.warn(`[VinceBinance] Failed to fetch funding history: ${error}`);
@@ -675,7 +830,10 @@ export class VinceBinanceService extends Service {
   // CROSS-EXCHANGE FUNDING COMPARISON
   // =============================================================================
 
-  async getCrossExchangeFunding(asset: string = "BTC", hyperliquidRate?: number): Promise<CrossExchangeFunding | null> {
+  async getCrossExchangeFunding(
+    asset: string = "BTC",
+    hyperliquidRate?: number,
+  ): Promise<CrossExchangeFunding | null> {
     const cached = this.crossFundingCache.get(asset);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
       return cached.data;
@@ -697,8 +855,9 @@ export class VinceBinanceService extends Service {
       };
 
       // Find min/max for spread calculation
-      const validRates = Object.entries(rates)
-        .filter(([_, v]) => v !== null) as [string, number][];
+      const validRates = Object.entries(rates).filter(
+        ([_, v]) => v !== null,
+      ) as [string, number][];
 
       if (validRates.length < 2) {
         return cached?.data ?? null;
@@ -722,29 +881,39 @@ export class VinceBinanceService extends Service {
         timestamp: Date.now(),
       };
 
-      this.crossFundingCache.set(asset, { data: result, timestamp: Date.now() });
+      this.crossFundingCache.set(asset, {
+        data: result,
+        timestamp: Date.now(),
+      });
       return result;
     } catch (error) {
-      logger.warn(`[VinceBinance] Failed to fetch cross-exchange funding: ${error}`);
+      logger.warn(
+        `[VinceBinance] Failed to fetch cross-exchange funding: ${error}`,
+      );
       return cached?.data ?? null;
     }
   }
 
   // Helper: Binance funding rate
-  private async fetchBinanceFundingRate(symbol: string): Promise<{ rate: number; markPrice: number } | null> {
+  private async fetchBinanceFundingRate(
+    symbol: string,
+  ): Promise<{ rate: number; markPrice: number } | null> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
         `${this.getBaseUrl()}/fapi/v1/premiumIndex?symbol=${symbol}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
       if (!response.ok) return null;
 
-      const json = await response.json() as { lastFundingRate?: string; markPrice?: string };
+      const json = (await response.json()) as {
+        lastFundingRate?: string;
+        markPrice?: string;
+      };
       return {
         rate: parseFloat(json.lastFundingRate || "0"),
         markPrice: parseFloat(json.markPrice || "0"),
@@ -755,20 +924,25 @@ export class VinceBinanceService extends Service {
   }
 
   // Helper: Bybit funding rate
-  private async fetchBybitFundingRate(symbol: string): Promise<{ rate: number } | null> {
+  private async fetchBybitFundingRate(
+    symbol: string,
+  ): Promise<{ rate: number } | null> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch(
         `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(timeout);
 
       if (!response.ok) return null;
 
-      const json = await response.json() as { retCode?: number; result?: { list?: Array<{ fundingRate?: string }> } };
+      const json = (await response.json()) as {
+        retCode?: number;
+        result?: { list?: Array<{ fundingRate?: string }> };
+      };
       if (json.retCode !== 0 || !json.result?.list?.[0]) return null;
 
       return {
@@ -789,15 +963,16 @@ export class VinceBinanceService extends Service {
   async getIntelligence(asset: string = "BTC"): Promise<BinanceIntelligence> {
     const symbol = `${asset}USDT`;
 
-    const [topTrader, taker, oi, funding, longShort, crossFunding, fearGreed] = await Promise.all([
-      this.getTopTraderPositions(symbol),
-      this.getTakerVolume(symbol),
-      this.getOITrend(symbol),
-      this.getFundingTrend(symbol),
-      this.getLongShortRatio(symbol),
-      this.getCrossExchangeFunding(asset),
-      this.getFearGreed(),
-    ]);
+    const [topTrader, taker, oi, funding, longShort, crossFunding, fearGreed] =
+      await Promise.all([
+        this.getTopTraderPositions(symbol),
+        this.getTakerVolume(symbol),
+        this.getOITrend(symbol),
+        this.getFundingTrend(symbol),
+        this.getLongShortRatio(symbol),
+        this.getCrossExchangeFunding(asset),
+        this.getFearGreed(),
+      ]);
 
     return {
       topTraderPositions: topTrader,
@@ -819,28 +994,49 @@ export class VinceBinanceService extends Service {
 
     if (intel.topTraderPositions) {
       const { longPosition, shortPosition } = intel.topTraderPositions;
-      const bias = longPosition > 55 ? "bullish" : longPosition < 45 ? "bearish" : "neutral";
-      lines.push(`Top Traders: ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short (${bias})`);
+      const bias =
+        longPosition > 55
+          ? "bullish"
+          : longPosition < 45
+            ? "bearish"
+            : "neutral";
+      lines.push(
+        `Top Traders: ${longPosition.toFixed(0)}% long / ${shortPosition.toFixed(0)}% short (${bias})`,
+      );
     }
 
     if (intel.takerVolume) {
       const { buySellRatio } = intel.takerVolume;
-      const pressure = buySellRatio > 1.1 ? "buying pressure" : buySellRatio < 0.9 ? "selling pressure" : "balanced";
+      const pressure =
+        buySellRatio > 1.1
+          ? "buying pressure"
+          : buySellRatio < 0.9
+            ? "selling pressure"
+            : "balanced";
       lines.push(`Taker Flow: ${buySellRatio.toFixed(2)} (${pressure})`);
     }
 
     if (intel.oiTrend) {
       const { trend, changePercent } = intel.oiTrend;
       const sign = changePercent >= 0 ? "+" : "";
-      const conviction = trend === "rising" ? "conviction increasing" : trend === "falling" ? "positions closing" : "stable";
-      lines.push(`OI Trend: ${trend.charAt(0).toUpperCase() + trend.slice(1)} ${sign}${changePercent.toFixed(1)}% (${conviction})`);
+      const conviction =
+        trend === "rising"
+          ? "conviction increasing"
+          : trend === "falling"
+            ? "positions closing"
+            : "stable";
+      lines.push(
+        `OI Trend: ${trend.charAt(0).toUpperCase() + trend.slice(1)} ${sign}${changePercent.toFixed(1)}% (${conviction})`,
+      );
     }
 
     if (intel.fundingTrend) {
       const { current, isExtreme, extremeDirection } = intel.fundingTrend;
       const fundingPct = (current * 100).toFixed(4);
       if (isExtreme) {
-        lines.push(`⚠️ Funding: ${fundingPct}% (${extremeDirection.replace("_", " ")} - mean reversion signal)`);
+        lines.push(
+          `⚠️ Funding: ${fundingPct}% (${extremeDirection.replace("_", " ")} - mean reversion signal)`,
+        );
       } else {
         lines.push(`Funding: ${fundingPct}%`);
       }
@@ -848,7 +1044,16 @@ export class VinceBinanceService extends Service {
 
     if (intel.fearGreed) {
       const { value, classification } = intel.fearGreed;
-      const emoji = value < 25 ? "😱" : value < 45 ? "😰" : value < 55 ? "😐" : value < 75 ? "😊" : "🤑";
+      const emoji =
+        value < 25
+          ? "😱"
+          : value < 45
+            ? "😰"
+            : value < 55
+              ? "😐"
+              : value < 75
+                ? "😊"
+                : "🤑";
       lines.push(`Fear/Greed: ${value} ${emoji} (${classification})`);
     }
 

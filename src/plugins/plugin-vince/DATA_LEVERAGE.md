@@ -14,12 +14,12 @@
 
 ## Data we just started using (already wired)
 
-| Factor (suggested_signal_factors name) | Feature store field | Source | Status |
-|----------------------------------------|---------------------|--------|--------|
-| OI change 24h | `market.oiChange24h` | CoinGlass `getOpenInterest(asset).change24h` | Populated in `collectMarketFeatures` |
-| DVOL / volatility index | `market.dvol` | MarketData `getDVOL(asset)` (Deribit) | Populated |
-| RSI (14) | `market.rsi14` | MarketData `estimateRSI(asset)` | Populated |
-| (ATR already used) | `market.atrPct` | MarketData `getATRPercent(asset)` | Now live from Deribit when available |
+| Factor (suggested_signal_factors name) | Feature store field  | Source                                       | Status                               |
+| -------------------------------------- | -------------------- | -------------------------------------------- | ------------------------------------ |
+| OI change 24h                          | `market.oiChange24h` | CoinGlass `getOpenInterest(asset).change24h` | Populated in `collectMarketFeatures` |
+| DVOL / volatility index                | `market.dvol`        | MarketData `getDVOL(asset)` (Deribit)        | Populated                            |
+| RSI (14)                               | `market.rsi14`       | MarketData `estimateRSI(asset)`              | Populated                            |
+| (ATR already used)                     | `market.atrPct`      | MarketData `getATRPercent(asset)`            | Now live from Deribit when available |
 
 Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h` (and `market_atrPct` for position sizing) in the feature lists when present.
 
@@ -27,22 +27,22 @@ Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h`
 
 ## Data now wired (latest batch)
 
-| Factor | Feature store field | Implementation |
-|--------|---------------------|----------------|
-| Funding 8h delta | `market.fundingDelta` | Per-asset cache of `{ rate, ts }`; prune >24h; delta = current − rate closest to 8h ago. |
-| Order book imbalance | `market.bookImbalance` | Binance futures depth (BTC/ETH/SOL/HYPE); (bidVol − askVol) / (bidVol + askVol). |
-| Bid-ask spread | `market.bidAskSpread` | Same depth; (bestAsk − bestBid) / mid × 100. |
-| Price vs SMA20 | `market.priceVsSma20` | Rolling window of last 20 prices per asset; (price − SMA) / SMA × 100. |
-| News sentiment | `news.sentimentScore`, `news.sentimentDirection` | `getOverallSentiment()` → score = ±confidence, direction = sentiment; `getActiveRiskEvents()` → hasActiveRiskEvents, highestRiskSeverity. |
-| Signal sentiment | `signal.avgSentiment` → `signal_avg_sentiment` | Keyword scan over `signal.factors` (bullish/bearish); train script uses it when sources don’t provide sentiment. |
+| Factor               | Feature store field                              | Implementation                                                                                                                            |
+| -------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Funding 8h delta     | `market.fundingDelta`                            | Per-asset cache of `{ rate, ts }`; prune >24h; delta = current − rate closest to 8h ago.                                                  |
+| Order book imbalance | `market.bookImbalance`                           | Binance futures depth (BTC/ETH/SOL/HYPE); (bidVol − askVol) / (bidVol + askVol).                                                          |
+| Bid-ask spread       | `market.bidAskSpread`                            | Same depth; (bestAsk − bestBid) / mid × 100.                                                                                              |
+| Price vs SMA20       | `market.priceVsSma20`                            | Rolling window of last 20 prices per asset; (price − SMA) / SMA × 100.                                                                    |
+| News sentiment       | `news.sentimentScore`, `news.sentimentDirection` | `getOverallSentiment()` → score = ±confidence, direction = sentiment; `getActiveRiskEvents()` → hasActiveRiskEvents, highestRiskSeverity. |
+| Signal sentiment     | `signal.avgSentiment` → `signal_avg_sentiment`   | Keyword scan over `signal.factors` (bullish/bearish); train script uses it when sources don’t provide sentiment.                          |
 
 ## Data still 0% or low % (optional next steps)
 
-| Factor | Feature store field | How to add |
-|--------|---------------------|------------|
-| NASDAQ 24h change | `news.nasdaqChange` | Add macro/equity data source; set in `collectNewsFeatures()`. |
-| ETF flow (BTC/ETH) | `news.etfFlowBtc`, `news.etfFlowEth` | Expose numeric flow from API and set in news features. |
-| Macro risk environment | `news.macroRiskEnvironment` | risk_on / risk_off / neutral from same macro source. |
+| Factor                 | Feature store field                  | How to add                                                    |
+| ---------------------- | ------------------------------------ | ------------------------------------------------------------- |
+| NASDAQ 24h change      | `news.nasdaqChange`                  | Add macro/equity data source; set in `collectNewsFeatures()`. |
+| ETF flow (BTC/ETH)     | `news.etfFlowBtc`, `news.etfFlowEth` | Expose numeric flow from API and set in news features.        |
+| Macro risk environment | `news.macroRiskEnvironment`          | risk_on / risk_off / neutral from same macro source.          |
 
 ---
 
@@ -50,15 +50,15 @@ Training script now includes `market_dvol`, `market_rsi14`, `market_oiChange24h`
 
 All of these use **no new API keys** and either existing services or free public APIs.
 
-| Data point | Where it lives / how to get it | Feature store / algo impact |
-|------------|--------------------------------|-----------------------------|
-| **Index 24h (SPX / INFOTECH proxy)** | **VinceHIP3Service** already has `getPulse()` → `pulse.indices` with `change24h` (US500, INFOTECH, etc.). No new API. | Set `news.nasdaqChange` from e.g. SPX or INFOTECH 24h % in `collectNewsFeatures()` (inject HIP-3 when building news features). Gives ML a risk-on/risk-off macro input. |
-| **Macro risk (risk_on / risk_off)** | Same HIP-3 pulse: `pulse.summary.tradFiVsCrypto`, indices vs gold. Indices up + gold down → risk_on; opposite → risk_off. | Set `news.macroRiskEnvironment` in `collectNewsFeatures()` from HIP-3. FREE. |
-| **Signal sentiment (higher % non-null)** | Already derived from `signal.factors` keyword scan; often 20% non-null. | Ensure every aggregated signal has at least one factor string; optionally add per-source sentiment where aggregator has it. No new API—just logic so `signal_avg_sentiment` is populated more often. |
-| **Fear & Greed** | Already in market context (CoinGlass/Binance); `market.fearGreedIndex` in feature store. | Confirm it’s in the training optional list and that CoinGlass/Binance path always sets it so ML can use it. |
-| **CoinGecko (as weak factor)** | **VinceCoinGeckoService** – exchange health, liquidity, prices; used by MarketData but not a named aggregator source. | Optionally add a single “market breadth” or “exchange health” factor to the aggregator (e.g. “Exchange health OK” / “Liquidity tight”) so it appears in Sources and in feature store. FREE. |
-| **ETF flow (BTC/ETH)** | **FREE options:** Farside Investors publishes flow data; some free dashboards or CSV. Or defer and leave null until a free/cheap API is chosen. | Set `news.etfFlowBtc`, `news.etfFlowEth` (millions USD) in `collectNewsFeatures()` when you have a source. |
-| **Multi-venue funding** | Bybit and OKX have **free public** funding-rate endpoints. We already use Binance + Hyperliquid. | Optional: add “funding extreme” from Bybit/OKX as one more confirming source so “extreme funding” is cross-venue. Improves robustness; still FREE. |
+| Data point                               | Where it lives / how to get it                                                                                                                  | Feature store / algo impact                                                                                                                                                                          |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Index 24h (SPX / INFOTECH proxy)**     | **VinceHIP3Service** already has `getPulse()` → `pulse.indices` with `change24h` (US500, INFOTECH, etc.). No new API.                           | Set `news.nasdaqChange` from e.g. SPX or INFOTECH 24h % in `collectNewsFeatures()` (inject HIP-3 when building news features). Gives ML a risk-on/risk-off macro input.                              |
+| **Macro risk (risk_on / risk_off)**      | Same HIP-3 pulse: `pulse.summary.tradFiVsCrypto`, indices vs gold. Indices up + gold down → risk_on; opposite → risk_off.                       | Set `news.macroRiskEnvironment` in `collectNewsFeatures()` from HIP-3. FREE.                                                                                                                         |
+| **Signal sentiment (higher % non-null)** | Already derived from `signal.factors` keyword scan; often 20% non-null.                                                                         | Ensure every aggregated signal has at least one factor string; optionally add per-source sentiment where aggregator has it. No new API—just logic so `signal_avg_sentiment` is populated more often. |
+| **Fear & Greed**                         | Already in market context (CoinGlass/Binance); `market.fearGreedIndex` in feature store.                                                        | Confirm it’s in the training optional list and that CoinGlass/Binance path always sets it so ML can use it.                                                                                          |
+| **CoinGecko (as weak factor)**           | **VinceCoinGeckoService** – exchange health, liquidity, prices; used by MarketData but not a named aggregator source.                           | Optionally add a single “market breadth” or “exchange health” factor to the aggregator (e.g. “Exchange health OK” / “Liquidity tight”) so it appears in Sources and in feature store. FREE.          |
+| **ETF flow (BTC/ETH)**                   | **FREE options:** Farside Investors publishes flow data; some free dashboards or CSV. Or defer and leave null until a free/cheap API is chosen. | Set `news.etfFlowBtc`, `news.etfFlowEth` (millions USD) in `collectNewsFeatures()` when you have a source.                                                                                           |
+| **Multi-venue funding**                  | Bybit and OKX have **free public** funding-rate endpoints. We already use Binance + Hyperliquid.                                                | Optional: add “funding extreme” from Bybit/OKX as one more confirming source so “extreme funding” is cross-venue. Improves robustness; still FREE.                                                   |
 
 **Highest impact, zero cost:** Wire **HIP-3 index 24h** and **macro risk** into `collectNewsFeatures()` (get `VINCE_HIP3_SERVICE`, call `getPulse()`, set `news.nasdaqChange` and `news.macroRiskEnvironment`). Then retrain so `suggested_signal_factors` can drop “NASDAQ 24h” and “Macro risk environment” from the “consider adding” list.
 

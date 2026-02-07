@@ -10,12 +10,28 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { RiskLimits, RiskState, Position, AggregatedTradeSignal, LeverageRecommendation } from "../types/paperTrading";
-import { DEFAULT_RISK_LIMITS, AGGRESSIVE_RISK_LIMITS, SIGNAL_THRESHOLDS, TIMING, LEVERAGE_ADJUSTMENTS, DEFAULT_LEVERAGE } from "../constants/paperTradingDefaults";
+import type {
+  RiskLimits,
+  RiskState,
+  Position,
+  AggregatedTradeSignal,
+  LeverageRecommendation,
+} from "../types/paperTrading";
+import {
+  DEFAULT_RISK_LIMITS,
+  AGGRESSIVE_RISK_LIMITS,
+  SIGNAL_THRESHOLDS,
+  TIMING,
+  LEVERAGE_ADJUSTMENTS,
+  DEFAULT_LEVERAGE,
+} from "../constants/paperTradingDefaults";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceMarketDataService } from "./marketData.service";
 // V3: Dynamic Configuration (Self-Improving Architecture)
-import { dynamicConfig, initializeDynamicConfig } from "../config/dynamicConfig";
+import {
+  dynamicConfig,
+  initializeDynamicConfig,
+} from "../config/dynamicConfig";
 
 // ==========================================
 // Correlation Groups
@@ -43,7 +59,8 @@ function getCorrelatedAssets(asset: string): string[] {
 
 export class VinceRiskManagerService extends Service {
   static serviceType = "VINCE_RISK_MANAGER_SERVICE";
-  capabilityDescription = "Manages risk limits and circuit breakers for paper trading";
+  capabilityDescription =
+    "Manages risk limits and circuit breakers for paper trading";
 
   private limits: RiskLimits;
   private state: RiskState;
@@ -60,7 +77,9 @@ export class VinceRiskManagerService extends Service {
     const aggressive = runtime.getSetting?.("vince_paper_aggressive");
     if (aggressive === true || aggressive === "true") {
       service.limits = { ...AGGRESSIVE_RISK_LIMITS };
-      logger.info("[VinceRiskManager] ✅ Aggressive preset: max 10x leverage, higher exposure");
+      logger.info(
+        "[VinceRiskManager] ✅ Aggressive preset: max 10x leverage, higher exposure",
+      );
     }
     // Initialize dynamic config and sync signal thresholds
     await initializeDynamicConfig();
@@ -109,7 +128,7 @@ export class VinceRiskManagerService extends Service {
 
     logger.debug(
       `[VinceRiskManager] Synced from dynamic config: ` +
-      `strength=${this.limits.minSignalStrength}, confidence=${this.limits.minSignalConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`
+        `strength=${this.limits.minSignalStrength}, confidence=${this.limits.minSignalConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`,
     );
   }
 
@@ -161,11 +180,11 @@ export class VinceRiskManagerService extends Service {
 
   /**
    * Trading Session Types
-   * 
+   *
    * Asian Session:    00:00 - 08:00 UTC (Tokyo/Singapore/Hong Kong)
    * European Session: 07:00 - 16:00 UTC (London/Frankfurt)
    * US Session:       13:00 - 22:00 UTC (New York)
-   * 
+   *
    * Overlap periods are highest liquidity:
    * - EU/US overlap: 13:00 - 16:00 UTC (BEST liquidity)
    * - Asia/EU overlap: 07:00 - 08:00 UTC
@@ -180,31 +199,31 @@ export class VinceRiskManagerService extends Service {
   } {
     const now = new Date();
     const utcHour = now.getUTCHours();
-    
+
     // Define session boundaries
     const isAsianSession = utcHour >= 0 && utcHour < 8;
     const isEuropeanSession = utcHour >= 7 && utcHour < 16;
     const isUSSession = utcHour >= 13 && utcHour < 22;
-    
+
     // Overlap periods - highest liquidity
     const isAsiaEUOverlap = utcHour >= 7 && utcHour < 8;
     const isEUUSOverlap = utcHour >= 13 && utcHour < 16;
-    
+
     // Off-hours (after US close, before Asia open)
     const isOffHours = utcHour >= 22 || utcHour < 0;
-    
+
     // EU/US overlap - BEST trading conditions
     if (isEUUSOverlap) {
       return {
         session: "us",
         isOverlap: true,
         overlapType: "eu_us",
-        confidenceMultiplier: 1.1,  // Boost signals during overlap
+        confidenceMultiplier: 1.1, // Boost signals during overlap
         sizeMultiplier: 1.0,
         description: "EU/US overlap (highest liquidity)",
       };
     }
-    
+
     // Asia/EU overlap - Good conditions
     if (isAsiaEUOverlap) {
       return {
@@ -216,7 +235,7 @@ export class VinceRiskManagerService extends Service {
         description: "Asia/EU overlap",
       };
     }
-    
+
     // US session (non-overlap)
     if (isUSSession) {
       return {
@@ -227,7 +246,7 @@ export class VinceRiskManagerService extends Service {
         description: "US session",
       };
     }
-    
+
     // European session (non-overlap)
     if (isEuropeanSession) {
       return {
@@ -238,18 +257,18 @@ export class VinceRiskManagerService extends Service {
         description: "European session",
       };
     }
-    
+
     // Asian session (non-overlap) - Lower liquidity, more wicks
     if (isAsianSession) {
       return {
         session: "asian",
         isOverlap: false,
-        confidenceMultiplier: 0.9,  // Reduce confidence
-        sizeMultiplier: 0.85,       // Smaller positions
+        confidenceMultiplier: 0.9, // Reduce confidence
+        sizeMultiplier: 0.85, // Smaller positions
         description: "Asian session (lower liquidity)",
       };
     }
-    
+
     // Off-hours - Very thin liquidity
     return {
       session: "off-hours",
@@ -276,7 +295,7 @@ export class VinceRiskManagerService extends Service {
   getWeekendConfidenceMultiplier(): number {
     const now = new Date();
     const day = now.getUTCDay();
-    
+
     // 0 = Sunday, 6 = Saturday
     if (day === 0 || day === 6) {
       return 0.8;
@@ -287,8 +306,8 @@ export class VinceRiskManagerService extends Service {
   /**
    * Get combined time-based modifiers (including session analysis)
    */
-  getTimeModifiers(): { 
-    nearFunding: boolean; 
+  getTimeModifiers(): {
+    nearFunding: boolean;
     isWeekend: boolean;
     session: ReturnType<VinceRiskManagerService["getTradingSession"]>;
     confidenceMultiplier: number;
@@ -300,19 +319,20 @@ export class VinceRiskManagerService extends Service {
     const weekendMultiplier = this.getWeekendConfidenceMultiplier();
     const session = this.getTradingSession();
     const isWeekend = weekendMultiplier < 1.0;
-    
+
     // Combine all multipliers
-    const confidenceMultiplier = weekendMultiplier * session.confidenceMultiplier;
+    const confidenceMultiplier =
+      weekendMultiplier * session.confidenceMultiplier;
     const sizeMultiplier = session.sizeMultiplier;
-    
+
     let shouldTrade = true;
     let reason: string | undefined;
-    
+
     if (nearFunding) {
       shouldTrade = false;
       reason = "Near funding settlement (±15 min window)";
     }
-    
+
     return {
       nearFunding,
       isWeekend,
@@ -341,38 +361,41 @@ export class VinceRiskManagerService extends Service {
    * Returns a size multiplier (1.0 = full size, 0.5 = half size due to correlation)
    */
   getCorrelationSizeMultiplier(
-    asset: string, 
+    asset: string,
     direction: "long" | "short",
-    existingPositions: Position[]
+    existingPositions: Position[],
   ): { multiplier: number; reason?: string } {
     const correlatedAssets = getCorrelatedAssets(asset);
-    
+
     if (correlatedAssets.length === 0) {
       return { multiplier: 1.0 };
     }
-    
+
     // Check if we have any correlated positions in the same direction
     for (const position of existingPositions) {
-      if (correlatedAssets.includes(position.asset) && position.status === "open") {
+      if (
+        correlatedAssets.includes(position.asset) &&
+        position.status === "open"
+      ) {
         if (position.direction === direction) {
           // Same direction = doubling down on correlated bet
           logger.info(
-            `[VinceRiskManager] ⚠️ Correlation filter: ${asset} ${direction} is correlated with existing ${position.asset} ${position.direction}`
+            `[VinceRiskManager] ⚠️ Correlation filter: ${asset} ${direction} is correlated with existing ${position.asset} ${position.direction}`,
           );
-          return { 
-            multiplier: 0.5, 
-            reason: `Correlated with ${position.asset} (same direction) - size reduced 50%` 
+          return {
+            multiplier: 0.5,
+            reason: `Correlated with ${position.asset} (same direction) - size reduced 50%`,
           };
         } else {
           // Opposite direction = natural hedge, allow full size
-          return { 
-            multiplier: 1.0, 
-            reason: `Correlated with ${position.asset} (opposite direction) - acts as hedge` 
+          return {
+            multiplier: 1.0,
+            reason: `Correlated with ${position.asset} (opposite direction) - acts as hedge`,
           };
         }
       }
     }
-    
+
     return { multiplier: 1.0 };
   }
 
@@ -382,17 +405,20 @@ export class VinceRiskManagerService extends Service {
    */
   getCorrelationSignalThreshold(
     asset: string,
-    existingPositions: Position[]
+    existingPositions: Position[],
   ): number {
     const correlatedAssets = getCorrelatedAssets(asset);
-    
+
     for (const position of existingPositions) {
-      if (correlatedAssets.includes(position.asset) && position.status === "open") {
+      if (
+        correlatedAssets.includes(position.asset) &&
+        position.status === "open"
+      ) {
         // Require 10% higher signal strength for correlated positions
         return 1.1;
       }
     }
-    
+
     return 1.0;
   }
 
@@ -400,10 +426,16 @@ export class VinceRiskManagerService extends Service {
   // Signal Validation
   // ==========================================
 
-  validateSignal(signal: AggregatedTradeSignal): { valid: boolean; reason: string } {
+  validateSignal(signal: AggregatedTradeSignal): {
+    valid: boolean;
+    reason: string;
+  } {
     // Check if paused
     if (this.state.isPaused) {
-      return { valid: false, reason: `Trading paused: ${this.state.pauseReason || "manual pause"}` };
+      return {
+        valid: false,
+        reason: `Trading paused: ${this.state.pauseReason || "manual pause"}`,
+      };
     }
 
     // Check circuit breaker
@@ -412,9 +444,17 @@ export class VinceRiskManagerService extends Service {
     }
 
     // Check cooldown
-    if (this.state.cooldownExpiresAt && Date.now() < this.state.cooldownExpiresAt) {
-      const remaining = Math.ceil((this.state.cooldownExpiresAt - Date.now()) / 60000);
-      return { valid: false, reason: `Cooldown active: ${remaining}m remaining` };
+    if (
+      this.state.cooldownExpiresAt &&
+      Date.now() < this.state.cooldownExpiresAt
+    ) {
+      const remaining = Math.ceil(
+        (this.state.cooldownExpiresAt - Date.now()) / 60000,
+      );
+      return {
+        valid: false,
+        reason: `Cooldown active: ${remaining}m remaining`,
+      };
     }
 
     // ==========================================
@@ -422,7 +462,10 @@ export class VinceRiskManagerService extends Service {
     // ==========================================
     const timeModifiers = this.getTimeModifiers();
     if (!timeModifiers.shouldTrade) {
-      return { valid: false, reason: timeModifiers.reason || "Time filter blocked" };
+      return {
+        valid: false,
+        reason: timeModifiers.reason || "Time filter blocked",
+      };
     }
 
     // Check signal direction
@@ -436,17 +479,17 @@ export class VinceRiskManagerService extends Service {
 
     // Check signal strength
     if (signal.strength < this.limits.minSignalStrength) {
-      return { 
-        valid: false, 
-        reason: `Signal strength ${signal.strength}% below minimum ${this.limits.minSignalStrength}%` 
+      return {
+        valid: false,
+        reason: `Signal strength ${signal.strength}% below minimum ${this.limits.minSignalStrength}%`,
       };
     }
 
     // Check signal confidence (already time-adjusted by SignalAggregator)
     if (signal.confidence < this.limits.minSignalConfidence) {
-      return { 
-        valid: false, 
-        reason: `Signal confidence ${signal.confidence.toFixed(0)}% below minimum ${this.limits.minSignalConfidence}%` 
+      return {
+        valid: false,
+        reason: `Signal confidence ${signal.confidence.toFixed(0)}% below minimum ${this.limits.minSignalConfidence}%`,
       };
     }
 
@@ -455,8 +498,11 @@ export class VinceRiskManagerService extends Service {
     // Strong-signal override: when strength/confidence are high, allow MIN_CONFIRMING_WHEN_STRONG (more trades → more training data)
     const strongStrength = SIGNAL_THRESHOLDS.STRONG_STRENGTH;
     const strongConfidence = SIGNAL_THRESHOLDS.HIGH_CONFIDENCE;
-    const minConfirmingWhenStrong = SIGNAL_THRESHOLDS.MIN_CONFIRMING_WHEN_STRONG;
-    const isStrongSignal = signal.strength >= strongStrength && signal.confidence >= strongConfidence;
+    const minConfirmingWhenStrong =
+      SIGNAL_THRESHOLDS.MIN_CONFIRMING_WHEN_STRONG;
+    const isStrongSignal =
+      signal.strength >= strongStrength &&
+      signal.confidence >= strongConfidence;
     const minConfirming =
       signal.asset === "HYPE"
         ? 2
@@ -487,7 +533,10 @@ export class VinceRiskManagerService extends Service {
 
     // Check if paused
     if (this.state.isPaused) {
-      return { valid: false, reason: `Trading paused: ${this.state.pauseReason || "manual pause"}` };
+      return {
+        valid: false,
+        reason: `Trading paused: ${this.state.pauseReason || "manual pause"}`,
+      };
     }
 
     // Check circuit breaker
@@ -497,16 +546,23 @@ export class VinceRiskManagerService extends Service {
 
     // Check leverage
     if (leverage > this.limits.maxLeverage) {
-      return { valid: false, reason: `Leverage ${leverage}x exceeds maximum ${this.limits.maxLeverage}x` };
+      return {
+        valid: false,
+        reason: `Leverage ${leverage}x exceeds maximum ${this.limits.maxLeverage}x`,
+      };
     }
 
     const positionMargin = sizeUsd / leverage;
 
     // Check position size (margin-based)
-    const maxPositionMargin = (portfolioValue * this.limits.maxPositionSizePct) / 100;
+    const maxPositionMargin =
+      (portfolioValue * this.limits.maxPositionSizePct) / 100;
     if (positionMargin > maxPositionMargin) {
       if (maxPositionMargin <= 0) {
-        return { valid: false, reason: "Insufficient margin allowance for new position" };
+        return {
+          valid: false,
+          reason: "Insufficient margin allowance for new position",
+        };
       }
       return {
         valid: true,
@@ -517,7 +573,8 @@ export class VinceRiskManagerService extends Service {
 
     // Check total exposure
     const newExposure = currentExposure + positionMargin;
-    const maxExposure = (portfolioValue * this.limits.maxTotalExposurePct) / 100;
+    const maxExposure =
+      (portfolioValue * this.limits.maxTotalExposurePct) / 100;
     if (newExposure > maxExposure) {
       const availableMargin = maxExposure - currentExposure;
       if (availableMargin <= 0) {
@@ -541,9 +598,15 @@ export class VinceRiskManagerService extends Service {
    * Get goal-aware leverage recommendation
    * Integrates with GoalTrackerService for Kelly-based optimal leverage
    */
-  async getGoalAwareLeverage(portfolioValue: number): Promise<LeverageRecommendation> {
-    const goalTracker = this.runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as VinceGoalTrackerService | null;
-    const marketData = this.runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
+  async getGoalAwareLeverage(
+    portfolioValue: number,
+  ): Promise<LeverageRecommendation> {
+    const goalTracker = this.runtime.getService(
+      "VINCE_GOAL_TRACKER_SERVICE",
+    ) as VinceGoalTrackerService | null;
+    const marketData = this.runtime.getService(
+      "VINCE_MARKET_DATA_SERVICE",
+    ) as VinceMarketDataService | null;
 
     // Get volatility for adjustment
     let volatility: number | null = null;
@@ -559,7 +622,7 @@ export class VinceRiskManagerService extends Service {
       return goalTracker.calculateOptimalLeverage(
         portfolioValue,
         this.state.currentDrawdownPct,
-        volatility
+        volatility,
       );
     }
 
@@ -570,7 +633,9 @@ export class VinceRiskManagerService extends Service {
   /**
    * Calculate drawdown-adjusted leverage (fallback when goal tracker not available)
    */
-  private calculateDrawdownAdjustedLeverage(volatility: number | null): LeverageRecommendation {
+  private calculateDrawdownAdjustedLeverage(
+    volatility: number | null,
+  ): LeverageRecommendation {
     let baseLeverage = DEFAULT_LEVERAGE;
     const adjustments: LeverageRecommendation["adjustments"] = [];
 
@@ -617,10 +682,14 @@ export class VinceRiskManagerService extends Service {
 
     // Session adjustment
     const session = this.getTradingSession();
-    if (session.session === "off-hours" && baseLeverage > LEVERAGE_ADJUSTMENTS.session.offHoursMaxLeverage) {
+    if (
+      session.session === "off-hours" &&
+      baseLeverage > LEVERAGE_ADJUSTMENTS.session.offHoursMaxLeverage
+    ) {
       adjustments.push({
         factor: "session",
-        multiplier: LEVERAGE_ADJUSTMENTS.session.offHoursMaxLeverage / baseLeverage,
+        multiplier:
+          LEVERAGE_ADJUSTMENTS.session.offHoursMaxLeverage / baseLeverage,
         reason: "Off-hours session cap",
       });
       baseLeverage = LEVERAGE_ADJUSTMENTS.session.offHoursMaxLeverage;
@@ -640,9 +709,10 @@ export class VinceRiskManagerService extends Service {
     // Clamp to limits
     baseLeverage = Math.max(1, Math.min(this.limits.maxLeverage, baseLeverage));
 
-    const reason = adjustments.length > 0
-      ? `Adjusted from ${DEFAULT_LEVERAGE}x due to: ${adjustments.map(a => a.factor).join(", ")}`
-      : `Default leverage: ${DEFAULT_LEVERAGE}x`;
+    const reason =
+      adjustments.length > 0
+        ? `Adjusted from ${DEFAULT_LEVERAGE}x due to: ${adjustments.map((a) => a.factor).join(", ")}`
+        : `Default leverage: ${DEFAULT_LEVERAGE}x`;
 
     return {
       kellyOptimal: DEFAULT_LEVERAGE, // Placeholder without stats
@@ -684,16 +754,19 @@ export class VinceRiskManagerService extends Service {
       this.state.circuitBreakerActive = true;
       this.state.isPaused = true;
       this.state.pauseReason = `Daily loss limit hit: ${this.state.dailyPnlPct.toFixed(2)}%`;
-      logger.warn(`[VinceRiskManager] ⚠️ Circuit breaker triggered: ${this.state.pauseReason}`);
+      logger.warn(
+        `[VinceRiskManager] ⚠️ Circuit breaker triggered: ${this.state.pauseReason}`,
+      );
     }
   }
 
   updateDrawdown(currentValue: number): void {
     this.setPeakPortfolioValue(currentValue);
-    
+
     if (this.peakPortfolioValue > 0) {
       this.state.currentDrawdown = this.peakPortfolioValue - currentValue;
-      this.state.currentDrawdownPct = (this.state.currentDrawdown / this.peakPortfolioValue) * 100;
+      this.state.currentDrawdownPct =
+        (this.state.currentDrawdown / this.peakPortfolioValue) * 100;
     }
 
     // Check drawdown limit
@@ -701,7 +774,9 @@ export class VinceRiskManagerService extends Service {
       this.state.circuitBreakerActive = true;
       this.state.isPaused = true;
       this.state.pauseReason = `Drawdown limit hit: ${this.state.currentDrawdownPct.toFixed(2)}%`;
-      logger.warn(`[VinceRiskManager] ⚠️ Circuit breaker triggered: ${this.state.pauseReason}`);
+      logger.warn(
+        `[VinceRiskManager] ⚠️ Circuit breaker triggered: ${this.state.pauseReason}`,
+      );
     }
   }
 
@@ -711,7 +786,9 @@ export class VinceRiskManagerService extends Service {
 
   triggerCooldown(reason: string = "loss"): void {
     this.state.cooldownExpiresAt = Date.now() + this.limits.cooldownAfterLossMs;
-    logger.info(`[VinceRiskManager] Cooldown triggered (${reason}): ${this.limits.cooldownAfterLossMs / 60000}m`);
+    logger.info(
+      `[VinceRiskManager] Cooldown triggered (${reason}): ${this.limits.cooldownAfterLossMs / 60000}m`,
+    );
   }
 
   isInCooldown(): boolean {
@@ -756,14 +833,14 @@ export class VinceRiskManagerService extends Service {
     this.state.dailyPnlPct = 0;
     this.state.todayTradeCount = 0;
     this.state.lastUpdate = Date.now();
-    
+
     // Clear circuit breaker if it was daily-loss triggered
     if (this.state.pauseReason?.includes("Daily loss")) {
       this.state.circuitBreakerActive = false;
       this.state.isPaused = false;
       this.state.pauseReason = undefined;
     }
-    
+
     logger.info("[VinceRiskManager] Daily stats reset");
   }
 

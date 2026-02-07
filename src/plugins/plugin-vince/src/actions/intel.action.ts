@@ -16,7 +16,13 @@
  * All FREE APIs - no paid subscriptions required!
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { VinceBinanceService } from "../services/binance.service";
 import type { VinceBinanceLiquidationService } from "../services/binanceLiquidation.service";
@@ -93,7 +99,7 @@ function buildIntelDataContext(ctx: IntelDataContext): string {
 async function generateIntelHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string,
-  asset: string
+  asset: string,
 ): Promise<string> {
   const prompt = `You are VINCE, giving a market intelligence briefing on ${asset}. You're texting this to a trader friend - be real about what the data tells you.
 
@@ -142,10 +148,21 @@ Write the briefing:`;
 
 export const vinceIntelAction: Action = {
   name: "VINCE_INTEL",
-  similes: ["INTEL", "BINANCE_INTEL", "MARKET_INTEL", "WHALES", "WHAT_ARE_WHALES_DOING", "SHOW_INTEL"],
-  description: "Human-style Binance market intelligence - top trader positions, order flow, liquidations interpreted conversationally",
+  similes: [
+    "INTEL",
+    "BINANCE_INTEL",
+    "MARKET_INTEL",
+    "WHALES",
+    "WHAT_ARE_WHALES_DOING",
+    "SHOW_INTEL",
+  ],
+  description:
+    "Human-style Binance market intelligence - top trader positions, order flow, liquidations interpreted conversationally",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("intel") ||
@@ -164,7 +181,7 @@ export const vinceIntelAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       const text = message.content.text?.toLowerCase() || "";
@@ -177,8 +194,12 @@ export const vinceIntelAction: Action = {
         asset = "SOL";
       }
 
-      const binanceService = runtime.getService("VINCE_BINANCE_SERVICE") as VinceBinanceService | null;
-      const liqService = runtime.getService("VINCE_BINANCE_LIQUIDATION_SERVICE") as VinceBinanceLiquidationService | null;
+      const binanceService = runtime.getService(
+        "VINCE_BINANCE_SERVICE",
+      ) as VinceBinanceService | null;
+      const liqService = runtime.getService(
+        "VINCE_BINANCE_LIQUIDATION_SERVICE",
+      ) as VinceBinanceLiquidationService | null;
 
       if (!binanceService) {
         await callback({
@@ -205,45 +226,71 @@ export const vinceIntelAction: Action = {
       // Top Traders
       const topTraders = await binanceService.getTopTraderPositions(symbol);
       if (topTraders) {
-        ctx.topTraders.push(`${topTraders.longPosition.toFixed(1)}% long / ${topTraders.shortPosition.toFixed(1)}% short`);
-        ctx.topTraders.push(`L/S Ratio: ${topTraders.longShortRatio.toFixed(2)}`);
+        ctx.topTraders.push(
+          `${topTraders.longPosition.toFixed(1)}% long / ${topTraders.shortPosition.toFixed(1)}% short`,
+        );
+        ctx.topTraders.push(
+          `L/S Ratio: ${topTraders.longShortRatio.toFixed(2)}`,
+        );
       }
 
       // Order Flow
       const takerVol = await binanceService.getTakerVolume(symbol);
       if (takerVol) {
-        ctx.orderFlow.push(`Buy/Sell Ratio: ${takerVol.buySellRatio.toFixed(3)}`);
-        ctx.orderFlow.push(`Buy: ${(takerVol.buyVol * 100).toFixed(1)}% | Sell: ${(takerVol.sellVol * 100).toFixed(1)}%`);
+        ctx.orderFlow.push(
+          `Buy/Sell Ratio: ${takerVol.buySellRatio.toFixed(3)}`,
+        );
+        ctx.orderFlow.push(
+          `Buy: ${(takerVol.buyVol * 100).toFixed(1)}% | Sell: ${(takerVol.sellVol * 100).toFixed(1)}%`,
+        );
       }
 
       // OI Trend
       const oiTrend = await binanceService.getOITrend(symbol);
       if (oiTrend) {
         const sign = oiTrend.changePercent >= 0 ? "+" : "";
-        ctx.oiTrend.push(`Trend: ${oiTrend.trend} (${sign}${oiTrend.changePercent.toFixed(2)}%)`);
+        ctx.oiTrend.push(
+          `Trend: ${oiTrend.trend} (${sign}${oiTrend.changePercent.toFixed(2)}%)`,
+        );
         ctx.oiTrend.push(`Current OI: $${(oiTrend.current / 1e9).toFixed(2)}B`);
       }
 
       // Funding
       const fundingTrend = await binanceService.getFundingTrend(symbol);
       if (fundingTrend) {
-        ctx.funding.push(`Current: ${(fundingTrend.current * 100).toFixed(4)}%`);
-        ctx.funding.push(`Average: ${(fundingTrend.average * 100).toFixed(4)}%`);
+        ctx.funding.push(
+          `Current: ${(fundingTrend.current * 100).toFixed(4)}%`,
+        );
+        ctx.funding.push(
+          `Average: ${(fundingTrend.average * 100).toFixed(4)}%`,
+        );
         if (fundingTrend.isExtreme) {
-          const direction = fundingTrend.extremeDirection === "long_paying" ? "longs paying shorts" : "shorts paying longs";
+          const direction =
+            fundingTrend.extremeDirection === "long_paying"
+              ? "longs paying shorts"
+              : "shorts paying longs";
           ctx.funding.push(`EXTREME: ${direction}`);
         }
-        ctx.funding.push(`Range: ${(fundingTrend.min * 100).toFixed(4)}% to ${(fundingTrend.max * 100).toFixed(4)}%`);
+        ctx.funding.push(
+          `Range: ${(fundingTrend.min * 100).toFixed(4)}% to ${(fundingTrend.max * 100).toFixed(4)}%`,
+        );
       }
 
       // Cross Exchange
       const crossFunding = await binanceService.getCrossExchangeFunding(asset);
       if (crossFunding) {
-        const formatRate = (rate: number | null) => rate !== null ? `${(rate * 100).toFixed(4)}%` : "N/A";
-        ctx.crossExchange.push(`Binance: ${formatRate(crossFunding.binance)} | Bybit: ${formatRate(crossFunding.bybit)}`);
+        const formatRate = (rate: number | null) =>
+          rate !== null ? `${(rate * 100).toFixed(4)}%` : "N/A";
+        ctx.crossExchange.push(
+          `Binance: ${formatRate(crossFunding.binance)} | Bybit: ${formatRate(crossFunding.bybit)}`,
+        );
         if (crossFunding.spread > 0.0001) {
-          ctx.crossExchange.push(`Arb opportunity: Long ${crossFunding.bestLong}, Short ${crossFunding.bestShort}`);
-          ctx.crossExchange.push(`Spread: ${(crossFunding.spread * 100).toFixed(4)}% (~${crossFunding.annualizedSpread.toFixed(0)}% APR)`);
+          ctx.crossExchange.push(
+            `Arb opportunity: Long ${crossFunding.bestLong}, Short ${crossFunding.bestShort}`,
+          );
+          ctx.crossExchange.push(
+            `Spread: ${(crossFunding.spread * 100).toFixed(4)}% (~${crossFunding.annualizedSpread.toFixed(0)}% APR)`,
+          );
         }
       }
 
@@ -251,20 +298,26 @@ export const vinceIntelAction: Action = {
       if (liqService) {
         const pressure = liqService.getLiquidationPressure(symbol);
         const status = liqService.getStatus();
-        
+
         if (status.connected) {
           const total = pressure.longLiqsCount + pressure.shortLiqsCount;
           if (total > 0) {
-            ctx.liquidations.push(`Longs: ${pressure.longLiqsCount} liqs ($${(pressure.longLiqsValue / 1000).toFixed(0)}K)`);
-            ctx.liquidations.push(`Shorts: ${pressure.shortLiqsCount} liqs ($${(pressure.shortLiqsValue / 1000).toFixed(0)}K)`);
+            ctx.liquidations.push(
+              `Longs: ${pressure.longLiqsCount} liqs ($${(pressure.longLiqsValue / 1000).toFixed(0)}K)`,
+            );
+            ctx.liquidations.push(
+              `Shorts: ${pressure.shortLiqsCount} liqs ($${(pressure.shortLiqsValue / 1000).toFixed(0)}K)`,
+            );
             ctx.liquidations.push(`Direction: ${pressure.direction}`);
           } else {
             ctx.liquidations.push("No significant liquidations");
           }
-          
+
           const cascade = liqService.getCascade();
           if (cascade && cascade.detected) {
-            ctx.liquidations.push(`CASCADE DETECTED: ${cascade.direction} - ${cascade.count} liqs, $${(cascade.totalValue / 1e6).toFixed(1)}M`);
+            ctx.liquidations.push(
+              `CASCADE DETECTED: ${cascade.direction} - ${cascade.count} liqs, $${(cascade.totalValue / 1e6).toFixed(1)}M`,
+            );
           }
         }
       }
@@ -272,13 +325,19 @@ export const vinceIntelAction: Action = {
       // Fear & Greed
       const fearGreed = await binanceService.getFearGreed();
       if (fearGreed) {
-        ctx.fearGreed.push(`Value: ${fearGreed.value}/100 (${fearGreed.classification})`);
+        ctx.fearGreed.push(
+          `Value: ${fearGreed.value}/100 (${fearGreed.classification})`,
+        );
       }
 
       // Generate briefing
       const dataContext = buildIntelDataContext(ctx);
       logger.info("[VINCE_INTEL] Generating briefing...");
-      const briefing = await generateIntelHumanBriefing(runtime, dataContext, asset);
+      const briefing = await generateIntelHumanBriefing(
+        runtime,
+        dataContext,
+        asset,
+      );
 
       // Build source attribution
       const sources: string[] = [];
@@ -291,7 +350,10 @@ export const vinceIntelAction: Action = {
 
       // Format timestamp for header
       const now = new Date();
-      const time = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const time = now.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+      });
 
       const output = [
         `**${asset} Intel** _${time}_`,
@@ -302,7 +364,9 @@ export const vinceIntelAction: Action = {
         "",
         "---",
         "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
-      ].filter(line => line !== "").join("\n");
+      ]
+        .filter((line) => line !== "")
+        .join("\n");
 
       await callback({
         text: output,

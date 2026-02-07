@@ -1,14 +1,14 @@
 /**
  * VINCE Parameter Tuner Service
- * 
+ *
  * Automatically adjusts trading parameters based on performance:
  * - Signal thresholds (strength, confidence, confirming count)
  * - Signal source weights
  * - Risk parameters
- * 
+ *
  * This is a key component of the self-improving architecture:
  * The system learns from trade outcomes and adjusts its behavior.
- * 
+ *
  * V2: Enhanced with Bayesian optimization for joint threshold tuning.
  * Uses a Gaussian Process-inspired approach with Expected Improvement
  * to explore parameter space efficiently.
@@ -17,8 +17,8 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-import { 
-  dynamicConfig, 
+import {
+  dynamicConfig,
   initializeDynamicConfig,
   type SignalThresholds,
   type AdjustmentRecord,
@@ -33,27 +33,27 @@ import type { VinceTradeJournalService } from "./vinceTradeJournal.service";
 const TUNING_CONFIG = {
   /** Minimum trades required before making adjustments */
   minTradesForTuning: 10,
-  
+
   /** Minimum trades per source before adjusting its weight */
   minTradesPerSource: 5,
-  
+
   /** How often to run tuning analysis (ms) */
   tuningIntervalMs: 30 * 60 * 1000, // 30 minutes
-  
+
   /** Win rate thresholds for adjustments */
   winRateThresholds: {
-    excellent: 70,    // Increase weight
-    good: 55,         // Slight increase
-    poor: 40,         // Decrease weight
-    terrible: 30,     // Significant decrease
+    excellent: 70, // Increase weight
+    good: 55, // Slight increase
+    poor: 40, // Decrease weight
+    terrible: 30, // Significant decrease
   },
-  
+
   /** Maximum adjustment per tuning cycle */
   maxAdjustmentPerCycle: {
-    threshold: 5,     // Max 5 points per cycle
-    weight: 0.2,      // Max 0.2 weight change per cycle
+    threshold: 5, // Max 5 points per cycle
+    weight: 0.2, // Max 0.2 weight change per cycle
   },
-  
+
   /** Lookback window for performance analysis */
   lookbackTrades: 20, // Analyze last 20 trades
 };
@@ -65,26 +65,26 @@ const TUNING_CONFIG = {
 const BAYESIAN_CONFIG = {
   /** Enable Bayesian optimization for joint threshold tuning */
   enabled: true,
-  
+
   /** Minimum observations before starting optimization */
   minObservations: 20,
-  
+
   /** How often to propose new parameter sets (in tuning cycles) */
   proposalFrequency: 3,
-  
+
   /** Exploration vs exploitation trade-off (higher = more exploration) */
   explorationWeight: 0.1,
-  
+
   /** Parameter bounds */
   bounds: {
     minStrength: { min: 55, max: 85 },
     minConfidence: { min: 50, max: 80 },
     minConfirming: { min: 2, max: 4 },
   },
-  
+
   /** Grid resolution for parameter search */
   gridResolution: 5, // 5 points per dimension
-  
+
   /** Maximum history of parameter-outcome pairs */
   maxHistory: 100,
 };
@@ -160,12 +160,13 @@ interface TuningAnalysis {
 
 export class VinceParameterTunerService extends Service {
   static serviceType = "VINCE_PARAMETER_TUNER_SERVICE";
-  capabilityDescription = "Automatically tunes trading parameters based on performance with Bayesian optimization";
+  capabilityDescription =
+    "Automatically tunes trading parameters based on performance with Bayesian optimization";
 
   private tuningInterval: NodeJS.Timeout | null = null;
   private lastTuningAnalysis: TuningAnalysis | null = null;
   private initialized = false;
-  
+
   // V2: Bayesian optimization state
   private bayesianState: BayesianState = {
     version: "1.0.0",
@@ -181,10 +182,14 @@ export class VinceParameterTunerService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceParameterTunerService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceParameterTunerService> {
     const service = new VinceParameterTunerService(runtime);
     await service.initialize();
-    logger.info("[VinceParameterTuner] ✅ Service started with Bayesian optimization");
+    logger.info(
+      "[VinceParameterTuner] ✅ Service started with Bayesian optimization",
+    );
     return service;
   }
 
@@ -200,56 +205,68 @@ export class VinceParameterTunerService extends Service {
   private async initialize(): Promise<void> {
     // Initialize dynamic config
     await initializeDynamicConfig();
-    
+
     // Initialize Bayesian optimization state
     await this.initializeBayesianState();
-    
+
     // Start tuning loop
     this.startTuningLoop();
     this.initialized = true;
   }
-  
+
   // ==========================================
   // Bayesian Optimization Initialization
   // ==========================================
-  
+
   private async initializeBayesianState(): Promise<void> {
     try {
       const elizaDbDir = path.join(process.cwd(), ".elizadb");
       const persistDir = path.join(elizaDbDir, PERSISTENCE_DIR);
-      
+
       if (!fs.existsSync(persistDir)) {
         fs.mkdirSync(persistDir, { recursive: true });
       }
-      
-      this.bayesianStatePath = path.join(persistDir, "bayesian-tuner-state.json");
-      
+
+      this.bayesianStatePath = path.join(
+        persistDir,
+        "bayesian-tuner-state.json",
+      );
+
       if (fs.existsSync(this.bayesianStatePath)) {
-        const data = JSON.parse(fs.readFileSync(this.bayesianStatePath, "utf-8"));
+        const data = JSON.parse(
+          fs.readFileSync(this.bayesianStatePath, "utf-8"),
+        );
         this.bayesianState = { ...this.bayesianState, ...data };
         logger.info(
-          `[VinceParameterTuner] Loaded Bayesian state with ${this.bayesianState.observations.length} observations`
+          `[VinceParameterTuner] Loaded Bayesian state with ${this.bayesianState.observations.length} observations`,
         );
       }
     } catch (error) {
-      logger.debug(`[VinceParameterTuner] Could not load Bayesian state: ${error}`);
+      logger.debug(
+        `[VinceParameterTuner] Could not load Bayesian state: ${error}`,
+      );
     }
   }
-  
+
   private async saveBayesianState(): Promise<void> {
     if (!this.bayesianStatePath) return;
-    
+
     try {
       // Trim history if too large
       if (this.bayesianState.observations.length > BAYESIAN_CONFIG.maxHistory) {
         this.bayesianState.observations = this.bayesianState.observations.slice(
-          -BAYESIAN_CONFIG.maxHistory
+          -BAYESIAN_CONFIG.maxHistory,
         );
       }
-      
-      fs.writeFileSync(this.bayesianStatePath, JSON.stringify(this.bayesianState, null, 2));
+
+      fs.writeFileSync(
+        this.bayesianStatePath,
+        JSON.stringify(this.bayesianState, null, 2),
+      );
     } catch (error) {
-      logger.error(`[VinceParameterTuner] Could not save Bayesian state: ${error}`);
+      logger.error(
+        `[VinceParameterTuner] Could not save Bayesian state: ${error}`,
+      );
     }
   }
 
@@ -258,7 +275,9 @@ export class VinceParameterTunerService extends Service {
   // ==========================================
 
   private getTradeJournal(): VinceTradeJournalService | null {
-    return this.runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as VinceTradeJournalService | null;
+    return this.runtime.getService(
+      "VINCE_TRADE_JOURNAL_SERVICE",
+    ) as VinceTradeJournalService | null;
   }
 
   // ==========================================
@@ -288,11 +307,11 @@ export class VinceParameterTunerService extends Service {
     }
 
     const stats = journal.getStats();
-    
+
     // Need minimum trades before tuning
     if (stats.totalTrades < TUNING_CONFIG.minTradesForTuning) {
       logger.debug(
-        `[VinceParameterTuner] Insufficient trades for tuning: ${stats.totalTrades}/${TUNING_CONFIG.minTradesForTuning}`
+        `[VinceParameterTuner] Insufficient trades for tuning: ${stats.totalTrades}/${TUNING_CONFIG.minTradesForTuning}`,
       );
       return null;
     }
@@ -302,7 +321,7 @@ export class VinceParameterTunerService extends Service {
 
     // Apply rule-based adjustments (existing logic)
     await this.applyAdjustments(analysis);
-    
+
     // V2: Run Bayesian optimization for joint threshold tuning
     await this.runBayesianOptimization(stats, analysis);
 
@@ -318,7 +337,7 @@ export class VinceParameterTunerService extends Service {
 
   private async analyzePerformance(
     journal: VinceTradeJournalService,
-    stats: ReturnType<VinceTradeJournalService["getStats"]>
+    stats: ReturnType<VinceTradeJournalService["getStats"]>,
   ): Promise<TuningAnalysis> {
     const analysis: TuningAnalysis = {
       timestamp: Date.now(),
@@ -336,9 +355,12 @@ export class VinceParameterTunerService extends Service {
 
     for (const ranking of rankings) {
       const currentWeight = currentWeights[ranking.source] ?? 1.0;
-      const suggestedWeight = this.calculateSuggestedWeight(ranking, currentWeight);
-      
-      const shouldAdjust = 
+      const suggestedWeight = this.calculateSuggestedWeight(
+        ranking,
+        currentWeight,
+      );
+
+      const shouldAdjust =
         ranking.trades >= TUNING_CONFIG.minTradesPerSource &&
         Math.abs(suggestedWeight - currentWeight) >= 0.1;
 
@@ -374,10 +396,10 @@ export class VinceParameterTunerService extends Service {
    */
   private calculateSuggestedWeight(
     ranking: { winRate: number; totalPnl: number; trades: number },
-    currentWeight: number
+    currentWeight: number,
   ): number {
     const { winRate, trades } = ranking;
-    
+
     // Not enough data
     if (trades < TUNING_CONFIG.minTradesPerSource) {
       return currentWeight;
@@ -398,7 +420,7 @@ export class VinceParameterTunerService extends Service {
 
     // Calculate new weight with bounds
     const newWeight = Math.max(0.1, Math.min(3.0, currentWeight + adjustment));
-    
+
     return Math.round(newWeight * 100) / 100; // Round to 2 decimals
   }
 
@@ -406,12 +428,12 @@ export class VinceParameterTunerService extends Service {
    * Analyze if thresholds should be adjusted
    */
   private analyzeThresholds(
-    stats: ReturnType<VinceTradeJournalService["getStats"]>
+    stats: ReturnType<VinceTradeJournalService["getStats"]>,
   ): TuningAnalysis["suggestedThresholdChanges"] {
     const changes: TuningAnalysis["suggestedThresholdChanges"] = [];
     const currentThresholds = dynamicConfig.getThresholds();
     const { winRate, totalTrades } = stats;
-    
+
     // Need sufficient trades
     if (totalTrades < TUNING_CONFIG.minTradesForTuning) {
       return changes;
@@ -436,7 +458,7 @@ export class VinceParameterTunerService extends Service {
         });
       }
     }
-    
+
     // If win rate is low (<45%), be more strict
     if (winRate < 45) {
       if (currentThresholds.minStrength < 85) {
@@ -472,10 +494,10 @@ export class VinceParameterTunerService extends Service {
           source.source,
           source.suggestedWeight,
           source.reason,
-          { sampleSize: source.trades, winRate: source.winRate }
+          { sampleSize: source.trades, winRate: source.winRate },
         );
         analysis.actionsApplied.push(
-          `Updated ${source.source} weight: ${source.currentWeight} → ${source.suggestedWeight}`
+          `Updated ${source.source} weight: ${source.currentWeight} → ${source.suggestedWeight}`,
         );
       }
     }
@@ -486,10 +508,10 @@ export class VinceParameterTunerService extends Service {
         change.parameter,
         change.suggestedValue,
         change.reason,
-        { sampleSize: analysis.totalTrades, winRate: analysis.overallWinRate }
+        { sampleSize: analysis.totalTrades, winRate: analysis.overallWinRate },
       );
       analysis.actionsApplied.push(
-        `Updated ${change.parameter}: ${change.currentValue} → ${change.suggestedValue}`
+        `Updated ${change.parameter}: ${change.currentValue} → ${change.suggestedValue}`,
       );
     }
   }
@@ -505,51 +527,68 @@ export class VinceParameterTunerService extends Service {
     }
 
     console.log("");
-    console.log("  ╔═══════════════════════════════════════════════════════════════╗");
-    console.log("  ║  🔧 PARAMETER TUNING APPLIED                                  ║");
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    console.log(`  ║  Win Rate: ${analysis.overallWinRate.toFixed(1)}%  |  Trades: ${analysis.totalTrades}  |  P&L: $${analysis.overallPnl.toFixed(2).padEnd(8)} ║`);
-    console.log("  ╠═══════════════════════════════════════════════════════════════╣");
-    
+    console.log(
+      "  ╔═══════════════════════════════════════════════════════════════╗",
+    );
+    console.log(
+      "  ║  🔧 PARAMETER TUNING APPLIED                                  ║",
+    );
+    console.log(
+      "  ╠═══════════════════════════════════════════════════════════════╣",
+    );
+    console.log(
+      `  ║  Win Rate: ${analysis.overallWinRate.toFixed(1)}%  |  Trades: ${analysis.totalTrades}  |  P&L: $${analysis.overallPnl.toFixed(2).padEnd(8)} ║`,
+    );
+    console.log(
+      "  ╠═══════════════════════════════════════════════════════════════╣",
+    );
+
     for (const action of analysis.actionsApplied) {
-      const truncated = action.length > 55 ? action.substring(0, 52) + "..." : action;
+      const truncated =
+        action.length > 55 ? action.substring(0, 52) + "..." : action;
       console.log(`  ║  • ${truncated.padEnd(55)} ║`);
     }
-    
-    console.log("  ╚═══════════════════════════════════════════════════════════════╝");
+
+    console.log(
+      "  ╚═══════════════════════════════════════════════════════════════╝",
+    );
     console.log("");
 
     logger.info(
       `[VinceParameterTuner] Applied ${analysis.actionsApplied.length} adjustment(s) | ` +
-      `Win rate: ${analysis.overallWinRate.toFixed(1)}%`
+        `Win rate: ${analysis.overallWinRate.toFixed(1)}%`,
     );
   }
 
   // ==========================================
   // Bayesian Optimization (V2)
   // ==========================================
-  
+
   /**
    * Record an observation of parameter performance
    */
   private async recordBayesianObservation(
-    stats: ReturnType<VinceTradeJournalService["getStats"]>
+    stats: ReturnType<VinceTradeJournalService["getStats"]>,
   ): Promise<void> {
     if (!BAYESIAN_CONFIG.enabled) return;
-    
+
     const currentThresholds = dynamicConfig.getThresholds();
-    
+
     // Calculate a combined objective score (higher is better)
     // Combines win rate, average P&L, and penalizes high variance
     const winRateScore = stats.winRate / 100; // 0-1
     const pnlScore = Math.min(1, Math.max(-1, stats.avgPnlPerTrade / 50)); // Normalized
-    const sharpeEstimate = stats.avgPnlPerTrade > 0 && stats.totalTrades > 5
-      ? stats.winRate / (100 - stats.winRate + 1) // Simple approximation
-      : 0;
-    
+    const sharpeEstimate =
+      stats.avgPnlPerTrade > 0 && stats.totalTrades > 5
+        ? stats.winRate / (100 - stats.winRate + 1) // Simple approximation
+        : 0;
+
     // Weighted objective: 50% win rate, 30% P&L, 20% Sharpe
-    const score = 0.5 * winRateScore + 0.3 * (pnlScore + 1) / 2 + 0.2 * Math.min(1, sharpeEstimate / 2);
-    
+    const score =
+      0.5 * winRateScore +
+      (0.3 * (pnlScore + 1)) / 2 +
+      0.2 * Math.min(1, sharpeEstimate / 2);
+
     const observation: ParameterObservation = {
       timestamp: Date.now(),
       parameters: {
@@ -565,22 +604,25 @@ export class VinceParameterTunerService extends Service {
       },
       score,
     };
-    
+
     this.bayesianState.observations.push(observation);
-    
+
     // Update best observation
-    if (!this.bayesianState.bestObservation || score > this.bayesianState.bestObservation.score) {
+    if (
+      !this.bayesianState.bestObservation ||
+      score > this.bayesianState.bestObservation.score
+    ) {
       this.bayesianState.bestObservation = observation;
       logger.info(
         `[VinceParameterTuner] 🎯 New best parameters: strength=${currentThresholds.minStrength}, ` +
-        `confidence=${currentThresholds.minConfidence}, confirming=${currentThresholds.minConfirming} ` +
-        `(score: ${score.toFixed(3)})`
+          `confidence=${currentThresholds.minConfidence}, confirming=${currentThresholds.minConfirming} ` +
+          `(score: ${score.toFixed(3)})`,
       );
     }
-    
+
     await this.saveBayesianState();
   }
-  
+
   /**
    * Propose new parameters using Expected Improvement
    */
@@ -590,42 +632,54 @@ export class VinceParameterTunerService extends Service {
     minConfirming: number;
   } | null {
     if (!BAYESIAN_CONFIG.enabled) return null;
-    if (this.bayesianState.observations.length < BAYESIAN_CONFIG.minObservations) {
+    if (
+      this.bayesianState.observations.length < BAYESIAN_CONFIG.minObservations
+    ) {
       return null;
     }
-    
+
     const { bounds, gridResolution, explorationWeight } = BAYESIAN_CONFIG;
-    
+
     // Generate candidate parameter sets on a grid
     const candidates: Array<{
-      params: { minStrength: number; minConfidence: number; minConfirming: number };
+      params: {
+        minStrength: number;
+        minConfidence: number;
+        minConfirming: number;
+      };
       ei: number; // Expected Improvement
     }> = [];
-    
+
     // Calculate current best score
     const bestScore = this.bayesianState.bestObservation?.score ?? 0;
-    
+
     // Generate grid
     for (let s = 0; s < gridResolution; s++) {
       for (let c = 0; c < gridResolution; c++) {
         for (let conf = 0; conf < gridResolution; conf++) {
           const minStrength = Math.round(
-            bounds.minStrength.min + (s / (gridResolution - 1)) * (bounds.minStrength.max - bounds.minStrength.min)
+            bounds.minStrength.min +
+              (s / (gridResolution - 1)) *
+                (bounds.minStrength.max - bounds.minStrength.min),
           );
           const minConfidence = Math.round(
-            bounds.minConfidence.min + (c / (gridResolution - 1)) * (bounds.minConfidence.max - bounds.minConfidence.min)
+            bounds.minConfidence.min +
+              (c / (gridResolution - 1)) *
+                (bounds.minConfidence.max - bounds.minConfidence.min),
           );
           const minConfirming = Math.round(
-            bounds.minConfirming.min + (conf / (gridResolution - 1)) * (bounds.minConfirming.max - bounds.minConfirming.min)
+            bounds.minConfirming.min +
+              (conf / (gridResolution - 1)) *
+                (bounds.minConfirming.max - bounds.minConfirming.min),
           );
-          
+
           // Calculate Expected Improvement for this candidate
           const ei = this.calculateExpectedImprovement(
             { minStrength, minConfidence, minConfirming },
             bestScore,
-            explorationWeight
+            explorationWeight,
           );
-          
+
           candidates.push({
             params: { minStrength, minConfidence, minConfirming },
             ei,
@@ -633,93 +687,113 @@ export class VinceParameterTunerService extends Service {
         }
       }
     }
-    
+
     // Sort by Expected Improvement
     candidates.sort((a, b) => b.ei - a.ei);
-    
+
     // Return best candidate that's different from current
     const current = dynamicConfig.getThresholds();
     for (const candidate of candidates) {
-      const isDifferent = 
+      const isDifferent =
         candidate.params.minStrength !== current.minStrength ||
         candidate.params.minConfidence !== current.minConfidence ||
         candidate.params.minConfirming !== current.minConfirming;
-      
+
       if (isDifferent) {
         return candidate.params;
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Calculate Expected Improvement for a parameter set
    * Uses a simplified Gaussian Process approximation based on distance to observations
    */
   private calculateExpectedImprovement(
-    params: { minStrength: number; minConfidence: number; minConfirming: number },
+    params: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    },
     bestScore: number,
-    explorationWeight: number
+    explorationWeight: number,
   ): number {
     const observations = this.bayesianState.observations;
     if (observations.length === 0) return 1.0; // Maximum exploration
-    
+
     // Find similar past observations
-    const similarities: Array<{ obs: ParameterObservation; similarity: number }> = [];
-    
+    const similarities: Array<{
+      obs: ParameterObservation;
+      similarity: number;
+    }> = [];
+
     for (const obs of observations) {
       // Calculate distance (normalized by bounds)
-      const strengthDist = Math.abs(params.minStrength - obs.parameters.minStrength) / 
-        (BAYESIAN_CONFIG.bounds.minStrength.max - BAYESIAN_CONFIG.bounds.minStrength.min);
-      const confidenceDist = Math.abs(params.minConfidence - obs.parameters.minConfidence) / 
-        (BAYESIAN_CONFIG.bounds.minConfidence.max - BAYESIAN_CONFIG.bounds.minConfidence.min);
-      const confirmingDist = Math.abs(params.minConfirming - obs.parameters.minConfirming) / 
-        (BAYESIAN_CONFIG.bounds.minConfirming.max - BAYESIAN_CONFIG.bounds.minConfirming.min);
-      
+      const strengthDist =
+        Math.abs(params.minStrength - obs.parameters.minStrength) /
+        (BAYESIAN_CONFIG.bounds.minStrength.max -
+          BAYESIAN_CONFIG.bounds.minStrength.min);
+      const confidenceDist =
+        Math.abs(params.minConfidence - obs.parameters.minConfidence) /
+        (BAYESIAN_CONFIG.bounds.minConfidence.max -
+          BAYESIAN_CONFIG.bounds.minConfidence.min);
+      const confirmingDist =
+        Math.abs(params.minConfirming - obs.parameters.minConfirming) /
+        (BAYESIAN_CONFIG.bounds.minConfirming.max -
+          BAYESIAN_CONFIG.bounds.minConfirming.min);
+
       // RBF-like kernel
-      const distance = Math.sqrt(Math.pow(strengthDist, 2) + Math.pow(confidenceDist, 2) + Math.pow(confirmingDist, 2));
+      const distance = Math.sqrt(
+        Math.pow(strengthDist, 2) +
+          Math.pow(confidenceDist, 2) +
+          Math.pow(confirmingDist, 2),
+      );
       const similarity = Math.exp(-distance * 2);
-      
+
       if (similarity > 0.01) {
         similarities.push({ obs, similarity });
       }
     }
-    
+
     if (similarities.length === 0) {
       // No similar observations - high exploration value
       return explorationWeight;
     }
-    
+
     // Estimate mean and variance from similar observations
     let weightedSum = 0;
     let weightedSumSq = 0;
     let totalWeight = 0;
-    
+
     for (const { obs, similarity } of similarities) {
       weightedSum += obs.score * similarity;
       weightedSumSq += Math.pow(obs.score, 2) * similarity;
       totalWeight += similarity;
     }
-    
+
     const mean = weightedSum / totalWeight;
-    const variance = Math.max(0.001, weightedSumSq / totalWeight - Math.pow(mean, 2));
+    const variance = Math.max(
+      0.001,
+      weightedSumSq / totalWeight - Math.pow(mean, 2),
+    );
     const std = Math.sqrt(variance);
-    
+
     // Expected Improvement = E[max(0, f(x) - f_best)]
     // Approximated using normal distribution
     const z = (mean - bestScore) / std;
     const phi = this.standardNormalCDF(z);
     const pdf = Math.exp(-Math.pow(z, 2) / 2) / Math.sqrt(2 * Math.PI);
-    
+
     const ei = (mean - bestScore) * phi + std * pdf;
-    
+
     // Add exploration bonus for uncertain regions
     const uncertainty = 1 / (1 + similarities.length);
-    
+
     return ei + explorationWeight * uncertainty;
   }
-  
+
   /**
    * Standard normal CDF approximation
    */
@@ -731,89 +805,93 @@ export class VinceParameterTunerService extends Service {
     const a4 = -1.453152027;
     const a5 = 1.061405429;
     const p = 0.3275911;
-    
+
     const sign = x < 0 ? -1 : 1;
     x = Math.abs(x) / Math.sqrt(2);
-    
+
     const t = 1 / (1 + p * x);
-    const y = 1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-    
+    const y =
+      1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
     return 0.5 * (1 + sign * y);
   }
-  
+
   /**
    * Run Bayesian optimization step
    */
   private async runBayesianOptimization(
     stats: ReturnType<VinceTradeJournalService["getStats"]>,
-    analysis: TuningAnalysis
+    analysis: TuningAnalysis,
   ): Promise<void> {
     if (!BAYESIAN_CONFIG.enabled) return;
-    
+
     // Record current observation
     await this.recordBayesianObservation(stats);
-    
+
     // Increment cycles since last proposal
     this.bayesianState.tuningCyclesSinceProposal++;
-    
+
     // Check if it's time to propose new parameters
-    if (this.bayesianState.tuningCyclesSinceProposal >= BAYESIAN_CONFIG.proposalFrequency) {
+    if (
+      this.bayesianState.tuningCyclesSinceProposal >=
+      BAYESIAN_CONFIG.proposalFrequency
+    ) {
       const proposal = this.proposeNewParameters();
-      
+
       if (proposal) {
         // Apply proposed parameters
         const current = dynamicConfig.getThresholds();
-        
+
         if (proposal.minStrength !== current.minStrength) {
           await dynamicConfig.updateThreshold(
             "minStrength",
             proposal.minStrength,
             `Bayesian optimization: exploring parameter space`,
-            { sampleSize: this.bayesianState.observations.length }
+            { sampleSize: this.bayesianState.observations.length },
           );
           analysis.actionsApplied.push(
-            `[Bayesian] minStrength: ${current.minStrength} → ${proposal.minStrength}`
+            `[Bayesian] minStrength: ${current.minStrength} → ${proposal.minStrength}`,
           );
         }
-        
+
         if (proposal.minConfidence !== current.minConfidence) {
           await dynamicConfig.updateThreshold(
             "minConfidence",
             proposal.minConfidence,
             `Bayesian optimization: exploring parameter space`,
-            { sampleSize: this.bayesianState.observations.length }
+            { sampleSize: this.bayesianState.observations.length },
           );
           analysis.actionsApplied.push(
-            `[Bayesian] minConfidence: ${current.minConfidence} → ${proposal.minConfidence}`
+            `[Bayesian] minConfidence: ${current.minConfidence} → ${proposal.minConfidence}`,
           );
         }
-        
+
         if (proposal.minConfirming !== current.minConfirming) {
           await dynamicConfig.updateThreshold(
             "minConfirming",
             proposal.minConfirming,
             `Bayesian optimization: exploring parameter space`,
-            { sampleSize: this.bayesianState.observations.length }
+            { sampleSize: this.bayesianState.observations.length },
           );
           analysis.actionsApplied.push(
-            `[Bayesian] minConfirming: ${current.minConfirming} → ${proposal.minConfirming}`
+            `[Bayesian] minConfirming: ${current.minConfirming} → ${proposal.minConfirming}`,
           );
         }
-        
+
         this.bayesianState.currentProposal = proposal;
         this.bayesianState.proposalStartTime = Date.now();
         this.bayesianState.tuningCyclesSinceProposal = 0;
-        
+
         logger.info(
           `[VinceParameterTuner] 🔬 Bayesian proposal: strength=${proposal.minStrength}, ` +
-          `confidence=${proposal.minConfidence}, confirming=${proposal.minConfirming}`
+            `confidence=${proposal.minConfidence}, confirming=${proposal.minConfirming}`,
         );
       }
     }
-    
+
     await this.saveBayesianState();
   }
-  
+
   /**
    * Get Bayesian optimization status
    */
@@ -821,8 +899,16 @@ export class VinceParameterTunerService extends Service {
     enabled: boolean;
     observations: number;
     bestScore: number | null;
-    bestParameters: { minStrength: number; minConfidence: number; minConfirming: number } | null;
-    currentProposal: { minStrength: number; minConfidence: number; minConfirming: number } | null;
+    bestParameters: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    } | null;
+    currentProposal: {
+      minStrength: number;
+      minConfidence: number;
+      minConfirming: number;
+    } | null;
     cyclesSinceProposal: number;
   } {
     return {
@@ -875,7 +961,9 @@ export class VinceParameterTunerService extends Service {
    */
   async resetToDefaults(reason: string = "Manual reset"): Promise<void> {
     await dynamicConfig.resetToDefaults(reason);
-    logger.warn(`[VinceParameterTuner] Parameters reset to defaults: ${reason}`);
+    logger.warn(
+      `[VinceParameterTuner] Parameters reset to defaults: ${reason}`,
+    );
   }
 
   /**

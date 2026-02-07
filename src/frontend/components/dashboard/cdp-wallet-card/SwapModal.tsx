@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/frontend/components/ui/button';
-import { X, ArrowDownUp, Loader2 } from 'lucide-react';
-import { useLoadingPanel } from '@/frontend/contexts/LoadingPanelContext';
-import { useModal } from '@/frontend/contexts/ModalContext';
-import { elizaClient } from '@/frontend/lib/elizaClient';
-import { getTokenIconBySymbol, getTxExplorerUrl } from '@/frontend/constants/chains';
-import { formatTokenBalance } from '@/frontend/lib/number-format';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/frontend/components/ui/button";
+import { X, ArrowDownUp, Loader2 } from "lucide-react";
+import { useLoadingPanel } from "@/frontend/contexts/LoadingPanelContext";
+import { useModal } from "@/frontend/contexts/ModalContext";
+import { elizaClient } from "@/frontend/lib/elizaClient";
+import {
+  getTokenIconBySymbol,
+  getTxExplorerUrl,
+} from "@/frontend/constants/chains";
+import { formatTokenBalance } from "@/frontend/lib/number-format";
 
 interface Token {
   symbol: string;
@@ -27,22 +30,26 @@ interface SwapModalContentProps {
   onSuccess: () => void;
 }
 
-export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContentProps) {
+export function SwapModalContent({
+  tokens,
+  userId,
+  onSuccess,
+}: SwapModalContentProps) {
   const { showLoading, showSuccess, showError } = useLoadingPanel();
   const { hideModal } = useModal();
-  const modalId = 'swap-modal';
-  
+  const modalId = "swap-modal";
+
   const [fromToken, setFromToken] = useState<Token | null>(null);
   const [toToken, setToToken] = useState<Token | null>(null);
-  const [fromAmount, setFromAmount] = useState('');
-  const [toAmount, setToAmount] = useState('');
-  const [slippage, setSlippage] = useState('1'); // 1% default
+  const [fromAmount, setFromAmount] = useState("");
+  const [toAmount, setToAmount] = useState("");
+  const [slippage, setSlippage] = useState("1"); // 1% default
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
   const [isFromDropdownOpen, setIsFromDropdownOpen] = useState(false);
   const [isToDropdownOpen, setIsToDropdownOpen] = useState(false);
-  const [fromSearchQuery, setFromSearchQuery] = useState('');
-  const [toSearchQuery, setToSearchQuery] = useState('');
+  const [fromSearchQuery, setFromSearchQuery] = useState("");
+  const [toSearchQuery, setToSearchQuery] = useState("");
   const [toCoinGeckoResults, setToCoinGeckoResults] = useState<Token[]>([]);
   const [isSearchingTo, setIsSearchingTo] = useState(false);
   const [topTokens, setTopTokens] = useState<Token[]>([]);
@@ -54,25 +61,38 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
   const toSearchInputRef = useRef<HTMLInputElement>(null);
 
   // Filter tokens for swap (CDP networks + 1inch supported networks)
-  const SWAP_SUPPORTED_NETWORKS = ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism'];
-  const swapSupportedTokens = tokens.filter(t => 
-    SWAP_SUPPORTED_NETWORKS.includes(t.chain)
+  const SWAP_SUPPORTED_NETWORKS = [
+    "base",
+    "ethereum",
+    "polygon",
+    "arbitrum",
+    "optimism",
+  ];
+  const swapSupportedTokens = tokens.filter((t) =>
+    SWAP_SUPPORTED_NETWORKS.includes(t.chain),
   );
 
   // Helper: Check if two tokens match (by address or symbol)
   const isTokenMatch = (token1: Token, token2: Token): boolean => {
-    return token1.chain === token2.chain && 
-           (token1.contractAddress || token1.symbol) === (token2.contractAddress || token2.symbol);
+    return (
+      token1.chain === token2.chain &&
+      (token1.contractAddress || token1.symbol) ===
+        (token2.contractAddress || token2.symbol)
+    );
   };
 
   // Helper: Check if token is in wallet
   const isTokenInWallet = (token: Token): boolean => {
-    return swapSupportedTokens.some(t => isTokenMatch(t, token));
+    return swapSupportedTokens.some((t) => isTokenMatch(t, token));
   };
 
   // Helper: Filter tokens by chain and exclude a specific token
-  const filterTokensByChainAndExclude = (tokenList: Token[], chain: string, excludeToken: Token | null): Token[] => {
-    return tokenList.filter(t => {
+  const filterTokensByChainAndExclude = (
+    tokenList: Token[],
+    chain: string,
+    excludeToken: Token | null,
+  ): Token[] => {
+    return tokenList.filter((t) => {
       // If chain is provided and not empty, filter by chain
       if (chain && t.chain !== chain) return false;
       // Exclude the specified token if provided
@@ -84,32 +104,42 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
   // Filter tokens based on search query
   const filterTokens = (tokenList: Token[], query: string): Token[] => {
     if (!query.trim()) return tokenList;
-    
+
     const lowerQuery = query.toLowerCase().trim();
-    
-    return tokenList.filter(token => {
+
+    return tokenList.filter((token) => {
       // Search by symbol
       if (token.symbol.toLowerCase().includes(lowerQuery)) return true;
       // Search by name
       if (token.name.toLowerCase().includes(lowerQuery)) return true;
       // Search by contract address
-      if (token.contractAddress && token.contractAddress.toLowerCase().includes(lowerQuery)) return true;
+      if (
+        token.contractAddress &&
+        token.contractAddress.toLowerCase().includes(lowerQuery)
+      )
+        return true;
       return false;
     });
   };
 
   // Merge wallet tokens with CoinGecko results (deduplicate by contract address)
-  const mergeTokens = (walletTokens: Token[], coingeckoTokens: Token[]): Token[] => {
+  const mergeTokens = (
+    walletTokens: Token[],
+    coingeckoTokens: Token[],
+  ): Token[] => {
     const merged = [...walletTokens];
     const existingAddresses = new Set(
       walletTokens
-        .filter(t => t.contractAddress)
-        .map(t => t.contractAddress!.toLowerCase())
+        .filter((t) => t.contractAddress)
+        .map((t) => t.contractAddress!.toLowerCase()),
     );
 
     // Add CoinGecko tokens that aren't already in wallet
     for (const token of coingeckoTokens) {
-      if (token.contractAddress && !existingAddresses.has(token.contractAddress.toLowerCase())) {
+      if (
+        token.contractAddress &&
+        !existingAddresses.has(token.contractAddress.toLowerCase())
+      ) {
         merged.push(token);
       }
     }
@@ -121,8 +151,8 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
   const convertCoinGeckoToken = (t: any, chain: string): Token => ({
     symbol: t.symbol,
     name: t.name,
-    balance: '0',
-    balanceFormatted: '0',
+    balance: "0",
+    balanceFormatted: "0",
     usdValue: null,
     usdPrice: t.price,
     contractAddress: t.contractAddress,
@@ -133,14 +163,18 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
   });
 
   // Helper function to convert amount to base units without scientific notation
-  const convertToBaseUnits = (amount: string, decimals: number, maxBalance?: string): string => {
+  const convertToBaseUnits = (
+    amount: string,
+    decimals: number,
+    maxBalance?: string,
+  ): string => {
     // Remove any existing decimals and convert to integer string
-    const [intPart, decPart = ''] = amount.split('.');
-    const paddedDecPart = decPart.padEnd(decimals, '0').slice(0, decimals);
+    const [intPart, decPart = ""] = amount.split(".");
+    const paddedDecPart = decPart.padEnd(decimals, "0").slice(0, decimals);
     let result = intPart + paddedDecPart;
     // Remove leading zeros but keep at least one digit
-    result = result.replace(/^0+/, '') || '0';
-    
+    result = result.replace(/^0+/, "") || "0";
+
     // Cap at maxBalance if provided to prevent exceeding actual balance
     if (maxBalance) {
       const maxBalanceBigInt = BigInt(maxBalance);
@@ -149,29 +183,35 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
         return maxBalance;
       }
     }
-    
+
     return result;
   };
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (fromDropdownRef.current && !fromDropdownRef.current.contains(event.target as Node)) {
+      if (
+        fromDropdownRef.current &&
+        !fromDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsFromDropdownOpen(false);
-        setFromSearchQuery('');
+        setFromSearchQuery("");
       }
-      if (toDropdownRef.current && !toDropdownRef.current.contains(event.target as Node)) {
+      if (
+        toDropdownRef.current &&
+        !toDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsToDropdownOpen(false);
-        setToSearchQuery('');
+        setToSearchQuery("");
       }
     };
 
     if (isFromDropdownOpen || isToDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isFromDropdownOpen, isToDropdownOpen]);
 
@@ -197,15 +237,17 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     const fetchTopAndTrending = async () => {
       setIsLoadingTopAndTrending(true);
       try {
-        const response = await (elizaClient.cdp as any).getTopAndTrendingTokens({
-          chain: fromToken.chain,
-          limit: 20,
-        });
+        const response = await (elizaClient.cdp as any).getTopAndTrendingTokens(
+          {
+            chain: fromToken.chain,
+            limit: 20,
+          },
+        );
 
         const top = (response.topTokens || [])
           .filter((t: any) => t.contractAddress && t.chain === fromToken.chain)
           .map((t: any) => convertCoinGeckoToken(t, fromToken.chain));
-        
+
         const trending = (response.trendingTokens || [])
           .filter((t: any) => t.contractAddress && t.chain === fromToken.chain)
           .map((t: any) => convertCoinGeckoToken(t, fromToken.chain));
@@ -213,7 +255,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
         setTopTokens(top);
         setTrendingTokens(trending);
       } catch (error) {
-        console.error('Failed to fetch top and trending tokens:', error);
+        console.error("Failed to fetch top and trending tokens:", error);
         setTopTokens([]);
         setTrendingTokens([]);
       } finally {
@@ -241,12 +283,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
 
         // Convert CoinGecko tokens to our Token interface
         const externalTokens: Token[] = response.tokens
-          .filter((t: any) => t.contractAddress && t.chain && t.chain === fromToken.chain)
+          .filter(
+            (t: any) =>
+              t.contractAddress && t.chain && t.chain === fromToken.chain,
+          )
           .map((t: any) => convertCoinGeckoToken(t, fromToken.chain));
 
         setToCoinGeckoResults(externalTokens);
       } catch (error) {
-        console.error('Failed to search CoinGecko tokens:', error);
+        console.error("Failed to search CoinGecko tokens:", error);
         setToCoinGeckoResults([]);
       } finally {
         setIsSearchingTo(false);
@@ -260,7 +305,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
   // Debounced price estimation
   useEffect(() => {
     if (!fromToken || !toToken || !fromAmount || parseFloat(fromAmount) <= 0) {
-      setToAmount('');
+      setToAmount("");
       return;
     }
 
@@ -278,8 +323,10 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
 
     // Check if tokens are on the same chain
     if (fromToken.chain !== toToken.chain) {
-      setToAmount('');
-      setWarning('Cross-chain swaps not supported. Please select tokens on the same chain.');
+      setToAmount("");
+      setWarning(
+        "Cross-chain swaps not supported. Please select tokens on the same chain.",
+      );
       return;
     }
 
@@ -290,18 +337,25 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       // Ensure fromAmount is a string
       const amountStr = String(fromAmount).trim();
       if (!amountStr || isNaN(parseFloat(amountStr))) {
-        throw new Error('Invalid amount');
+        throw new Error("Invalid amount");
       }
 
       // Convert amount to base units (with decimals) - avoid scientific notation
       // Note: fromToken.balance is in decimal format (e.g., "5.476522"), not base units
       // So we need to convert it to base units for comparison
-      const balanceInBaseUnits = convertToBaseUnits(fromToken.balance, fromToken.decimals);
-      const amountInBaseUnits = convertToBaseUnits(amountStr, fromToken.decimals, balanceInBaseUnits);
+      const balanceInBaseUnits = convertToBaseUnits(
+        fromToken.balance,
+        fromToken.decimals,
+      );
+      const amountInBaseUnits = convertToBaseUnits(
+        amountStr,
+        fromToken.decimals,
+        balanceInBaseUnits,
+      );
 
       // Ensure amountInBaseUnits is a string (not a number)
       const amountInBaseUnitsStr = String(amountInBaseUnits);
-      
+
       // Validate it's a valid BigInt string (no decimals, only digits)
       if (!/^\d+$/.test(amountInBaseUnitsStr)) {
         throw new Error(`Invalid base units format: ${amountInBaseUnitsStr}`);
@@ -315,13 +369,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       } else {
         // Native token mapping
         const nativeTokenMap: Record<string, string> = {
-          'base': 'eth',
-          'ethereum': 'eth',
-          'polygon': 'pol',
-          'arbitrum': 'eth',
-          'optimism': 'eth',
+          base: "eth",
+          ethereum: "eth",
+          polygon: "pol",
+          arbitrum: "eth",
+          optimism: "eth",
         };
-        fromTokenAddress = nativeTokenMap[fromToken.chain.toLowerCase()] || fromToken.symbol.toLowerCase();
+        fromTokenAddress =
+          nativeTokenMap[fromToken.chain.toLowerCase()] ||
+          fromToken.symbol.toLowerCase();
       }
 
       let toTokenAddress: string;
@@ -330,16 +386,18 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       } else {
         // Native token mapping
         const nativeTokenMap: Record<string, string> = {
-          'base': 'eth',
-          'ethereum': 'eth',
-          'polygon': 'pol',
-          'arbitrum': 'eth',
-          'optimism': 'eth',
+          base: "eth",
+          ethereum: "eth",
+          polygon: "pol",
+          arbitrum: "eth",
+          optimism: "eth",
         };
-        toTokenAddress = nativeTokenMap[toToken.chain.toLowerCase()] || toToken.symbol.toLowerCase();
+        toTokenAddress =
+          nativeTokenMap[toToken.chain.toLowerCase()] ||
+          toToken.symbol.toLowerCase();
       }
 
-      console.log('[SwapModal] Getting swap price:', {
+      console.log("[SwapModal] Getting swap price:", {
         network: fromToken.chain,
         fromToken: fromTokenAddress,
         toToken: toTokenAddress,
@@ -357,27 +415,35 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
         fromAmount: amountInBaseUnitsStr,
       });
 
-      const CDP_NETWORKS = ['base', 'ethereum'];
+      const CDP_NETWORKS = ["base", "ethereum"];
       const isNonCdpNetwork = !CDP_NETWORKS.includes(fromToken.chain);
 
       if (result.liquidityAvailable) {
         // Convert toAmount from base units to readable format
-        const toAmountFormatted = parseFloat(result.toAmount) / Math.pow(10, toToken.decimals);
-        setToAmount(toAmountFormatted.toFixed(6).replace(/\.?0+$/, ''));
+        const toAmountFormatted =
+          parseFloat(result.toAmount) / Math.pow(10, toToken.decimals);
+        setToAmount(toAmountFormatted.toFixed(6).replace(/\.?0+$/, ""));
       } else if (isNonCdpNetwork) {
         // Non-CDP networks: price estimation not available, but swap is still possible
-        setToAmount('Market rate');
-        setWarning('Price estimation not available. Swap will execute at market rate via Uniswap V3.');
+        setToAmount("Market rate");
+        setWarning(
+          "Price estimation not available. Swap will execute at market rate via Uniswap V3.",
+        );
       } else {
         // CDP network but no liquidity
-        setToAmount('');
-        setWarning('Insufficient liquidity for this swap');
+        setToAmount("");
+        setWarning("Insufficient liquidity for this swap");
       }
     } catch (err: any) {
-      console.error('Error estimating swap price:', err);
-      const errorMessage = err?.response?.data?.message || err?.message || 'Failed to get swap price';
-      setToAmount('');
-      setWarning(`Failed to get swap price: ${errorMessage}. Please try again.`);
+      console.error("Error estimating swap price:", err);
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to get swap price";
+      setToAmount("");
+      setWarning(
+        `Failed to get swap price: ${errorMessage}. Please try again.`,
+      );
     } finally {
       setIsLoadingPrice(false);
     }
@@ -385,13 +451,17 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
 
   const handleSwap = async () => {
     if (!fromToken || !toToken || !fromAmount || parseFloat(fromAmount) <= 0) {
-      showError('Validation Error', 'Please enter a valid amount', modalId);
+      showError("Validation Error", "Please enter a valid amount", modalId);
       return;
     }
 
     // Check if tokens are on the same chain
     if (fromToken.chain !== toToken.chain) {
-      showError('Validation Error', 'Cross-chain swaps not supported. Please select tokens on the same chain.', modalId);
+      showError(
+        "Validation Error",
+        "Cross-chain swaps not supported. Please select tokens on the same chain.",
+        modalId,
+      );
       return;
     }
 
@@ -401,31 +471,52 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     const balance = parseFloat(fromToken.balance);
 
     if (isNaN(amount) || isNaN(balance) || amount <= 0) {
-      showError('Validation Error', 'Please enter a valid amount', modalId);
+      showError("Validation Error", "Please enter a valid amount", modalId);
       return;
     }
 
     // Convert both to base units for accurate comparison (avoid floating point precision issues)
-    const balanceInBaseUnits = convertToBaseUnits(fromToken.balance, fromToken.decimals);
-    const amountInBaseUnitsForValidation = convertToBaseUnits(fromAmount, fromToken.decimals);
-    
+    const balanceInBaseUnits = convertToBaseUnits(
+      fromToken.balance,
+      fromToken.decimals,
+    );
+    const amountInBaseUnitsForValidation = convertToBaseUnits(
+      fromAmount,
+      fromToken.decimals,
+    );
+
     // Compare as BigInt strings to avoid precision issues
     const balanceBigInt = BigInt(balanceInBaseUnits);
     const amountBigInt = BigInt(amountInBaseUnitsForValidation);
 
     if (amountBigInt > balanceBigInt) {
-      showError('Insufficient Balance', `Insufficient ${fromToken.symbol} balance. You have ${fromToken.balanceFormatted} ${fromToken.symbol}`, modalId);
+      showError(
+        "Insufficient Balance",
+        `Insufficient ${fromToken.symbol} balance. You have ${fromToken.balanceFormatted} ${fromToken.symbol}`,
+        modalId,
+      );
       return;
     }
 
     try {
-      showLoading('Swapping Tokens', 'Please wait while we process your swap...', modalId);
-      
+      showLoading(
+        "Swapping Tokens",
+        "Please wait while we process your swap...",
+        modalId,
+      );
+
       // Convert amount to base units - avoid scientific notation
       // Note: fromToken.balance is in decimal format, convert it to base units for comparison
-      const balanceInBaseUnits = convertToBaseUnits(fromToken.balance, fromToken.decimals);
-      const amountInBaseUnits = convertToBaseUnits(fromAmount, fromToken.decimals, balanceInBaseUnits);
-      
+      const balanceInBaseUnits = convertToBaseUnits(
+        fromToken.balance,
+        fromToken.decimals,
+      );
+      const amountInBaseUnits = convertToBaseUnits(
+        fromAmount,
+        fromToken.decimals,
+        balanceInBaseUnits,
+      );
+
       // Convert slippage to basis points (1% = 100 bps)
       const slippageBps = Math.round(parseFloat(slippage) * 100);
 
@@ -437,13 +528,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       } else {
         // Native token mapping
         const nativeTokenMap: Record<string, string> = {
-          'base': 'eth',
-          'ethereum': 'eth',
-          'polygon': 'pol',
-          'arbitrum': 'eth',
-          'optimism': 'eth',
+          base: "eth",
+          ethereum: "eth",
+          polygon: "pol",
+          arbitrum: "eth",
+          optimism: "eth",
         };
-        fromTokenAddress = nativeTokenMap[fromToken.chain.toLowerCase()] || fromToken.symbol.toLowerCase();
+        fromTokenAddress =
+          nativeTokenMap[fromToken.chain.toLowerCase()] ||
+          fromToken.symbol.toLowerCase();
       }
 
       let toTokenAddress: string;
@@ -452,13 +545,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       } else {
         // Native token mapping
         const nativeTokenMap: Record<string, string> = {
-          'base': 'eth',
-          'ethereum': 'eth',
-          'polygon': 'pol',
-          'arbitrum': 'eth',
-          'optimism': 'eth',
+          base: "eth",
+          ethereum: "eth",
+          polygon: "pol",
+          arbitrum: "eth",
+          optimism: "eth",
         };
-        toTokenAddress = nativeTokenMap[toToken.chain.toLowerCase()] || toToken.symbol.toLowerCase();
+        toTokenAddress =
+          nativeTokenMap[toToken.chain.toLowerCase()] ||
+          toToken.symbol.toLowerCase();
       }
 
       const result = await elizaClient.cdp.swap({
@@ -469,45 +564,52 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
         slippageBps,
       });
 
-      console.log(' Swap successful:', result);
-      
+      console.log(" Swap successful:", result);
+
       // Trigger wallet refresh FIRST to get updated balances
       onSuccess();
-      
+
       // Show success
       showSuccess(
-        'Swap Successful!',
+        "Swap Successful!",
         `Successfully swapped ${fromAmount} ${fromToken.symbol} to ${toToken.symbol}`,
         modalId,
-        false // Don't auto-close
+        false, // Don't auto-close
       );
-      
+
       // Reset form after a short delay to allow balance refresh
       setTimeout(() => {
         setFromToken(null);
         setToToken(null);
-        setFromAmount('');
-        setToAmount('');
+        setFromAmount("");
+        setToAmount("");
       }, 500);
-      
     } catch (err: any) {
-      console.error('Error executing swap:', err);
-      showError('Swap Failed', err?.message || 'Failed to execute swap. Please try again.', modalId);
+      console.error("Error executing swap:", err);
+      showError(
+        "Swap Failed",
+        err?.message || "Failed to execute swap. Please try again.",
+        modalId,
+      );
     }
   };
 
   const handleSwitchTokens = () => {
     // Don't switch if toToken is not in wallet (is external or user doesn't own it)
     if (!toToken || toToken.isExternal || !isTokenInWallet(toToken)) {
-      showError('Cannot Switch', 'You do not own the destination token in your wallet', modalId);
+      showError(
+        "Cannot Switch",
+        "You do not own the destination token in your wallet",
+        modalId,
+      );
       return;
     }
-    
+
     const temp = fromToken;
     setFromToken(toToken);
     setToToken(temp);
-    setFromAmount('');
-    setToAmount('');
+    setFromAmount("");
+    setToAmount("");
     setIsLoadingPrice(false); // Stop any ongoing price calculation
     setWarning(null);
   };
@@ -522,7 +624,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
         const formatted = balanceNum.toFixed(Math.min(fromToken.decimals, 8));
         setFromAmount(formatted);
       } else {
-        setFromAmount('0');
+        setFromAmount("0");
       }
     }
   };
@@ -536,13 +638,13 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     if (token.icon) {
       return token.icon;
     }
-    
+
     // Try to get from constants by symbol
     const iconPath = getTokenIconBySymbol(token.symbol);
     if (iconPath) {
       return iconPath;
     }
-    
+
     return null;
   };
 
@@ -552,9 +654,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     return (
       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
         {icon ? (
-          <img src={icon} alt={token.symbol} className="w-full h-full object-cover" />
+          <img
+            src={icon}
+            alt={token.symbol}
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <span className="text-sm font-bold text-muted-foreground uppercase">{token.symbol.charAt(0)}</span>
+          <span className="text-sm font-bold text-muted-foreground uppercase">
+            {token.symbol.charAt(0)}
+          </span>
         )}
       </div>
     );
@@ -565,9 +673,13 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     <div className="text-left">
       <p className="text-sm font-medium">
         {token.symbol}
-        {showExternalBadge && token.isExternal && <span className="ml-1 text-xs text-blue-500"></span>}
+        {showExternalBadge && token.isExternal && (
+          <span className="ml-1 text-xs text-blue-500"></span>
+        )}
       </p>
-      <p className="text-xs text-muted-foreground">{token.chain.toUpperCase()}</p>
+      <p className="text-xs text-muted-foreground">
+        {token.chain.toUpperCase()}
+      </p>
     </div>
   );
 
@@ -577,7 +689,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       return (
         <>
           <p className="text-xs text-muted-foreground">
-            {token.usdPrice ? `$${token.usdPrice.toFixed(4)}` : 'External'}
+            {token.usdPrice ? `$${token.usdPrice.toFixed(4)}` : "External"}
           </p>
           {isTokenInWallet(token) && (
             <p className="text-xs text-green-500"> Owned</p>
@@ -587,8 +699,12 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
     }
     return (
       <>
-        <p className="text-sm font-mono">{formatTokenBalance(token.balanceFormatted)}</p>
-        <p className="text-xs text-muted-foreground">${token.usdValue?.toFixed(2) || '0.00'}</p>
+        <p className="text-sm font-mono">
+          {formatTokenBalance(token.balanceFormatted)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          ${token.usdValue?.toFixed(2) || "0.00"}
+        </p>
       </>
     );
   };
@@ -609,7 +725,9 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                 chain: token.chain,
               });
               const foundToken = searchResult.tokens.find(
-                (t: any) => t.symbol?.toUpperCase() === token.symbol.toUpperCase() && t.chain === token.chain
+                (t: any) =>
+                  t.symbol?.toUpperCase() === token.symbol.toUpperCase() &&
+                  t.chain === token.chain,
               );
               if (foundToken && foundToken.contractAddress) {
                 selectedToken = {
@@ -619,39 +737,39 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                 };
               }
             } catch (error) {
-              console.error('Failed to fetch token details:', error);
+              console.error("Failed to fetch token details:", error);
             }
           }
-          
+
           // If this is an external token, check if user owns it in their wallet
           if (selectedToken.isExternal && selectedToken.contractAddress) {
-            const walletVersion = swapSupportedTokens.find(t => isTokenMatch(t, selectedToken));
+            const walletVersion = swapSupportedTokens.find((t) =>
+              isTokenMatch(t, selectedToken),
+            );
             if (walletVersion) {
               selectedToken = walletVersion; // Use wallet version with balance
             }
           }
-          
+
           setToToken(selectedToken);
-          setToAmount('');
-          setToSearchQuery('');
+          setToAmount("");
+          setToSearchQuery("");
           // Reset fromToken if different chain selected
           if (fromToken && fromToken.chain !== selectedToken.chain) {
             setFromToken(null);
-            setFromAmount('');
+            setFromAmount("");
           }
           setIsToDropdownOpen(false);
         }}
         className={`w-full p-3 flex items-center justify-between hover:bg-accent transition-colors ${
-          toToken === token ? 'bg-accent' : ''
+          toToken === token ? "bg-accent" : ""
         }`}
       >
         <div className="flex items-center gap-2">
           {renderTokenIcon(token)}
           {renderTokenInfo(token, true)}
         </div>
-        <div className="text-right">
-          {renderTokenBalance(token)}
-        </div>
+        <div className="text-right">{renderTokenBalance(token)}</div>
       </button>
     );
   };
@@ -666,9 +784,13 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       {/* From Token */}
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground">From</label>
-        <div className="space-y-2" style={{ overflow: 'visible' }}>
+        <div className="space-y-2" style={{ overflow: "visible" }}>
           {/* Custom Dropdown */}
-          <div className="relative" ref={fromDropdownRef} style={{ zIndex: 60 }}>
+          <div
+            className="relative"
+            ref={fromDropdownRef}
+            style={{ zIndex: 60 }}
+          >
             <button
               type="button"
               onClick={() => setIsFromDropdownOpen(!isFromDropdownOpen)}
@@ -704,52 +826,53 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
-                
+
                 {/* Token List */}
                 <div className="max-h-64 overflow-y-auto">
                   {filterTokens(swapSupportedTokens, fromSearchQuery)
-                    .filter(token => {
+                    .filter((token) => {
                       // Hide the exact same token as toToken (same chain and same address/symbol)
                       if (!toToken) return true;
                       return !isTokenMatch(token, toToken);
                     })
                     .map((token, index) => {
-                    return (
-                      <button
-                        key={`${token.chain}-${token.contractAddress || token.symbol}-${index}`}
-                        type="button"
-                        onClick={() => {
-                          setFromToken(token);
-                          setFromAmount('');
-                          setToAmount('');
-                          // Reset toToken if it's on a different chain
-                          if (toToken && toToken.chain !== token.chain) {
-                            setToToken(null);
-                          }
-                          setFromSearchQuery('');
-                          setIsFromDropdownOpen(false);
-                        }}
-                        className={`w-full p-3 flex items-center justify-between hover:bg-accent transition-colors ${
-                          fromToken === token ? 'bg-accent' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          {renderTokenIcon(token)}
-                          {renderTokenInfo(token)}
-                        </div>
-                        <div className="text-right">
-                          {renderTokenBalance(token)}
-                        </div>
-                      </button>
-                    );
-                  })}
-                  
+                      return (
+                        <button
+                          key={`${token.chain}-${token.contractAddress || token.symbol}-${index}`}
+                          type="button"
+                          onClick={() => {
+                            setFromToken(token);
+                            setFromAmount("");
+                            setToAmount("");
+                            // Reset toToken if it's on a different chain
+                            if (toToken && toToken.chain !== token.chain) {
+                              setToToken(null);
+                            }
+                            setFromSearchQuery("");
+                            setIsFromDropdownOpen(false);
+                          }}
+                          className={`w-full p-3 flex items-center justify-between hover:bg-accent transition-colors ${
+                            fromToken === token ? "bg-accent" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {renderTokenIcon(token)}
+                            {renderTokenInfo(token)}
+                          </div>
+                          <div className="text-right">
+                            {renderTokenBalance(token)}
+                          </div>
+                        </button>
+                      );
+                    })}
+
                   {/* No results message */}
-                  {filterTokens(swapSupportedTokens, fromSearchQuery)
-                    .filter(token => {
+                  {filterTokens(swapSupportedTokens, fromSearchQuery).filter(
+                    (token) => {
                       if (!toToken) return true;
                       return !isTokenMatch(token, toToken);
-                    }).length === 0 && (
+                    },
+                  ).length === 0 && (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       No tokens found
                     </div>
@@ -770,7 +893,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
               min="0"
               disabled={!fromToken}
               className={`w-full bg-muted border border-border rounded-lg p-3 pr-16 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${
-                !fromToken ? 'opacity-50 cursor-not-allowed' : ''
+                !fromToken ? "opacity-50 cursor-not-allowed" : ""
               }`}
             />
             <Button
@@ -794,17 +917,17 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
           size="sm"
           className="h-8 w-8 p-0 rounded-full"
           disabled={
-            !fromToken || 
-            !toToken || 
-            toToken.isExternal || 
+            !fromToken ||
+            !toToken ||
+            toToken.isExternal ||
             !isTokenInWallet(toToken)
           }
           title={
-            !fromToken || !toToken 
-              ? 'Select both tokens to switch' 
+            !fromToken || !toToken
+              ? "Select both tokens to switch"
               : toToken.isExternal || !isTokenInWallet(toToken)
-              ? 'Cannot switch: You do not own the destination token in your wallet'
-              : 'Switch tokens'
+                ? "Cannot switch: You do not own the destination token in your wallet"
+                : "Switch tokens"
           }
         >
           <ArrowDownUp className="h-4 w-4" />
@@ -814,7 +937,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       {/* To Token */}
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground">To</label>
-        <div className="space-y-2" style={{ overflow: 'visible' }}>
+        <div className="space-y-2" style={{ overflow: "visible" }}>
           {/* Custom Dropdown */}
           <div className="relative" ref={toDropdownRef} style={{ zIndex: 50 }}>
             <button
@@ -822,7 +945,9 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
               onClick={() => setIsToDropdownOpen(!isToDropdownOpen)}
               disabled={!fromToken}
               className={`w-full p-3 border border-border rounded-lg flex items-center justify-between transition-colors ${
-                !fromToken ? 'opacity-50 cursor-not-allowed' : 'hover:bg-accent/50'
+                !fromToken
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-accent/50"
               }`}
             >
               {toToken ? (
@@ -837,7 +962,9 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                 </>
               ) : (
                 <span className="text-muted-foreground">
-                  {!fromToken ? 'Select source token first...' : 'Select a token...'}
+                  {!fromToken
+                    ? "Select source token first..."
+                    : "Select a token..."}
                 </span>
               )}
             </button>
@@ -852,29 +979,32 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                     type="text"
                     value={toSearchQuery}
                     onChange={(e) => setToSearchQuery(e.target.value)}
-                    placeholder={`Search tokens on ${fromToken?.chain.toUpperCase() || ''}...`}
+                    placeholder={`Search tokens on ${fromToken?.chain.toUpperCase() || ""}...`}
                     className="w-full bg-muted border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
-                
+
                 {/* Token List */}
                 <div className="max-h-64 overflow-y-auto">
                   {/* Show loading indicator */}
-                  {(isSearchingTo && toSearchQuery.length >= 2) || isLoadingTopAndTrending ? (
+                  {(isSearchingTo && toSearchQuery.length >= 2) ||
+                  isLoadingTopAndTrending ? (
                     <div className="p-3 flex items-center justify-center text-sm text-muted-foreground">
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {isSearchingTo ? 'Searching Tokens...' : 'Loading tokens...'}
+                      {isSearchingTo
+                        ? "Searching Tokens..."
+                        : "Loading tokens..."}
                     </div>
                   ) : toSearchQuery.length >= 2 ? (
                     // Search results
                     filterTokensByChainAndExclude(
                       mergeTokens(
                         filterTokens(swapSupportedTokens, toSearchQuery),
-                        toCoinGeckoResults
+                        toCoinGeckoResults,
                       ),
                       fromToken.chain,
-                      fromToken
+                      fromToken,
                     ).map((token, index) => renderTokenButton(token, index))
                   ) : (
                     // Show sections: Wallet tokens, Top tokens, Trending tokens
@@ -882,17 +1012,21 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                       {/* Wallet Tokens */}
                       {(() => {
                         const walletTokens = filterTokensByChainAndExclude(
-                          filterTokens(swapSupportedTokens, ''),
+                          filterTokens(swapSupportedTokens, ""),
                           fromToken.chain,
-                          fromToken
+                          fromToken,
                         );
-                        return walletTokens.length > 0 && (
-                          <>
-                            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
-                              Your Tokens
-                            </div>
-                            {walletTokens.map((token, index) => renderTokenButton(token, index))}
-                          </>
+                        return (
+                          walletTokens.length > 0 && (
+                            <>
+                              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
+                                Your Tokens
+                              </div>
+                              {walletTokens.map((token, index) =>
+                                renderTokenButton(token, index),
+                              )}
+                            </>
+                          )
                         );
                       })()}
 
@@ -901,63 +1035,74 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
                         const filteredTopTokens = filterTokensByChainAndExclude(
                           topTokens,
                           fromToken.chain,
-                          fromToken
+                          fromToken,
                         );
-                        return filteredTopTokens.length > 0 && (
-                          <>
-                            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
-                              Top by Market Cap
-                            </div>
-                            {filteredTopTokens.map((token, index) => renderTokenButton(token, index))}
-                          </>
+                        return (
+                          filteredTopTokens.length > 0 && (
+                            <>
+                              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
+                                Top by Market Cap
+                              </div>
+                              {filteredTopTokens.map((token, index) =>
+                                renderTokenButton(token, index),
+                              )}
+                            </>
+                          )
                         );
                       })()}
 
                       {/* Trending Tokens */}
                       {(() => {
-                        const filteredTrendingTokens = filterTokensByChainAndExclude(
-                          trendingTokens,
-                          fromToken.chain,
-                          fromToken
-                        );
-                        return filteredTrendingTokens.length > 0 && (
-                          <>
-                            <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
-                              Trending
-                            </div>
-                            {filteredTrendingTokens.map((token, index) => renderTokenButton(token, index))}
-                          </>
+                        const filteredTrendingTokens =
+                          filterTokensByChainAndExclude(
+                            trendingTokens,
+                            fromToken.chain,
+                            fromToken,
+                          );
+                        return (
+                          filteredTrendingTokens.length > 0 && (
+                            <>
+                              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground sticky top-0 bg-popover border-b border-border">
+                                Trending
+                              </div>
+                              {filteredTrendingTokens.map((token, index) =>
+                                renderTokenButton(token, index),
+                              )}
+                            </>
+                          )
                         );
                       })()}
 
                       {/* No tokens message */}
                       {filterTokensByChainAndExclude(
-                        filterTokens(swapSupportedTokens, ''),
+                        filterTokens(swapSupportedTokens, ""),
                         fromToken.chain,
-                        null
+                        null,
                       ).length === 0 &&
-                       topTokens.length === 0 &&
-                       trendingTokens.length === 0 && (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                          No tokens available
-                        </div>
-                      )}
+                        topTokens.length === 0 &&
+                        trendingTokens.length === 0 && (
+                          <div className="p-4 text-center text-sm text-muted-foreground">
+                            No tokens available
+                          </div>
+                        )}
                     </>
                   )}
-                  
+
                   {/* No results message for search */}
-                  {!isSearchingTo && toSearchQuery.length >= 2 && filterTokensByChainAndExclude(
-                    mergeTokens(
-                      filterTokens(swapSupportedTokens, toSearchQuery),
-                      toCoinGeckoResults
-                    ),
-                    fromToken.chain,
-                    fromToken
-                  ).length === 0 && (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No tokens found on {fromToken.chain.toUpperCase()}
-                    </div>
-                  )}
+                  {!isSearchingTo &&
+                    toSearchQuery.length >= 2 &&
+                    filterTokensByChainAndExclude(
+                      mergeTokens(
+                        filterTokens(swapSupportedTokens, toSearchQuery),
+                        toCoinGeckoResults,
+                      ),
+                      fromToken.chain,
+                      fromToken,
+                    ).length === 0 && (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No tokens found on {fromToken.chain.toUpperCase()}
+                      </div>
+                    )}
                 </div>
               </div>
             )}
@@ -967,12 +1112,12 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
           <div className="relative">
             <input
               type="text"
-              value={isLoadingPrice ? 'Calculating...' : toAmount}
+              value={isLoadingPrice ? "Calculating..." : toAmount}
               readOnly
               placeholder="0.0"
               disabled={!toToken}
               className={`w-full bg-muted border border-border rounded-lg p-3 pr-24 text-sm focus:outline-none cursor-not-allowed ${
-                !toToken ? 'opacity-50' : ''
+                !toToken ? "opacity-50" : ""
               }`}
             />
             {isLoadingPrice ? (
@@ -988,13 +1133,15 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
 
       {/* Slippage Tolerance */}
       <div className="space-y-2 mt-2">
-        <label className="text-xs text-muted-foreground">Slippage Tolerance (%)</label>
+        <label className="text-xs text-muted-foreground">
+          Slippage Tolerance (%)
+        </label>
         <div className="flex gap-2">
-          {['0.5', '1', '2'].map((value) => (
+          {["0.5", "1", "2"].map((value) => (
             <Button
               key={value}
               onClick={() => setSlippage(value)}
-              variant={slippage === value ? 'default' : 'outline'}
+              variant={slippage === value ? "default" : "outline"}
               size="sm"
               className="flex-1"
             >
@@ -1016,27 +1163,23 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
       {/* Warning Message */}
       {warning && (
         <div className="text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
-           {warning}
+          {warning}
         </div>
       )}
 
       {/* Action Buttons */}
       <div className="flex gap-2 pt-2">
-        <Button
-          onClick={handleClose}
-          variant="outline"
-          className="flex-1"
-        >
+        <Button onClick={handleClose} variant="outline" className="flex-1">
           Cancel
         </Button>
         <Button
           onClick={handleSwap}
           className="flex-1"
           disabled={
-            !fromToken || 
-            !toToken || 
-            !fromAmount || 
-            !toAmount || 
+            !fromToken ||
+            !toToken ||
+            !fromAmount ||
+            !toAmount ||
             parseFloat(fromAmount) <= 0 ||
             isLoadingPrice
           }
@@ -1047,7 +1190,7 @@ export function SwapModalContent({ tokens, userId, onSuccess }: SwapModalContent
               Calculating...
             </>
           ) : (
-            'Swap'
+            "Swap"
           )}
         </Button>
       </div>

@@ -21,13 +21,20 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Position, TradeSignalDetail, TradeMarketContext } from "../types/paperTrading";
+import type {
+  Position,
+  TradeSignalDetail,
+  TradeMarketContext,
+} from "../types/paperTrading";
 import type { AggregatedSignal } from "./signalAggregator.service";
 import type { VinceCoinGlassService } from "./coinglass.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceMarketRegimeService } from "./marketRegime.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
-import { getCurrentSession, type TradingSession } from "../utils/sessionFilters";
+import {
+  getCurrentSession,
+  type TradingSession,
+} from "../utils/sessionFilters";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 
 // ==========================================
@@ -345,7 +352,8 @@ export class VinceFeatureStoreService extends Service {
   private initialized = false;
   private supabase: SupabaseClient | null = null;
   /** Funding history per asset for 8h delta: { rate, ts }[], keep last 24h */
-  private fundingHistoryByAsset: Map<string, { rate: number; ts: number }[]> = new Map();
+  private fundingHistoryByAsset: Map<string, { rate: number; ts: number }[]> =
+    new Map();
   /** Price history per asset for SMA20: last 20 closes */
   private priceHistoryByAsset: Map<string, number[]> = new Map();
   private static readonly FUNDING_HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -362,7 +370,9 @@ export class VinceFeatureStoreService extends Service {
     this.storeConfig = { ...DEFAULT_CONFIG };
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceFeatureStoreService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceFeatureStoreService> {
     const service = new VinceFeatureStoreService(runtime);
     await service.initialize();
     return service;
@@ -392,18 +402,27 @@ export class VinceFeatureStoreService extends Service {
         (typeof process !== "undefined" && process.env?.SUPABASE_URL) ||
         getSupabaseUrl(
           (this.runtime.getSetting("POSTGRES_URL") as string) ||
-            (typeof process !== "undefined" ? process.env?.POSTGRES_URL ?? null : null)
+            (typeof process !== "undefined"
+              ? (process.env?.POSTGRES_URL ?? null)
+              : null),
         );
       const supabaseKey =
         (this.runtime.getSetting("SUPABASE_SERVICE_ROLE_KEY") as string) ||
-        (typeof process !== "undefined" && process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
+        (typeof process !== "undefined" &&
+          process.env?.SUPABASE_SERVICE_ROLE_KEY) ||
         (this.runtime.getSetting("SUPABASE_ANON_KEY") as string) ||
-        (typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : null);
+        (typeof process !== "undefined"
+          ? process.env?.SUPABASE_ANON_KEY
+          : null);
       if (supabaseUrl && supabaseKey) {
         this.supabase = createClient(supabaseUrl, supabaseKey);
-        logger.info("[VinceFeatureStore] Supabase dual-write enabled for ML (table: vince_paper_bot_features)");
+        logger.info(
+          "[VinceFeatureStore] Supabase dual-write enabled for ML (table: vince_paper_bot_features)",
+        );
       } else {
-        logger.debug("[VinceFeatureStore] Supabase not configured - features only stored locally (set SUPABASE_SERVICE_ROLE_KEY to sync)");
+        logger.debug(
+          "[VinceFeatureStore] Supabase not configured - features only stored locally (set SUPABASE_SERVICE_ROLE_KEY to sync)",
+        );
       }
 
       // Start flush timer
@@ -413,7 +432,7 @@ export class VinceFeatureStoreService extends Service {
 
       this.initialized = true;
       logger.info(
-        `[VinceFeatureStore] ✅ Initialized - storing features to ${this.storeConfig.dataDir}`
+        `[VinceFeatureStore] ✅ Initialized - storing features to ${this.storeConfig.dataDir}`,
       );
     } catch (error) {
       logger.error(`[VinceFeatureStore] Initialization error: ${error}`);
@@ -444,7 +463,12 @@ export class VinceFeatureStoreService extends Service {
     dvol: number | null;
   }> {
     if (!this.initialized) {
-      return { bookImbalance: null, priceVsSma20: null, fundingDelta: null, dvol: null };
+      return {
+        bookImbalance: null,
+        priceVsSma20: null,
+        fundingDelta: null,
+        dvol: null,
+      };
     }
     try {
       const m = await this.collectMarketFeatures(asset);
@@ -456,7 +480,12 @@ export class VinceFeatureStoreService extends Service {
       };
     } catch (e) {
       logger.debug(`[VinceFeatureStore] getExtendedMarketSnapshot error: ${e}`);
-      return { bookImbalance: null, priceVsSma20: null, fundingDelta: null, dvol: null };
+      return {
+        bookImbalance: null,
+        priceVsSma20: null,
+        fundingDelta: null,
+        dvol: null,
+      };
     }
   }
 
@@ -489,7 +518,9 @@ export class VinceFeatureStoreService extends Service {
         signal: signalFeatures,
         regime,
         news,
-        decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
+        decisionDrivers: params.signal.factors?.length
+          ? params.signal.factors.slice(0, 15)
+          : undefined,
         execution: params.execution as TradeExecutionFeatures | undefined,
       };
 
@@ -501,7 +532,7 @@ export class VinceFeatureStoreService extends Service {
       }
 
       logger.debug(
-        `[VinceFeatureStore] Decision recorded: ${params.asset} ${params.signal.direction} (${recordId})`
+        `[VinceFeatureStore] Decision recorded: ${params.asset} ${params.signal.direction} (${recordId})`,
       );
 
       return recordId;
@@ -568,7 +599,9 @@ export class VinceFeatureStoreService extends Service {
   linkTrade(recordId: string, positionId: string): void {
     if (!this.storeConfig.enabled) return;
     this.pendingOutcomes.set(positionId, recordId);
-    logger.debug(`[VinceFeatureStore] Linked position ${positionId} to record ${recordId}`);
+    logger.debug(
+      `[VinceFeatureStore] Linked position ${positionId} to record ${recordId}`,
+    );
   }
 
   /**
@@ -577,13 +610,15 @@ export class VinceFeatureStoreService extends Service {
   async recordExecution(
     recordId: string,
     position: Position,
-    additionalDetails?: Partial<TradeExecutionFeatures>
+    additionalDetails?: Partial<TradeExecutionFeatures>,
   ): Promise<void> {
     if (!this.storeConfig.enabled) return;
 
     const record = this.records.find((r) => r.id === recordId);
     if (!record) {
-      logger.debug(`[VinceFeatureStore] Record ${recordId} not found for execution`);
+      logger.debug(
+        `[VinceFeatureStore] Record ${recordId} not found for execution`,
+      );
       return;
     }
 
@@ -595,11 +630,12 @@ export class VinceFeatureStoreService extends Service {
       positionSizePct: additionalDetails?.positionSizePct ?? 0,
       stopLossPrice: position.stopLossPrice,
       stopLossDistancePct: Math.abs(
-        ((position.stopLossPrice - position.entryPrice) / position.entryPrice) * 100
+        ((position.stopLossPrice - position.entryPrice) / position.entryPrice) *
+          100,
       ),
       takeProfitPrices: position.takeProfitPrices,
       takeProfitDistancesPct: position.takeProfitPrices.map((tp) =>
-        Math.abs(((tp - position.entryPrice) / position.entryPrice) * 100)
+        Math.abs(((tp - position.entryPrice) / position.entryPrice) * 100),
       ),
       entryAtrPct: position.entryATRPct ?? 2.5,
       streakMultiplier: additionalDetails?.streakMultiplier ?? 1.0,
@@ -607,7 +643,9 @@ export class VinceFeatureStoreService extends Service {
     };
 
     this.pendingOutcomes.set(position.id, recordId);
-    logger.debug(`[VinceFeatureStore] Execution recorded for ${position.asset}`);
+    logger.debug(
+      `[VinceFeatureStore] Execution recorded for ${position.asset}`,
+    );
   }
 
   /**
@@ -627,19 +665,23 @@ export class VinceFeatureStoreService extends Service {
       trailingStopActivated?: boolean;
       trailingStopPrice?: number | null;
       holdingPeriodMs?: number;
-    }
+    },
   ): Promise<void> {
     if (!this.storeConfig.enabled) return;
 
     const recordId = this.pendingOutcomes.get(positionId);
     if (!recordId) {
-      logger.debug(`[VinceFeatureStore] No record found for position ${positionId}`);
+      logger.debug(
+        `[VinceFeatureStore] No record found for position ${positionId}`,
+      );
       return;
     }
 
     const record = this.records.find((r) => r.id === recordId);
     if (!record) {
-      logger.debug(`[VinceFeatureStore] Record ${recordId} not found for outcome`);
+      logger.debug(
+        `[VinceFeatureStore] Record ${recordId} not found for outcome`,
+      );
       this.pendingOutcomes.delete(positionId);
       return;
     }
@@ -668,7 +710,7 @@ export class VinceFeatureStoreService extends Service {
 
     this.pendingOutcomes.delete(positionId);
     logger.debug(
-      `[VinceFeatureStore] Outcome recorded for ${record.asset}: ${outcome.realizedPnl >= 0 ? "+" : ""}$${outcome.realizedPnl.toFixed(2)}`
+      `[VinceFeatureStore] Outcome recorded for ${record.asset}: ${outcome.realizedPnl >= 0 ? "+" : ""}$${outcome.realizedPnl.toFixed(2)}`,
     );
   }
 
@@ -680,13 +722,13 @@ export class VinceFeatureStoreService extends Service {
   private async withTimeout<T>(
     ms: number,
     label: string,
-    p: Promise<T>
+    p: Promise<T>,
   ): Promise<T | null> {
     try {
       const result = await Promise.race([
         p,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error(`${label} timeout`)), ms)
+          setTimeout(() => reject(new Error(`${label} timeout`)), ms),
         ),
       ]);
       return result as T;
@@ -698,30 +740,50 @@ export class VinceFeatureStoreService extends Service {
 
   private async collectMarketFeatures(asset: string): Promise<MarketFeatures> {
     const marketDataService = this.runtime.getService(
-      "VINCE_MARKET_DATA_SERVICE"
+      "VINCE_MARKET_DATA_SERVICE",
     ) as VinceMarketDataService | null;
     const coinglassService = this.runtime.getService(
-      "VINCE_COINGLASS_SERVICE"
+      "VINCE_COINGLASS_SERVICE",
     ) as VinceCoinGlassService | null;
 
     const t = VinceFeatureStoreService.FEATURE_FETCH_TIMEOUT_MS;
 
     // Run all async fetches in parallel with timeouts (one slow API won't block the rest)
-    const [context, depthResult, dvolResult, rsiResult, atrResult] = await Promise.all([
-      marketDataService
-        ? this.withTimeout(t, "MarketContext", marketDataService.getEnrichedContext(asset))
-        : Promise.resolve(null),
-      this.withTimeout(t, "BinanceDepth", this.fetchBinanceDepth(asset)),
-      marketDataService && typeof (marketDataService as any).getDVOL === "function"
-        ? this.withTimeout(t, "DVOL", (marketDataService as any).getDVOL(asset))
-        : Promise.resolve(null),
-      marketDataService && typeof (marketDataService as any).estimateRSI === "function"
-        ? this.withTimeout(t, "RSI", (marketDataService as any).estimateRSI(asset))
-        : Promise.resolve(null),
-      marketDataService && typeof (marketDataService as any).getATRPercent === "function"
-        ? this.withTimeout(t, "ATR", (marketDataService as any).getATRPercent(asset))
-        : Promise.resolve(this.getDefaultAtrPct(asset)),
-    ]);
+    const [context, depthResult, dvolResult, rsiResult, atrResult] =
+      await Promise.all([
+        marketDataService
+          ? this.withTimeout(
+              t,
+              "MarketContext",
+              marketDataService.getEnrichedContext(asset),
+            )
+          : Promise.resolve(null),
+        this.withTimeout(t, "BinanceDepth", this.fetchBinanceDepth(asset)),
+        marketDataService &&
+        typeof (marketDataService as any).getDVOL === "function"
+          ? this.withTimeout(
+              t,
+              "DVOL",
+              (marketDataService as any).getDVOL(asset),
+            )
+          : Promise.resolve(null),
+        marketDataService &&
+        typeof (marketDataService as any).estimateRSI === "function"
+          ? this.withTimeout(
+              t,
+              "RSI",
+              (marketDataService as any).estimateRSI(asset),
+            )
+          : Promise.resolve(null),
+        marketDataService &&
+        typeof (marketDataService as any).getATRPercent === "function"
+          ? this.withTimeout(
+              t,
+              "ATR",
+              (marketDataService as any).getATRPercent(asset),
+            )
+          : Promise.resolve(this.getDefaultAtrPct(asset)),
+      ]);
 
     let price = 0;
     let priceChange24h = 0;
@@ -749,7 +811,8 @@ export class VinceFeatureStoreService extends Service {
         const oi = coinglassService.getOpenInterest(asset);
         if (oi) {
           openInterest = oi.value;
-          if (oi.change24h != null && !Number.isNaN(oi.change24h)) oiChange24h = oi.change24h;
+          if (oi.change24h != null && !Number.isNaN(oi.change24h))
+            oiChange24h = oi.change24h;
         }
         coinglassService.getFunding(asset);
       } catch (e) {
@@ -763,11 +826,15 @@ export class VinceFeatureStoreService extends Service {
     if (coinglassService && typeof fundingRate === "number") {
       let hist = this.fundingHistoryByAsset.get(asset) ?? [];
       hist.push({ rate: fundingRate, ts: now });
-      hist = hist.filter((e) => now - e.ts < VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS);
+      hist = hist.filter(
+        (e) => now - e.ts < VinceFeatureStoreService.FUNDING_HISTORY_MAX_AGE_MS,
+      );
       this.fundingHistoryByAsset.set(asset, hist);
       const targetTs = now - VinceFeatureStoreService.FUNDING_DELTA_WINDOW_MS;
       const closest = hist.reduce((best, e) =>
-        Math.abs(e.ts - targetTs) < Math.abs((best?.ts ?? 0) - targetTs) ? e : best
+        Math.abs(e.ts - targetTs) < Math.abs((best?.ts ?? 0) - targetTs)
+          ? e
+          : best,
       );
       if (closest && Math.abs(closest.ts - targetTs) < 2 * 60 * 60 * 1000) {
         fundingDelta = fundingRate - closest.rate;
@@ -789,7 +856,10 @@ export class VinceFeatureStoreService extends Service {
       }
     }
 
-    const { bookImbalance, bidAskSpread } = depthResult ?? { bookImbalance: null, bidAskSpread: null };
+    const { bookImbalance, bidAskSpread } = depthResult ?? {
+      bookImbalance: null,
+      bidAskSpread: null,
+    };
     const dvol: number | null = (dvolResult as number | null) ?? null;
     const rsiVal = (rsiResult as { rsi?: number } | null)?.rsi;
     const rsi14: number | null = rsiVal != null ? rsiVal : null;
@@ -839,19 +909,32 @@ export class VinceFeatureStoreService extends Service {
     if (!symbol) return { bookImbalance: null, bidAskSpread: null };
     try {
       const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), VinceFeatureStoreService.BINANCE_DEPTH_TIMEOUT_MS);
+      const t = setTimeout(
+        () => controller.abort(),
+        VinceFeatureStoreService.BINANCE_DEPTH_TIMEOUT_MS,
+      );
       const res = await fetch(
         `https://fapi.binance.com/fapi/v1/depth?symbol=${symbol}&limit=10`,
-        { signal: controller.signal }
+        { signal: controller.signal },
       );
       clearTimeout(t);
       if (!res.ok) return { bookImbalance: null, bidAskSpread: null };
-      const data = (await res.json()) as { bids?: [string, string][]; asks?: [string, string][] };
+      const data = (await res.json()) as {
+        bids?: [string, string][];
+        asks?: [string, string][];
+      };
       const bids = data.bids ?? [];
       const asks = data.asks ?? [];
-      if (bids.length === 0 || asks.length === 0) return { bookImbalance: null, bidAskSpread: null };
-      const bidVol = bids.reduce((sum, [p, q]) => sum + parseFloat(p) * parseFloat(q), 0);
-      const askVol = asks.reduce((sum, [p, q]) => sum + parseFloat(p) * parseFloat(q), 0);
+      if (bids.length === 0 || asks.length === 0)
+        return { bookImbalance: null, bidAskSpread: null };
+      const bidVol = bids.reduce(
+        (sum, [p, q]) => sum + parseFloat(p) * parseFloat(q),
+        0,
+      );
+      const askVol = asks.reduce(
+        (sum, [p, q]) => sum + parseFloat(p) * parseFloat(q),
+        0,
+      );
       const total = bidVol + askVol;
       const bookImbalance = total > 0 ? (bidVol - askVol) / total : null;
       const bestBid = parseFloat(bids[0][0]);
@@ -879,9 +962,11 @@ export class VinceFeatureStoreService extends Service {
       us: 13,
       eu_us_overlap: 13,
       off_hours: 21,
+      weekend: 0,
     };
     const sessionStart = sessionStartHours[session] ?? 0;
-    const minutesSinceSessionStart = (utcHour - sessionStart) * 60 + now.getUTCMinutes();
+    const minutesSinceSessionStart =
+      (utcHour - sessionStart) * 60 + now.getUTCMinutes();
 
     // Check if in open window (first 30 min of major session)
     const isOpenWindow =
@@ -901,21 +986,21 @@ export class VinceFeatureStoreService extends Service {
 
   private collectSignalFeatures(signal: AggregatedSignal): SignalFeatures {
     const sources = signal.sources || [];
-    
+
     // Detect special signal types
     const hasCascadeSignal = sources.some(
-      (s) => s === "LiquidationCascade" || s === "LiquidationPressure"
+      (s) => s === "LiquidationCascade" || s === "LiquidationPressure",
     );
     const hasFundingExtreme = sources.some(
-      (s) => s === "BinanceFundingExtreme" || s === "HyperliquidFundingExtreme"
+      (s) => s === "BinanceFundingExtreme" || s === "HyperliquidFundingExtreme",
     );
     const hasOICap = sources.some((s) => s === "HyperliquidOICap");
     // NOTE: Only BinanceTopTraders provides real whale data
     // TopTraders requires wallet config, SanbaseWhales has 30-day lag on free tier
     const hasWhaleSignal = sources.some(
       (s) =>
-        s === "BinanceTopTraders" ||  // Real data
-        s === "SanbaseExchangeFlows"  // Real on-chain flows
+        s === "BinanceTopTraders" || // Real data
+        s === "SanbaseExchangeFlows", // Real on-chain flows
     );
 
     // Find highest weight source (should match dynamicConfig.ts)
@@ -925,9 +1010,9 @@ export class VinceFeatureStoreService extends Service {
       BinanceFundingExtreme: 1.5,
       HyperliquidFundingExtreme: 1.35,
       HyperliquidOICap: 1.2,
-      TopTraders: 0.0,        // DISABLED - no wallet addresses configured
+      TopTraders: 0.0, // DISABLED - no wallet addresses configured
       BinanceTopTraders: 1.0, // Real data from public Binance API
-      SanbaseWhales: 0.0,     // DISABLED - 30-day lag on free tier
+      SanbaseWhales: 0.0, // DISABLED - 30-day lag on free tier
     };
 
     let highestWeight = 0;
@@ -944,8 +1029,10 @@ export class VinceFeatureStoreService extends Service {
     const factors = signal.factors ?? [];
     let avgSentiment: number | null = null;
     if (factors.length > 0) {
-      const bullishWords = /long|bullish|negative funding|funding negative|fear|oversold|short liquidat|squeeze|inflow|accumulation|buy/gi;
-      const bearishWords = /short|bearish|elevated funding|funding elevated|greed|overbought|long liquidat|flush|outflow|distribution|sell/gi;
+      const bullishWords =
+        /long|bullish|negative funding|funding negative|fear|oversold|short liquidat|squeeze|inflow|accumulation|buy/gi;
+      const bearishWords =
+        /short|bearish|elevated funding|funding elevated|greed|overbought|long liquidat|flush|outflow|distribution|sell/gi;
       let score = 0;
       for (const f of factors) {
         const text = String(f);
@@ -978,10 +1065,10 @@ export class VinceFeatureStoreService extends Service {
 
   private async collectRegimeFeatures(asset: string): Promise<RegimeFeatures> {
     const marketRegimeService = this.runtime.getService(
-      "VINCE_MARKET_REGIME_SERVICE"
+      "VINCE_MARKET_REGIME_SERVICE",
     ) as VinceMarketRegimeService | null;
     const marketDataService = this.runtime.getService(
-      "VINCE_MARKET_DATA_SERVICE"
+      "VINCE_MARKET_DATA_SERVICE",
     ) as VinceMarketDataService | null;
 
     let volatilityRegime = "normal";
@@ -1040,18 +1127,23 @@ export class VinceFeatureStoreService extends Service {
       const t = setTimeout(() => controller.abort(), 4_000);
       const res = await fetch(
         "https://query1.finance.yahoo.com/v8/finance/chart/%5EIXIC?interval=1d&range=5d",
-        { signal: controller.signal, headers: { "User-Agent": "Vince/1.0" } }
+        { signal: controller.signal, headers: { "User-Agent": "Vince/1.0" } },
       );
       clearTimeout(t);
       if (!res.ok) return null;
       const data = (await res.json()) as {
-        chart?: { result?: Array<{ indicators?: { quote?: Array<{ close?: number[] }> } }> };
+        chart?: {
+          result?: Array<{
+            indicators?: { quote?: Array<{ close?: number[] }> };
+          }>;
+        };
       };
       const closes = data.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
       if (!Array.isArray(closes) || closes.length < 2) return null;
       const prev = closes[closes.length - 2];
       const curr = closes[closes.length - 1];
-      if (typeof prev !== "number" || typeof curr !== "number" || prev <= 0) return null;
+      if (typeof prev !== "number" || typeof curr !== "number" || prev <= 0)
+        return null;
       return ((curr - prev) / prev) * 100;
     } catch {
       return null;
@@ -1060,7 +1152,7 @@ export class VinceFeatureStoreService extends Service {
 
   private async collectNewsFeatures(): Promise<NewsFeatures> {
     const newsService = this.runtime.getService(
-      "VINCE_NEWS_SENTIMENT_SERVICE"
+      "VINCE_NEWS_SENTIMENT_SERVICE",
     ) as VinceNewsSentimentService | null;
 
     const result: NewsFeatures = {
@@ -1079,7 +1171,8 @@ export class VinceFeatureStoreService extends Service {
         const sentiment = newsService.getOverallSentiment?.();
         if (sentiment) {
           result.sentimentDirection = sentiment.sentiment ?? null;
-          const conf = typeof sentiment.confidence === "number" ? sentiment.confidence : 0;
+          const conf =
+            typeof sentiment.confidence === "number" ? sentiment.confidence : 0;
           result.sentimentScore =
             sentiment.sentiment === "bullish"
               ? conf
@@ -1090,10 +1183,15 @@ export class VinceFeatureStoreService extends Service {
         const events = newsService.getActiveRiskEvents?.();
         if (Array.isArray(events) && events.length > 0) {
           result.hasActiveRiskEvents = true;
-          const severities = events.map((e: { severity?: string }) => e.severity).filter(Boolean);
-          if (severities.includes("critical")) result.highestRiskSeverity = "critical";
-          else if (severities.includes("high")) result.highestRiskSeverity = "high";
-          else if (severities.includes("medium")) result.highestRiskSeverity = "medium";
+          const severities = events
+            .map((e: { severity?: string }) => e.severity)
+            .filter(Boolean);
+          if (severities.includes("critical"))
+            result.highestRiskSeverity = "critical";
+          else if (severities.includes("high"))
+            result.highestRiskSeverity = "high";
+          else if (severities.includes("medium"))
+            result.highestRiskSeverity = "medium";
           else result.highestRiskSeverity = "low";
         }
       } catch (e) {
@@ -1113,27 +1211,45 @@ export class VinceFeatureStoreService extends Service {
         const pulse = await Promise.race([
           hip3Service.getHIP3Pulse(),
           new Promise<null>((_, reject) =>
-            setTimeout(() => reject(new Error("HIP-3 timeout")), VinceFeatureStoreService.NEWS_MACRO_TIMEOUT_MS)
+            setTimeout(
+              () => reject(new Error("HIP-3 timeout")),
+              VinceFeatureStoreService.NEWS_MACRO_TIMEOUT_MS,
+            ),
           ),
         ]);
         if (pulse?.indices && pulse.indices.length > 0) {
-          const nasdaqProxies = ["US500", "INFOTECH", "MAG7", "SEMIS", "XYZ100"] as const;
+          const nasdaqProxies = [
+            "US500",
+            "INFOTECH",
+            "MAG7",
+            "SEMIS",
+            "XYZ100",
+          ] as const;
           const indexAsset =
             nasdaqProxies
               .map((s) => pulse.indices!.find((i) => i.symbol === s))
               .find(Boolean) ?? pulse.indices[0];
-          const change = typeof indexAsset?.change24h === "number" ? indexAsset.change24h : null;
+          const change =
+            typeof indexAsset?.change24h === "number"
+              ? indexAsset.change24h
+              : null;
           if (change != null) {
             result.nasdaqChange = change;
-            logger.debug(`[VinceFeatureStore] nasdaqChange=${change.toFixed(2)}% from HIP-3 (${indexAsset?.symbol ?? "index"})`);
+            logger.debug(
+              `[VinceFeatureStore] nasdaqChange=${change.toFixed(2)}% from HIP-3 (${indexAsset?.symbol ?? "index"})`,
+            );
           }
         }
         if (pulse?.summary?.tradFiVsCrypto) {
           const tfc = pulse.summary.tradFiVsCrypto;
-          if (tfc === "crypto_outperforming") result.macroRiskEnvironment = "risk_on";
-          else if (tfc === "tradfi_outperforming") result.macroRiskEnvironment = "risk_off";
+          if (tfc === "crypto_outperforming")
+            result.macroRiskEnvironment = "risk_on";
+          else if (tfc === "tradfi_outperforming")
+            result.macroRiskEnvironment = "risk_off";
           else result.macroRiskEnvironment = "neutral";
-          logger.debug(`[VinceFeatureStore] macroRiskEnvironment=${result.macroRiskEnvironment} from HIP-3`);
+          logger.debug(
+            `[VinceFeatureStore] macroRiskEnvironment=${result.macroRiskEnvironment} from HIP-3`,
+          );
         }
       } catch (e) {
         logger.debug(`[VinceFeatureStore] HIP-3 news features error: ${e}`);
@@ -1145,7 +1261,9 @@ export class VinceFeatureStoreService extends Service {
       const yahooChange = await this.fetchYahooNasdaqChange();
       if (yahooChange != null) {
         result.nasdaqChange = yahooChange;
-        logger.debug(`[VinceFeatureStore] nasdaqChange=${yahooChange.toFixed(2)}% from Yahoo Finance fallback`);
+        logger.debug(
+          `[VinceFeatureStore] nasdaqChange=${yahooChange.toFixed(2)}% from Yahoo Finance fallback`,
+        );
       }
     }
 
@@ -1178,7 +1296,9 @@ export class VinceFeatureStoreService extends Service {
 
     // Calculate R-multiple (P&L / initial risk)
     const riskPerUnit =
-      (execution.stopLossDistancePct / 100) * execution.positionSizeUsd * execution.leverage;
+      (execution.stopLossDistancePct / 100) *
+      execution.positionSizeUsd *
+      execution.leverage;
     const rMultiple = riskPerUnit > 0 ? outcome.realizedPnl / riskPerUnit : 0;
 
     // Determine optimal TP level
@@ -1197,7 +1317,8 @@ export class VinceFeatureStoreService extends Service {
       outcome.maxFavorableExcursion > execution.stopLossDistancePct * 2;
 
     // Check if better entry was available
-    const betterEntryAvailable = outcome.maxAdverseExcursion > execution.stopLossDistancePct * 0.5;
+    const betterEntryAvailable =
+      outcome.maxAdverseExcursion > execution.stopLossDistancePct * 0.5;
 
     return {
       profitable,
@@ -1233,7 +1354,9 @@ export class VinceFeatureStoreService extends Service {
       // 1. Always write local JSONL (backup, offline)
       const lines = toFlush.map((r) => JSON.stringify(r)).join("\n");
       fs.appendFileSync(filepath, lines + "\n");
-      logger.debug(`[VinceFeatureStore] Flushed ${toFlush.length} records to ${filename}`);
+      logger.debug(
+        `[VinceFeatureStore] Flushed ${toFlush.length} records to ${filename}`,
+      );
 
       // 2. Optional Supabase dual-write for ML (500+ records in one place)
       if (this.supabase) {
@@ -1242,13 +1365,19 @@ export class VinceFeatureStoreService extends Service {
           created_at: new Date(r.timestamp).toISOString(),
           payload: r as unknown as Record<string, unknown>,
         }));
-        const { error } = await this.supabase.from(SUPABASE_FEATURES_TABLE).upsert(rows, {
-          onConflict: "id",
-        });
+        const { error } = await this.supabase
+          .from(SUPABASE_FEATURES_TABLE)
+          .upsert(rows, {
+            onConflict: "id",
+          });
         if (error) {
-          logger.warn(`[VinceFeatureStore] Supabase upsert error (local JSONL saved): ${error.message}`);
+          logger.warn(
+            `[VinceFeatureStore] Supabase upsert error (local JSONL saved): ${error.message}`,
+          );
         } else {
-          logger.debug(`[VinceFeatureStore] Synced ${toFlush.length} records to Supabase`);
+          logger.debug(
+            `[VinceFeatureStore] Synced ${toFlush.length} records to Supabase`,
+          );
         }
       }
 
@@ -1281,7 +1410,7 @@ export class VinceFeatureStoreService extends Service {
       }
       if (deleted > 0) {
         logger.info(
-          `[VinceFeatureStore] Pruned ${deleted} old JSONL file(s) (retain ${retainDays} days)`
+          `[VinceFeatureStore] Pruned ${deleted} old JSONL file(s) (retain ${retainDays} days)`,
         );
       }
     } catch (error) {
@@ -1297,8 +1426,14 @@ export class VinceFeatureStoreService extends Service {
     if (records.length === 0) return;
     try {
       const conn = await this.runtime.getConnection?.();
-      if (!conn || typeof (conn as { query?: unknown }).query !== "function") return;
-      const client = conn as { query: (text: string, values?: unknown[]) => Promise<{ rows?: unknown[] }> };
+      if (!conn || typeof (conn as { query?: unknown }).query !== "function")
+        return;
+      const client = conn as {
+        query: (
+          text: string,
+          values?: unknown[],
+        ) => Promise<{ rows?: unknown[] }>;
+      };
       const table = "plugin_vince.paper_bot_features";
       const sql = `INSERT INTO ${table} (id, created_at, payload) VALUES ($1, $2, $3)
         ON CONFLICT (id) DO UPDATE SET created_at = EXCLUDED.created_at, payload = EXCLUDED.payload`;
@@ -1309,9 +1444,13 @@ export class VinceFeatureStoreService extends Service {
           JSON.stringify(r),
         ]);
       }
-      logger.debug(`[VinceFeatureStore] Synced ${records.length} records to PGLite/Postgres`);
+      logger.debug(
+        `[VinceFeatureStore] Synced ${records.length} records to PGLite/Postgres`,
+      );
     } catch (err) {
-      logger.debug(`[VinceFeatureStore] PGLite/Postgres write skipped (table may not exist yet): ${err}`);
+      logger.debug(
+        `[VinceFeatureStore] PGLite/Postgres write skipped (table may not exist yet): ${err}`,
+      );
     }
   }
 
@@ -1361,7 +1500,7 @@ export class VinceFeatureStoreService extends Service {
    */
   async exportForTraining(
     outputPath: string,
-    daysBack: number = 90
+    daysBack: number = 90,
   ): Promise<{ success: boolean; recordCount: number; completeCount: number }> {
     try {
       const records = await this.loadRecords(daysBack);
@@ -1372,7 +1511,7 @@ export class VinceFeatureStoreService extends Service {
       fs.writeFileSync(outputPath, JSON.stringify(completeRecords, null, 2));
 
       logger.info(
-        `[VinceFeatureStore] Exported ${completeRecords.length}/${records.length} complete records to ${outputPath}`
+        `[VinceFeatureStore] Exported ${completeRecords.length}/${records.length} complete records to ${outputPath}`,
       );
 
       return {

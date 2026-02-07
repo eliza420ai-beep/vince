@@ -25,7 +25,9 @@ import {
 const DEFAULT_NEWS_HOUR_UTC = 7;
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
 
-export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<void> {
+export async function registerNewsDailyTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
   const enabled = process.env.VINCE_NEWS_DAILY_ENABLED !== "false";
   if (!enabled) {
     logger.info("[NewsDaily] Task disabled (VINCE_NEWS_DAILY_ENABLED=false)");
@@ -33,7 +35,10 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
   }
 
   const newsHour =
-    parseInt(process.env.VINCE_NEWS_HOUR ?? String(DEFAULT_NEWS_HOUR_UTC), 10) || DEFAULT_NEWS_HOUR_UTC;
+    parseInt(
+      process.env.VINCE_NEWS_HOUR ?? String(DEFAULT_NEWS_HOUR_UTC),
+      10,
+    ) || DEFAULT_NEWS_HOUR_UTC;
   const taskWorldId = runtime.agentId as UUID;
 
   runtime.registerTaskWorker({
@@ -43,38 +48,49 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
       const now = new Date();
       const hourUtc = now.getUTCHours();
       if (hourUtc !== newsHour) {
-        logger.debug(`[NewsDaily] Skipping: current hour ${hourUtc} UTC, target ${newsHour}`);
+        logger.debug(
+          `[NewsDaily] Skipping: current hour ${hourUtc} UTC, target ${newsHour}`,
+        );
         return;
       }
 
-      const newsService = rt.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+      const newsService = rt.getService(
+        "VINCE_NEWS_SENTIMENT_SERVICE",
+      ) as VinceNewsSentimentService | null;
       if (!newsService) {
         logger.warn("[NewsDaily] VinceNewsSentimentService not available");
         return;
       }
 
       const notif = rt.getService("VINCE_NOTIFICATION_SERVICE") as {
-        push?: (text: string, opts?: { roomNameContains?: string }) => Promise<number>;
+        push?: (
+          text: string,
+          opts?: { roomNameContains?: string },
+        ) => Promise<number>;
       } | null;
       if (!notif?.push) {
         logger.warn("[NewsDaily] VinceNotificationService not available");
         return;
       }
 
-      logger.info("[NewsDaily] Fetching news (MandoMinutes, direct fetch for freshness check)...");
+      logger.info(
+        "[NewsDaily] Fetching news (MandoMinutes, direct fetch for freshness check)...",
+      );
       await newsService.refreshData(true);
 
       const freshness = newsService.getMandoFreshnessInfo();
       if (!freshness.isLikelyFresh) {
         if (!freshness.hasData) {
-          logger.info("[NewsDaily] Skipping: no news data (run MANDO_MINUTES or ensure cache is populated)");
+          logger.info(
+            "[NewsDaily] Skipping: no news data (run MANDO_MINUTES or ensure cache is populated)",
+          );
         } else if (!freshness.inferredPublishDate) {
           logger.info(
-            "[NewsDaily] Skipping: could not infer Mando publish date - may be stale. Set VINCE_NEWS_PUSH_REQUIRE_FRESH=false to push anyway."
+            "[NewsDaily] Skipping: could not infer Mando publish date - may be stale. Set VINCE_NEWS_PUSH_REQUIRE_FRESH=false to push anyway.",
           );
         } else {
           logger.info(
-            `[NewsDaily] Skipping: Mando data from ${freshness.inferredPublishDate} (not today/yesterday). He may not have updated yet.`
+            `[NewsDaily] Skipping: Mando data from ${freshness.inferredPublishDate} (not today/yesterday). He may not have updated yet.`,
           );
         }
         return;
@@ -126,7 +142,11 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
         const dataContext = buildNewsDataContext(ctx);
         const briefing = await generateNewsHumanBriefing(rt, dataContext);
 
-        const date = now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+        const date = now.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        });
         const text = [
           `**News Briefing** _${date}_`,
           "",
@@ -140,10 +160,12 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
 
         const sent = await notif.push(text, { roomNameContains: "news" });
         if (sent > 0) {
-          logger.info(`[NewsDaily] Pushed to ${sent} channel(s) (Mando date: ${freshness.inferredPublishDate})`);
+          logger.info(
+            `[NewsDaily] Pushed to ${sent} channel(s) (Mando date: ${freshness.inferredPublishDate})`,
+          );
         } else {
           logger.debug(
-            "[NewsDaily] No channels matched (room name contains 'news'). Create e.g. #vince-news."
+            "[NewsDaily] No channels matched (room name contains 'news'). Create e.g. #vince-news.",
           );
         }
       } catch (error) {
@@ -154,7 +176,8 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
 
   await runtime.createTask({
     name: "VINCE_NEWS_DAILY",
-    description: "Daily news briefing (MandoMinutes) pushed to Discord/Slack - only when Mando has updated",
+    description:
+      "Daily news briefing (MandoMinutes) pushed to Discord/Slack - only when Mando has updated",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["vince", "news", "repeat"],
@@ -165,6 +188,6 @@ export async function registerNewsDailyTask(runtime: IAgentRuntime): Promise<voi
   });
 
   logger.info(
-    `[NewsDaily] Task registered (runs at ${newsHour}:00 UTC, push to channels with "news" in name, freshness gate: ${process.env.VINCE_NEWS_PUSH_REQUIRE_FRESH !== "false" ? "on" : "off"})`
+    `[NewsDaily] Task registered (runs at ${newsHour}:00 UTC, push to channels with "news" in name, freshness gate: ${process.env.VINCE_NEWS_PUSH_REQUIRE_FRESH !== "false" ? "on" : "off"})`,
   );
 }

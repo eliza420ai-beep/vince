@@ -3,8 +3,8 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
@@ -171,39 +171,48 @@ bun run test src/__tests__/actions/trading.actions.test.ts --watch
 
 ```typescript
 // src/actions/newFeature.action.ts
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 
 export const vinceNewFeatureAction: Action = {
   name: "VINCE_NEW_FEATURE",
   description: "Description shown to the LLM for action selection",
-  
+
   // Trigger words (case-insensitive matching)
   similes: ["new feature", "my feature", "feature check"],
-  
+
   // Validation: Should this action handle the message?
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     // Match any of: "new feature", "my feature", etc.
     return /\b(new feature|my feature)\b/.test(text);
   },
-  
+
   // Handler: Generate the response
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     state?: State,
     options?: Record<string, unknown>,
-    callback?: HandlerCallback
+    callback?: HandlerCallback,
   ) => {
     try {
       // 1. Get required services
       const marketData = runtime.getService("vince-market-data");
       const signalAggregator = runtime.getService("vince-signal-aggregator");
-      
+
       // 2. Fetch data
-      const context = await marketData?.getEnrichedContext?.("BTC") || {};
-      
+      const context = (await marketData?.getEnrichedContext?.("BTC")) || {};
+
       // 3. Generate response
       const response = [
         "**New Feature Analysis**",
@@ -213,28 +222,32 @@ export const vinceNewFeatureAction: Action = {
         "",
         "Your custom analysis here...",
       ].join("\n");
-      
+
       // 4. Send response
       if (callback) {
         await callback({ text: response });
       }
-      
+
       return { success: true };
-      
     } catch (error) {
       logger.error("[vinceNewFeatureAction] Error:", error);
       if (callback) {
-        await callback({ text: "Sorry, I couldn't complete that analysis right now." });
+        await callback({
+          text: "Sorry, I couldn't complete that analysis right now.",
+        });
       }
       return { success: false };
     }
   },
-  
+
   // Examples for LLM training
   examples: [
     [
       { name: "user", content: { text: "check new feature" } },
-      { name: "VINCE", content: { text: "**New Feature Analysis**\n\nBTC Price: $95,420..." } },
+      {
+        name: "VINCE",
+        content: { text: "**New Feature Analysis**\n\nBTC Price: $95,420..." },
+      },
     ],
   ],
 };
@@ -268,43 +281,43 @@ import { createMockRuntime, createMockMessage } from "../test-utils";
 
 describe("vinceNewFeatureAction", () => {
   let runtime: any;
-  
+
   beforeEach(() => {
     runtime = createMockRuntime();
   });
-  
+
   describe("validate", () => {
     it("should validate 'new feature' trigger", async () => {
       const message = createMockMessage("check new feature");
       const result = await vinceNewFeatureAction.validate(runtime, message);
       expect(result).toBe(true);
     });
-    
+
     it("should reject unrelated messages", async () => {
       const message = createMockMessage("what is the weather");
       const result = await vinceNewFeatureAction.validate(runtime, message);
       expect(result).toBe(false);
     });
   });
-  
+
   describe("handler", () => {
     it("should generate response", async () => {
       const message = createMockMessage("new feature");
       const callback = vi.fn();
-      
+
       const result = await vinceNewFeatureAction.handler(
         runtime,
         message,
         undefined,
         undefined,
-        callback
+        callback,
       );
-      
+
       expect(result.success).toBe(true);
       expect(callback).toHaveBeenCalledWith(
         expect.objectContaining({
           text: expect.stringContaining("New Feature Analysis"),
-        })
+        }),
       );
     });
   });
@@ -328,33 +341,33 @@ interface NewDataResult {
 
 export class VinceNewDataService extends Service {
   static serviceType = "vince-new-data";
-  
+
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private readonly cacheTTL = 5 * 60 * 1000; // 5 minutes
-  
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
-  
+
   // Required: Static factory method
   static async start(runtime: IAgentRuntime): Promise<VinceNewDataService> {
     const service = new VinceNewDataService(runtime);
     logger.info("[VinceNewDataService] Started");
     return service;
   }
-  
+
   // Required: Cleanup on shutdown
   async stop(): Promise<void> {
     this.cache.clear();
     logger.info("[VinceNewDataService] Stopped");
   }
-  
+
   // Public API method
   async getData(symbol: string): Promise<NewDataResult | null> {
     // Check cache first
     const cached = this.getFromCache(symbol);
     if (cached) return cached;
-    
+
     try {
       const data = await this.fetchFromAPI(symbol);
       this.setCache(symbol, data);
@@ -364,24 +377,24 @@ export class VinceNewDataService extends Service {
       return null;
     }
   }
-  
+
   // Private implementation
   private async fetchFromAPI(symbol: string): Promise<NewDataResult> {
     const response = await fetch(`https://api.example.com/data/${symbol}`, {
       signal: AbortSignal.timeout(10000),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API returned ${response.status}`);
     }
-    
+
     const data = await response.json();
     return {
       metric: data.metric,
       timestamp: Date.now(),
     };
   }
-  
+
   private getFromCache(key: string): NewDataResult | null {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
@@ -389,7 +402,7 @@ export class VinceNewDataService extends Service {
     }
     return null;
   }
-  
+
   private setCache(key: string, data: NewDataResult): void {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
@@ -417,7 +430,9 @@ export { VinceNewDataService } from "./services/newData.service";
 
 ```typescript
 // In your action handler
-const newDataService = runtime.getService("vince-new-data") as VinceNewDataService;
+const newDataService = runtime.getService(
+  "vince-new-data",
+) as VinceNewDataService;
 if (newDataService) {
   const data = await newDataService.getData("BTC");
   // Use data...
@@ -457,12 +472,12 @@ if (newDataService) {
 
 ### Key Commands
 
-| Action | Trigger | Example |
-|--------|---------|---------|
-| Check status | "bot status", "portfolio" | "what's my bot status" |
-| Execute trade | "trade", "go long", "go short" | "go long BTC 2x" |
-| Pause/resume | "pause bot", "resume bot" | "pause the bot" |
-| Explain decision | "why", "explain" | "why that trade" |
+| Action           | Trigger                        | Example                |
+| ---------------- | ------------------------------ | ---------------------- |
+| Check status     | "bot status", "portfolio"      | "what's my bot status" |
+| Execute trade    | "trade", "go long", "go short" | "go long BTC 2x"       |
+| Pause/resume     | "pause bot", "resume bot"      | "pause the bot"        |
+| Explain decision | "why", "explain"               | "why that trade"       |
 
 ### Signal Flow
 
@@ -542,9 +557,9 @@ Training also produces an **improvement report** (`improvement_report.md` + `tra
 
 // Each source has win/loss counts (Beta distribution)
 const sources = {
-  "funding": { wins: 45, losses: 32 },       // ~58% win rate
-  "liquidation": { wins: 38, losses: 41 },   // ~48% win rate
-  "topTraders": { wins: 52, losses: 28 },    // ~65% win rate
+  funding: { wins: 45, losses: 32 }, // ~58% win rate
+  liquidation: { wins: 38, losses: 41 }, // ~48% win rate
+  topTraders: { wins: 52, losses: 28 }, // ~65% win rate
   // ...
 };
 
@@ -570,19 +585,19 @@ const features = {
   volume_24h: 42000000000,
   atr_14: 1200,
   rsi_14: 55,
-  
+
   // Session
   session: "EU_US_OVERLAP",
   is_weekend: false,
   hour_utc: 14,
-  
+
   // Signal
   signal_strength: 72,
   signal_confidence: 68,
   confirming_sources: 4,
-  
+
   // Outcome (added after trade closes)
-  pnl: 150.50,
+  pnl: 150.5,
   r_multiple: 1.2,
   duration_hours: 4.5,
   exit_reason: "TAKE_PROFIT",
@@ -613,12 +628,12 @@ bun run train-models
 
 Every ML component has a fallback:
 
-| Component | ML Available | Fallback |
-|-----------|--------------|----------|
-| Weight Bandit | Beta sampling | Static weights from `dynamicConfig` |
-| Signal Similarity | k-NN lookup | Return neutral recommendation |
-| ML Inference | ONNX prediction | Rule-based filtering |
-| Parameter Tuner | Bayesian proposal | Fixed thresholds |
+| Component         | ML Available      | Fallback                            |
+| ----------------- | ----------------- | ----------------------------------- |
+| Weight Bandit     | Beta sampling     | Static weights from `dynamicConfig` |
+| Signal Similarity | k-NN lookup       | Return neutral recommendation       |
+| ML Inference      | ONNX prediction   | Rule-based filtering                |
+| Parameter Tuner   | Bayesian proposal | Fixed thresholds                    |
 
 ```typescript
 // Example fallback pattern
@@ -662,7 +677,7 @@ bun run test --coverage
 
 export function createMockRuntime(overrides?: Partial<IAgentRuntime>) {
   const mockServices = new Map();
-  
+
   // Add default mock services
   mockServices.set("vince-market-data", {
     getEnrichedContext: vi.fn().mockResolvedValue({
@@ -671,7 +686,7 @@ export function createMockRuntime(overrides?: Partial<IAgentRuntime>) {
       funding8h: 0.01,
     }),
   });
-  
+
   mockServices.set("vince-signal-aggregator", {
     getAggregatedSignal: vi.fn().mockResolvedValue({
       direction: "LONG",
@@ -679,7 +694,7 @@ export function createMockRuntime(overrides?: Partial<IAgentRuntime>) {
       confidence: 68,
     }),
   });
-  
+
   return {
     agentId: "test-agent-id",
     character: { name: "VINCE" },
@@ -711,15 +726,15 @@ import { createMockRuntime } from "../test-utils";
 describe("VinceSignalAggregatorService", () => {
   let service: VinceSignalAggregatorService;
   let runtime: any;
-  
+
   beforeEach(async () => {
     runtime = createMockRuntime();
     service = await VinceSignalAggregatorService.start(runtime);
   });
-  
+
   it("should aggregate signals from multiple sources", async () => {
     const signal = await service.getAggregatedSignal("BTC");
-    
+
     expect(signal).toMatchObject({
       direction: expect.stringMatching(/^(LONG|SHORT|NEUTRAL)$/),
       strength: expect.any(Number),
@@ -727,17 +742,17 @@ describe("VinceSignalAggregatorService", () => {
       sources: expect.any(Array),
     });
   });
-  
+
   it("should apply session multipliers", async () => {
     // Mock off-hours
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-01-01T23:00:00Z")); // Off-hours
-    
+
     const signal = await service.getAggregatedSignal("BTC");
-    
+
     // Off-hours should reduce confidence
     expect(signal.sessionMultiplier).toBeLessThan(1.0);
-    
+
     vi.useRealTimers();
   });
 });
@@ -752,18 +767,18 @@ import { VinceBinanceService } from "../../services/binance.service";
 
 describe.skip("Real API Tests", () => {
   // Skip by default, run manually: bun run test:e2e
-  
+
   it("should fetch real Binance data", async () => {
     const runtime = createMockRuntime();
     const service = await VinceBinanceService.start(runtime);
-    
+
     const data = await service.getTopTraders("BTCUSDT");
-    
+
     expect(data).toMatchObject({
       longShortRatio: expect.any(Number),
       topTraderLongRatio: expect.any(Number),
     });
-    
+
     await service.stop();
   }, 30000); // 30s timeout for API calls
 });
@@ -881,7 +896,7 @@ const CIRCUIT_BREAKER = {
 class APIClient {
   private failures = 0;
   private lastFailure = 0;
-  
+
   async fetch(url: string): Promise<any> {
     // Check if circuit is open
     if (this.failures >= CIRCUIT_BREAKER.maxFailures) {
@@ -890,7 +905,7 @@ class APIClient {
       }
       this.failures = 0; // Reset
     }
-    
+
     try {
       const response = await fetch(url, { signal: AbortSignal.timeout(10000) });
       this.failures = 0;
@@ -898,11 +913,11 @@ class APIClient {
     } catch (error) {
       this.failures++;
       this.lastFailure = Date.now();
-      
+
       // Exponential backoff
       const backoff = CIRCUIT_BREAKER.backoffMs[Math.min(this.failures - 1, 2)];
-      await new Promise(r => setTimeout(r, backoff));
-      
+      await new Promise((r) => setTimeout(r, backoff));
+
       throw error;
     }
   }
@@ -915,22 +930,22 @@ class APIClient {
 class CachedService {
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly ttl = 5 * 60 * 1000; // 5 minutes
-  
+
   async getData(key: string): Promise<any> {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.ttl) {
       return cached.data;
     }
-    
+
     const data = await this.fetchFresh(key);
     this.cache.set(key, { data, timestamp: Date.now() });
     return data;
   }
-  
+
   invalidate(key: string): void {
     this.cache.delete(key);
   }
-  
+
   clear(): void {
     this.cache.clear();
   }
@@ -946,7 +961,7 @@ type Session = "ASIA" | "EUROPE" | "EU_US_OVERLAP" | "US" | "OFF_HOURS";
 
 function getCurrentSession(): Session {
   const hour = new Date().getUTCHours();
-  
+
   if (hour >= 0 && hour < 7) return "ASIA";
   if (hour >= 7 && hour < 13) return "EUROPE";
   if (hour >= 13 && hour < 16) return "EU_US_OVERLAP";
@@ -954,7 +969,10 @@ function getCurrentSession(): Session {
   return "OFF_HOURS";
 }
 
-const SESSION_MULTIPLIERS: Record<Session, { confidence: number; size: number }> = {
+const SESSION_MULTIPLIERS: Record<
+  Session,
+  { confidence: number; size: number }
+> = {
   ASIA: { confidence: 0.9, size: 0.8 },
   EUROPE: { confidence: 1.0, size: 1.0 },
   EU_US_OVERLAP: { confidence: 1.1, size: 1.1 },
@@ -965,7 +983,7 @@ const SESSION_MULTIPLIERS: Record<Session, { confidence: number; size: number }>
 function getSessionMultiplier(): { confidence: number; size: number } {
   const session = getCurrentSession();
   const multiplier = SESSION_MULTIPLIERS[session];
-  
+
   // Weekend adjustment
   const isWeekend = [0, 6].includes(new Date().getUTCDay());
   if (isWeekend) {
@@ -974,7 +992,7 @@ function getSessionMultiplier(): { confidence: number; size: number } {
       size: multiplier.size * 0.8,
     };
   }
-  
+
   return multiplier;
 }
 ```
@@ -985,10 +1003,15 @@ function getSessionMultiplier(): { confidence: number; size: number } {
 interface SignalSource {
   name: string;
   weight: number;
-  getSignal: () => Promise<{ direction: "LONG" | "SHORT" | "NEUTRAL"; strength: number }>;
+  getSignal: () => Promise<{
+    direction: "LONG" | "SHORT" | "NEUTRAL";
+    strength: number;
+  }>;
 }
 
-async function aggregateSignals(sources: SignalSource[]): Promise<AggregatedSignal> {
+async function aggregateSignals(
+  sources: SignalSource[],
+): Promise<AggregatedSignal> {
   const votes = await Promise.all(
     sources.map(async (source) => {
       try {
@@ -997,16 +1020,16 @@ async function aggregateSignals(sources: SignalSource[]): Promise<AggregatedSign
       } catch {
         return null;
       }
-    })
+    }),
   );
-  
+
   const validVotes = votes.filter(Boolean);
-  
+
   // Weighted vote counting
   let longScore = 0;
   let shortScore = 0;
   let totalWeight = 0;
-  
+
   for (const vote of validVotes) {
     totalWeight += vote.weight;
     if (vote.direction === "LONG") {
@@ -1015,12 +1038,13 @@ async function aggregateSignals(sources: SignalSource[]): Promise<AggregatedSign
       shortScore += vote.weight * (vote.strength / 100);
     }
   }
-  
+
   const netScore = (longScore - shortScore) / totalWeight;
-  const direction = netScore > 0.1 ? "LONG" : netScore < -0.1 ? "SHORT" : "NEUTRAL";
+  const direction =
+    netScore > 0.1 ? "LONG" : netScore < -0.1 ? "SHORT" : "NEUTRAL";
   const strength = Math.abs(netScore) * 100;
   const confidence = (validVotes.length / sources.length) * 100;
-  
+
   return { direction, strength, confidence, sources: validVotes };
 }
 ```
@@ -1041,9 +1065,9 @@ const service = runtime.getService("vince-market-data");
 // Solution: Check service registration order in index.ts
 // Dependencies must be registered before dependents
 services: [
-  VinceMarketDataService,        // ← This must come first
-  VinceSignalAggregatorService,  // ← This depends on market data
-]
+  VinceMarketDataService, // ← This must come first
+  VinceSignalAggregatorService, // ← This depends on market data
+];
 ```
 
 #### 2. API Rate Limiting
@@ -1115,29 +1139,29 @@ cat .elizadb/vince-paper-bot/weight-bandit-state.json | jq '.sources | to_entrie
 
 ### Service Types
 
-| Service Type | Purpose |
-|--------------|---------|
-| `vince-market-data` | Aggregated price, RSI, volatility |
-| `vince-signal-aggregator` | Weighted signal voting |
-| `vince-paper-trading` | Bot orchestration |
-| `vince-position-manager` | Position tracking |
-| `vince-risk-manager` | Circuit breakers |
-| `vince-trade-journal` | Trade history |
-| `vince-goal-tracker` | KPI tracking |
-| `vince-feature-store` | ML training data |
-| `vince-weight-bandit` | Thompson Sampling |
+| Service Type              | Purpose                           |
+| ------------------------- | --------------------------------- |
+| `vince-market-data`       | Aggregated price, RSI, volatility |
+| `vince-signal-aggregator` | Weighted signal voting            |
+| `vince-paper-trading`     | Bot orchestration                 |
+| `vince-position-manager`  | Position tracking                 |
+| `vince-risk-manager`      | Circuit breakers                  |
+| `vince-trade-journal`     | Trade history                     |
+| `vince-goal-tracker`      | KPI tracking                      |
+| `vince-feature-store`     | ML training data                  |
+| `vince-weight-bandit`     | Thompson Sampling                 |
 
 ### Action Triggers
 
-| Action | Primary Triggers |
-|--------|------------------|
-| `VINCE_GM` | "gm", "good morning", "briefing" |
-| `VINCE_PERPS` | "perps", "trading", "signal" |
-| `VINCE_OPTIONS` | "options", "strike", "covered call" |
-| `VINCE_HIP3` | "hip3", "stocks", "gold", "nvda" |
-| `VINCE_MEMES` | "memes", "trenches", "ai token" |
-| `VINCE_BOT_STATUS` | "bot status", "portfolio" |
-| `VINCE_BOT_TRADE` | "trade", "go long", "go short" |
+| Action             | Primary Triggers                    |
+| ------------------ | ----------------------------------- |
+| `VINCE_GM`         | "gm", "good morning", "briefing"    |
+| `VINCE_PERPS`      | "perps", "trading", "signal"        |
+| `VINCE_OPTIONS`    | "options", "strike", "covered call" |
+| `VINCE_HIP3`       | "hip3", "stocks", "gold", "nvda"    |
+| `VINCE_MEMES`      | "memes", "trenches", "ai token"     |
+| `VINCE_BOT_STATUS` | "bot status", "portfolio"           |
+| `VINCE_BOT_TRADE`  | "trade", "go long", "go short"      |
 
 ### Data Persistence Paths
 
@@ -1166,4 +1190,4 @@ cat .elizadb/vince-paper-bot/weight-bandit-state.json | jq '.sources | to_entrie
 - [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) — Signal sources and debugging.
 - [TREASURY.md](../../TREASURY.md), [FEATURE-STORE.md](../../FEATURE-STORE.md) — Cost coverage and feature store (project root).
 
-*Last updated: February 2026*
+_Last updated: February 2026_

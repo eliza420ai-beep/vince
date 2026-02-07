@@ -3,7 +3,7 @@
  *
  * Provides graceful degradation when Nansen API is unavailable or fails.
  * Returns empty data sets instead of null to prevent cascading failures.
- * 
+ *
  * Unlike other fallbacks that call alternative APIs, this is a "null object" pattern
  * that allows the MEMES action to continue functioning with DexScreener data only.
  *
@@ -36,7 +36,9 @@ export class NansenFallbackService implements INansenService {
    */
   private logWarningOnce(): void {
     if (!this.warningLogged) {
-      logger.warn("[NansenFallback] Nansen API unavailable - smart money data will not be included");
+      logger.warn(
+        "[NansenFallback] Nansen API unavailable - smart money data will not be included",
+      );
       this.warningLogged = true;
     }
   }
@@ -46,7 +48,7 @@ export class NansenFallbackService implements INansenService {
    */
   async getSmartMoneyTokens(
     _chains?: NansenChain[],
-    _timeframe?: string
+    _timeframe?: string,
   ): Promise<INansenSmartMoneyToken[]> {
     this.logWarningOnce();
     return [];
@@ -57,7 +59,7 @@ export class NansenFallbackService implements INansenService {
    */
   async getSmartMoneyTrades(
     _chain: NansenChain,
-    _tokenAddress: string
+    _tokenAddress: string,
   ): Promise<INansenSmartMoneyTrade[]> {
     this.logWarningOnce();
     return [];
@@ -69,7 +71,7 @@ export class NansenFallbackService implements INansenService {
   async getWhoBoughtSold(
     _chain: NansenChain,
     _tokenAddress: string,
-    _side?: "BUY" | "SELL"
+    _side?: "BUY" | "SELL",
   ): Promise<INansenWhoBoughtSold[]> {
     this.logWarningOnce();
     return [];
@@ -80,7 +82,7 @@ export class NansenFallbackService implements INansenService {
    */
   async isSmartMoneyAccumulating(
     _chain: NansenChain,
-    _tokenAddress: string
+    _tokenAddress: string,
   ): Promise<INansenAccumulationResult> {
     this.logWarningOnce();
     return {

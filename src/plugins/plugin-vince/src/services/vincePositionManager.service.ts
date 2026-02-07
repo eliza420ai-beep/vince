@@ -8,22 +8,31 @@
  */
 
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
-import type { 
-  Position, 
-  Portfolio, 
+import type {
+  Position,
+  Portfolio,
   RiskState,
   PositionDirection,
   AggregatedTradeSignal,
   PositionSizingRecommendation,
 } from "../types/paperTrading";
-import { INITIAL_BALANCE, DEFAULT_STOP_LOSS_PCT, DEFAULT_LEVERAGE, DEFAULT_RISK_LIMITS, TAKE_PROFIT_USD, TAKE_PROFIT_USD_AGGRESSIVE, FEES } from "../constants/paperTradingDefaults";
+import {
+  INITIAL_BALANCE,
+  DEFAULT_STOP_LOSS_PCT,
+  DEFAULT_LEVERAGE,
+  DEFAULT_RISK_LIMITS,
+  TAKE_PROFIT_USD,
+  TAKE_PROFIT_USD_AGGRESSIVE,
+  FEES,
+} from "../constants/paperTradingDefaults";
 import { v4 as uuidv4 } from "uuid";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceRiskManagerService } from "./vinceRiskManager.service";
 
 export class VincePositionManagerService extends Service {
   static serviceType = "VINCE_POSITION_MANAGER_SERVICE";
-  capabilityDescription = "Tracks open positions and portfolio state for paper trading";
+  capabilityDescription =
+    "Tracks open positions and portfolio state for paper trading";
 
   private positions: Map<string, Position> = new Map();
   private portfolio: Portfolio;
@@ -33,7 +42,9 @@ export class VincePositionManagerService extends Service {
     this.portfolio = this.createInitialPortfolio();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VincePositionManagerService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VincePositionManagerService> {
     const service = new VincePositionManagerService(runtime);
     logger.info("[VincePositionManager] ✅ Service started");
     return service;
@@ -71,7 +82,9 @@ export class VincePositionManagerService extends Service {
   }
 
   getRiskState(): RiskState {
-    const riskManager = this.runtime.getService("VINCE_RISK_MANAGER_SERVICE") as any;
+    const riskManager = this.runtime.getService(
+      "VINCE_RISK_MANAGER_SERVICE",
+    ) as any;
     if (riskManager) {
       return riskManager.getRiskState();
     }
@@ -97,11 +110,15 @@ export class VincePositionManagerService extends Service {
 
     this.portfolio.unrealizedPnl = totalUnrealized;
     this.portfolio.totalValue = this.portfolio.balance + totalUnrealized;
-    this.portfolio.returnPct = ((this.portfolio.totalValue - this.portfolio.initialBalance) / this.portfolio.initialBalance) * 100;
-    
+    this.portfolio.returnPct =
+      ((this.portfolio.totalValue - this.portfolio.initialBalance) /
+        this.portfolio.initialBalance) *
+      100;
+
     // Update win rate
     if (this.portfolio.tradeCount > 0) {
-      this.portfolio.winRate = (this.portfolio.winCount / this.portfolio.tradeCount) * 100;
+      this.portfolio.winRate =
+        (this.portfolio.winCount / this.portfolio.tradeCount) * 100;
     }
 
     this.portfolio.lastUpdate = Date.now();
@@ -124,9 +141,15 @@ export class VincePositionManagerService extends Service {
    * Calculate goal-aware position size
    * Uses GoalTrackerService for KPI-driven sizing if available
    */
-  calculateGoalAwareSize(signal: AggregatedTradeSignal): PositionSizingRecommendation {
-    const goalTracker = this.runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as VinceGoalTrackerService | null;
-    const riskManager = this.runtime.getService("VINCE_RISK_MANAGER_SERVICE") as VinceRiskManagerService | null;
+  calculateGoalAwareSize(
+    signal: AggregatedTradeSignal,
+  ): PositionSizingRecommendation {
+    const goalTracker = this.runtime.getService(
+      "VINCE_GOAL_TRACKER_SERVICE",
+    ) as VinceGoalTrackerService | null;
+    const riskManager = this.runtime.getService(
+      "VINCE_RISK_MANAGER_SERVICE",
+    ) as VinceRiskManagerService | null;
 
     const currentCapital = this.portfolio.totalValue;
     const currentExposure = this.getCurrentExposure();
@@ -137,12 +160,17 @@ export class VincePositionManagerService extends Service {
         signal,
         currentCapital,
         currentExposure,
-        currentDrawdown
+        currentDrawdown,
       );
     }
 
     // Fallback: manual position sizing
-    return this.calculateFallbackPositionSize(signal, currentCapital, currentExposure, currentDrawdown);
+    return this.calculateFallbackPositionSize(
+      signal,
+      currentCapital,
+      currentExposure,
+      currentDrawdown,
+    );
   }
 
   /**
@@ -152,13 +180,13 @@ export class VincePositionManagerService extends Service {
     signal: AggregatedTradeSignal,
     currentCapital: number,
     currentExposure: number,
-    currentDrawdownPct: number
+    currentDrawdownPct: number,
   ): PositionSizingRecommendation {
     const factors: string[] = [];
 
     // Base size: % of capital based on signal strength
     let sizePct = DEFAULT_RISK_LIMITS.maxPositionSizePct;
-    
+
     // Adjust for signal strength
     if (signal.strength >= 80) {
       factors.push("Strong signal (full size)");
@@ -180,22 +208,23 @@ export class VincePositionManagerService extends Service {
     }
 
     // Apply exposure limit (margin based)
-    const maxExposureMargin = currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
+    const maxExposureMargin =
+      currentCapital * (DEFAULT_RISK_LIMITS.maxTotalExposurePct / 100);
     const availableMargin = Math.max(0, maxExposureMargin - currentExposure);
-    
+
     let targetMargin = currentCapital * (sizePct / 100);
     if (targetMargin > availableMargin) {
       targetMargin = availableMargin;
       factors.push("Exposure limit applied");
     }
-    
+
     const leverage = DEFAULT_LEVERAGE;
     let sizeUsd = targetMargin * leverage;
-    
+
     // Minimum size check (notional)
     sizeUsd = Math.max(1000, sizeUsd);
     const marginUsed = sizeUsd / leverage;
-    
+
     if (marginUsed > availableMargin && availableMargin > 0) {
       sizeUsd = availableMargin * leverage;
     }
@@ -217,7 +246,9 @@ export class VincePositionManagerService extends Service {
       expectedLossUsd: Math.round(expectedLossUsd),
       factors,
       helpsHitTarget: true, // Unknown without goal tracker
-      expectedContribution: Math.round(expectedWinUsd * 0.55 - expectedLossUsd * 0.45), // Approx
+      expectedContribution: Math.round(
+        expectedWinUsd * 0.55 - expectedLossUsd * 0.45,
+      ), // Approx
     };
   }
 
@@ -236,7 +267,17 @@ export class VincePositionManagerService extends Service {
     takeProfitPrices: number[];
     metadata?: Record<string, unknown>;
   }): { position: Position; sizing: PositionSizingRecommendation } | null {
-    const { asset, direction, entryPrice, signal, strategyName, triggerSignals, stopLossPrice, takeProfitPrices, metadata } = params;
+    const {
+      asset,
+      direction,
+      entryPrice,
+      signal,
+      strategyName,
+      triggerSignals,
+      stopLossPrice,
+      takeProfitPrices,
+      metadata,
+    } = params;
 
     // Calculate goal-aware size
     const sizing = this.calculateGoalAwareSize(signal);
@@ -244,7 +285,7 @@ export class VincePositionManagerService extends Service {
     // Log sizing decision
     logger.info(
       `[VincePositionManager] 📊 Goal-aware sizing for ${asset}: $${sizing.sizeUsd} (${sizing.sizePct}%) @ ${sizing.leverage}x ` +
-      `| Risk: $${sizing.riskUsd} (${sizing.riskPct}%) | Factors: ${sizing.factors.join(", ")}`
+        `| Risk: $${sizing.riskUsd} (${sizing.riskPct}%) | Factors: ${sizing.factors.join(", ")}`,
     );
 
     // Open the position with calculated size
@@ -266,7 +307,9 @@ export class VincePositionManagerService extends Service {
     });
 
     // Record trade with goal tracker
-    const goalTracker = this.runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as VinceGoalTrackerService | null;
+    const goalTracker = this.runtime.getService(
+      "VINCE_GOAL_TRACKER_SERVICE",
+    ) as VinceGoalTrackerService | null;
     if (goalTracker) {
       // Will be recorded on close with actual P&L
     }
@@ -277,16 +320,22 @@ export class VincePositionManagerService extends Service {
   /**
    * Close position and record with goal tracker
    */
-  closePositionWithGoalTracking(positionId: string, exitPrice: number, reason: Position["closeReason"]): Position | null {
+  closePositionWithGoalTracking(
+    positionId: string,
+    exitPrice: number,
+    reason: Position["closeReason"],
+  ): Position | null {
     const position = this.closePosition(positionId, exitPrice, reason);
-    
+
     if (position && position.realizedPnl !== undefined) {
       // Record trade with goal tracker
-      const goalTracker = this.runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as VinceGoalTrackerService | null;
+      const goalTracker = this.runtime.getService(
+        "VINCE_GOAL_TRACKER_SERVICE",
+      ) as VinceGoalTrackerService | null;
       if (goalTracker) {
         goalTracker.recordTrade(position.realizedPnl);
         logger.info(
-          `[VincePositionManager] 📈 Trade recorded with goal tracker: ${position.realizedPnl >= 0 ? "+" : ""}$${position.realizedPnl.toFixed(2)}`
+          `[VincePositionManager] 📈 Trade recorded with goal tracker: ${position.realizedPnl >= 0 ? "+" : ""}$${position.realizedPnl.toFixed(2)}`,
         );
       }
     }
@@ -310,14 +359,26 @@ export class VincePositionManagerService extends Service {
     triggerSignals: string[];
     metadata?: Record<string, unknown>;
   }): Position {
-    const { asset, direction, entryPrice, sizeUsd, leverage, stopLossPrice, takeProfitPrices, strategyName, triggerSignals, metadata } = params;
+    const {
+      asset,
+      direction,
+      entryPrice,
+      sizeUsd,
+      leverage,
+      stopLossPrice,
+      takeProfitPrices,
+      strategyName,
+      triggerSignals,
+      metadata,
+    } = params;
 
     // Calculate liquidation price
     const marginPercent = 100 / leverage;
     const liquidationDistance = entryPrice * (marginPercent / 100) * 0.9; // 90% of margin
-    const liquidationPrice = direction === "long" 
-      ? entryPrice - liquidationDistance 
-      : entryPrice + liquidationDistance;
+    const liquidationPrice =
+      direction === "long"
+        ? entryPrice - liquidationDistance
+        : entryPrice + liquidationDistance;
 
     const margin = sizeUsd / leverage;
 
@@ -345,19 +406,23 @@ export class VincePositionManagerService extends Service {
     };
 
     this.positions.set(position.id, position);
-    
+
     // Deduct position margin from balance
     this.portfolio.balance -= margin;
     this.portfolio.tradeCount++;
 
     logger.info(
-      `[VincePositionManager] Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice} (size: $${sizeUsd}, ${leverage}x)`
+      `[VincePositionManager] Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice} (size: $${sizeUsd}, ${leverage}x)`,
     );
 
     return position;
   }
 
-  closePosition(positionId: string, exitPrice: number, reason: Position["closeReason"]): Position | null {
+  closePosition(
+    positionId: string,
+    exitPrice: number,
+    reason: Position["closeReason"],
+  ): Position | null {
     const position = this.positions.get(positionId);
     if (!position) {
       logger.warn(`[VincePositionManager] Position ${positionId} not found`);
@@ -365,9 +430,10 @@ export class VincePositionManagerService extends Service {
     }
 
     // Calculate final P&L (gross then net of fees)
-    const priceDiff = position.direction === "long"
-      ? exitPrice - position.entryPrice
-      : position.entryPrice - exitPrice;
+    const priceDiff =
+      position.direction === "long"
+        ? exitPrice - position.entryPrice
+        : position.entryPrice - exitPrice;
     const pnlPercent = (priceDiff / position.entryPrice) * 100;
     const grossPnl = (position.sizeUsd * pnlPercent) / 100;
     const feesUsd = (position.sizeUsd * FEES.ROUND_TRIP_BPS) / 10_000;
@@ -389,7 +455,7 @@ export class VincePositionManagerService extends Service {
     // Update portfolio (net PnL)
     this.portfolio.balance += margin + realizedPnl;
     this.portfolio.realizedPnl += realizedPnl;
-    
+
     if (realizedPnl > 0) {
       this.portfolio.winCount++;
     } else {
@@ -399,9 +465,12 @@ export class VincePositionManagerService extends Service {
     // Remove from open positions
     this.positions.delete(positionId);
 
-    const pnlStr = realizedPnl >= 0 ? `+$${realizedPnl.toFixed(2)}` : `-$${Math.abs(realizedPnl).toFixed(2)}`;
+    const pnlStr =
+      realizedPnl >= 0
+        ? `+$${realizedPnl.toFixed(2)}`
+        : `-$${Math.abs(realizedPnl).toFixed(2)}`;
     logger.info(
-      `[VincePositionManager] Closed ${position.asset} (${reason}) @ $${exitPrice} - P&L: ${pnlStr} (fees -$${feesUsd.toFixed(2)})`
+      `[VincePositionManager] Closed ${position.asset} (${reason}) @ $${exitPrice} - P&L: ${pnlStr} (fees -$${feesUsd.toFixed(2)})`,
     );
 
     return position;
@@ -415,11 +484,12 @@ export class VincePositionManagerService extends Service {
     for (const position of this.positions.values()) {
       if (position.asset === asset && position.status === "open") {
         position.markPrice = markPrice;
-        
+
         // Calculate unrealized P&L
-        const priceDiff = position.direction === "long" 
-          ? markPrice - position.entryPrice 
-          : position.entryPrice - markPrice;
+        const priceDiff =
+          position.direction === "long"
+            ? markPrice - position.entryPrice
+            : position.entryPrice - markPrice;
         const pnlPercent = (priceDiff / position.entryPrice) * 100;
         position.unrealizedPnl = (position.sizeUsd * pnlPercent) / 100;
         position.unrealizedPnlPct = pnlPercent * position.leverage;
@@ -452,43 +522,44 @@ export class VincePositionManagerService extends Service {
     // Activate trailing stop at 1.5R profit
     if (!position.trailingStopActivated && profitR >= 1.5) {
       position.trailingStopActivated = true;
-      
+
       // Calculate trailing distance (1.5x ATR or 1.5x SL distance if no ATR)
-      const trailingDistancePct = position.entryATRPct 
-        ? position.entryATRPct * 1.5 
+      const trailingDistancePct = position.entryATRPct
+        ? position.entryATRPct * 1.5
         : riskPct * 1.5;
-      const trailingDistance = position.entryPrice * (trailingDistancePct / 100);
-      
+      const trailingDistance =
+        position.entryPrice * (trailingDistancePct / 100);
+
       // Set initial trailing stop at 0.5R profit level
       const breakEvenPrice = position.entryPrice;
       const halfRProfit = slDistance * 0.5;
-      
+
       if (position.direction === "long") {
         position.trailingStopPrice = breakEvenPrice + halfRProfit;
       } else {
         position.trailingStopPrice = breakEvenPrice - halfRProfit;
       }
-      
+
       logger.info(
         `[VincePositionManager] 🎯 Trailing stop ACTIVATED for ${position.asset} at ${profitR.toFixed(2)}R profit. ` +
-        `Initial trail: $${position.trailingStopPrice?.toFixed(2)}`
+          `Initial trail: $${position.trailingStopPrice?.toFixed(2)}`,
       );
     }
 
     // Update trailing stop if already activated (only moves in profit direction)
     if (position.trailingStopActivated && position.trailingStopPrice) {
-      const trailingDistancePct = position.entryATRPct 
-        ? position.entryATRPct * 1.5 
+      const trailingDistancePct = position.entryATRPct
+        ? position.entryATRPct * 1.5
         : riskPct * 1.5;
       const trailingDistance = markPrice * (trailingDistancePct / 100);
-      
+
       if (position.direction === "long") {
         const newTrail = markPrice - trailingDistance;
         if (newTrail > position.trailingStopPrice) {
           const oldTrail = position.trailingStopPrice;
           position.trailingStopPrice = newTrail;
           logger.debug(
-            `[VincePositionManager] 📈 Trailing stop updated for ${position.asset}: $${oldTrail.toFixed(2)} → $${newTrail.toFixed(2)}`
+            `[VincePositionManager] 📈 Trailing stop updated for ${position.asset}: $${oldTrail.toFixed(2)} → $${newTrail.toFixed(2)}`,
           );
         }
       } else {
@@ -497,7 +568,7 @@ export class VincePositionManagerService extends Service {
           const oldTrail = position.trailingStopPrice;
           position.trailingStopPrice = newTrail;
           logger.debug(
-            `[VincePositionManager] 📉 Trailing stop updated for ${position.asset}: $${oldTrail.toFixed(2)} → $${newTrail.toFixed(2)}`
+            `[VincePositionManager] 📉 Trailing stop updated for ${position.asset}: $${oldTrail.toFixed(2)} → $${newTrail.toFixed(2)}`,
           );
         }
       }
@@ -513,17 +584,45 @@ export class VincePositionManagerService extends Service {
   // Stale position threshold: 24 hours
   private readonly STALE_POSITION_AGE_MS = 24 * 60 * 60 * 1000;
 
-  checkTriggers(): { position: Position; trigger: "stop_loss" | "take_profit" | "liquidation" | "trailing_stop" | "partial_tp" | "max_age" }[] {
-    const triggered: { position: Position; trigger: "stop_loss" | "take_profit" | "liquidation" | "trailing_stop" | "partial_tp" | "max_age" }[] = [];
+  checkTriggers(): {
+    position: Position;
+    trigger:
+      | "stop_loss"
+      | "take_profit"
+      | "liquidation"
+      | "trailing_stop"
+      | "partial_tp"
+      | "max_age";
+  }[] {
+    const triggered: {
+      position: Position;
+      trigger:
+        | "stop_loss"
+        | "take_profit"
+        | "liquidation"
+        | "trailing_stop"
+        | "partial_tp"
+        | "max_age";
+    }[] = [];
 
     for (const position of this.positions.values()) {
       if (position.status !== "open") continue;
 
-      const { markPrice, direction, stopLossPrice, takeProfitPrices, liquidationPrice, trailingStopPrice, trailingStopActivated } = position;
+      const {
+        markPrice,
+        direction,
+        stopLossPrice,
+        takeProfitPrices,
+        liquidationPrice,
+        trailingStopPrice,
+        trailingStopActivated,
+      } = position;
       const positionAge = Date.now() - position.openedAt;
 
       // Optional dollar take-profit (e.g. $210 when aggressive; close when unrealized P&L >= threshold)
-      const takeProfitUsd = this.runtime.getSetting?.("vince_paper_aggressive") ? TAKE_PROFIT_USD_AGGRESSIVE : TAKE_PROFIT_USD;
+      const takeProfitUsd = this.runtime.getSetting?.("vince_paper_aggressive")
+        ? TAKE_PROFIT_USD_AGGRESSIVE
+        : TAKE_PROFIT_USD;
       if (takeProfitUsd != null && position.unrealizedPnl >= takeProfitUsd) {
         triggered.push({ position, trigger: "take_profit" });
         continue;
@@ -531,27 +630,39 @@ export class VincePositionManagerService extends Service {
 
       // Check max position age (48h)
       if (positionAge > this.MAX_POSITION_AGE_MS) {
-        logger.info(`[VincePositionManager] ⏰ Position ${position.asset} exceeded max age (${Math.round(positionAge / 3600000)}h)`);
+        logger.info(
+          `[VincePositionManager] ⏰ Position ${position.asset} exceeded max age (${Math.round(positionAge / 3600000)}h)`,
+        );
         triggered.push({ position, trigger: "max_age" });
         continue;
       }
 
       // Tighten stop loss for stale losing positions (24h+)
-      if (positionAge > this.STALE_POSITION_AGE_MS && position.unrealizedPnl < 0 && !position.trailingStopActivated) {
+      if (
+        positionAge > this.STALE_POSITION_AGE_MS &&
+        position.unrealizedPnl < 0 &&
+        !position.trailingStopActivated
+      ) {
         // Tighten SL by 25% (move closer to entry)
-        const originalDistance = Math.abs(position.entryPrice - position.stopLossPrice);
+        const originalDistance = Math.abs(
+          position.entryPrice - position.stopLossPrice,
+        );
         const tightenedDistance = originalDistance * 0.75;
-        
+
         if (direction === "long") {
           const newSL = position.entryPrice - tightenedDistance;
           if (newSL > position.stopLossPrice) {
-            logger.info(`[VincePositionManager] 📉 Tightening stale position ${position.asset} SL: $${position.stopLossPrice.toFixed(2)} → $${newSL.toFixed(2)}`);
+            logger.info(
+              `[VincePositionManager] 📉 Tightening stale position ${position.asset} SL: $${position.stopLossPrice.toFixed(2)} → $${newSL.toFixed(2)}`,
+            );
             position.stopLossPrice = newSL;
           }
         } else {
           const newSL = position.entryPrice + tightenedDistance;
           if (newSL < position.stopLossPrice) {
-            logger.info(`[VincePositionManager] 📉 Tightening stale position ${position.asset} SL: $${position.stopLossPrice.toFixed(2)} → $${newSL.toFixed(2)}`);
+            logger.info(
+              `[VincePositionManager] 📉 Tightening stale position ${position.asset} SL: $${position.stopLossPrice.toFixed(2)} → $${newSL.toFixed(2)}`,
+            );
             position.stopLossPrice = newSL;
           }
         }
@@ -593,7 +704,7 @@ export class VincePositionManagerService extends Service {
 
       // Check take profits with partial profit-taking
       const profitsTaken = position.partialProfitsTaken ?? 0;
-      
+
       // TP1: First partial (50%) at 1.5R
       if (takeProfitPrices.length > 0 && profitsTaken < 1) {
         const tp1 = takeProfitPrices[0];
@@ -606,7 +717,7 @@ export class VincePositionManagerService extends Service {
           continue;
         }
       }
-      
+
       // TP2: Second partial (25%) at 3R
       if (takeProfitPrices.length > 1 && profitsTaken === 1) {
         const tp2 = takeProfitPrices[1];
@@ -628,12 +739,15 @@ export class VincePositionManagerService extends Service {
    * Execute partial profit-taking
    * Reduces position size and moves stop to breakeven
    */
-  executePartialTakeProfit(positionId: string, exitPrice: number): { partialPnl: number; remainingSize: number } | null {
+  executePartialTakeProfit(
+    positionId: string,
+    exitPrice: number,
+  ): { partialPnl: number; remainingSize: number } | null {
     const position = this.positions.get(positionId);
     if (!position) return null;
 
     const profitsTaken = position.partialProfitsTaken ?? 0;
-    
+
     // Determine how much to close
     let closePercent: number;
     if (profitsTaken === 0) {
@@ -653,9 +767,10 @@ export class VincePositionManagerService extends Service {
     const remainingSize = position.sizeUsd - closeSize;
 
     // Calculate P&L for the closed portion
-    const priceDiff = position.direction === "long" 
-      ? exitPrice - position.entryPrice 
-      : position.entryPrice - exitPrice;
+    const priceDiff =
+      position.direction === "long"
+        ? exitPrice - position.entryPrice
+        : position.entryPrice - exitPrice;
     const pnlPercent = (priceDiff / position.entryPrice) * 100;
     const partialPnl = (closeSize * pnlPercent) / 100;
 
@@ -669,12 +784,12 @@ export class VincePositionManagerService extends Service {
       position.stopLossPrice = position.entryPrice;
       logger.info(
         `[VincePositionManager] 💰 TP1: Closed ${closePercent}% of ${position.asset} (+$${partialPnl.toFixed(2)}). ` +
-        `SL moved to breakeven. Remaining: $${remainingSize.toFixed(0)}`
+          `SL moved to breakeven. Remaining: $${remainingSize.toFixed(0)}`,
       );
     } else {
       logger.info(
         `[VincePositionManager] 💰 TP2: Closed ${closePercent}% of ${position.asset} (+$${partialPnl.toFixed(2)}). ` +
-        `Remaining: $${remainingSize.toFixed(0)} runs with trailing stop`
+          `Remaining: $${remainingSize.toFixed(0)} runs with trailing stop`,
       );
     }
 
@@ -691,7 +806,9 @@ export class VincePositionManagerService extends Service {
   // ==========================================
 
   getOpenPositions(): Position[] {
-    return Array.from(this.positions.values()).filter(p => p.status === "open");
+    return Array.from(this.positions.values()).filter(
+      (p) => p.status === "open",
+    );
   }
 
   getPosition(positionId: string): Position | null {
@@ -733,7 +850,9 @@ export class VincePositionManagerService extends Service {
         this.positions.set(position.id, position);
       }
     }
-    logger.info(`[VincePositionManager] Restored ${this.positions.size} positions`);
+    logger.info(
+      `[VincePositionManager] Restored ${this.positions.size} positions`,
+    );
   }
 
   reset(): void {

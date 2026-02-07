@@ -18,12 +18,12 @@ describe("improvementReportWeights", () => {
       expect(
         sourceImportancesFromReport({
           feature_importances: {},
-        } as ImprovementReport)
+        } as ImprovementReport),
       ).toEqual(new Map());
       expect(
         sourceImportancesFromReport({
           feature_importances: { signal_quality: {} },
-        } as ImprovementReport)
+        } as ImprovementReport),
       ).toEqual(new Map());
     });
 
@@ -57,7 +57,9 @@ describe("improvementReportWeights", () => {
         return; // skip when not in plugin tree
       }
       const raw = fs.readFileSync(metaPath, "utf-8");
-      const meta = JSON.parse(raw) as { improvement_report?: ImprovementReport };
+      const meta = JSON.parse(raw) as {
+        improvement_report?: ImprovementReport;
+      };
       const report = meta.improvement_report ?? null;
       if (!report) return;
 
@@ -65,7 +67,14 @@ describe("improvementReportWeights", () => {
       expect(bySource.size).toBeGreaterThan(0);
       const sources = [...bySource.keys()];
       expect(sources).toContain("MarketRegime");
-      expect(sources.some((s) => s === "NewsSentiment" || s === "BinanceTopTraders" || s === "CoinGlass")).toBe(true);
+      expect(
+        sources.some(
+          (s) =>
+            s === "NewsSentiment" ||
+            s === "BinanceTopTraders" ||
+            s === "CoinGlass",
+        ),
+      ).toBe(true);
       for (const [, v] of bySource) {
         expect(typeof v).toBe("number");
         expect(v).toBeGreaterThanOrEqual(0);
@@ -75,7 +84,9 @@ describe("improvementReportWeights", () => {
 
   describe("logAndApplyImprovementReportWeights", () => {
     it("runs without throwing (dry-run, applyWeights=false)", async () => {
-      await expect(logAndApplyImprovementReportWeights(false)).resolves.toBeUndefined();
+      await expect(
+        logAndApplyImprovementReportWeights(false),
+      ).resolves.toBeUndefined();
     });
   });
 });

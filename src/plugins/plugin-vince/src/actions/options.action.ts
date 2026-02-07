@@ -16,12 +16,26 @@
  * - Hyperliquid perps funding for strike width guidance
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import type { VinceDeribitService, PremiumYield, IVSurface, OptionsContext } from "../services/deribit.service";
+import type {
+  VinceDeribitService,
+  PremiumYield,
+  IVSurface,
+  OptionsContext,
+} from "../services/deribit.service";
 import type { VinceCoinGlassService } from "../services/coinglass.service";
 // External service factories (with fallbacks)
-import { getOrCreateHyperliquidService, getOrCreateDeribitService } from "../services/fallbacks";
+import {
+  getOrCreateHyperliquidService,
+  getOrCreateDeribitService,
+} from "../services/fallbacks";
 
 // ==========================================
 // Build comprehensive data context for LLM
@@ -35,40 +49,48 @@ interface AssetOptionsData {
 function buildOptionsDataContext(
   assetsData: AssetOptionsData[],
   fearGreed: { value: number; classification: string } | null,
-  isFriday: boolean
+  isFriday: boolean,
 ): string {
   const lines: string[] = [];
-  
+
   if (isFriday) {
     lines.push("=== FRIDAY - STRIKE SELECTION RITUAL ===");
-    lines.push("Weekly 7-day options expiring next Friday. Time to roll and collect premium.\n");
+    lines.push(
+      "Weekly 7-day options expiring next Friday. Time to roll and collect premium.\n",
+    );
   }
-  
+
   for (const { currency, ctx } of assetsData) {
     lines.push(`=== ${currency} ===`);
-    
+
     if (!ctx.spotPrice) {
       lines.push("No data available\n");
       continue;
     }
-    
+
     // Core prices and volatility
     lines.push(`Spot Price: $${ctx.spotPrice.toLocaleString()}`);
     if (ctx.dvol !== null) {
       lines.push(`DVOL (Implied Vol): ${ctx.dvol.toFixed(1)}%`);
     }
     if (ctx.historicalVolatility !== null) {
-      lines.push(`Historical Volatility: ${ctx.historicalVolatility.toFixed(1)}%`);
+      lines.push(
+        `Historical Volatility: ${ctx.historicalVolatility.toFixed(1)}%`,
+      );
     }
     if (ctx.dvol !== null && ctx.historicalVolatility !== null) {
       const spread = ctx.dvol - ctx.historicalVolatility;
-      lines.push(`IV/RV Spread: ${spread >= 0 ? "+" : ""}${spread.toFixed(1)}% (${spread > 0 ? "IV premium = good for sellers" : "IV discount = options cheap"})`);
+      lines.push(
+        `IV/RV Spread: ${spread >= 0 ? "+" : ""}${spread.toFixed(1)}% (${spread > 0 ? "IV premium = good for sellers" : "IV discount = options cheap"})`,
+      );
     }
     if (ctx.fundingRate !== null) {
       const fundingAnnualized = (ctx.fundingRate * 3 * 365 * 100).toFixed(0);
-      lines.push(`Perp Funding: ${(ctx.fundingRate * 100).toFixed(4)}% (${fundingAnnualized}% APR)`);
+      lines.push(
+        `Perp Funding: ${(ctx.fundingRate * 100).toFixed(4)}% (${fundingAnnualized}% APR)`,
+      );
     }
-    
+
     // IV Surface / Skew
     if (ctx.ivSurface) {
       const iv = ctx.ivSurface;
@@ -78,53 +100,71 @@ function buildOptionsDataContext(
       lines.push(`  25-Delta Call IV: ${iv.call25DeltaIV.toFixed(1)}%`);
       lines.push(`  Skew: ${iv.skew.toFixed(1)}% (${iv.skewInterpretation})`);
     }
-    
+
     // Best Covered Calls
     if (ctx.bestCoveredCalls.length > 0) {
       lines.push(`\nBest Covered Calls (20-30 delta):`);
       for (const cc of ctx.bestCoveredCalls.slice(0, 2)) {
-        const distFromSpot = ((cc.strike - cc.spotPrice) / cc.spotPrice * 100).toFixed(1);
+        const distFromSpot = (
+          ((cc.strike - cc.spotPrice) / cc.spotPrice) *
+          100
+        ).toFixed(1);
         lines.push(`  ${cc.instrumentName}`);
-        lines.push(`    Strike: $${cc.strike.toLocaleString()} (${distFromSpot}% OTM)`);
+        lines.push(
+          `    Strike: $${cc.strike.toLocaleString()} (${distFromSpot}% OTM)`,
+        );
         lines.push(`    Delta: ${Math.abs(cc.delta * 100).toFixed(0)}%`);
         lines.push(`    Premium: $${cc.premium.toFixed(2)}`);
-        lines.push(`    7-Day Yield: ${cc.yield7Day.toFixed(2)}% | Annualized: ${cc.yieldAnnualized.toFixed(0)}% APR`);
+        lines.push(
+          `    7-Day Yield: ${cc.yield7Day.toFixed(2)}% | Annualized: ${cc.yieldAnnualized.toFixed(0)}% APR`,
+        );
         lines.push(`    IV: ${cc.iv.toFixed(1)}%`);
       }
     } else {
       lines.push(`\nNo 7-day calls in 20-30 delta range`);
     }
-    
+
     // Best Cash-Secured Puts
     if (ctx.bestCashSecuredPuts.length > 0) {
       lines.push(`\nBest Cash-Secured Puts (20-30 delta):`);
       for (const sp of ctx.bestCashSecuredPuts.slice(0, 2)) {
-        const distFromSpot = ((sp.spotPrice - sp.strike) / sp.spotPrice * 100).toFixed(1);
+        const distFromSpot = (
+          ((sp.spotPrice - sp.strike) / sp.spotPrice) *
+          100
+        ).toFixed(1);
         lines.push(`  ${sp.instrumentName}`);
-        lines.push(`    Strike: $${sp.strike.toLocaleString()} (${distFromSpot}% OTM)`);
+        lines.push(
+          `    Strike: $${sp.strike.toLocaleString()} (${distFromSpot}% OTM)`,
+        );
         lines.push(`    Delta: ${Math.abs(sp.delta * 100).toFixed(0)}%`);
         lines.push(`    Premium: $${sp.premium.toFixed(2)}`);
-        lines.push(`    7-Day Yield: ${sp.yield7Day.toFixed(2)}% | Annualized: ${sp.yieldAnnualized.toFixed(0)}% APR`);
+        lines.push(
+          `    7-Day Yield: ${sp.yield7Day.toFixed(2)}% | Annualized: ${sp.yieldAnnualized.toFixed(0)}% APR`,
+        );
         lines.push(`    IV: ${sp.iv.toFixed(1)}%`);
       }
     } else {
       lines.push(`\nNo 7-day puts in 20-30 delta range`);
     }
-    
+
     lines.push("");
   }
-  
+
   // Market context
   if (fearGreed) {
     lines.push(`=== MARKET SENTIMENT ===`);
-    lines.push(`Fear/Greed Index: ${fearGreed.value} (${fearGreed.classification})`);
+    lines.push(
+      `Fear/Greed Index: ${fearGreed.value} (${fearGreed.classification})`,
+    );
     if (fearGreed.value >= 75) {
       lines.push("Extreme greed - consider wider call strikes or tighter puts");
     } else if (fearGreed.value <= 25) {
-      lines.push("Extreme fear - puts command higher premium, good time to sell them");
+      lines.push(
+        "Extreme fear - puts command higher premium, good time to sell them",
+      );
     }
   }
-  
+
   return lines.join("\n");
 }
 
@@ -137,9 +177,9 @@ async function generateOptionsHumanBriefing(
   dataContext: string,
   dateStr: string,
   isFriday: boolean,
-  hypeContext: string | null
+  hypeContext: string | null,
 ): Promise<string> {
-  const fridayContext = isFriday 
+  const fridayContext = isFriday
     ? "It's FRIDAY - strike selection day. Your reader is rolling their HYPERSURFACE options and needs guidance on which asset (BTC/ETH/SOL/HYPE) to write and at what strike width."
     : "Your reader trades weekly options on HYPERSURFACE and wants to know the vol environment and whether to adjust.";
 
@@ -194,10 +234,24 @@ Write the HYPERSURFACE briefing:`;
 
 export const vinceOptionsAction: Action = {
   name: "VINCE_OPTIONS",
-  similes: ["OPTIONS", "STRIKES", "FRIDAY_STRIKES", "COVERED_CALL", "SECURED_PUT", "STRIKE_SELECTION", "HYPERSURFACE", "WEEKLY_OPTIONS", "DERIBIT"],
-  description: "HYPERSURFACE options analysis for weekly covered calls and secured puts (BTC, ETH, SOL, HYPE) using Deribit IV data for strike guidance",
+  similes: [
+    "OPTIONS",
+    "STRIKES",
+    "FRIDAY_STRIKES",
+    "COVERED_CALL",
+    "SECURED_PUT",
+    "STRIKE_SELECTION",
+    "HYPERSURFACE",
+    "WEEKLY_OPTIONS",
+    "DERIBIT",
+  ],
+  description:
+    "HYPERSURFACE options analysis for weekly covered calls and secured puts (BTC, ETH, SOL, HYPE) using Deribit IV data for strike guidance",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("option") ||
@@ -219,19 +273,26 @@ export const vinceOptionsAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       const now = new Date();
       const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
-      const dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      const dateStr = now.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
       const isFriday = dayName === "Friday";
 
       // Track data sources used
       const sources: string[] = [];
 
-      const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
-      const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
+      const deribitService = runtime.getService(
+        "VINCE_DERIBIT_SERVICE",
+      ) as VinceDeribitService | null;
+      const coinglassService = runtime.getService(
+        "VINCE_COINGLASS_SERVICE",
+      ) as VinceCoinGlassService | null;
       // External services (with fallbacks)
       const hyperliquidService = getOrCreateHyperliquidService(runtime);
       const deribitPluginService = getOrCreateDeribitService(runtime);
@@ -253,7 +314,8 @@ export const vinceOptionsAction: Action = {
         const ctx = await deribitService.getOptionsContext(asset);
         assetsData.push({ currency: asset, ctx });
         if (ctx.spotPrice) {
-          if (!sources.includes("Deribit IV surface")) sources.push("Deribit IV surface");
+          if (!sources.includes("Deribit IV surface"))
+            sources.push("Deribit IV surface");
         }
         if (ctx.dvol !== null && !sources.includes("Deribit DVOL")) {
           sources.push("Deribit DVOL");
@@ -280,7 +342,9 @@ export const vinceOptionsAction: Action = {
             const hype = optionsPulse.assets?.hype;
             if (hype) {
               const lines: string[] = [];
-              lines.push(`HYPE Funding: ${hype.fundingAnnualized?.toFixed(2) || "N/A"}% annualized`);
+              lines.push(
+                `HYPE Funding: ${hype.fundingAnnualized?.toFixed(2) || "N/A"}% annualized`,
+              );
               lines.push(`Crowding: ${hype.crowdingLevel || "unknown"}`);
               if (hype.squeezeRisk) {
                 lines.push(`Squeeze Risk: ${hype.squeezeRisk}`);
@@ -296,7 +360,8 @@ export const vinceOptionsAction: Action = {
       // Get Deribit put/call ratio
       if (deribitPluginService) {
         try {
-          const btcData = await deribitPluginService.getComprehensiveData("BTC");
+          const btcData =
+            await deribitPluginService.getComprehensiveData("BTC");
           if (btcData?.optionsSummary?.putCallRatio) {
             sources.push("Deribit Put/Call ratio");
           }
@@ -306,7 +371,11 @@ export const vinceOptionsAction: Action = {
       }
 
       // Build data context
-      const dataContext = buildOptionsDataContext(assetsData, fearGreed, isFriday);
+      const dataContext = buildOptionsDataContext(
+        assetsData,
+        fearGreed,
+        isFriday,
+      );
 
       // Generate human briefing via LLM
       logger.info("[VINCE_OPTIONS] Generating HYPERSURFACE briefing...");
@@ -315,7 +384,7 @@ export const vinceOptionsAction: Action = {
         dataContext,
         `${dayName}, ${dateStr}`,
         isFriday,
-        hypeContext
+        hypeContext,
       );
 
       // Compose output
@@ -328,14 +397,16 @@ export const vinceOptionsAction: Action = {
       sections.push("");
       sections.push(briefing);
       sections.push("");
-      
+
       // Add source attribution
       if (sources.length > 0) {
         sections.push(`*Source: ${sources.join(", ")}*`);
       }
       sections.push("");
       sections.push("---");
-      sections.push("_Next steps_: `ALOHA` (macro vibe) · `PERPS` (execution plan) · `UPLOAD <url>` (stash research)");
+      sections.push(
+        "_Next steps_: `ALOHA` (macro vibe) · `PERPS` (execution plan) · `UPLOAD <url>` (stash research)",
+      );
 
       await callback({
         text: sections.join("\n"),
@@ -364,7 +435,10 @@ export const vinceOptionsAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "What's the best covered call for BTC?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "What's the best covered call for BTC?" },
+      },
       {
         name: "VINCE",
         content: {

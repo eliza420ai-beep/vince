@@ -170,7 +170,8 @@ function betaMean(alpha: number, beta: number): number {
 
 export class VinceWeightBanditService extends Service {
   static serviceType = "VINCE_WEIGHT_BANDIT_SERVICE";
-  capabilityDescription = "Adaptive signal source weight optimization via Thompson Sampling";
+  capabilityDescription =
+    "Adaptive signal source weight optimization via Thompson Sampling";
 
   private arms: Map<string, BetaParams> = new Map();
   private totalTradesProcessed = 0;
@@ -185,7 +186,9 @@ export class VinceWeightBanditService extends Service {
     super();
   }
 
-  static async start(runtime: IAgentRuntime): Promise<VinceWeightBanditService> {
+  static async start(
+    runtime: IAgentRuntime,
+  ): Promise<VinceWeightBanditService> {
     const service = new VinceWeightBanditService(runtime);
     await service.initialize();
     return service;
@@ -214,15 +217,19 @@ export class VinceWeightBanditService extends Service {
 
       // Try to load existing state
       if (fs.existsSync(this.statePath)) {
-        const data = JSON.parse(fs.readFileSync(this.statePath, "utf-8")) as BanditState;
+        const data = JSON.parse(
+          fs.readFileSync(this.statePath, "utf-8"),
+        ) as BanditState;
         this.loadState(data);
         logger.info(
-          `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`
+          `[WeightBandit] Loaded state with ${this.totalTradesProcessed} trades processed`,
         );
       }
 
       this.initialized = true;
-      logger.info("[WeightBandit] ✅ Thompson Sampling initialized for source weight optimization");
+      logger.info(
+        "[WeightBandit] ✅ Thompson Sampling initialized for source weight optimization",
+      );
     } catch (error) {
       logger.error(`[WeightBandit] Initialization error: ${error}`);
     }
@@ -244,7 +251,10 @@ export class VinceWeightBanditService extends Service {
   getSampledWeights(): Map<string, number> {
     // Use cached samples if recent enough
     const now = Date.now();
-    if (now - this.lastSampleTime < this.SAMPLE_CACHE_MS && this.cachedSampledWeights.size > 0) {
+    if (
+      now - this.lastSampleTime < this.SAMPLE_CACHE_MS &&
+      this.cachedSampledWeights.size > 0
+    ) {
       return new Map(this.cachedSampledWeights);
     }
 
@@ -288,7 +298,9 @@ export class VinceWeightBanditService extends Service {
     // sample = 0.5 -> multiplier = 1.0 (baseline)
     // sample = 1.0 -> multiplier = MAX_WEIGHT_MULTIPLIER
     // sample = 0.0 -> multiplier = MIN_WEIGHT_MULTIPLIER
-    const multiplier = MIN_WEIGHT_MULTIPLIER + sample * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
+    const multiplier =
+      MIN_WEIGHT_MULTIPLIER +
+      sample * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
 
     return baseWeight * multiplier;
   }
@@ -306,7 +318,9 @@ export class VinceWeightBanditService extends Service {
 
       if (arm) {
         const mean = betaMean(arm.alpha, arm.beta);
-        const multiplier = MIN_WEIGHT_MULTIPLIER + mean * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
+        const multiplier =
+          MIN_WEIGHT_MULTIPLIER +
+          mean * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
         weights.set(source, baseWeight * multiplier);
       } else {
         weights.set(source, baseWeight);
@@ -369,7 +383,10 @@ export class VinceWeightBanditService extends Service {
     this.totalTradesProcessed++;
 
     // Update exploration rate (decrease over time)
-    this.explorationRate = Math.max(0.1, 1 / Math.sqrt(1 + this.totalTradesProcessed / 50));
+    this.explorationRate = Math.max(
+      0.1,
+      1 / Math.sqrt(1 + this.totalTradesProcessed / 50),
+    );
 
     // Clear cached samples to pick up new values
     this.cachedSampledWeights.clear();
@@ -380,7 +397,7 @@ export class VinceWeightBanditService extends Service {
     }
 
     logger.debug(
-      `[WeightBandit] Updated ${sources.length} sources: ${profitable ? "WIN" : "LOSS"} ${pnlPct.toFixed(2)}%`
+      `[WeightBandit] Updated ${sources.length} sources: ${profitable ? "WIN" : "LOSS"} ${pnlPct.toFixed(2)}%`,
     );
   }
 
@@ -410,7 +427,7 @@ export class VinceWeightBanditService extends Service {
     }
 
     logger.debug(
-      `[WeightBandit] Combo ${params.comboName}: ${params.profitable ? "WIN" : "LOSS"} - boosted ${params.sources.length} sources`
+      `[WeightBandit] Combo ${params.comboName}: ${params.profitable ? "WIN" : "LOSS"} - boosted ${params.sources.length} sources`,
     );
   }
 
@@ -427,7 +444,9 @@ export class VinceWeightBanditService extends Service {
     for (const [source, arm] of this.arms) {
       const baseWeight = dynamicConfig.getSourceWeight(source);
       const mean = betaMean(arm.alpha, arm.beta);
-      const multiplier = MIN_WEIGHT_MULTIPLIER + mean * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
+      const multiplier =
+        MIN_WEIGHT_MULTIPLIER +
+        mean * (MAX_WEIGHT_MULTIPLIER - MIN_WEIGHT_MULTIPLIER);
 
       stats.set(source, {
         ...arm,
@@ -443,7 +462,9 @@ export class VinceWeightBanditService extends Service {
   /**
    * Get top performing sources
    */
-  getTopSources(count: number = 5): Array<{ source: string; winRate: number; observations: number }> {
+  getTopSources(
+    count: number = 5,
+  ): Array<{ source: string; winRate: number; observations: number }> {
     const stats = this.getArmStats();
     const sorted = Array.from(stats.entries())
       .filter(([, stat]) => stat.count >= 5) // Minimum observations
@@ -459,7 +480,11 @@ export class VinceWeightBanditService extends Service {
   /**
    * Get underperforming sources that might need investigation
    */
-  getUnderperformingSources(): Array<{ source: string; winRate: number; observations: number }> {
+  getUnderperformingSources(): Array<{
+    source: string;
+    winRate: number;
+    observations: number;
+  }> {
     const stats = this.getArmStats();
     return Array.from(stats.entries())
       .filter(([, stat]) => stat.count >= 10 && stat.winRate < 0.4)

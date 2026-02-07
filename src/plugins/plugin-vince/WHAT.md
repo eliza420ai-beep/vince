@@ -3,31 +3,31 @@
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
   ██║   ██║██║████╗  ██║██╔════╝██╔════╝
-  ██║   ██║██║██╔██╗ ██║██║     █████╗  
-  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝  
+  ██║   ██║██║██╔██╗ ██║██║     █████╗
+  ╚██╗ ██╔╝██║██║╚██╗██║██║     ██╔══╝
    ╚████╔╝ ██║██║ ╚████║╚██████╗███████╗
     ╚═══╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
 ```
 
-**Purpose:** Define *what* plugin-vince is and does—scope, domains, and capabilities. For *why* we chose ElizaOS and design trade-offs, see [WHY.md](./WHY.md). For *how* to develop and extend it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
+**Purpose:** Define _what_ plugin-vince is and does—scope, domains, and capabilities. For _why_ we chose ElizaOS and design trade-offs, see [WHY.md](./WHY.md). For _how_ to develop and extend it, see [HOW.md](./HOW.md) and [CLAUDE.md](./CLAUDE.md).
 
 ---
 
 ## At a Glance
 
-| | |
-|---|---|
-| **What it is** | A quantitative trading assistant with a lifestyle overlay—unified data intelligence across options, perps, TradFi, memes, lifestyle, and art. |
-| **How you use it** | Chat with the VINCE agent: "gm", "perps", "options", "memes", "bot status", etc. One coherent voice instead of 15 browser tabs. |
+|                     |                                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **What it is**      | A quantitative trading assistant with a lifestyle overlay—unified data intelligence across options, perps, TradFi, memes, lifestyle, and art.                 |
+| **How you use it**  | Chat with the VINCE agent: "gm", "perps", "options", "memes", "bot status", etc. One coherent voice instead of 15 browser tabs.                               |
 | **Technical shape** | ~30 services, 20 actions, 2 context providers, 1 trade-performance evaluator. Paper trading bot with ML enhancement (Thompson Sampling, feature store, ONNX). |
-| **Primary assets** | BTC, ETH, SOL, HYPE + 34 HIP-3 assets (gold, SPX, NVDA, etc.). |
-| **Docs** | [README.md](./README.md) · [CLAUDE.md](./CLAUDE.md) · [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) |
+| **Primary assets**  | BTC, ETH, SOL, HYPE + 34 HIP-3 assets (gold, SPX, NVDA, etc.).                                                                                                |
+| **Docs**            | [README.md](./README.md) · [CLAUDE.md](./CLAUDE.md) · [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md)                                                                |
 
 ---
 
 ## What VINCE Actually Does
 
-VINCE started as a personal itch: paper trading BTC perps on Hyperliquid, scanning Solana memes on DexScreener, dipping into options on Deribit—and trying to remember if it was Thursday (pool day) or Friday (ritual vibes). The data was everywhere; the context wasn’t. I wanted one coherent voice: *"Here’s the play, and here’s why it fits your life."*
+VINCE started as a personal itch: paper trading BTC perps on Hyperliquid, scanning Solana memes on DexScreener, dipping into options on Deribit—and trying to remember if it was Thursday (pool day) or Friday (ritual vibes). The data was everywhere; the context wasn’t. I wanted one coherent voice: _"Here’s the play, and here’s why it fits your life."_
 
 At its core, VINCE blends **six domains** into one feed:
 
@@ -81,5 +81,3 @@ VINCE runs on **free** sources by default (Binance, Deribit, DexScreener, Hyperl
 - **ML improvement, tuning, and proof:** [IMPROVEMENT_WEIGHTS_AND_TUNING.md](./IMPROVEMENT_WEIGHTS_AND_TUNING.md), [ML_IMPROVEMENT_PROOF.md](./ML_IMPROVEMENT_PROOF.md).
 - **Why ElizaOS (and trade-offs):** [WHY.md](./WHY.md).
 - **Cost coverage and profitability context:** [TREASURY.md](../../TREASURY.md) (project root).
-
-

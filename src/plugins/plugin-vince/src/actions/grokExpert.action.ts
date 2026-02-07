@@ -20,7 +20,13 @@
  * - "daily digest", "morning briefing"
  */
 
-import type { Action, IAgentRuntime, Memory, State, HandlerCallback } from "@elizaos/core";
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
@@ -48,42 +54,51 @@ interface GrokDataContext {
   timestamp: string;
   date: string;
   day: string;
-  
+
   // Market Overview
   regime: string;
   fearGreed: number | null;
   btcPrice: number | null;
   ethPrice: number | null;
-  
+
   // Trading Data
   coinglassData: string[];
   binanceData: string[];
   topTradersData: string[];
   optionsData: string[];
   signalsData: string[];
-  
+
   // HIP-3
   hip3Data: string[];
-  
+
   // Lifestyle & Art
   lifestyleData: string[];
   nftData: string[];
-  
+
   // Memetics
   memesData: string[];
-  
+
   // News
   newsData: string[];
-  
+
   // Available Prompt Templates
   promptTemplates: string[];
 }
 
-async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataContext> {
+async function buildGrokDataContext(
+  runtime: IAgentRuntime,
+): Promise<GrokDataContext> {
   const now = new Date();
   const ctx: GrokDataContext = {
-    timestamp: now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-    date: now.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    timestamp: now.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    }),
+    date: now.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "short",
+      day: "numeric",
+    }),
     day: now.toLocaleDateString("en-US", { weekday: "long" }),
     regime: "unknown",
     fearGreed: null,
@@ -103,18 +118,42 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
   };
 
   // Get services
-  const coinglassService = runtime.getService("VINCE_COINGLASS_SERVICE") as VinceCoinGlassService | null;
-  const marketDataService = runtime.getService("VINCE_MARKET_DATA_SERVICE") as VinceMarketDataService | null;
-  const topTradersService = runtime.getService("VINCE_TOP_TRADERS_SERVICE") as VinceTopTradersService | null;
-  const newsService = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
-  const hip3Service = runtime.getService("VINCE_HIP3_SERVICE") as VinceHIP3Service | null;
-  const nftService = runtime.getService("VINCE_NFT_FLOOR_SERVICE") as VinceNFTFloorService | null;
-  const lifestyleService = runtime.getService("VINCE_LIFESTYLE_SERVICE") as VinceLifestyleService | null;
-  const dexscreenerService = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
-  const binanceService = runtime.getService("VINCE_BINANCE_SERVICE") as VinceBinanceService | null;
-  const deribitService = runtime.getService("VINCE_DERIBIT_SERVICE") as VinceDeribitService | null;
-  const signalService = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as VinceSignalAggregatorService | null;
-  const regimeService = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as VinceMarketRegimeService | null;
+  const coinglassService = runtime.getService(
+    "VINCE_COINGLASS_SERVICE",
+  ) as VinceCoinGlassService | null;
+  const marketDataService = runtime.getService(
+    "VINCE_MARKET_DATA_SERVICE",
+  ) as VinceMarketDataService | null;
+  const topTradersService = runtime.getService(
+    "VINCE_TOP_TRADERS_SERVICE",
+  ) as VinceTopTradersService | null;
+  const newsService = runtime.getService(
+    "VINCE_NEWS_SENTIMENT_SERVICE",
+  ) as VinceNewsSentimentService | null;
+  const hip3Service = runtime.getService(
+    "VINCE_HIP3_SERVICE",
+  ) as VinceHIP3Service | null;
+  const nftService = runtime.getService(
+    "VINCE_NFT_FLOOR_SERVICE",
+  ) as VinceNFTFloorService | null;
+  const lifestyleService = runtime.getService(
+    "VINCE_LIFESTYLE_SERVICE",
+  ) as VinceLifestyleService | null;
+  const dexscreenerService = runtime.getService(
+    "VINCE_DEXSCREENER_SERVICE",
+  ) as VinceDexScreenerService | null;
+  const binanceService = runtime.getService(
+    "VINCE_BINANCE_SERVICE",
+  ) as VinceBinanceService | null;
+  const deribitService = runtime.getService(
+    "VINCE_DERIBIT_SERVICE",
+  ) as VinceDeribitService | null;
+  const signalService = runtime.getService(
+    "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+  ) as VinceSignalAggregatorService | null;
+  const regimeService = runtime.getService(
+    "VINCE_MARKET_REGIME_SERVICE",
+  ) as VinceMarketRegimeService | null;
 
   // Market Regime
   if (regimeService) {
@@ -134,12 +173,16 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
       const fearGreed = coinglassService.getFearGreed?.();
       if (fearGreed) {
         ctx.fearGreed = fearGreed.value;
-        ctx.coinglassData.push(`Fear & Greed: ${fearGreed.value}/100 (${fearGreed.classification})`);
+        ctx.coinglassData.push(
+          `Fear & Greed: ${fearGreed.value}/100 (${fearGreed.classification})`,
+        );
       }
 
       const funding = coinglassService.getFunding?.("BTC");
       if (funding) {
-        ctx.coinglassData.push(`BTC Funding: ${(funding.rate * 100).toFixed(4)}%`);
+        ctx.coinglassData.push(
+          `BTC Funding: ${(funding.rate * 100).toFixed(4)}%`,
+        );
       }
 
       const oi = coinglassService.getOpenInterest?.("BTC");
@@ -159,19 +202,26 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
   // Binance Data
   if (binanceService) {
     try {
-      const topTraders = await binanceService.getTopTraderPositions?.("BTCUSDT");
+      const topTraders =
+        await binanceService.getTopTraderPositions?.("BTCUSDT");
       if (topTraders) {
-        ctx.binanceData.push(`Binance Top Traders: ${topTraders.longPosition.toFixed(1)}% long`);
+        ctx.binanceData.push(
+          `Binance Top Traders: ${topTraders.longPosition.toFixed(1)}% long`,
+        );
       }
 
       const takerVol = await binanceService.getTakerVolume?.("BTCUSDT");
       if (takerVol) {
-        ctx.binanceData.push(`Taker Buy/Sell Ratio: ${takerVol.buySellRatio.toFixed(3)}`);
+        ctx.binanceData.push(
+          `Taker Buy/Sell Ratio: ${takerVol.buySellRatio.toFixed(3)}`,
+        );
       }
 
       const oiTrend = await binanceService.getOITrend?.("BTCUSDT");
       if (oiTrend) {
-        ctx.binanceData.push(`OI Trend: ${oiTrend.trend} (${oiTrend.changePercent >= 0 ? "+" : ""}${oiTrend.changePercent.toFixed(2)}%)`);
+        ctx.binanceData.push(
+          `OI Trend: ${oiTrend.trend} (${oiTrend.changePercent >= 0 ? "+" : ""}${oiTrend.changePercent.toFixed(2)}%)`,
+        );
       }
     } catch (e) {
       logger.warn("[GROK_EXPERT] Binance data fetch error");
@@ -183,11 +233,19 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
     try {
       const positions = topTradersService.getTraderPositions?.();
       if (positions && positions.length > 0) {
-        const btcTraders = positions.filter((p: any) => p.lastPosition?.asset === "BTC");
+        const btcTraders = positions.filter(
+          (p: any) => p.lastPosition?.asset === "BTC",
+        );
         if (btcTraders.length > 0) {
-          const longCount = btcTraders.filter((t: any) => t.lastPosition?.side === "long").length;
-          const shortCount = btcTraders.filter((t: any) => t.lastPosition?.side === "short").length;
-          ctx.topTradersData.push(`Hyperliquid Whales BTC: ${longCount} long, ${shortCount} short`);
+          const longCount = btcTraders.filter(
+            (t: any) => t.lastPosition?.side === "long",
+          ).length;
+          const shortCount = btcTraders.filter(
+            (t: any) => t.lastPosition?.side === "short",
+          ).length;
+          ctx.topTradersData.push(
+            `Hyperliquid Whales BTC: ${longCount} long, ${shortCount} short`,
+          );
         }
       }
     } catch (e) {
@@ -204,10 +262,14 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
           ctx.optionsData.push(`BTC DVOL: ${optionsCtx.dvol.toFixed(1)}%`);
         }
         if (optionsCtx.ivSurface?.atmIV) {
-          ctx.optionsData.push(`BTC ATM IV: ${(optionsCtx.ivSurface.atmIV * 100).toFixed(1)}%`);
+          ctx.optionsData.push(
+            `BTC ATM IV: ${(optionsCtx.ivSurface.atmIV * 100).toFixed(1)}%`,
+          );
         }
         if (optionsCtx.spotPrice) {
-          ctx.optionsData.push(`BTC Spot: $${optionsCtx.spotPrice.toLocaleString()}`);
+          ctx.optionsData.push(
+            `BTC Spot: $${optionsCtx.spotPrice.toLocaleString()}`,
+          );
         }
       }
     } catch (e) {
@@ -220,7 +282,9 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
     try {
       const btcSignal = await signalService.getSignal?.("BTC");
       if (btcSignal) {
-        ctx.signalsData.push(`BTC Signal: ${btcSignal.direction} (${btcSignal.strength})`);
+        ctx.signalsData.push(
+          `BTC Signal: ${btcSignal.direction} (${btcSignal.strength})`,
+        );
       }
     } catch (e) {
       logger.warn("[GROK_EXPERT] Signal aggregator fetch error");
@@ -241,10 +305,14 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
         ];
         const sorted = allAssets
           .filter((a: any) => a.change24h !== undefined)
-          .sort((a: any, b: any) => Math.abs(b.change24h) - Math.abs(a.change24h));
+          .sort(
+            (a: any, b: any) => Math.abs(b.change24h) - Math.abs(a.change24h),
+          );
         const top3 = sorted.slice(0, 3);
         for (const mover of top3) {
-          ctx.hip3Data.push(`${mover.symbol}: ${mover.change24h >= 0 ? "+" : ""}${mover.change24h.toFixed(2)}%`);
+          ctx.hip3Data.push(
+            `${mover.symbol}: ${mover.change24h >= 0 ? "+" : ""}${mover.change24h.toFixed(2)}%`,
+          );
         }
       }
     } catch (e) {
@@ -258,7 +326,9 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
       const briefing = lifestyleService.getDailyBriefing?.();
       if (briefing) {
         ctx.lifestyleData.push(`Day: ${briefing.day}`);
-        ctx.lifestyleData.push(`Season: ${lifestyleService.getCurrentSeason?.() || "unknown"}`);
+        ctx.lifestyleData.push(
+          `Season: ${lifestyleService.getCurrentSeason?.() || "unknown"}`,
+        );
         if (briefing.specialNotes?.length > 0) {
           ctx.lifestyleData.push(`Notes: ${briefing.specialNotes.join(", ")}`);
         }
@@ -290,7 +360,9 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
       if (hotMemes && hotMemes.length > 0) {
         const top3 = hotMemes.slice(0, 3);
         for (const meme of top3) {
-          ctx.memesData.push(`${meme.symbol}: $${meme.price?.toFixed(6) || "?"} (${meme.chain})`);
+          ctx.memesData.push(
+            `${meme.symbol}: $${meme.price?.toFixed(6) || "?"} (${meme.chain})`,
+          );
         }
       }
     } catch (e) {
@@ -303,9 +375,11 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
     try {
       const sentiment = newsService.getOverallSentiment?.();
       if (sentiment) {
-        ctx.newsData.push(`Sentiment: ${sentiment.sentiment} (${sentiment.confidence?.toFixed(0) || "N/A"}% confidence)`);
+        ctx.newsData.push(
+          `Sentiment: ${sentiment.sentiment} (${sentiment.confidence?.toFixed(0) || "N/A"}% confidence)`,
+        );
       }
-      
+
       const headlines = newsService.getTopHeadlines?.(3);
       if (headlines && headlines.length > 0) {
         for (const h of headlines) {
@@ -319,10 +393,19 @@ async function buildGrokDataContext(runtime: IAgentRuntime): Promise<GrokDataCon
 
   // Load Prompt Templates
   try {
-    const templatesDir = path.join(process.cwd(), "knowledge", "prompt-templates");
+    const templatesDir = path.join(
+      process.cwd(),
+      "knowledge",
+      "prompt-templates",
+    );
     if (fs.existsSync(templatesDir)) {
-      const files = fs.readdirSync(templatesDir).filter(f => f.endsWith(".md") && !f.includes("README") && !f.includes("STATUS"));
-      ctx.promptTemplates = files.slice(0, 10).map(f => f.replace(".md", ""));
+      const files = fs
+        .readdirSync(templatesDir)
+        .filter(
+          (f) =>
+            f.endsWith(".md") && !f.includes("README") && !f.includes("STATUS"),
+        );
+      ctx.promptTemplates = files.slice(0, 10).map((f) => f.replace(".md", ""));
     }
   } catch (e) {
     logger.warn("[GROK_EXPERT] Failed to load prompt templates");
@@ -345,67 +428,67 @@ function formatDataContextForGrok(ctx: GrokDataContext): string {
 
   if (ctx.coinglassData.length > 0) {
     lines.push("COINGLASS DATA:");
-    lines.push(...ctx.coinglassData.map(d => `  ${d}`));
+    lines.push(...ctx.coinglassData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.binanceData.length > 0) {
     lines.push("BINANCE INTELLIGENCE:");
-    lines.push(...ctx.binanceData.map(d => `  ${d}`));
+    lines.push(...ctx.binanceData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.topTradersData.length > 0) {
     lines.push("HYPERLIQUID WHALES:");
-    lines.push(...ctx.topTradersData.map(d => `  ${d}`));
+    lines.push(...ctx.topTradersData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.optionsData.length > 0) {
     lines.push("OPTIONS (DERIBIT):");
-    lines.push(...ctx.optionsData.map(d => `  ${d}`));
+    lines.push(...ctx.optionsData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.signalsData.length > 0) {
     lines.push("SIGNALS:");
-    lines.push(...ctx.signalsData.map(d => `  ${d}`));
+    lines.push(...ctx.signalsData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.hip3Data.length > 0) {
     lines.push("HIP-3 MOVERS:");
-    lines.push(...ctx.hip3Data.map(d => `  ${d}`));
+    lines.push(...ctx.hip3Data.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.newsData.length > 0) {
     lines.push("NEWS:");
-    lines.push(...ctx.newsData.map(d => `  ${d}`));
+    lines.push(...ctx.newsData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.memesData.length > 0) {
     lines.push("HOT MEMES:");
-    lines.push(...ctx.memesData.map(d => `  ${d}`));
+    lines.push(...ctx.memesData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.nftData.length > 0) {
     lines.push("NFT FLOORS:");
-    lines.push(...ctx.nftData.map(d => `  ${d}`));
+    lines.push(...ctx.nftData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.lifestyleData.length > 0) {
     lines.push("LIFESTYLE:");
-    lines.push(...ctx.lifestyleData.map(d => `  ${d}`));
+    lines.push(...ctx.lifestyleData.map((d) => `  ${d}`));
     lines.push("");
   }
 
   if (ctx.promptTemplates.length > 0) {
     lines.push("AVAILABLE PROMPT TEMPLATES:");
-    lines.push(...ctx.promptTemplates.map(t => `  - ${t}`));
+    lines.push(...ctx.promptTemplates.map((t) => `  - ${t}`));
     lines.push("");
   }
 
@@ -482,10 +565,13 @@ Now generate the Daily Pulse:`;
 // Save to Knowledge Folder
 // ==========================================
 
-async function saveToKnowledge(content: string, date: string): Promise<string | null> {
+async function saveToKnowledge(
+  content: string,
+  date: string,
+): Promise<string | null> {
   try {
     const knowledgeDir = path.join(process.cwd(), "knowledge", "internal-docs");
-    
+
     // Ensure directory exists
     if (!fs.existsSync(knowledgeDir)) {
       fs.mkdirSync(knowledgeDir, { recursive: true });
@@ -528,7 +614,7 @@ export const vinceGrokExpertAction: Action = {
   name: "VINCE_GROK_EXPERT",
   similes: [
     "GROK_PULSE",
-    "GROK_EXPERT", 
+    "GROK_EXPERT",
     "PROMPT_OF_THE_DAY",
     "POTD",
     "RESEARCH_SUGGESTIONS",
@@ -536,11 +622,14 @@ export const vinceGrokExpertAction: Action = {
     "GROK_SUMMARY",
     "MORNING_BRIEFING",
   ],
-  description: 
+  description:
     "Grok-powered daily pulse: aggregates all data sources, suggests prompt of the day, " +
     "and recommends research topics across options, perps, HIP-3, lifestyle, NFTs, news, bots, airdrops, and AI memes",
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
     return (
       text.includes("grok pulse") ||
@@ -563,16 +652,18 @@ export const vinceGrokExpertAction: Action = {
     message: Memory,
     state: State,
     options: any,
-    callback: HandlerCallback
+    callback: HandlerCallback,
   ): Promise<void> => {
     try {
       logger.info("[GROK_EXPERT] Starting daily pulse generation...");
 
       // Get XAI service (external or fallback)
       const xaiService = getOrCreateXAIService(runtime);
-      
+
       if (!xaiService) {
-        logger.warn("[GROK_EXPERT] XAI service not available - no API key configured");
+        logger.warn(
+          "[GROK_EXPERT] XAI service not available - no API key configured",
+        );
         await callback({
           text: "Grok Expert requires an XAI API key. Add XAI_API_KEY to your .env file to enable Grok Expert.",
           actions: ["VINCE_GROK_EXPERT"],
@@ -595,7 +686,8 @@ export const vinceGrokExpertAction: Action = {
         model: "grok-4-1-fast-reasoning",
         temperature: 0.7,
         maxTokens: 4000,
-        system: "You are VINCE's Grok Expert assistant. Be direct, opinionated, and actionable. No financial advice disclaimers needed - this is for personal research.",
+        system:
+          "You are VINCE's Grok Expert assistant. Be direct, opinionated, and actionable. No financial advice disclaimers needed - this is for personal research.",
       });
 
       if (!result.success || !result.text) {
@@ -611,7 +703,10 @@ export const vinceGrokExpertAction: Action = {
       logger.info("[GROK_EXPERT] Grok response received");
 
       // Save to knowledge folder
-      const savedFilename = await saveToKnowledge(grokResponse, dataContext.date);
+      const savedFilename = await saveToKnowledge(
+        grokResponse,
+        dataContext.date,
+      );
 
       // Build output
       const output = [
@@ -620,8 +715,8 @@ export const vinceGrokExpertAction: Action = {
         grokResponse,
         "",
         "---",
-        savedFilename 
-          ? `*Saved to: knowledge/internal-docs/${savedFilename}*` 
+        savedFilename
+          ? `*Saved to: knowledge/internal-docs/${savedFilename}*`
           : "*Failed to save to knowledge folder*",
         "",
         `*Tokens used: ${result.usage?.total_tokens || "N/A"}*`,
