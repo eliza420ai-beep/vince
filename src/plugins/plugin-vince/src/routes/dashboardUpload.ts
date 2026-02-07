@@ -55,8 +55,9 @@ export async function processDashboardUpload(
   };
 
   let callbackMessage = "";
-  const callback = async (c: { text?: string }) => {
+  const callback = async (c: { text?: string }): Promise<Memory[]> => {
     if (c?.text) callbackMessage = c.text;
+    return [];
   };
 
   try {
