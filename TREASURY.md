@@ -74,6 +74,8 @@
 
 Apply these in code, infra, and prompt design. Review periodically.
 
+**Session token tracking (implemented):** Each chat run emits a `run_event` log with estimated tokens (input + output character-length heuristic). Real usage from model providers is stored when available. The dashboard **Usage** tab (Leaderboard → Usage) shows tokens by day and total for the period. Optional estimated cost: set `VINCE_USAGE_COST_PER_1K_TOKENS` (e.g. `0.01` for $0.01 per 1K tokens) in env or agent settings to see estimated cost in the Usage tab.
+
 ---
 
 ## Current Status (Template)
@@ -85,8 +87,16 @@ Keep this section updated as strategies are tried:
 | Prediction markets| Not started   | Consider after paper edge proof |
 | Token/fee revenue | Not started   | Pending eligibility/approval   |
 | Micro-tasks       | Research      | Evaluate MTurk, freelance APIs |
-| Cost optimization| In progress   | Cache, batching, model choice  |
+| Cost optimization| In progress   | Cache, batching, model choice; session token tracking + Usage tab live |
 | **Monthly target**| e.g. cover 20% of API costs | Adjust as data comes in |
+
+---
+
+## Optional: Cost estimation
+
+Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in environment or agent settings to enable estimated cost in the Usage tab. The value is applied as USD per 1,000 tokens (e.g. `0.01` = $0.01/1K tokens).
+
+**Code tasks (claude-code-controller):** Code tasks delegated via [claude-code-controller](https://github.com/IkigaiLabsETH/claude-code-controller) use your Claude Code subscription separately; they are not included in the VINCE Usage tab.
 
 ---
 
@@ -97,4 +107,4 @@ Keep this section updated as strategies are tried:
 
 ---
 
-*Last updated: 2026-02-03. Update this file when activating new revenue streams or cost levers.*
+*Last updated: 2026-02-07. Update this file when activating new revenue streams or cost levers.*

@@ -119,6 +119,34 @@ bun run pdf-to-md "knowledge/Some Doc.pdf" --dry-run
 
 After conversion, the new `.md` is covered by the existing `perps-trading` directory in the character’s knowledge; no need to add a single-file entry for the PDF.
 
+## claude-code-task
+
+Send a single task/message to [claude-code-controller](https://github.com/IkigaiLabsETH/claude-code-controller) so a Claude Code agent can run code/repo tasks (refactors, reviews, improvement journal) alongside VINCE. See [docs/CLAUDE_CODE_CONTROLLER.md](../docs/CLAUDE_CODE_CONTROLLER.md).
+
+**Usage**
+
+```bash
+bun run scripts/claude-code-task.ts "Review src/auth for security. Reply with SendMessage."
+CLAUDE_CODE_CONTROLLER_MESSAGE="Refactor X" bun run scripts/claude-code-task.ts
+```
+
+**Env:** `CLAUDE_CODE_CONTROLLER_URL` (default `http://localhost:3456`), `CLAUDE_CODE_CONTROLLER_AGENT` (default `coder`), optional `CLAUDE_CODE_CONTROLLER_WEBHOOK_URL` (Discord webhook for result).
+
+## improvement-journal-to-controller
+
+Push VINCE improvement journal entries (`PENDING_CLAWDBOT`) to claude-code-controller as tasks. Run periodically (e.g. cron) or on-demand. Reads `.elizadb/vince-paper-bot/improvement-journal.md` (or `IMPROVEMENT_JOURNAL_PATH`).
+
+**Usage**
+
+```bash
+bun run scripts/improvement-journal-to-controller.ts
+bun run scripts/improvement-journal-to-controller.ts --dry-run
+```
+
+**Env:** `CLAUDE_CODE_CONTROLLER_URL`, `CLAUDE_CODE_CONTROLLER_AGENT` (default `coder`), optional `IMPROVEMENT_JOURNAL_PATH`. See [docs/CLAUDE_CODE_CONTROLLER.md](../docs/CLAUDE_CODE_CONTROLLER.md) and plugin-vince HOW.md / CLAUDE.md.
+
+---
+
 ## test-summarize
 
 Smoke test for the [Ikigai Labs summarize](https://github.com/IkigaiLabsETH/summarize) CLI used by VINCE UPLOAD to keep improving the `knowledge/` folder from URLs and YouTube. Run to verify summarize works before using “upload: &lt;url&gt;” or a YouTube link in chat.

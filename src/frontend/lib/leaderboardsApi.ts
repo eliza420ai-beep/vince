@@ -378,6 +378,52 @@ export async function fetchPaperWithError(
 }
 
 // ---------------------------------------------------------------------------
+// Usage / TREASURY (session token cost visibility)
+// ---------------------------------------------------------------------------
+
+export interface UsageByDay {
+  date: string;
+  tokens: number;
+  runs: number;
+}
+
+export interface UsageResponse {
+  byDay: UsageByDay[];
+  totalTokens: number;
+  period: { from: string; to: string };
+  estimatedCostUsd?: number;
+}
+
+export async function fetchUsageWithError(
+  agentId: string,
+  from?: string,
+  to?: string,
+): Promise<{ data: UsageResponse | null; error: string | null; status: number | null }> {
+  const base = window.location.origin;
+  const params = new URLSearchParams({ agentId });
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/usage?${params.toString()}`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return { data: body as UsageResponse, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Knowledge overview (Knowledge tab)
 // ---------------------------------------------------------------------------
 

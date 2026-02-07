@@ -359,6 +359,7 @@ const events: PluginEvents = {
   [EventType.RUN_ENDED]: [
     async (payload: RunEventPayload) => {
       try {
+        const extended = payload as RunEventPayload & { usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }; estimatedTokens?: number };
         await payload.runtime.log({
           entityId: payload.entityId,
           roomId: payload.roomId,
@@ -374,6 +375,8 @@ const events: PluginEvents = {
             duration: payload.duration,
             error: payload.error,
             source: payload.source || 'unknown',
+            usage: extended.usage,
+            estimatedTokens: extended.estimatedTokens,
           },
         });
         logger.debug(
@@ -388,6 +391,7 @@ const events: PluginEvents = {
   [EventType.RUN_TIMEOUT]: [
     async (payload: RunEventPayload) => {
       try {
+        const extended = payload as RunEventPayload & { estimatedTokens?: number };
         await payload.runtime.log({
           entityId: payload.entityId,
           roomId: payload.roomId,
@@ -403,6 +407,7 @@ const events: PluginEvents = {
             duration: payload.duration,
             error: payload.error,
             source: payload.source || 'unknown',
+            estimatedTokens: extended.estimatedTokens,
           },
         });
         logger.debug(`[Bootstrap] Logged RUN_TIMEOUT event for run ${payload.runId}`);

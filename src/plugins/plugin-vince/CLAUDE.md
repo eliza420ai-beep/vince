@@ -715,6 +715,8 @@ bun run scripts/run-improvement-weights.ts
 cat .elizadb/vince-paper-bot/improvement-journal.md
 ```
 
+To push `PENDING_CLAWDBOT` entries to claude-code-controller as tasks: `bun run scripts/improvement-journal-to-controller.ts` (see [docs/CLAUDE_CODE_CONTROLLER.md](../../../../docs/CLAUDE_CODE_CONTROLLER.md)).
+
 ### Inspect Signal Aggregation
 
 Enable debug logging to see signal aggregation details:

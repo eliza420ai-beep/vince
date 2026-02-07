@@ -839,6 +839,15 @@ cat .elizadb/vince-paper-bot/bayesian-tuner-state.json | jq '.bestObservation'
 cat .elizadb/vince-paper-bot/improvement-journal.md
 ```
 
+**Push journal to Claude Code (optional):** To turn `PENDING_CLAWDBOT` entries into tasks for [claude-code-controller](https://github.com/IkigaiLabsETH/claude-code-controller), run:
+
+```bash
+bun run scripts/improvement-journal-to-controller.ts
+# Preview: bun run scripts/improvement-journal-to-controller.ts --dry-run
+```
+
+Requires `CLAUDE_CODE_CONTROLLER_URL` (and optionally `CLAUDE_CODE_CONTROLLER_AGENT`). See [docs/CLAUDE_CODE_CONTROLLER.md](../../../../docs/CLAUDE_CODE_CONTROLLER.md).
+
 ### Test Individual Services
 
 ```typescript

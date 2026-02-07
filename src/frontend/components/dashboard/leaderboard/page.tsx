@@ -16,6 +16,7 @@ import { elizaClient } from "@/frontend/lib/elizaClient";
 import {
   fetchLeaderboardsWithError,
   fetchPaperWithError,
+  fetchUsageWithError,
   fetchKnowledgeWithError,
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
@@ -26,13 +27,13 @@ import type {
   LeaderboardEntry,
   ReferralCodeResponse,
 } from "@elizaos/api-client";
-import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink, Palette, Upload, Youtube } from "lucide-react";
+import { Trophy, RefreshCw, Copy, Check, BarChart3, Flame, Newspaper, Bot, BookOpen, ExternalLink, Palette, Upload, Youtube, DollarSign } from "lucide-react";
 import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
-type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art";
+type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art" | "usage";
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -75,6 +76,13 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     queryKey: ["paper", leaderboardsAgentId],
     queryFn: () => fetchPaperWithError(leaderboardsAgentId),
     enabled: mainTab === "trading_bot" && !!leaderboardsAgentId,
+    staleTime: 60 * 1000,
+  });
+
+  const { data: usageResult, isLoading: usageLoading, isFetching: usageFetching, refetch: refetchUsage } = useQuery({
+    queryKey: ["usage", leaderboardsAgentId],
+    queryFn: () => fetchUsageWithError(leaderboardsAgentId),
+    enabled: mainTab === "usage" && !!leaderboardsAgentId,
     staleTime: 60 * 1000,
   });
 
@@ -237,7 +245,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               ? "Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts"
               : mainTab === "digital_art"
                 ? "Curated NFT collections — floor prices and thin-floor opportunities"
-                : "Open paper trades and portfolio overview";
+                : mainTab === "usage"
+                  ? "Session token usage and estimated cost (TREASURY)"
+                  : "Open paper trades and portfolio overview";
 
   return (
     <DashboardPageLayout
@@ -261,6 +271,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <TabsTrigger value="memetics">Memetics</TabsTrigger>
               <TabsTrigger value="digital_art">Digital Art</TabsTrigger>
               <TabsTrigger value="more">More</TabsTrigger>
+              <TabsTrigger value="usage">Usage</TabsTrigger>
             </TabsList>
             {(mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more" || mainTab === "digital_art") && (
               <Button
@@ -282,6 +293,12 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             {mainTab === "knowledge" && (
               <Button variant="outline" size="sm" onClick={() => refetchKnowledge()} disabled={knowledgeLoading}>
                 <RefreshCw className={cn("w-4 h-4 mr-2", knowledgeLoading && "animate-spin")} />
+                Refresh
+              </Button>
+            )}
+            {mainTab === "usage" && (
+              <Button variant="outline" size="sm" onClick={() => refetchUsage()} disabled={usageFetching}>
+                <RefreshCw className={cn("w-4 h-4 mr-2", usageFetching && "animate-spin")} />
                 Refresh
               </Button>
             )}
@@ -1277,6 +1294,91 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
                 <p className="font-medium text-foreground">Could not load MORE data</p>
                 <p className="text-sm text-muted-foreground">Make sure VINCE is running, then click Refresh above.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Usage / TREASURY tab: session token usage and estimated cost */}
+          <TabsContent value="usage" className="mt-6 flex-1 min-h-0 overflow-auto">
+            {(usageLoading || usageFetching) && !usageResult?.data ? (
+              <div className="space-y-4">
+                <div className="h-32 bg-muted/50 rounded-xl animate-pulse" />
+                <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
+              </div>
+            ) : usageResult?.error ? (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+                <p className="font-medium text-foreground">Could not load usage data</p>
+                <p className="text-sm text-muted-foreground">{usageResult.error}</p>
+              </div>
+            ) : usageResult?.data ? (
+              <div className="space-y-6">
+                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                  <p className="text-sm font-medium text-foreground/90">
+                    Session token usage for cost visibility (TREASURY)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Estimated tokens per chat run; set <code className="rounded bg-muted px-1">VINCE_USAGE_COST_PER_1K_TOKENS</code> for cost.
+                  </p>
+                  <a
+                    href="/TREASURY.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-2"
+                  >
+                    TREASURY.md <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                <DashboardCard title="Totals">
+                  <div className="flex flex-wrap gap-6 items-baseline">
+                    <div>
+                      <p className="text-2xl font-semibold font-mono">{usageResult.data.totalTokens.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">Total tokens</p>
+                    </div>
+                    {usageResult.data.estimatedCostUsd != null && (
+                      <div className="flex items-center gap-1">
+                        <DollarSign className="w-5 h-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-2xl font-semibold font-mono">${usageResult.data.estimatedCostUsd.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">Est. cost (period)</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Period: {usageResult.data.period.from.slice(0, 10)} → {usageResult.data.period.to.slice(0, 10)}
+                  </p>
+                </DashboardCard>
+                <DashboardCard title="By day">
+                  {usageResult.data.byDay.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4">No run events in this period.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 font-medium">Date</th>
+                            <th className="text-right py-2 font-medium">Tokens</th>
+                            <th className="text-right py-2 font-medium">Runs</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {usageResult.data.byDay.map((row) => (
+                            <tr key={row.date} className="border-b border-border/50">
+                              <td className="py-2">{row.date}</td>
+                              <td className="text-right font-mono">{row.tokens.toLocaleString()}</td>
+                              <td className="text-right font-mono">{row.runs}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </DashboardCard>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+                <p className="font-medium text-foreground">No usage data</p>
+                <p className="text-sm text-muted-foreground">Make sure VINCE is running and chat runs have completed, then click Refresh.</p>
               </div>
             )}
           </TabsContent>

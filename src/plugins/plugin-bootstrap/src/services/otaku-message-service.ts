@@ -264,6 +264,8 @@ export class OtakuMessageService implements IMessageService {
 
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(async () => {
+          const inputLen = message.content.text?.length ?? 0;
+          const estimatedTokens = Math.ceil(inputLen / 4);
           await runtime.emitEvent(EventType.RUN_TIMEOUT, {
             runtime,
             runId: runId!,
@@ -276,7 +278,8 @@ export class OtakuMessageService implements IMessageService {
             duration: Date.now() - startTime,
             error: 'Run exceeded timeout',
             source: 'OtakuMessageService',
-          } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string });
+            estimatedTokens,
+          } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string; estimatedTokens?: number });
           reject(new Error('Run exceeded timeout'));
         }, timeoutDuration);
       });
@@ -640,6 +643,11 @@ export class OtakuMessageService implements IMessageService {
         roomName,
       };
 
+      // Token estimate for TREASURY / cost visibility (~4 chars/token heuristic)
+      const inputLen = message.content.text?.length ?? 0;
+      const outputLen = responseContent?.text?.length ?? 0;
+      const estimatedTokens = Math.ceil(inputLen / 4) + Math.ceil(outputLen / 4);
+
       // Emit run ended event - use type assertion for extended payload
       await runtime.emitEvent(EventType.RUN_ENDED, {
         runtime,
@@ -652,7 +660,8 @@ export class OtakuMessageService implements IMessageService {
         endTime: Date.now(),
         duration: Date.now() - startTime,
         source: 'OtakuMessageService',
-      } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string });
+        estimatedTokens,
+      } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string; estimatedTokens?: number; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } });
 
       // Log extended metadata separately for telemetry
       runtime.logger.debug({ logData }, '[OtakuMessageService] Run completed');
@@ -668,6 +677,9 @@ export class OtakuMessageService implements IMessageService {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[OtakuMessageService] Error:', error);
 
+      const inputLen = message.content.text?.length ?? 0;
+      const estimatedTokens = Math.ceil(inputLen / 4);
+
       await runtime.emitEvent(EventType.RUN_ENDED, {
         runtime,
         runId: runId!,
@@ -680,7 +692,8 @@ export class OtakuMessageService implements IMessageService {
         duration: Date.now() - startTime,
         error: errorMessage,
         source: 'OtakuMessageService',
-      } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string });
+        estimatedTokens,
+      } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string; estimatedTokens?: number; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } });
 
       throw error;
     }
@@ -1359,6 +1372,8 @@ export class OtakuMessageService implements IMessageService {
     startTime: number,
     status: string
   ): Promise<void> {
+    const inputLen = message.content.text?.length ?? 0;
+    const estimatedTokens = Math.ceil(inputLen / 4);
     await runtime.emitEvent(EventType.RUN_ENDED, {
       runtime,
       runId,
@@ -1370,6 +1385,7 @@ export class OtakuMessageService implements IMessageService {
       endTime: Date.now(),
       duration: Date.now() - startTime,
       source: 'OtakuMessageService',
-    } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string });
+      estimatedTokens,
+    } as Parameters<typeof runtime.emitEvent>[1] & { runId: UUID; messageId: UUID; source: string; estimatedTokens?: number; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } });
   }
 }

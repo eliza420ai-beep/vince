@@ -50,6 +50,7 @@
 | [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
+| [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 
 ---
 
@@ -466,6 +467,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [DISCORD.md](DISCORD.md) | Channel structure (IKIGAI, LiveTheLifeTV, Slack) |
 | [CLAUDE.md](CLAUDE.md) | ElizaOS dev guide |
 | [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
+| [docs/CLAUDE_CODE_CONTROLLER.md](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
 | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
 | [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights, holdout metrics |

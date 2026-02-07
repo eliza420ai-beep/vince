@@ -28,6 +28,7 @@ import { logger } from "@elizaos/core";
 import { buildPulseResponse } from "./routes/dashboardPulse";
 import { buildLeaderboardsResponse } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
+import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 import { processDashboardUpload } from "./routes/dashboardUpload";
 
@@ -110,6 +111,7 @@ import { vinceBotAction } from "./actions/bot.action";
 
 // Actions - Knowledge
 import { vinceUploadAction } from "./actions/upload.action";
+import { vinceCodeTaskAction } from "./actions/codeTask.action";
 
 // Actions - Grok Expert (commented out - low value)
 // import { vinceGrokExpertAction } from "./actions/grokExpert.action";
@@ -221,6 +223,7 @@ export const vincePlugin: Plugin = {
     vinceBotAction,
     // Knowledge Upload
     vinceUploadAction,
+    vinceCodeTaskAction,
     // Grok Expert (commented out - low value)
     // vinceGrokExpertAction,
     // Meme Deep Dive
@@ -336,6 +339,49 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Paper route error: ${err}`);
           res.status(500).json({
             error: "Failed to build paper trading data",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-usage",
+      path: "/vince/usage",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; query?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Usage data requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/usage",
+          });
+          return;
+        }
+        try {
+          const query = (req.query ?? {}) as Record<string, string>;
+          const data = await buildUsageResponse(
+            agentRuntime,
+            query.from,
+            query.to,
+            query.groupBy,
+          );
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Usage route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build usage data",
             message: err instanceof Error ? err.message : String(err),
           });
           return;
@@ -995,6 +1041,7 @@ export { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 export { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 export { vinceBotAction } from "./actions/bot.action";
 export { vinceUploadAction } from "./actions/upload.action";
+export { vinceCodeTaskAction } from "./actions/codeTask.action";
 // export { vinceGrokExpertAction } from "./actions/grokExpert.action";
 export { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 export { vinceWatchlistAction } from "./actions/watchlist.action";
