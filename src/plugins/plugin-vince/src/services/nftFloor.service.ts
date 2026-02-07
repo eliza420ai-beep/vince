@@ -21,6 +21,8 @@ import { isVinceAgent } from "../utils/dashboard";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (match OpenSeaService cache)
 const MIN_GAP_TO_2ND_ETH = 0.21; // Dashboard only shows collections with gap to 2nd listing above this
+/** Thin floor with zero recent sales = illiquid, NOT a real opportunity */
+const MIN_VOLUME_7D_ETH = 0.001; // At least some 7d volume (implies recent sales)
 
 // Curated collections - Bluechips, Art Blocks, XCOPY, Photography
 const CURATED_COLLECTIONS: CuratedCollection[] = [
@@ -124,9 +126,11 @@ export class VinceNFTFloorService extends Service {
    */
   private printDashboardWithData(): void {
     const floors = this.getAllFloors();
-    const thinOnly = floors.filter(
-      (c) => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH,
-    );
+    const thinOnly = floors.filter((c) => {
+      if ((c.gaps?.to2nd ?? 0) <= MIN_GAP_TO_2ND_ETH) return false;
+      const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+      return volume7d >= MIN_VOLUME_7D_ETH; // Exclude illiquid (e.g. DRIVE)
+    });
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD");
     logEmpty();
@@ -204,9 +208,11 @@ export class VinceNFTFloorService extends Service {
   async printLiveDashboard(): Promise<void> {
     await this.refreshData();
     const floors = this.getAllFloors();
-    const thinOnly = floors.filter(
-      (c) => (c.gaps?.to2nd ?? 0) > MIN_GAP_TO_2ND_ETH,
-    );
+    const thinOnly = floors.filter((c) => {
+      if ((c.gaps?.to2nd ?? 0) <= MIN_GAP_TO_2ND_ETH) return false;
+      const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+      return volume7d >= MIN_VOLUME_7D_ETH;
+    });
     startBox();
     logLine("🎨 NFT FLOOR DASHBOARD (LIVE)");
     logEmpty();
@@ -349,7 +355,7 @@ export class VinceNFTFloorService extends Service {
       const analysis = await opensea.analyzeFloorOpportunities(
         collection.slug,
         {
-          maxListings: 20, // Fetch enough listings to calculate gaps
+          maxListings: 50, // Enough to get 10+ unique tokens for gap calc
         },
       );
 
@@ -477,9 +483,13 @@ export class VinceNFTFloorService extends Service {
     return this.getAllFloors().filter((c) => photoSlugs.includes(c.slug));
   }
 
+  /** Thin floors with recent liquidity (real opportunities). Excludes illiquid thin floors. */
   getThinFloors(): NFTCollection[] {
     return this.getAllFloors().filter((c) => {
       if (c.floorThickness !== "thin") return false;
+      // Exclude illiquid: zero recent sales = not a real opportunity (e.g. DRIVE)
+      const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+      if (volume7d < MIN_VOLUME_7D_ETH) return false;
       // Exclude when we have no real gap data (e.g. CryptoPunks API returns empty listings)
       const hasRealGapData = (c.gaps?.to2nd ?? 0) > 0 || (c.nftsNearFloor ?? 0) > 0;
       return hasRealGapData;

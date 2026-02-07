@@ -66,10 +66,15 @@ interface Listing {
   protocol_data?: {
     parameters?: {
       offer?: Array<{
-        identifierOrCriteria: string;
+        identifierOrCriteria?: string;
+        identifier_or_criteria?: string;
       }>;
     };
   };
+  maker?: string;
+  /** Token identifier: contract:tokenId */
+  token_id?: string;
+  nft_id?: string;
 }
 
 interface ListingsResponse {
@@ -205,18 +210,39 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     }
   }
 
+  /** Extract unique token identifier for deduplication (one price per token) */
+  private getTokenKey(l: Listing): string {
+    const offer = l.protocol_data?.parameters?.offer?.[0];
+    const id =
+      l.token_id ??
+      l.nft_id ??
+      offer?.identifierOrCriteria ??
+      (offer as { identifier_or_criteria?: string })?.identifier_or_criteria ??
+      l.order_hash;
+    return String(id ?? l.order_hash);
+  }
+
   /**
-   * Calculate floor thickness from listings
+   * Calculate floor thickness from listings.
+   * Deduplicates by token (keeps cheapest listing per unique NFT) so gaps match OpenSea UI.
    */
   private calculateFloorThickness(
     floorPrice: number,
     listings: Listing[],
   ): IOpenSeaFloorThickness {
-    // Sort listings by price
-    const sortedListings = listings
-      .map((l) => this.extractPriceEth(l))
-      .filter((p) => p > 0)
-      .sort((a, b) => a - b);
+    // Deduplicate by token: keep cheapest listing per unique NFT (matches OpenSea UI)
+    const byToken = new Map<string, number>();
+    for (const l of listings) {
+      const price = this.extractPriceEth(l);
+      if (price <= 0) continue;
+      const key = this.getTokenKey(l);
+      const existing = byToken.get(key);
+      if (existing === undefined || price < existing) {
+        byToken.set(key, price);
+      }
+    }
+
+    const sortedListings = Array.from(byToken.values()).sort((a, b) => a - b);
 
     if (sortedListings.length === 0) {
       return {
@@ -229,14 +255,14 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
     const floor = sortedListings[0] || floorPrice;
 
-    // Calculate gaps (from floor to Nth listing price)
+    // Gaps = ETH from floor to Nth cheapest unique token (exact, no hallucination)
     const gaps = {
-      to2nd: sortedListings[1] ? sortedListings[1] - floor : 0,
-      to3rd: sortedListings[2] ? sortedListings[2] - floor : 0,
-      to4th: sortedListings[3] ? sortedListings[3] - floor : 0,
-      to5th: sortedListings[4] ? sortedListings[4] - floor : 0,
-      to6th: sortedListings[5] ? sortedListings[5] - floor : 0,
-      to10th: sortedListings[9] ? sortedListings[9] - floor : 0,
+      to2nd: sortedListings[1] != null ? sortedListings[1] - floor : 0,
+      to3rd: sortedListings[2] != null ? sortedListings[2] - floor : 0,
+      to4th: sortedListings[3] != null ? sortedListings[3] - floor : 0,
+      to5th: sortedListings[4] != null ? sortedListings[4] - floor : 0,
+      to6th: sortedListings[5] != null ? sortedListings[5] - floor : 0,
+      to10th: sortedListings[9] != null ? sortedListings[9] - floor : 0,
     };
 
     // Count NFTs within 5% of floor
@@ -248,7 +274,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     let score = 50;
 
     // Gap scoring (bigger gaps = lower score = thinner floor)
-    const avgGapPercent = ((gaps.to5th - floor) / floor) * 100;
+    const avgGapPercent = floor > 0 ? (gaps.to5th / floor) * 100 : 0;
     if (avgGapPercent > 20) score -= 30;
     else if (avgGapPercent > 10) score -= 20;
     else if (avgGapPercent > 5) score -= 10;
@@ -286,7 +312,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     slug: string,
     options?: { maxListings?: number },
   ): Promise<IOpenSeaFloorAnalysis> {
-    const maxListings = options?.maxListings || 20;
+    const maxListings = options?.maxListings ?? 50;
 
     const emptyResult = (): IOpenSeaFloorAnalysis => ({
       collectionSlug: slug,
@@ -318,12 +344,11 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
       const floorPrice = stats.total.floor_price || 0;
 
-      // Fetch listings for floor thickness analysis
+      // Fetch listings for floor thickness (enough unique tokens for gap calc)
       const listingsResponse = await this.fetchOpenSea<ListingsResponse>(
         `/listings/collection/${slug}/all?limit=${maxListings}`,
       );
-
-      const listings = listingsResponse?.listings || [];
+      const listings = listingsResponse?.listings ?? [];
 
       // CryptoPunks: OpenSea's listings API returns empty for the legacy contract.
       // Using wrapped-cryptopunks would mix floor (29.89) with different-market gaps

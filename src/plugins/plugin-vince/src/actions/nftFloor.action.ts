@@ -150,14 +150,22 @@ export const vinceNftFloorAction: Action = {
       const status = nftService.getStatus();
       const allFloors = nftService.getAllFloors();
 
-      // Filter to ONLY thin floor opportunities
-      // Requirements: score < 40, gap >= 5%, has real data
+      // Filter to ONLY thin floor opportunities with recent liquidity
+      // Requirements: score < 40, gap >= 5%, has real data, AND recent sales
+      // Excludes illiquid thin floors (e.g. DRIVE: zero sales for 3 months)
       const opportunities = allFloors.filter((c) => {
         const gapPct =
           c.floorPrice > 0 ? (c.gaps.to2nd / c.floorPrice) * 100 : 0;
         const hasRealData = c.nftsNearFloor > 0 || c.gaps.to2nd > 0;
         const hasSignificantGap = gapPct >= 5;
-        return c.floorThicknessScore < 40 && hasRealData && hasSignificantGap;
+        const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+        const hasRecentSales = volume7d >= 0.001; // Exclude zero-sales collections
+        return (
+          c.floorThicknessScore < 40 &&
+          hasRealData &&
+          hasSignificantGap &&
+          hasRecentSales
+        );
       });
 
       // Thick floors (not opportunities)
