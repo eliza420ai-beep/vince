@@ -1,8 +1,18 @@
-import { Character } from "@elizaos/core";
+import {
+  type Character,
+  type IAgentRuntime,
+  type ProjectAgent,
+  type Plugin,
+} from "@elizaos/core";
+import { logger } from "@elizaos/core";
+import sqlPlugin from "@elizaos/plugin-sql";
+import openaiPlugin from "@elizaos/plugin-openai";
+import openrouterPlugin from "@elizaos/plugin-openrouter";
+import webSearchPlugin from "@elizaos/plugin-web-search";
+import bootstrapPlugin from "../plugins/plugin-bootstrap/src/index.ts";
 
-export const character: Character = {
+export const otakuCharacter: Character = {
   name: "Otaku",
-  // Plugins are registered via projectAgent.plugins in src/index.ts
   plugins: [],
   settings: {
     secrets: {},
@@ -300,3 +310,38 @@ Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
     ],
   },
 };
+
+// Core plugins (required for startup). DeFi plugins (cdp, coingecko, relay, etc.)
+// can be re-added once startup is verified — they may have deps that fail at load.
+const buildPlugins = (): Plugin[] =>
+  [
+    sqlPlugin,
+    bootstrapPlugin,
+    ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
+    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+    ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
+  ] as Plugin[];
+
+const initOtaku = async (_runtime: IAgentRuntime) => {
+  const nansenKey = process.env.NANSEN_API_KEY;
+  if (nansenKey) {
+    logger.info(
+      `[Otaku] NANSEN_API_KEY found (length: ${nansenKey.length}) — Nansen MCP available`
+    );
+  } else {
+    logger.warn(
+      "[Otaku] NANSEN_API_KEY not found — Nansen MCP server may fail to connect"
+    );
+  }
+  logger.info(
+    "[Otaku] ✅ DeFi research assistant ready (CDP, Relay, Morpho, Polymarket, etc.)"
+  );
+};
+
+export const otakuAgent: ProjectAgent = {
+  character: otakuCharacter,
+  init: initOtaku,
+  plugins: buildPlugins(),
+};
+
+export { otakuCharacter as character };

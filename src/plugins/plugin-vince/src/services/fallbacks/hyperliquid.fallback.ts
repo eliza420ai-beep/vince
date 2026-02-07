@@ -695,8 +695,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       const sortedByAbsChange = [...cryptoAssets].sort(
         (a, b) => Math.abs(b.change24h) - Math.abs(a.change24h),
       );
-      const topMovers = sortedByAbsChange.slice(0, 5).map((a) => ({
+      const topMovers = sortedByAbsChange.slice(0, 10).map((a) => ({
         symbol: a.symbol,
+        price: a.price,
         change24h: a.change24h,
         volume24h: a.volume24h,
       }));
@@ -706,6 +707,7 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       );
       const volumeLeaders = sortedByVolume.slice(0, 5).map((a) => ({
         symbol: a.symbol,
+        price: a.price,
         volume24h: a.volume24h,
         openInterest: a.openInterest,
         funding8h: a.funding8h,

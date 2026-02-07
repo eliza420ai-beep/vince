@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect, memo } from "react";
 import { Card, CardContent } from "@/frontend/components/ui/card";
-import { Badge } from "@/frontend/components/ui/badge";
 import TVNoise from "@/frontend/components/ui/tv-noise";
 
 const COINGECKO_BTC_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true";
+const COINGECKO_HYPE_SOL_URL =
+  "https://api.coingecko.com/api/v3/simple/price?ids=hyperliquid,solana&vs_currencies=usd";
 const BTC_POLL_MS = 60_000;
+const HYPE_SOL_POLL_MS = 60_000;
 
 function formatBtcPrice(usd: number): string {
   if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
@@ -15,15 +17,30 @@ function formatBtcPrice(usd: number): string {
   return `$${usd.toFixed(2)}`;
 }
 
+/** Whole-number price for HYPE/SOL (e.g. $32, $86). */
+function formatWholePrice(usd: number): string {
+  return `$${Math.round(usd)}`;
+}
+
+/** Full trading session description with UTC range (matches plugin-vince sessionFilters). */
+function getTradingSessionFull(date: Date): string {
+  const day = date.getUTCDay();
+  if (day === 0 || day === 6) return "Weekend – Saturday/Sunday";
+  const hour = date.getUTCHours();
+  if (hour >= 13 && hour < 16) return "Eu Us Overlap – 13:00–15:59 UTC";
+  if (hour >= 16 && hour < 22) return "Us – 16:00–21:59 UTC";
+  if (hour >= 7 && hour < 13) return "Europe – 07:00–12:59 UTC";
+  if (hour >= 0 && hour < 7) return "Asia – 00:00–06:59 UTC";
+  return "Off Hours – 22:00–23:59 UTC";
+}
+
 // Memoize Widget to prevent re-renders of parent components
 function Widget() {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [btcChange24h, setBtcChange24h] = useState<number | null>(null);
-  const [userTimezone, setUserTimezone] = useState<string>("");
-  const [utcOffset, setUtcOffset] = useState<string>("");
-  const [userLocation, setUserLocation] = useState<string>("");
-  const [temperature, setTemperature] = useState<string>("");
+  const [hypePrice, setHypePrice] = useState<number | null>(null);
+  const [solPrice, setSolPrice] = useState<number | null>(null);
 
   // Update date once per minute (for day/date row)
   useEffect(() => {
@@ -50,70 +67,21 @@ function Widget() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch HYPE and SOL prices
   useEffect(() => {
-    // Get user's timezone
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    setUserTimezone(timezone);
-
-    // Calculate UTC offset
-    const offsetMinutes = -new Date().getTimezoneOffset();
-    const offsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
-    const offsetMins = Math.abs(offsetMinutes) % 60;
-    const sign = offsetMinutes >= 0 ? "+" : "-";
-    const utcOffsetString = `UTC${sign}${offsetHours}${offsetMins > 0 ? ":" + offsetMins.toString().padStart(2, "0") : ""}`;
-    setUtcOffset(utcOffsetString);
-
-    // Get approximate location from IP address (no permissions needed)
-    const fetchLocationAndWeather = async () => {
+    const fetchHypeSol = async () => {
       try {
-        // Use IP-based geolocation (free, no API key, no permissions)
-        const geoResponse = await fetch("https://get.geojs.io/v1/ip/geo.json");
-        const geoData = await geoResponse.json();
-
-        if (geoData.city || geoData.region) {
-          const city = (geoData.city || "").trim();
-          const region = (geoData.region || "").trim();
-
-          if (city && region) {
-            // Avoid duplicates like "Belgrade, Belgrade"
-            if (city.toLowerCase() === region.toLowerCase()) {
-              setUserLocation(city);
-            } else {
-              setUserLocation(`${city}, ${region}`);
-            }
-          } else if (city) {
-            setUserLocation(city);
-          } else if (region) {
-            setUserLocation(region);
-          }
-        }
-
-        // Fetch weather data if we have coordinates
-        if (geoData.latitude && geoData.longitude) {
-          try {
-            const weatherResponse = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${geoData.latitude}&longitude=${geoData.longitude}&current=temperature_2m&temperature_unit=celsius`,
-            );
-            const weatherData = await weatherResponse.json();
-            if (weatherData.current?.temperature_2m) {
-              setTemperature(
-                `${Math.round(weatherData.current.temperature_2m)}°C`,
-              );
-            }
-          } catch (error) {
-            console.error("Error fetching weather:", error);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching IP-based location:", error);
-        // Fallback to timezone-based location
-        const locationParts = timezone.split("/");
-        const city = locationParts[locationParts.length - 1].replace(/_/g, " ");
-        setUserLocation(city);
+        const res = await fetch(COINGECKO_HYPE_SOL_URL);
+        const data = await res.json();
+        if (data?.hyperliquid?.usd != null) setHypePrice(data.hyperliquid.usd);
+        if (data?.solana?.usd != null) setSolPrice(data.solana.usd);
+      } catch (e) {
+        console.error("Error fetching HYPE/SOL price:", e);
       }
     };
-
-    fetchLocationAndWeather();
+    fetchHypeSol();
+    const interval = setInterval(fetchHypeSol, HYPE_SOL_POLL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   const formatDate = (date: Date) => {
@@ -169,13 +137,25 @@ function Widget() {
           <div className="text-xs uppercase opacity-60 mt-0.5">BTC</div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <span className="opacity-50">{temperature || "--°C"}</span>
-          <span>{userLocation || "Loading..."}</span>
-
-          <Badge variant="secondary" className="bg-accent">
-            {utcOffset || "UTC"}
-          </Badge>
+        <div className="grid grid-cols-3 gap-2 items-center">
+          <div className="text-left">
+            <span className="opacity-50 uppercase block whitespace-nowrap">HYPE</span>
+            <span className="block font-mono">
+              {hypePrice != null ? formatWholePrice(hypePrice) : "…"}
+            </span>
+          </div>
+          <div className="flex flex-col items-center justify-center min-w-0 px-1 text-center">
+            <span className="opacity-50 uppercase whitespace-nowrap">Trading Session</span>
+            <span className="font-normal normal-case whitespace-nowrap text-center">
+              {getTradingSessionFull(currentTime)}
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="opacity-50 uppercase block whitespace-nowrap">SOL</span>
+            <span className="block font-mono">
+              {solPrice != null ? formatWholePrice(solPrice) : "…"}
+            </span>
+          </div>
         </div>
 
         <div className="absolute inset-0 -z-1">

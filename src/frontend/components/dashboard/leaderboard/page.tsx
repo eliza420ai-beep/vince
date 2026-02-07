@@ -29,7 +29,7 @@ import { cn } from "@/frontend/lib/utils";
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
-type MainTab = "knowledge" | "markets" | "news" | "trading_bot";
+type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot";
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -54,7 +54,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   const { data: leaderboardsResult, isLoading: leaderboardsLoading, refetch: refetchLeaderboards, isFetching: leaderboardsFetching } = useQuery({
     queryKey: ["leaderboards", leaderboardsAgentId],
     queryFn: () => fetchLeaderboardsWithError(leaderboardsAgentId),
-    enabled: (mainTab === "markets" || mainTab === "news") && !!leaderboardsAgentId,
+    enabled: (mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more") && !!leaderboardsAgentId,
     staleTime: LEADERBOARDS_STALE_MS,
   });
 
@@ -207,10 +207,14 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
         ? "Weekly Sprint Rankings · Newly added knowledge"
         : "All-Time Rankings · Newly added knowledge"
       : mainTab === "markets"
-        ? "All market data in one place — no need to ask VINCE"
-        : mainTab === "news"
-          ? "MandoMinutes headlines with TLDR and deep dive"
-          : "Open paper trades and portfolio overview";
+        ? "HIP-3 and HL Crypto (perps) — no need to ask VINCE"
+        : mainTab === "memetics"
+          ? "Memes (Solana) and Meteora LP"
+          : mainTab === "news"
+            ? "MandoMinutes headlines with TLDR and deep dive"
+            : mainTab === "more"
+              ? "Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts"
+              : "Open paper trades and portfolio overview";
 
   return (
     <DashboardPageLayout
@@ -229,10 +233,12 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             <TabsList>
               <TabsTrigger value="knowledge">Knowledge</TabsTrigger>
               <TabsTrigger value="markets">Markets</TabsTrigger>
+              <TabsTrigger value="memetics">Memetics</TabsTrigger>
               <TabsTrigger value="news">News</TabsTrigger>
+              <TabsTrigger value="more">More</TabsTrigger>
               <TabsTrigger value="trading_bot">Trading Bot</TabsTrigger>
             </TabsList>
-            {(mainTab === "markets" || mainTab === "news") && (
+            {(mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more") && (
               <Button
                 variant="outline"
                 size="sm"
@@ -270,7 +276,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 {/* Hero line: always-available data */}
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">
-                    All data we have — always here. Open this page anytime; no need to ask VINCE.
+                    HIP-3 and HL Crypto (perps) — always here. Open this page anytime; no need to ask VINCE.
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {leaderboardsData.updatedAt != null
@@ -316,95 +322,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     />
                   )}
 
-                  {/* Memes: full hot + full ape lists */}
-                  {leaderboardsData.memes && (
-                    <DashboardCard title={leaderboardsData.memes.title}>
-                      <p className="text-sm text-muted-foreground mb-3">{leaderboardsData.memes.moodSummary ?? ""}</p>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Mood: {leaderboardsData.memes.mood ?? "—"}</p>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                            <Flame className="w-3.5 h-3.5" /> Hot (≥21%) — all
-                          </div>
-                          <ul className="space-y-1 text-sm">
-                            {(leaderboardsData.memes.hot ?? []).map((r) => (
-                              <li key={r.symbol} className="flex justify-between">
-                                <span className="font-medium">{r.symbol}</span>
-                                <span className={cn((r.change24h ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
-                                  {(r.change24h ?? 0) >= 0 ? "+" : ""}{(r.change24h ?? 0).toFixed(1)}%
-                                </span>
-                              </li>
-                            ))}
-                            {(leaderboardsData.memes.hot ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
-                          </ul>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                            Ape candidates — all
-                          </div>
-                          <ul className="space-y-1 text-sm">
-                            {(leaderboardsData.memes.ape ?? []).map((r) => (
-                              <li key={r.symbol} className="flex justify-between">
-                                <span className="font-medium">{r.symbol}</span>
-                                {r.volumeFormatted && <span className="text-muted-foreground">{r.volumeFormatted}</span>}
-                              </li>
-                            ))}
-                            {(leaderboardsData.memes.ape ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
-                          </ul>
-                        </div>
-                      </div>
-                    </DashboardCard>
-                  )}
-
-                  {/* Meteora: all top pools */}
-                  {leaderboardsData.meteora && (leaderboardsData.meteora.topPools?.length ?? 0) > 0 && (
-                    <DashboardCard title={leaderboardsData.meteora.title}>
-                      <p className="text-sm text-muted-foreground mb-3">{leaderboardsData.meteora.oneLiner ?? ""}</p>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        <BarChart3 className="w-3.5 h-3.5" /> Top pools by TVL — all
-                      </div>
-                      <ul className="space-y-2 text-sm">
-                        {(leaderboardsData.meteora.topPools ?? []).map((p) => (
-                          <li key={p.name} className="flex justify-between items-center">
-                            <span className="font-medium">{p.name}</span>
-                            <span className="text-muted-foreground">{p.tvlFormatted}</span>
-                            {p.apy != null && <span className="text-green-600 dark:text-green-400 tabular-nums">{p.apy.toFixed(1)}% APY</span>}
-                          </li>
-                        ))}
-                      </ul>
-                    </DashboardCard>
-                  )}
-
-                  {/* News: all headlines */}
-                  {leaderboardsData.news && (
-                    <DashboardCard title={leaderboardsData.news.title}>
-                      <p className="text-sm text-muted-foreground mb-3">{leaderboardsData.news.oneLiner ?? ""}</p>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Sentiment: {leaderboardsData.news.sentiment ?? "—"}</p>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                        <Newspaper className="w-3.5 h-3.5" /> Headlines — all
-                      </div>
-                      <ul className="space-y-1.5 text-sm">
-                        {(leaderboardsData.news.headlines ?? []).map((h, i) => (
-                          <li key={i} className="flex gap-2">
-                            {h.sentiment && (
-                              <span className={cn(
-                                "shrink-0 w-6",
-                                h.sentiment === "bullish" && "text-green-600",
-                                h.sentiment === "bearish" && "text-red-600",
-                              )}>
-                                {h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪"}
-                              </span>
-                            )}
-                            <span className="line-clamp-2">{h.text}</span>
-                          </li>
-                        ))}
-                        {(leaderboardsData.news.headlines ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
-                      </ul>
-                    </DashboardCard>
-                  )}
                 </div>
 
-                {!leaderboardsData.hip3 && !leaderboardsData.hlCrypto && !leaderboardsData.memes && !leaderboardsData.meteora && !leaderboardsData.news && (
+                {!leaderboardsData.hip3 && !leaderboardsData.hlCrypto && (
                   <p className="text-center text-muted-foreground py-8">No market data available. Try again in a moment.</p>
                 )}
               </div>
@@ -434,6 +354,260 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </p>
                   </>
                 )}
+                <p className="text-sm text-muted-foreground">Make sure VINCE is running, then click Refresh above.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Memetics tab: Memes (Solana) + Meteora LP */}
+          <TabsContent value="memetics" className="mt-6 flex-1 min-h-0 overflow-auto">
+            {(leaderboardsLoading || leaderboardsFetching) ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-48 bg-muted/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : leaderboardsData ? (
+              <div className="space-y-8">
+                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                  <p className="text-sm font-medium text-foreground/90">
+                    Memes (Solana), Meteora LP, and Watchlist — memetics-focused views.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {leaderboardsData.updatedAt != null
+                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
+                      : "Live data"}
+                  </p>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Memes: full hot + ape + watch + avoid — clean layout, no duplicates */}
+                  {leaderboardsData.memes && (() => {
+                    const hot = leaderboardsData.memes.hot ?? [];
+                    const ape = leaderboardsData.memes.ape ?? [];
+                    const apeSymbols = new Set(ape.map((r) => r.symbol));
+                    const hotOnly = hot.filter((r) => !apeSymbols.has(r.symbol));
+                    const formatMcap = (v: number) =>
+                      v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`;
+                    const formatChange = (n: number) => (n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`);
+
+                    return (
+                      <DashboardCard title={leaderboardsData.memes.title} className="lg:col-span-2">
+                        <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
+                          <p className="text-sm font-medium text-foreground/95">{leaderboardsData.memes.moodSummary ?? ""}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Mood: {leaderboardsData.memes.mood ?? "—"}</p>
+                        </div>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                              <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {hotOnly.slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right">
+                                        <span
+                                            className={cn(
+                                              "tabular-nums font-medium",
+                                              (r.change24h ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+                                            )}>
+                                          {formatChange(r.change24h ?? 0)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {hotOnly.length === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              Ape
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {ape.slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                        {r.marketCap != null && formatMcap(r.marketCap)}
+                                        {r.volumeLiquidityRatio != null && ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {ape.length === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                              Watch
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {(leaderboardsData.memes.watch ?? []).slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                        {r.volumeLiquidityRatio != null ? `${r.volumeLiquidityRatio.toFixed(1)}x` : "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {(leaderboardsData.memes.watch?.length ?? 0) === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </DashboardCard>
+                    );
+                  })()}
+
+                  {/* Meteora: top pools + meme LP opportunities — full width, side-by-side, no dupes */}
+                  {leaderboardsData.meteora && (leaderboardsData.meteora.topPools?.length ?? 0) > 0 && (() => {
+                    const topPools = leaderboardsData.meteora!.topPools ?? [];
+                    const memePools = leaderboardsData.meteora!.memePools ?? [];
+                    const topNames = new Set(topPools.map((p) => p.name));
+                    const memeOnly = memePools.filter((p) => !topNames.has(p.name)).slice(0, 8);
+
+                    const PoolTable = ({ pools, emptyMsg }: { pools: typeof topPools; emptyMsg: string }) => (
+                      <div className="rounded-md border border-border/60 overflow-hidden">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="text-left py-2 px-3 font-medium">Pair</th>
+                              <th className="text-right py-2 px-3 font-medium">TVL</th>
+                              <th className="text-right py-2 px-3 font-medium w-12">bp</th>
+                              <th className="text-right py-2 px-3 font-medium">APY</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pools.map((p) => (
+                              <tr key={p.name} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                <td className="py-2 px-3 font-medium">{p.name}</td>
+                                <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">{p.tvlFormatted}</td>
+                                <td className="py-2 px-3 text-right text-muted-foreground tabular-nums text-xs">
+                                  {p.binWidth != null ? (p.binWidth * 100).toFixed(0) : "—"}
+                                </td>
+                                <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
+                                  {p.apy != null ? `${p.apy.toFixed(1)}%` : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                            {pools.length === 0 && (
+                              <tr>
+                                <td colSpan={4} className="py-4 px-3 text-muted-foreground text-center text-sm">{emptyMsg}</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+
+                    return (
+                      <DashboardCard title={leaderboardsData.meteora!.title} className="lg:col-span-2">
+                        <div className="rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 mb-5">
+                          <p className="text-sm font-medium text-foreground/95">{leaderboardsData.meteora!.oneLiner ?? ""}</p>
+                        </div>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <BarChart3 className="w-3.5 h-3.5" /> Top pools by TVL
+                            </div>
+                            <PoolTable pools={topPools.slice(0, 10)} emptyMsg="—" />
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              Meme LP opportunities (high vol/TVL)
+                            </div>
+                            <PoolTable
+                              pools={memeOnly}
+                              emptyMsg="No extra meme pools beyond top TVL — all high-activity pools are above."
+                            />
+                          </div>
+                        </div>
+                      </DashboardCard>
+                    );
+                  })()}
+
+                  {/* Left Curve (MandoMinutes) */}
+                  {leaderboardsData.memes?.leftcurve && (leaderboardsData.memes.leftcurve.headlines?.length ?? 0) > 0 && (
+                    <DashboardCard title={leaderboardsData.memes.leftcurve.title} className="lg:col-span-2">
+                      <ul className="space-y-2 text-sm max-h-[40vh] overflow-y-auto pr-1">
+                        {leaderboardsData.memes.leftcurve.headlines.map((h, i) => (
+                          <li key={i} className="flex gap-2 items-start">
+                            <span className="flex-1 line-clamp-2">{h.text}</span>
+                            {h.url && (
+                              <a
+                                href={h.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Deep dive
+                              </a>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </DashboardCard>
+                  )}
+                  {/* Watchlist */}
+                  {leaderboardsData.more?.watchlist && (leaderboardsData.more.watchlist.tokens?.length ?? 0) > 0 && (
+                    <DashboardCard title="Watchlist" className="lg:col-span-2">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 font-medium">Symbol</th>
+                              <th className="text-left py-2 font-medium">Chain</th>
+                              <th className="text-left py-2 font-medium">Priority</th>
+                              <th className="text-right py-2 font-medium">Target Mcap</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(leaderboardsData.more.watchlist.tokens ?? []).map((t) => (
+                              <tr key={t.symbol} className="border-b border-border/50">
+                                <td className="py-1.5 font-medium">{t.symbol}</td>
+                                <td className="py-1.5 text-muted-foreground">{t.chain ?? "—"}</td>
+                                <td className="py-1.5 text-muted-foreground">{t.priority ?? "—"}</td>
+                                <td className="py-1.5 text-right font-mono">{t.targetMcap != null ? `$${(t.targetMcap / 1e6).toFixed(1)}M` : "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </DashboardCard>
+                  )}
+                </div>
+
+                {!leaderboardsData.memes && !leaderboardsData.meteora && !(leaderboardsData.more?.watchlist && (leaderboardsData.more.watchlist.tokens?.length ?? 0) > 0) && (
+                  <p className="text-center text-muted-foreground py-8">No memetics data available. Try again in a moment.</p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+                <p className="font-medium text-foreground">Could not load memetics data</p>
                 <p className="text-sm text-muted-foreground">Make sure VINCE is running, then click Refresh above.</p>
               </div>
             )}
@@ -497,6 +671,314 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             )}
           </TabsContent>
 
+          {/* More tab: Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts */}
+          <TabsContent value="more" className="mt-6 flex-1 min-h-0 overflow-auto">
+            {(leaderboardsLoading || leaderboardsFetching) && !leaderboardsData?.more ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-32 bg-muted/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : leaderboardsData?.more ? (
+              <div className="space-y-6">
+                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
+                  <p className="text-sm font-medium text-foreground/90">
+                    Fear & Greed, Options, Binance Intel, CoinGlass, Deribit skew, Sanbase, Nansen, Cross-venue funding, OI cap, Alerts
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {leaderboardsData.updatedAt != null
+                      ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
+                      : "Live data"}
+                  </p>
+                </div>
+
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {/* Fear & Greed */}
+                  {leaderboardsData.more.fearGreed && (
+                    <DashboardCard title="Fear & Greed">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full border-4 border-primary/30 flex items-center justify-center text-xl font-bold">
+                          {leaderboardsData.more.fearGreed.value}
+                        </div>
+                        <div>
+                          <p className="font-medium capitalize">{leaderboardsData.more.fearGreed.label}</p>
+                          <p className="text-xs text-muted-foreground">{leaderboardsData.more.fearGreed.classification}</p>
+                        </div>
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Options DVOL + TLDR */}
+                  {leaderboardsData.more.options && (
+                    <DashboardCard title="Options (Deribit)">
+                      <div className="space-y-3">
+                        <div className="flex gap-4 text-sm">
+                          {leaderboardsData.more.options.btcDvol != null && (
+                            <span className="font-mono">BTC DVOL: {leaderboardsData.more.options.btcDvol.toFixed(1)}%</span>
+                          )}
+                          {leaderboardsData.more.options.ethDvol != null && (
+                            <span className="font-mono">ETH DVOL: {leaderboardsData.more.options.ethDvol.toFixed(1)}%</span>
+                          )}
+                        </div>
+                        {leaderboardsData.more.options.btcTldr && (
+                          <p className="text-xs text-muted-foreground">{leaderboardsData.more.options.btcTldr}</p>
+                        )}
+                        {leaderboardsData.more.options.ethTldr && (
+                          <p className="text-xs text-muted-foreground">{leaderboardsData.more.options.ethTldr}</p>
+                        )}
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Cross-venue funding */}
+                  {leaderboardsData.more.crossVenue && (leaderboardsData.more.crossVenue.assets?.length ?? 0) > 0 && (
+                    <DashboardCard title="Cross-venue funding" className="lg:col-span-2">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 font-medium">Coin</th>
+                              <th className="text-right py-2 font-medium">HL</th>
+                              <th className="text-right py-2 font-medium">CEX</th>
+                              <th className="text-left py-2 font-medium">Arb</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {leaderboardsData.more.crossVenue.assets.map((a) => (
+                              <tr key={a.coin} className="border-b border-border/50">
+                                <td className="py-1.5 font-medium">{a.coin}</td>
+                                <td className="py-1.5 text-right font-mono">{a.hlFunding != null ? (a.hlFunding * 100).toFixed(4) + "%" : "—"}</td>
+                                <td className="py-1.5 text-right font-mono">{a.cexFunding != null ? (a.cexFunding * 100).toFixed(4) + "%" : "—"}</td>
+                                <td className="py-1.5 text-muted-foreground">{a.arb ?? "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {leaderboardsData.more.crossVenue.arbOpportunities?.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Arb: {leaderboardsData.more.crossVenue.arbOpportunities.join(", ")}
+                        </p>
+                      )}
+                    </DashboardCard>
+                  )}
+
+                  {/* OI cap */}
+                  {leaderboardsData.more.oiCap && leaderboardsData.more.oiCap.length > 0 && (
+                    <DashboardCard title="Perps at OI cap">
+                      <ul className="flex flex-wrap gap-2">
+                        {leaderboardsData.more.oiCap.map((s) => (
+                          <li key={s} className="px-2 py-1 rounded bg-muted/50 text-sm font-mono">{s}</li>
+                        ))}
+                      </ul>
+                    </DashboardCard>
+                  )}
+
+                  {/* Regime */}
+                  {leaderboardsData.more.regime && (leaderboardsData.more.regime.btc || leaderboardsData.more.regime.eth) && (
+                    <DashboardCard title="Market regime">
+                      <div className="flex gap-4 text-sm">
+                        {leaderboardsData.more.regime.btc && <span>BTC: {leaderboardsData.more.regime.btc}</span>}
+                        {leaderboardsData.more.regime.eth && <span>ETH: {leaderboardsData.more.regime.eth}</span>}
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Binance Intelligence */}
+                  {leaderboardsData.more.binanceIntel && (
+                    <DashboardCard title="Binance Intelligence">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex gap-4">
+                          {leaderboardsData.more.binanceIntel.topTraderRatio != null && (
+                            <span className="font-mono">Top L/S: {leaderboardsData.more.binanceIntel.topTraderRatio.toFixed(2)}</span>
+                          )}
+                          {leaderboardsData.more.binanceIntel.takerBuySellRatio != null && (
+                            <span className="font-mono">Taker B/S: {leaderboardsData.more.binanceIntel.takerBuySellRatio.toFixed(2)}</span>
+                          )}
+                        </div>
+                        {leaderboardsData.more.binanceIntel.fundingExtreme && (
+                          <p className="text-amber-600 dark:text-amber-400 text-xs">
+                            Funding extreme: {leaderboardsData.more.binanceIntel.fundingDirection ?? "—"}
+                          </p>
+                        )}
+                        {(leaderboardsData.more.binanceIntel.bestLong || leaderboardsData.more.binanceIntel.bestShort) && (
+                          <p className="text-xs text-muted-foreground">
+                            Cross-ex: spread {leaderboardsData.more.binanceIntel.crossExchangeSpread != null ? (leaderboardsData.more.binanceIntel.crossExchangeSpread * 100).toFixed(4) + "%" : "—"}
+                            {leaderboardsData.more.binanceIntel.bestLong && ` · Long ${leaderboardsData.more.binanceIntel.bestLong}`}
+                            {leaderboardsData.more.binanceIntel.bestShort && ` · Short ${leaderboardsData.more.binanceIntel.bestShort}`}
+                          </p>
+                        )}
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* CoinGlass Extended */}
+                  {leaderboardsData.more.coinglassExtended && (leaderboardsData.more.coinglassExtended.funding?.length > 0 || leaderboardsData.more.coinglassExtended.longShort?.length > 0 || leaderboardsData.more.coinglassExtended.openInterest?.length > 0) && (
+                    <DashboardCard title="CoinGlass Extended" className="lg:col-span-2">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 font-medium">Asset</th>
+                              <th className="text-right py-2 font-medium">Funding</th>
+                              <th className="text-right py-2 font-medium">L/S</th>
+                              <th className="text-right py-2 font-medium">OI</th>
+                              <th className="text-right py-2 font-medium">OI Δ24h</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(() => {
+                              const fundingMap = new Map((leaderboardsData.more.coinglassExtended?.funding ?? []).map((f) => [f.asset, f.rate]));
+                              const lsMap = new Map((leaderboardsData.more.coinglassExtended?.longShort ?? []).map((ls) => [ls.asset, ls.ratio]));
+                              const oiMap = new Map((leaderboardsData.more.coinglassExtended?.openInterest ?? []).map((oi) => [oi.asset, oi]));
+                              const assets = [...new Set([...fundingMap.keys(), ...lsMap.keys(), ...oiMap.keys()])].slice(0, 10);
+                              return assets.map((asset) => {
+                                const rate = fundingMap.get(asset);
+                                const ratio = lsMap.get(asset);
+                                const oi = oiMap.get(asset);
+                                return (
+                                  <tr key={asset} className="border-b border-border/50">
+                                    <td className="py-1.5 font-medium">{asset}</td>
+                                    <td className="py-1.5 text-right font-mono">{rate != null ? (rate * 100).toFixed(4) + "%" : "—"}</td>
+                                    <td className="py-1.5 text-right font-mono">{ratio != null ? ratio.toFixed(2) : "—"}</td>
+                                    <td className="py-1.5 text-right font-mono">{oi != null ? `$${(oi.value / 1e9).toFixed(2)}B` : "—"}</td>
+                                    <td className="py-1.5 text-right font-mono">{oi?.change24h != null ? (oi.change24h >= 0 ? "+" : "") + oi.change24h.toFixed(1) + "%" : "—"}</td>
+                                  </tr>
+                                );
+                              });
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Deribit IV Skew */}
+                  {leaderboardsData.more.deribitSkew && (leaderboardsData.more.deribitSkew.btc || leaderboardsData.more.deribitSkew.eth) && (
+                    <DashboardCard title="Deribit IV Skew">
+                      <div className="flex gap-4 text-sm">
+                        {leaderboardsData.more.deribitSkew.btc && (
+                          <span>
+                            BTC: <span className={cn("font-medium", leaderboardsData.more.deribitSkew.btc.skewInterpretation === "fearful" && "text-amber-600 dark:text-amber-400", leaderboardsData.more.deribitSkew.btc.skewInterpretation === "bullish" && "text-green-600 dark:text-green-400")}>{leaderboardsData.more.deribitSkew.btc.skewInterpretation}</span>
+                          </span>
+                        )}
+                        {leaderboardsData.more.deribitSkew.eth && (
+                          <span>
+                            ETH: <span className={cn("font-medium", leaderboardsData.more.deribitSkew.eth.skewInterpretation === "fearful" && "text-amber-600 dark:text-amber-400", leaderboardsData.more.deribitSkew.eth.skewInterpretation === "bullish" && "text-green-600 dark:text-green-400")}>{leaderboardsData.more.deribitSkew.eth.skewInterpretation}</span>
+                          </span>
+                        )}
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Sanbase On-Chain */}
+                  {leaderboardsData.more.sanbaseOnChain && (leaderboardsData.more.sanbaseOnChain.btc || leaderboardsData.more.sanbaseOnChain.eth) && (
+                    <DashboardCard title="Sanbase On-Chain">
+                      <div className="space-y-3 text-sm">
+                        {leaderboardsData.more.sanbaseOnChain.btc && (
+                          <div>
+                            <p className="font-medium mb-1">BTC</p>
+                            <p className="text-xs text-muted-foreground">Flows: {leaderboardsData.more.sanbaseOnChain.btc.flows} · Whales: {leaderboardsData.more.sanbaseOnChain.btc.whales}</p>
+                            <p className="text-xs mt-0.5">{leaderboardsData.more.sanbaseOnChain.btc.tldr}</p>
+                          </div>
+                        )}
+                        {leaderboardsData.more.sanbaseOnChain.eth && (
+                          <div>
+                            <p className="font-medium mb-1">ETH</p>
+                            <p className="text-xs text-muted-foreground">Flows: {leaderboardsData.more.sanbaseOnChain.eth.flows} · Whales: {leaderboardsData.more.sanbaseOnChain.eth.whales}</p>
+                            <p className="text-xs mt-0.5">{leaderboardsData.more.sanbaseOnChain.eth.tldr}</p>
+                          </div>
+                        )}
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Nansen Smart Money */}
+                  {leaderboardsData.more.nansenSmartMoney && (leaderboardsData.more.nansenSmartMoney.tokens?.length > 0 || leaderboardsData.more.nansenSmartMoney.creditRemaining != null) && (
+                    <DashboardCard title="Nansen Smart Money" className="lg:col-span-2">
+                      {leaderboardsData.more.nansenSmartMoney.creditRemaining != null && (
+                        <p className="text-xs text-muted-foreground mb-2">Credits: {leaderboardsData.more.nansenSmartMoney.creditRemaining}/100</p>
+                      )}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-border">
+                              <th className="text-left py-2 font-medium">Symbol</th>
+                              <th className="text-left py-2 font-medium">Chain</th>
+                              <th className="text-right py-2 font-medium">Net Flow</th>
+                              <th className="text-right py-2 font-medium">Buy Vol</th>
+                              <th className="text-right py-2 font-medium">24h %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(leaderboardsData.more.nansenSmartMoney.tokens ?? []).map((t) => (
+                              <tr key={`${t.symbol}-${t.chain}`} className="border-b border-border/50">
+                                <td className="py-1.5 font-medium">{t.symbol}</td>
+                                <td className="py-1.5 text-muted-foreground">{t.chain}</td>
+                                <td className="py-1.5 text-right font-mono">${(t.netFlow / 1000).toFixed(1)}K</td>
+                                <td className="py-1.5 text-right font-mono">${(t.buyVolume / 1000).toFixed(1)}K</td>
+                                <td className={cn("py-1.5 text-right font-mono", t.priceChange24h >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
+                                  {(t.priceChange24h >= 0 ? "+" : "") + t.priceChange24h.toFixed(1)}%
+                                </td>
+                              </tr>
+                            ))}
+                            {(leaderboardsData.more.nansenSmartMoney.tokens ?? []).length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="py-4 text-center text-muted-foreground text-xs">No smart money tokens</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </DashboardCard>
+                  )}
+
+                  {/* Alerts */}
+                  {leaderboardsData.more.alerts && (
+                    <DashboardCard title="Alerts" className="lg:col-span-2">
+                      <div className="flex gap-4 text-sm mb-3">
+                        <span>Total: {leaderboardsData.more.alerts.total}</span>
+                        <span>Unread: {leaderboardsData.more.alerts.unread}</span>
+                        <span className="text-amber-600 dark:text-amber-400">High: {leaderboardsData.more.alerts.highPriority}</span>
+                      </div>
+                      <ul className="space-y-2 max-h-48 overflow-y-auto">
+                        {(leaderboardsData.more.alerts.items ?? []).map((a, i) => (
+                          <li key={i} className="rounded border border-border/50 px-3 py-2 text-xs">
+                            <span className="font-medium">{a.type}</span> · {a.title} — {a.message}
+                            <span className="block text-muted-foreground mt-0.5">{new Date(a.timestamp).toLocaleString()}</span>
+                          </li>
+                        ))}
+                        {(leaderboardsData.more.alerts.items ?? []).length === 0 && (
+                          <li className="text-muted-foreground">No alerts</li>
+                        )}
+                      </ul>
+                    </DashboardCard>
+                  )}
+
+                </div>
+
+                {!leaderboardsData.more.fearGreed &&
+                  !leaderboardsData.more.options &&
+                  !leaderboardsData.more.crossVenue &&
+                  !leaderboardsData.more.oiCap &&
+                  !leaderboardsData.more.alerts &&
+                  !leaderboardsData.more.regime &&
+                  !leaderboardsData.more.binanceIntel &&
+                  !leaderboardsData.more.coinglassExtended &&
+                  !leaderboardsData.more.deribitSkew &&
+                  !leaderboardsData.more.sanbaseOnChain &&
+                  !leaderboardsData.more.nansenSmartMoney && (
+                  <p className="text-center text-muted-foreground py-8">No MORE data available. Try again in a moment.</p>
+                )}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+                <p className="font-medium text-foreground">Could not load MORE data</p>
+                <p className="text-sm text-muted-foreground">Make sure VINCE is running, then click Refresh above.</p>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Trading Bot tab: open positions + portfolio — scrollable area so all content is reachable */}
           <TabsContent value="trading_bot" className="mt-6 flex-1 min-h-0 flex flex-col data-[state=active]:flex">
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-7rem)] pb-8">
@@ -530,6 +1012,119 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                   </div>
                 </DashboardCard>
+
+                {/* Goal Progress */}
+                {paperResult.data.goalProgress && (
+                  <DashboardCard title="Goal progress">
+                    <div className="space-y-4">
+                      {paperResult.data.goalTargets && (
+                        <div className="text-xs text-muted-foreground">
+                          Targets: ${paperResult.data.goalTargets.daily}/day · ${paperResult.data.goalTargets.monthly.toLocaleString()}/mo
+                        </div>
+                      )}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Daily</p>
+                          <p className="font-mono">
+                            ${paperResult.data.goalProgress.daily.current.toFixed(0)} / ${paperResult.data.goalProgress.daily.target.toFixed(0)}
+                            <span className="ml-1 text-muted-foreground">({paperResult.data.goalProgress.daily.pct.toFixed(0)}%)</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Remaining ${paperResult.data.goalProgress.daily.remaining.toFixed(0)} · {paperResult.data.goalProgress.daily.pace}
+                            {paperResult.data.goalProgress.daily.paceAmount !== 0 && (
+                              <span className={cn("ml-1", paperResult.data.goalProgress.daily.paceAmount >= 0 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                                ({paperResult.data.goalProgress.daily.paceAmount >= 0 ? "+" : ""}${paperResult.data.goalProgress.daily.paceAmount.toFixed(0)} vs expected)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Monthly</p>
+                          <p className="font-mono">
+                            ${paperResult.data.goalProgress.monthly.current.toFixed(0)} / ${paperResult.data.goalProgress.monthly.target.toFixed(0)}
+                            <span className="ml-1 text-muted-foreground">({paperResult.data.goalProgress.monthly.pct.toFixed(0)}%)</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Remaining ${paperResult.data.goalProgress.monthly.remaining.toFixed(0)} · {paperResult.data.goalProgress.monthly.status}
+                            {paperResult.data.goalProgress.monthly.dailyTargetToHitGoal != null && paperResult.data.goalProgress.monthly.status === "behind" && (
+                              <span className="block mt-0.5 text-amber-600 dark:text-amber-400">
+                                Need ${paperResult.data.goalProgress.monthly.dailyTargetToHitGoal.toFixed(0)}/day to hit goal
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </DashboardCard>
+                )}
+
+                {/* Signal Sources */}
+                {paperResult.data.signalStatus && (
+                  <DashboardCard title="Signal sources">
+                    <div className="space-y-3">
+                      <div className="flex gap-4 text-sm">
+                        <span className="font-mono">Signals: {paperResult.data.signalStatus.signalCount}</span>
+                        <span className="text-muted-foreground">
+                          Last update: {paperResult.data.signalStatus.lastUpdate
+                            ? new Date(paperResult.data.signalStatus.lastUpdate).toLocaleTimeString()
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(paperResult.data.signalStatus.dataSources ?? []).map((ds) => (
+                          <span
+                            key={ds.name}
+                            className={cn(
+                              "inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium",
+                              ds.available ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400",
+                            )}
+                          >
+                            {ds.available ? "✓" : "✗"} {ds.name}
+                          </span>
+                        ))}
+                        {(paperResult.data.signalStatus.dataSources ?? []).length === 0 && (
+                          <span className="text-muted-foreground text-sm">No data sources</span>
+                        )}
+                      </div>
+                    </div>
+                  </DashboardCard>
+                )}
+
+                {/* Thompson Sampling (Bandit) Sources */}
+                {paperResult.data.banditSummary && (
+                  <DashboardCard title="Thompson Sampling (Bandit) sources">
+                    <div className="space-y-4">
+                      <p className="text-sm font-mono">Total trades processed: {paperResult.data.banditSummary.totalTrades}</p>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Top 3 sources</p>
+                          <ul className="space-y-1">
+                            {(paperResult.data.banditSummary.topSources ?? []).map((s) => (
+                              <li key={s.source} className="flex justify-between text-sm">
+                                <span>{s.source}</span>
+                                <span className="font-mono text-green-600 dark:text-green-400">{(s.winRate * 100).toFixed(1)}%</span>
+                              </li>
+                            ))}
+                            {(paperResult.data.banditSummary.topSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Bottom 3 sources</p>
+                          <ul className="space-y-1">
+                            {(paperResult.data.banditSummary.bottomSources ?? []).map((s) => (
+                              <li key={s.source} className="flex justify-between text-sm">
+                                <span>{s.source}</span>
+                                <span className="font-mono text-amber-600 dark:text-amber-400">{(s.winRate * 100).toFixed(1)}%</span>
+                              </li>
+                            ))}
+                            {(paperResult.data.banditSummary.bottomSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </DashboardCard>
+                )}
+
                 <DashboardCard title="Open positions">
                   {paperResult.data.openPositions.length === 0 ? (
                     <p className="text-muted-foreground py-4">No open paper positions. Ask VINCE to &quot;bot status&quot; or &quot;trade&quot;.</p>

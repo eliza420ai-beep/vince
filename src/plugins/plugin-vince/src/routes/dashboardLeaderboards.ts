@@ -47,6 +47,9 @@ export interface LeaderboardRow {
   volume?: number;
   volumeFormatted?: string;
   extra?: string;
+  verdict?: "APE" | "WATCH" | "AVOID";
+  volumeLiquidityRatio?: number;
+  marketCap?: number;
 }
 
 export interface HIP3LeaderboardSection {
@@ -80,13 +83,17 @@ export interface MemesLeaderboardSection {
   title: string;
   hot: LeaderboardRow[];
   ape: LeaderboardRow[];
+  watch?: LeaderboardRow[];
+  avoid?: LeaderboardRow[];
+  leftcurve?: { title: string; headlines: { text: string; url?: string }[] };
   mood: string;
   moodSummary: string;
 }
 
 export interface MeteoraLeaderboardSection {
   title: string;
-  topPools: { name: string; tvl: number; tvlFormatted: string; apy?: number }[];
+  topPools: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number }[];
+  memePools?: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number; volume24h?: number }[];
   oneLiner: string;
 }
 
@@ -99,6 +106,57 @@ export interface NewsLeaderboardSection {
   oneLiner: string;
 }
 
+export interface MoreLeaderboardSection {
+  fearGreed: { value: number; label: string; classification: string } | null;
+  options: {
+    btcDvol: number | null;
+    ethDvol: number | null;
+    btcTldr: string | null;
+    ethTldr: string | null;
+  } | null;
+  crossVenue: {
+    assets: { coin: string; hlFunding?: number; cexFunding?: number; arb?: string }[];
+    arbOpportunities: string[];
+  } | null;
+  oiCap: string[] | null;
+  alerts: {
+    total: number;
+    unread: number;
+    highPriority: number;
+    items: { type: string; title: string; message: string; timestamp: number }[];
+  } | null;
+  watchlist: {
+    tokens: { symbol: string; chain?: string; priority?: string; targetMcap?: number }[];
+  } | null;
+  regime: { btc?: string; eth?: string } | null;
+  binanceIntel: {
+    topTraderRatio: number | null;
+    takerBuySellRatio: number | null;
+    fundingExtreme: boolean;
+    fundingDirection: string | null;
+    crossExchangeSpread: number | null;
+    bestLong: string | null;
+    bestShort: string | null;
+  } | null;
+  coinglassExtended: {
+    funding: { asset: string; rate: number }[];
+    longShort: { asset: string; ratio: number }[];
+    openInterest: { asset: string; value: number; change24h: number | null }[];
+  } | null;
+  deribitSkew: {
+    btc: { skewInterpretation: string } | null;
+    eth: { skewInterpretation: string } | null;
+  } | null;
+  sanbaseOnChain: {
+    btc: { flows: string; whales: string; tldr: string } | null;
+    eth: { flows: string; whales: string; tldr: string } | null;
+  } | null;
+  nansenSmartMoney: {
+    tokens: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[];
+    creditRemaining: number | null;
+  } | null;
+}
+
 export interface LeaderboardsResponse {
   updatedAt: number;
   hip3: HIP3LeaderboardSection | null;
@@ -106,6 +164,7 @@ export interface LeaderboardsResponse {
   memes: MemesLeaderboardSection | null;
   meteora: MeteoraLeaderboardSection | null;
   news: NewsLeaderboardSection | null;
+  more: MoreLeaderboardSection | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +197,7 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
   const volumeLeaders: LeaderboardRow[] = (pulse.leaders?.volumeLeaders ?? []).slice(0, 5).map((l, i) => ({
     rank: i + 1,
     symbol: l.symbol,
+    price: l.price,
     volume: l.volume,
     volumeFormatted: formatVol(l.volume),
   }));
@@ -198,6 +258,7 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
   const topMovers: LeaderboardRow[] = p.topMovers.slice(0, 10).map((m, i) => ({
     rank: i + 1,
     symbol: m.symbol,
+    price: m.price,
     change24h: m.change24h,
     volume: m.volume24h,
     volumeFormatted: formatVol(m.volume24h),
@@ -206,6 +267,7 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
   const volumeLeaders: LeaderboardRow[] = p.volumeLeaders.slice(0, 5).map((l, i) => ({
     rank: i + 1,
     symbol: l.symbol,
+    price: l.price,
     volume: l.volume24h,
     volumeFormatted: formatVol(l.volume24h),
     extra: `OI: ${formatVol(l.openInterest)} · Fund: ${(l.funding8h * 100).toFixed(4)}%`,
@@ -230,25 +292,64 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
     Promise.resolve(dexscreener.getTrendingTokens(10).filter((t: { priceChange24h: number }) => t.priceChange24h >= 21)),
   );
   const ape = await safe("Memes ape", () => Promise.resolve(dexscreener.getApeTokens().slice(0, 5)));
+  const watch = await safe("Memes watch", () =>
+    Promise.resolve(dexscreener.getTrendingTokens(50).filter((t: { verdict: string }) => t.verdict === "WATCH").slice(0, 5)),
+  );
+  const avoid = await safe("Memes avoid", () =>
+    Promise.resolve(dexscreener.getTrendingTokens(50).filter((t: { verdict: string }) => t.verdict === "AVOID").slice(0, 5)),
+  );
   const { mood, summary } = dexscreener.getMarketMood();
 
-  const toRow = (t: { symbol: string; priceUsd?: number; priceChange24h?: number; volume24h?: number; volumeLiquidityRatio?: number }, i: number): LeaderboardRow => ({
+  const news = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
+  const leftcurve =
+    news != null
+      ? await safe("Memes leftcurve", async () => {
+          const items = (news as any).getNewsByCategory?.("leftcurve") ?? [];
+          return items.slice(0, 10).map((n: { title: string; url?: string }) => ({
+            text: n.title,
+            ...(n.url && { url: n.url }),
+          }));
+        })
+      : null;
+
+  const toRow = (
+    t: {
+      symbol: string;
+      price?: number;
+      priceUsd?: number;
+      priceChange24h?: number;
+      volume24h?: number;
+      volumeLiquidityRatio?: number;
+      verdict?: string;
+      marketCap?: number;
+    },
+    i: number,
+  ): LeaderboardRow => ({
     rank: i + 1,
     symbol: t.symbol ?? "—",
-    price: t.priceUsd,
+    price: t.price ?? t.priceUsd,
     change24h: t.priceChange24h,
     volume: t.volume24h,
     volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
     extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
+    verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
+    volumeLiquidityRatio: t.volumeLiquidityRatio,
+    marketCap: t.marketCap,
   });
 
-  return {
+  const result: MemesLeaderboardSection = {
     title: "Memes (Solana)",
     hot: (hot ?? []).map((t: any, i: number) => toRow(t, i)),
     ape: (ape ?? []).map((t: any, i: number) => toRow(t, i)),
     mood: mood ?? "unknown",
     moodSummary: summary ?? "Meme scanner active.",
   };
+  if ((watch ?? []).length > 0) result.watch = (watch ?? []).map((t: any, i: number) => toRow(t, i));
+  if ((avoid ?? []).length > 0) result.avoid = (avoid ?? []).map((t: any, i: number) => toRow(t, i));
+  if (leftcurve && Array.isArray(leftcurve) && leftcurve.length > 0) {
+    result.leftcurve = { title: "Left Curve (MandoMinutes)", headlines: leftcurve };
+  }
+  return result;
 }
 
 async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeaderboardSection | null> {
@@ -256,20 +357,31 @@ async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeade
   if (!meteora) return null;
 
   const pools = await safe("Meteora", () => Promise.resolve(meteora.getTopPools(10)));
+  const memePoolsRaw = await safe("Meteora memePools", () =>
+    Promise.resolve(meteora.getMemePoolOpportunities?.() ?? []),
+  );
   const tldr = await safe("Meteora TLDR", () => Promise.resolve(meteora.getTLDR()));
 
   if (!pools || pools.length === 0) return null;
 
-  return {
+  const toPoolRow = (p: { name?: string; tokenA?: string; tokenB?: string; tvl: number; apy?: number; binWidth?: number; volume24h?: number }) => ({
+    name: p.name ?? (p.tokenA && p.tokenB ? `${p.tokenA}/${p.tokenB}` : "—"),
+    tvl: p.tvl,
+    tvlFormatted: formatVol(p.tvl),
+    apy: p.apy,
+    binWidth: p.binWidth,
+    ...(p.volume24h != null && { volume24h: p.volume24h }),
+  });
+
+  const result: MeteoraLeaderboardSection = {
     title: "Meteora LP",
-    topPools: pools.map((p: { name: string; tvl: number; apy?: number }) => ({
-      name: p.name,
-      tvl: p.tvl,
-      tvlFormatted: formatVol(p.tvl),
-      apy: p.apy,
-    })),
+    topPools: pools.map((p: any) => toPoolRow(p)),
     oneLiner: tldr ?? "Top pools by TVL.",
   };
+  if (memePoolsRaw && memePoolsRaw.length > 0) {
+    result.memePools = memePoolsRaw.map((p: any) => toPoolRow(p));
+  }
+  return result;
 }
 
 /** Same key as news service – raw Mando cache so we return the full list the terminal shows */
@@ -315,6 +427,248 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
   };
 }
 
+async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboardSection> {
+  const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
+    getFearGreed?: () => { value: number; classification: string } | null;
+    getAllFunding?: () => { asset: string; rate: number }[];
+    getAllLongShortRatios?: () => { asset: string; ratio: number }[];
+    getOpenInterest?: (asset: string) => { asset: string; value: number; change24h: number | null } | null;
+  } | null;
+  const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
+    getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
+    getIntelligence?: (asset: string) => Promise<{
+      topTraderPositions?: { longShortRatio?: number } | null;
+      takerVolume?: { buySellRatio?: number } | null;
+      fundingTrend?: { isExtreme?: boolean; extremeDirection?: string } | null;
+      crossExchangeFunding?: { spread?: number; bestLong?: string; bestShort?: string } | null;
+    }>;
+  } | null;
+  const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
+    getDVOL?: (c: "BTC" | "ETH") => Promise<number | null>;
+    getOptionsContext?: (c: "BTC" | "ETH") => Promise<{ ivSurface?: { skewInterpretation?: string } }>;
+    getTLDR?: (ctx: unknown) => string;
+  } | null;
+  const hl = getOrCreateHyperliquidService(runtime);
+  const alert = runtime.getService("VINCE_ALERT_SERVICE") as {
+    getAlerts?: (opts?: { limit?: number }) => { type: string; title: string; message: string; timestamp: number }[];
+    getSummary?: () => { total: number; unread: number; highPriority: number };
+  } | null;
+  const watchlist = runtime.getService("VINCE_WATCHLIST_SERVICE") as {
+    getWatchedTokens?: () => { symbol: string; chain?: string; priority?: string; entryTarget?: number }[];
+  } | null;
+  const regimeSvc = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as {
+    getRegime?: (asset: string) => Promise<{ regime: string }>;
+  } | null;
+  const sanbase = runtime.getService("VINCE_SANBASE_SERVICE") as {
+    getOnChainContext?: (asset: string) => Promise<{
+      exchangeFlows?: { sentiment?: string } | null;
+      whaleActivity?: { sentiment?: string } | null;
+    }>;
+    getTLDR?: (ctx: unknown) => string;
+  } | null;
+  const nansen = runtime.getService("VINCE_NANSEN_SERVICE") as {
+    getHotMemeTokens?: () => Promise<{ symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[]>;
+    getCreditUsage?: () => { remaining: number };
+  } | null;
+
+  const [fearGreedData, btcDvol, ethDvol, btcCtx, ethCtx, crossVenueData, oiCapData, binanceIntelData, coinglassExtData, sanbaseBtcData, sanbaseEthData, nansenData] = await Promise.all([
+    safe("FearGreed", async () => {
+      const cg = coinglass?.getFearGreed?.() ?? null;
+      if (cg) return cg;
+      const alt = await binance?.getFearGreed?.();
+      return alt ? { value: alt.value, classification: alt.classification.replace(/\s+/g, "_").toLowerCase() } : null;
+    }),
+    safe("Deribit DVOL BTC", () => (deribit?.getDVOL?.("BTC") ?? Promise.resolve(null))),
+    safe("Deribit DVOL ETH", () => (deribit?.getDVOL?.("ETH") ?? Promise.resolve(null))),
+    safe("Deribit BTC ctx", () => (deribit?.getOptionsContext?.("BTC") ?? Promise.resolve(null))),
+    safe("Deribit ETH ctx", () => (deribit?.getOptionsContext?.("ETH") ?? Promise.resolve(null))),
+    safe("CrossVenue", () => (hl?.getCrossVenueFunding?.() ?? Promise.resolve(null))),
+    safe("OI Cap", () => (hl?.getPerpsAtOpenInterestCap?.() ?? Promise.resolve(null))),
+    safe("Binance Intel", () => (binance?.getIntelligence?.("BTC") ?? Promise.resolve(null))),
+    safe("CoinGlass Extended", () =>
+      Promise.resolve({
+        funding: (coinglass?.getAllFunding?.() ?? []).slice(0, 10).map((f: { asset: string; rate: number }) => ({ asset: f.asset, rate: f.rate })),
+        longShort: (coinglass?.getAllLongShortRatios?.() ?? []).slice(0, 10).map((ls: { asset: string; ratio: number }) => ({ asset: ls.asset, ratio: ls.ratio })),
+        openInterest: ["BTC", "ETH", "SOL"]
+          .map((a) => coinglass?.getOpenInterest?.(a))
+          .filter(Boolean)
+          .map((oi: { asset: string; value: number; change24h: number | null }) => ({ asset: (oi as any).asset, value: (oi as any).value, change24h: (oi as any).change24h })),
+      }),
+    ),
+    safe("Sanbase BTC", async () => {
+      const ctx = await sanbase?.getOnChainContext?.("BTC");
+      if (!ctx) return null;
+      return {
+        flows: ctx.exchangeFlows?.sentiment ?? "—",
+        whales: ctx.whaleActivity?.sentiment ?? "—",
+        tldr: (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ?? "—",
+      };
+    }),
+    safe("Sanbase ETH", async () => {
+      const ctx = await sanbase?.getOnChainContext?.("ETH");
+      if (!ctx) return null;
+      return {
+        flows: ctx.exchangeFlows?.sentiment ?? "—",
+        whales: ctx.whaleActivity?.sentiment ?? "—",
+        tldr: (sanbase as { getTLDR?: (c: unknown) => string }).getTLDR?.(ctx) ?? "—",
+      };
+    }),
+    safe("Nansen Smart Money", async () => {
+      const tokens = await nansen?.getHotMemeTokens?.() ?? [];
+      const credits = nansen?.getCreditUsage?.();
+      return { tokens, creditRemaining: credits?.remaining ?? null };
+    }),
+  ]);
+
+  const fearGreed =
+    fearGreedData != null
+      ? {
+          value: fearGreedData.value,
+          label: fearGreedData.classification.replace(/_/g, " "),
+          classification: fearGreedData.classification,
+        }
+      : null;
+
+  const btcTldr =
+    btcCtx && deribit && typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR === "function"
+      ? (deribit as { getTLDR: (ctx: unknown) => string }).getTLDR(btcCtx)
+      : null;
+  const ethTldr =
+    ethCtx && deribit && typeof (deribit as { getTLDR?: (ctx: unknown) => string }).getTLDR === "function"
+      ? (deribit as { getTLDR: (ctx: unknown) => string }).getTLDR(ethCtx)
+      : null;
+
+  const options =
+    btcDvol != null || ethDvol != null || btcTldr != null || ethTldr != null
+      ? { btcDvol: btcDvol ?? null, ethDvol: ethDvol ?? null, btcTldr: btcTldr ?? null, ethTldr: ethTldr ?? null }
+      : null;
+
+  const crossVenue =
+    crossVenueData != null
+      ? {
+          assets: crossVenueData.assets.slice(0, 10).map((a: { coin: string; hlFunding?: number; cexFunding?: number; arbitrageDirection?: string | null }) => ({
+            coin: a.coin,
+            hlFunding: a.hlFunding,
+            cexFunding: a.cexFunding,
+            arb: a.arbitrageDirection ?? undefined,
+          })),
+          arbOpportunities: crossVenueData.arbitrageOpportunities ?? [],
+        }
+      : null;
+
+  const oiCap = Array.isArray(oiCapData) ? oiCapData : null;
+
+  const alertItems = alert?.getAlerts?.({ limit: 20 }) ?? [];
+  const alertSummary = alert?.getSummary?.();
+  const alerts =
+    alert != null
+      ? {
+          total: alertSummary?.total ?? alertItems.length,
+          unread: alertSummary?.unread ?? 0,
+          highPriority: alertSummary?.highPriority ?? 0,
+          items: alertItems.map((a) => ({
+            type: a.type,
+            title: a.title,
+            message: a.message,
+            timestamp: a.timestamp,
+          })),
+        }
+      : null;
+
+  const tokens = watchlist?.getWatchedTokens?.() ?? [];
+  const watchlistSection =
+    tokens.length > 0
+      ? {
+          tokens: tokens.map((t) => ({
+            symbol: t.symbol,
+            chain: t.chain,
+            priority: t.priority,
+            targetMcap: t.entryTarget,
+          })),
+        }
+      : null;
+
+  let regime: { btc?: string; eth?: string } | null = null;
+  if (regimeSvc?.getRegime) {
+    const [btcRegime, ethRegime] = await Promise.all([
+      safe("Regime BTC", () => regimeSvc.getRegime!("BTC")),
+      safe("Regime ETH", () => regimeSvc.getRegime!("ETH")),
+    ]);
+    if (btcRegime || ethRegime) {
+      regime = {};
+      if (btcRegime) regime.btc = btcRegime.regime;
+      if (ethRegime) regime.eth = ethRegime.regime;
+    }
+  }
+
+  const binanceIntel = binanceIntelData
+    ? {
+        topTraderRatio: binanceIntelData.topTraderPositions?.longShortRatio ?? null,
+        takerBuySellRatio: binanceIntelData.takerVolume?.buySellRatio ?? null,
+        fundingExtreme: binanceIntelData.fundingTrend?.isExtreme ?? false,
+        fundingDirection: binanceIntelData.fundingTrend?.extremeDirection ?? null,
+        crossExchangeSpread: binanceIntelData.crossExchangeFunding?.spread ?? null,
+        bestLong: binanceIntelData.crossExchangeFunding?.bestLong ?? null,
+        bestShort: binanceIntelData.crossExchangeFunding?.bestShort ?? null,
+      }
+    : null;
+
+  const coinglassExtended = coinglassExtData
+    ? {
+        funding: coinglassExtData.funding ?? [],
+        longShort: coinglassExtData.longShort ?? [],
+        openInterest: (coinglassExtData.openInterest ?? []).filter(
+          (oi: { asset?: string; value?: number; change24h?: number | null }) => oi && oi.asset,
+        ),
+      }
+    : null;
+
+  const deribitSkew =
+    (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation ||
+    (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation
+      ? {
+          btc:
+            (btcCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation != null
+              ? { skewInterpretation: (btcCtx as any).ivSurface.skewInterpretation }
+              : null,
+          eth:
+            (ethCtx as { ivSurface?: { skewInterpretation?: string } } | null)?.ivSurface?.skewInterpretation != null
+              ? { skewInterpretation: (ethCtx as any).ivSurface.skewInterpretation }
+              : null,
+        }
+      : null;
+
+  const sanbaseOnChain = sanbaseBtcData || sanbaseEthData ? { btc: sanbaseBtcData ?? null, eth: sanbaseEthData ?? null } : null;
+
+  const nansenSmartMoney = nansenData
+    ? {
+        tokens: (nansenData.tokens ?? []).slice(0, 10).map((t: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }) => ({
+          symbol: t.symbol,
+          chain: t.chain,
+          netFlow: t.netFlow,
+          buyVolume: t.buyVolume,
+          priceChange24h: t.priceChange24h,
+        })),
+        creditRemaining: nansenData.creditRemaining,
+      }
+    : null;
+
+  return {
+    fearGreed,
+    options,
+    crossVenue,
+    oiCap,
+    alerts,
+    watchlist: watchlistSection,
+    regime,
+    binanceIntel,
+    coinglassExtended,
+    deribitSkew,
+    sanbaseOnChain,
+    nansenSmartMoney,
+  };
+}
+
 /**
  * Build full leaderboards payload for the frontend.
  */
@@ -323,12 +677,13 @@ export async function buildLeaderboardsResponse(
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
 
-  const [hip3, hlCrypto, memes, meteora, news] = await Promise.all([
+  const [hip3, hlCrypto, memes, meteora, news, more] = await Promise.all([
     buildHIP3Section(runtime),
     buildHLCryptoSection(runtime),
     buildMemesSection(runtime),
     buildMeteoraSection(runtime),
     buildNewsSection(runtime),
+    buildMoreSection(runtime),
   ]);
 
   return {
@@ -338,5 +693,6 @@ export async function buildLeaderboardsResponse(
     memes,
     meteora,
     news,
+    more,
   };
 }

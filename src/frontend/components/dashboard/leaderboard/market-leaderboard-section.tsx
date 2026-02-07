@@ -14,6 +14,15 @@ export function formatChange(change: number | undefined): string {
   return `${sign}${change.toFixed(2)}%`;
 }
 
+export function formatPrice(price: number | undefined): string {
+  if (price == null || !Number.isFinite(price)) return "—";
+  if (price >= 1e6) return `$${(price / 1e6).toFixed(2)}M`;
+  if (price >= 1e3) return `$${(price / 1e3).toFixed(2)}K`;
+  if (price >= 1) return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (price >= 0.0001) return `$${price.toFixed(4)}`;
+  return `$${price.toExponential(2)}`;
+}
+
 interface CategoryBlock {
   label: string;
   rows: LeaderboardRow[];
@@ -33,6 +42,7 @@ interface MarketLeaderboardSectionProps {
 
 function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; showVolume?: boolean }) {
   if (rows.length === 0) return null;
+  const hasPrice = rows.some((r) => r.price != null && Number.isFinite(r.price));
   return (
     <div className="rounded-lg border border-border/60 overflow-hidden">
       <table className="w-full text-sm">
@@ -40,6 +50,7 @@ function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; show
           <tr className="bg-muted/50">
             <th className="text-left py-2 px-3 w-8">#</th>
             <th className="text-left py-2 px-3">Symbol</th>
+            {hasPrice && <th className="text-right py-2 px-3">Price</th>}
             <th className="text-right py-2 px-3">Change</th>
             {showVolume && <th className="text-right py-2 px-3">Vol</th>}
           </tr>
@@ -49,6 +60,11 @@ function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; show
             <tr key={row.symbol} className="border-t border-border/50 hover:bg-muted/20">
               <td className="py-1.5 px-3 text-muted-foreground">{row.rank ?? "—"}</td>
               <td className="py-1.5 px-3 font-medium">{row.symbol}</td>
+              {hasPrice && (
+                <td className="py-1.5 px-3 text-right font-mono tabular-nums text-muted-foreground">
+                  {formatPrice(row.price)}
+                </td>
+              )}
               <td className={cn(
                 "py-1.5 px-3 text-right font-mono tabular-nums",
                 (row.change24h ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
@@ -71,6 +87,7 @@ function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; show
 function VolumeTable({ rows }: { rows: LeaderboardRow[] }) {
   if (rows.length === 0) return null;
   const hasExtra = rows.some((r) => r.extra);
+  const hasPrice = rows.some((r) => r.price != null && Number.isFinite(r.price));
   return (
     <div className="rounded-lg border border-border/60 overflow-hidden">
       <table className="w-full text-sm">
@@ -78,6 +95,7 @@ function VolumeTable({ rows }: { rows: LeaderboardRow[] }) {
           <tr className="bg-muted/50">
             <th className="text-left py-2 px-3 w-8">#</th>
             <th className="text-left py-2 px-3">Symbol</th>
+            {hasPrice && <th className="text-right py-2 px-3">Price</th>}
             <th className="text-right py-2 px-3">Volume</th>
             {hasExtra && <th className="text-right py-2 px-3 hidden sm:table-cell">Extra</th>}
           </tr>
@@ -87,6 +105,11 @@ function VolumeTable({ rows }: { rows: LeaderboardRow[] }) {
             <tr key={row.symbol} className="border-t border-border/50 hover:bg-muted/20">
               <td className="py-1.5 px-3 text-muted-foreground">{row.rank ?? "—"}</td>
               <td className="py-1.5 px-3 font-medium">{row.symbol}</td>
+              {hasPrice && (
+                <td className="py-1.5 px-3 text-right font-mono tabular-nums text-muted-foreground">
+                  {formatPrice(row.price)}
+                </td>
+              )}
               <td className="py-1.5 px-3 text-right font-mono text-muted-foreground tabular-nums">
                 {row.volumeFormatted ?? "—"}
               </td>

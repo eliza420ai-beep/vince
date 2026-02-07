@@ -85,7 +85,7 @@ export interface HIP3Pulse {
   };
   // Volume and OI leaders
   leaders: {
-    volumeLeaders: { symbol: string; volume: number }[];
+    volumeLeaders: { symbol: string; price?: number; volume: number }[];
     oiLeaders: { symbol: string; oi: number }[];
   };
 }
@@ -958,6 +958,7 @@ export class VinceHIP3Service extends Service {
     );
     const volumeLeaders = sortedByVolume.slice(0, 5).map((a) => ({
       symbol: a.symbol,
+      price: a.price,
       volume: a.volume24h,
     }));
 

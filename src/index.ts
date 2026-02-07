@@ -19,6 +19,8 @@ import { type Project, logger } from "@elizaos/core";
 
 import { vinceAgent } from "./agents/vince.ts";
 import { elizaAgent } from "./agents/eliza.ts";
+import { solusAgent } from "./agents/solus.ts";
+import { otakuAgent } from "./agents/otaku.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 
 // --- Multi-agent Discord: require two different Discord apps ---
@@ -50,10 +52,20 @@ const project: Project = {
       ...elizaAgent,
       plugins: [logFilterPlugin, ...(elizaAgent.plugins ?? [])],
     },
+    {
+      ...solusAgent,
+      plugins: [logFilterPlugin, ...(solusAgent.plugins ?? [])],
+    },
+    {
+      ...otakuAgent,
+      plugins: [logFilterPlugin, ...(otakuAgent.plugins ?? [])],
+    },
   ],
 };
 
 export { vinceAgent } from "./agents/vince.ts";
 export { elizaAgent } from "./agents/eliza.ts";
+export { solusAgent } from "./agents/solus.ts";
+export { otakuAgent } from "./agents/otaku.ts";
 export { character } from "./character.ts";
 export default project;

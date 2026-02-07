@@ -28,6 +28,18 @@ import {
   Flame,
   Building2,
   ImageIcon,
+  Upload,
+  BookOpen,
+  Lightbulb,
+  Video,
+  Briefcase,
+  Target,
+  Calendar,
+  Users,
+  FileCode,
+  Tag,
+  Coins,
+  Zap,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -121,6 +133,24 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
+  // Solus: wealth architect — strike ritual (options framed as weekly targets), yield, sats, Echo DD, $100K plan. Distinct from Vince (ALOHA/perps/market briefing).
+  solus: [
+    { label: "Strike Ritual", message: "options" },
+    { label: "$100K Plan", message: "full $100K plan" },
+    { label: "Yield Rates", message: "best yield USDC USDT0" },
+    { label: "Stack Sats", message: "stack sats DCA Bitcoin" },
+    { label: "Echo DD", message: "Echo seed due diligence" },
+    { label: "Paper Bot", message: "bot status" },
+  ],
+  // Otaku: DeFi analyst — flows, Morpho, yield, discovery (QUICK START below has: CDP Wallet, Price, Web, DeFi TVL, Bridge, Tx Checker — so we avoid those)
+  otaku: [
+    { label: "Smart Money", message: "smart money flows" },
+    { label: "Token Discovery", message: "token discovery screener" },
+    { label: "Morpho", message: "Morpho vault APY" },
+    { label: "PnL Leaderboard", message: "PnL leaderboard" },
+    { label: "Yield Rates", message: "best DeFi yield rates" },
+    { label: "Token Flows", message: "token flows" },
+  ],
 };
 
 function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
@@ -140,6 +170,86 @@ const ALPHA_CATEGORIES: Record<
   tradfi: { title: "TRADFI", icon: Building2, promptToAsk: "tradfi" },
   paper: { title: "PAPER", icon: Wallet, promptToAsk: "bot status" },
   news: { title: "NEWS", icon: Newspaper, promptToAsk: "mando minutes" },
+};
+
+// Eliza: research & knowledge expansion — ingest, brainstorm, explore corpus
+const ELIZA_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+> = {
+  upload: {
+    title: "Upload",
+    icon: Upload,
+    promptToAsk: "upload",
+    description: "Paste a URL or content to ingest into the knowledge base",
+  },
+  ingestVideo: {
+    title: "Ingest Video",
+    icon: Video,
+    promptToAsk: "ingest this video",
+    description: "Send a YouTube or video URL to summarize and save",
+  },
+  research: {
+    title: "Our Research",
+    icon: BookOpen,
+    promptToAsk: "what does our research say",
+    description: "Query the knowledge base for frameworks and insights",
+  },
+  brainstorm: {
+    title: "Brainstorm",
+    icon: Lightbulb,
+    promptToAsk: "let's brainstorm",
+    description: "Ideate and explore ideas with Eliza",
+  },
+  explore: {
+    title: "Explore Knowledge",
+    icon: Search,
+    promptToAsk: "explore our knowledge",
+    description: "Browse and search the corpus",
+  },
+};
+
+// Solus: wealth architect — strike ritual (options as weekly targets), yield, sats, Echo DD. Distinct from Vince (ALOHA/perps).
+const SOLUS_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+> = {
+  strikeRitual: {
+    title: "Strike Ritual",
+    icon: TrendingUp,
+    promptToAsk: "options",
+    description: "Weekly targets, yield math, roll cadence — $3K/week minimum",
+  },
+  stack: {
+    title: "$100K Stack Plan",
+    icon: Target,
+    promptToAsk: "full $100K plan",
+    description: "Sats, yield, Echo DD, options — the full seven pillars",
+  },
+  yield: {
+    title: "Yield Rates",
+    icon: Database,
+    promptToAsk: "best yield USDC USDT0",
+    description: "USDC, USDT0 — Pendle, Aave, Morpho (risk-adjusted)",
+  },
+  sats: {
+    title: "Stack Sats",
+    icon: Wallet,
+    promptToAsk: "stack sats DCA Bitcoin",
+    description: "BTC accumulation, DCA sizing, custody",
+  },
+  echo: {
+    title: "Echo DD",
+    icon: BookOpen,
+    promptToAsk: "Echo seed due diligence",
+    description: "Seed-stage DD via Echo (Coinbase, Cobie) — not FOMO",
+  },
+  paper: {
+    title: "Paper Perps Bot",
+    icon: BarChart2,
+    promptToAsk: "bot status",
+    description: "Hyperliquid paper bot with ML self-improvement",
+  },
 };
 
 const ALPHA_PATTERNS: {
@@ -1199,7 +1309,8 @@ export function ChatInterface({
                 !isTyping &&
                 !isLoadingMessages && (
                   <div className="pt-3 md:pt-4 border-t border-border">
-                    {/* Alpha at a glance - TLDR from terminal dashboards (same card style as Quick Start) */}
+                    {/* Alpha at a glance - VINCE only: TLDR from terminal dashboards */}
+                    {(agent.name || "").toLowerCase().trim() === "vince" && (
                     <div className="mb-4">
                       <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
                         Alpha at a glance
@@ -1240,6 +1351,88 @@ export function ChatInterface({
                         })}
                       </div>
                     </div>
+                    )}
+                    {/* Knowledge & Research - Eliza only: upload, ingest, brainstorm, explore */}
+                    {(agent.name || "").toLowerCase().trim() === "eliza" && (
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        Knowledge & Research
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(ELIZA_CATEGORIES) as Array<
+                            keyof typeof ELIZA_CATEGORIES
+                          >
+                        ).map((key) => {
+                          const item = ELIZA_CATEGORIES[key];
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePromptClick(item.promptToAsk)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {item.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+                    {/* $100K Stack - Solus only: options, paper bot, perps, HIP-3, airdrops */}
+                    {(agent.name || "").toLowerCase().trim() === "solus" && (
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        $100K Stack
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(SOLUS_CATEGORIES) as Array<
+                            keyof typeof SOLUS_CATEGORIES
+                          >
+                        ).map((key) => {
+                          const item = SOLUS_CATEGORIES[key];
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePromptClick(item.promptToAsk)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {item.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+                    {/* Quick Start - Otaku only: CDP, Price, DeFi, Bridge, etc. */}
+                    {(agent.name || "").toLowerCase().trim() === "otaku" && (
+                    <>
                     <div className="flex items-center gap-2 mb-2 md:mb-3">
                       {selectedPlugin && (
                         <button
@@ -1307,6 +1500,8 @@ export function ChatInterface({
                           ),
                         )}
                       </div>
+                    )}
+                    </>
                     )}
                   </div>
                 )}

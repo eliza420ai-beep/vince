@@ -8,7 +8,9 @@ import type { VincePositionManagerService } from "../services/vincePositionManag
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
 import type { VinceMLInferenceService } from "../services/mlInference.service";
 import type { VinceWeightBanditService } from "../services/weightBandit.service";
-import type { Position, Portfolio } from "../types/paperTrading";
+import type { VinceGoalTrackerService } from "../services/goalTracker.service";
+import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
+import type { Position, Portfolio, KPIProgress } from "../types/paperTrading";
 
 export interface NoTradeEvaluation {
   asset: string;
@@ -47,6 +49,18 @@ export interface PaperResponse {
   recentNoTrades: NoTradeEvaluation[];
   recentMLInfluences: MLInfluenceEvent[];
   mlStatus: MLStatus | null;
+  goalProgress: KPIProgress | null;
+  goalTargets: { daily: number; monthly: number } | null;
+  signalStatus: {
+    signalCount: number;
+    lastUpdate: number;
+    dataSources: { name: string; available: boolean }[];
+  } | null;
+  banditSummary: {
+    totalTrades: number;
+    topSources: { source: string; winRate: number }[];
+    bottomSources: { source: string; winRate: number }[];
+  } | null;
   updatedAt: number;
 }
 
@@ -80,6 +94,10 @@ export async function buildPaperResponse(
       recentNoTrades: [],
       recentMLInfluences: [],
       mlStatus: null,
+      goalProgress: null,
+      goalTargets: null,
+      signalStatus: null,
+      banditSummary: null,
       updatedAt: Date.now(),
     };
   }
@@ -114,12 +132,42 @@ export async function buildPaperResponse(
     };
   }
 
+  const goalTracker = runtime.getService(
+    "VINCE_GOAL_TRACKER_SERVICE",
+  ) as VinceGoalTrackerService | null;
+  const signalAggregator = runtime.getService(
+    "VINCE_SIGNAL_AGGREGATOR_SERVICE",
+  ) as VinceSignalAggregatorService | null;
+
+  const goalProgress = goalTracker?.getKPIProgress?.(portfolio) ?? null;
+  const goal = goalTracker?.getGoal?.();
+  const goalTargets =
+    goal != null
+      ? { daily: goal.dailyTarget, monthly: goal.monthlyTarget }
+      : null;
+
+  const signalStatus = signalAggregator?.getStatus?.() ?? null;
+
+  const banditSummaryRaw = weightBandit?.getSummary?.();
+  const banditSummary =
+    banditSummaryRaw != null
+      ? {
+          totalTrades: banditSummaryRaw.totalTrades,
+          topSources: banditSummaryRaw.topSources,
+          bottomSources: banditSummaryRaw.bottomSources,
+        }
+      : null;
+
   return {
     openPositions,
     portfolio,
     recentNoTrades,
     recentMLInfluences,
     mlStatus,
+    goalProgress,
+    goalTargets,
+    signalStatus,
+    banditSummary,
     updatedAt: Date.now(),
   };
 }
