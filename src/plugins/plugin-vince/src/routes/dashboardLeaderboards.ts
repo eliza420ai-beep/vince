@@ -592,9 +592,15 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       },
     }))
     .sort((a, b) => {
-      // Rank from thin floor to thick floor: little difference between first 5 NFTs = thin
-      const sumGap = (g: typeof a.gaps) => g.to2nd + g.to3rd + g.to4th + g.to5th;
-      return sumGap(a.gaps) - sumGap(b.gaps);
+      // Sort by Thickness: Thin → Medium → Thick
+      const order = (t: string) => {
+        const x = (t || "").toLowerCase();
+        if (x === "thin") return 0;
+        if (x === "medium") return 1;
+        if (x === "thick") return 2;
+        return 1;
+      };
+      return order(a.floorThickness) - order(b.floorThickness);
     });
 
   return {
