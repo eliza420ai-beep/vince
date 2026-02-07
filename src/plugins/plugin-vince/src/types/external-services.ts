@@ -233,6 +233,13 @@ export interface IOpenSeaVolumeMetrics {
   volume7d: number;
 }
 
+/** Recent sale prices in ETH (last 5-10 sales). Max pain: if all below floor, floor may not hold. */
+export interface IOpenSeaRecentSales {
+  prices: number[];
+  allBelowFloor: boolean;
+  maxSaleEth: number;
+}
+
 export interface IOpenSeaFloorAnalysis {
   collectionSlug: string;
   collectionName: string;
@@ -240,6 +247,8 @@ export interface IOpenSeaFloorAnalysis {
   floorPriceUsd: number;
   floorThickness: IOpenSeaFloorThickness;
   volumeMetrics: IOpenSeaVolumeMetrics;
+  /** Recent sale prices (ETH). Max pain: all below floor = floor may not hold. */
+  recentSales?: IOpenSeaRecentSales;
 }
 
 /**

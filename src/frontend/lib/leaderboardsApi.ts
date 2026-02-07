@@ -87,6 +87,10 @@ export interface DigitalArtCollectionRow {
   volume7d?: number;
   nftsNearFloor?: number;
   gapPctTo2nd?: number;
+  /** Recent sale prices (ETH). Max pain: all below floor = floor may not hold. */
+  recentSalesPrices?: number[];
+  allSalesBelowFloor?: boolean;
+  maxRecentSaleEth?: number;
   gaps: {
     to2nd: number;
     to3rd: number;
@@ -100,6 +104,8 @@ export interface DigitalArtLeaderboardSection {
   title: string;
   collections: DigitalArtCollectionRow[];
   oneLiner: string;
+  /** X of 12 curated collections meet strict criteria */
+  criteriaNote?: string;
 }
 
 export interface NewsLeaderboardSection {

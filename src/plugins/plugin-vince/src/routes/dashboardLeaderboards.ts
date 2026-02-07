@@ -139,6 +139,10 @@ export interface DigitalArtCollectionRow {
   volume7d?: number;
   nftsNearFloor?: number;
   gapPctTo2nd?: number;
+  /** Recent sale prices (ETH). Max pain: all below floor = floor may not hold. */
+  recentSalesPrices?: number[];
+  allSalesBelowFloor?: boolean;
+  maxRecentSaleEth?: number;
   gaps: {
     to2nd: number;
     to3rd: number;
@@ -148,10 +152,14 @@ export interface DigitalArtCollectionRow {
   };
 }
 
+const CURATED_COLLECTIONS_COUNT = 12;
+
 export interface DigitalArtLeaderboardSection {
   title: string;
   collections: DigitalArtCollectionRow[];
   oneLiner: string;
+  /** X of 12 curated collections meet strict criteria */
+  criteriaNote?: string;
 }
 
 export interface MoreLeaderboardSection {
@@ -562,6 +570,9 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       totalVolume?: number;
       volume24h?: number;
       nftsNearFloor?: number;
+      recentSalesPrices?: number[];
+      allSalesBelowFloor?: boolean;
+      maxRecentSaleEth?: number;
       gaps?: {
         to2nd?: number;
         to3rd?: number;
@@ -586,15 +597,16 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     };
   }
 
-  // Exclude illiquid collections (zero sales for months, e.g. DRIVE)
+  // Gem-on-floor criteria: thin floor + recent sales + at least one sale at/above floor
   const MIN_VOLUME_7D_ETH = 0.001;
-  const MIN_GAP_TO_2ND_ETH = 0.21; // Only show thin-floor collections (gap >= 0.21)
+  const MIN_GAP_TO_2ND_ETH = 0.21;
   const liquidFloors = floors.filter((c) => {
     const volume7d = c.totalVolume ?? c.volume24h ?? 0;
     const gapTo2nd = c.gaps?.to2nd ?? 0;
-    return (
-      volume7d >= MIN_VOLUME_7D_ETH && gapTo2nd >= MIN_GAP_TO_2ND_ETH
-    );
+    const hasRecentSales = volume7d >= MIN_VOLUME_7D_ETH;
+    const hasThinFloor = gapTo2nd >= MIN_GAP_TO_2ND_ETH;
+    const salesSupportFloor = c.allSalesBelowFloor !== true; // exclude if all recent sales below floor
+    return hasRecentSales && hasThinFloor && salesSupportFloor;
   });
 
   const collections: DigitalArtCollectionRow[] = liquidFloors
@@ -612,6 +624,9 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
         volume7d: c.totalVolume,
         nftsNearFloor: c.nftsNearFloor,
         gapPctTo2nd,
+        recentSalesPrices: c.recentSalesPrices,
+        allSalesBelowFloor: c.allSalesBelowFloor,
+        maxRecentSaleEth: c.maxRecentSaleEth,
         gaps: {
           to2nd,
           to3rd: c.gaps?.to3rd ?? 0,
@@ -633,10 +648,22 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       return order(a.floorThickness) - order(b.floorThickness);
     });
 
+  const meetCount = liquidFloors.length;
+  const criteriaExplanation = [
+    `1) Gap to 2nd listing ≥ 0.21 ETH (thin floor)`,
+    `2) Recent 7d volume (liquidity)`,
+    `3) At least one recent sale at or above floor (price support)`,
+  ].join("; ");
+  const criteriaNote =
+    meetCount > 0
+      ? `${meetCount} of ${CURATED_COLLECTIONS_COUNT} curated collections meet gem-on-floor criteria: ${criteriaExplanation}`
+      : `0 of ${CURATED_COLLECTIONS_COUNT} curated collections meet criteria. Requirements: ${criteriaExplanation}`;
+
   return {
     title: "Digital Art",
     collections,
     oneLiner: tldr ?? "Curated NFT collections — floor prices and thin-floor opportunities.",
+    criteriaNote,
   };
 }
 

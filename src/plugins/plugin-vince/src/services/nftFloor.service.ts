@@ -386,6 +386,8 @@ export class VinceNFTFloorService extends Service {
         thicknessType = "thick";
       }
 
+      const recentSales = analysis.recentSales;
+
       const nftCollection: NFTCollection = {
         slug: collection.slug,
         name: collection.name,
@@ -410,6 +412,9 @@ export class VinceNFTFloorService extends Service {
           to10th: thickness.gaps.to10th,
         },
         nftsNearFloor: thickness.nftsNearFloor,
+        recentSalesPrices: recentSales?.prices,
+        allSalesBelowFloor: recentSales?.allBelowFloor,
+        maxRecentSaleEth: recentSales?.maxSaleEth,
         timestamp: Date.now(),
       };
 

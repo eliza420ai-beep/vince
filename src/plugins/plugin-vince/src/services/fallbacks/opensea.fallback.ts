@@ -14,6 +14,7 @@ import type {
   IOpenSeaFloorAnalysis,
   IOpenSeaFloorThickness,
   IOpenSeaVolumeMetrics,
+  IOpenSeaRecentSales,
 } from "../../types/external-services";
 
 const OPENSEA_BASE_URL = "https://api.opensea.io/api/v2";
@@ -80,6 +81,26 @@ interface Listing {
 interface ListingsResponse {
   listings: Listing[];
   next?: string;
+}
+
+/** OpenSea v2 events response (sale events) */
+interface SaleEvent {
+  event_type?: string;
+  price?: string | number;
+  amount?: string | number;
+  total_price?: string | number;
+  protocol_data?: {
+    parameters?: {
+      consideration?: Array<{ startAmount?: string; amount?: string }>;
+    };
+  };
+  [key: string]: unknown;
+}
+
+interface EventsResponse {
+  next?: string;
+  asset_events?: SaleEvent[];
+  events?: SaleEvent[];
 }
 
 export class OpenSeaFallbackService implements IOpenSeaService {
@@ -306,6 +327,58 @@ export class OpenSeaFallbackService implements IOpenSeaService {
   }
 
   /**
+   * Fetch recent sale prices (ETH). Max pain: if all below floor, floor may not hold.
+   */
+  private async fetchRecentSales(
+    slug: string,
+    floorPrice: number,
+  ): Promise<IOpenSeaRecentSales | undefined> {
+    try {
+      const resp = await this.fetchOpenSea<EventsResponse>(
+        `/events/collection/${slug}?event_type=sale&limit=10`,
+      );
+      const events = resp?.asset_events ?? resp?.events ?? [];
+      const prices: number[] = [];
+      for (const e of events) {
+        const eth = this.extractSalePriceEth(e);
+        if (eth > 0) prices.push(eth);
+      }
+      if (prices.length === 0) return undefined;
+      const maxSaleEth = Math.max(...prices);
+      const allBelowFloor = floorPrice > 0 && maxSaleEth < floorPrice;
+      return {
+        prices,
+        allBelowFloor,
+        maxSaleEth,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
+  private extractSalePriceEth(e: SaleEvent): number {
+    try {
+      const v = e.price ?? e.amount ?? e.total_price;
+      if (v != null) {
+        const str = typeof v === "string" ? v : String(v);
+        return this.weiToEth(str, 18);
+      }
+      const consideration = e.protocol_data?.parameters?.consideration;
+      if (consideration?.length) {
+        let total = 0n;
+        for (const c of consideration) {
+          const amt = c.startAmount ?? c.amount ?? "0";
+          total += BigInt(amt);
+        }
+        return this.weiToEth(total.toString(), 18);
+      }
+    } catch {
+      /* ignore */
+    }
+    return 0;
+  }
+
+  /**
    * Analyze floor opportunities for a collection
    */
   async analyzeFloorOpportunities(
@@ -371,6 +444,8 @@ export class OpenSeaFallbackService implements IOpenSeaService {
         volume7d: interval7d?.volume || 0,
       };
 
+      const recentSales = await this.fetchRecentSales(slug, floorPrice);
+
       const result: IOpenSeaFloorAnalysis = {
         collectionSlug: slug,
         collectionName: slug, // OpenSea stats don't include name, use slug
@@ -378,6 +453,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
         floorPriceUsd: floorPrice * this.ethPriceUsd,
         floorThickness,
         volumeMetrics,
+        recentSales,
       };
 
       logger.debug(

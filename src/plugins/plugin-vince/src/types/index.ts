@@ -155,6 +155,10 @@ export interface NFTCollection {
     to10th: number; // ETH gap to 10th listing
   };
   nftsNearFloor: number; // Count within 5% of floor
+  /** Recent sale prices (ETH). Max pain: all below floor = floor may not hold. */
+  recentSalesPrices?: number[];
+  allSalesBelowFloor?: boolean;
+  maxRecentSaleEth?: number;
   timestamp: number;
 }
 

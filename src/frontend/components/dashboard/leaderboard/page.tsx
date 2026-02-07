@@ -741,6 +741,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <div className="space-y-6">
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">{leaderboardsData.digitalArt.oneLiner}</p>
+                  {leaderboardsData.digitalArt.criteriaNote && (
+                    <p className="text-xs text-muted-foreground mt-2 font-medium">
+                      {leaderboardsData.digitalArt.criteriaNote}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     {leaderboardsData.updatedAt != null
                       ? `Updated ${new Date(leaderboardsData.updatedAt).toLocaleTimeString()}`
@@ -755,6 +760,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           <tr className="border-b border-border/60 bg-muted/30">
                             <th className="py-2.5 px-3 text-left font-semibold">Collection</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Floor</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Recent sale prices. All below floor = excluded from gem-on-floor candidates.">Sales</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Thickness</th>
                             <th className="py-2.5 px-2 text-right font-semibold" title="Volume 7d (ETH)">Vol 7d</th>
                             <th className="py-2.5 px-2 text-right font-semibold" title="Items within 5% of floor">Near</th>
@@ -762,13 +768,18 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             <th className="py-2.5 px-2 text-right font-semibold">3rd</th>
                             <th className="py-2.5 px-2 text-right font-semibold">4th</th>
                             <th className="py-2.5 px-2 text-right font-semibold">5th</th>
-                            <th className="py-2.5 px-2 text-right font-semibold">6th</th>
                           </tr>
                         </thead>
                         <tbody>
                           {leaderboardsData.digitalArt.collections.map((c) => {
                             const g = c.gaps ?? { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0 };
                             const fmt = (v: number) => (v > 0 ? `${v.toFixed(3)} ETH` : "—");
+                            const salesLabel =
+                              c.allSalesBelowFloor
+                                ? "⚠️ All below floor"
+                                : c.maxRecentSaleEth != null && c.maxRecentSaleEth > 0
+                                  ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
+                                  : "—";
                             const categoryLabel =
                               c.category === "blue_chip"
                                 ? "Blue Chip"
@@ -805,6 +816,16 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                     )}
                                   </div>
                                 </td>
+                                <td
+                                  className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
+                                  title={
+                                    (c.recentSalesPrices ?? []).length > 0
+                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p) => p.toFixed(2)).join(", ")} ETH`
+                                      : undefined
+                                  }
+                                >
+                                  {salesLabel}
+                                </td>
                                 <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{vol7d}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
@@ -816,7 +837,6 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to3rd)}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to4th)}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to5th)}</td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to6th)}</td>
                               </tr>
                             );
                           })}
