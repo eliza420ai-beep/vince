@@ -104,12 +104,14 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
+  // VINCE: trading bot first, then daily reports (ALOHA, Options, Perps, News), then HIP-3 (onchain stock market). Memes/NFT available in chat.
   vince: [
+    { label: "Trading Bot", message: "bot status" },
     { label: "ALOHA", message: "aloha" },
-    { label: "News", message: "news" },
-    { label: "Memes", message: "memes" },
-    { label: "Perps", message: "perps" },
     { label: "Options", message: "options" },
+    { label: "Perps", message: "perps" },
+    { label: "News", message: "news" },
+    { label: "HIP3", message: "hip3" },
   ],
   // Eliza: flex knowledge, invite brainstorm, above all UPLOAD (ingest → right knowledge folder)
   eliza: [
