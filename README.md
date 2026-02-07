@@ -63,6 +63,7 @@
 | [Heart of VINCE](#-heart-of-vince) | signals → trades → learning |
 | [Star Feature](#-star-feature) | Self-improving paper bot |
 | [Features](#-features) | What matters + actions |
+| [Leaderboard page](#leaderboard-page-dashboard-hub) | Dashboard hub · no chat required |
 | [Getting Started](#-getting-started) | Install · dev · production |
 | [Production](#-production) | Supabase · ML on Cloud |
 | [Configuration](#-configuration) | Env · keys · paths |
@@ -287,6 +288,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 |:---:|---|:---|
 | ☀️ | **ALOHA** | Single command → vibe check + PERPS pulse + OPTIONS posture + "should we trade today?" |
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
+| 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
 | 👤 | **Teammate context** | USER/SOUL/TOOLS/MEMORY keep responses in character |
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
@@ -343,6 +345,24 @@ elizaos test         # Run tests
 
 - **`bun start`** starts the API (port 3000) and the VINCE chat/dashboard UI (port **5173**). **Open http://localhost:5173** for the full UI (sidebar, chat, Quick Start).
 - If you see the **"Invite code" / "Gated access"** screen, you're on the default ElizaOS dashboard (e.g. from `elizaos start` or port 3000 before the custom UI is built). Use **http://localhost:5173** after `bun start`, or run `bun run start:static` and use port 3000 after building the frontend.
+
+### Leaderboard page (dashboard hub)
+
+The **Leaderboard** is a single-page dashboard that surfaces “who’s doing best” and market pulse **without chatting**. One URL, seven tabs, all data from plugin-vince (and gamification when enabled).
+
+| Tab | What you get |
+|:---|:---|
+| **Markets** | HIP-3 (commodities, indices, stocks, AI/Tech) + Hyperliquid Crypto — top movers, volume leaders, full category lists, OI leaders, crowded longs/shorts. Copy: *“Always here. No need to ask VINCE.”* |
+| **Memetics** | Memes (hot / ape / watch / avoid), Meteora LP (top pools, meme pools, all by APY), Leftcurve headlines, watchlist. |
+| **News** | MandoMinutes headlines + sentiment + one-liner. |
+| **Digital Art** | Curated NFT collections — floor prices, thin-floor opportunities, volume leaders, criteria note. |
+| **More** | Fear & Greed, Options (BTC/ETH DVOL + TLDR), cross-venue funding, OI cap, regime, Binance intel, CoinGlass extended, Deribit skew. |
+| **Trading Bot** | Paper portfolio and open positions from the self-improving bot. |
+| **Knowledge** | Knowledge base summary, quality test results, text/YouTube upload. |
+
+**Why we built it:** Push, not pull. You open the page and see live leaderboards and pulse; no “ask VINCE for perps” or “ask for memes.” The backend (`plugin-vince` route `GET …/vince/leaderboards`) aggregates HIP-3, HL, DexScreener, Meteora, News, NFT floor, and “More” in parallel with **per-section timeouts** (`safe()`) so one slow source doesn’t kill the response. Frontend uses React Query (stale time, refetch per tab), a reusable **MarketLeaderboardSection** (top movers, volume leaders, categories in grid or stack), and clear 503/404 handling with hints (patch script, `curl` example). Gamification “Rebels” ranking appears when the gamification plugin is available.
+
+**Where it lives:** `src/frontend/components/dashboard/leaderboard/page.tsx`, `market-leaderboard-section.tsx`, `src/frontend/lib/leaderboardsApi.ts`, `src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts`.
 
 ---
 

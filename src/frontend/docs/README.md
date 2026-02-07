@@ -5,6 +5,7 @@ The VINCE frontend is an **Otaku-style** chat UI (Vite + React) for the VINCE ag
 - **Chat** — Send messages to the agent, see replies, quick prompts, connection status.
 - **Market Pulse** — A card at the top of the chat with an LLM-generated 2–3 sentence market insight, built from dashboard data (Binance, CoinGlass, Deribit, HIP-3, News, DexScreener, NFT floors, paper trades, etc.). Sections include meme mood + hot/ape, NFT TLDR, and open paper positions. Data refetches every 2 minutes when the tab is visible.
 - **Quick actions** — Chips (ALOHA, News, Memes, Perps, Options) below the pulse send the trigger message so you get the full TLDR narrative in chat (e.g. daily snapshot, news briefing) without typing.
+- **Leaderboard page** — Single-page dashboard (Markets, Memetics, News, Digital Art, More, Trading Bot, Knowledge). All data from plugin-vince leaderboards API; no chat required. See repo [README § Leaderboard page](../../../README.md#leaderboard-page-dashboard-hub).
 - **Channels / agents** — Select agent and channel; guest mode and error handling as documented in the repo README.
 
 ---
@@ -18,11 +19,11 @@ That file is the single source of truth for frontend status. It contains:
 | Section | Contents |
 |--------|----------|
 | **OVERVIEW** | Stack (React, Vite, Tailwind v4, api-client), run/build commands, Otaku reference (OTAKU.md) |
-| **COMPLETED** | Integration, branding, guest mode, chat UI, dependencies, Market Pulse, docs |
+| **COMPLETED** | Integration, branding, guest mode, chat UI, dependencies, Market Pulse, Leaderboard page, docs |
 | **KNOWN ISSUES / LIMITATIONS** | API endpoint not found, guest support, CDP, which agent, MESSAGE-BUS / no reply, Pulse 503 |
 | **IN PROGRESS / BACKLOG** | E2E chat verification, optional Radix/Otaku features |
-| **KEY FILES** | App.tsx, chat-interface, market-pulse-card, lib (elizaClient, pulseApi, socketManager), vite.config, stubs, docs |
-| **SESSION NOTES** | Dated log of changes (error handling, bot reply, Otaku reference, local messaging, Market Pulse, quick actions) |
+| **KEY FILES** | App.tsx, chat-interface, market-pulse-card, leaderboard/page, market-leaderboard-section, lib (elizaClient, pulseApi, leaderboardsApi, socketManager), vite.config, stubs, docs |
+| **SESSION NOTES** | Dated log of changes (error handling, bot reply, Otaku reference, local messaging, Market Pulse, quick actions, Leaderboard page) |
 
 Update **progress.txt** when you ship a feature, fix a bug, or hit a new limitation. Link to this README and to repo docs (README, DEPLOY.md, .env.example) where relevant.
 

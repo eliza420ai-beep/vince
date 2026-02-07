@@ -1,5 +1,5 @@
 # VINCE Frontend Progress Tracker
-# Last updated: 2026-02-06
+# Last updated: 2026-02-07
 # Otaku-style UI (Vite) integrated and branded as VINCE. Update after feature or fix.
 
 ================================================================================
@@ -14,8 +14,9 @@ DOCUMENTATION
   - Quick start, reference docs table (architecture, development, troubleshooting,
     character-config, plugin-actions, plugin-context-matcher, x402, evm-wallets, research).
 
-- **Repo-level:** README.md (Chat UI troubleshooting), DEPLOY.md (bot reply / local messaging),
-  .env.example (MESSAGING), tasks/FRONTEND-ALPHA-QUICKSTART.md (how to run and test UI).
+- **Repo-level:** README.md (Chat UI troubleshooting, § Leaderboard page (dashboard hub)),
+  DEPLOY.md (bot reply / local messaging), .env.example (MESSAGING),
+  tasks/FRONTEND-ALPHA-QUICKSTART.md (how to run and test UI).
 
 ================================================================================
 OVERVIEW
@@ -86,6 +87,11 @@ COMPLETED
 - Chat interface: MarketPulseCard rendered above connection status and messages when agent.id
   is set. If the server does not pass runtime to the plugin route handler, the API returns
   503 and the card is hidden (no crash).
+
+## Leaderboard page (dashboard hub) ✅
+- Single-page dashboard: Markets (HIP-3, HL Crypto), Memetics, News, Digital Art, More, Trading Bot,
+  Knowledge. Data from plugin-vince GET .../vince/leaderboards; no chat required. Per-section timeouts,
+  React Query, MarketLeaderboardSection, 503/404 hints. See README § "Leaderboard page (dashboard hub)".
 
 ## Docs ✅
 - README (repo root) § "Chat UI: API endpoint not found" troubleshooting
@@ -159,8 +165,11 @@ KEY FILES
 - App.tsx                    — Main app, guest mode, channels, chat view, error fallbacks
 - components/chat/chat-interface.tsx — Messages, input, quick prompts, Market Pulse, quick actions (ALOHA, News, Memes, Perps, Options), error display
 - components/chat/market-pulse-card.tsx — Market Pulse card (LLM insight + expandable sections)
+- components/dashboard/leaderboard/page.tsx — Leaderboard page (seven tabs: Markets, Memetics, News, Digital Art, More, Trading Bot, Knowledge)
+- components/dashboard/leaderboard/market-leaderboard-section.tsx — Reusable section (top movers, volume leaders, categories)
 - lib/elizaClient.ts         — API client (baseUrl: window.location.origin)
 - lib/pulseApi.ts            — Fetch dashboard pulse (GET /api/agents/:agentId/plugins/vince/pulse)
+- lib/leaderboardsApi.ts     — Fetch leaderboards (GET .../vince/leaderboards), paper, knowledge, quality
 - lib/socketManager.ts       — Socket.IO connection and channel join/leave
 - vite.config.ts             — Proxy, aliases (api-client, CDP stubs), Tailwind
 - stubs/cdp-react.tsx, stubs/cdp-hooks.ts — No-op CDP when not configured
@@ -237,3 +246,15 @@ SESSION NOTES
   Perps, Options that call handleQuickPrompt(message) on click so user gets full narrative in chat.
 - progress.txt: Market Pulse § updated with pulse TLDR enrichment and quick actions; docs/README
   updated with quick actions and pulse sections (memes, NFT, paper).
+
+2026-02-07 (Leaderboard page – dashboard hub):
+- Leaderboard page is the single-page dashboard for "who's doing best" and market pulse without
+  chatting. Seven tabs: Markets (HIP-3 + HL Crypto), Memetics (memes, Meteora, Leftcurve, watchlist),
+  News (MandoMinutes), Digital Art (NFT floors, thin-floor), More (Fear & Greed, Options, Binance intel,
+  CoinGlass, Deribit skew, cross-venue, OI cap, regime), Trading Bot (paper portfolio), Knowledge
+  (base + quality tests + upload). Backend: plugin-vince GET .../vince/leaderboards aggregates all
+  sections in parallel with per-section timeouts (safe()) so one slow source doesn't kill the response.
+  Frontend: React Query (stale time, refetch), MarketLeaderboardSection (top movers, volume leaders,
+  categories grid/stack), 503/404 handling with actionable hints. Rebels ranking (gamification) when
+  available. README.md: new § "Leaderboard page (dashboard hub)" with tab table, why we built it,
+  and key file paths; added to Contents and Features.
