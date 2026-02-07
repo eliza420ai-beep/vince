@@ -367,6 +367,40 @@ export const vincePlugin: Plugin = {
       },
     },
     {
+      name: "vince-knowledge-quality-checklist",
+      path: "/vince/knowledge-quality-checklist",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; query?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void; setHeader: (k: string, v: string) => unknown; send: (s: string) => void };
+          json: (o: object) => void;
+        },
+      ) => {
+        try {
+          const fs = await import("fs");
+          const pathMod = await import("path");
+          const outPath = pathMod.join(process.cwd(), "knowledge", "internal-docs", "KNOWLEDGE-QUALITY-CHECKLIST.md");
+          if (!fs.existsSync(outPath)) {
+            res.status(404).json({ error: "KNOWLEDGE-QUALITY-CHECKLIST.md not found" });
+            return;
+          }
+          const content = fs.readFileSync(outPath, "utf8");
+          const raw = (req.query as Record<string, string>)?.["raw"] === "1";
+          if (raw) {
+            const r = res as { setHeader?: (k: string, v: string) => void; send?: (s: string) => void };
+            r.setHeader?.("Content-Type", "text/markdown; charset=utf-8");
+            r.send?.(content);
+            return;
+          }
+          res.json({ content, path: "knowledge/internal-docs/KNOWLEDGE-QUALITY-CHECKLIST.md" });
+        } catch (err) {
+          logger.warn(`[VINCE] Knowledge quality checklist route error: ${err}`);
+          res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+        }
+      },
+    },
+    {
       name: "vince-knowledge-quality-results",
       path: "/vince/knowledge-quality-results",
       type: "GET",
@@ -390,6 +424,17 @@ export const vincePlugin: Plugin = {
           }
           const raw = fs.readFileSync(outPath, "utf8");
           const data = JSON.parse(raw);
+          const historyPath = path.join(process.cwd(), "data", "knowledge-quality-history.json");
+          if (fs.existsSync(historyPath)) {
+            try {
+              const historyRaw = fs.readFileSync(historyPath, "utf8");
+              data.history = JSON.parse(historyRaw).slice(0, 3);
+            } catch {
+              data.history = [];
+            }
+          } else {
+            data.history = [];
+          }
           res.json(data);
         } catch (err) {
           logger.warn(`[VINCE] Knowledge quality results route error: ${err}`);

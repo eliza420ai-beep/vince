@@ -1714,43 +1714,43 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             <div className="mb-6">
               <DashboardCard title="Knowledge Categories">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Our knowledge base is organized by category. Each category feeds VINCE&apos;s RAG (Retrieval-Augmented Generation) so responses use methodology and frameworks, not just live APIs.
+                  Our knowledge base is organized by category. Each category feeds our agents&apos; RAG (Retrieval-Augmented Generation), so responses draw on methodology and frameworks—not just live APIs. Eliza leans most heavily on this knowledge for research, analysis, conversation, and prompt design across all domains.
                 </p>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 text-sm">
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Trading & Crypto</p>
                     <p className="text-muted-foreground">
-                      <strong>bitcoin-maxi</strong>, <strong>perps-trading</strong>, <strong>options</strong>, <strong>defi-metrics</strong>, <strong>altcoins</strong>, <strong>grinding-the-trenches</strong>, <strong>airdrops</strong>. Why: Cycle analysis, funding/IV interpretation, protocol evaluation, meme psychology—methodology for reading markets.
+                      <strong>bitcoin-maxi</strong>, <strong>perps-trading</strong>, <strong>options</strong>, <strong>defi-metrics</strong>, <strong>altcoins</strong>, <strong>grinding-the-trenches</strong>, <strong>airdrops</strong>. Cycle analysis, funding and IV interpretation, protocol evaluation, meme psychology—methodology for reading markets.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Macro & Traditional</p>
                     <p className="text-muted-foreground">
-                      <strong>macro-economy</strong>, <strong>stocks</strong>, <strong>venture-capital</strong>, <strong>commodities</strong>. Why: Debt cycles, liquidity regimes, risk-on/risk-off—context for crypto and cross-asset views.
+                      <strong>macro-economy</strong>, <strong>stocks</strong>, <strong>venture-capital</strong>, <strong>commodities</strong>. Debt cycles, liquidity regimes, risk-on/risk-off—context for crypto and cross-asset synthesis.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Specialized</p>
                     <p className="text-muted-foreground">
-                      <strong>art-collections</strong>, <strong>privacy</strong>, <strong>security</strong>, <strong>regulation</strong>, <strong>rwa</strong>. Why: NFT valuation, on-chain privacy, smart contract risk, real-world asset tokenization.
+                      <strong>art-collections</strong>, <strong>privacy</strong>, <strong>security</strong>, <strong>regulation</strong>, <strong>rwa</strong>. NFT valuation, on-chain privacy, smart contract risk, RWA tokenization—depth for research and due diligence.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Lifestyle & Personal</p>
                     <p className="text-muted-foreground">
-                      <strong>the-good-life</strong>, <strong>substack-essays</strong>. Why: Day-of-week aware suggestions, luxury, real estate, curated essays—the lifestyle overlay that sets VINCE apart.
+                      <strong>the-good-life</strong>, <strong>substack-essays</strong>. Day-of-week suggestions, luxury, real estate, curated essays—the lifestyle overlay that enriches conversation across agents.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Technical</p>
                     <p className="text-muted-foreground">
-                      <strong>prompt-templates</strong>, <strong>setup-guides</strong>, <strong>internal-docs</strong>. Why: Structured prompts, tool config, quality standards—how we keep output consistent.
+                      <strong>prompt-templates</strong>, <strong>setup-guides</strong>, <strong>internal-docs</strong>. Structured prompts, tool config, quality standards—Eliza leans on these for prompt design and consistent output.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">Uncategorized</p>
                     <p className="text-muted-foreground">
-                      Uploads that don&apos;t yet fit a category. Use <code className="bg-muted px-1 rounded text-xs">upload:</code> in chat; LLM categorization (plugin-knowledge-ingestion) or simple fallback assigns a folder.
+                      Uploads that don&apos;t yet fit a category. Use <code className="bg-muted px-1 rounded text-xs">upload:</code> in chat; LLM categorization or fallback assigns a folder.
                     </p>
                   </div>
                 </div>
@@ -1816,7 +1816,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             {/* Test knowledge quality - runs A/B comparison (with vs without knowledge) */}
             <DashboardCard title="Test knowledge quality" className="mt-6">
               <p className="text-sm text-muted-foreground mb-3">
-                Runs the knowledge quality E2E test: A/B comparison (with vs without knowledge) across 9 domains (OPTIONS, PERPS, MEMES, AIRDROPS, LIFESTYLE, ART + Eliza: RESEARCH, BRAINSTORM, PROMPT_DESIGN). Eliza is the primary knowledge consumer (chat, brainstorm). Requires <code className="bg-muted px-1 rounded text-xs">OPENAI_API_KEY</code>. Takes ~5–10 min.
+                Runs the knowledge quality E2E test: A/B comparison (with vs without knowledge) across 12 domains (OPTIONS, PERPS, MEMES, AIRDROPS, LIFESTYLE, ART + Eliza: RESEARCH, BRAINSTORM, PROMPT_DESIGN + Solus: STRIKE_RITUAL, YIELD_STACK, SEVEN_PILLARS). Eliza (chat, brainstorm), VINCE (execution), Solus (wealth architect). Each agent uses knowledge differently. Requires <code className="bg-muted px-1 rounded text-xs">OPENAI_API_KEY</code>. Takes ~5–10 min.
               </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -1847,16 +1847,60 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <p className="text-xs text-muted-foreground mt-2">
                 Run in your project root. Results show improvement per domain (Knowledge Integration, overall score) and whether the knowledge base adds measurable value.
               </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Use{" "}
+                <a
+                  href={`${typeof window !== "undefined" ? window.location.origin : ""}/api/agents/${leaderboardsAgentId || ""}/plugins/plugin-vince/vince/knowledge-quality-checklist?raw=1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  KNOWLEDGE-QUALITY-CHECKLIST.md
+                </a>{" "}
+                when adding new files.
+              </p>
             </DashboardCard>
 
             {/* Latest quality results (after running the test) */}
             {qualityLoading && (
               <div className="h-24 bg-muted/50 rounded-xl animate-pulse mt-6" />
             )}
+            {!qualityLoading && !qualityResult?.data && (
+              <DashboardCard title="Latest quality results" className="mt-6">
+                <p className="text-sm text-muted-foreground mb-3">
+                  No quality results yet. Run the test command above to generate results.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(KNOWLEDGE_QUALITY_COMMAND);
+                        setTestQualityCopied(true);
+                        setTimeout(() => setTestQualityCopied(false), 2000);
+                      } catch {
+                        window.prompt("Copy this command:", KNOWLEDGE_QUALITY_COMMAND);
+                      }
+                    }}
+                  >
+                    {testQualityCopied ? (
+                      <Check className="w-4 h-4 mr-2 text-green-600" />
+                    ) : (
+                      <Copy className="w-4 h-4 mr-2" />
+                    )}
+                    {testQualityCopied ? "Copied!" : "Copy command"}
+                  </Button>
+                  <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-full">
+                    {KNOWLEDGE_QUALITY_COMMAND}
+                  </code>
+                </div>
+              </DashboardCard>
+            )}
             {!qualityLoading && qualityResult?.data && (
               <DashboardCard title="Latest quality results" className="mt-6">
                 <p className="text-xs text-muted-foreground mb-3">
-                  Ran {new Date(qualityResult.data.ranAt).toLocaleString()}. Eliza is the primary knowledge consumer (chat, brainstorm).
+                  Ran {new Date(qualityResult.data.ranAt).toLocaleString()}. {qualityResult.data.note ?? "Eliza (chat, brainstorm), VINCE (execution), Solus (wealth architect). Each agent uses knowledge differently."}
                 </p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1881,6 +1925,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       </p>
                     </div>
                   </div>
+                  {qualityResult.data.history && qualityResult.data.history.length > 1 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Trend (last 3 runs)</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {qualityResult.data.history.map((h, i) => (
+                          <div key={h.ranAt} className="bg-muted/50 rounded px-2 py-1 text-xs">
+                            <span className="text-muted-foreground">{new Date(h.ranAt).toLocaleDateString()}</span>
+                            <span className="ml-1 font-mono">+{h.avgImprovement}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Per domain</p>
                     <div className="overflow-x-auto">
@@ -1888,6 +1945,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <thead>
                           <tr className="border-b">
                             <th className="text-left py-1.5">Domain</th>
+                            <th className="text-left py-1.5">Agent</th>
                             <th className="text-left py-1.5">Folder</th>
                             <th className="text-right py-1.5">Base</th>
                             <th className="text-right py-1.5">Enh</th>
@@ -1899,6 +1957,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           {qualityResult.data.results.map((r, i) => (
                             <tr key={`${r.domain}-${i}`} className="border-b border-muted/50">
                               <td className="py-1.5">{r.domain}</td>
+                              <td className="py-1.5 text-muted-foreground">{r.agent ?? "vince"}</td>
                               <td className="py-1.5 text-muted-foreground font-mono text-xs">{r.folder}</td>
                               <td className="text-right py-1.5">{r.baselineScore}</td>
                               <td className="text-right py-1.5">{r.enhancedScore}</td>
@@ -1934,6 +1993,16 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <li key={i}>{rec}</li>
                       ))}
                     </ul>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      <a
+                        href={`${typeof window !== "undefined" ? window.location.origin : ""}/api/agents/${leaderboardsAgentId || ""}/plugins/plugin-vince/vince/knowledge-quality-checklist?raw=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-foreground"
+                      >
+                        View KNOWLEDGE-QUALITY-CHECKLIST.md
+                      </a>
+                    </p>
                   </div>
                 </div>
                 <Button variant="outline" size="sm" className="mt-3" onClick={() => refetchQuality()}>

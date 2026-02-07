@@ -74,6 +74,8 @@ export interface DomainTestResult {
   improvementPercent: string;
   chunksUsed: number;
   metrics?: RetrievalMetrics;
+  /** Eliza | VINCE | Solus — which agent this domain targets */
+  agent?: "eliza" | "vince" | "solus";
 }
 
 export interface KnowledgeLoadResult {
@@ -823,5 +825,6 @@ Make your response clearly leverage these unique insights.`;
     improvementPercent: `${improvementPercent}%`,
     chunksUsed,
     metrics,
+    agent: testCase.agent ?? "vince",
   };
 }

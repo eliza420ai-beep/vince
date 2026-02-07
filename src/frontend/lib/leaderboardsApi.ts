@@ -472,6 +472,8 @@ export interface KnowledgeQualityResult {
   knowledgeIntegration: number;
   baselineScore: number;
   enhancedScore: number;
+  /** Eliza | VINCE | Solus — which agent this domain targets */
+  agent?: "eliza" | "vince" | "solus";
 }
 
 export interface KnowledgeQualityGap {
@@ -480,6 +482,12 @@ export interface KnowledgeQualityGap {
   improvement: number;
   knowledgeIntegration: number;
   recommendation: string;
+}
+
+export interface KnowledgeQualityHistoryEntry {
+  ranAt: string;
+  avgImprovement: number;
+  avgKIImprovement: number;
 }
 
 export interface KnowledgeQualityResponse {
@@ -495,6 +503,8 @@ export interface KnowledgeQualityResponse {
   gaps: KnowledgeQualityGap[];
   recommendations: string[];
   note?: string;
+  /** Last 3 runs for trend display */
+  history?: KnowledgeQualityHistoryEntry[];
 }
 
 export async function fetchKnowledgeQualityResults(

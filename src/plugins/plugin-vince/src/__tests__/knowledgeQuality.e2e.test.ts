@@ -11,6 +11,7 @@
  *
  * Usage:
  *   RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts
+ *   KNOWLEDGE_QUALITY_QUICK=1 RUN_NETWORK_TESTS=1 bun test ...  # Run only OPTIONS, PERPS, RESEARCH (~2-3 min)
  *
  * Output:
  *   - Console summary
@@ -246,6 +247,9 @@ const VINCE_TEST_CASES: TestCase[] = [
 // ============================================================================
 const skipNetworkTests = process.env.RUN_NETWORK_TESTS !== "1";
 
+/** When KNOWLEDGE_QUALITY_QUICK=1, run only these domains for faster feedback (~2–3 min vs ~5–10 min). */
+const QUICK_QUALITY_DOMAINS = ["OPTIONS", "PERPS", "RESEARCH"];
+
 describe("VINCE Knowledge Quality", () => {
   const results: DomainTestResult[] = [];
 
@@ -265,6 +269,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("OPTIONS")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "OPTIONS")!;
       const result = await runDomainTest(testCase);
@@ -286,6 +291,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("PERPS")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "PERPS")!;
       const result = await runDomainTest(testCase);
@@ -301,6 +307,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("MEMES")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "MEMES")!;
       const result = await runDomainTest(testCase);
@@ -316,6 +323,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("AIRDROPS")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "AIRDROPS")!;
       const result = await runDomainTest(testCase);
@@ -331,6 +339,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("LIFESTYLE")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "LIFESTYLE")!;
       const result = await runDomainTest(testCase);
@@ -346,6 +355,7 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("ART")) return;
 
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "ART")!;
       const result = await runDomainTest(testCase);
@@ -362,6 +372,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("RESEARCH")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "RESEARCH")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -375,6 +387,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("BRAINSTORM")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "BRAINSTORM")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -388,6 +402,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("PROMPT_DESIGN")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "PROMPT_DESIGN")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -402,6 +418,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("STRIKE_RITUAL")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "STRIKE_RITUAL")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -415,6 +433,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("YIELD_STACK")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "YIELD_STACK")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -428,6 +448,8 @@ describe("VINCE Knowledge Quality", () => {
         console.log("Skipping - no API key");
         return;
       }
+      if (process.env.KNOWLEDGE_QUALITY_QUICK === "1" && !QUICK_QUALITY_DOMAINS.includes("SEVEN_PILLARS")) return;
+
       const testCase = VINCE_TEST_CASES.find((t) => t.domain === "SEVEN_PILLARS")!;
       const result = await runDomainTest(testCase);
       results.push(result);
@@ -580,6 +602,7 @@ describe("VINCE Knowledge Quality", () => {
           knowledgeIntegration: r.enhancedScore.knowledgeIntegration,
           baselineScore: r.baselineScore.overallScore,
           enhancedScore: r.enhancedScore.overallScore,
+          agent: r.agent ?? "vince",
         })),
         gaps,
         recommendations,
@@ -590,6 +613,24 @@ describe("VINCE Knowledge Quality", () => {
       if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
       const outPath = path.join(dataDir, "knowledge-quality-results.json");
       fs.writeFileSync(outPath, JSON.stringify(output, null, 2), "utf8");
+      const historyPath = path.join(dataDir, "knowledge-quality-history.json");
+      const MAX_HISTORY = 10;
+      let historyEntries: { ranAt: string; avgImprovement: number; avgKIImprovement: number }[] = [];
+      if (fs.existsSync(historyPath)) {
+        try {
+          const raw = fs.readFileSync(historyPath, "utf8");
+          historyEntries = JSON.parse(raw);
+        } catch {
+          historyEntries = [];
+        }
+      }
+      historyEntries.unshift({
+        ranAt: output.ranAt,
+        avgImprovement: output.summary.avgImprovement,
+        avgKIImprovement: output.summary.avgKIImprovement,
+      });
+      if (historyEntries.length > MAX_HISTORY) historyEntries = historyEntries.slice(0, MAX_HISTORY);
+      fs.writeFileSync(historyPath, JSON.stringify(historyEntries, null, 2), "utf8");
       console.log(`\nResults written to ${outPath} (for dashboard display)\n`);
 
       // Assertion: average improvement should be non-negative
@@ -633,6 +674,20 @@ describe("VINCE Knowledge Quality", () => {
         // Knowledge Integration should improve significantly for core domains
         const coreKIImprovement = Math.max(optKIDelta, perpsKIDelta);
         expect(coreKIImprovement).toBeGreaterThanOrEqual(5);
+
+        // Per-domain regression guards: OPTIONS and PERPS must meet quality thresholds
+        const OPTIONS_KI_OK = optionsResult.enhancedScore.knowledgeIntegration >= 70;
+        const OPTIONS_IMPROVEMENT_OK = optionsResult.improvement >= 15;
+        const PERPS_KI_OK = perpsResult.enhancedScore.knowledgeIntegration >= 70;
+        const PERPS_IMPROVEMENT_OK = perpsResult.improvement >= 15;
+        expect(
+          OPTIONS_KI_OK || OPTIONS_IMPROVEMENT_OK,
+          `OPTIONS regression: KI ${optionsResult.enhancedScore.knowledgeIntegration} (need >=70) or improvement ${optionsResult.improvement} (need >=15)`,
+        ).toBe(true);
+        expect(
+          PERPS_KI_OK || PERPS_IMPROVEMENT_OK,
+          `PERPS regression: KI ${perpsResult.enhancedScore.knowledgeIntegration} (need >=70) or improvement ${perpsResult.improvement} (need >=15)`,
+        ).toBe(true);
       }
     });
 
