@@ -144,7 +144,10 @@ export interface NFTCollection {
   floorThicknessScore: number; // 0-100 (lower = thinner = more opportunity)
   gaps: {
     to2nd: number; // ETH gap to 2nd listing
+    to3rd: number; // ETH gap to 3rd listing
+    to4th: number; // ETH gap to 4th listing
     to5th: number; // ETH gap to 5th listing
+    to6th: number; // ETH gap to 6th listing
     to10th: number; // ETH gap to 10th listing
   };
   nftsNearFloor: number; // Count within 5% of floor

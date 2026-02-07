@@ -135,7 +135,13 @@ export interface DigitalArtCollectionRow {
   floorPrice: number;
   floorPriceUsd?: number;
   floorThickness: string;
-  gapTo2nd: number;
+  gaps: {
+    to2nd: number;
+    to3rd: number;
+    to4th: number;
+    to5th: number;
+    to6th: number;
+  };
 }
 
 export interface DigitalArtLeaderboardSection {
@@ -547,7 +553,13 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       slug: string;
       floorPrice: number;
       floorThickness: string;
-      gaps?: { to2nd: number };
+      gaps?: {
+        to2nd?: number;
+        to3rd?: number;
+        to4th?: number;
+        to5th?: number;
+        to6th?: number;
+      };
     }>;
     getTLDR?: () => string;
   } | null;
@@ -565,13 +577,25 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     };
   }
 
-  const collections: DigitalArtCollectionRow[] = floors.map((c) => ({
-    name: c.name,
-    slug: c.slug,
-    floorPrice: c.floorPrice,
-    floorThickness: c.floorThickness,
-    gapTo2nd: c.gaps?.to2nd ?? 0,
-  }));
+  const collections: DigitalArtCollectionRow[] = floors
+    .map((c) => ({
+      name: c.name,
+      slug: c.slug,
+      floorPrice: c.floorPrice,
+      floorThickness: c.floorThickness,
+      gaps: {
+        to2nd: c.gaps?.to2nd ?? 0,
+        to3rd: c.gaps?.to3rd ?? 0,
+        to4th: c.gaps?.to4th ?? 0,
+        to5th: c.gaps?.to5th ?? 0,
+        to6th: c.gaps?.to6th ?? 0,
+      },
+    }))
+    .sort((a, b) => {
+      // Rank from thin floor to thick floor: little difference between first 5 NFTs = thin
+      const sumGap = (g: typeof a.gaps) => g.to2nd + g.to3rd + g.to4th + g.to5th;
+      return sumGap(a.gaps) - sumGap(b.gaps);
+    });
 
   return {
     title: "Digital Art",

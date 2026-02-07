@@ -393,7 +393,10 @@ export class VinceNFTFloorService extends Service {
         floorThicknessScore: thickness.score,
         gaps: {
           to2nd: thickness.gaps.to2nd,
+          to3rd: thickness.gaps.to3rd ?? 0,
+          to4th: thickness.gaps.to4th ?? 0,
           to5th: thickness.gaps.to5th,
+          to6th: thickness.gaps.to6th ?? 0,
           to10th: thickness.gaps.to10th,
         },
         nftsNearFloor: thickness.nftsNearFloor,

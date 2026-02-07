@@ -749,27 +749,37 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 </div>
                 <DashboardCard title={leaderboardsData.digitalArt.title}>
                   {(leaderboardsData.digitalArt.collections ?? []).length > 0 ? (
-                    <div className="rounded-md border border-border/60 overflow-hidden">
+                    <div className="rounded-md border border-border/60 overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border/60 bg-muted/30">
                             <th className="py-2.5 px-3 text-left font-semibold">Collection</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Floor (ETH)</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Thickness</th>
-                            <th className="py-2.5 px-3 text-right font-semibold">Gap to 2nd</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">2nd</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">3rd</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">4th</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">5th</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">6th</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {leaderboardsData.digitalArt.collections.map((c) => (
-                            <tr key={c.slug} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
-                              <td className="py-2 px-3 font-medium">{c.name}</td>
-                              <td className="py-2 px-3 text-right tabular-nums">{c.floorPrice.toFixed(2)}</td>
-                              <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
-                              <td className="py-2 px-3 text-right tabular-nums text-muted-foreground">
-                                {c.gapTo2nd > 0 ? `${c.gapTo2nd.toFixed(3)} ETH` : "—"}
-                              </td>
-                            </tr>
-                          ))}
+                          {leaderboardsData.digitalArt.collections.map((c) => {
+                            const g = c.gaps ?? { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0 };
+                            const fmt = (v: number) => (v > 0 ? `${v.toFixed(3)} ETH` : "—");
+                            return (
+                              <tr key={c.slug} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                <td className="py-2 px-3 font-medium">{c.name}</td>
+                                <td className="py-2 px-3 text-right tabular-nums">{c.floorPrice.toFixed(2)}</td>
+                                <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to2nd)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to3rd)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to4th)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to5th)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to6th)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

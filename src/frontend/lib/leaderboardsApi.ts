@@ -83,7 +83,13 @@ export interface DigitalArtCollectionRow {
   floorPrice: number;
   floorPriceUsd?: number;
   floorThickness: string;
-  gapTo2nd: number;
+  gaps: {
+    to2nd: number;
+    to3rd: number;
+    to4th: number;
+    to5th: number;
+    to6th: number;
+  };
 }
 
 export interface DigitalArtLeaderboardSection {

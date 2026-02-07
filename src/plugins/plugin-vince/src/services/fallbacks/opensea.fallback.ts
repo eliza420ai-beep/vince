@@ -211,18 +211,20 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       return {
         score: 50,
         description: "Unknown",
-        gaps: { to2nd: 0, to3rd: 0, to5th: 0, to10th: 0 },
+        gaps: { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0, to10th: 0 },
         nftsNearFloor: 0,
       };
     }
 
     const floor = sortedListings[0] || floorPrice;
 
-    // Calculate gaps
+    // Calculate gaps (from floor to Nth listing price)
     const gaps = {
       to2nd: sortedListings[1] ? sortedListings[1] - floor : 0,
       to3rd: sortedListings[2] ? sortedListings[2] - floor : 0,
+      to4th: sortedListings[3] ? sortedListings[3] - floor : 0,
       to5th: sortedListings[4] ? sortedListings[4] - floor : 0,
+      to6th: sortedListings[5] ? sortedListings[5] - floor : 0,
       to10th: sortedListings[9] ? sortedListings[9] - floor : 0,
     };
 
@@ -283,7 +285,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       floorThickness: {
         score: 50,
         description: "Unknown",
-        gaps: { to2nd: 0, to3rd: 0, to5th: 0, to10th: 0 },
+        gaps: { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0, to10th: 0 },
         nftsNearFloor: 0,
       },
       volumeMetrics: {
