@@ -1,4 +1,4 @@
-# Deploy to Eliza Cloud
+# Deploy to Eliza Cloud (or Railway)
 
 ```
   ██╗   ██╗██╗███╗   ██╗ ██████╗███████╗
@@ -13,7 +13,29 @@ So you don’t burn $15 on a typo again.
 
 **Docs:** [Deploy to Eliza Cloud](https://docs.elizaos.ai/guides/deploy-to-cloud) — `elizaos deploy --project-name <name>` with multiple `--env "KEY=VALUE"` for secrets. We deploy with **PGLite** by default (no `POSTGRES_URL`); add **`POSTGRES_URL`** only if you want Postgres. For a full migration checklist, see [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md).
 
-**Purpose:** Deploy the VINCE app to Eliza Cloud: minimal vs full env, PGLite vs Postgres, troubleshooting. Feature-store: [FEATURE-STORE.md](FEATURE-STORE.md). Overview: [README.md](README.md).
+**Purpose:** Deploy the VINCE app to **Eliza Cloud** or **Railway**: minimal vs full env, PGLite vs Postgres, troubleshooting. Feature-store: [FEATURE-STORE.md](FEATURE-STORE.md). Overview: [README.md](README.md).
+
+---
+
+## Railway (alternative to Eliza Cloud)
+
+Like [elizaOS/otaku](https://github.com/elizaOS/otaku), you can deploy to **Railway** instead of Eliza Cloud. The repo includes a `railway.toml` so Railway uses Nixpacks with:
+
+- **Build:** `bun install && bun run build`
+- **Start:** `elizaos start`
+
+**Steps:**
+
+1. Create a project on [Railway](https://railway.app) and connect this repo.
+2. In the project **Variables** tab, set at least:
+   - `ANTHROPIC_API_KEY`
+   - `OPENAI_API_KEY`
+   Optionally add `POSTGRES_URL`, Supabase keys, and other vars from [Env vars for production](#env-vars-for-production).
+3. Deploy; Railway will run the build then start with `elizaos start`. The app listens on the port Railway provides (`PORT` env is set automatically).
+
+**Persistence:** Same as Eliza Cloud — with **PGLite only** (no `POSTGRES_URL`), redeploys get a fresh filesystem; set **`POSTGRES_URL`** (e.g. Supabase) if you want DB and paper-trade data to persist across deploys. See [Will trading data persist and be used after a redeploy?](#will-trading-data-persist-and-be-used-after-a-redeploy).
+
+---
 
 **Quick reference:** PGLite (recommended) = leave `POSTGRES_URL` unset. Postgres = set `POSTGRES_URL` (port 5432, `?sslmode=verify-full`). Minimal deploy = `ANTHROPIC_API_KEY` + `OPENAI_API_KEY` only; full = add API keys and optional `SUPABASE_SERVICE_ROLE_KEY`.
 
