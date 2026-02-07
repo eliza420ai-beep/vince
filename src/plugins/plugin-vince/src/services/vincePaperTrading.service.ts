@@ -376,15 +376,7 @@ export class VincePaperTradingService extends Service {
     signal: AggregatedTradeSignal,
     reason: string,
   ): void {
-    // Rate limit: only log once per asset per 5 minutes
-    const cacheKey = `signal_reject_${asset}`;
-    const lastLog = this.lastRejectionLog.get(cacheKey);
     const now = Date.now();
-
-    if (lastLog && now - lastLog < 5 * 60 * 1000) {
-      return; // Skip, logged recently
-    }
-    this.lastRejectionLog.set(cacheKey, now);
 
     // Get base thresholds from risk manager
     const riskManager = this.getRiskManager();
@@ -412,6 +404,31 @@ export class VincePaperTradingService extends Service {
       }
     }
 
+    // Always store for dashboard (every no-trade is a decision we want to see)
+    this.recentNoTrades.push({
+      asset,
+      direction: signal.direction,
+      reason,
+      strength: signal.strength,
+      confidence: signal.confidence,
+      confirmingCount: signal.confirmingCount ?? 0,
+      minStrength,
+      minConfidence,
+      minConfirming,
+      timestamp: now,
+    });
+    if (this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES) {
+      this.recentNoTrades.shift();
+    }
+
+    // Rate limit terminal log only: once per asset per 5 minutes (dashboard already has the data)
+    const cacheKey = `signal_reject_${asset}`;
+    const lastLog = this.lastRejectionLog.get(cacheKey);
+    if (lastLog && now - lastLog < 5 * 60 * 1000) {
+      return;
+    }
+    this.lastRejectionLog.set(cacheKey, now);
+
     const dirIcon =
       signal.direction === "long"
         ? "🟢"
@@ -424,23 +441,6 @@ export class VincePaperTradingService extends Service {
       minConfidence,
     );
     const suggLabel = usedReportSuggestion ? " (ML)" : "";
-
-    // Store for dashboard (same data as terminal)
-    this.recentNoTrades.push({
-      asset,
-      direction: signal.direction,
-      reason,
-      strength: signal.strength,
-      confidence: signal.confidence,
-      confirmingCount: signal.confirmingCount ?? 0,
-      minStrength,
-      minConfidence,
-      minConfirming,
-      timestamp: Date.now(),
-    });
-    if (this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES) {
-      this.recentNoTrades.shift();
-    }
 
     console.log("");
     console.log(

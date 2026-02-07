@@ -697,30 +697,40 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                   )}
                 </DashboardCard>
-                {/* Signals evaluated but no trade (same data as terminal) */}
-                <DashboardCard title="Signals evaluated (no trade)">
+                {/* Signals evaluated but no trade — "a no-trade is also a trade" (same data as terminal) */}
+                <DashboardCard
+                  title="Signals evaluated (no trade)"
+                  className="border-amber-500/30 dark:border-amber-500/20"
+                >
+                  <p className="text-xs text-muted-foreground mb-3">
+                    A no-trade is also a decision. When the bot evaluates a signal but does not open (e.g. strength/confidence below bar, book imbalance, ML reject), it appears here—same data as the terminal &quot;SIGNAL EVALUATED - NO TRADE&quot; boxes. Hit Refresh to sync with the running bot.
+                  </p>
                   {(paperResult.data.recentNoTrades?.length ?? 0) === 0 ? (
-                    <p className="text-muted-foreground py-4 text-sm">No recent no-trade evaluations. When the bot evaluates a signal but does not open a trade (e.g. strength below threshold, book imbalance), they appear here.</p>
+                    <p className="text-muted-foreground py-4 text-sm rounded-lg bg-muted/30 border border-dashed border-border px-3">
+                      No no-trade evaluations in this run yet. They appear as the bot evaluates signals (ETH, SOL, HYPE, etc.) and skips opening when thresholds aren’t met. Refresh after the bot has been running to see them.
+                    </p>
                   ) : (
                     <div className="space-y-3">
                       {[...(paperResult.data.recentNoTrades ?? [])]
                         .sort((a, b) => b.timestamp - a.timestamp)
                         .map((ev, i) => (
-                          <div key={`${ev.asset}-${ev.timestamp}-${i}`} className="rounded-lg border border-border bg-muted/20 p-3 text-xs space-y-1.5">
+                          <div key={`${ev.asset}-${ev.timestamp}-${i}`} className="rounded-lg border border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 p-3 text-xs space-y-2">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 font-semibold">
-                              <span className="text-muted-foreground">⏸️</span>
-                              <span>{ev.asset}</span>
+                              <span className="text-amber-600 dark:text-amber-400">⏸️</span>
+                              <span className="font-mono">{ev.asset}</span>
                               <span className={cn("uppercase", ev.direction === "long" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
                                 {ev.direction}
                               </span>
+                              <span className="text-muted-foreground font-normal">·</span>
+                              <span className="text-muted-foreground font-normal truncate" title={ev.reason}>{ev.reason}</span>
                             </div>
                             <p className="text-muted-foreground">
-                              <span className="font-medium text-foreground">Reason:</span> {ev.reason}
+                              <span className="font-medium text-foreground">Why no trade:</span> {ev.reason}
                             </p>
-                            <div className="grid gap-x-4 gap-y-0.5 sm:grid-cols-3 font-mono">
+                            <div className="grid gap-x-4 gap-y-0.5 sm:grid-cols-3 font-mono text-[11px]">
                               <p>Strength {ev.strength.toFixed(0)}% (need {ev.minStrength}%)</p>
                               <p>Confidence {ev.confidence.toFixed(0)}% (need {ev.minConfidence}%)</p>
-                              <p>Confirming {ev.confirmingCount} signals (need {ev.minConfirming})</p>
+                              <p>Confirming {ev.confirmingCount} (need {ev.minConfirming})</p>
                             </div>
                             <p className="text-muted-foreground text-[11px]">
                               {new Date(ev.timestamp).toISOString().replace("T", " ").slice(0, 19)}Z
