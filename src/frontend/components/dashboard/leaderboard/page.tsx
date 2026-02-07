@@ -847,6 +847,101 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     <p className="text-muted-foreground py-6">No NFT data yet. Set OPENSEA_API_KEY for curated collection floor prices.</p>
                   )}
                 </DashboardCard>
+
+                {/* All curated collections by volume (no strict gem criteria; filter: volume 7d > 0) */}
+                {((leaderboardsData.digitalArt.volumeLeaders ?? []).length > 0) && (
+                  <DashboardCard title="All collections by volume" subtitle="Filter: 7d volume &gt; 0 · Sorted by most volume">
+                    <div className="rounded-md border border-border/60 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/60 bg-muted/30">
+                            <th className="py-2.5 px-3 text-left font-semibold">Collection</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Floor</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Recent sale prices">Sales</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Thickness</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Volume 7d (ETH)">Vol 7d</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Items within 5% of floor">Near</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">2nd</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">3rd</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">4th</th>
+                            <th className="py-2.5 px-2 text-right font-semibold">5th</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leaderboardsData.digitalArt.volumeLeaders.map((c) => {
+                            const g = c.gaps ?? { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0 };
+                            const fmt = (v: number) => (v > 0 ? `${v.toFixed(3)} ETH` : "—");
+                            const salesLabel =
+                              c.allSalesBelowFloor
+                                ? "⚠️ All below floor"
+                                : c.maxRecentSaleEth != null && c.maxRecentSaleEth > 0
+                                  ? `${c.maxRecentSaleEth.toFixed(2)} max (${(c.recentSalesPrices ?? []).length})`
+                                  : "—";
+                            const categoryLabel =
+                              c.category === "blue_chip"
+                                ? "Blue Chip"
+                                : c.category === "generative"
+                                  ? "Generative"
+                                  : c.category === "photography"
+                                    ? "Photo"
+                                    : null;
+                            const vol7d =
+                              c.volume7d != null && c.volume7d > 0
+                                ? c.volume7d >= 1000
+                                  ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
+                                  : `${c.volume7d.toFixed(1)} ETH`
+                                : "—";
+                            return (
+                              <tr key={c.slug} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                <td className="py-2 px-3">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium">{c.name}</span>
+                                    {categoryLabel && (
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        {categoryLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <div className="tabular-nums">
+                                    {c.floorPrice.toFixed(2)} ETH
+                                    {c.floorPriceUsd != null && c.floorPriceUsd > 0 && (
+                                      <div className="text-[10px] text-muted-foreground">
+                                        ${(c.floorPriceUsd / 1000).toFixed(1)}K
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td
+                                  className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
+                                  title={
+                                    (c.recentSalesPrices ?? []).length > 0
+                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p) => p.toFixed(2)).join(", ")} ETH`
+                                      : undefined
+                                  }
+                                >
+                                  {salesLabel}
+                                </td>
+                                <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{vol7d}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                  {c.nftsNearFloor != null && c.nftsNearFloor > 0 ? c.nftsNearFloor : "—"}
+                                </td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground" title={c.gapPctTo2nd != null ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor` : undefined}>
+                                  {fmt(g.to2nd)}
+                                </td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to3rd)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to4th)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to5th)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </DashboardCard>
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">

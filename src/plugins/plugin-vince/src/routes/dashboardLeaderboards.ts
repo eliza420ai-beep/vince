@@ -157,6 +157,8 @@ const CURATED_COLLECTIONS_COUNT = 12;
 export interface DigitalArtLeaderboardSection {
   title: string;
   collections: DigitalArtCollectionRow[];
+  /** All curated collections with non-zero 7d volume, sorted by volume desc (no strict gem criteria) */
+  volumeLeaders?: DigitalArtCollectionRow[];
   oneLiner: string;
   /** X of 12 curated collections meet strict criteria */
   criteriaNote?: string;
@@ -659,9 +661,44 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       ? `${meetCount} of ${CURATED_COLLECTIONS_COUNT} curated collections meet gem-on-floor criteria: ${criteriaExplanation}`
       : `0 of ${CURATED_COLLECTIONS_COUNT} curated collections meet criteria. Requirements: ${criteriaExplanation}`;
 
+  // All curated collections with non-zero 7d volume, sorted by volume desc (no strict gem criteria)
+  const volumeLeaders: DigitalArtCollectionRow[] = floors
+    .filter((c) => {
+      const vol = c.totalVolume ?? c.volume24h ?? 0;
+      return vol > 0;
+    })
+    .map((c) => {
+      const to2nd = c.gaps?.to2nd ?? 0;
+      const gapPctTo2nd =
+        c.floorPrice > 0 && to2nd > 0 ? (to2nd / c.floorPrice) * 100 : undefined;
+      return {
+        name: c.name,
+        slug: c.slug,
+        floorPrice: c.floorPrice,
+        floorPriceUsd: c.floorPriceUsd,
+        floorThickness: c.floorThickness,
+        category: c.category,
+        volume7d: c.totalVolume,
+        nftsNearFloor: c.nftsNearFloor,
+        gapPctTo2nd,
+        recentSalesPrices: c.recentSalesPrices,
+        allSalesBelowFloor: c.allSalesBelowFloor,
+        maxRecentSaleEth: c.maxRecentSaleEth,
+        gaps: {
+          to2nd,
+          to3rd: c.gaps?.to3rd ?? 0,
+          to4th: c.gaps?.to4th ?? 0,
+          to5th: c.gaps?.to5th ?? 0,
+          to6th: c.gaps?.to6th ?? 0,
+        },
+      };
+    })
+    .sort((a, b) => (b.volume7d ?? 0) - (a.volume7d ?? 0));
+
   return {
     title: "Digital Art",
     collections,
+    volumeLeaders,
     oneLiner: tldr ?? "Curated NFT collections — floor prices and thin-floor opportunities.",
     criteriaNote,
   };
