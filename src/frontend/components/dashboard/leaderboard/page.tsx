@@ -730,23 +730,28 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                   )}
                 </DashboardCard>
-                {/* ML & recorded data influence (ONNX, bandit, improvement report) */}
+                {/* ML & recorded data influence (ONNX, bandit, improvement report) — flagship: open AI interoperability */}
                 <DashboardCard title="ML & recorded data influence">
                   {paperResult.data.mlStatus != null ? (
                     <div className="space-y-4">
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2.5">
+                        <p className="text-xs font-semibold text-foreground mb-1">What this is</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          <strong className="text-foreground">ONNX</strong> (Open Neural Network Exchange) is the open format for AI model interoperability—founded by Meta and Microsoft, now a Linux Foundation project with broad adoption (Amazon, Apple, IBM, NVIDIA, Intel, AMD, Qualcomm). We use ONNX so the bot’s models (signal quality, position sizing, take-profit/stop-loss) are portable and trainable on your trade data. Paper trades → feature store → training → ONNX export → live inference; when no models are loaded, rule-based fallbacks keep the bot running.
+                        </p>
+                      </div>
                       <div>
-                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">ONNX models</p>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">ONNX models (4 possible)</p>
                         <p className="text-xs font-mono">
                           {paperResult.data.mlStatus.modelsLoaded.length > 0
                             ? paperResult.data.mlStatus.modelsLoaded.join(", ")
                             : "None loaded (rule-based fallbacks)"}
                         </p>
-                        {paperResult.data.mlStatus.modelsLoaded.length === 0 && (
+                        {paperResult.data.mlStatus.modelsLoaded.length === 0 ? (
                           <p className="text-xs text-muted-foreground mt-1">
-                            To enable ML: run training after 90+ closed trades, or add .onnx files to .elizadb/vince-paper-bot/models/
+                            The four slots: <span className="font-mono">signal_quality</span>, <span className="font-mono">position_sizing</span>, <span className="font-mono">tp_optimizer</span>, <span className="font-mono">sl_optimizer</span>. To enable: run training after 90+ closed trades, or add .onnx files to <span className="font-mono">.elizadb/vince-paper-bot/models/</span>.
                           </p>
-                        )}
-                        {paperResult.data.mlStatus.modelsLoaded.length > 0 && (
+                        ) : (
                           <p className="text-xs text-muted-foreground mt-1">
                             Signal quality threshold: {(paperResult.data.mlStatus.signalQualityThreshold * 100).toFixed(0)}%
                             {paperResult.data.mlStatus.suggestedMinStrength != null && ` · Suggested min strength: ${paperResult.data.mlStatus.suggestedMinStrength}%`}
