@@ -228,18 +228,26 @@ export const vincePlugin: Plugin = {
   
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
-    // Guard + normalize sendMessageToTarget so we never call core with discord when VINCE has no Discord handler (stops "Send handler not found" spam)
-    if (isVinceAgent(runtime) && typeof runtime.sendMessageToTarget === "function") {
-      const vinceHasOwnDiscord =
-        !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
-        !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
-        (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+    // Guard: any runtime that does NOT have the Discord plugin must get a no-op discord send handler
+    // so core never logs "Send handler not found (handlerSource=discord)". (Fixes recurring error when
+    // only Eliza has Discord or both agents share the same app ID — see DISCORD.md.)
+    const character = (runtime as { character?: { plugins?: unknown[] } }).character;
+    const plugins: unknown[] = character ? [...(character.plugins ?? [])] : [];
+    const hasDiscordPlugin = plugins.some(
+      (p: unknown) =>
+        p === "@elizaos/plugin-discord" || (typeof p === "object" && p !== null && (p as { name?: string }).name === "discord")
+    );
+    if (character && !hasDiscordPlugin && typeof runtime.sendMessageToTarget === "function" && typeof runtime.registerSendHandler === "function") {
+      const noOpDiscordHandler = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
+      for (const key of ["discord", "Discord", "DISCORD"]) {
+        runtime.registerSendHandler(key, noOpDiscordHandler);
+      }
       const original = runtime.sendMessageToTarget.bind(runtime);
       (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: TargetInfo, content: Content) => {
         const normalized: TargetInfo = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
         const src = normalized?.source ?? "";
-        if (src === "discord" && !vinceHasOwnDiscord) {
-          logger.debug("[VINCE] Skipping sendMessageToTarget(discord) — VINCE has no Discord handler (set VINCE_DISCORD_* for a second bot).");
+        if (src === "discord") {
+          logger.debug("[plugin-vince] Skipping sendMessageToTarget(discord) — this agent has no Discord plugin.");
           return;
         }
         return original(normalized, content);

@@ -5,20 +5,35 @@ import { Card, CardContent } from "@/frontend/components/ui/card";
 import { Badge } from "@/frontend/components/ui/badge";
 import TVNoise from "@/frontend/components/ui/tv-noise";
 
+const COINGECKO_BTC_URL =
+  "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true";
+const BTC_POLL_MS = 60_000;
+
 // Memoize Widget to prevent re-renders of parent components
-// The clock updates every second internally, but shouldn't trigger parent re-renders
 function Widget() {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [btcPrice, setBtcPrice] = useState<number | null>(null);
+  const [btcChange24h, setBtcChange24h] = useState<number | null>(null);
+  const [date] = useState(() => new Date());
   const [userTimezone, setUserTimezone] = useState<string>('');
   const [utcOffset, setUtcOffset] = useState<string>('');
   const [userLocation, setUserLocation] = useState<string>('');
   const [temperature, setTemperature] = useState<string>('');
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
+    const fetchBtc = async () => {
+      try {
+        const res = await fetch(COINGECKO_BTC_URL);
+        const data = await res.json();
+        if (data?.bitcoin?.usd != null) {
+          setBtcPrice(data.bitcoin.usd);
+          setBtcChange24h(data.bitcoin.usd_24h_change ?? null);
+        }
+      } catch (e) {
+        console.error('Error fetching BTC price:', e);
+      }
+    };
+    fetchBtc();
+    const timer = setInterval(fetchBtc, BTC_POLL_MS);
     return () => clearInterval(timer);
   }, []);
 
@@ -86,14 +101,6 @@ function Widget() {
     fetchLocationAndWeather();
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour12: true,
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
   const formatDate = (date: Date) => {
     const dayOfWeek = date.toLocaleDateString("en-US", {
       weekday: "long",
@@ -106,7 +113,15 @@ function Widget() {
     return { dayOfWeek, restOfDate };
   };
 
-  const dateInfo = formatDate(currentTime);
+  const dateInfo = formatDate(date);
+
+  const formatBtcPrice = (price: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
 
   return (
     <Card className="w-full aspect-[2] relative overflow-hidden">
@@ -118,7 +133,23 @@ function Widget() {
         </div>
         <div className="text-center">
           <div className="text-5xl font-display" suppressHydrationWarning>
-            {formatTime(currentTime)}
+            {btcPrice != null ? (
+              <>
+                {formatBtcPrice(btcPrice)}
+                {btcChange24h != null && (
+                  <span
+                    className={`block text-base font-normal mt-1 ${
+                      btcChange24h >= 0 ? "text-green-500" : "text-red-500"
+                    }`}
+                  >
+                    {btcChange24h >= 0 ? "+" : ""}
+                    {btcChange24h.toFixed(2)}% 24h
+                  </span>
+                )}
+              </>
+            ) : (
+              "…"
+            )}
           </div>
         </div>
 

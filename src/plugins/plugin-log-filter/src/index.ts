@@ -43,7 +43,16 @@ const SUPPRESS_ERROR_PATTERNS = [
   /Critical error in settings provider.*No server ownership/i,
   // ROLES provider: entity has role in world but no name/username in DB yet (skipped for role list only)
   /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*User has no name or username, skipping/i,
+  // VINCE without own Discord app: framework looks up send handler for "discord", finds none, logs. Expected when only Eliza has Discord or both share same app ID. See DISCORD.md.
+  /\[AGENT\].*Send handler not found.*handlerSource=discord/i,
+  /Send handler not found\s*\(handlerSource=discord\)/i,
 ];
+
+/** Core logs with logger.error(obj, "Send handler not found") so fullMessage can be JSON — suppress only when it's the discord handler. */
+function isDiscordSendHandlerError(fullMessage: string): boolean {
+  if (!/Send handler not found/i.test(fullMessage)) return false;
+  return /discord|handlerSource/i.test(fullMessage) || /"handlerSource"\s*:\s*"discord"/i.test(fullMessage);
+}
 
 function shouldSuppressError(message: string): boolean {
   if (!message || typeof message !== 'string') return false;
@@ -254,8 +263,28 @@ let originalDebug: typeof coreLogger.debug;
 let originalError: typeof coreLogger.error;
 let originalWarn: typeof coreLogger.warn;
 
-// Track if we've already patched
+// Track if we've already patched the global core logger
 let isPatched = false;
+// Each runtime has its own logger (createLogger with bindings) — core uses runtime.logger.error(), not coreLogger. We must patch each.
+const patchedRuntimeLoggers = new WeakSet<object>();
+
+/** Patch a runtime's logger so "Send handler not found (handlerSource=discord)" and other noise are suppressed. */
+function patchRuntimeLogger(agentLogger: { error: (...a: any[]) => void; warn?: (...a: any[]) => void }): void {
+  const origError = agentLogger.error.bind(agentLogger);
+  agentLogger.error = function (message: any, ...args: any[]) {
+    const fullMessage = buildFullMessage(message, args);
+    if (shouldSuppressError(fullMessage) || isDiscordSendHandlerError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+    origError(message, ...args);
+  };
+  if (typeof agentLogger.warn === 'function') {
+    const origWarn = agentLogger.warn.bind(agentLogger);
+    agentLogger.warn = function (message: any, ...args: any[]) {
+      const fullMessage = buildFullMessage(message, args);
+      if (shouldSuppressError(fullMessage) || shouldSuppressDeribitNoise(fullMessage) || shouldSuppressMissingApiKeyWarning(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+      origWarn(message, ...args);
+    };
+  }
+}
 
 /** AI SDK and similar libs log to console.warn directly - suppress known harmless model warnings */
 function shouldSuppressConsoleWarn(message: string): boolean {
@@ -270,76 +299,54 @@ export const logFilterPlugin: Plugin = {
     name: 'log-filter',
     description: 'Filters verbose logs to keep terminal output clean',
     
-    init: async (_config: Record<string, string>, _runtime: IAgentRuntime) => {
-        // Only patch once globally
-        if (isPatched) {
-            coreLogger.debug('[LogFilter] Already patched, skipping');
-            return;
-        }
-        
-        // Store original methods
-        originalInfo = coreLogger.info.bind(coreLogger);
-        originalDebug = coreLogger.debug.bind(coreLogger);
-        originalError = coreLogger.error.bind(coreLogger);
-        originalWarn = coreLogger.warn.bind(coreLogger);
-        
-        // Wrap info method
-        coreLogger.info = function(message: any, ...args: any[]) {
-            const fullMessage = buildFullMessage(message, args);
-            if (!shouldSuppress(fullMessage)) {
-                originalInfo(message, ...args);
-            } else if (process.env.LOG_LEVEL === 'debug') {
-                originalDebug('[LogFilter] Suppressed:', fullMessage.substring(0, 150) + '...');
-            }
-        } as typeof coreLogger.info;
-        
-        // Wrap debug method - also filter verbose schemas in debug mode
-        coreLogger.debug = function(message: any, ...args: any[]) {
-            const fullMessage = buildFullMessage(message, args);
-            if (!shouldSuppress(fullMessage)) {
-                originalDebug(message, ...args);
-            }
-        } as typeof coreLogger.debug;
-        
-        // Wrap error – suppress known MESSAGE-BUS/central_messages noise (non-blocking for UI)
-        coreLogger.error = function(message: any, ...args: any[]) {
-            const fullMessage = buildFullMessage(message, args);
-            if (shouldSuppressError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) {
-                if (process.env.LOG_LEVEL === 'debug') {
-                    originalDebug('[LogFilter] Suppressed error (MESSAGE-BUS/central_messages/OpenSea):', fullMessage.substring(0, 120) + '...');
-                }
-                return;
-            }
-            originalError(message, ...args);
-        } as typeof coreLogger.error;
-        
-        // Wrap warn – MESSAGE-BUS/central_messages + Deribit noise + missing API keys + OpenSea empty floors
-        coreLogger.warn = function(message: any, ...args: any[]) {
-            const fullMessage = buildFullMessage(message, args);
-            if (shouldSuppressError(fullMessage) || shouldSuppressDeribitNoise(fullMessage) || shouldSuppressMissingApiKeyWarning(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) {
-                if (process.env.LOG_LEVEL === 'debug') {
-                    originalDebug('[LogFilter] Suppressed warn:', fullMessage.substring(0, 120) + '...');
-                }
-                return;
-            }
-            originalWarn(message, ...args);
-        } as typeof coreLogger.warn;
-        
-        // Patch console.warn for AI SDK and other libs that bypass the logger
-        const originalConsoleWarn = console.warn;
-        console.warn = function (...args: unknown[]) {
-            const msg = args.map((a) => (typeof a === 'string' ? a : String(a))).join(' ');
-            if (shouldSuppressConsoleWarn(msg)) {
-                if (process.env.LOG_LEVEL === 'debug') {
-                    originalConsoleWarn('[LogFilter] Suppressed console.warn:', msg.substring(0, 80) + '...');
-                }
-                return;
-            }
-            originalConsoleWarn.apply(console, args);
-        };
+    init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
+        // Patch global core logger once (used by code that imports logger from @elizaos/core)
+        if (!isPatched) {
+            originalInfo = coreLogger.info.bind(coreLogger);
+            originalDebug = coreLogger.debug.bind(coreLogger);
+            originalError = coreLogger.error.bind(coreLogger);
+            originalWarn = coreLogger.warn.bind(coreLogger);
 
-        isPatched = true;
-        coreLogger.info('[LogFilter] ✅ Logger filter active - suppressing MCP schemas, MESSAGE-BUS/SQL/embedding noise, AI SDK warnings');
+            coreLogger.info = function (message: any, ...args: any[]) {
+                const fullMessage = buildFullMessage(message, args);
+                if (!shouldSuppress(fullMessage)) originalInfo(message, ...args);
+                else if (process.env.LOG_LEVEL === 'debug') originalDebug('[LogFilter] Suppressed:', fullMessage.substring(0, 150) + '...');
+            } as typeof coreLogger.info;
+
+            coreLogger.debug = function (message: any, ...args: any[]) {
+                const fullMessage = buildFullMessage(message, args);
+                if (!shouldSuppress(fullMessage)) originalDebug(message, ...args);
+            } as typeof coreLogger.debug;
+
+            coreLogger.error = function (message: any, ...args: any[]) {
+                const fullMessage = buildFullMessage(message, args);
+                if (shouldSuppressError(fullMessage) || isDiscordSendHandlerError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+                originalError(message, ...args);
+            } as typeof coreLogger.error;
+
+            coreLogger.warn = function (message: any, ...args: any[]) {
+                const fullMessage = buildFullMessage(message, args);
+                if (shouldSuppressError(fullMessage) || shouldSuppressDeribitNoise(fullMessage) || shouldSuppressMissingApiKeyWarning(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+                originalWarn(message, ...args);
+            } as typeof coreLogger.warn;
+
+            const originalConsoleWarn = console.warn;
+            console.warn = function (...args: unknown[]) {
+                const msg = args.map((a) => (typeof a === 'string' ? a : String(a))).join(' ');
+                if (shouldSuppressConsoleWarn(msg)) return;
+                originalConsoleWarn.apply(console, args);
+            };
+
+            isPatched = true;
+            coreLogger.info('[LogFilter] ✅ Logger filter active - suppressing MCP schemas, MESSAGE-BUS/SQL/embedding noise, Send handler not found (discord), AI SDK warnings');
+        }
+
+        // Core uses runtime.logger (per-agent child logger), not the global logger — patch each runtime so "Send handler not found (handlerSource=discord)" is suppressed
+        const agentLogger = runtime?.logger as { error: (...a: any[]) => void; warn?: (...a: any[]) => void } | undefined;
+        if (agentLogger && typeof agentLogger.error === 'function' && !patchedRuntimeLoggers.has(agentLogger)) {
+            patchRuntimeLogger(agentLogger);
+            patchedRuntimeLoggers.add(agentLogger);
+        }
     },
 };
 
