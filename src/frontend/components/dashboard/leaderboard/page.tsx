@@ -500,6 +500,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
           {/* Trading Bot tab: open positions + portfolio — scrollable area so all content is reachable */}
           <TabsContent value="trading_bot" className="mt-6 flex-1 min-h-0 flex flex-col data-[state=active]:flex">
             <div className="min-h-0 flex-1 overflow-y-auto max-h-[calc(100vh-11rem)]">
+              <>
             {paperLoading && !paperResult?.data ? (
               <div className="space-y-4">
                 <div className="h-32 bg-muted/50 rounded-xl animate-pulse" />
@@ -786,6 +787,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 {paperResult?.error && <p className="text-sm text-muted-foreground mt-1">{paperResult.error}</p>}
               </div>
             )}
+              </>
             </div>
           </TabsContent>
 
