@@ -741,6 +741,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             ? paperResult.data.mlStatus.modelsLoaded.join(", ")
                             : "None loaded (rule-based fallbacks)"}
                         </p>
+                        {paperResult.data.mlStatus.modelsLoaded.length === 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            To enable ML: run training after 90+ closed trades, or add .onnx files to .elizadb/vince-paper-bot/models/
+                          </p>
+                        )}
                         {paperResult.data.mlStatus.modelsLoaded.length > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">
                             Signal quality threshold: {(paperResult.data.mlStatus.signalQualityThreshold * 100).toFixed(0)}%
