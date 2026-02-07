@@ -4,11 +4,11 @@
  * Scheduled daily report pushed to Discord/Slack/Telegram.
  * Combines: ALOHA (crypto), OPTIONS (HYPERSURFACE), PERPS (signals), HIP-3 (TradFi).
  *
- * - Runs at configured hour (default 18:00 UTC).
- * - Pushes to channels whose name contains "daily" (e.g. #vince-daily-reports).
+ * - Runs at configured hour (default 08:00 UTC — morning briefing).
+ * - Pushes to channels whose name contains "daily" (e.g. #daily or #vince-daily-reports).
  * - Uses VinceNotificationService.push() with roomNameContains filter.
  *
- * Set VINCE_DAILY_REPORT_HOUR=18 (UTC) to customize. Disable with VINCE_DAILY_REPORT_ENABLED=false.
+ * Set VINCE_DAILY_REPORT_HOUR=8 (UTC) to customize. Disable with VINCE_DAILY_REPORT_ENABLED=false.
  */
 
 import {
@@ -21,7 +21,7 @@ import { BullBearAnalyzer } from "../analysis/bullBearAnalyzer";
 import type { AnalysisResult } from "../types/analysis";
 import { CORE_ASSETS } from "../constants/targetAssets";
 
-const DEFAULT_REPORT_HOUR_UTC = 18;
+const DEFAULT_REPORT_HOUR_UTC = 8;
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
 
 // ==========================================
@@ -271,7 +271,7 @@ export async function registerDailyReportTask(
           logger.info(`[DailyReport] Pushed to ${sent} channel(s)`);
         } else {
           logger.debug(
-            "[DailyReport] No channels matched (room name contains 'daily'). Create e.g. #vince-daily-reports.",
+            "[DailyReport] No channels matched (room name contains 'daily'). Create e.g. #daily or #vince-daily-reports and invite VINCE.",
           );
         }
       } catch (error) {

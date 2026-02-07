@@ -414,6 +414,8 @@ const buildPlugins = (): Plugin[] =>
     bootstrapPlugin,
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+    // Discord must be in agent.plugins (here) so the runtime actually loads it and registers the send handler. character.plugins alone is not used for loading.
+    ...(vinceHasOwnDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
   ] as Plugin[];
 

@@ -10,7 +10,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 | Channel Name | Purpose | What gets pushed |
 |--------------|---------|------------------|
-| `#vince-daily-reports` | Scheduled daily report | ALOHA + OPTIONS + PERPS + HIP-3 summary (once/day at 18:00 UTC) |
+| `#daily` or `#vince-daily-reports` | Scheduled daily report | ALOHA + OPTIONS + PERPS + HIP-3 summary (once/day at **08:00 UTC** — morning) |
 | `#vince-alerts` | High-signal events | Alerts (watchlist, wallet, token), paper trade open/close |
 | `#vince-upload-youtube` | Curated YouTube → knowledge | You paste YouTube links; VINCE ingests (transcript + summary). No need to watch — save to knowledge instead. |
 
@@ -33,8 +33,8 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 ## How targeting works
 
 - **Daily report**: Only sent to channels whose name contains `"daily"` (case-insensitive).
-  - Examples: `#vince-daily-reports`, `#daily-briefing`, `#vince-daily`
-  - Create a channel with "daily" in the name to receive the scheduled report.
+  - Examples: **#daily**, `#vince-daily-reports`, `#daily-briefing`, `#vince-daily`
+  - Create a channel with "daily" in the name (e.g. **#daily**) and invite VINCE to receive the morning report (default 08:00 UTC).
 
 - **Alerts & paper trades**: Sent to all connected Discord/Slack/Telegram channels that don’t use name filtering.
   - If you use Option A, create `#vince-alerts` and invite the bot there. Alerts/trades go to every channel the bot is in unless you add more filtering later.
@@ -75,7 +75,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 | Env var | Default | Description |
 |---------|---------|-------------|
 | `VINCE_DAILY_REPORT_ENABLED` | `true` | Set to `false` to disable scheduled daily report |
-| `VINCE_DAILY_REPORT_HOUR` | `18` | Hour (UTC) to run the daily report |
+| `VINCE_DAILY_REPORT_HOUR` | `8` | Hour (UTC) to run the daily report (morning) |
 | `VINCE_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled lifestyle briefing |
 | `VINCE_LIFESTYLE_HOUR` | `8` | Hour (UTC) to run the lifestyle briefing |
 | `VINCE_NEWS_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled news briefing |
@@ -87,7 +87,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 ## Example layout (Slack/Discord)
 
 ```
-#vince-daily-reports   ← Daily report at 18:00 UTC
+#daily (or #vince-daily-reports)   ← Daily report at 08:00 UTC
 #vince-news            ← News briefing at 07:00 UTC (MandoMinutes - only when Mando has updated)
 #vince-lifestyle       ← Lifestyle briefing at 08:00 UTC (dining, hotel, health, fitness)
 #vince-alerts          ← Alerts and paper trades

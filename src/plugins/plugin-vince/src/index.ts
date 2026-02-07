@@ -277,30 +277,14 @@ export const vincePlugin: Plugin = {
 
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
-    // Guard: any runtime that does NOT have the Discord plugin must get a no-op discord send handler
-    // so core never logs "Send handler not found (handlerSource=discord)". (Fixes recurring error when
-    // only Eliza has Discord or both agents share the same app ID — see DISCORD.md.)
-    const character = (runtime as { character?: { plugins?: unknown[] } }).character;
-    const plugins: unknown[] = character ? [...(character.plugins ?? [])] : [];
-    const hasDiscordPlugin = plugins.some(
-      (p: unknown) =>
-        p === "@elizaos/plugin-discord" || (typeof p === "object" && p !== null && (p as { name?: string }).name === "discord")
-    );
-    if (character && !hasDiscordPlugin && typeof runtime.sendMessageToTarget === "function" && typeof runtime.registerSendHandler === "function") {
+    // Always register a no-op for "discord" first. Discord plugin registers its handler when its
+    // service finishes starting (async). Until then, core would log "Send handler not found".
+    // This ensures every runtime has a handler; @elizaos/plugin-discord overwrites with the real one when ready.
+    if (typeof runtime.registerSendHandler === "function") {
       const noOpDiscordHandler = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
       for (const key of ["discord", "Discord", "DISCORD"]) {
         runtime.registerSendHandler(key, noOpDiscordHandler);
       }
-      const original = runtime.sendMessageToTarget.bind(runtime);
-      (runtime as { sendMessageToTarget: typeof runtime.sendMessageToTarget }).sendMessageToTarget = async (target: TargetInfo, content: Content) => {
-        const normalized: TargetInfo = target?.source != null ? { ...target, source: String(target.source).toLowerCase() } : target;
-        const src = normalized?.source ?? "";
-        if (src === "discord") {
-          logger.debug("[plugin-vince] Skipping sendMessageToTarget(discord) — this agent has no Discord plugin.");
-          return;
-        }
-        return original(normalized, content);
-      };
     }
 
     // Banner + MARKET PULSE: only for VINCE (Eliza also loads this plugin → would print twice)

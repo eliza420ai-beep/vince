@@ -1,18 +1,20 @@
 import { type Project, logger } from "@elizaos/core";
 
 // Suppress "Send handler not found (handlerSource=discord)" at the process level — core uses runtime.logger
-// (per-agent) and we can't patch its createLogger from outside. Filter the actual stderr output.
-(function suppressSendHandlerNotFoundOnStderr() {
-  const stderrWrite = process.stderr.write.bind(process.stderr);
+// (per-agent) and we can't patch it from outside. Filter both stderr and stdout (pino may use either).
+(function suppressSendHandlerNotFound() {
   const suppress = (chunk: Buffer | string): boolean => {
     const s = typeof chunk === "string" ? chunk : chunk.toString();
-    if (!/Send handler not found/i.test(s)) return false;
-    return true;
+    return /Send handler not found/i.test(s);
   };
-  process.stderr.write = function (chunk: any, ...args: any[]): boolean {
-    if (suppress(chunk)) return true;
-    return stderrWrite(chunk, ...args);
-  };
+  for (const stream of ["stderr", "stdout"] as const) {
+    const writable = process[stream];
+    const original = writable.write.bind(writable);
+    writable.write = function (chunk: any, ...args: any[]): boolean {
+      if (suppress(chunk)) return true;
+      return original(chunk, ...args);
+    };
+  }
 })();
 
 import { vinceAgent } from "./agents/vince.ts";

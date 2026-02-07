@@ -4,6 +4,26 @@ Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designe
 
 ---
 
+## How we’re set up (two agents, two Discord apps)
+
+- **Two agents:** VINCE and Eliza.
+- **Two Discord applications:** Each has its own Application ID and Bot token (no sharing).
+- **Both active on the same Discord server** (or split across servers — same two-app setup).
+
+**VINCE — proactive, data-focused**
+
+- Pushes updates to Discord; you don’t have to chat with him to get value.
+- **Daily report (ALOHA-style)** is pushed automatically to channels whose name contains `daily` (e.g. **#daily** or #vince-daily-reports) each morning (default **08:00 UTC**).
+- Core actions: ALOHA, OPTIONS, PERPS, NEWS, MEMES, HIP3, BOT, LIFESTYLE, etc. On-demand in chat when you want, but the daily report is automatic.
+- In a perfect world you read the #daily channel every morning without typing ALOHA.
+
+**Eliza — chat and knowledge**
+
+- Fully focused on **chat** and **expanding knowledge**, especially the **UPLOAD** action (ingest URLs/YouTube into knowledge).
+- No scheduled pushes; reactive only. You talk, she responds and ingests.
+
+---
+
 ## Multi-Agent Discord (Same Server, No Conflict)
 
 **Why Eliza checks both `ELIZA_DISCORD_*` and `DISCORD_*`:**  
@@ -26,7 +46,7 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
    - **Eliza:** `ELIZA_DISCORD_APPLICATION_ID` + `ELIZA_DISCORD_API_TOKEN` (or fallback `DISCORD_*`) → same keys in her character.
 
 4. **When both load Discord**  
-   VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). So set:
+   VINCE only loads the Discord plugin when he has his own bot (and it’s not the same app as Eliza). The Discord plugin must be in the **agent’s** `plugins` array (e.g. in `buildPlugins()` in `vince.ts`), not only in `character.plugins` — the framework loads plugins from the agent definition. So set:
 
    - `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` (no separate enabled flag)
    - `ELIZA_DISCORD_APPLICATION_ID` and `ELIZA_DISCORD_API_TOKEN` (Eliza’s app)
@@ -42,7 +62,7 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 
 | Channel name contains | Receives |
 |-----------------------|----------|
-| `daily` | Market report (18:00 UTC) |
+| `daily` | Market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
 | `news` | MandoMinutes (07:00 UTC) |
 | `lifestyle` | Dining, hotel, health (08:00 UTC) |
 | `alerts` | Alerts, paper trades (real-time) |
@@ -72,12 +92,12 @@ VINCE sends scheduled and event-driven pushes. **Channel names must contain thes
 
 | Keyword | What gets pushed | Schedule |
 |---------|------------------|----------|
-| `daily` | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | 18:00 UTC |
+| `daily` | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | **08:00 UTC** (morning) |
 | `news` | MandoMinutes briefing | 07:00 UTC (only when Mando has updated) |
 | `lifestyle` | Dining, hotel, health, fitness (curated) | 08:00 UTC |
 | `alerts` | Alerts, paper trades, watchlist events | Real-time |
 
-**Examples:** `#vince-daily-reports`, `#ikigai-daily`, `#news-briefing`, `#vince-lifestyle`, `#vince-alerts`
+**Examples:** **#daily**, `#vince-daily-reports`, `#ikigai-daily`, `#news-briefing`, `#vince-lifestyle`, `#vince-alerts`
 
 > **Note:** Alerts and paper trades currently broadcast to *all* connected channels. To avoid noise, invite VINCE only to channels where you want alerts, or use a dedicated `#vince-alerts` and limit bot access.
 
@@ -323,7 +343,7 @@ When the Discord plugin starts, it prints a **Discord Bot Invite** box with two 
 |---------|---------|-------------|
 | `DELAY_SECOND_DISCORD_MS` | `3000` | Ms to wait after VINCE init before second Discord (Eliza) starts; set `0` to disable. |
 | `VINCE_DAILY_REPORT_ENABLED` | `true` | Daily market report |
-| `VINCE_DAILY_REPORT_HOUR` | `18` | UTC hour |
+| `VINCE_DAILY_REPORT_HOUR` | `8` | UTC hour (morning briefing) |
 | `VINCE_NEWS_DAILY_ENABLED` | `true` | News briefing |
 | `VINCE_NEWS_HOUR` | `7` | UTC hour |
 | `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true` | Only push when Mando updated |
