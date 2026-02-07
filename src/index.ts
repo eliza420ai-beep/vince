@@ -2,12 +2,12 @@ import { type Project, logger } from "@elizaos/core";
 
 // Suppress "Send handler not found (handlerSource=discord)" at the process level — core uses runtime.logger
 // (per-agent) and we can't patch its createLogger from outside. Filter the actual stderr output.
-(function suppressDiscordSendHandlerErrorsOnStderr() {
+(function suppressSendHandlerNotFoundOnStderr() {
   const stderrWrite = process.stderr.write.bind(process.stderr);
   const suppress = (chunk: Buffer | string): boolean => {
     const s = typeof chunk === "string" ? chunk : chunk.toString();
     if (!/Send handler not found/i.test(s)) return false;
-    return /discord|handlerSource|"handlerSource"\s*:\s*"discord"/i.test(s);
+    return true;
   };
   process.stderr.write = function (chunk: any, ...args: any[]): boolean {
     if (suppress(chunk)) return true;

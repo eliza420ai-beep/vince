@@ -12,16 +12,12 @@
 import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import { logger as coreLogger } from "@elizaos/core";
 
-/** No-op Discord send handler so runtimes without @elizaos/plugin-discord never log "Send handler not found". */
-function registerNoOpDiscordHandlerIfNeeded(runtime: IAgentRuntime): void {
-  const character = (runtime as { character?: { plugins?: unknown[] } }).character;
-  const plugins: unknown[] = character ? [...(character.plugins ?? [])] : [];
-  const hasDiscordPlugin = plugins.some(
-    (p: unknown) =>
-      p === "@elizaos/plugin-discord" ||
-      (typeof p === "object" && p !== null && (p as { name?: string }).name === "discord")
-  );
-  if (hasDiscordPlugin) return;
+/** Register a no-op Discord send handler so the runtime always has a handler for source "discord".
+ * Core looks up sendHandlers.get(target.source) — if nothing is registered it logs "Send handler not found".
+ * We register first (log filter runs before other plugins); @elizaos/plugin-discord overwrites with the real handler when it loads.
+ * This fixes "Send handler not found (handlerSource=discord)" when Discord is in character.plugins but the service never registers (e.g. same app ID as Eliza).
+ */
+function registerNoOpDiscordHandler(runtime: IAgentRuntime): void {
   if (typeof runtime.registerSendHandler !== "function") return;
   const noOp = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
   for (const key of ["discord", "Discord", "DISCORD"]) {
@@ -65,10 +61,9 @@ const SUPPRESS_ERROR_PATTERNS = [
   /Send handler not found\s*\(handlerSource=discord\)/i,
 ];
 
-/** Core logs with logger.error(obj, "Send handler not found") so fullMessage can be JSON — suppress only when it's the discord handler. */
-function isDiscordSendHandlerError(fullMessage: string): boolean {
-  if (!/Send handler not found/i.test(fullMessage)) return false;
-  return /discord|handlerSource/i.test(fullMessage) || /"handlerSource"\s*:\s*"discord"/i.test(fullMessage);
+/** Core logs with logger.error(obj, "Send handler not found") — suppress all "Send handler not found" (any source). */
+function isSendHandlerNotFoundError(fullMessage: string): boolean {
+  return /Send handler not found/i.test(fullMessage);
 }
 
 function shouldSuppressError(message: string): boolean {
@@ -315,7 +310,7 @@ function patchRuntimeLogger(agentLogger: { error: (...a: any[]) => void; warn?: 
   const origError = agentLogger.error.bind(agentLogger);
   agentLogger.error = function (message: any, ...args: any[]) {
     const fullMessage = buildFullMessage(message, args);
-    if (shouldSuppressError(fullMessage) || isDiscordSendHandlerError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
+    if (shouldSuppressError(fullMessage) || isSendHandlerNotFoundError(fullMessage) || shouldSuppressOpenSeaNoise(fullMessage)) return;
     origError(message, ...args);
   };
   if (typeof agentLogger.warn === 'function') {
@@ -347,7 +342,7 @@ export const logFilterPlugin: Plugin = {
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
     // Register no-op Discord send handler first so core never logs "Send handler not found (handlerSource=discord)"
-    registerNoOpDiscordHandlerIfNeeded(runtime);
+    registerNoOpDiscordHandler(runtime);
 
     // Patch global core logger once (used by code that imports logger from @elizaos/core)
     if (!isPatched) {
@@ -372,7 +367,7 @@ export const logFilterPlugin: Plugin = {
         const fullMessage = buildFullMessage(message, args);
         if (
           shouldSuppressError(fullMessage) ||
-          isDiscordSendHandlerError(fullMessage) ||
+          isSendHandlerNotFoundError(fullMessage) ||
           shouldSuppressOpenSeaNoise(fullMessage)
         )
           return;
