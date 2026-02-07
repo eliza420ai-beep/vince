@@ -6,7 +6,8 @@ import { type Project, logger } from "@elizaos/core";
   const stderrWrite = process.stderr.write.bind(process.stderr);
   const suppress = (chunk: Buffer | string): boolean => {
     const s = typeof chunk === "string" ? chunk : chunk.toString();
-    return /Send handler not found/i.test(s) && /discord|handlerSource/i.test(s);
+    if (!/Send handler not found/i.test(s)) return false;
+    return /discord|handlerSource|"handlerSource"\s*:\s*"discord"/i.test(s);
   };
   process.stderr.write = function (chunk: any, ...args: any[]): boolean {
     if (suppress(chunk)) return true;

@@ -9,8 +9,25 @@
  * This plugin wraps the logger to filter out noisy but non-critical log messages.
  */
 
-import type { Plugin, IAgentRuntime } from "@elizaos/core";
+import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import { logger as coreLogger } from "@elizaos/core";
+
+/** No-op Discord send handler so runtimes without @elizaos/plugin-discord never log "Send handler not found". */
+function registerNoOpDiscordHandlerIfNeeded(runtime: IAgentRuntime): void {
+  const character = (runtime as { character?: { plugins?: unknown[] } }).character;
+  const plugins: unknown[] = character ? [...(character.plugins ?? [])] : [];
+  const hasDiscordPlugin = plugins.some(
+    (p: unknown) =>
+      p === "@elizaos/plugin-discord" ||
+      (typeof p === "object" && p !== null && (p as { name?: string }).name === "discord")
+  );
+  if (hasDiscordPlugin) return;
+  if (typeof runtime.registerSendHandler !== "function") return;
+  const noOp = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
+  for (const key of ["discord", "Discord", "DISCORD"]) {
+    runtime.registerSendHandler(key, noOp);
+  }
+}
 
 /** Known MESSAGE-BUS/central_messages errors we suppress. Non-blocking for UI delivery. */
 const SUPPRESS_ERROR_PATTERNS = [
@@ -329,6 +346,9 @@ export const logFilterPlugin: Plugin = {
   description: "Filters verbose logs to keep terminal output clean",
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
+    // Register no-op Discord send handler first so core never logs "Send handler not found (handlerSource=discord)"
+    registerNoOpDiscordHandlerIfNeeded(runtime);
+
     // Patch global core logger once (used by code that imports logger from @elizaos/core)
     if (!isPatched) {
       originalInfo = coreLogger.info.bind(coreLogger);
