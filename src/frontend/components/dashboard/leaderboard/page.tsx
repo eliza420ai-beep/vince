@@ -754,8 +754,10 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <thead>
                           <tr className="border-b border-border/60 bg-muted/30">
                             <th className="py-2.5 px-3 text-left font-semibold">Collection</th>
-                            <th className="py-2.5 px-3 text-right font-semibold">Floor (ETH)</th>
+                            <th className="py-2.5 px-3 text-right font-semibold">Floor</th>
                             <th className="py-2.5 px-3 text-right font-semibold">Thickness</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Volume 7d (ETH)">Vol 7d</th>
+                            <th className="py-2.5 px-2 text-right font-semibold" title="Items within 5% of floor">Near</th>
                             <th className="py-2.5 px-2 text-right font-semibold">2nd</th>
                             <th className="py-2.5 px-2 text-right font-semibold">3rd</th>
                             <th className="py-2.5 px-2 text-right font-semibold">4th</th>
@@ -767,12 +769,50 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           {leaderboardsData.digitalArt.collections.map((c) => {
                             const g = c.gaps ?? { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0 };
                             const fmt = (v: number) => (v > 0 ? `${v.toFixed(3)} ETH` : "—");
+                            const categoryLabel =
+                              c.category === "blue_chip"
+                                ? "Blue Chip"
+                                : c.category === "generative"
+                                  ? "Generative"
+                                  : c.category === "photography"
+                                    ? "Photo"
+                                    : null;
+                            const vol7d =
+                              c.volume7d != null && c.volume7d > 0
+                                ? c.volume7d >= 1000
+                                  ? `${(c.volume7d / 1000).toFixed(1)}K ETH`
+                                  : `${c.volume7d.toFixed(1)} ETH`
+                                : "—";
                             return (
                               <tr key={c.slug} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
-                                <td className="py-2 px-3 font-medium">{c.name}</td>
-                                <td className="py-2 px-3 text-right tabular-nums">{c.floorPrice.toFixed(2)}</td>
+                                <td className="py-2 px-3">
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-medium">{c.name}</span>
+                                    {categoryLabel && (
+                                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                        {categoryLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <div className="tabular-nums">
+                                    {c.floorPrice.toFixed(2)} ETH
+                                    {c.floorPriceUsd != null && c.floorPriceUsd > 0 && (
+                                      <div className="text-[10px] text-muted-foreground">
+                                        ${(c.floorPriceUsd / 1000).toFixed(1)}K
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="py-2 px-3 text-right capitalize">{c.floorThickness}</td>
-                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to2nd)}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{vol7d}</td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">
+                                  {c.nftsNearFloor != null && c.nftsNearFloor > 0 ? c.nftsNearFloor : "—"}
+                                </td>
+                                <td className="py-2 px-2 text-right tabular-nums text-muted-foreground" title={c.gapPctTo2nd != null ? `Gap ${c.gapPctTo2nd.toFixed(1)}% of floor` : undefined}>
+                                  {fmt(g.to2nd)}
+                                </td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to3rd)}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to4th)}</td>
                                 <td className="py-2 px-2 text-right tabular-nums text-muted-foreground">{fmt(g.to5th)}</td>

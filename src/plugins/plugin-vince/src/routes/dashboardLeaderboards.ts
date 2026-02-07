@@ -135,6 +135,10 @@ export interface DigitalArtCollectionRow {
   floorPrice: number;
   floorPriceUsd?: number;
   floorThickness: string;
+  category?: string;
+  volume7d?: number;
+  nftsNearFloor?: number;
+  gapPctTo2nd?: number;
   gaps: {
     to2nd: number;
     to3rd: number;
@@ -552,7 +556,12 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
       name: string;
       slug: string;
       floorPrice: number;
+      floorPriceUsd?: number;
       floorThickness: string;
+      category?: string;
+      totalVolume?: number;
+      volume24h?: number;
+      nftsNearFloor?: number;
       gaps?: {
         to2nd?: number;
         to3rd?: number;
@@ -578,19 +587,29 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
   }
 
   const collections: DigitalArtCollectionRow[] = floors
-    .map((c) => ({
-      name: c.name,
-      slug: c.slug,
-      floorPrice: c.floorPrice,
-      floorThickness: c.floorThickness,
-      gaps: {
-        to2nd: c.gaps?.to2nd ?? 0,
-        to3rd: c.gaps?.to3rd ?? 0,
-        to4th: c.gaps?.to4th ?? 0,
-        to5th: c.gaps?.to5th ?? 0,
-        to6th: c.gaps?.to6th ?? 0,
-      },
-    }))
+    .map((c) => {
+      const to2nd = c.gaps?.to2nd ?? 0;
+      const gapPctTo2nd =
+        c.floorPrice > 0 && to2nd > 0 ? (to2nd / c.floorPrice) * 100 : undefined;
+      return {
+        name: c.name,
+        slug: c.slug,
+        floorPrice: c.floorPrice,
+        floorPriceUsd: c.floorPriceUsd,
+        floorThickness: c.floorThickness,
+        category: c.category,
+        volume7d: c.totalVolume,
+        nftsNearFloor: c.nftsNearFloor,
+        gapPctTo2nd,
+        gaps: {
+          to2nd,
+          to3rd: c.gaps?.to3rd ?? 0,
+          to4th: c.gaps?.to4th ?? 0,
+          to5th: c.gaps?.to5th ?? 0,
+          to6th: c.gaps?.to6th ?? 0,
+        },
+      };
+    })
     .sort((a, b) => {
       // Sort by Thickness: Thin → Medium → Thick
       const order = (t: string) => {

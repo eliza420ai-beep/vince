@@ -83,6 +83,10 @@ export interface DigitalArtCollectionRow {
   floorPrice: number;
   floorPriceUsd?: number;
   floorThickness: string;
+  category?: string;
+  volume7d?: number;
+  nftsNearFloor?: number;
+  gapPctTo2nd?: number;
   gaps: {
     to2nd: number;
     to3rd: number;

@@ -384,10 +384,14 @@ export class VinceNFTFloorService extends Service {
         slug: collection.slug,
         name: collection.name,
         floorPrice: analysis.floorPrice,
+        floorPriceUsd: analysis.floorPriceUsd,
         floorPriceChange24h: 0, // Not available in floor analysis
         totalVolume: analysis.volumeMetrics.volume7d,
+        volume24h: analysis.volumeMetrics.volume24h,
+        salesPerDay: analysis.volumeMetrics.salesPerDay,
         numOwners: 0,
         totalSupply: 0,
+        category: collection.category,
         // Real floor thickness data
         floorThickness: thicknessType,
         floorThicknessScore: thickness.score,

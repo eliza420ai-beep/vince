@@ -135,10 +135,14 @@ export interface NFTCollection {
   slug: string;
   name: string;
   floorPrice: number;
+  floorPriceUsd?: number;
   floorPriceChange24h: number;
   totalVolume: number;
+  volume24h?: number;
+  salesPerDay?: number;
   numOwners: number;
   totalSupply: number;
+  category?: "blue_chip" | "art" | "pfp" | "generative" | "photography";
   // Enhanced floor thickness (from actual listing gaps)
   floorThickness: "thin" | "medium" | "thick";
   floorThicknessScore: number; // 0-100 (lower = thinner = more opportunity)
