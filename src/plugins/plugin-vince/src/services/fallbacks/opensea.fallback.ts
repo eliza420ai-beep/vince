@@ -192,6 +192,19 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     }
   }
 
+  /** Extract price in ETH from a listing (handles v1/v2 API variations) */
+  private extractPriceEth(l: Listing): number {
+    try {
+      const p = l?.price?.current;
+      if (!p) return 0;
+      const value = typeof p.value === "string" ? p.value : String(p.value ?? "0");
+      const decimals = typeof p.decimals === "number" ? p.decimals : 18;
+      return this.weiToEth(value, decimals);
+    } catch {
+      return 0;
+    }
+  }
+
   /**
    * Calculate floor thickness from listings
    */
@@ -201,9 +214,7 @@ export class OpenSeaFallbackService implements IOpenSeaService {
   ): IOpenSeaFloorThickness {
     // Sort listings by price
     const sortedListings = listings
-      .map((l) =>
-        this.weiToEth(l.price.current.value, l.price.current.decimals),
-      )
+      .map((l) => this.extractPriceEth(l))
       .filter((p) => p > 0)
       .sort((a, b) => a - b);
 
@@ -313,6 +324,10 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       );
 
       const listings = listingsResponse?.listings || [];
+
+      // CryptoPunks: OpenSea's listings API returns empty for the legacy contract.
+      // Using wrapped-cryptopunks would mix floor (29.89) with different-market gaps
+      // (wrapped floor ~13 ETH) → nonsensical numbers. We show no gaps instead.
 
       // Calculate floor thickness
       const floorThickness = this.calculateFloorThickness(floorPrice, listings);
