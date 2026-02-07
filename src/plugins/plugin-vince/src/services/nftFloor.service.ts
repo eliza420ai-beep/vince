@@ -183,10 +183,10 @@ export class VinceNFTFloorService extends Service {
       return `${bigMover.name} ${dir} ${pct}% - ${dir === "UP" ? "momentum" : "watch floor"}`;
     }
 
-    // Check for thin floors (risk)
-    const thinFloors = this.getThinFloors();
-    if (thinFloors.length > 0) {
-      return `THIN FLOOR: ${thinFloors[0].name} - gap down risk if sold`;
+    // Check for gem-on-floor candidates (same criteria as Digital Art table)
+    const gemCandidates = this.getGemOnFloorCandidates();
+    if (gemCandidates.length > 0) {
+      return `Gem on floor: ${gemCandidates[0].name} - thin floor with price support`;
     }
 
     // Check bluechips
@@ -498,6 +498,18 @@ export class VinceNFTFloorService extends Service {
       // Exclude when we have no real gap data (e.g. CryptoPunks API returns empty listings)
       const hasRealGapData = (c.gaps?.to2nd ?? 0) > 0 || (c.nftsNearFloor ?? 0) > 0;
       return hasRealGapData;
+    });
+  }
+
+  /** Gem-on-floor candidates: same criteria as Digital Art table (gap ≥ 0.21, liquidity, price support). */
+  getGemOnFloorCandidates(): NFTCollection[] {
+    return this.getAllFloors().filter((c) => {
+      const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+      const gapTo2nd = c.gaps?.to2nd ?? 0;
+      const hasRecentSales = volume7d >= MIN_VOLUME_7D_ETH;
+      const hasThinFloor = gapTo2nd >= MIN_GAP_TO_2ND_ETH;
+      const salesSupportFloor = c.allSalesBelowFloor !== true;
+      return hasRecentSales && hasThinFloor && salesSupportFloor;
     });
   }
 

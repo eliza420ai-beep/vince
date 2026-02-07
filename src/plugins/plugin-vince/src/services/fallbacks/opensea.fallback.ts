@@ -89,6 +89,7 @@ interface SaleEvent {
   price?: string | number;
   amount?: string | number;
   total_price?: string | number;
+  payment_token?: { quantity?: string; decimals?: number };
   protocol_data?: {
     parameters?: {
       consideration?: Array<{ startAmount?: string; amount?: string }>;
@@ -99,8 +100,10 @@ interface SaleEvent {
 
 interface EventsResponse {
   next?: string;
+  next_cursor?: string;
   asset_events?: SaleEvent[];
   events?: SaleEvent[];
+  data?: SaleEvent[]; // OpenSea v2 alternate
 }
 
 export class OpenSeaFallbackService implements IOpenSeaService {
@@ -334,10 +337,18 @@ export class OpenSeaFallbackService implements IOpenSeaService {
     floorPrice: number,
   ): Promise<IOpenSeaRecentSales | undefined> {
     try {
-      const resp = await this.fetchOpenSea<EventsResponse>(
+      let resp = await this.fetchOpenSea<EventsResponse>(
         `/events/collection/${slug}?event_type=sale&limit=10`,
       );
-      const events = resp?.asset_events ?? resp?.events ?? [];
+      let events: SaleEvent[] =
+        resp?.data ?? resp?.asset_events ?? resp?.events ?? [];
+      if (events.length === 0 && resp) {
+        resp = await this.fetchOpenSea<EventsResponse>(
+          `/events/collection/${slug}?event_type=successful&limit=10`,
+        );
+        events =
+          resp?.data ?? resp?.asset_events ?? resp?.events ?? [];
+      }
       const prices: number[] = [];
       for (const e of events) {
         const eth = this.extractSalePriceEth(e);
@@ -362,6 +373,11 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       if (v != null) {
         const str = typeof v === "string" ? v : String(v);
         return this.weiToEth(str, 18);
+      }
+      const pt = e.payment_token;
+      if (pt?.quantity != null) {
+        const dec = pt.decimals ?? 18;
+        return this.weiToEth(String(pt.quantity), dec);
       }
       const consideration = e.protocol_data?.parameters?.consideration;
       if (consideration?.length) {
