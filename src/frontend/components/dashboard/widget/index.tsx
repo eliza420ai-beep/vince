@@ -3,6 +3,7 @@
 import React, { useState, useEffect, memo } from "react";
 import { Card, CardContent } from "@/frontend/components/ui/card";
 import TVNoise from "@/frontend/components/ui/tv-noise";
+import { fetchLeaderboards, LEADERBOARDS_STALE_MS } from "@/frontend/lib/leaderboardsApi";
 
 const COINGECKO_BTC_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true";
@@ -34,19 +35,57 @@ function getTradingSessionFull(date: Date): string {
   return "Off Hours – 22:00–23:59 UTC";
 }
 
+/** Build TOP TRADERS one-liner from ratio (e.g. "57% long / 43% short │ BULLISH"). */
+function formatTopTradersLine(ratio: number): string {
+  const longPct = Math.round((100 * ratio) / (1 + ratio));
+  const shortPct = 100 - longPct;
+  const bias = ratio > 1.1 ? "BULLISH" : ratio < 0.9 ? "BEARISH" : "NEUTRAL";
+  return `${longPct}% long / ${shortPct}% short │ ${bias}`;
+}
+
+/** Build FEAR & GREED one-liner (matches terminal: "6/100 (Extreme Fear)"). */
+function formatFearGreedLine(value: number, classification: string): string {
+  return `${value}/100 (${classification})`;
+}
+
+interface WidgetProps {
+  agentId?: string;
+}
+
 // Memoize Widget to prevent re-renders of parent components
-function Widget() {
+function Widget({ agentId }: WidgetProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [btcChange24h, setBtcChange24h] = useState<number | null>(null);
   const [hypePrice, setHypePrice] = useState<number | null>(null);
   const [solPrice, setSolPrice] = useState<number | null>(null);
+  const [topTraderLine, setTopTraderLine] = useState<string | null>(null);
+  const [fearGreedLine, setFearGreedLine] = useState<string | null>(null);
 
-  // Update date once per minute (for day/date row)
+  // Update date once per minute (fallback for top row when no leaderboards data)
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch leaderboards for TOP TRADERS + FEAR & GREED (top row)
+  useEffect(() => {
+    if (!agentId) return;
+    const fetch = async () => {
+      const data = await fetchLeaderboards(agentId);
+      if (!data?.more) return;
+      const { binanceIntel, fearGreed } = data.more;
+      if (binanceIntel?.topTraderRatio != null) {
+        setTopTraderLine(formatTopTradersLine(binanceIntel.topTraderRatio));
+      }
+      if (fearGreed) {
+        setFearGreedLine(formatFearGreedLine(fearGreed.value, fearGreed.label));
+      }
+    };
+    fetch();
+    const interval = setInterval(fetch, LEADERBOARDS_STALE_MS);
+    return () => clearInterval(interval);
+  }, [agentId]);
 
   // Fetch BTC price on mount and periodically (with 24h change)
   useEffect(() => {
@@ -97,6 +136,7 @@ function Widget() {
   };
 
   const dateInfo = formatDate(currentTime);
+  const useLeaderboardsRow = topTraderLine != null || fearGreedLine != null;
 
   const formatBtcDisplay = (price: number) =>
     new Intl.NumberFormat("en-US", {
@@ -110,9 +150,26 @@ function Widget() {
     <Card className="w-full aspect-[2] relative overflow-hidden">
       <TVNoise opacity={0.3} intensity={0.2} speed={40} />
       <CardContent className="bg-accent/30 flex-1 flex flex-col justify-between text-sm font-medium uppercase relative z-20">
-        <div className="flex justify-between items-center">
-          <span className="opacity-50">{dateInfo.dayOfWeek}</span>
-          <span>{dateInfo.restOfDate}</span>
+        <div className="flex justify-between items-center gap-2 min-h-[1.5em]">
+          {useLeaderboardsRow ? (
+            <>
+              <div className="min-w-0 flex flex-col items-start">
+                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">Top traders</span>
+                <span className="truncate w-full text-left font-normal normal-case">
+                  {topTraderLine ?? "…"}
+                </span>
+              </div>
+              <div className="min-w-0 flex flex-col items-end shrink-0">
+                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">Fear & Greed</span>
+                <span className="font-normal normal-case">{fearGreedLine ?? "…"}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <span className="opacity-50">{dateInfo.dayOfWeek}</span>
+              <span>{dateInfo.restOfDate}</span>
+            </>
+          )}
         </div>
         <div className="text-center">
           <div className="text-5xl font-display" suppressHydrationWarning>

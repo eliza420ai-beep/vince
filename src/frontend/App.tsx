@@ -1176,7 +1176,7 @@ function AppContent({
         {/* Right Sidebar - Widget & CDP Wallet & Notifications */}
         <div className="col-span-3 hidden lg:block">
           <div className="space-y-gap py-sides min-h-screen max-h-screen sticky top-0 overflow-clip">
-            <Widget />
+            <Widget agentId={agentId ?? undefined} />
             {userId && (
               <CDPWalletCard
                 ref={walletRef}
