@@ -502,12 +502,15 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     );
                   })()}
 
-                  {/* Meteora: top pools + meme LP opportunities — full width, side-by-side, no dupes */}
+                  {/* Meteora: APY-ranked table + top TVL + meme LP opportunities */}
                   {leaderboardsData.meteora && (leaderboardsData.meteora.topPools?.length ?? 0) > 0 && (() => {
                     const topPools = leaderboardsData.meteora!.topPools ?? [];
                     const memePools = leaderboardsData.meteora!.memePools ?? [];
+                    const allPoolsByApy = leaderboardsData.meteora!.allPoolsByApy ?? [];
                     const topNames = new Set(topPools.map((p) => p.name));
                     const memeOnly = memePools.filter((p) => !topNames.has(p.name)).slice(0, 8);
+
+                    const poolKey = (p: { id?: string; name: string }) => p.id ?? p.name;
 
                     const PoolTable = ({ pools, emptyMsg }: { pools: typeof topPools; emptyMsg: string }) => (
                       <div className="rounded-md border border-border/60 overflow-hidden">
@@ -522,7 +525,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </thead>
                           <tbody>
                             {pools.map((p) => (
-                              <tr key={p.name} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                              <tr key={poolKey(p)} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
                                 <td className="py-2 px-3 font-medium">{p.name}</td>
                                 <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">{p.tvlFormatted}</td>
                                 <td className="py-2 px-3 text-right text-muted-foreground tabular-nums text-xs">
@@ -548,6 +551,39 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <div className="rounded-lg bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 px-4 py-2.5 mb-5">
                           <p className="text-sm font-medium text-foreground/95">{leaderboardsData.meteora!.oneLiner ?? ""}</p>
                         </div>
+                        {allPoolsByApy.length > 0 && (
+                          <div className="space-y-2 mb-6">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              All pools ranked by APY (highest first)
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-muted/95 backdrop-blur">
+                                  <tr className="bg-muted/50">
+                                    <th className="text-left py-2 px-3 font-medium w-12">Rank</th>
+                                    <th className="text-left py-2 px-3 font-medium">Pair</th>
+                                    <th className="text-right py-2 px-3 font-medium">APY</th>
+                                    <th className="text-right py-2 px-3 font-medium">TVL</th>
+                                    <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Table / note</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {allPoolsByApy.map((p, i) => (
+                                    <tr key={poolKey(p)} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium tabular-nums">{i + 1}</td>
+                                      <td className="py-2 px-3 font-medium">{p.name}</td>
+                                      <td className="py-2 px-3 text-right tabular-nums font-medium text-green-600 dark:text-green-400">
+                                        {p.apy != null ? `${(p.apy * 100).toFixed(1)}%` : "—"}
+                                      </td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">{p.tvlFormatted}</td>
+                                      <td className="py-2 px-3 text-muted-foreground text-xs">{p.category ?? "—"}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                         <div className="grid gap-6 lg:grid-cols-2">
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

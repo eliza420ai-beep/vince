@@ -22,6 +22,8 @@ export class VinceMeteoraService extends Service {
 
   private poolCache: Map<string, MeteoraPool> = new Map();
   private topPools: MeteoraPool[] = [];
+  /** All qualifying pools (larger set) for APY ranking and meme discovery */
+  private allPools: MeteoraPool[] = [];
   private lastUpdate = 0;
 
   constructor(protected runtime: IAgentRuntime) {
@@ -88,31 +90,42 @@ export class VinceMeteoraService extends Service {
     endBox();
   }
 
+  /** Min TVL ($) to suggest as "hot" pool for LP entry */
+  private static HOT_POOL_MIN_TVL = 400_000;
+
   /**
-   * Generate actionable TLDR for dashboard
+   * Generate actionable TLDR for dashboard.
+   * Prefers high-APY pool with meaningful TVL as "hot" suggestion.
    */
   getTLDR(): string {
     const memeOpps = this.getMemePoolOpportunities();
     const topPools = this.getTopPools(5);
 
-    // Priority 1: Meme pool opportunities (high activity)
+    // Priority 1: High-APY pool with decent TVL (best LP entry candidate)
+    const hotCandidates = this.allPools
+      .filter((p) => p.tvl >= VinceMeteoraService.HOT_POOL_MIN_TVL && p.apy >= 0.05)
+      .sort((a, b) => b.apy - a.apy);
+    if (hotCandidates.length > 0) {
+      const best = hotCandidates[0];
+      return `HOT POOL: ${best.tokenA}/${best.tokenB} high volume - check for LP entry`;
+    }
+
+    // Priority 2: Meme pool opportunities (high activity)
     if (memeOpps.length > 0) {
       const best = memeOpps[0];
       return `HOT POOL: ${best.tokenA}/${best.tokenB} high volume - check for LP entry`;
     }
 
-    // Priority 2: Top TVL pools activity
+    // Priority 3: Top TVL pools activity
     if (topPools.length > 0) {
       const top = topPools[0];
       const totalTvl = topPools.reduce((sum, p) => sum + p.tvl, 0);
       if (totalTvl > 100e6) {
-        // $100M+ total TVL across top pools
         return `DEEP LIQUIDITY: $${(totalTvl / 1e6).toFixed(0)}M in top pools - stable LPing`;
       }
       return `TOP POOL: ${top.tokenA}/${top.tokenB} $${(top.tvl / 1e6).toFixed(1)}M TVL`;
     }
 
-    // Default
     return "LP QUIET: Low activity, monitor for opportunities";
   }
 
@@ -149,25 +162,51 @@ export class VinceMeteoraService extends Service {
       const data = await res.json();
       if (!Array.isArray(data)) return;
 
-      // Process top pools by TVL (with volume and APY filters)
+      // Process pools: min filters, then keep TOP_BY_TVL + TOP_BY_APY for variety
       const MIN_VOLUME_24H = 100000; // $100k minimum daily volume
       const MIN_APY = 0.05; // 5% minimum APY
+      const MIN_TVL = 400_000; // $200k min TVL — do not show pools under $200K
+      const TOP_N_TVL = 50;
+      const TOP_N_APY = 50;
 
-      const sortedPools = data
-        .filter((p: any) => p.liquidity > 10000) // Min $10k TVL
+      const qualified = data
+        .filter((p: any) => (parseFloat(p.liquidity) || 0) >= MIN_TVL)
         .filter(
           (p: any) => parseFloat(p.trade_volume_24h || 0) > MIN_VOLUME_24H,
-        ) // Min $100k volume
-        .filter((p: any) => parseFloat(p.apr || 0) >= MIN_APY) // Min 5% APY
-        .sort((a: any, b: any) => (b.liquidity || 0) - (a.liquidity || 0))
-        .slice(0, 50);
+        )
+        .filter((p: any) => parseFloat(p.apr || 0) >= MIN_APY);
 
-      for (const poolData of sortedPools) {
+      const byTvl = [...qualified].sort(
+        (a: any, b: any) => (parseFloat(b.liquidity) || 0) - (parseFloat(a.liquidity) || 0),
+      );
+      const byApy = [...qualified].sort(
+        (a: any, b: any) => (parseFloat(b.apr) || 0) - (parseFloat(a.apr) || 0),
+      );
+
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const p of byTvl.slice(0, TOP_N_TVL)) {
+        const addr = p.address || p.pair_address;
+        if (addr && !seen.has(addr)) {
+          seen.add(addr);
+          merged.push(p);
+        }
+      }
+      for (const p of byApy.slice(0, TOP_N_APY)) {
+        const addr = p.address || p.pair_address;
+        if (addr && !seen.has(addr)) {
+          seen.add(addr);
+          merged.push(p);
+        }
+      }
+
+      for (const poolData of merged) {
+        const address = poolData.address || poolData.pair_address;
         const pool: MeteoraPool = {
-          address: poolData.address || poolData.pair_address,
-          tokenA: poolData.name?.split("-")[0] || poolData.name_x || "UNKNOWN",
-          tokenB: poolData.name?.split("-")[1] || poolData.name_y || "UNKNOWN",
-          binWidth: parseFloat(poolData.bin_step) / 100 || 0.25, // Convert basis points
+          address,
+          tokenA: poolData.name?.split("-")[0]?.trim() || poolData.name_x || "UNKNOWN",
+          tokenB: poolData.name?.split("-")[1]?.trim() || poolData.name_y || "UNKNOWN",
+          binWidth: parseFloat(poolData.bin_step) / 100 || 0.25,
           tvl: parseFloat(poolData.liquidity) || 0,
           apy: parseFloat(poolData.apr) || 0,
           volume24h: parseFloat(poolData.trade_volume_24h) || 0,
@@ -178,10 +217,9 @@ export class VinceMeteoraService extends Service {
         this.poolCache.set(pool.address, pool);
       }
 
-      // Update top pools list
-      this.topPools = Array.from(this.poolCache.values())
-        .sort((a, b) => b.tvl - a.tvl)
-        .slice(0, 20);
+      const all = Array.from(this.poolCache.values());
+      this.allPools = all;
+      this.topPools = [...all].sort((a, b) => b.tvl - a.tvl).slice(0, 20);
     } catch (error) {
       logger.debug(`[VinceMeteora] Pool fetch error: ${error}`);
     }
@@ -248,19 +286,45 @@ export class VinceMeteoraService extends Service {
   }
 
   /**
-   * Get pools with high APY
+   * Get pools with high APY (from full pool set, not just top TVL)
    */
-  getHighApyPools(minApy: number = 50): MeteoraPool[] {
-    return this.topPools.filter((p) => p.apy >= minApy);
+  getHighApyPools(minApy: number = 0.5): MeteoraPool[] {
+    return this.allPools.filter((p) => p.apy >= minApy);
+  }
+
+  /** Min vol/TVL ratio to count as "meme" / high-activity opportunity */
+  private static MEME_VOL_TVL_RATIO = 0.5;
+
+  /**
+   * Get pools for memecoins (high volume relative to TVL).
+   * Uses full pool set so high-APY meme pools are not missed.
+   */
+  getMemePoolOpportunities(): MeteoraPool[] {
+    return this.allPools
+      .filter((p) => {
+        const volumeTvlRatio = p.volume24h / (p.tvl || 1);
+        return volumeTvlRatio >= VinceMeteoraService.MEME_VOL_TVL_RATIO;
+      })
+      .sort((a, b) => b.apy - a.apy);
   }
 
   /**
-   * Get pools for memecoins (high volume relative to TVL)
+   * Get all pools ranked by APY (desc), with category for display.
+   * Use for "Rank | Pair | APY | TVL | Table/note" view.
    */
-  getMemePoolOpportunities(): MeteoraPool[] {
-    return this.topPools.filter((p) => {
-      const volumeTvlRatio = p.volume24h / (p.tvl || 1);
-      return volumeTvlRatio > 0.5; // High trading activity
-    });
+  getAllPoolsRankedByApy(limit: number = 25): Array<MeteoraPool & { category: "topTvl" | "meme" }> {
+    const topTvlSet = new Set(this.topPools.slice(0, 10).map((p) => p.address));
+    const memeSet = new Set(
+      this.getMemePoolOpportunities().map((p) => p.address),
+    );
+
+    const withCategory = this.allPools.map((p) => ({
+      ...p,
+      category: (memeSet.has(p.address) ? "meme" : "topTvl") as "topTvl" | "meme",
+    }));
+
+    return withCategory
+      .sort((a, b) => b.apy - a.apy)
+      .slice(0, limit);
   }
 }

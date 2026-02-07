@@ -100,10 +100,23 @@ export interface MemesLeaderboardSection {
   moodSummary: string;
 }
 
+export interface MeteoraPoolRow {
+  name: string;
+  tvl: number;
+  tvlFormatted: string;
+  apy?: number;
+  binWidth?: number;
+  volume24h?: number;
+  /** Unique pool id (address) for React keys when same pair appears multiple times */
+  id?: string;
+}
+
 export interface MeteoraLeaderboardSection {
   title: string;
-  topPools: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number }[];
-  memePools?: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number; volume24h?: number }[];
+  topPools: MeteoraPoolRow[];
+  memePools?: MeteoraPoolRow[];
+  /** All pools ranked by APY desc, with category (Top pools by TVL | Meme LP opportunities) */
+  allPoolsByApy?: Array<MeteoraPoolRow & { category: string }>;
   oneLiner: string;
 }
 
@@ -419,6 +432,21 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
   return result;
 }
 
+function toMeteoraPoolRow(
+  p: { address?: string; name?: string; tokenA?: string; tokenB?: string; tvl: number; apy?: number; binWidth?: number; volume24h?: number },
+  id?: string,
+): MeteoraPoolRow {
+  return {
+    id: id ?? p.address,
+    name: p.name ?? (p.tokenA && p.tokenB ? `${p.tokenA}/${p.tokenB}` : "—"),
+    tvl: p.tvl,
+    tvlFormatted: formatVol(p.tvl),
+    apy: p.apy,
+    binWidth: p.binWidth,
+    ...(p.volume24h != null && { volume24h: p.volume24h }),
+  };
+}
+
 async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeaderboardSection | null> {
   const meteora = runtime.getService("VINCE_METEORA_SERVICE") as VinceMeteoraService | null;
   if (!meteora) return null;
@@ -427,26 +455,26 @@ async function buildMeteoraSection(runtime: IAgentRuntime): Promise<MeteoraLeade
   const memePoolsRaw = await safe("Meteora memePools", () =>
     Promise.resolve(meteora.getMemePoolOpportunities?.() ?? []),
   );
+  const allByApy = await safe("Meteora allByApy", () =>
+    Promise.resolve(meteora.getAllPoolsRankedByApy?.(25) ?? []),
+  );
   const tldr = await safe("Meteora TLDR", () => Promise.resolve(meteora.getTLDR()));
 
   if (!pools || pools.length === 0) return null;
 
-  const toPoolRow = (p: { name?: string; tokenA?: string; tokenB?: string; tvl: number; apy?: number; binWidth?: number; volume24h?: number }) => ({
-    name: p.name ?? (p.tokenA && p.tokenB ? `${p.tokenA}/${p.tokenB}` : "—"),
-    tvl: p.tvl,
-    tvlFormatted: formatVol(p.tvl),
-    apy: p.apy,
-    binWidth: p.binWidth,
-    ...(p.volume24h != null && { volume24h: p.volume24h }),
-  });
-
   const result: MeteoraLeaderboardSection = {
     title: "Meteora LP",
-    topPools: pools.map((p: any) => toPoolRow(p)),
+    topPools: pools.map((p: any) => toMeteoraPoolRow(p)),
     oneLiner: tldr ?? "Top pools by TVL.",
   };
   if (memePoolsRaw && memePoolsRaw.length > 0) {
-    result.memePools = memePoolsRaw.map((p: any) => toPoolRow(p));
+    result.memePools = memePoolsRaw.map((p: any) => toMeteoraPoolRow(p));
+  }
+  if (allByApy && allByApy.length > 0) {
+    result.allPoolsByApy = allByApy.map((p) => ({
+      ...toMeteoraPoolRow(p, p.address),
+      category: p.category === "meme" ? "Meme LP opportunities" : "Top pools by TVL",
+    }));
   }
   return result;
 }

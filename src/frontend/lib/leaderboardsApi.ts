@@ -58,10 +58,22 @@ export interface MemesLeaderboardSection {
   moodSummary: string;
 }
 
+export interface MeteoraPoolRow {
+  name: string;
+  tvl: number;
+  tvlFormatted: string;
+  apy?: number;
+  binWidth?: number;
+  volume24h?: number;
+  id?: string;
+}
+
 export interface MeteoraLeaderboardSection {
   title: string;
-  topPools: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number }[];
-  memePools?: { name: string; tvl: number; tvlFormatted: string; apy?: number; binWidth?: number; volume24h?: number }[];
+  topPools: MeteoraPoolRow[];
+  memePools?: MeteoraPoolRow[];
+  /** All pools ranked by APY desc, with category label */
+  allPoolsByApy?: Array<MeteoraPoolRow & { category: string }>;
   oneLiner: string;
 }
 
