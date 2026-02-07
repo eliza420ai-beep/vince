@@ -586,7 +586,14 @@ async function buildDigitalArtSection(runtime: IAgentRuntime): Promise<DigitalAr
     };
   }
 
-  const collections: DigitalArtCollectionRow[] = floors
+  // Exclude illiquid collections (zero sales for months, e.g. DRIVE)
+  const MIN_VOLUME_7D_ETH = 0.001;
+  const liquidFloors = floors.filter((c) => {
+    const volume7d = c.totalVolume ?? c.volume24h ?? 0;
+    return volume7d >= MIN_VOLUME_7D_ETH;
+  });
+
+  const collections: DigitalArtCollectionRow[] = liquidFloors
     .map((c) => {
       const to2nd = c.gaps?.to2nd ?? 0;
       const gapPctTo2nd =
