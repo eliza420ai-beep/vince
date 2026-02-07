@@ -586,6 +586,16 @@ export class VinceWeightBanditService extends Service {
   isReady(): boolean {
     return this.initialized;
   }
+
+  /**
+   * Status for dashboard: Thompson Sampling from recorded trade outcomes.
+   */
+  getBanditStatus(): { isReady: boolean; totalTradesProcessed: number } {
+    return {
+      isReady: this.initialized,
+      totalTradesProcessed: this.totalTradesProcessed,
+    };
+  }
 }
 
 export default VinceWeightBanditService;

@@ -336,6 +336,8 @@ export interface NewsItem {
   assets: string[];
   timestamp: number;
   category?: string;
+  /** Optional link for deep dive (from MandoMinutes article) */
+  url?: string;
 }
 
 export interface RiskEvent {
@@ -651,17 +653,16 @@ export class VinceNewsSentimentService extends Service {
       for (const article of cached.articles) {
         if (!article.title || article.title.length < 10) continue;
 
-        // Parse price-embedded lines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)")
+        // Parse price-embedded lines (e.g. "BTC: 75.2k (-4%) | ETH: 2200 (-4%)") for metrics
         const priceSnaps = this.parsePriceSnapshotsFromTitle(
           article.title,
           cached.timestamp,
         );
         if (priceSnaps.length > 0) {
           this.priceSnapshots.push(...priceSnaps);
-          continue;
         }
 
-        // Analyze sentiment
+        // Analyze sentiment (price lines often end up neutral)
         const sentiment = this.analyzeSentiment(article.title);
 
         // Detect assets mentioned
@@ -676,13 +677,13 @@ export class VinceNewsSentimentService extends Service {
         // Determine category
         const category = article.categories?.[0] || "crypto";
 
-        // Add or update in cache (update sentiment so re-fetches fix misclassifications after logic changes)
+        // Add or update in cache so dashboard/API shows ALL headlines (including price lines)
         const existingIdx = this.newsCache.findIndex(
           (n) =>
             this.normalizeForSentiment(n.title) ===
             this.normalizeForSentiment(article.title),
         );
-        const item = {
+        const item: NewsItem = {
           title: article.title,
           source,
           sentiment,
@@ -690,6 +691,7 @@ export class VinceNewsSentimentService extends Service {
           assets,
           category,
           timestamp: cached.timestamp,
+          ...(article.url && { url: article.url }),
         };
         if (existingIdx >= 0) {
           this.newsCache[existingIdx] = item;
@@ -1432,6 +1434,18 @@ export class VinceNewsSentimentService extends Service {
         return b.timestamp - a.timestamp;
       })
       .slice(0, limit);
+  }
+
+  /**
+   * Get all headlines for dashboard/News tab (no limit). Same sort as getTopHeadlines.
+   */
+  getAllHeadlines(): NewsItem[] {
+    return [...this.newsCache].sort((a, b) => {
+      const impactOrder = { high: 3, medium: 2, low: 1 };
+      const impactDiff = impactOrder[b.impact] - impactOrder[a.impact];
+      if (impactDiff !== 0) return impactDiff;
+      return b.timestamp - a.timestamp;
+    });
   }
 
   getNewsByAsset(asset: string): NewsItem[] {

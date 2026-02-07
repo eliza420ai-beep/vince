@@ -425,6 +425,23 @@ export class VincePaperTradingService extends Service {
     );
     const suggLabel = usedReportSuggestion ? " (ML)" : "";
 
+    // Store for dashboard (same data as terminal)
+    this.recentNoTrades.push({
+      asset,
+      direction: signal.direction,
+      reason,
+      strength: signal.strength,
+      confidence: signal.confidence,
+      confirmingCount: signal.confirmingCount ?? 0,
+      minStrength,
+      minConfidence,
+      minConfirming,
+      timestamp: Date.now(),
+    });
+    if (this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES) {
+      this.recentNoTrades.shift();
+    }
+
     console.log("");
     console.log(
       `  ┌─────────────────────────────────────────────────────────────────┐`,
@@ -510,6 +527,70 @@ export class VincePaperTradingService extends Service {
   /** Rate limit for recording avoided decisions (once per asset per 2 min) so we keep learning without flooding the store */
   private static readonly AVOIDED_RECORD_INTERVAL_MS = 2 * 60 * 1000;
   private lastAvoidedRecord: Map<string, number> = new Map();
+
+  /** Recent "signal evaluated - no trade" entries for dashboard (bounded) */
+  private static readonly MAX_RECENT_NO_TRADES = 100;
+  private recentNoTrades: Array<{
+    asset: string;
+    direction: string;
+    reason: string;
+    strength: number;
+    confidence: number;
+    confirmingCount: number;
+    minStrength: number;
+    minConfidence: number;
+    minConfirming: number;
+    timestamp: number;
+  }> = [];
+
+  /** Return recent no-trade evaluations for the dashboard */
+  getRecentNoTradeEvaluations(): Array<{
+    asset: string;
+    direction: string;
+    reason: string;
+    strength: number;
+    confidence: number;
+    confirmingCount: number;
+    minStrength: number;
+    minConfidence: number;
+    minConfirming: number;
+    timestamp: number;
+  }> {
+    return [...this.recentNoTrades];
+  }
+
+  /** Recent "recorded data / ML influenced the algo" events for dashboard (bounded) */
+  private static readonly MAX_RECENT_ML_INFLUENCES = 80;
+  private recentMLInfluences: Array<{
+    type: "reject" | "open";
+    asset: string;
+    message: string;
+    timestamp: number;
+  }> = [];
+
+  /** Return recent ML/influence events for the dashboard */
+  getRecentMLInfluences(): Array<{
+    type: "reject" | "open";
+    asset: string;
+    message: string;
+    timestamp: number;
+  }> {
+    return [...this.recentMLInfluences];
+  }
+
+  private pushMLInfluence(
+    type: "reject" | "open",
+    asset: string,
+    message: string,
+  ): void {
+    this.recentMLInfluences.push({ type, asset, message, timestamp: Date.now() });
+    if (
+      this.recentMLInfluences.length >
+      VincePaperTradingService.MAX_RECENT_ML_INFLUENCES
+    ) {
+      this.recentMLInfluences.shift();
+    }
+  }
 
   /**
    * Record an evaluated-but-no-trade decision in the feature store so ML can learn from avoid decisions
@@ -658,6 +739,7 @@ export class VincePaperTradingService extends Service {
           ) {
             if (signal.direction !== "neutral" && signal.strength > 30) {
               const reason = `ML quality ${((signal as AggregatedSignal).mlQualityScore! * 100).toFixed(0)}% below threshold ${(threshold * 100).toFixed(0)}%`;
+              this.pushMLInfluence("reject", asset, reason);
               this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
               void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             }
@@ -675,12 +757,14 @@ export class VincePaperTradingService extends Service {
           const minConf = (mlService as { getSuggestedMinConfidence?: () => number | null }).getSuggestedMinConfidence?.();
           if (typeof minStr === "number" && signal.strength < minStr && signal.direction !== "neutral" && signal.strength > 30) {
             const reason = `Strength ${signal.strength.toFixed(0)}% below report suggestion ${minStr}%`;
+            this.pushMLInfluence("reject", asset, reason);
             this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
             void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
           }
           if (typeof minConf === "number" && signal.confidence < minConf && signal.direction !== "neutral" && signal.strength > 30) {
             const reason = `Confidence ${signal.confidence.toFixed(0)}% below report suggestion ${minConf}%`;
+            this.pushMLInfluence("reject", asset, reason);
             this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
             void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
             continue;
@@ -692,6 +776,7 @@ export class VincePaperTradingService extends Service {
         if (aggSignal.mlSimilarityPrediction?.recommendation === "avoid") {
           if (signal.direction !== "neutral" && signal.strength > 30) {
             const reason = `Similar trades suggest AVOID: ${aggSignal.mlSimilarityPrediction.reason}`;
+            this.pushMLInfluence("reject", asset, reason);
             this.logSignalRejection(asset, this.toAggregatedTradeSignal(signal), reason);
             void this.recordAvoidedDecisionIfNeeded(asset, signal as AggregatedSignal, reason);
           }
@@ -1397,7 +1482,49 @@ export class VincePaperTradingService extends Service {
       signal.sourceBreakdown ?? {},
     ).filter(Boolean);
 
-    // Open position with ATR stored for trailing stop calculations (R:R from SL/TP logic above)
+    // Full signal snapshot for dashboard (same as terminal log)
+    const supportingReasons =
+      signal.supportingReasons ??
+      (signal as { supportingFactors?: string[] }).supportingFactors ??
+      signal.reasons ??
+      [];
+    const conflictingReasons =
+      signal.conflictingReasons ??
+      (signal as { conflictingFactors?: string[] }).conflictingFactors ??
+      [];
+    const totalSourceCount = [
+      ...new Set((signal.signals ?? []).map((s) => s.source)),
+    ].length;
+    const confirmingCount = signal.confirmingCount ?? 0;
+    const conflictingCount = signal.conflictingCount ?? 0;
+    const sessionRaw = signal.session ?? "";
+    const sessionLabel = sessionRaw
+      ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "";
+    const slPctNum = Math.abs(
+      ((stopLossPrice - entryPrice) / entryPrice) * 100,
+    );
+    const tp1PctNum = takeProfitPrices[0]
+      ? Math.abs(
+          ((takeProfitPrices[0] - entryPrice) / entryPrice) * 100,
+        )
+      : 0;
+    const slLossUsd = sizeUsd * (slPctNum / 100);
+    const tp1ProfitUsd =
+      takeProfitPrices[0] != null ? sizeUsd * (tp1PctNum / 100) : 0;
+    const rrNum = slLossUsd > 0 ? tp1ProfitUsd / slLossUsd : 0;
+    const rrLabel =
+      rrNum >= 1.5
+        ? "Good"
+        : rrNum >= 1
+          ? "OK"
+          : rrNum >= 0.5
+            ? "Weak"
+            : rrNum > 0
+              ? "Poor"
+              : "—";
+
+    // Open position with ATR and full signal snapshot for dashboard
     const position = positionManager.openPosition({
       asset,
       direction,
@@ -1407,16 +1534,45 @@ export class VincePaperTradingService extends Service {
       stopLossPrice,
       takeProfitPrices,
       strategyName: "VinceSignalFollowing",
-      triggerSignals: (signal.reasons ?? []).slice(0, 15),
+      triggerSignals: supportingReasons,
       metadata: {
         entryATRPct,
         contributingSources,
+        conflictingReasons,
+        strength: signal.strength,
+        confidence: signal.confidence,
+        confirmingCount,
+        totalSourceCount,
+        conflictingCount,
+        session: sessionLabel,
+        slPct: slPctNum,
+        tp1Pct: tp1PctNum,
+        slLossUsd,
+        tp1ProfitUsd,
+        rrRatio: rrNum,
+        rrLabel,
+        mlQualityScore:
+          typeof (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore === "number"
+            ? (signal as AggregatedTradeSignal & { mlQualityScore: number }).mlQualityScore
+            : undefined,
+        banditWeightsUsed:
+          (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true,
       },
     });
 
     // Store ATR on position for trailing stop calculations
     if (entryATRPct && position) {
       position.entryATRPct = entryATRPct;
+    }
+
+    // Record that recorded data / ML influenced this open (for dashboard)
+    const mlQual = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
+    const banditUsed = (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true;
+    const parts: string[] = [];
+    if (typeof mlQual === "number") parts.push(`ML quality ${(mlQual * 100).toFixed(0)}%`);
+    if (banditUsed) parts.push("bandit weights used");
+    if (parts.length > 0) {
+      this.pushMLInfluence("open", asset, `Opened: ${parts.join(", ")}`);
     }
 
     // Record trade
@@ -1496,8 +1652,14 @@ export class VincePaperTradingService extends Service {
       ...new Set((signal.signals ?? []).map((s) => s.source)),
     ];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const supporting = signal.supportingReasons ?? [];
-    const conflicting = signal.conflictingReasons ?? [];
+    const supporting =
+      signal.supportingReasons ??
+      (signal as { supportingFactors?: string[] }).supportingFactors ??
+      [];
+    const conflicting =
+      signal.conflictingReasons ??
+      (signal as { conflictingFactors?: string[] }).conflictingFactors ??
+      [];
     const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
     const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);

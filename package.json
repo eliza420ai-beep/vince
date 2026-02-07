@@ -94,6 +94,7 @@
     "vite": "^7.2.6"
   },
   "scripts": {
+    "postinstall": "node scripts/patch-elizaos-server-plugin-routes.cjs",
     "start": "node scripts/dev-with-vite.js",
     "start:static": "node scripts/start-with-custom-ui.js",
     "start:eliza-dashboard": "node scripts/start-with-db.js",

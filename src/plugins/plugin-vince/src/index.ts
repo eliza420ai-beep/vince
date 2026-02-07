@@ -26,6 +26,9 @@ import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { buildPulseResponse } from "./routes/dashboardPulse";
+import { buildLeaderboardsResponse } from "./routes/dashboardLeaderboards";
+import { buildPaperResponse } from "./routes/dashboardPaper";
+import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -238,12 +241,14 @@ export const vincePlugin: Plugin = {
           status: (n: number) => { json: (o: object) => void };
           json: (o: object) => void;
         },
+        runtime?: IAgentRuntime,
       ) => {
-        const runtime =
+        const agentRuntime =
+          runtime ??
           (req as any).runtime ??
           (req as any).agentRuntime ??
           (req as any).agent?.runtime;
-        if (!runtime) {
+        if (!agentRuntime) {
           res.status(503).json({
             error: "Pulse requires agent context",
             hint: "Use /api/agents/:agentId/plugins/vince/pulse (ElizaOS mounts plugin routes under /plugins).",
@@ -251,7 +256,7 @@ export const vincePlugin: Plugin = {
           return;
         }
         try {
-          const pulse = await buildPulseResponse(runtime as IAgentRuntime);
+          const pulse = await buildPulseResponse(agentRuntime);
           res.json(pulse);
         } catch (err) {
           logger.warn(`[VINCE] Pulse route error: ${err}`);
@@ -259,6 +264,104 @@ export const vincePlugin: Plugin = {
             error: "Failed to build pulse",
             message: err instanceof Error ? err.message : String(err),
           });
+        }
+      },
+    },
+    {
+      name: "vince-leaderboards",
+      path: "/vince/leaderboards",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Leaderboards require agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/leaderboards",
+          });
+          return;
+        }
+        try {
+          const data = await buildLeaderboardsResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Leaderboards route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build leaderboards",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-paper",
+      path: "/vince/paper",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Paper trading data requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/paper",
+          });
+          return;
+        }
+        try {
+          const data = await buildPaperResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Paper route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build paper trading data",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+      },
+    },
+    {
+      name: "vince-knowledge",
+      path: "/vince/knowledge",
+      type: "GET",
+      handler: async (
+        _req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+      ) => {
+        try {
+          const data = buildKnowledgeResponse(process.cwd());
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Knowledge route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build knowledge overview",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          return;
         }
       },
     },

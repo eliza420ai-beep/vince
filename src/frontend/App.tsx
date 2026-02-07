@@ -16,6 +16,7 @@ import {
 import CollapsibleNotifications from "./components/dashboard/notifications/collapsible-notifications";
 import AccountPage from "./components/dashboard/account/page";
 import LeaderboardPage from "./components/dashboard/leaderboard/page";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { SignInModal } from "./components/auth/SignInModal";
 import { MobileHeader } from "./components/dashboard/mobile-header";
 import {
@@ -27,7 +28,7 @@ import { MessageSquare, Info } from "lucide-react";
 import { resolveCdpUserInfo, type CdpUser } from "@/frontend/lib/cdpUser";
 import { UUID } from "@elizaos/core";
 import { AboutModalContent } from "@/frontend/components/about/about-modal-content";
-import { getRandomAvatar } from "@/frontend/lib/utils";
+import { getRandomAvatar, cn } from "@/frontend/lib/utils";
 
 /** Default message server ID the message bus is subscribed to (local messaging). Use this when getCurrentMessageServer() returns null so replies reach the UI. */
 const DEFAULT_MESSAGE_SERVER_ID =
@@ -1081,7 +1082,7 @@ function AppContent({
         </div>
 
         {/* Center - Chat Interface / Account / Leaderboard */}
-        <div className="col-span-1 lg:col-span-7 h-full overflow-auto lg:overflow-hidden">
+        <div className={cn("col-span-1 lg:col-span-7 h-full overflow-auto overscroll-y-contain", currentView === "leaderboard" ? "lg:overflow-auto min-h-[400px]" : "lg:overflow-hidden")}>
           {currentView === "account" ? (
             <AccountPage
               totalBalance={totalBalance}
@@ -1092,10 +1093,13 @@ function AppContent({
             />
           ) : currentView === "leaderboard" ? (
             agentId ? (
-              <LeaderboardPage agentId={agentId as UUID} />
+              <ErrorBoundary>
+                <LeaderboardPage agentId={agentId as UUID} agents={agents} />
+              </ErrorBoundary>
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">Loading agent...</p>
+              <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
+                <p className="text-foreground font-medium">Loading agent…</p>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">Select an agent from the sidebar or wait for the list to load. Leaderboard needs an agent to fetch market data.</p>
               </div>
             )
           ) : (

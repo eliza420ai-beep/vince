@@ -377,6 +377,34 @@ export class VinceMLInferenceService extends Service {
     return typeof v === "number" && v >= 0 && v <= 100 ? v : null;
   }
 
+  /**
+   * Status for dashboard: which models are loaded, thresholds from recorded data (improvement report).
+   */
+  getMLStatus(): {
+    modelsLoaded: string[];
+    signalQualityThreshold: number;
+    suggestedMinStrength: number | null;
+    suggestedMinConfidence: number | null;
+    tpLevelIndices: number[];
+    tpLevelSkipped: number | null;
+  } {
+    const modelsLoaded = Array.from(this.modelInfo.keys());
+    const tpIndices = this.getTPLevelIndicesToUse();
+    const allIndices = [0, 1, 2];
+    const tpLevelSkipped =
+      tpIndices.length < 3
+        ? allIndices.find((i) => !tpIndices.includes(i)) ?? null
+        : null;
+    return {
+      modelsLoaded,
+      signalQualityThreshold: this.getSignalQualityThreshold(),
+      suggestedMinStrength: this.getSuggestedMinStrength(),
+      suggestedMinConfidence: this.getSuggestedMinConfidence(),
+      tpLevelIndices: tpIndices,
+      tpLevelSkipped,
+    };
+  }
+
   async stop(): Promise<void> {
     // Release model sessions
     this.signalQualitySession = null;
