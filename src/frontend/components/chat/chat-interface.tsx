@@ -99,6 +99,33 @@ const PLUGIN_ACTIONS = {
   },
 };
 
+// Quick actions per agent: each agent shows prompts that match what they do best
+const QUICK_ACTIONS_BY_AGENT: Record<
+  string,
+  { label: string; message: string }[]
+> = {
+  vince: [
+    { label: "ALOHA", message: "aloha" },
+    { label: "News", message: "news" },
+    { label: "Memes", message: "memes" },
+    { label: "Perps", message: "perps" },
+    { label: "Options", message: "options" },
+  ],
+  // Eliza: flex knowledge, invite brainstorm, above all UPLOAD (ingest → right knowledge folder)
+  eliza: [
+    { label: "Upload", message: "upload" },
+    { label: "Ingest video", message: "ingest this video" },
+    { label: "Our research", message: "what does our research say" },
+    { label: "Brainstorm", message: "let's brainstorm" },
+    { label: "Explore knowledge", message: "explore our knowledge" },
+  ],
+};
+
+function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
+  const key = (agentName || "").toLowerCase().trim();
+  return QUICK_ACTIONS_BY_AGENT[key] ?? QUICK_ACTIONS_BY_AGENT.vince;
+}
+
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
 const ALPHA_CATEGORIES: Record<
   string,
@@ -818,19 +845,13 @@ export function ChatInterface({
             <div className="space-y-4 h-full flex flex-col">
               {/* Market Pulse: LLM insight from terminal dashboard data */}
               <MarketPulseCard agentId={agent.id} />
-              {/* Quick actions: send TLDR triggers (ALOHA, News, Memes, Perps, Options) into chat */}
+              {/* Quick actions: agent-specific prompts (VINCE = markets/trading, Eliza = research/knowledge) */}
               {agent?.id && (
                 <div className="flex flex-wrap items-center gap-2 mb-2">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
                     Quick:
                   </span>
-                  {[
-                    { label: "ALOHA", message: "aloha" },
-                    { label: "News", message: "news" },
-                    { label: "Memes", message: "memes" },
-                    { label: "Perps", message: "perps" },
-                    { label: "Options", message: "options" },
-                  ].map(({ label, message }) => (
+                  {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
                     <button
                       key={label}
                       type="button"
