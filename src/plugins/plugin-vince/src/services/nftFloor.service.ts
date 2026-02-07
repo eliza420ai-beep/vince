@@ -474,7 +474,12 @@ export class VinceNFTFloorService extends Service {
   }
 
   getThinFloors(): NFTCollection[] {
-    return this.getAllFloors().filter((c) => c.floorThickness === "thin");
+    return this.getAllFloors().filter((c) => {
+      if (c.floorThickness !== "thin") return false;
+      // Exclude when we have no real gap data (e.g. CryptoPunks API returns empty listings)
+      const hasRealGapData = (c.gaps?.to2nd ?? 0) > 0 || (c.nftsNearFloor ?? 0) > 0;
+      return hasRealGapData;
+    });
   }
 
   getThickFloors(): NFTCollection[] {
