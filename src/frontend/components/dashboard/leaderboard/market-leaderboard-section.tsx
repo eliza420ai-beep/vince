@@ -37,12 +37,15 @@ interface MarketLeaderboardSectionProps {
   bias?: string;
   /** HIP-3 categories: full lists per sector (commodities, indices, stocks, aiTech) */
   categories?: CategoryBlock[];
+  /** 'grid' = 2 columns (compact, for HIP-3). 'stack' = full-width single column (for HL Crypto long lists) */
+  categoriesLayout?: "grid" | "stack";
   children?: React.ReactNode;
 }
 
 function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; showVolume?: boolean }) {
   if (rows.length === 0) return null;
   const hasPrice = rows.some((r) => r.price != null && Number.isFinite(r.price));
+  const hasExtra = rows.some((r) => r.extra);
   return (
     <div className="rounded-lg border border-border/60 overflow-hidden">
       <table className="w-full text-sm">
@@ -53,6 +56,7 @@ function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; show
             {hasPrice && <th className="text-right py-2 px-3">Price</th>}
             <th className="text-right py-2 px-3">Change</th>
             {showVolume && <th className="text-right py-2 px-3">Vol</th>}
+            {hasExtra && <th className="text-right py-2 px-3 hidden sm:table-cell">Extra</th>}
           </tr>
         </thead>
         <tbody>
@@ -74,6 +78,11 @@ function MoversTable({ rows, showVolume = true }: { rows: LeaderboardRow[]; show
               {showVolume && (
                 <td className="py-1.5 px-3 text-right text-muted-foreground">
                   {row.volumeFormatted ?? (row.volume != null ? `$${(row.volume / 1e6).toFixed(1)}M` : "—")}
+                </td>
+              )}
+              {hasExtra && (
+                <td className="py-1.5 px-3 text-right text-xs text-muted-foreground hidden sm:table-cell">
+                  {row.extra}
                 </td>
               )}
             </tr>
@@ -134,6 +143,7 @@ export function MarketLeaderboardSection({
   oneLiner,
   bias,
   categories,
+  categoriesLayout = "grid",
   children,
 }: MarketLeaderboardSectionProps) {
   return (
@@ -181,12 +191,19 @@ export function MarketLeaderboardSection({
               <Layers className="w-3.5 h-3.5" />
               By category (full lists)
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div
+              className={cn(
+                "grid gap-4",
+                categoriesLayout === "stack" ? "grid-cols-1" : "sm:grid-cols-2",
+              )}
+            >
               {categories.map(({ label, rows }) =>
                 rows.length > 0 ? (
-                  <div key={label}>
+                  <div key={label} className={categoriesLayout === "stack" ? "min-w-0" : undefined}>
                     <p className="text-xs font-medium text-muted-foreground mb-2">{label}</p>
-                    <MoversTable rows={rows} />
+                    <div className={categoriesLayout === "stack" ? "overflow-x-auto" : undefined}>
+                      <MoversTable rows={rows} />
+                    </div>
                   </div>
                 ) : null,
               )}

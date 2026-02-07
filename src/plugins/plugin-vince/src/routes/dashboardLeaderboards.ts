@@ -6,10 +6,12 @@
 import type { IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import type { VinceHIP3Service } from "../services/hip3.service";
+import type { HIP3Pulse } from "../services/hip3.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceMeteoraService } from "../services/meteora.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
 import { getOrCreateHyperliquidService } from "../services/fallbacks";
+import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
 
 const SECTION_TIMEOUT_MS = 6000;
@@ -77,6 +79,14 @@ export interface HLCryptoLeaderboardSection {
   bias: string;
   hottestAvg: number;
   coldestAvg: number;
+  /** Full list of HL crypto perp tickers with funding and OI in extra */
+  allTickers?: LeaderboardRow[];
+  /** Top 10 by open interest */
+  openInterestLeaders?: LeaderboardRow[];
+  /** Assets with crowded long positioning (extreme_long / long) */
+  crowdedLongs?: LeaderboardRow[];
+  /** Assets with crowded short positioning (extreme_short / short) */
+  crowdedShorts?: LeaderboardRow[];
 }
 
 export interface MemesLeaderboardSection {
@@ -175,7 +185,9 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
   const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as VinceHIP3Service | null;
   if (!hip3) return null;
 
-  const pulse = await safe("HIP3", () => (hip3 as any).getHIP3Pulse?.());
+  const pulse = await safe("HIP3", (): Promise<HIP3Pulse | null> =>
+    (hip3 as VinceHIP3Service).getHIP3Pulse?.() ?? Promise.resolve(null),
+  );
   if (!pulse) return null;
 
   const allAssets = [
@@ -194,7 +206,7 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
     volumeFormatted: formatVol(a.volume24h),
   }));
 
-  const volumeLeaders: LeaderboardRow[] = (pulse.leaders?.volumeLeaders ?? []).slice(0, 5).map((l, i) => ({
+  const volumeLeaders: LeaderboardRow[] = (pulse.leaders?.volumeLeaders ?? []).slice(0, 5).map((l: { symbol: string; price?: number; volume: number }, i: number) => ({
     rank: i + 1,
     symbol: l.symbol,
     price: l.price,
@@ -250,11 +262,13 @@ async function buildHIP3Section(runtime: IAgentRuntime): Promise<HIP3Leaderboard
 }
 
 async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLeaderboardSection | null> {
-  const hl = getOrCreateHyperliquidService(runtime);
-  const pulse = await safe("HL Crypto", () => hl.getAllCryptoPulse?.() ?? Promise.resolve(null));
-  if (!pulse || !(pulse as IHyperliquidCryptoPulse).topMovers) return null;
+  // Always use our fallback for leaderboards so we get the full asset list (allTickers, OI leaders, crowded).
+  // The primary service (external plugin or fallback) may not return assets; using fallback here guarantees full data.
+  const fallback = new HyperliquidFallbackService();
+  const pulse = await safe("HL Crypto", () => fallback.getAllCryptoPulse());
+  if (!pulse || !pulse.topMovers?.length) return null;
 
-  const p = pulse as IHyperliquidCryptoPulse;
+  const p = pulse;
   const topMovers: LeaderboardRow[] = p.topMovers.slice(0, 10).map((m, i) => ({
     rank: i + 1,
     symbol: m.symbol,
@@ -273,6 +287,55 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
     extra: `OI: ${formatVol(l.openInterest)} · Fund: ${(l.funding8h * 100).toFixed(4)}%`,
   }));
 
+  const minVolumeUsd = 500_000;
+  const sortedByVolume = [...(p.assets ?? [])]
+    .filter((a) => a.volume24h >= minVolumeUsd)
+    .sort((a, b) => b.volume24h - a.volume24h);
+  const allTickers: LeaderboardRow[] = sortedByVolume.map((a, i) => ({
+    rank: i + 1,
+    symbol: a.symbol,
+    price: a.price,
+    change24h: a.change24h,
+    volume: a.volume24h,
+    volumeFormatted: formatVol(a.volume24h),
+    extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
+  }));
+
+  const sortedByOi = [...(p.assets ?? [])].sort((a, b) => b.openInterest - a.openInterest);
+  const openInterestLeaders: LeaderboardRow[] = sortedByOi.slice(0, 10).map((a, i) => ({
+    rank: i + 1,
+    symbol: a.symbol,
+    price: a.price,
+    change24h: a.change24h,
+    volume: a.volume24h,
+    volumeFormatted: formatVol(a.volume24h),
+    extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
+  }));
+
+  const crowdedLongs: LeaderboardRow[] = (p.assets ?? [])
+    .filter((a) => a.crowdingLevel === "extreme_long" || a.crowdingLevel === "long")
+    .map((a, i) => ({
+      rank: i + 1,
+      symbol: a.symbol,
+      price: a.price,
+      change24h: a.change24h,
+      volume: a.volume24h,
+      volumeFormatted: formatVol(a.volume24h),
+      extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
+    }));
+
+  const crowdedShorts: LeaderboardRow[] = (p.assets ?? [])
+    .filter((a) => a.crowdingLevel === "extreme_short" || a.crowdingLevel === "short")
+    .map((a, i) => ({
+      rank: i + 1,
+      symbol: a.symbol,
+      price: a.price,
+      change24h: a.change24h,
+      volume: a.volume24h,
+      volumeFormatted: formatVol(a.volume24h),
+      extra: `Fund: ${(a.funding8h * 100).toFixed(4)}% · OI: ${formatVol(a.openInterest)}`,
+    }));
+
   return {
     title: "HL Crypto (Perps)",
     topMovers,
@@ -281,6 +344,10 @@ async function buildHLCryptoSection(runtime: IAgentRuntime): Promise<HLCryptoLea
     bias: p.overallBias ?? "neutral",
     hottestAvg: p.hottestAvg ?? 0,
     coldestAvg: p.coldestAvg ?? 0,
+    allTickers,
+    openInterestLeaders,
+    crowdedLongs,
+    crowdedShorts,
   };
 }
 
@@ -400,8 +467,9 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
   );
   let headlines: { text: string; sentiment?: string; url?: string }[];
   if (rawCache?.articles?.length) {
-    const byTitle = new Map(
-      (await Promise.resolve((news as any).getAllHeadlines?.() ?? [])).map((n: { title: string; sentiment?: string }) => [n.title, n.sentiment]),
+    const allHeadlinesRaw = (await Promise.resolve((news as unknown as { getAllHeadlines?: () => Promise<Array<{ title: string; sentiment?: string }>> }).getAllHeadlines?.() ?? [])) as Array<{ title: string; sentiment?: string }>;
+    const byTitle = new Map<string, string | undefined>(
+      allHeadlinesRaw.map((n) => [n.title, n.sentiment]),
     );
     headlines = rawCache.articles.map((a) => ({
       text: a.title,

@@ -41,6 +41,10 @@ export interface HLCryptoLeaderboardSection {
   bias: string;
   hottestAvg: number;
   coldestAvg: number;
+  allTickers?: LeaderboardRow[];
+  openInterestLeaders?: LeaderboardRow[];
+  crowdedLongs?: LeaderboardRow[];
+  crowdedShorts?: LeaderboardRow[];
 }
 
 export interface MemesLeaderboardSection {

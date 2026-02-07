@@ -310,17 +310,37 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                   )}
 
-                  {/* HL Crypto: full lists */}
-                  {leaderboardsData.hlCrypto && (
-                    <MarketLeaderboardSection
-                      title={leaderboardsData.hlCrypto.title}
-                      subtitle={`Hottest avg ${(leaderboardsData.hlCrypto.hottestAvg ?? 0) >= 0 ? "+" : ""}${(leaderboardsData.hlCrypto.hottestAvg ?? 0).toFixed(2)}% · Coldest ${(leaderboardsData.hlCrypto.coldestAvg ?? 0).toFixed(2)}%`}
-                      topMovers={leaderboardsData.hlCrypto.topMovers ?? []}
-                      volumeLeaders={leaderboardsData.hlCrypto.volumeLeaders ?? []}
-                      oneLiner={leaderboardsData.hlCrypto.oneLiner}
-                      bias={leaderboardsData.hlCrypto.bias}
-                    />
-                  )}
+                  {/* HL Crypto: full width like HIP-3, stacked categories for full-width tables */}
+                  {leaderboardsData.hlCrypto && (() => {
+                    const hl = leaderboardsData.hlCrypto;
+                    const categories: { label: string; rows: typeof hl.topMovers }[] = [];
+                    if ((hl.allTickers?.length ?? 0) > 0) {
+                      categories.push({ label: "All HL tickers", rows: hl.allTickers! });
+                    }
+                    if ((hl.openInterestLeaders?.length ?? 0) > 0) {
+                      categories.push({ label: "Open interest leaders", rows: hl.openInterestLeaders! });
+                    }
+                    if ((hl.crowdedLongs?.length ?? 0) > 0) {
+                      categories.push({ label: "Crowded longs", rows: hl.crowdedLongs! });
+                    }
+                    if ((hl.crowdedShorts?.length ?? 0) > 0) {
+                      categories.push({ label: "Crowded shorts", rows: hl.crowdedShorts! });
+                    }
+                    return (
+                      <div className="lg:col-span-2">
+                        <MarketLeaderboardSection
+                          title={hl.title}
+                          subtitle={`Hottest avg ${(hl.hottestAvg ?? 0) >= 0 ? "+" : ""}${(hl.hottestAvg ?? 0).toFixed(2)}% · Coldest ${(hl.coldestAvg ?? 0).toFixed(2)}%`}
+                          topMovers={hl.topMovers ?? []}
+                          volumeLeaders={hl.volumeLeaders ?? []}
+                          oneLiner={hl.oneLiner}
+                          bias={hl.bias}
+                          categories={categories.length > 0 ? categories : undefined}
+                          categoriesLayout="stack"
+                        />
+                      </div>
+                    );
+                  })()}
 
                 </div>
 
