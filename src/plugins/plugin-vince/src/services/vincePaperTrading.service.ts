@@ -1602,27 +1602,8 @@ export class VincePaperTradingService extends Service {
     }
 
     // ==========================================
-    // DETAILED TRADE OPENED LOG
+    // DETAILED TRADE OPENED LOG (reuse vars from above; only add log-only ones)
     // ==========================================
-    const slPct = Math.abs(((stopLossPrice - entryPrice) / entryPrice) * 100);
-    const tp1Pct = takeProfitPrices[0]
-      ? Math.abs(((takeProfitPrices[0] - entryPrice) / entryPrice) * 100)
-      : 0;
-    const slLoss = sizeUsd * (slPct / 100);
-    const tp1Profit =
-      takeProfitPrices[0] != null ? sizeUsd * (tp1Pct / 100) : 0;
-    const rrRatio = slLoss > 0 ? (tp1Profit / slLoss).toFixed(1) : "—";
-    const rrNum = slLoss > 0 ? tp1Profit / slLoss : 0;
-    const rrLabel =
-      rrNum >= 1.5
-        ? "🟢 Good"
-        : rrNum >= 1
-          ? "🟡 OK"
-          : rrNum >= 0.5
-            ? "🟠 Weak"
-            : rrNum > 0
-              ? "🔴 Poor"
-              : "—";
     const pnlPer1Pct = sizeUsd / 100;
     const marginUsd = sizeUsd / leverage;
     const liqPct =
@@ -1633,33 +1614,19 @@ export class VincePaperTradingService extends Service {
         : (100 / leverage) * 0.9;
     const entryTimeUtc =
       new Date().toISOString().replace("T", " ").slice(0, 19) + "Z";
-    const sessionRaw = signal.session ?? "";
-    const sessionLabel = sessionRaw
-      ? sessionRaw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-      : "";
     const isSingleTpAggressive =
       takeProfitPrices.length === 1 &&
       (this.runtime.getSetting?.("vince_paper_aggressive") === true ||
         this.runtime.getSetting?.("vince_paper_aggressive") === "true");
 
     const factorCount = signal.reasons?.length ?? 0;
-    const sourceCount = signal.confirmingCount ?? 0;
-    const conflictingCount = signal.conflictingCount ?? 0;
-    const totalSourceCount = [
-      ...new Set((signal.signals ?? []).map((s) => s.source)),
-    ].length;
+    const sourceCount = confirmingCount;
     const sourcesList = [
       ...new Set((signal.signals ?? []).map((s) => s.source)),
     ];
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
-    const supporting =
-      signal.supportingReasons ??
-      (signal as { supportingFactors?: string[] }).supportingFactors ??
-      [];
-    const conflicting =
-      signal.conflictingReasons ??
-      (signal as { conflictingFactors?: string[] }).conflictingFactors ??
-      [];
+    const supporting = supportingReasons;
+    const conflicting = conflictingReasons;
     const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
     const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
     const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
@@ -1801,7 +1768,7 @@ export class VincePaperTradingService extends Service {
     });
     console.log(
       line(
-        `  SL   $${slStr}  (${slPct.toFixed(1)}%)  If hit -$${slLoss.toFixed(0)}`,
+        `  SL   $${slStr}  (${slPctNum.toFixed(1)}%)  If hit -$${slLossUsd.toFixed(0)}`,
       ),
     );
     if (takeProfitPrices.length > 0) {
@@ -1814,7 +1781,7 @@ export class VincePaperTradingService extends Service {
         : "";
       console.log(
         line(
-          `  TP   $${tp1Str}  (${tp1Pct.toFixed(1)}%)  If hit +$${tp1Profit.toFixed(0)}${tp1Suffix}`,
+          `  TP   $${tp1Str}  (${tp1PctNum.toFixed(1)}%)  If hit +$${tp1ProfitUsd.toFixed(0)}${tp1Suffix}`,
         ),
       );
       if (takeProfitPrices.length > 1) {
@@ -1833,7 +1800,7 @@ export class VincePaperTradingService extends Service {
         );
       }
     }
-    console.log(line(`  R:R (TP1 vs SL)  ${rrRatio}:1  ${rrLabel}`));
+    console.log(line(`  R:R (TP1 vs SL)  ${rrNum > 0 ? rrNum.toFixed(1) : "—"}:1  ${rrLabel}`));
     console.log(empty);
     console.log("  ╚" + "═".repeat(W + 2) + "╝");
     console.log("");
