@@ -29,34 +29,29 @@ const DEFAULT_AGENT = "VINCE";
 
 export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
-    headline: "One feed. Your edge.",
+    headline: "Know why. Trade better.",
     intro:
-      "A paper trading bot that tells you why. It trades perps on Hyperliquid, learns from every decision, and gets better without you redeploying. One view: funding, whale flow, sentiment, regime. Onchain options on Hypersurface—covered calls, secured puts.",
+      "A paper bot on Hyperliquid. Every trade tells you why. It learns. It gets better. You don’t redeploy. Onchain options on Hypersurface—covered calls, secured puts. One view. One standard.",
     tags: [
       { label: "Paper perps", withSparkles: true },
-      { label: "Learns" },
+      { label: "Hypersurface options" },
       { label: "No redeploy" },
     ],
     capabilities: [
       {
-        title: "The paper bot",
+        title: "Paper bot",
         description:
-          "Trades on paper so you don’t guess. Every trade logs why—signal, size, exit. Funding, OI, fear/greed, whale flow, news: one feed, one decision. Sizing and circuit breakers cap risk. The more it trades, the better it gets; new models load when ready. No redeploy.",
+          "You see the why. Signal. Size. Exit. Funding, whale flow, sentiment, regime—one feed. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
       },
       {
         title: "ALOHA",
         description:
-          "One word. You get today’s vibe, how the majors look, and whether to trade. One narrative, not fifteen tabs. Ask for bot status or why BTC matters—same entry.",
+          "One word. Today’s vibe. The majors. Trade or wait. One narrative.",
       },
       {
-        title: "Options & onchain stocks",
+        title: "Options on Hypersurface",
         description:
-          "Covered calls and secured puts on Hypersurface. Gold, SPX, NVDA—onchain.",
-      },
-      {
-        title: "The rest",
-        description:
-          "Memes, intel, lifestyle. Same feed, same bar.",
+          "Covered calls. Secured puts. Onchain.",
       },
     ],
     plugins: [
@@ -64,28 +59,23 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "ONNX",
         category: "Powered by",
         summary:
-          "Train once. Run anywhere. The bot’s models improve when there’s enough data; new weights load without redeploy. One format, four decisions: signal, size, take-profit, stop.",
-        points: [
-          "One artifact per model. Updates when you have the trades.",
-          "No lock-in. No redeploy tax.",
-        ],
-        example: "ONNX.md",
+          "Train once. Run anywhere. The bot improves when there’s enough data. New weights load. No redeploy. No lock-in.",
+        points: [],
+        example: "",
       },
       {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "The paper bot, ALOHA, perps, options, memes, HIP-3. One stack.",
-        points: [
-          "Every decision explained.",
-        ],
-        example: "ALOHA · bot status",
+          "The paper bot. ALOHA. Perps. Options on Hypersurface. Every decision explained.",
+        points: [],
+        example: "",
       },
       {
         name: "ElizaOS",
         category: "AI Engine",
         summary:
-          "Numbers become one voice. Your voice.",
+          "One voice.",
         points: [],
         example: "",
       },
@@ -93,7 +83,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "SQL",
         category: "Database",
         summary:
-          "Trades and context. What the bot learns from.",
+          "What the bot learns from.",
         points: [],
         example: "",
       },
@@ -101,13 +91,13 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Bootstrap",
         category: "Memory",
         summary:
-          "Remembers. Stays on task.",
+          "Remembers.",
         points: [],
         example: "",
       },
     ],
     proTip:
-      "Say gm or ALOHA. Bot status. Why does BTC matter? One entry. Free first; paid APIs when you need them.",
+      "Say gm or ALOHA. One entry.",
   },
 
   Otaku: {
