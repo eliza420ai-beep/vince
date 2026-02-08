@@ -379,11 +379,19 @@ function App() {
       return;
     }
 
-    // If user is not signed in, clear state and show sign-in modal
+    // If user is not signed in, fall back to guest mode so chat works (e.g. when SignInModal is disabled)
     if (!isSignedIn) {
-      console.log(" User not signed in, waiting for authentication...");
-      setUserId(null);
-      elizaClient.clearAuthToken();
+      const guestId = getOrCreateGuestUserId();
+      setUserId(guestId);
+      setUserProfile({
+        avatarUrl: "/avatars/user_krimson.png",
+        displayName: "Guest",
+        bio: "",
+        email: "",
+        walletAddress: "",
+        memberSince: new Date().toISOString(),
+      });
+      setIsLoadingUserProfile(false);
       return;
     }
 
@@ -1064,11 +1072,6 @@ function AppContent({
     setOpenMobile(false);
   };
 
-  const onPointsClick = () => {
-    navigate("/points");
-    setOpenMobile(false);
-  };
-
   const onHomeClick = () => {
     navigate("/chat");
     setOpenMobile(false);
@@ -1099,7 +1102,6 @@ function AppContent({
             onChatClick={onChatClick}
             onAccountClick={onAccountClick}
             onLeaderboardClick={onLeaderboardClick}
-            onPointsClick={onPointsClick}
             onHomeClick={onHomeClick}
             agents={agents}
             selectedAgentId={selectedAgentId}
@@ -1132,14 +1134,7 @@ function AppContent({
           ) : currentView === "points" ? (
             agentId ? (
               <ErrorBoundary>
-                <PointsPage
-                  agentId={agentId as UUID}
-                  onSignInClick={
-                    import.meta.env.VITE_CDP_PROJECT_ID
-                      ? () => window.location.reload()
-                      : undefined
-                  }
-                />
+                <PointsPage agentId={agentId as UUID} />
               </ErrorBoundary>
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
