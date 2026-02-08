@@ -30,7 +30,6 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
-import browserPlugin from "@elizaos/plugin-browser";
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
 // Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
@@ -43,7 +42,7 @@ const buildPlugins = (): Plugin[] => [
   ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
   ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
   ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-  browserPlugin, // full DOM fetch for ADD_MICHELIN and other URL ingestion
+  // plugin-browser disabled: requires @elizaos/core "next" (ModelClass, ServiceType); ADD_MICHELIN falls back to fetch
   ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
   vincePlugin, // UPLOAD + knowledge actions so Eliza can expand the corpus; execution/live data → VINCE
 ] as Plugin[];
