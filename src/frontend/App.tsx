@@ -1016,7 +1016,7 @@ function AppContent({
 
   const handleOpenAbout = () => {
     showModal(
-      <AboutModalContent onClose={() => hideModal(ABOUT_MODAL_ID)} />,
+      <AboutModalContent agent={agent} onClose={() => hideModal(ABOUT_MODAL_ID)} />,
       ABOUT_MODAL_ID,
       {
         closeOnBackdropClick: true,

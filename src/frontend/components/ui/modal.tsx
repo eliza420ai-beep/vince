@@ -52,12 +52,12 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80  p-4"
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onClick={handleBackdropClick}
       style={{ pointerEvents: "auto" }}
     >
       <div
-        className={`bg-background rounded-lg w-full max-h-[90vh] p-1.5 relative ${className}`}
+        className={`bg-background rounded-2xl w-full max-h-[90vh] p-px relative shadow-2xl shadow-black/40 ${className}`}
         style={{ overflow: "visible" }}
       >
         {/* Close button - positioned above content with better visibility */}
@@ -71,7 +71,7 @@ export function Modal({
 
         {/* Modal content - with proper overflow handling, allow dropdowns to extend beyond */}
         <div
-          className="bg-pop rounded-lg p-4 sm:p-6"
+          className="rounded-[15px] bg-pop p-4 sm:p-5 backdrop-blur-md"
           style={{ overflow: "visible" }}
         >
           {children}
