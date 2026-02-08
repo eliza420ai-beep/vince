@@ -56,6 +56,19 @@ import type {
 // Minimum text length to be considered for ingestion
 const MIN_TEXT_LENGTH = 50;
 
+/**
+ * Content that is mostly Michelin Guide embed metadata (Discord link previews) is useless:
+ * same "Embed #1: Title: X - MICHELIN Guide Restaurant" repeated, wrong restaurant, no address/phone.
+ * Such content must not be saved as vince-upload; user should post the link in #knowledge for ADD_MICHELIN_RESTAURANT.
+ */
+function looksLikeMichelinEmbedDump(content: string): boolean {
+  if (!content || !content.includes("guide.michelin.com")) return false;
+  const hasRepeatedEmbed =
+    (content.match(/Embed\s*#\d+/gi)?.length ?? 0) >= 2 ||
+    (content.match(/MICHELIN Guide Restaurant/gi)?.length ?? 0) >= 2;
+  return hasRepeatedEmbed;
+}
+
 /** Collect all URL-containing text from message (text + embeds + attachments). Used to reject Michelin links so ADD_MICHELIN in #knowledge handles them. */
 function getMessageTextForUrlCheck(message: Memory): string {
   const content = message.content as Record<string, unknown> | undefined;
@@ -632,6 +645,10 @@ async function simpleFallbackStorage(
   opts?: { sourceUrl?: string; ingestedWith?: string },
 ): Promise<IKnowledgeGenerationResult> {
   try {
+    if (looksLikeMichelinEmbedDump(content)) {
+      logger.info("[VINCE_UPLOAD] simpleFallbackStorage: refused Michelin embed dump");
+      return { success: false, error: "Michelin link preview content: post link in #knowledge for ADD_MICHELIN_RESTAURANT" };
+    }
     const sourceUrl = opts?.sourceUrl ?? `chat://vince-upload/${timestamp}`;
     const ingestedWith = opts?.ingestedWith ?? "vince-upload";
     // Detect category
@@ -1059,6 +1076,18 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             );
           }
         }
+      }
+
+      // --- Refuse Michelin embed dumps (repeated Discord link previews = worthless; use #knowledge + ADD_MICHELIN) ---
+      if (looksLikeMichelinEmbedDump(content)) {
+        if (callback) {
+          await callback({
+            text: "🔗 **This looks like Michelin link previews, not real content**\n\nGeneric upload only captured Discord embeds (same meta repeated). **Post the restaurant link in #knowledge** and the bot will run **ADD_MICHELIN_RESTAURANT**: full page fetch, address/phone/chef, and append to `knowledge/the-good-life/michelin-restaurants/`.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+            actions: ["VINCE_UPLOAD"],
+          });
+        }
+        logger.info("[VINCE_UPLOAD] Rejected: content is Michelin embed dump → use #knowledge");
+        return;
       }
 
       // --- Plain text / pasted content ---
