@@ -139,83 +139,58 @@ function parseJsonFromModelResponse(raw: string): MichelinExtract | null {
   }
 }
 
-/** Simple HTML strip so visible text can be passed to the LLM (e.g. for phone/website in sidebar). */
+/** Simple HTML strip so visible text can be passed to the LLM; preserve href URLs so website can be extracted. */
 function htmlToVisibleText(html: string): string {
   return (
     html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+      .replace(/<a\s+href=["'](https?:\/\/[^"']+)["'][^>]*>/gi, " $1 ")
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim()
   );
 }
 
-/** True if content likely already has contact info (phone or website cues). */
-function contentHasContactCues(content: string): boolean {
-  const lower = content.toLowerCase();
-  const hasPhone = /\+\d{2}\s*\d[\d\s.]{8,}/.test(content) || /tel:/i.test(content);
-  const hasWebsite =
-    /\bvisit\s+website\b/i.test(lower) ||
-    /\bwebsite\b/i.test(lower) ||
-    /\bsite\s+web\b/i.test(lower) ||
-    /https?:\/\/[^\s"]+/.test(content);
-  return hasPhone || hasWebsite;
-}
-
 const MICHELIN_CONTENT_MAX_CHARS = 12_000;
 
+/** Prefer raw fetch so we get full page text (phone, Visit Website, description). Summarize often returns only meta/og. */
 async function fetchPageContent(url: string): Promise<string | null> {
   let content: string | null = null;
-  try {
-    const summarized = await runSummarizeCli(url, {
-      isYouTube: false,
-      extractOnly: true,
-    });
-    if (summarized && "content" in summarized && summarized.content?.length) {
-      content = summarized.content;
-    }
-  } catch (e) {
-    logger.debug(
-      { url, err: String(e) },
-      "[ADD_MICHELIN] runSummarizeCli failed, trying fetch",
-    );
-  }
-  if (!content) {
-    try {
-      const res = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (compatible; ElizaOS/1.0; +https://github.com/elizaos/eliza)",
-        },
-      });
-      if (!res.ok) return null;
-      const html = await res.text();
-      content = htmlToVisibleText(html);
-    } catch (e) {
-      logger.warn({ url, err: String(e) }, "[ADD_MICHELIN] fetch failed");
-      return null;
-    }
-  }
-  if (!content || content.length < 100) return content;
-  if (contentHasContactCues(content)) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
   try {
     const res = await fetch(url, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; ElizaOS/1.0; +https://github.com/elizaos/eliza)",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
       },
     });
-    if (!res.ok) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
+    if (!res.ok) return null;
     const html = await res.text();
-    const fetchText = htmlToVisibleText(html);
-    if (fetchText.length < 50) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
-    const combined = (content + "\n\n" + fetchText).slice(0, MICHELIN_CONTENT_MAX_CHARS);
-    logger.debug("[ADD_MICHELIN] Augmented content with raw fetch for contact info");
-    return combined;
-  } catch {
-    return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
+    content = htmlToVisibleText(html);
+  } catch (e) {
+    logger.debug(
+      { url, err: String(e) },
+      "[ADD_MICHELIN] fetch failed, trying summarize",
+    );
   }
+  if (!content || content.length < 500) {
+    try {
+      const summarized = await runSummarizeCli(url, {
+        isYouTube: false,
+        extractOnly: true,
+      });
+      if (summarized && "content" in summarized && summarized.content?.length) {
+        content = summarized.content;
+      }
+    } catch {
+      // keep null or short content
+    }
+  }
+  if (!content || content.length < 100) return content;
+  return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
 }
 
 function insertBlockIntoSection(

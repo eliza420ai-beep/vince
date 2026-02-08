@@ -754,18 +754,10 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       return false;
     }
 
-    // Never run generic upload for Michelin Guide links in #knowledge — ADD_MICHELIN_RESTAURANT (Eliza) handles them
+    // Never run generic upload for Michelin Guide links — ADD_MICHELIN_RESTAURANT (Eliza in #knowledge) handles them; avoids messy vince-upload-* files
     if (text.includes("guide.michelin.com")) {
-      try {
-        const room = await runtime.getRoom(message.roomId);
-        const roomName = (room?.name ?? "").toLowerCase();
-        if (roomName.includes("knowledge")) {
-          logger.info("[VINCE_UPLOAD] Skipping: Michelin link in #knowledge → ADD_MICHELIN_RESTAURANT");
-          return false;
-        }
-      } catch {
-        // ignore
-      }
+      logger.info("[VINCE_UPLOAD] Skipping: Michelin link → ADD_MICHELIN_RESTAURANT");
+      return false;
     }
 
     // Priority 1: Standalone or prominent YouTube URL (allow even if short)
