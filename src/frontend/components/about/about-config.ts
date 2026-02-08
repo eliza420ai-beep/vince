@@ -355,29 +355,37 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Solus: {
-    headline: "$100K/year, systematized.",
+    headline: "$100K/year. One clear move.",
     intro:
-      "Wealth architect. Options on Hypersurface, ML paper perps on Hyperliquid, HIP-3 onchain stocks. Strike ritual, roll cadence, allocation. Airdrops, yield, DeFi. Systematic.",
+      "Wealth architect who lives on the timeline. Benefit-led: you get one clear move, execution, outcome—not feature lists. Craft-focused (Porsche OG): assured, precise, no bluster. Direct, no fluff; no AI-slop. On X since 2007 (founder, VC, full-time crypto since 2016). CT-fluent, thread-native. Alpha from X; signal over noise. Thinks in angles (structure, ecosystem, trenches, alpha, risk, contrarian); recommendations are size/skip/watch with invalidation. Options on Hypersurface, paper perps, HIP-3. Web is last resort.",
     tags: [
-      { label: "Wealth Architect", withSparkles: true },
+      { label: "All alpha on X", withSparkles: true },
+      { label: "Benefit-led" },
+      { label: "Craft-focused" },
+      { label: "On X since 2007" },
+      { label: "Size / Skip / Watch" },
       { label: "Options-Focused" },
-      { label: "Systematic" },
     ],
     capabilities: [
       {
+        title: "X (Twitter) Research",
+        description:
+          "Timeline-first. Search, threads, @user, vibe check, ratio. CT sentiment → strike ritual, Echo DD, airdrop. Ask for a briefing: X vibe, flows, risk line, recommendation. On X since 2007.",
+      },
+      {
         title: "Options on HYPERSURFACE",
         description:
-          "Covered calls, secured puts; strike selection, roll cadence, $3K/week minimum target.",
+          "Covered calls, secured puts; strike selection, roll cadence, $3K/week minimum. You get size or skip—and what would invalidate the call.",
       },
       {
         title: "Perps & HIP-3",
         description:
-          "Paper perps bot with ML; HIP-3 spot (gold, SPX, NVDA); same data sources as VINCE.",
+          "Paper perps bot with ML; HIP-3 spot (gold, SPX, NVDA); same data as VINCE. Cross-reference X and flows when both exist.",
       },
       {
         title: "Airdrop Farming",
         description:
-          "TreadFi, MM bots, airdrop strategies. Frameworks from airdrops knowledge.",
+          "TreadFi, MM bots, airdrop strategies. Curated, not spray. Priority tickers in focus set.",
       },
       {
         title: "DeFi Metrics",
@@ -387,7 +395,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Venture & Bitcoin",
         description:
-          "Echo seed DD. Bitcoin-maxi, altcoins, stables.",
+          "Echo seed DD. Cobie/Echo chatter from X first. Bitcoin-maxi, altcoins, stables.",
       },
     ],
     plugins: [
@@ -395,7 +403,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "ML paper perps on Hyperliquid. Options on Hypersurface. HIP-3 onchain stocks. Same data as VINCE. Wealth focus.",
+          "ML paper perps on Hyperliquid. Options on Hypersurface. HIP-3 onchain stocks. Same data as VINCE. Wealth focus—you get the strike and the number.",
         points: [
           "Options, perps, paper bot, market data.",
           "Knowledge: options, perps-trading, airdrops, defi-metrics.",
@@ -406,22 +414,23 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
-          "Weekly yield targets. Strike ritual. Allocation and risk.",
+          "Weekly yield targets. Strike ritual. Size/skip/watch with invalidation. Benefit-led, craft-focused.",
         points: [
           "Yield targets. Strike ritual. Risk frameworks.",
         ],
         example: '"Plan my allocation for the quarter."',
       },
       {
-        name: "Web Search",
+        name: "X (Twitter) Research",
         category: "Research",
         summary:
-          "Market data, governance, protocol updates.",
+          "Lives on the timeline. Benefit-led: you get CT vibe, then one clear move. Angles (structure, ecosystem, trenches, alpha, risk, contrarian); EV-style size/skip/watch. No AI-slop.",
         points: [
-          "Cross-check on-chain moves.",
-          "Governance and protocol news.",
+          "Search X for ticker or project. Briefing format on request.",
+          "CT sentiment, threads, vibe check, ratio. VIP list (on notif).",
+          "Web: last resort only.",
         ],
-        example: '"Latest Echo / Cobie due diligence."',
+        example: '"What\'s CT saying about BNKR?" or "Give me a briefing." or "Vibe check BTC on X."',
       },
       {
         name: "Bootstrap",
@@ -435,7 +444,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      "Ask: 'Strike for this week\'s covered call?' or 'Airdrop strategy.'",
+      "Benefit-led: ask for the move. 'What\'s the move?', 'Give me a briefing.', 'What\'s CT saying about [ticker]?', 'Vibe check [ticker] on X', 'What\'s the ratio on NVDA?' You get size/skip/watch and invalidation—no fluff.",
   },
 
   Eliza: {

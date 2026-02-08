@@ -160,12 +160,13 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Entertainment", message: "Recommend a book for the weekend" },
     { label: "What can you do?", message: "What can you do?" },
   ],
-  // Solus: wealth architect — strike ritual (options framed as weekly targets), yield, sats, Echo DD, $100K plan. Distinct from Vince (ALOHA/perps/market briefing).
+  // Solus: X-native research first — timeline, CT, threads; then wealth architect (strike ritual, yield, $100K plan).
   solus: [
+    { label: "Research on X", message: "What's CT saying about BTC?" },
+    { label: "Vibe Check", message: "Vibe check HYPE on X—then strike ritual angle." },
     { label: "Strike Ritual", message: "options" },
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "Yield Rates", message: "best yield USDC USDT0" },
-    { label: "Stack Sats", message: "stack sats DCA Bitcoin" },
     { label: "Echo DD", message: "Echo seed due diligence" },
     { label: "Paper Bot", message: "bot status" },
   ],
@@ -236,11 +237,17 @@ const ELIZA_CATEGORIES: Record<
   },
 };
 
-// Solus: wealth architect — strike ritual (options as weekly targets), yield, sats, Echo DD. Distinct from Vince (ALOHA/perps).
+// Solus: X-native research first — timeline, CT, threads, vibe check, ratio; then wealth architect.
 const SOLUS_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
 > = {
+  xResearch: {
+    title: "Research on X",
+    icon: Search,
+    promptToAsk: "What's CT saying about HYPERSURFACE?",
+    description: "Timeline-first: sentiment, threads, vibe check, ratio. CT-fluent, thread-native (on X since 2007)",
+  },
   strikeRitual: {
     title: "Strike Ritual",
     icon: TrendingUp,

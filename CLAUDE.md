@@ -10,6 +10,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 |------|--------|
 | **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
 | **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** (KELLY_DAILY_BRIEFING), **@elizaos/plugin-discovery**, and **@elizaos/plugin-todo** (todo/reminders); the-good-life; knows user's trading context but never gives trading advice |
+| **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
@@ -735,6 +736,7 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 ## Related docs (VINCE)
 
 - [README.md](README.md) — Project overview, getting started, configuration
+- [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — Solus north star and roadmap (X-native crypto intelligence)
 - [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage and ML training
 - [DEPLOY.md](DEPLOY.md) — Deploy to Eliza Cloud
 - [TREASURY.md](TREASURY.md) — Cost coverage and profitability mandate
