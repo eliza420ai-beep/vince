@@ -21,6 +21,7 @@ import { vinceAgent } from "./agents/vince.ts";
 import { elizaAgent } from "./agents/eliza.ts";
 import { solusAgent } from "./agents/solus.ts";
 import { otakuAgent } from "./agents/otaku.ts";
+import { kellyAgent } from "./agents/kelly.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 
 // --- Multi-agent Discord: require two different Discord apps ---
@@ -60,6 +61,10 @@ const project: Project = {
       ...otakuAgent,
       plugins: [logFilterPlugin, ...(otakuAgent.plugins ?? [])],
     },
+    {
+      ...kellyAgent,
+      plugins: [logFilterPlugin, ...(kellyAgent.plugins ?? [])],
+    },
   ],
 };
 
@@ -67,5 +72,6 @@ export { vinceAgent } from "./agents/vince.ts";
 export { elizaAgent } from "./agents/eliza.ts";
 export { solusAgent } from "./agents/solus.ts";
 export { otakuAgent } from "./agents/otaku.ts";
+export { kellyAgent } from "./agents/kelly.ts";
 export { character } from "./character.ts";
 export default project;

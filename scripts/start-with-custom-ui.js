@@ -78,7 +78,6 @@ function runBuildFrontend() {
     const child = spawn("bun", ["run", "build:frontend"], {
       cwd: rootDir,
       stdio: "inherit",
-      shell: true,
     });
     child.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build:frontend exited with " + code))));
     child.on("error", reject);
@@ -91,7 +90,6 @@ function runBuildBackend() {
     const child = spawn("bun", ["run", "build"], {
       cwd: rootDir,
       stdio: "inherit",
-      shell: true,
     });
     child.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build exited with " + code))));
     child.on("error", reject);

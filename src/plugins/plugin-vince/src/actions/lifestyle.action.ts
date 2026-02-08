@@ -40,14 +40,17 @@ export interface LifestyleDataContext {
   curatedHotels: string[];
 }
 
-export function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
+export function buildLifestyleDataContext(
+  ctx: LifestyleDataContext,
+  opts?: { lifestyleOnly?: boolean },
+): string {
   const lines: string[] = [];
 
   lines.push(`=== LIFESTYLE (${ctx.day}, ${ctx.date}) ===`);
   lines.push(
     `Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`,
   );
-  if (ctx.isFriday) {
+  if (ctx.isFriday && !opts?.lifestyleOnly) {
     lines.push("FRIDAY - Strike selection ritual day");
   }
   lines.push("");
@@ -116,7 +119,40 @@ export async function generateLifestyleHumanBriefing(
   runtime: IAgentRuntime,
   dataContext: string,
 ): Promise<string> {
-  const prompt = `You are VINCE, giving lifestyle suggestions to a friend who trades for a living. You know their rhythm - trading in the morning, living well the rest of the day.
+  const characterName = runtime.character?.name ?? "VINCE";
+  const isLifestyleOnly = characterName.toUpperCase() !== "VINCE";
+
+  const prompt = isLifestyleOnly
+    ? `You are ${characterName}, a concierge focused on five-star hotels, fine dining, fine wine, health, and fitness. You give lifestyle suggestions so your friend can live the life.
+
+Here's the data:
+
+${dataContext}
+
+Write a lifestyle briefing that:
+1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
+2. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge (e.g. Paris MICHELIN, Bordeaux region, southwest palace hotels)—only real places from that knowledge, never invent names.
+3. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
+4. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
+5. End with a specific suggestion for the day (dining, hotel, or activity).
+6. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
+
+STYLE RULES:
+- Write like a discerning friend helping plan the day
+- Short suggestions mixed with explanations
+- No bullet points - flow naturally
+- Be specific when you can
+- Make it feel like good living, not a to-do list
+- Around 100-150 words. Concise but warm.
+
+AVOID:
+- "Interestingly", "notably"
+- Generic wellness advice
+- Making it feel like work
+- Any reference to trading or markets
+
+Write the briefing:`
+    : `You are VINCE, giving lifestyle suggestions to a friend who trades for a living. You know their rhythm - trading in the morning, living well the rest of the day.
 
 Here's the data:
 
@@ -167,9 +203,13 @@ export const vinceLifestyleAction: Action = {
     "HOTEL",
     "SWIM",
     "GYM",
+    "WINE",
+    "FITNESS",
+    "WELLNESS",
+    "TODAY",
   ],
   description:
-    "Human-style lifestyle suggestions that integrate with trading rhythm",
+    "Day-of-week lifestyle suggestions: health, dining, hotels, wellness (curated from the-good-life; trading rhythm for VINCE, concierge-only for Kelly)",
 
   validate: async (
     runtime: IAgentRuntime,
@@ -180,14 +220,25 @@ export const vinceLifestyleAction: Action = {
       text.includes("lifestyle") ||
       text.includes("daily") ||
       text.includes("suggestion") ||
+      text.includes("suggestions") ||
       text.includes("health") ||
       text.includes("dining") ||
       text.includes("hotel") ||
+      text.includes("hotels") ||
       text.includes("swim") ||
       text.includes("gym") ||
       text.includes("lunch") ||
       text.includes("wellness") ||
-      text.includes("what should i do")
+      text.includes("what should i do") ||
+      text.includes("what to do today") ||
+      text.includes("what to do this week") ||
+      (text.includes("today") && (text.includes("recommend") || text.includes("plan") || text.includes("vibe"))) ||
+      (text.includes("wine") && (text.includes("recommend") || text.includes("tasting") || text.includes("where"))) ||
+      text.includes("pool day") ||
+      text.includes("fitness") ||
+      text.includes("workout") ||
+      text.includes("yoga") ||
+      (text.includes("curated") && text.includes("open"))
     );
   },
 
@@ -243,13 +294,19 @@ export const vinceLifestyleAction: Action = {
         curatedHotels: curated?.hotels ?? [],
       };
 
-      // Generate briefing
-      const dataContext = buildLifestyleDataContext(ctx);
+      // Generate briefing (lifestyle-only agents get context without trading note)
+      const characterName = runtime.character?.name ?? "VINCE";
+      const lifestyleOnly = characterName.toUpperCase() !== "VINCE";
+      const dataContext = buildLifestyleDataContext(ctx, { lifestyleOnly });
       logger.info("[VINCE_LIFESTYLE] Generating briefing...");
       const humanBriefing = await generateLifestyleHumanBriefing(
         runtime,
         dataContext,
       );
+
+      const footer = lifestyleOnly
+        ? "*Ask me for hotels, dining, wine, health, fitness, or daily suggestions.*"
+        : "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*";
 
       const output = [
         `**${ctx.day}** _${ctx.date}_`,
@@ -257,7 +314,7 @@ export const vinceLifestyleAction: Action = {
         humanBriefing,
         "",
         "---",
-        "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*",
+        footer,
       ].join("\n");
 
       await callback({

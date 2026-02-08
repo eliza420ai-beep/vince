@@ -9,6 +9,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | What | Where |
 |------|--------|
 | **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
+| **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — hotels, fine dining, wine, health, fitness; uses VINCE_LIFESTYLE; the-good-life only |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |

@@ -35,7 +35,7 @@
 
 ## TL;DR
 
-**VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
+**VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent (hotels, dining, wine, health, fitness): she uses **plugin-kelly** and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
 
 ---
 
@@ -49,6 +49,7 @@
 | [**DISCORD**](DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
 | [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
+| [**plugin-kelly/**](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 
@@ -291,6 +292,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
 | 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
 | 👤 | **Teammate context** | USER/SOUL/TOOLS/MEMORY keep responses in character |
+| 🍷 | **Kelly (concierge agent)** | Separate agent, lifestyle only: five-star hotels, fine dining, wine, health, fitness. Uses **plugin-kelly**; action **KELLY_DAILY_BRIEFING**; scheduled push to channels with "kelly" or "lifestyle". No trading. See [plugin-kelly](src/plugins/plugin-kelly/). |
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
 | 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |
@@ -423,7 +425,9 @@ elizaos test e2e          # E2E only
 | What | Where |
 |:---|:---|
 | VINCE character & agent | `src/agents/vince.ts` |
+| Kelly character & agent | `src/agents/kelly.ts` — lifestyle-only concierge |
 | Paper bot, ML, actions | `src/plugins/plugin-vince/` |
+| Lifestyle-only (Kelly) | `src/plugins/plugin-kelly/` — daily briefing, no trading |
 | Teammate context | `knowledge/teammate/` — USER.md, SOUL.md, TOOLS.md |
 | Dynamic config | `dynamicConfig.ts` — tuned via `tuned-config.json` |
 
@@ -433,11 +437,12 @@ elizaos test e2e          # E2E only
 
 | Push | Default (UTC) | Channel name must contain |
 |:---|:---|:---|
-| Daily report | 18:00 | `daily` (e.g. `#vince-daily-reports`) |
-| Lifestyle | 08:00 | `lifestyle` (e.g. `#vince-lifestyle`) |
+| Daily report (VINCE) | 18:00 | `daily` (e.g. `#vince-daily-reports`) |
+| Lifestyle (VINCE) | 08:00 | `lifestyle` (e.g. `#vince-lifestyle`) |
+| **Lifestyle (Kelly)** | 08:00 | `kelly` or `lifestyle` (e.g. `#kelly`, `#lifestyle`) — concierge-only, no trading |
 | News (MandoMinutes) | 07:00 | `news` (e.g. `#vince-news`) |
 
-Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](DISCORD.md) · [NOTIFICATIONS.md](NOTIFICATIONS.md)
+Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. For a single lifestyle channel, use Kelly's push and set `VINCE_LIFESTYLE_DAILY_ENABLED=false`. Kelly: `KELLY_LIFESTYLE_DAILY_ENABLED` (default on), `KELLY_LIFESTYLE_HOUR=8`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](DISCORD.md) · [NOTIFICATIONS.md](NOTIFICATIONS.md)
 
 ### Key Env Vars
 
@@ -448,7 +453,8 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | `SUPABASE_URL` | Optional if direct; required if pooler |
 | `VINCE_DISCORD_APPLICATION_ID` / `VINCE_DISCORD_API_TOKEN` | VINCE's Discord bot (push to channels with "daily", "lifestyle", "news") |
 | `VINCE_DAILY_REPORT_ENABLED` / `VINCE_DAILY_REPORT_HOUR` | Daily report push (default on, 18 UTC) |
-| `VINCE_LIFESTYLE_DAILY_ENABLED` / `VINCE_LIFESTYLE_HOUR` | Lifestyle push (default on, 8 UTC) |
+| `VINCE_LIFESTYLE_DAILY_ENABLED` / `VINCE_LIFESTYLE_HOUR` | VINCE lifestyle push (default on, 8 UTC). Set to false if using Kelly for lifestyle channel. |
+| `KELLY_LIFESTYLE_DAILY_ENABLED` / `KELLY_LIFESTYLE_HOUR` | Kelly concierge daily push (default on, 8 UTC); channels with "kelly" or "lifestyle" in name |
 | `VINCE_NEWS_DAILY_ENABLED` / `VINCE_NEWS_HOUR` | News push (default on, 7 UTC) |
 | `VINCE_PAPER_AGGRESSIVE` | `true` = higher leverage, $210 TP, 2:1 R:R |
 | `VINCE_PAPER_ASSETS` | e.g. `BTC` or `BTC,ETH,SOL` |
@@ -469,6 +475,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
 | [docs/CLAUDE_CODE_CONTROLLER.md](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
+| [plugin-kelly/](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
 | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
 | [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights, holdout metrics |
 | [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) | How to prove ML improves the algo (validate_ml_improvement, tests) |

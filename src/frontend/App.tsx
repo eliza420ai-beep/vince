@@ -405,6 +405,9 @@ function App() {
     initAuth();
   }, [isInitialized, isSignedIn, userEmail, userName, currentUser]); // Re-run when CDP state changes
 
+  // Display order for agent switcher (so Kelly and others are easy to find)
+  const AGENT_DISPLAY_ORDER = ["VINCE", "Eliza", "Kelly", "Solus", "Otaku"];
+
   // Fetch the agent list first to get the ID (retry when empty so we wait for backend to register agents)
   const {
     data: agentsData,
@@ -418,7 +421,15 @@ function App() {
       if (agents.length === 0) {
         throw new Error("NO_AGENTS_YET"); // Trigger retry so we wait for backend to start agents
       }
-      return agents;
+      // Sort so all agents (including Kelly) appear in a consistent order in the switcher
+      const orderMap = new Map(AGENT_DISPLAY_ORDER.map((name, i) => [name.toUpperCase(), i]));
+      return [...agents].sort((a, b) => {
+        const aName = (a.name ?? "").toUpperCase();
+        const bName = (b.name ?? "").toUpperCase();
+        const aIdx = orderMap.get(aName) ?? 999;
+        const bIdx = orderMap.get(bName) ?? 999;
+        return aIdx - bIdx || (aName < bName ? -1 : aName > bName ? 1 : 0);
+      });
     },
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 8, // Retry up to 8 times (e.g. every 2s = ~16s wait for backend)

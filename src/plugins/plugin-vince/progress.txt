@@ -1,10 +1,17 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-06 (V4.32 — Discord + push unlock)
+# Last updated: 2026-02-07 (V4.33 — Kelly agent + plugin-kelly)
 # Update this file after every feature completion or session end.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.33 - Kelly agent + plugin-kelly (2026-02-07) ✅
+- **Kelly agent:** Dedicated lifestyle-only concierge agent (five-star hotels, fine dining, wine, health, fitness). No trading actions; uses plugin-kelly instead of plugin-vince so her action list is clean (REPLY + KELLY_DAILY_BRIEFING).
+- **plugin-kelly:** New plugin at src/plugins/plugin-kelly/: KellyLifestyleService (KELLY_LIFESTYLE_SERVICE), types (DayOfWeek, LifestyleSuggestion, DailyBriefing, CuratedOpenContext), no trading logic (activity suggestions only; no Friday strike/options wording).
+- **Scheduled task:** KELLY_LIFESTYLE_DAILY runs only for Kelly; pushes concierge-only daily briefing to channels whose name contains "kelly" or "lifestyle". Uses same curated-open-schedule knowledge; footer: "Ask me for hotels, dining, wine, health, fitness, or daily suggestions." Config: KELLY_LIFESTYLE_DAILY_ENABLED, KELLY_LIFESTYLE_HOUR=8 (UTC).
+- **Single lifestyle channel:** To avoid duplicate posts, set VINCE_LIFESTYLE_DAILY_ENABLED=false when using Kelly for the lifestyle channel. Documented in .env.example and README push schedule.
+- **Docs:** README.md introduces Kelly (TL;DR, Quick Links, Features, Configuration, Push schedule, Documentation). progress.txt (this entry).
 
 ## V4.32 - Discord + push unlock (2026-02-06) ✅
 - **Both bots in one server:** VINCE and Eliza can run in the same Discord server at the same time. Each agent uses its own Discord app (VINCE_DISCORD_* vs ELIZA_DISCORD_*). No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to enable VINCE's Discord; removed VINCE_DISCORD_ENABLED everywhere.

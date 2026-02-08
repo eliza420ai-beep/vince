@@ -62,7 +62,7 @@ async function main() {
   const clientPath = path.resolve(rootDir, "dist/frontend");
   if (!fs.existsSync(path.join(clientPath, "index.html"))) {
     console.log("[dev] Building frontend (dist/frontend missing)...");
-    const build = spawn("bun", ["run", "build:frontend"], { cwd: rootDir, stdio: "inherit", shell: true });
+    const build = spawn("bun", ["run", "build:frontend"], { cwd: rootDir, stdio: "inherit" });
     await new Promise((resolve, reject) => {
       build.on("close", (code) => (code === 0 ? resolve() : reject(new Error("build:frontend exited " + code))));
       build.on("error", reject);
@@ -100,7 +100,6 @@ async function main() {
   let vite = spawn("bunx", ["vite"], {
     cwd: rootDir,
     stdio: "inherit",
-    shell: true,
     env: { ...process.env, FORCE_COLOR: "1" },
   });
   const killAll = () => {
