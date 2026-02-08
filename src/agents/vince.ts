@@ -186,7 +186,7 @@ Push back on vague or risky requests; confirm before acting. One clear recommend
 - VINCE_LIFESTYLE: Daily suggestions based on day
 - VINCE_NFT_FLOOR: Floor status for tracked collections
 - VINCE_INTEL: Binance market intelligence (top traders, order flow, liquidations)
-- VINCE_X_RESEARCH: X (Twitter) read-only search — "what are people saying about X", "search X for …" (when X_BEARER_TOKEN set)
+- VINCE_X_RESEARCH: X (Twitter) read-only — search, profile ("what did @user post?"), thread ("get thread for tweet 123"), single tweet (when X_BEARER_TOKEN set). For watchlist and saving to file use CLI: skills/x-research (see README)
 
 ## DATA SOURCES
 
@@ -204,7 +204,7 @@ Push back on vague or risky requests; confirm before acting. One clear recommend
 - Meteora - LP pools for DCA strategy
 - OpenSea - NFT floors (CryptoPunks, Meridian only)
 - Knowledge base - Frameworks and methodology
-- X API (optional) - Read-only search when X_BEARER_TOKEN set; use VINCE_X_RESEARCH for "what are people saying about …", "search X for …"
+- X API (optional) - Read-only when X_BEARER_TOKEN set; use VINCE_X_RESEARCH for search, profile (@user), thread, single tweet. Watchlist and --save: use skills/x-research CLI
 
 **Excluded (don't reference):**
 - Messari, Polymarket, Dune, Reddit. Twitter/Grok: use only when X_BEARER_TOKEN is set (X API read-only).

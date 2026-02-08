@@ -19,10 +19,64 @@ import { logger } from "@elizaos/core";
 import type { VinceXResearchService } from "../services/xResearch.service";
 import type { XTweet } from "../services/xResearch.service";
 
-const TRIGGER_PATTERNS = [
+const SEARCH_TRIGGER_PATTERNS = [
   /\b(?:x\s*research|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|what(?:'s| is)\s+twitter\s+saying|check\s+x\s+for|x\s+search)\b/i,
+  /\b(?:what(?:'s| is)\s+ct\s+saying|crypto\s*twitter\s+(?:saying|on)|ct\s+sentiment\s+on)\b/i,
   /\b(?:from:\w+|@\w+\s+recent)\b/i,
 ];
+
+const PROFILE_TRIGGER_PATTERNS = [
+  /\b(?:what\s+did\s+@\w+|recent\s+tweets?\s+from\s+@\w+|profile\s+@\w+|check\s+@\w+)\b/i,
+  /\b(?:@\w+\s+recent|@\w+\s+post|tweets?\s+from\s+@\w+)\b/i,
+  /^from:(\w+)$/i,
+];
+
+const THREAD_TRIGGER_PATTERNS = [
+  /\b(?:thread\s+for\s+tweet|get\s+thread|conversation\s+(\d+)|thread\s+(\d+))\b/i,
+  /x\.com\/\w+\/status\/(\d+)/i,
+  /twitter\.com\/\w+\/status\/(\d+)/i,
+];
+
+const TWEET_TRIGGER_PATTERNS = [
+  /\b(?:get\s+tweet\s+(\d+)|tweet\s+(\d+)|show\s+tweet\s+(\d+))\b/i,
+  /^\d{15,}$/, // bare tweet ID
+];
+
+type Intent = "search" | "profile" | "thread" | "tweet";
+
+function detectIntent(text: string): Intent {
+  const t = text.trim();
+  // Thread: URL or "thread for tweet X" / "get thread X"
+  if (THREAD_TRIGGER_PATTERNS.some((re) => re.test(t))) return "thread";
+  // Tweet: "get tweet 123" or bare long numeric
+  if (TWEET_TRIGGER_PATTERNS.some((re) => re.test(t))) return "tweet";
+  // Profile: @user, "recent tweets from @user", "profile @user"
+  if (PROFILE_TRIGGER_PATTERNS.some((re) => re.test(t))) return "profile";
+  // Search: existing patterns
+  if (SEARCH_TRIGGER_PATTERNS.some((re) => re.test(t))) return "search";
+  return "search";
+}
+
+function extractTweetId(text: string): string | null {
+  const m = text.match(/x\.com\/\w+\/status\/(\d+)/i) ?? text.match(/twitter\.com\/\w+\/status\/(\d+)/i);
+  if (m?.[1]) return m[1];
+  const m2 = text.match(/\b(?:thread\s+for\s+tweet|get\s+thread|conversation|thread)\s+(\d+)\b/i);
+  if (m2?.[1]) return m2[1];
+  const m3 = text.match(/\b(?:get\s+tweet|tweet|show\s+tweet)\s+(\d+)\b/i);
+  if (m3?.[1]) return m3[1];
+  if (/^\d{15,}$/.test(text.trim())) return text.trim();
+  return null;
+}
+
+function extractUsername(text: string): string | null {
+  const m = text.match(/@(\w+)/);
+  if (m?.[1]) return m[1];
+  const m2 = text.match(/from:(\w+)/i);
+  if (m2?.[1]) return m2[1];
+  const m3 = text.match(/(?:recent\s+tweets?\s+from|profile|check)\s+@?(\w+)/i);
+  if (m3?.[1]) return m3[1];
+  return null;
+}
 
 function extractQuery(text: string): string {
   const patterns: [RegExp, string][] = [
@@ -30,6 +84,9 @@ function extractQuery(text: string): string {
     [/search\s+twitter\s+for\s+["']?([^"'\n]+)["']?/i, "$1"],
     [/what(?:'s| are)\s+people\s+saying\s+about\s+["']?([^"'\n.?]+)/i, "$1"],
     [/what(?:'s| is)\s+twitter\s+saying\s+about\s+["']?([^"'\n.?]+)/i, "$1"],
+    [/what(?:'s| is)\s+ct\s+saying\s+about\s+["']?([^"'\n.?]+)/i, "$1"],
+    [/crypto\s*twitter\s+(?:saying\s+about|on)\s+["']?([^"'\n.?]+)/i, "$1"],
+    [/ct\s+sentiment\s+on\s+["']?([^"'\n.?]+)/i, "$1"],
     [/check\s+x\s+for\s+["']?([^"'\n]+)["']?/i, "$1"],
     [/x\s+research\s+["']?([^"'\n]+)["']?/i, "$1"],
     [/x\s+search\s+["']?([^"'\n]+)["']?/i, "$1"],
@@ -38,12 +95,33 @@ function extractQuery(text: string): string {
     const m = text.match(re);
     if (m && m[1]) return m[1].trim();
   }
-  // Fallback: use full message minus trigger words
   const withoutTrigger = text
     .replace(/\b(?:x\s*research|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|check\s+x\s+for|x\s+search)\s*/gi, "")
     .trim();
   if (withoutTrigger.length > 2) return withoutTrigger;
   return text.trim() || "crypto";
+}
+
+/** Parse optional search options from natural language (last 24h, by likes, top 5). */
+function parseSearchOptions(text: string): {
+  since?: string;
+  sortByLikes: boolean;
+  limit: number;
+} {
+  let since: string | undefined;
+  let sortByLikes = true;
+  let limit = 12;
+  const t = text.toLowerCase();
+  const hm = t.match(/\b(?:last|past)\s+(\d+)\s*(?:h|hr|hours?)\b/);
+  if (hm?.[1]) since = `${hm[1]}h`;
+  else {
+    const dm = t.match(/\b(?:last|past)\s+(\d+)\s*d(?:ays?)?\b/);
+    if (dm?.[1]) since = `${dm[1]}d`;
+  }
+  if (/\b(?:most\s+recent|recent\s+first)\b/.test(t)) sortByLikes = false;
+  const lm = t.match(/\b(?:top|first)\s+(\d{1,2})\b/);
+  if (lm?.[1]) limit = Math.min(20, Math.max(5, parseInt(lm[1], 10)));
+  return { since, sortByLikes, limit };
 }
 
 function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
@@ -57,6 +135,19 @@ function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
   return lines.join("\n");
 }
 
+function formatProfileBriefing(user: any, tweets: XTweet[], limit = 8): string {
+  const name = user?.name ?? user?.username ?? "?";
+  const handle = user?.username ? `@${user.username}` : "";
+  const header = `**${name}** ${handle}`.trim();
+  if (tweets.length === 0) return `${header}\n\n_No recent tweets (excl. replies)._`;
+  return `${header}\n\n${formatTweetsForBriefing(tweets, limit)}`;
+}
+
+function formatSingleTweet(t: XTweet): string {
+  const eng = `L${t.metrics.likes} R${t.metrics.retweets}`;
+  return `**@${t.username}**: ${t.text}\n\n(${eng}) [Tweet](${t.tweet_url})`;
+}
+
 export const vinceXResearchAction: Action = {
   name: "VINCE_X_RESEARCH",
   similes: [
@@ -67,13 +158,18 @@ export const vinceXResearchAction: Action = {
     "WHAT_PEOPLE_SAYING",
   ],
   description:
-    "Searches X (Twitter) for recent tweets about a topic and returns a sourced briefing. Use when the user asks what people are saying on X, search X for something, or wants X/twitter research. Read-only; never posts.",
+    "Search X, get a user's recent tweets, fetch a thread, or a single tweet. Use when the user asks what people are saying on X, search X for something, 'what did @user post?', 'get thread for tweet X', or 'get tweet 123'. Read-only; never posts.",
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const svc = runtime.getService("VINCE_X_RESEARCH_SERVICE") as VinceXResearchService | null;
     if (!svc?.isConfigured()) return false;
     const text = message.content?.text?.trim() || "";
-    return TRIGGER_PATTERNS.some((re) => re.test(text));
+    return (
+      SEARCH_TRIGGER_PATTERNS.some((re) => re.test(text)) ||
+      PROFILE_TRIGGER_PATTERNS.some((re) => re.test(text)) ||
+      THREAD_TRIGGER_PATTERNS.some((re) => re.test(text)) ||
+      TWEET_TRIGGER_PATTERNS.some((re) => re.test(text))
+    );
   },
 
   handler: async (
@@ -93,23 +189,95 @@ export const vinceXResearchAction: Action = {
     }
 
     const text = message.content?.text?.trim() || "";
-    const query = extractQuery(text);
+    const intent = detectIntent(text);
+
+    const sendError = async (msg: string) => {
+      logger.error(`[VINCE_X_RESEARCH] ${msg}`);
+      await callback({
+        text: `${msg} (Rate limit? Check X_BEARER_TOKEN and X API tier.)`,
+        actions: ["VINCE_X_RESEARCH"],
+      });
+    };
 
     try {
+      if (intent === "profile") {
+        const username = extractUsername(text);
+        if (!username) {
+          await sendError("Couldn’t find a username. Try: what did @user post? or profile @user");
+          return { success: false };
+        }
+        await callback({
+          text: `Fetching recent tweets from **@${username}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const { user, tweets } = await svc.profile(username, { count: 20 });
+        const formatted = formatProfileBriefing(user, tweets, 8);
+        await callback({
+          text: `${formatted}\n\n_Source: X API (read-only)._`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        return { success: true };
+      }
+
+      if (intent === "thread") {
+        const tweetId = extractTweetId(text);
+        if (!tweetId) {
+          await sendError("Couldn’t find a tweet ID or URL. Try: get thread for tweet 123 or paste an x.com/…/status/ID link.");
+          return { success: false };
+        }
+        await callback({
+          text: `Fetching thread for tweet **${tweetId}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const tweets = await svc.thread(tweetId, { pages: 2 });
+        const formatted = formatTweetsForBriefing(tweets, 15);
+        await callback({
+          text: `**Thread** (${tweets.length} tweets)\n\n${formatted}\n\n_Source: X API (read-only)._`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        return { success: true };
+      }
+
+      if (intent === "tweet") {
+        const tweetId = extractTweetId(text);
+        if (!tweetId) {
+          await sendError("Couldn’t find a tweet ID. Try: get tweet 1234567890123456789");
+          return { success: false };
+        }
+        await callback({
+          text: `Fetching tweet **${tweetId}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const tweet = await svc.getTweet(tweetId);
+        if (!tweet) {
+          await callback({
+            text: "Tweet not found (deleted or invalid ID).",
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: false };
+        }
+        await callback({
+          text: formatSingleTweet(tweet),
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        return { success: true };
+      }
+
+      // search (default)
+      const query = extractQuery(text);
+      const opts = parseSearchOptions(text);
       await callback({
         text: `Searching X for: **${query}**…`,
         actions: ["VINCE_X_RESEARCH"],
       });
-
       const tweets = await svc.search(query, {
         maxResults: 50,
         pages: 1,
-        sortOrder: "relevancy",
-        since: "7d",
+        sortOrder: opts.since ? "recency" : "relevancy",
+        since: opts.since ?? "7d",
       });
-      const sorted = svc.sortBy(tweets, "likes");
-      const formatted = formatTweetsForBriefing(sorted, 12);
-
+      const sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
+      const formatted = formatTweetsForBriefing(sorted, opts.limit);
       const reply = `**X research: ${query}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
       await callback({
         text: reply,
@@ -118,11 +286,7 @@ export const vinceXResearchAction: Action = {
       return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error(`[VINCE_X_RESEARCH] ${msg}`);
-      await callback({
-        text: `X search failed: ${msg}. (Rate limit? Check X_BEARER_TOKEN and X API tier.)`,
-        actions: ["VINCE_X_RESEARCH"],
-      });
+      await sendError(`X research failed: ${msg}`);
       return { success: false };
     }
   },
@@ -144,6 +308,26 @@ export const vinceXResearchAction: Action = {
         name: "VINCE",
         content: {
           text: "**X research: Opus 4.6 trading**\n\n- **@dev**: \"…\" (L12 R1) [Tweet](https://x.com/…)\n\n_Source: X API (read-only)._",
+          actions: ["VINCE_X_RESEARCH"],
+        },
+      },
+    ],
+    [
+      { name: "{{user1}}", content: { text: "What did @frankdegods post recently?" } },
+      {
+        name: "VINCE",
+        content: {
+          text: "**frankdegods** @frankdegods\n\n- **@frankdegods**: \"…\" (L10 R2) [Tweet](https://x.com/…)\n\n_Source: X API (read-only)._",
+          actions: ["VINCE_X_RESEARCH"],
+        },
+      },
+    ],
+    [
+      { name: "{{user1}}", content: { text: "Get thread for tweet 1234567890123456789" } },
+      {
+        name: "VINCE",
+        content: {
+          text: "**Thread** (5 tweets)\n\n- **@user**: \"…\" (L42 R3) [Tweet](https://x.com/…)\n\n_Source: X API (read-only)._",
           actions: ["VINCE_X_RESEARCH"],
         },
       },

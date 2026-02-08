@@ -720,7 +720,9 @@ Plan for growth with proper infrastructure and monitoring.
 
 ## X Research skill (Cursor / Claude)
 
-**skills/x-research/** is a Cursor/Claude skill for read-only X (Twitter) research: agentic search, thread following, watchlist, sourced briefings. Use when you need “what are people saying on X about …” or “search X for …” from the IDE. Requires **X_BEARER_TOKEN** (env or project `.env`) and Bun. See [skills/x-research/README.md](skills/x-research/README.md) for setup and CLI usage. VINCE can also do in-chat X research via **VINCE_X_RESEARCH** when `X_BEARER_TOKEN` is set (plugin-vince).
+**skills/x-research/** is a Cursor/Claude skill for read-only X (Twitter) research: agentic search, thread following, watchlist, sourced briefings. Use when you need “what are people saying on X about …” or “search X for …” from the IDE. Requires **X_BEARER_TOKEN** (env or project `.env`) and Bun. See [skills/x-research/README.md](skills/x-research/README.md) for setup and CLI usage.
+
+**In-chat (VINCE / Solus):** When `X_BEARER_TOKEN` is set, **VINCE_X_RESEARCH** supports search, a user’s recent tweets (“what did @user post?”), a thread (“get thread for tweet 123” or paste x.com/…/status/ID), and a single tweet. For **watchlist** (add/remove/check accounts) and **saving research to a file** (`--save --markdown`), use the **CLI**: `cd skills/x-research && bun run x-search.ts watchlist check` and `bun run x-search.ts search "…" --save --markdown`.
 
 ---
 

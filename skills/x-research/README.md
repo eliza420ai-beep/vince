@@ -68,11 +68,11 @@ bun run x-search.ts search "query" --save --markdown
 Search options: `--sort likes|impressions|retweets|recent`, `--since 1h|3h|12h|1d|7d`, `--min-likes N`, `--pages N`, `--limit N`, `--no-replies`, `--save`, `--json`, `--markdown`.  
 See `SKILL.md` for the full research loop and refinement tips.
 
-## Relation to VINCE
+## Relation to VINCE / Solus
 
-- **This skill:** Used by you (or Cursor) for deep X research in the IDE; you can paste results into VINCE or into knowledge.
-- **VINCE agent:** When `X_BEARER_TOKEN` is set in the app env, VINCE can run **VINCE_X_RESEARCH** in-chat (e.g. “what are people saying about BNKR?”).  
-  Same token works for both: set it in `.env` for the app and, when running the CLI, load that `.env` or export the variable.
+- **This skill (CLI):** Use for deep X research in the IDE, **watchlist** (add/remove/check), and **saving to file** (`--save --markdown`). Paste results into VINCE or knowledge as needed.
+- **In-chat (VINCE_X_RESEARCH):** When `X_BEARER_TOKEN` is set, agents can do search, profile (“what did @user post?”), thread (“get thread for tweet 123”), and single tweet in chat. Watchlist and `--save` are **not** in-chat; use this CLI for those.
+- Same token works for both: set it in `.env` for the app and, when running the CLI, load that `.env` or export the variable.
 
 ## Limits
 

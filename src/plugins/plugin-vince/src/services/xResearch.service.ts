@@ -12,6 +12,9 @@ import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const BASE = "https://api.x.com/2";
 const RATE_DELAY_MS = 350;
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes, match x-research-skill
+
+const CACHE_PREFIX = "vince_x_research:";
 
 export interface XTweet {
   id: string;
@@ -163,8 +166,13 @@ export class VinceXResearchService extends Service {
     return res.json();
   }
 
+  private cacheKey(prefix: string, parts: string): string {
+    return `${CACHE_PREFIX}${prefix}:${parts}`;
+  }
+
   /**
    * Search recent tweets (last 7 days). Auto-adds -is:retweet if not in query.
+   * Results are cached 15 minutes (match x-research-skill).
    */
   async search(
     query: string,
@@ -175,6 +183,13 @@ export class VinceXResearchService extends Service {
       since?: string;
     } = {},
   ): Promise<XTweet[]> {
+    const parts = `${query}|${opts.sortOrder ?? "relevancy"}|${opts.since ?? ""}|${opts.pages ?? 1}`;
+    const key = this.cacheKey("search", parts);
+    const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number }>(key);
+    if (cached?.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return cached.tweets;
+    }
+
     let q = query.trim();
     if (!q.toLowerCase().includes("-is:retweet")) {
       q = `${q} -is:retweet`;
@@ -200,6 +215,7 @@ export class VinceXResearchService extends Service {
       if (!nextToken) break;
       if (page < pages - 1) await sleep(RATE_DELAY_MS);
     }
+    await this.runtime.setCache(key, { tweets: all, ts: Date.now() });
     return all;
   }
 
@@ -224,6 +240,33 @@ export class VinceXResearchService extends Service {
       sortOrder: "recency",
     });
     return { user, tweets };
+  }
+
+  /**
+   * Fetch a full conversation thread by root tweet ID (or conversation_id).
+   * Matches skill lib/api.ts: conversation_id search + root tweet fetch.
+   */
+  async thread(
+    tweetIdOrConversationId: string,
+    opts: { pages?: number } = {},
+  ): Promise<XTweet[]> {
+    const id = tweetIdOrConversationId.trim();
+    const query = `conversation_id:${id}`;
+    const tweets = await this.search(query, {
+      sortOrder: "recency",
+      pages: opts.pages ?? 2,
+    });
+    const seen = new Set<string>(tweets.map((t) => t.id));
+    try {
+      const root = await this.getTweet(id);
+      if (root && !seen.has(root.id)) {
+        seen.add(root.id);
+        tweets.unshift(root);
+      }
+    } catch {
+      // Root tweet might be deleted
+    }
+    return tweets;
   }
 
   /**
