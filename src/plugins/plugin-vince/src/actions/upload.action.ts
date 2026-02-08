@@ -754,6 +754,20 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       return false;
     }
 
+    // Let ADD_MICHELIN_RESTAURANT handle Michelin Guide links in #knowledge (Eliza only)
+    if (runtime.character?.name === "Eliza" && text.includes("guide.michelin.com")) {
+      try {
+        const room = await runtime.getRoom(message.roomId);
+        const roomName = (room?.name ?? "").toLowerCase();
+        if (roomName.includes("knowledge")) {
+          logger.info("[VINCE_UPLOAD] Skipping: Michelin link in #knowledge → ADD_MICHELIN_RESTAURANT");
+          return false;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     // Priority 1: Standalone or prominent YouTube URL (allow even if short)
     if (containsYouTubeUrl(text)) {
       logger.info("[VINCE_UPLOAD] YouTube URL detected");
