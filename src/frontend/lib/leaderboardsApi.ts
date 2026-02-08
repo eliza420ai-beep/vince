@@ -110,11 +110,20 @@ export interface DigitalArtLeaderboardSection {
   criteriaNote?: string;
 }
 
+export interface XSentimentAssetRow {
+  asset: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  confidence: number;
+  hasHighRiskEvent: boolean;
+}
+
 export interface NewsLeaderboardSection {
   title: string;
   headlines: { text: string; sentiment?: string; url?: string }[];
   sentiment: string;
   oneLiner: string;
+  /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (cached, same as trading algo). */
+  xSentiment?: { assets: XSentimentAssetRow[] };
 }
 
 export interface MoreLeaderboardSection {

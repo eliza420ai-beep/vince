@@ -2,27 +2,28 @@
  * VINCE X (Twitter) Sentiment Service
  *
  * Produces trading sentiment (bullish/bearish/neutral + confidence) from X search
- * results for use by the signal aggregator. Caches per-asset; refreshes at configurable
- * interval (default 30 min) to respect X API rate limits. Depends on VinceXResearchService.
+ * results for use by the signal aggregator. Staggered refresh: one asset every 7.5 min
+ * (BTC→SOL→ETH→HYPE) to stay under X API rate limits. Persistent cache file for
+ * restarts and optional cron. Depends on VinceXResearchService.
  */
 
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
 import { Service, logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
 import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
-function getRefreshIntervalMs(): number {
+const STAGGER_INTERVAL_MS_DEFAULT = 7.5 * 60 * 1000; // 7.5 min between single-asset refreshes
+const CACHE_FILENAME = "x-sentiment-cache.json";
+
+function getStaggerIntervalMs(): number {
   loadEnvOnce();
-  const min = parseInt(process.env.X_SENTIMENT_REFRESH_MINUTES ?? "30", 10);
-  return Math.max(15, Math.min(120, min)) * 60 * 1000;
-}
-function getAssetDelayMs(): number {
-  loadEnvOnce();
-  if (process.env.NODE_ENV === "test") return 0;
-  const ms = parseInt(process.env.X_SENTIMENT_ASSET_DELAY_MS ?? "800", 10);
-  return Math.max(400, Math.min(3000, ms));
+  const ms = parseInt(process.env.X_SENTIMENT_STAGGER_INTERVAL_MS ?? String(STAGGER_INTERVAL_MS_DEFAULT), 10);
+  return Math.max(60_000, Math.min(30 * 60_000, ms)); // 1 min to 30 min
 }
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min (match default refresh)
@@ -86,16 +87,22 @@ interface CachedSentiment {
   updatedAt: number;
 }
 
+/** Cache file shape for persistence. Exported for cron script. */
+export type XSentimentCacheFile = Record<string, CachedSentiment>;
+
+function getCacheFilePath(): string {
+  const dir = path.join(process.cwd(), ".elizadb", PERSISTENCE_DIR);
+  return path.join(dir, CACHE_FILENAME);
+}
+
 export class VinceXSentimentService extends Service {
   static serviceType = "VINCE_X_SENTIMENT_SERVICE";
 
   private cache = new Map<string, CachedSentiment>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private staggerIndex = 0;
   /** When set, skip refresh until this time (ms) to respect X API rate limit. */
   private rateLimitedUntilMs = 0;
-  private getDelayMs(): number {
-    return getAssetDelayMs();
-  }
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -104,6 +111,7 @@ export class VinceXSentimentService extends Service {
   static async start(runtime: IAgentRuntime): Promise<VinceXSentimentService> {
     loadEnvOnce();
     const service = new VinceXSentimentService(runtime);
+    service.loadCacheFromFile();
     // Runtime starts all services in parallel; XResearch may not be registered yet. Yield and retry once.
     let xResearch = runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
@@ -120,14 +128,14 @@ export class VinceXSentimentService extends Service {
       );
       return service;
     }
-    const refreshMs = getRefreshIntervalMs();
-    const delayMs = getAssetDelayMs();
-    const refreshMin = Math.round(refreshMs / 60_000);
+    const staggerMs = getStaggerIntervalMs();
+    const staggerMin = Math.round(staggerMs / 60_000);
+    const cachePath = getCacheFilePath();
     logger.info(
-      "[VinceXSentimentService] Started (refresh every " +
-        refreshMin +
-        " min, assets: " +
-        CORE_ASSETS.join(", ") +
+      "[VinceXSentimentService] Started (staggered refresh every " +
+        staggerMin +
+        " min, BTC→SOL→ETH→HYPE, cache: " +
+        cachePath +
         ")",
     );
     // Stagger initial refresh 0–2 min to avoid multi-agent burst (shared X token). Skip in tests.
@@ -138,12 +146,19 @@ export class VinceXSentimentService extends Service {
       const ms = Math.max(0, parseInt(process.env.X_SENTIMENT_JITTER_MS, 10));
       await new Promise((r) => setTimeout(r, ms));
     }
-    await service.refreshAll();
+    await service.refreshOneAsset(0);
+    service.staggerIndex = 1; // next tick will do SOL, then ETH, HYPE, then back to BTC
     service.refreshTimer = setInterval(() => {
-      service.refreshAll().catch((e) =>
-        logger.warn("[VinceXSentimentService] Refresh failed: " + (e as Error).message),
-      );
-    }, refreshMs);
+      const idx = service.staggerIndex % CORE_ASSETS.length;
+      service
+        .refreshOneAsset(idx)
+        .then(() => {
+          service.staggerIndex += 1;
+        })
+        .catch((e) =>
+          logger.warn("[VinceXSentimentService] Refresh failed: " + (e as Error).message),
+        );
+    }, staggerMs);
     return service;
   }
 
@@ -187,11 +202,60 @@ export class VinceXSentimentService extends Service {
     };
   }
 
+  /** Load persistent cache from file so getTradingSentiment has data on startup. */
+  loadCacheFromFile(): void {
+    const filePath = getCacheFilePath();
+    if (!existsSync(filePath)) return;
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      const data = JSON.parse(raw) as XSentimentCacheFile;
+      if (data && typeof data === "object") {
+        for (const [asset, entry] of Object.entries(data)) {
+          if (
+            entry &&
+            typeof entry.sentiment === "string" &&
+            typeof entry.confidence === "number" &&
+            typeof entry.updatedAt === "number"
+          ) {
+            this.cache.set(asset, {
+              sentiment: entry.sentiment,
+              confidence: entry.confidence,
+              hasHighRiskEvent: !!entry.hasHighRiskEvent,
+              updatedAt: entry.updatedAt,
+            });
+          }
+        }
+      }
+    } catch {
+      // ignore invalid or missing file
+    }
+  }
+
+  /** Persist one asset's cache entry to file (merge with existing). */
+  private saveAssetToCacheFile(asset: string): void {
+    const entry = this.cache.get(asset);
+    if (!entry) return;
+    const filePath = getCacheFilePath();
+    const dir = path.dirname(filePath);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    let data: XSentimentCacheFile = {};
+    if (existsSync(filePath)) {
+      try {
+        data = JSON.parse(readFileSync(filePath, "utf-8")) as XSentimentCacheFile;
+      } catch {
+        // overwrite with fresh object
+      }
+    }
+    data[asset] = entry;
+    writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+    logger.debug("[VinceXSentimentService] Updated cache file for " + asset);
+  }
+
   /**
-   * Refresh sentiment for all core assets (called on interval).
-   * Respects X API rate limit: on 429, backs off until the reset time and skips further calls.
+   * Refresh sentiment for one asset (staggered tick). Respects rate limit; on 429
+   * sets rateLimitedUntilMs so subsequent ticks skip until reset.
    */
-  async refreshAll(): Promise<void> {
+  async refreshOneAsset(index: number): Promise<void> {
     const xResearch = this.runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
     ) as VinceXResearchService | null;
@@ -206,28 +270,24 @@ export class VinceXSentimentService extends Service {
       return;
     }
 
-    for (const asset of CORE_ASSETS) {
-      try {
-        await this.refreshForAsset(asset, xResearch);
-        await new Promise((r) => setTimeout(r, this.getDelayMs()));
-      } catch (e) {
-        const msg = (e as Error).message;
-        const isRateLimit =
-          msg.includes("rate limit") ||
-          msg.includes("429") ||
-          /Resets?\s+in\s+\d+\s*s/i.test(msg);
-        if (isRateLimit) {
-          const waitSec = parseRateLimitResetSeconds(msg) || 600;
-          this.rateLimitedUntilMs = Date.now() + waitSec * 1000;
-          logger.info(
-            `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
-          );
-          return;
-        }
-        logger.debug(
-          `[VinceXSentimentService] Refresh ${asset} failed: ${msg}`,
+    const asset = CORE_ASSETS[index % CORE_ASSETS.length];
+    try {
+      await this.refreshForAsset(asset, xResearch);
+      this.saveAssetToCacheFile(asset);
+    } catch (e) {
+      const msg = (e as Error).message;
+      const isRateLimit =
+        msg.includes("rate limit") ||
+        msg.includes("429") ||
+        /Resets?\s+in\s+\d+\s*s/i.test(msg);
+      if (isRateLimit) {
+        const waitSec = parseRateLimitResetSeconds(msg) || 600;
+        this.rateLimitedUntilMs = Date.now() + waitSec * 1000;
+        logger.info(
+          `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
         );
       }
+      throw e;
     }
   }
 

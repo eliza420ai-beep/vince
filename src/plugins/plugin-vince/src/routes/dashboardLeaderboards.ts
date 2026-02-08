@@ -10,6 +10,8 @@ import type { HIP3Pulse } from "../services/hip3.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
 import type { VinceMeteoraService } from "../services/meteora.service";
 import type { VinceNewsSentimentService } from "../services/newsSentiment.service";
+import type { VinceXSentimentService } from "../services/xSentiment.service";
+import { CORE_ASSETS } from "../constants/targetAssets";
 import { getOrCreateHyperliquidService } from "../services/fallbacks";
 import { HyperliquidFallbackService } from "../services/fallbacks/hyperliquid.fallback";
 import type { IHyperliquidCryptoPulse } from "../types/external-services";
@@ -120,6 +122,14 @@ export interface MeteoraLeaderboardSection {
   oneLiner: string;
 }
 
+/** Per-asset X (Twitter) vibe check from cached sentiment (staggered refresh). */
+export interface XSentimentAssetRow {
+  asset: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  confidence: number;
+  hasHighRiskEvent: boolean;
+}
+
 export interface NewsLeaderboardSection {
   title: string;
   /** All MandoMinutes headlines for the News tab (with optional deep-dive url) */
@@ -127,6 +137,8 @@ export interface NewsLeaderboardSection {
   sentiment: string;
   /** TLDR / one-liner summary for the News tab */
   oneLiner: string;
+  /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (from cached sentiment, same as trading algo). */
+  xSentiment?: { assets: XSentimentAssetRow[] };
 }
 
 export interface DigitalArtCollectionRow {
@@ -551,11 +563,27 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     }));
   }
 
+  const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
+  let xSentiment: { assets: XSentimentAssetRow[] } | undefined;
+  if (xSentimentService?.isConfigured?.()) {
+    const assets: XSentimentAssetRow[] = CORE_ASSETS.map((asset) => {
+      const s = xSentimentService.getTradingSentiment(asset);
+      return {
+        asset,
+        sentiment: s.sentiment,
+        confidence: s.confidence,
+        hasHighRiskEvent: s.hasHighRiskEvent,
+      };
+    });
+    xSentiment = { assets };
+  }
+
   return {
     title: "MandoMinutes",
     headlines,
     sentiment,
     oneLiner: tldr ?? "News sentiment loaded.",
+    ...(xSentiment && { xSentiment }),
   };
 }
 

@@ -790,6 +790,42 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     <p className="text-muted-foreground py-4">No headlines yet. Run MANDO_MINUTES or ask VINCE for news.</p>
                   )}
                 </DashboardCard>
+                {leaderboardsData.news.xSentiment && (
+                  <DashboardCard title="X (Twitter) vibe check">
+                    <p className="text-xs text-muted-foreground mb-3">Cached sentiment from staggered refresh (BTC→SOL→ETH→HYPE every 7.5 min). Same data feeds the trading algo.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {leaderboardsData.news.xSentiment.assets.map((row) => (
+                        <div
+                          key={row.asset}
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-center",
+                            row.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
+                            row.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
+                            row.sentiment === "neutral" && "border-border bg-muted/30",
+                          )}
+                        >
+                          <span className="font-semibold text-foreground">{row.asset}</span>
+                          <div className="text-xs mt-1">
+                            <span
+                              className={cn(
+                                row.sentiment === "bullish" && "text-green-600 dark:text-green-400",
+                                row.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                              )}
+                            >
+                              {row.sentiment === "bullish" ? "Bullish" : row.sentiment === "bearish" ? "Bearish" : "Neutral"}
+                            </span>
+                            {row.confidence > 0 && (
+                              <span className="text-muted-foreground ml-1">({row.confidence}%)</span>
+                            )}
+                          </div>
+                          {row.hasHighRiskEvent && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block">Risk event</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </DashboardCard>
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">

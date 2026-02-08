@@ -1,8 +1,12 @@
 /**
  * VinceXSentimentService: cache, refresh, getTradingSentiment, and rate-limit handling.
  * Covers: unconfigured/empty cache, bullish/bearish/neutral/risk, rate-limit backoff and skip,
- * stale cache, empty/few tweets, stop() cleanup, and query shape (HYPE vs $TICKER).
+ * stale cache, empty/few tweets, stop() cleanup, query shape (HYPE vs $TICKER),
+ * staggered refresh (one asset per tick), and persistent cache file load/save.
  */
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import {
   VinceXSentimentService,
@@ -257,7 +261,7 @@ describe("VinceXSentimentService", () => {
   });
 
   describe("rate limit handling", () => {
-    it("on rate limit error (Resets in Ns), sets cooldown and second refreshAll does not call search", async () => {
+    it("on rate limit error (Resets in Ns), sets cooldown and next refreshOneAsset skips search", async () => {
       const search = vi
         .fn()
         .mockRejectedValueOnce(new Error("X API rate limited. Resets in 120s"));
@@ -269,9 +273,10 @@ describe("VinceXSentimentService", () => {
           },
         } as any,
       });
-      const service = await VinceXSentimentService.start(runtime);
+      const service = new VinceXSentimentService(runtime);
+      await service.refreshOneAsset(0).catch(() => {});
       expect(search).toHaveBeenCalledTimes(1);
-      await (service as any).refreshAll();
+      await service.refreshOneAsset(1);
       expect(search).toHaveBeenCalledTimes(1);
     });
 
@@ -287,13 +292,14 @@ describe("VinceXSentimentService", () => {
           },
         } as any,
       });
-      const service = await VinceXSentimentService.start(runtime);
+      const service = new VinceXSentimentService(runtime);
+      await service.refreshOneAsset(0).catch(() => {});
       expect(search).toHaveBeenCalledTimes(1);
-      await (service as any).refreshAll();
+      await service.refreshOneAsset(1);
       expect(search).toHaveBeenCalledTimes(1);
     });
 
-    it("non-rate-limit error does not set cooldown; next refresh still calls search", async () => {
+    it("non-rate-limit error does not set cooldown; next refreshOneAsset still calls search", async () => {
       const tweets = mockTweets(["bullish moon", "pump buy", "long"]);
       const search = vi
         .fn()
@@ -307,11 +313,11 @@ describe("VinceXSentimentService", () => {
           },
         } as any,
       });
-      const service = await VinceXSentimentService.start(runtime);
-      const callsAfterStart = search.mock.calls.length;
-      await (service as any).refreshAll();
-      const callsAfterSecondRefresh = search.mock.calls.length;
-      expect(callsAfterSecondRefresh).toBeGreaterThan(callsAfterStart);
+      const service = new VinceXSentimentService(runtime);
+      await service.refreshOneAsset(0).catch(() => {});
+      const callsAfterFirst = search.mock.calls.length;
+      await service.refreshOneAsset(1);
+      expect(search.mock.calls.length).toBeGreaterThan(callsAfterFirst);
     });
   });
 
@@ -344,7 +350,7 @@ describe("VinceXSentimentService", () => {
   });
 
   describe("query shape", () => {
-    it("calls search with $BTC for BTC and HYPE crypto for HYPE", async () => {
+    it("calls search with $BTC for BTC, $ETH for ETH, $SOL for SOL, HYPE crypto for HYPE", async () => {
       const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
       const runtime = createMockRuntime({
         services: {
@@ -354,11 +360,104 @@ describe("VinceXSentimentService", () => {
           },
         } as any,
       });
-      await VinceXSentimentService.start(runtime);
-      expect(search).toHaveBeenCalledWith("$BTC", expect.any(Object));
+      const service = new VinceXSentimentService(runtime);
+      await service.refreshOneAsset(0);
+      expect(search).toHaveBeenLastCalledWith("$BTC", expect.any(Object));
+      await service.refreshOneAsset(1);
+      expect(search).toHaveBeenLastCalledWith("$ETH", expect.any(Object));
+      await service.refreshOneAsset(2);
+      expect(search).toHaveBeenLastCalledWith("$SOL", expect.any(Object));
+      await service.refreshOneAsset(3);
+      expect(search).toHaveBeenLastCalledWith("HYPE crypto", expect.any(Object));
+    });
+  });
+
+  describe("stagger and cache file", () => {
+    it("refreshOneAsset(index) refreshes only that asset (one search call per tick)", async () => {
+      const search = vi.fn().mockResolvedValue(mockTweets(["bullish moon", "pump"]));
+      const runtime = createMockRuntime({
+        services: {
+          VINCE_X_RESEARCH_SERVICE: {
+            isConfigured: () => true,
+            search,
+          },
+        } as any,
+      });
+      const service = new VinceXSentimentService(runtime);
+      await service.refreshOneAsset(1);
+      expect(search).toHaveBeenCalledTimes(1);
       expect(search).toHaveBeenCalledWith("$ETH", expect.any(Object));
-      expect(search).toHaveBeenCalledWith("$SOL", expect.any(Object));
-      expect(search).toHaveBeenCalledWith("HYPE crypto", expect.any(Object));
+    });
+
+    it("loads cache from file on start so getTradingSentiment returns file data for other assets", async () => {
+      const tmp = mkdtempSync(path.join(os.tmpdir(), "xsent-"));
+      const cwd = process.cwd();
+      process.chdir(tmp);
+      try {
+        const cacheDir = path.join(".elizadb", "vince-paper-bot");
+        mkdirSync(cacheDir, { recursive: true });
+        const cachePath = path.join(cacheDir, "x-sentiment-cache.json");
+        const now = Date.now();
+        writeFileSync(
+          cachePath,
+          JSON.stringify({
+            SOL: {
+              sentiment: "bearish",
+              confidence: 60,
+              hasHighRiskEvent: false,
+              updatedAt: now,
+            },
+          }),
+          "utf-8",
+        );
+        const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
+        const runtime = createMockRuntime({
+          services: {
+            VINCE_X_RESEARCH_SERVICE: {
+              isConfigured: () => true,
+              search,
+            },
+          } as any,
+        });
+        const service = await VinceXSentimentService.start(runtime);
+        const sol = service.getTradingSentiment("SOL");
+        expect(sol.sentiment).toBe("bearish");
+        expect(sol.confidence).toBe(60);
+        await service.stop();
+      } finally {
+        process.chdir(cwd);
+      }
+    });
+
+    it("writes cache file after refreshOneAsset", async () => {
+      const tmp = mkdtempSync(path.join(os.tmpdir(), "xsent-"));
+      const cwd = process.cwd();
+      process.chdir(tmp);
+      try {
+        const search = vi.fn().mockResolvedValue(
+          mockTweets(["bearish dump", "sell", "crash", "bear market"]),
+        );
+        const runtime = createMockRuntime({
+          services: {
+            VINCE_X_RESEARCH_SERVICE: {
+              isConfigured: () => true,
+              search,
+            },
+          } as any,
+        });
+        const service = new VinceXSentimentService(runtime);
+        service.loadCacheFromFile();
+        await service.refreshOneAsset(0);
+        const cachePath = path.join(".elizadb", "vince-paper-bot", "x-sentiment-cache.json");
+        expect(existsSync(cachePath)).toBe(true);
+        const data = JSON.parse(readFileSync(cachePath, "utf-8"));
+        expect(data.BTC).toBeDefined();
+        expect(data.BTC.sentiment).toBe("bearish");
+        expect(data.BTC.confidence).toBeGreaterThan(0);
+        expect(typeof data.BTC.updatedAt).toBe("number");
+      } finally {
+        process.chdir(cwd);
+      }
     });
   });
 });
