@@ -26,11 +26,74 @@ import { runSummarizeCli } from "./upload.action";
 const MICHELIN_URL_REGEX =
   /https?:\/\/guide\.michelin\.com\/[^\s<>"{}|\\^`[\]]+/i;
 
+/**
+ * Collect all URL-containing text from a message so we don't miss link-only Discord posts.
+ * Discord often sends link-only messages with the URL in embeds or metadata; content.text can be empty.
+ */
+function getMessageTextForMichelin(message: Memory): string {
+  const parts: string[] = [];
+  const content = message.content as Record<string, unknown> | undefined;
+  if (content) {
+    if (typeof content.text === "string" && content.text.trim()) parts.push(content.text.trim());
+    const attachments = content.attachments as Array<{ url?: string }> | undefined;
+    if (Array.isArray(attachments)) {
+      for (const a of attachments) {
+        if (a?.url && typeof a.url === "string") parts.push(a.url);
+      }
+    }
+    const embeds = content.embeds as Array<{ url?: string; thumbnail?: { url?: string } }> | undefined;
+    if (Array.isArray(embeds)) {
+      for (const e of embeds) {
+        if (e?.url && typeof e.url === "string") parts.push(e.url);
+        if (e?.thumbnail?.url && typeof e.thumbnail.url === "string") parts.push(e.thumbnail.url);
+      }
+    }
+  }
+  const meta = message.metadata as Record<string, unknown> | undefined;
+  if (meta?.url && typeof meta.url === "string") parts.push(meta.url);
+  if (meta?.discord && typeof meta.discord === "object") {
+    const d = meta.discord as Record<string, unknown>;
+    if (d.content && typeof d.content === "string") parts.push(d.content);
+  }
+  return parts.join(" ");
+}
+
 /** Path segment before /restaurant/ in guide.michelin.com URLs (e.g. biarritz, bayonne) */
 const MICHELIN_PATH_CITY_REGEX =
   /guide\.michelin\.com\/[^/]+\/[^/]+\/nouvelle-aquitaine\/([^/]+)\/restaurant\//i;
 
 const KNOWLEDGE_BASE = "knowledge/the-good-life/michelin-restaurants";
+
+/**
+ * Resolve effective room/channel name for "knowledge" detection.
+ * Room rows may have empty name (e.g. Discord not syncing channel name); check metadata and env.
+ */
+async function getEffectiveRoomName(
+  runtime: IAgentRuntime,
+  message: Memory,
+): Promise<string> {
+  let roomName = "";
+  try {
+    const room = await runtime.getRoom(message.roomId);
+    roomName = (room?.name ?? "").toLowerCase();
+  } catch {
+    // Room lookup can fail (e.g. per-agent rooms); fall back to metadata/env
+  }
+  if (roomName) return roomName;
+  const meta = (message.metadata ?? {}) as Record<string, unknown>;
+  const fromMeta =
+    (meta.channelName as string) ??
+    (meta.roomName as string) ??
+    (meta.channel && typeof meta.channel === "object" && (meta.channel as Record<string, unknown>).name as string);
+  if (fromMeta && typeof fromMeta === "string") return fromMeta.toLowerCase();
+  const channelIds = process.env.ELIZA_KNOWLEDGE_CHANNEL_IDS?.trim();
+  if (channelIds && meta.channelId && channelIds.split(",").some((id) => id.trim() === String(meta.channelId))) {
+    return "knowledge";
+  }
+  // Last resort: Michelin link but no room name (e.g. Discord didn't set room.name). Assume knowledge channel.
+  if (getMessageTextForMichelin(message).includes("guide.michelin.com")) return "knowledge";
+  return "";
+}
 
 /** City slug from URL path → { file, section } for insertion */
 const CITY_TO_FILE_AND_SECTION: Record<
@@ -225,16 +288,10 @@ export const addMichelinRestaurantAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
   ): Promise<boolean> => {
-    const text = message.content?.text ?? "";
+    const text = getMessageTextForMichelin(message);
     if (!text.includes("guide.michelin.com")) return false;
     if (!extractMichelinUrl(text)) return false;
-    let roomName = "";
-    try {
-      const room = await runtime.getRoom(message.roomId);
-      roomName = (room?.name ?? "").toLowerCase();
-    } catch {
-      roomName = "knowledge";
-    }
+    const roomName = await getEffectiveRoomName(runtime, message);
     if (!roomName.includes("knowledge")) return false;
     return true;
   },
@@ -246,7 +303,7 @@ export const addMichelinRestaurantAction: Action = {
     _options?: Record<string, unknown>,
     callback?: HandlerCallback,
   ): Promise<void> => {
-    const text = message.content?.text ?? "";
+    const text = getMessageTextForMichelin(message);
     const url = extractMichelinUrl(text);
     if (!url) {
       if (callback) {

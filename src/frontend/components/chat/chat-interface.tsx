@@ -40,6 +40,12 @@ import {
   Tag,
   Coins,
   Zap,
+  Sun,
+  UtensilsCrossed,
+  Wine,
+  MapPin,
+  Waves,
+  Dumbbell,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -132,6 +138,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Our research", message: "what does our research say" },
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
+  ],
+  // Kelly: lifestyle concierge — daily briefing, dining, wine, itinerary, surf, workout (no trading)
+  kelly: [
+    { label: "Daily Briefing", message: "What should I do today?" },
+    { label: "Restaurant & Hotel", message: "Recommend a restaurant in Biarritz" },
+    { label: "Wine", message: "Recommend a wine for tonight" },
+    { label: "Itinerary", message: "Plan me 2 days in Bordeaux" },
+    { label: "Surf", message: "How's the surf in Biarritz?" },
+    { label: "Workout", message: "Recommend a workout for today" },
   ],
   // Solus: wealth architect — strike ritual (options framed as weekly targets), yield, sats, Echo DD, $100K plan. Distinct from Vince (ALOHA/perps/market briefing).
   solus: [
@@ -249,6 +264,49 @@ const SOLUS_CATEGORIES: Record<
     icon: BarChart2,
     promptToAsk: "bot status",
     description: "Hyperliquid paper bot with ML self-improvement",
+  },
+};
+
+// Kelly: lifestyle concierge — dining, wine, itinerary, surf, workout, daily briefing (MICHELIN, James Edition, the-good-life)
+const KELLY_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+> = {
+  daily: {
+    title: "Daily Briefing",
+    icon: Sun,
+    promptToAsk: "What should I do today?",
+    description: "Day-aware health, dining, hotels, wellness",
+  },
+  place: {
+    title: "Restaurant & Hotel",
+    icon: UtensilsCrossed,
+    promptToAsk: "Recommend a restaurant in Biarritz",
+    description: "One best pick + alternative from MICHELIN & the-good-life",
+  },
+  wine: {
+    title: "Wine",
+    icon: Wine,
+    promptToAsk: "Recommend a wine for tonight",
+    description: "One pick + alternative, default SW France / Bordeaux",
+  },
+  itinerary: {
+    title: "Itinerary",
+    icon: MapPin,
+    promptToAsk: "Plan me 2 days in Bordeaux",
+    description: "Multi-day plan: dining, hotels, activities",
+  },
+  surf: {
+    title: "Surf",
+    icon: Waves,
+    promptToAsk: "How's the surf in Biarritz?",
+    description: "Wave height, period, direction, sea temp",
+  },
+  workout: {
+    title: "Workout",
+    icon: Dumbbell,
+    promptToAsk: "Recommend a workout for today",
+    description: "Pool, gym, surfer yoga, or swim suggestion",
   },
 };
 
@@ -1404,6 +1462,45 @@ export function ChatInterface({
                           >
                         ).map((key) => {
                           const item = SOLUS_CATEGORIES[key];
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePromptClick(item.promptToAsk)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {item.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+                    {/* Lifestyle & Concierge - Kelly only: daily briefing, dining, wine, itinerary, surf, workout */}
+                    {(agent.name || "").toLowerCase().trim() === "kelly" && (
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        Lifestyle & Concierge
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(KELLY_CATEGORIES) as Array<
+                            keyof typeof KELLY_CATEGORIES
+                          >
+                        ).map((key) => {
+                          const item = KELLY_CATEGORIES[key];
                           const Icon = item.icon;
                           return (
                             <button
