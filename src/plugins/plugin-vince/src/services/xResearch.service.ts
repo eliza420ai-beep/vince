@@ -116,13 +116,19 @@ export class VinceXResearchService extends Service {
   private getToken(): string | null {
     loadEnvOnce();
     const fromEnv = process.env.X_BEARER_TOKEN?.trim();
-    if (fromEnv) return fromEnv;
     const fromRuntime = this.runtime.getSetting?.("X_BEARER_TOKEN");
     const s = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xResearch.service.ts:getToken',message:'token source',data:{hypothesisId:'H5',fromEnv:!!fromEnv,fromRuntime:!!s},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    if (fromEnv) return fromEnv;
     return s || null;
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceXResearchService> {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xResearch.service.ts:start',message:'XResearch.start entered',data:{hypothesisId:'H3'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const service = new VinceXResearchService(runtime);
     const token = service.getToken();
     if (!token) {

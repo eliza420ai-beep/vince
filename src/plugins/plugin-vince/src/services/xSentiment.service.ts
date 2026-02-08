@@ -90,11 +90,19 @@ export class VinceXSentimentService extends Service {
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceXSentimentService> {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'XSentiment.start entered',data:{hypothesisId:'H3'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     loadEnvOnce();
+    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'after loadEnvOnce',data:{hypothesisId:'H3 H5',hasXBearer:!!process.env.X_BEARER_TOKEN?.trim()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const service = new VinceXSentimentService(runtime);
     const xResearch = runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
     ) as VinceXResearchService | null;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'xResearch service check',data:{hypothesisId:'H3',xResearchNull:!xResearch,isConfigured:!!xResearch?.isConfigured()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (!xResearch?.isConfigured()) {
       logger.info(
         "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",
