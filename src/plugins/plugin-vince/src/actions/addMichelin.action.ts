@@ -301,6 +301,20 @@ export const addMichelinRestaurantAction: Action = {
       return;
     }
 
+    // Prevent duplicate run when both provider and processActions trigger this action
+    const lockKey = `add-michelin:${message.roomId}:${url}`;
+    const lockedAt = await runtime.getCache<number>(lockKey);
+    if (lockedAt != null && Date.now() - lockedAt < 120_000) {
+      if (callback) {
+        await callback({
+          text: "Added to knowledge.",
+          actions: ["ADD_MICHELIN_RESTAURANT"],
+        });
+      }
+      return;
+    }
+    await runtime.setCache(lockKey, Date.now());
+
     const urls = text.match(new RegExp(MICHELIN_URL_REGEX.source, "gi"));
     if (urls && urls.length > 1 && callback) {
       await callback({

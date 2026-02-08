@@ -2,12 +2,16 @@
  * Michelin Knowledge Provider
  *
  * When any agent receives a message in a room whose name contains "knowledge"
- * and the message contains a guide.michelin.com URL, injects a strong instruction
- * so the LLM chooses ADD_MICHELIN_RESTAURANT instead of REPLY. Works for both
- * VINCE and Eliza so that whichever bot is in the channel can add the restaurant.
+ * and the message contains a guide.michelin.com URL:
+ * 1. Injects a strong instruction so the LLM chooses ADD_MICHELIN_RESTAURANT.
+ * 2. Guarantees the action runs by invoking it directly (so a knowledge file
+ *    is always created even if the LLM replies instead). Sends the result
+ *    via sendMessageToTarget so the user sees "Added X to knowledge."
  */
 
 import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
+import type { TargetInfo } from "@elizaos/core";
+import { logger } from "@elizaos/core";
 
 /** Collect all URL-containing text from a message (link-only Discord posts often have URL in embeds, not content.text). */
 function getMessageTextForMichelin(message: Memory): string {
@@ -76,6 +80,66 @@ export const michelinKnowledgeProvider: Provider = {
     if (!roomName.includes("knowledge")) {
       return { text: "" };
     }
+
+    // Guarantee ADD_MICHELIN runs and the user gets a reply (file is always created)
+    Promise.resolve().then(async () => {
+      try {
+        const action = runtime.actions?.find(
+          (a: { name: string }) => a.name === "ADD_MICHELIN_RESTAURANT"
+        );
+        if (!action?.handler) return;
+
+        const room = await runtime.getRoom(message.roomId);
+        const source = (room?.source ?? "discord").toLowerCase();
+        const target: TargetInfo = {
+          source,
+          roomId: message.roomId,
+          channelId: (room as { channelId?: string })?.channelId,
+          serverId:
+            (room as { messageServerId?: string })?.messageServerId ??
+            (room as { serverId?: string })?.serverId,
+        };
+
+        const callback = async (content: { text?: string }) => {
+          try {
+            await runtime.sendMessageToTarget(target, {
+              text: content?.text ?? "Added to knowledge.",
+              actions: ["ADD_MICHELIN_RESTAURANT"],
+            });
+          } catch (err) {
+            logger.debug(
+              { err: String(err) },
+              "[MICHELIN_KNOWLEDGE] sendMessageToTarget failed"
+            );
+          }
+          return [];
+        };
+
+        await action.handler(runtime, message, _state ?? {}, {}, callback);
+      } catch (err) {
+        logger.warn(
+          { err: String(err) },
+          "[MICHELIN_KNOWLEDGE] ADD_MICHELIN run failed"
+        );
+        try {
+          const room = await runtime.getRoom(message.roomId);
+          const source = (room?.source ?? "discord").toLowerCase();
+          await runtime.sendMessageToTarget(
+            {
+              source,
+              roomId: message.roomId,
+              channelId: (room as { channelId?: string })?.channelId,
+              serverId:
+                (room as { messageServerId?: string })?.messageServerId ??
+                (room as { serverId?: string })?.serverId,
+            },
+            { text: "Failed to add Michelin restaurant to knowledge." }
+          );
+        } catch {
+          // ignore
+        }
+      }
+    });
 
     return {
       text: [
