@@ -111,6 +111,7 @@ import { vinceBotAction } from "./actions/bot.action";
 
 // Actions - Knowledge
 import { vinceUploadAction } from "./actions/upload.action";
+import { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 import { vinceCodeTaskAction } from "./actions/codeTask.action";
 
 // Actions - Grok Expert (commented out - low value)
@@ -223,6 +224,7 @@ export const vincePlugin: Plugin = {
     vinceBotAction,
     // Knowledge Upload
     vinceUploadAction,
+    addMichelinRestaurantAction,
     vinceCodeTaskAction,
     // Grok Expert (commented out - low value)
     // vinceGrokExpertAction,
@@ -1041,6 +1043,7 @@ export { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 export { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 export { vinceBotAction } from "./actions/bot.action";
 export { vinceUploadAction } from "./actions/upload.action";
+export { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 export { vinceCodeTaskAction } from "./actions/codeTask.action";
 // export { vinceGrokExpertAction } from "./actions/grokExpert.action";
 export { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";

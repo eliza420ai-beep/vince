@@ -72,6 +72,9 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 | Channel | Purpose |
 |---------|---------|
 | `#vince-upload-youtube` or `#youtube-knowledge` | Paste curated YouTube links; VINCE ingests to knowledge (transcript + summary). No need to watch — save to knowledge instead. Say `upload:` or just paste the URL. |
+| `#knowledge` | Post Michelin Guide links; Eliza adds the restaurant to the Michelin knowledge base. General uploads (URLs, paste) also go to the same `knowledge/` folder. |
+
+The Leaderboard **"Newly added knowledge"** list (Knowledge tab) reflects the local `knowledge/` folder and updates about every minute when that tab is open. Discord uploads and #knowledge additions write into that same folder, so they appear there after the next refresh.
 
 ---
 

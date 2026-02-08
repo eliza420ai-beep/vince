@@ -148,22 +148,27 @@ export const kellyRecommendPlaceAction: Action = {
           new Date().toLocaleDateString("en-US", { weekday: "long" });
         const dayLabel = requestedDay ? requestedDay : "today";
         if (curated) {
+          const dayLower = day.toString().toLowerCase();
+          const isMonOrTue = dayLower === "monday" || dayLower === "tuesday";
           if (curated.restaurants.length === 0) {
             openTodayBlock =
               (requestedDay
                 ? `**User asked for ${requestedDay}.** `
                 : `**Today is ${day}.** `) +
-              `No curated restaurants open ${dayLabel}; say so and suggest checking MICHELIN Guide or cooking at home.\n\n`;
+              `No curated restaurants open ${dayLabel}; say so and suggest checking MICHELIN Guide or cooking at home. Do not suggest Le Relais de la Poste or Côté Quillier for Monday or Tuesday—they are closed (Wed–Sun only).\n\n`;
           } else {
             const openList =
               (state.values?.kellyRestaurantsOpenToday as string) ??
               curated.rawSection;
+            const favoritesOrClosedLine = isMonOrTue
+              ? "\n\nLe Relais de la Poste and Côté Quillier are closed Monday and Tuesday (Wed–Sun only). Do not suggest them for Mon or Tue.\n\n"
+              : "\n\nOur favorites in the Landes are in landes-locals (Maison Devaux, Auberge du Lavoir, Le Relais de la Poste, Côté Quillier, La Table du Marensin, etc.); prefer them when they're open.\n\n";
             openTodayBlock =
               (requestedDay
                 ? `**User asked for ${requestedDay}.** Only recommend restaurants that are **open ${requestedDay}**. Restaurants open ${requestedDay}:\n`
                 : `**Today is ${day}.** Only recommend restaurants that are **open today**. Restaurants open today:\n`) +
               openList +
-              "\n\nOur favorites in the Landes are in landes-locals (Maison Devaux, Auberge du Lavoir, Le Relais de la Poste, Côté Quillier, La Table du Marensin, etc.); prefer them when they're open.\n\n";
+              favoritesOrClosedLine;
           }
         }
       }
@@ -187,12 +192,24 @@ Output exactly:
 1. **Best pick:** [Name] — one short sentence why (from context). Add one benefit-led sentence why this fits them (e.g. "You get a quiet table and the classic three-star experience").
 2. **Alternative:** [Name] — one short sentence why (from context).
 
-If the user asked for a specific day (e.g. Monday), only suggest from the curated list for that day. If they asked for "open now" or "open today", only suggest from the curated list for today. If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition."
+Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend Le Relais de la Poste or Côté Quillier for Monday or Tuesday**—they are closed (Wed–Sun only). If the user asked for a specific day (e.g. Monday), only suggest from the curated list for that day. If they asked for "open now" or "open today", only suggest from the curated list for today. If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home; do not suggest venues that are closed that day. If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition."
 
 Output only the recommendation text, no XML or extra commentary. No jargon (no leverage, utilize, streamline, robust, etc.).`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
-      const text = String(response).trim();
+      let text = String(response).trim();
+      const reqDay = (requestedDay ?? state.values?.kellyRequestedDay) as string | undefined;
+      if (reqDay) {
+        const reqDayLower = reqDay.toString().toLowerCase();
+        if (
+          (reqDayLower === "monday" || reqDayLower === "tuesday") &&
+          (text.includes("Relais de la Poste") || text.includes("Côté Quillier"))
+        ) {
+          text =
+            text +
+            "\n\nNote: Le Relais de la Poste and Côté Quillier are closed Mon–Tue (Wed–Sun only).";
+        }
+      }
 
       await callback({
         text: text || `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`,

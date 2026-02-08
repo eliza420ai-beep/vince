@@ -322,6 +322,9 @@ async function runSummarizeCli(
   return result;
 }
 
+/** Export for ADD_MICHELIN_RESTAURANT (Michelin Guide URL → knowledge base). */
+export { runSummarizeCli };
+
 /**
  * Check if message has upload intent
  */

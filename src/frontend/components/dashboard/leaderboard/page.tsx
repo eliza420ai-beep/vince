@@ -294,7 +294,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             {mainTab === "knowledge" && (
               <>
                 <span className="text-xs text-muted-foreground hidden sm:inline">
-                  Upload via Discord? List updates automatically every minute.
+                  Upload via Discord? List reflects local knowledge/ folder; updates every minute.
                 </span>
                 <Button variant="outline" size="sm" onClick={() => refetchKnowledge()} disabled={knowledgeLoading}>
                   <RefreshCw className={cn("w-4 h-4 mr-2", knowledgeLoading && "animate-spin")} />
