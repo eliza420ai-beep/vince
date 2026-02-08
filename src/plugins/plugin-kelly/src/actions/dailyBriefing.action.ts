@@ -31,6 +31,33 @@ interface LifestyleDataContext {
   touchGrassNote: string;
   wineOfTheDay: string;
   travelIdeaOfTheWeek: string;
+  currentTimeParis?: string;
+  pastLunch?: boolean;
+}
+
+function getParisTimeAndPastLunch(day: string): {
+  currentTimeParis: string;
+  pastLunch: boolean;
+} {
+  const now = new Date();
+  const timeParis = now.toLocaleString("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const hourParis = parseInt(
+    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hour12: false }),
+    10,
+  );
+  const minParis = parseInt(
+    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", minute: "2-digit" }),
+    10,
+  );
+  const minutesSinceMidnight = hourParis * 60 + minParis;
+  const isSunday = day.toLowerCase() === "sunday";
+  const cutoff = isSunday ? 15 * 60 : 14 * 60 + 30;
+  return { currentTimeParis: timeParis, pastLunch: minutesSinceMidnight >= cutoff };
 }
 
 function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
@@ -40,6 +67,13 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   lines.push(
     `Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`,
   );
+  if (ctx.currentTimeParis !== undefined && ctx.pastLunch !== undefined) {
+    lines.push(
+      ctx.pastLunch
+        ? `CURRENT TIME (Europe/Paris): ${ctx.currentTimeParis}. CRITICAL: Past lunch hours. Do NOT suggest lunch or dinner at a restaurant. We almost never go out for dinner. Suggest pool, swim, walk, yoga, wine at home, or afternoon/evening activities instead.`
+        : `Current time (Europe/Paris): ${ctx.currentTimeParis}. Lunch ends 14:00–15:00.`,
+    );
+  }
   lines.push("");
 
   if (ctx.wellnessTip) {
@@ -138,7 +172,7 @@ ${dataContext}
 
 Write a lifestyle briefing that:
 1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
-2. CRITICAL — LUNCH NOT DINNER: We go out for lunch in 99% of cases, not dinner. All restaurant suggestions in the briefing must be for LUNCH. Do not suggest "go out for dinner" or "tonight's dinner at X" or "Relais de la Poste for dinner"—suggest lunch at those places. For evening/tonight, suggest dinner at home, pool, wine at home, or rest—not a restaurant outing.
+2. DINING BY TIME: We almost NEVER go out for dinner—lunch only. If CURRENT TIME shows past lunch hours (past 14:30, or 15:00 on Sunday), do NOT suggest lunch or dinner at a restaurant. Suggest pool, swim, walk, yoga, wine at home, or afternoon activities instead. Otherwise, suggest LUNCH at the curated places—never dinner out.
 3. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge—only real places, never invent names.
 4. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
 5. If a WELLNESS/FITNESS TIP is provided, include one short line weaving it in.
@@ -264,9 +298,11 @@ export const kellyDailyBriefingAction: Action = {
       const dayLower = briefing.day.toLowerCase();
       const isFriday = dayLower === "friday";
       const isSaturday = dayLower === "saturday";
+      const day = briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
+      const { currentTimeParis, pastLunch } = getParisTimeAndPastLunch(day);
 
       const ctx: LifestyleDataContext = {
-        day: briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1),
+        day,
         date: briefing.date,
         season,
         isFriday,
@@ -290,6 +326,8 @@ export const kellyDailyBriefingAction: Action = {
         curatedRestaurants: curated?.restaurants ?? [],
         curatedHotels: curated?.hotels ?? [],
         wellnessTip: lifestyleService.getWellnessTipOfTheDay?.() ?? "",
+        currentTimeParis,
+        pastLunch,
         touchGrassNote:
           isFriday || isSaturday
             ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner at home, pool, or a walk—without mentioning work or markets."

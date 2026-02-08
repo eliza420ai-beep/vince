@@ -106,8 +106,40 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = season;
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
 
+      const nowParis = new Date().toLocaleString("en-GB", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const hourParis = new Date().toLocaleString("en-GB", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        hour12: false,
+      });
+      const minParis = new Date().toLocaleString("en-GB", {
+        timeZone: "Europe/Paris",
+        minute: "2-digit",
+      });
+      const hourNum = parseInt(hourParis, 10);
+      const minNum = parseInt(minParis, 10);
+      const minutesSinceMidnight = hourNum * 60 + minNum;
+      const lunchCutoff = 14 * 60 + 30; // 14:30 - don't suggest lunch after this
+      const lunchCutoffSunday = 15 * 60; // 15:00 - Maison Devaux Sun until 15:00
+      const isSunday = day.toLowerCase() === "sunday";
+      const pastLunch =
+        minutesSinceMidnight >= (isSunday ? lunchCutoffSunday : lunchCutoff);
+
+      values.kellyCurrentTimeParis = nowParis;
+      values.kellyPastLunch = pastLunch;
+
       textParts.push(`Today's wellness tip: ${wellnessTip || "—"}`);
       textParts.push(`Day: ${day}`);
+      textParts.push(
+        pastLunch
+          ? `**Current time (Europe/Paris):** ${nowParis}. CRITICAL: It is past lunch hours. Do NOT suggest lunch or "open until 3pm"—lunch is over. We almost NEVER go out for dinner—lunch only. Suggest pool, swim, walk, yoga, wine at home, or afternoon/evening activities instead. Never suggest a restaurant for dinner.`
+          : `**Current time (Europe/Paris):** ${nowParis}. Lunch at Landes restaurants ends by 14:00–15:00. We almost never go out for dinner—lunch only. If suggesting lunch, confirm they can still make it.`,
+      );
       if (requestedDayCap) {
         textParts.push(
           `**User asked for ${requestedDayCap}.** Use ${requestedDayCap}'s list below for this request; do not use today's list.`,
@@ -159,7 +191,17 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = "pool";
       values.kellyWellnessTip = "";
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
+      const nowParis = now.toLocaleString("en-GB", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      values.kellyCurrentTimeParis = nowParis;
       textParts.push(`Day: ${values.kellyDay}`);
+      textParts.push(
+        `**Current time (Europe/Paris):** ${nowParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
+      );
       if (requestedDayCap) textParts.push(`**User asked for ${requestedDayCap}.**`);
       textParts.push("Season: pool");
     }

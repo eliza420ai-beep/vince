@@ -250,14 +250,14 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
     ],
     capabilities: [
       {
-        title: "Five-Star Hotels",
+        title: "Daily Briefing",
         description:
-          "Palaces, city, coast, countryside. James Edition. France methodology.",
+          "Day-aware health, dining, hotels, wellness. KELLY_DAILY_BRIEFING for channels.",
       },
       {
-        title: "Fine Dining",
+        title: "Five-Star Hotels & Fine Dining",
         description:
-          "MICHELIN stars, Bib Gourmand. Seasonal. New openings.",
+          "Palaces, MICHELIN, Bib Gourmand. James Edition. One pick + alternative.",
       },
       {
         title: "Wine & Spirits",
@@ -265,14 +265,44 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "Bordeaux, Burgundy, Champagne. Sommelier playbook. South African, whiskey, Armagnac.",
       },
       {
-        title: "Health & Fitness",
+        title: "Itinerary & Week Ahead",
         description:
-          "Wellness, yoga, pool vs gym. Day-of-week.",
+          "Multi-day plans (dining, hotels, activities). Week-ahead picks.",
       },
       {
-        title: "Daily Briefing",
+        title: "Surf & Workout",
         description:
-          "KELLY_DAILY_BRIEFING pushes to channels with 'kelly' or 'lifestyle' in the name.",
+          "Surf forecast (Biarritz). Pool, gym, surfer yoga, swim. Swimming tips for 1000m.",
+      },
+      {
+        title: "Tea (Dammann Frères)",
+        description:
+          "Morning or evening tea by occasion. One pick + alternative.",
+      },
+      {
+        title: "Touch Grass / Rebalance",
+        description:
+          "One concrete move: midweek escape, pool day, dinner, yoga.",
+      },
+      {
+        title: "Todos & Reminders",
+        description:
+          "Add, list, complete. In-app reminders (rolodex for cross-platform).",
+      },
+      {
+        title: "Entertainment",
+        description:
+          "Books, music, Netflix, Apple TV. By your taste.",
+      },
+      {
+        title: "Creative Tips",
+        description:
+          "Oil painting, photography, Ableton, cinema, Blender.",
+      },
+      {
+        title: "What can you do?",
+        description:
+          "Capability discovery: summary and detailed manifest.",
       },
     ],
     plugins: [

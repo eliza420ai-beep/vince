@@ -34,6 +34,7 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import personalityPlugin from "@elizaos/plugin-personality";
+import discoveryPlugin from "@elizaos/plugin-discovery";
 import { kellyPlugin } from "../plugins/plugin-kelly/src/index.ts";
 
 const kellyHasDiscord =
@@ -61,6 +62,7 @@ export const kellyCharacter: Character = {
       ? ["@elizaos/plugin-web-search"]
       : []),
     ...(kellyHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    "@elizaos/plugin-discovery",
   ],
   settings: {
     secrets: {
@@ -826,6 +828,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(kellyHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     kellyPlugin, // KELLY_DAILY_BRIEFING action + KellyLifestyleService + daily push to kelly/lifestyle channels
+    discoveryPlugin,
   ] as Plugin[];
 
 const initKelly = async (_runtime: IAgentRuntime) => {

@@ -38,6 +38,35 @@ export interface LifestyleDataContext {
   /** Curated places open today — ONLY suggest from these lists */
   curatedRestaurants: string[];
   curatedHotels: string[];
+  /** Current time Europe/Paris (HH:MM). For SW France dining suggestions. */
+  currentTimeParis?: string;
+  /** True if past lunch hours — do not suggest lunch or dinner out; suggest pool, swim, walk, etc. */
+  pastLunch?: boolean;
+}
+
+function getParisTimeAndPastLunch(day: string): {
+  currentTimeParis: string;
+  pastLunch: boolean;
+} {
+  const now = new Date();
+  const timeParis = now.toLocaleString("en-GB", {
+    timeZone: "Europe/Paris",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const hourParis = parseInt(
+    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hour12: false }),
+    10,
+  );
+  const minParis = parseInt(
+    now.toLocaleString("en-GB", { timeZone: "Europe/Paris", minute: "2-digit" }),
+    10,
+  );
+  const minutesSinceMidnight = hourParis * 60 + minParis;
+  const isSunday = day.toLowerCase() === "sunday";
+  const cutoff = isSunday ? 15 * 60 : 14 * 60 + 30;
+  return { currentTimeParis: timeParis, pastLunch: minutesSinceMidnight >= cutoff };
 }
 
 export function buildLifestyleDataContext(
@@ -50,6 +79,13 @@ export function buildLifestyleDataContext(
   lines.push(
     `Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`,
   );
+  if (ctx.currentTimeParis !== undefined && ctx.pastLunch !== undefined) {
+    lines.push(
+      ctx.pastLunch
+        ? `CURRENT TIME (Europe/Paris): ${ctx.currentTimeParis}. CRITICAL: Past lunch hours. Do NOT suggest lunch or dinner at a restaurant. We almost never go out for dinner. Suggest pool, swim, walk, yoga, wine at home, or afternoon/evening activities instead.`
+        : `Current time (Europe/Paris): ${ctx.currentTimeParis}. Lunch ends 14:00–15:00.`,
+    );
+  }
   if (ctx.isFriday && !opts?.lifestyleOnly) {
     lines.push("FRIDAY - Strike selection ritual day");
   }
@@ -131,11 +167,12 @@ ${dataContext}
 
 Write a lifestyle briefing that:
 1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
-2. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge (e.g. Paris MICHELIN, Bordeaux region, southwest palace hotels)—only real places from that knowledge, never invent names.
-3. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
-4. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
-5. End with a specific suggestion for the day (dining, hotel, or activity).
-6. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
+2. DINING BY TIME: We almost never go out for dinner—lunch only. If CURRENT TIME shows past lunch hours, do NOT suggest lunch or dinner at a restaurant. Suggest pool, swim, walk, yoga, wine at home, or afternoon activities instead. Otherwise suggest lunch from the curated list when available.
+3. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge (e.g. Paris MICHELIN, Bordeaux region, southwest palace hotels)—only real places from that knowledge, never invent names.
+4. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
+5. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
+6. End with a specific suggestion for the day (dining, hotel, or activity).
+7. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
 
 STYLE RULES:
 - Write like a discerning friend helping plan the day
@@ -268,12 +305,16 @@ export const vinceLifestyleAction: Action = {
       const season = lifestyleService.getCurrentSeason();
       const curated = lifestyleService.getCuratedOpenContext?.() ?? null;
 
+      const day = briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1);
+      const { currentTimeParis, pastLunch } = getParisTimeAndPastLunch(day);
       const ctx: LifestyleDataContext = {
-        day: briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1),
+        day,
         date: briefing.date,
         season,
         isFriday: briefing.day.toLowerCase() === "friday",
         specialNotes: briefing.specialNotes,
+        currentTimeParis,
+        pastLunch,
         health: briefing.suggestions
           .filter((s) => s.category === "health")
           .map((s) => ({ suggestion: s.suggestion, reason: s.reason })),

@@ -68,7 +68,7 @@ async function main() {
   if (sslRelax) env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
   const elizaos = spawn("elizaos", ["start"], {
     stdio: "inherit",
-    shell: true,
+    shell: false,
     env,
   });
   elizaos.on("error", (err) => {

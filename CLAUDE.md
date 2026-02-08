@@ -9,7 +9,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | What | Where |
 |------|--------|
 | **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
-| **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** only (KELLY_DAILY_BRIEFING); the-good-life; knows user's trading context but never gives trading advice |
+| **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** (KELLY_DAILY_BRIEFING), **@elizaos/plugin-discovery**, and **@elizaos/plugin-todo** (todo/reminders); the-good-life; knows user's trading context but never gives trading advice |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
@@ -715,6 +715,12 @@ Plan for growth with proper infrastructure and monitoring.
 ---
 
 **🎉 Ready to build your ElizaOS agent!** Start with `elizaos start --dev` and let your agent evolve with your needs.
+
+---
+
+## Kelly: plugin-discovery
+
+Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?” capability discovery and **@elizaos/plugin-todo** (vendored in `packages/plugin-todo`) for todo/list and reminders; rolodex is optional (in-app reminders only without it). Discovery lives in `packages/plugin-discovery`; `DISCOVERY_REQUIRE_PAYMENT=false` keeps summary and manifest free—set `DISCOVERY_REQUIRE_PAYMENT=true` and add plugin-commerce for paid. Todo lives in `packages/plugin-todo`; without plugin-rolodex only in-app reminders work.
 
 ---
 

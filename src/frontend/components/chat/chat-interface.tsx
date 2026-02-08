@@ -46,6 +46,12 @@ import {
   MapPin,
   Waves,
   Dumbbell,
+  CalendarDays,
+  Activity,
+  CupSoda,
+  TreePine,
+  HelpCircle,
+  Palette,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -139,7 +145,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
-  // Kelly: lifestyle concierge — daily briefing, dining, wine, itinerary, surf, workout (no trading)
+  // Kelly: lifestyle concierge — daily briefing, dining, wine, itinerary, surf, workout, week ahead, tea, rebalance, entertainment, discovery (no trading)
   kelly: [
     { label: "Daily Briefing", message: "What should I do today?" },
     { label: "Restaurant & Hotel", message: "Recommend a restaurant in Biarritz" },
@@ -147,6 +153,12 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Itinerary", message: "Plan me 2 days in Bordeaux" },
     { label: "Surf", message: "How's the surf in Biarritz?" },
     { label: "Workout", message: "Recommend a workout for today" },
+    { label: "Week Ahead", message: "What's the week ahead? This week's picks" },
+    { label: "Swimming Tips", message: "Tips for my daily 1000m" },
+    { label: "Tea", message: "What tea for this evening?" },
+    { label: "Touch Grass", message: "I've been grinding—need to rebalance" },
+    { label: "Entertainment", message: "Recommend a book for the weekend" },
+    { label: "What can you do?", message: "What can you do?" },
   ],
   // Solus: wealth architect — strike ritual (options framed as weekly targets), yield, sats, Echo DD, $100K plan. Distinct from Vince (ALOHA/perps/market briefing).
   solus: [
@@ -267,7 +279,7 @@ const SOLUS_CATEGORIES: Record<
   },
 };
 
-// Kelly: lifestyle concierge — dining, wine, itinerary, surf, workout, daily briefing (MICHELIN, James Edition, the-good-life)
+// Kelly: lifestyle concierge — all knowledge and skills (MICHELIN, James Edition, the-good-life, discovery)
 const KELLY_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
@@ -307,6 +319,48 @@ const KELLY_CATEGORIES: Record<
     icon: Dumbbell,
     promptToAsk: "Recommend a workout for today",
     description: "Pool, gym, surfer yoga, or swim suggestion",
+  },
+  weekAhead: {
+    title: "Week Ahead",
+    icon: CalendarDays,
+    promptToAsk: "What's the week ahead? This week's picks",
+    description: "3–5 picks across dining, hotels, wellness",
+  },
+  swimming: {
+    title: "Swimming Tips",
+    icon: Activity,
+    promptToAsk: "Tips for my daily 1000m",
+    description: "Pool season, winter pools, yoga for swimmers",
+  },
+  tea: {
+    title: "Tea",
+    icon: CupSoda,
+    promptToAsk: "What tea for this evening?",
+    description: "Dammann Frères — morning or evening, by occasion",
+  },
+  rebalance: {
+    title: "Touch Grass",
+    icon: TreePine,
+    promptToAsk: "I've been grinding—need to rebalance",
+    description: "One concrete lifestyle move: escape, pool, dinner, yoga",
+  },
+  entertainment: {
+    title: "Entertainment",
+    icon: BookOpen,
+    promptToAsk: "Recommend a book for the weekend",
+    description: "Books, music, Netflix, Apple TV — by your taste",
+  },
+  creative: {
+    title: "Creative Tips",
+    icon: Palette,
+    promptToAsk: "Tips to get started with oil painting",
+    description: "Painting, photography, Ableton, cinema, Blender",
+  },
+  discovery: {
+    title: "What can you do?",
+    icon: HelpCircle,
+    promptToAsk: "What can you do?",
+    description: "Capability summary and detailed manifest",
   },
 };
 

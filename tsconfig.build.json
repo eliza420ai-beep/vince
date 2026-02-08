@@ -6,7 +6,9 @@
     "sourceMap": true,
     "inlineSources": true,
     "declaration": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "noEmit": false
   },
   "include": [
     "src/index.ts",

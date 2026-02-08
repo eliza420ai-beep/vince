@@ -40,7 +40,7 @@ function installTestDependencies() {
     const proc = spawnSync('bun', ['add', '-d', ...missingDeps], {
       stdio: 'inherit',
       cwd: process.cwd(),
-      shell: true,
+      shell: false,
     });
 
     if (proc.status !== 0) {

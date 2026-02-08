@@ -10,3 +10,9 @@ declare module "@elizaos/plugin-bootstrap" {
   const plugin: unknown;
   export default plugin;
 }
+
+declare module "@elizaos/plugin-discovery" {
+  const discoveryPlugin: unknown;
+  export default discoveryPlugin;
+  export { discoveryPlugin };
+}

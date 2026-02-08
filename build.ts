@@ -56,6 +56,7 @@ async function build() {
             "@elizaos/plugin-sql",
             "@elizaos/cli",
             "zod",
+            "@elizaos/plugin-discovery",
           ],
           naming: {
             entry: "[dir]/[name].[ext]",

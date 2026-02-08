@@ -1,11 +1,18 @@
+import "./log-suppress";
+
 import { type Project, logger } from "@elizaos/core";
 
-// Suppress "Send handler not found (handlerSource=discord)" at the process level — core uses runtime.logger
-// (per-agent) and we can't patch it from outside. Filter both stderr and stdout (pino may use either).
-(function suppressSendHandlerNotFound() {
+// Suppress noisy warnings at the process level — intercept stdout/stderr writes
+(function suppressNoisyLogs() {
   const suppress = (chunk: Buffer | string): boolean => {
     const s = typeof chunk === "string" ? chunk : chunk.toString();
-    return /Send handler not found/i.test(s);
+    return (
+      /Send handler not found/i.test(s) ||
+      /AI SDK Warning System.*turn off warning logging/i.test(s) ||
+      /\[PLUGIN:SQL\].*Database operation failed, retrying/i.test(s) ||
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*No ownership data found/i.test(s) ||
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:SETTINGS\].*No settings state found/i.test(s)
+    );
   };
   for (const stream of ["stderr", "stdout"] as const) {
     const writable = process[stream];

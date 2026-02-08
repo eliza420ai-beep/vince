@@ -135,7 +135,7 @@ async function main() {
   }
   const openCmd =
     process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-  spawn(openCmd, [resolvedUrl], { stdio: "ignore", shell: true }).unref();
+  spawn(openCmd, [resolvedUrl], { stdio: "ignore", shell: false }).unref();
 
   console.log("\n");
   console.log("  ╔════════════════════════════════════════════════════════════╗");
