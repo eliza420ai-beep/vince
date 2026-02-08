@@ -31,6 +31,8 @@ describe("Kelly integration", () => {
         rawSection: "Wed: Maison Devaux",
       }),
       getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+      getPalacePoolStatusLine: () =>
+        "Caudalie: back open (reopened Feb 5), Palais reopens Feb 12, Eugenie reopens Mar 6",
     } as unknown as KellyLifestyleService;
 
     const runtime = createMockRuntime({

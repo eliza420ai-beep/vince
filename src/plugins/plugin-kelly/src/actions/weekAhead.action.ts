@@ -58,15 +58,47 @@ export const kellyWeekAheadAction: Action = {
       const season = service?.getCurrentSeason() ?? "pool";
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
+      const now = new Date();
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const today = dayNames[now.getDay()];
+      const timeParis = now.toLocaleString("en-GB", {
+        timeZone: "Europe/Paris",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const hourParis = parseInt(
+        now.toLocaleString("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hour12: false }),
+        10,
+      );
+      const minParis = parseInt(
+        now.toLocaleString("en-GB", { timeZone: "Europe/Paris", minute: "2-digit" }),
+        10,
+      );
+      const minutesSinceMidnight = hourParis * 60 + minParis;
+      const isSunday = today === "Sunday";
+      const pastLunch = minutesSinceMidnight >= (isSunday ? 15 * 60 : 14 * 60 + 30);
+
       const restLine = restaurants.length > 0 ? restaurants.slice(0, 8).join("; ") : "See curated-open-schedule by day";
       const hotelLine = hotels.length > 0 ? hotels.slice(0, 5).join("; ") : "See curated-open-schedule";
+      const palacePoolLine =
+        season === "gym" ? service?.getPalacePoolStatusLine() ?? "" : "";
+      const weatherSummary = (state.values?.weatherSummary as string) ?? "";
+      const weatherLine = weatherSummary || "Weather unavailable.";
+
+      const timeRule = pastLunch
+        ? `CRITICAL: It is ${timeParis} on ${today} — past lunch hours. Do NOT suggest ${today} lunch (it's over). "Week ahead" means the UPCOMING part of the week: suggest Wed–Sat lunch, not today. We almost never go out for dinner—lunch only.`
+        : `Current time: ${timeParis} on ${today}. If suggesting lunch for today, confirm they can still make it (lunch ends 14:00–15:00).`;
 
       const prompt = `You are Kelly, a concierge for five-star hotels, fine dining, and wellness. Give 3–5 concrete picks for THIS WEEK (dining, hotel, wellness).
 
 Context:
 - Season: ${season === "pool" ? "Pool (Apr–Nov)" : "Gym (Dec–Mar)"}
+- Today: ${today}, current time Europe/Paris: ${timeParis}
+- ${timeRule}
 - Restaurants open this week (by day in curated list): ${restLine}
-- Hotels this season: ${hotelLine}
+- Hotels this season: ${hotelLine}${palacePoolLine ? `\n- Palace pools: ${palacePoolLine}` : ""}
+- Current weather (use this, do not assume): ${weatherLine}
 
 Additional context from the-good-life:
 ${contextBlock.slice(0, 2000)}
@@ -75,6 +107,8 @@ Rules:
 - 3–5 specific suggestions (name places). Mix dining, one hotel idea, one wellness/fitness idea.
 - Only names from the-good-life or the curated lists. No invented names.
 - Wednesday = best midweek escape day. Tuesday/Thursday = gastronomic lunch days.
+- Never suggest today's lunch if it's already past lunch hours. "Week ahead" = upcoming days, not things that are over.
+- Weather: Use the current weather line above. Do NOT mention rain, "watch the rain", or assume bad weather unless the weather explicitly says rain/storm. If it says clear, partly cloudy, overcast, etc.—describe the actual conditions or skip weather in your suggestions.
 - One short paragraph per pick or a tight list. Benefit-led, no jargon.
 - No trading or markets.`;
 

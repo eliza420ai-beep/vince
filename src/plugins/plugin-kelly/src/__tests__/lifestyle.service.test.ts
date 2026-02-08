@@ -73,4 +73,26 @@ describe("KellyLifestyleService", () => {
       expect(season === "pool" || season === "gym").toBe(true);
     });
   });
+
+  describe("getPalacePoolStatusLine", () => {
+    it("returns 'back open' for past reopen dates, 'reopens' for future", async () => {
+      const service = await getService();
+      const beforeAll = new Date(2026, 0, 15);
+      const afterCaudalie = new Date(2026, 1, 10);
+      const afterAll = new Date(2026, 3, 1);
+
+      const lineBefore = service.getPalacePoolStatusLine(beforeAll);
+      const lineAfterCaudalie = service.getPalacePoolStatusLine(afterCaudalie);
+      const lineAfterAll = service.getPalacePoolStatusLine(afterAll);
+
+      expect(lineBefore).toMatch(/reopens/i);
+      expect(lineBefore).not.toMatch(/back open/i);
+
+      expect(lineAfterCaudalie).toMatch(/Caudalie: back open/i);
+      expect(lineAfterCaudalie).toMatch(/Palais reopens Feb 12/i);
+
+      expect(lineAfterAll).toMatch(/back open/i);
+      expect(lineAfterAll).not.toMatch(/reopens Feb 5/);
+    });
+  });
 });

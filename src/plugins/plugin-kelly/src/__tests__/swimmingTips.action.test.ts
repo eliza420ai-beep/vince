@@ -52,6 +52,8 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
           Caudalie: "Feb 5",
           Eugenie: "Mar 6",
         }),
+        getPalacePoolStatusLine: () =>
+          "Caudalie: back open (reopened Feb 5), Palais reopens Feb 12, Eugenie reopens Mar 6",
       } as unknown as KellyLifestyleService;
       const runtime = createMockRuntime({
         getService: (name: string) =>
@@ -85,6 +87,7 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
       const mockService = {
         getCurrentSeason: () => "gym" as const,
         getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+        getPalacePoolStatusLine: () => "Palais reopens Feb 12, Caudalie Feb 5, Eugenie reopens Mar 6",
       } as unknown as KellyLifestyleService;
       const runtime = createMockRuntime({
         getService: (name: string) =>

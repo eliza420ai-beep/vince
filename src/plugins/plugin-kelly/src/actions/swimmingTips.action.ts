@@ -54,20 +54,17 @@ export const kellySwimmingTipsAction: Action = {
       const state = await runtime.composeState(message);
 
       const season = service?.getCurrentSeason() ?? "pool";
-      const palaceDates = service?.getPalacePoolReopenDates?.() ?? {};
       const datesLine =
-        Object.entries(palaceDates).length > 0
-          ? Object.entries(palaceDates)
-              .map(([k, v]) => `${k} ${v}`)
-              .join(", ")
-          : "Palais Feb 12, Caudalie Feb 5, Eugenie Mar 6";
+        season === "gym"
+          ? (service?.getPalacePoolStatusLine?.() ?? "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6")
+          : "—";
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
       const prompt = `You are Kelly. The user wants swimming tips—e.g. for a daily 1000m or lap swim.
 
 Context:
 - Season: ${season === "pool" ? "Pool (Apr–Nov)" : "Gym (Dec–Mar)"}
-- Palace indoor pool reopen dates (winter): ${datesLine}
+- Palace indoor pools (winter): ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.
 
 Knowledge to use (from the-good-life):
 ${contextBlock.slice(0, 2500)}

@@ -57,12 +57,14 @@ export const kellyRecommendWorkoutAction: Action = {
       const day = service?.getDailyBriefing?.()?.day ?? "monday";
       const dayCap = day.charAt(0).toUpperCase() + day.slice(1);
       const contextBlock = typeof state.text === "string" ? state.text : "";
+      const palacePoolLine =
+        season === "gym" ? service?.getPalacePoolStatusLine?.() ?? "" : "";
 
       const prompt = `You are Kelly, a concierge for health and fitness. Recommend exactly ONE concrete workout for today.
 
 Context:
 - Day: ${dayCap}
-- Season: ${season === "pool" ? "Pool (Apr–Nov) — outdoor swim, rooftops" : "Gym (Dec–Mar) — indoor training, palace pools for lap swim when open"}
+- Season: ${season === "pool" ? "Pool (Apr–Nov) — outdoor swim, rooftops" : "Gym (Dec–Mar) — indoor training, palace pools for lap swim when open"}${palacePoolLine ? `\n- Palace pools: ${palacePoolLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.` : ""}
 - Today's wellness tip: ${wellnessTip || "—"}
 
 Additional context from the-good-life:

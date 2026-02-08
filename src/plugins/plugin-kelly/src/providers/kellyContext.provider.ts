@@ -149,15 +149,9 @@ export const kellyContextProvider: Provider = {
         `Season: ${season === "pool" ? "Pool (Apr–Nov)" : "Gym (Dec–Mar)"}`,
       );
       if (season === "gym") {
-        const palaceDates = service.getPalacePoolReopenDates();
-        const datesLine =
-          Object.entries(palaceDates).length > 0
-            ? Object.entries(palaceDates)
-                .map(([k, v]) => `${k} reopens ${v}`)
-                .join(", ")
-            : "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6";
+        const datesLine = service.getPalacePoolStatusLine();
         textParts.push(
-          `**Swimming:** Backyard pool heating off until end Feb; consider 5/3 wetsuit or indoor swim. Palace pools: ${datesLine}.`,
+          `**Swimming:** Backyard pool heating off until end Feb; consider 5/3 wetsuit or indoor swim. Palace pools: ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.`,
         );
       }
 

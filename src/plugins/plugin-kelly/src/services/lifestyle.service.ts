@@ -123,6 +123,45 @@ export class KellyLifestyleService extends Service {
     return { Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" };
   }
 
+  /** Parse "Feb 5" or "Mar 6" into a Date (current year). Returns null if unparseable. */
+  private parseReopenDate(dateStr: string): Date | null {
+    const months: Record<string, number> = {
+      Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+      Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11,
+      January: 0, February: 1, March: 2, April: 3, May: 4, June: 5,
+      July: 6, August: 7, September: 8, October: 9, November: 10, December: 11,
+    };
+    const m = dateStr.match(/^(\w+)\s+(\d+)/i);
+    if (!m) return null;
+    const month = months[m[1]];
+    const day = parseInt(m[2], 10);
+    if (month === undefined || isNaN(day) || day < 1 || day > 31) return null;
+    const year = new Date().getFullYear();
+    return new Date(year, month, day);
+  }
+
+  /** Returns date-aware palace pool status: "X: back open" when past reopen date, "X reopens [date]" when future. */
+  getPalacePoolStatusLine(asOf?: Date): string {
+    const dates = this.getPalacePoolReopenDates();
+    const now = asOf ?? new Date();
+    const parts: string[] = [];
+    const labels: Record<string, string> = {
+      Palais: "Palais",
+      Caudalie: "Caudalie",
+      Eugenie: "Eugenie",
+    };
+    for (const [key, dateStr] of Object.entries(dates)) {
+      const label = labels[key] ?? key;
+      const d = this.parseReopenDate(dateStr);
+      if (d && now >= d) {
+        parts.push(`${label}: back open (reopened ${dateStr})`);
+      } else {
+        parts.push(`${label} reopens ${dateStr}`);
+      }
+    }
+    return parts.length > 0 ? parts.join(", ") : "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6";
+  }
+
   /** Parse "Palace indoor pools (winter swim)" subsection for "reopens Feb 12" etc. */
   private parsePalacePoolReopenDates(content: string): Record<string, string> {
     const subsection = this.extractSection(content, "**Palace indoor pools (winter swim)**");
