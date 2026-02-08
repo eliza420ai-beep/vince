@@ -17,6 +17,8 @@ import type {
 const CURATED_SCHEDULE_PATH =
   "knowledge/the-good-life/curated-open-schedule.md";
 
+const PARIS_TZ = "Europe/Paris";
+
 export interface CuratedOpenContext {
   restaurants: string[];
   hotels: string[];
@@ -230,21 +232,29 @@ export class KellyLifestyleService extends Service {
     return lines.map((l) => l.replace(/^-\s*/, "").trim());
   }
 
+  /** Day of week in Europe/Paris so briefing matches "current time (Europe/Paris)". */
   private getDayOfWeek(): DayOfWeek {
-    const days: DayOfWeek[] = [
-      "sunday",
-      "monday",
-      "tuesday",
-      "wednesday",
-      "thursday",
-      "friday",
-      "saturday",
-    ];
-    return days[new Date().getDay()];
+    const long = new Intl.DateTimeFormat("en-GB", {
+      timeZone: PARIS_TZ,
+      weekday: "long",
+    }).format(new Date());
+    return long.toLowerCase() as DayOfWeek;
   }
 
+  /** Month (1–12) in Europe/Paris for pool vs gym season. */
   private getMonth(): number {
-    return new Date().getMonth() + 1;
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: PARIS_TZ,
+      month: "numeric",
+      year: "numeric",
+    }).formatToParts(new Date());
+    const month = parts.find((p) => p.type === "month")?.value ?? "1";
+    return parseInt(month, 10);
+  }
+
+  /** Date YYYY-MM-DD in Europe/Paris. */
+  private getDateParis(): string {
+    return new Date().toLocaleDateString("en-CA", { timeZone: PARIS_TZ });
   }
 
   private isPoolSeason(): boolean {
@@ -389,7 +399,7 @@ export class KellyLifestyleService extends Service {
 
   getDailyBriefing(): DailyBriefing {
     const day = this.getDayOfWeek();
-    const date = new Date().toISOString().split("T")[0];
+    const date = this.getDateParis();
 
     const allSuggestions: LifestyleSuggestion[] = [
       ...this.getActivitySuggestions(),

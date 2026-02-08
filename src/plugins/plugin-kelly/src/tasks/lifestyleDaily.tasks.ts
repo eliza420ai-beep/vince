@@ -182,7 +182,7 @@ Here's the data:
 ${dataContext}
 
 Write a lifestyle briefing that:
-1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
+1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day? Do not repeat the day name or "Sunday evening" etc. in the title; the date and time are already shown above.
 2. DINING BY TIME: We almost NEVER go out for dinner—lunch only. If CURRENT TIME shows past lunch hours (past 14:30, or 15:00 on Sunday), do NOT suggest lunch or dinner at a restaurant. Suggest pool, swim, walk, yoga, wine at home, or afternoon activities instead. Otherwise, suggest LUNCH at the curated places—never dinner out.
 3. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If empty or short, suggest one or two specific places from the-good-life only—never invent names.
 4. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
