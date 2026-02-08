@@ -29,97 +29,85 @@ const DEFAULT_AGENT = "VINCE";
 
 export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
-    headline: "Push, not pull.",
+    headline: "One feed. Your edge.",
     intro:
-      "VINCE pushes. Options, perps, TradFi, memes, lifestyle, art—one feed instead of fifteen tabs. At the core: a machine-learning paper trading algo for perps on Hyperliquid. Onchain options on Hypersurface. Gold, SPX, NVDA via HIP-3 onchain stocks. He pings you. No redeploy to improve.",
+      "A paper trading bot that tells you why. It trades perps on Hyperliquid, learns from every decision, and gets better without you redeploying. One view: funding, whale flow, sentiment, regime. Options on Hypersurface. Gold, SPX, NVDA onchain. Memes and intel when you want them—same standard.",
     tags: [
-      { label: "ML Paper Perps", withSparkles: true },
-      { label: "HIP-3 Onchain Stocks" },
-      { label: "Push" },
+      { label: "Paper perps", withSparkles: true },
+      { label: "Learns" },
+      { label: "No redeploy" },
     ],
     capabilities: [
       {
-        title: "ALOHA Day Report",
+        title: "The paper bot",
         description:
-          "Say gm. One feed: options skew, perps funding, memes, lifestyle, NFT floors. Not a dashboard—one narrative.",
+          "Trades on paper so you don’t guess. Every trade logs why—signal, size, exit. Funding, OI, fear/greed, whale flow, news: one feed, one decision. Sizing and circuit breakers cap risk. The more it trades, the better it gets; new models load when ready. No redeploy.",
       },
       {
-        title: "ML Paper Trading Bot",
+        title: "ALOHA",
         description:
-          "Machine-learning paper trading for perps on Hyperliquid. Thompson Sampling. ONNX. WHY THIS TRADE—every factor logged. Kelly sizing, circuit breakers. Day 1 rules, 90+ days full ML. Trains in prod. No redeploy.",
+          "One word. You get today’s vibe, how the majors look, and whether to trade. One narrative, not fifteen tabs. Ask for bot status or why BTC matters—same entry.",
       },
       {
-        title: "Onchain Options on Hypersurface",
+        title: "Options & onchain stocks",
         description:
-          "Covered calls, secured puts on Hypersurface. Deribit IV, Greeks, DVOL. HIP-3: gold, SPX, NVDA—onchain stocks.",
+          "Covered calls and secured puts on Hypersurface. Gold, SPX, NVDA—onchain.",
       },
       {
-        title: "Meme Scanner",
+        title: "The rest",
         description:
-          "DexScreener + Meteora. $1M–$20M mcap sweet spot. Traction, liquidity.",
-      },
-      {
-        title: "Market Intelligence",
-        description:
-          "MandoMinutes sentiment, funding extremes, OI cap, NASDAQ 24h. Why BTC matters—macro, regime, narrative.",
-      },
-      {
-        title: "Leaderboard Dashboard",
-        description:
-          "Markets, Memetics, News, Art, Trading Bot. No chat required. Open the page, data is there.",
-      },
-      {
-        title: "Lifestyle & Art",
-        description:
-          "Day-of-week suggestions. NFT floors (CryptoPunks, Meridian).",
+          "Memes, intel, lifestyle. Same feed, same bar.",
       },
     ],
     plugins: [
       {
+        name: "ONNX",
+        category: "Powered by",
+        summary:
+          "Train once. Run anywhere. The bot’s models improve when there’s enough data; new weights load without redeploy. One format, four decisions: signal, size, take-profit, stop.",
+        points: [
+          "One artifact per model. Updates when you have the trades.",
+          "No lock-in. No redeploy tax.",
+        ],
+        example: "ONNX.md",
+      },
+      {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "Machine-learning paper trading for perps on Hyperliquid. 15 signal sources. WHY THIS TRADE. Options on Hypersurface. HIP-3 onchain stocks. Six domains.",
+          "The paper bot, ALOHA, perps, options, memes, HIP-3. One stack.",
         points: [
-          "ALOHA, VINCE_PERPS, VINCE_OPTIONS, VINCE_MEMES, VINCE_BOT_*.",
-          "Self-improving ML: Thompson Sampling, ONNX inference, improvement report.",
+          "Every decision explained.",
         ],
-        example: '"ALOHA" or "bot status"',
+        example: "ALOHA · bot status",
       },
       {
-        name: "Powered by ElizaOS",
+        name: "ElizaOS",
         category: "AI Engine",
         summary:
-          "Numbers become narrative. Why, not just what. One voice across options, perps, memes, lifestyle, art.",
-        points: [
-          "Narrative on top of the numbers.",
-        ],
-        example: '"Perps pulse for BTC?"',
+          "Numbers become one voice. Your voice.",
+        points: [],
+        example: "",
       },
       {
         name: "SQL",
         category: "Database",
         summary:
-          "Trades, logs, memories. Feature store for ML.",
-        points: [
-          "Portfolio summaries and transaction histories.",
-          "Feature store for ML training.",
-        ],
-        example: '"Summarize my paper trades."',
+          "Trades and context. What the bot learns from.",
+        points: [],
+        example: "",
       },
       {
         name: "Bootstrap",
         category: "Memory",
         summary:
           "Remembers. Stays on task.",
-        points: [
-          "Past trades. Stays on task.",
-        ],
-        example: "Past trades.",
+        points: [],
+        example: "",
       },
     ],
     proTip:
-      "Say gm or ALOHA. Bot status. Why does BTC matter? Free first. Paid APIs optional.",
+      "Say gm or ALOHA. Bot status. Why does BTC matter? One entry. Free first; paid APIs when you need them.",
   },
 
   Otaku: {
