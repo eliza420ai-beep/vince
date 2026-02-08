@@ -97,3 +97,5 @@ So the proof for “can adjust” is: (1) offline validation script shows that a
   3. Inspect tuner and bandit state after many trades to show online parameter updates.
 
 For a one-command “proof” on real or synthetic data, run the validation script (and optionally the training test) as above.
+
+**See also:** For the broader "worth it" thesis (24/7 research + extending knowledge + ONNX), see [docs/WORTH_IT_PROOF.md](../../../docs/WORTH_IT_PROOF.md).

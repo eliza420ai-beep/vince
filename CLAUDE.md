@@ -739,3 +739,4 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 - [DEPLOY.md](DEPLOY.md) — Deploy to Eliza Cloud
 - [TREASURY.md](TREASURY.md) — Cost coverage and profitability mandate
 - [src/plugins/plugin-vince/](src/plugins/plugin-vince/) — WHAT, WHY, HOW, CLAUDE, README
+- [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) — Proof that 24/7 research, knowledge extension, and ONNX are worth it

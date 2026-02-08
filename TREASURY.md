@@ -74,6 +74,8 @@
 
 Apply these in code, infra, and prompt design. Review periodically.
 
+**Local inference:** For running inference locally instead of cloud APIs (e.g. EXO cluster), see [LOCALSONLY.md](LOCALSONLY.md).
+
 **Session token tracking (implemented):** Each chat run emits a `run_event` log with estimated tokens (input + output character-length heuristic). Real usage from model providers is stored when available. The dashboard **Usage** tab (Leaderboard → Usage) shows tokens by day and total for the period. Optional estimated cost: set `VINCE_USAGE_COST_PER_1K_TOKENS` (e.g. `0.01` for $0.01 per 1K tokens) in env or agent settings to see estimated cost in the Usage tab.
 
 ---
@@ -103,7 +105,7 @@ Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in envi
 ## References & Tags
 
 - **Concepts:** #money #survival #llmCosts #profitability #costOptimization
-- **Related docs:** `FEATURE-STORE.md` (paper trading → edge validation), `CLAUDE.md` (project overview).
+- **Related docs:** `FEATURE-STORE.md` (paper trading → edge validation), `CLAUDE.md` (project overview), `LOCALSONLY.md` (local inference cluster, cost and rationale).
 
 ---
 

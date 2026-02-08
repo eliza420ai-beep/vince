@@ -54,6 +54,7 @@
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [**skills/x-research**](skills/x-research/README.md) | X (Twitter) read-only research · sentiment on X · Cursor/Claude skill + VINCE in-chat |
+| [**LOCALSONLY**](LOCALSONLY.md) | Local inference cluster (EXO) · cost and WHY |
 
 ---
 
@@ -507,6 +508,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [DISCORD.md](DISCORD.md) | Channel structure (IKIGAI, LiveTheLifeTV, Slack) |
 | [CLAUDE.md](CLAUDE.md) | ElizaOS dev guide |
 | [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
+| [LOCALSONLY.md](LOCALSONLY.md) | Local inference cluster (EXO), cost and rationale |
 | [docs/CLAUDE_CODE_CONTROLLER.md](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
 | [plugin-kelly/](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
@@ -514,6 +516,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
 | [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights, holdout metrics |
 | [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) | How to prove ML improves the algo (validate_ml_improvement, tests) |
+| [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) | Proof that 24/7 research, knowledge extension, and ONNX are worth it |
 | [PARAMETER_IMPROVEMENT.md](src/plugins/plugin-vince/scripts/PARAMETER_IMPROVEMENT.md) | What the improvement report identifies (thresholds, TP/SL) |
 | [DATA_LEVERAGE.md](src/plugins/plugin-vince/DATA_LEVERAGE.md) | Feature coverage |
 | [ALGO_ML_IMPROVEMENTS.md](src/plugins/plugin-vince/ALGO_ML_IMPROVEMENTS.md) | ML roadmap |
