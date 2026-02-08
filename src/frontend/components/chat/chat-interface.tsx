@@ -160,10 +160,8 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Entertainment", message: "Recommend a book for the weekend" },
     { label: "What can you do?", message: "What can you do?" },
   ],
-  // Solus: X-native research first — timeline, CT, threads; then wealth architect (strike ritual, yield, $100K plan).
+  // Solus: wealth architect first (strike ritual, $100K plan, yield, Echo DD). X research de-prioritized while X API is rate-limited.
   solus: [
-    { label: "Research on X", message: "What's CT saying about BTC?" },
-    { label: "Vibe Check", message: "Vibe check HYPE on X—then strike ritual angle." },
     { label: "Strike Ritual", message: "options" },
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "Yield Rates", message: "best yield USDC USDT0" },
@@ -237,17 +235,11 @@ const ELIZA_CATEGORIES: Record<
   },
 };
 
-// Solus: X-native research first — timeline, CT, threads, vibe check, ratio; then wealth architect.
+// Solus: wealth architect first (strike ritual, stack, yield). X research available in chat when X API permits.
 const SOLUS_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
 > = {
-  xResearch: {
-    title: "Research on X",
-    icon: Search,
-    promptToAsk: "What's CT saying about HYPERSURFACE?",
-    description: "Timeline-first: sentiment, threads, vibe check, ratio. CT-fluent, thread-native (on X since 2007)",
-  },
   strikeRitual: {
     title: "Strike Ritual",
     icon: TrendingUp,
@@ -259,6 +251,12 @@ const SOLUS_CATEGORIES: Record<
     icon: Target,
     promptToAsk: "full $100K plan",
     description: "Sats, yield, Echo DD, options — the full seven pillars",
+  },
+  xResearch: {
+    title: "Research on X",
+    icon: Search,
+    promptToAsk: "What's CT saying about HYPERSURFACE?",
+    description: "X sentiment and threads (when X API available). Ask in chat for CT take.",
   },
   yield: {
     title: "Yield Rates",

@@ -986,6 +986,18 @@ export const vincePlugin: Plugin = {
   },
 };
 
+/** Plugin variant without X API — use for Solus so only VINCE uses X_BEARER_TOKEN (avoids rate-limit conflict). */
+export const vincePluginNoX: Plugin = {
+  ...vincePlugin,
+  name: "plugin-vince-no-x",
+  description:
+    vincePlugin.description + " No X API (Solus uses this; VINCE owns X research/sentiment).",
+  services: (vincePlugin.services as (typeof Service)[]).filter(
+    (s) => s !== VinceXResearchService && s !== VinceXSentimentService,
+  ),
+  actions: vincePlugin.actions!.filter((a) => a.name !== "VINCE_X_RESEARCH"),
+};
+
 export default vincePlugin;
 
 // ==========================================
