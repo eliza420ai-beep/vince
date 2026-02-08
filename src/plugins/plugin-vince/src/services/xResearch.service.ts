@@ -111,16 +111,26 @@ export class VinceXResearchService extends Service {
     super();
   }
 
+  /** Token from env or character secrets (X_BEARER_TOKEN). */
+  private getToken(): string | null {
+    const fromEnv = process.env.X_BEARER_TOKEN?.trim();
+    if (fromEnv) return fromEnv;
+    const fromRuntime = this.runtime.getSetting?.("X_BEARER_TOKEN");
+    const s = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
+    return s || null;
+  }
+
   static async start(runtime: IAgentRuntime): Promise<VinceXResearchService> {
-    const token = process.env.X_BEARER_TOKEN?.trim();
+    const service = new VinceXResearchService(runtime);
+    const token = service.getToken();
     if (!token) {
       logger.info(
-        "[VinceXResearchService] X_BEARER_TOKEN not set — X research disabled",
+        "[VinceXResearchService] X_BEARER_TOKEN not set — X research disabled. Set in .env or agent secrets.",
       );
     } else {
       logger.info("[VinceXResearchService] Started (X API read-only)");
     }
-    return new VinceXResearchService(runtime);
+    return service;
   }
 
   async stop(): Promise<void> {
@@ -128,11 +138,11 @@ export class VinceXResearchService extends Service {
   }
 
   isConfigured(): boolean {
-    return !!process.env.X_BEARER_TOKEN?.trim();
+    return !!this.getToken();
   }
 
   private async apiGet(url: string): Promise<RawResponse> {
-    const token = process.env.X_BEARER_TOKEN?.trim();
+    const token = this.getToken();
     if (!token) throw new Error("X_BEARER_TOKEN not set");
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
