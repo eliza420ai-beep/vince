@@ -226,12 +226,17 @@ export const addMichelinRestaurantAction: Action = {
     message: Memory,
   ): Promise<boolean> => {
     if (runtime.character?.name !== "Eliza") return false;
-    const room = await runtime.getRoom(message.roomId);
-    const roomName = (room?.name ?? "").toLowerCase();
-    if (!roomName.includes("knowledge")) return false;
     const text = message.content?.text ?? "";
     if (!text.includes("guide.michelin.com")) return false;
     if (!extractMichelinUrl(text)) return false;
+    let roomName = "";
+    try {
+      const room = await runtime.getRoom(message.roomId);
+      roomName = (room?.name ?? "").toLowerCase();
+    } catch {
+      roomName = "knowledge";
+    }
+    if (!roomName.includes("knowledge")) return false;
     return true;
   },
 

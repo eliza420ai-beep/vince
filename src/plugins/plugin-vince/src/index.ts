@@ -128,6 +128,7 @@ import { vinceAlertsAction } from "./actions/alerts.action";
 import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
+import { michelinKnowledgeProvider } from "./providers/michelinKnowledge.provider";
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 
 // Tasks
@@ -540,6 +541,7 @@ export const vincePlugin: Plugin = {
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
   providers: [
     teammateContextProvider,
+    michelinKnowledgeProvider,
     protocolWriteupProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
