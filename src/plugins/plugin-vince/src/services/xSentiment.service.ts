@@ -95,7 +95,7 @@ export class VinceXSentimentService extends Service {
     ) as VinceXResearchService | null;
     if (!xResearch?.isConfigured()) {
       logger.info(
-        "[VinceXSentimentService] X research not configured — X sentiment disabled",
+        "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",
       );
       return service;
     }
