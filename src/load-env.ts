@@ -15,6 +15,7 @@ const candidates = [
   resolve(__dirname, "..", "..", ".env"),
 ];
 
+let loaded = false;
 for (const envPath of candidates) {
   if (existsSync(envPath)) {
     const content = readFileSync(envPath, "utf8");
@@ -31,6 +32,18 @@ for (const envPath of candidates) {
         }
       }
     }
+    loaded = true;
+    const hasX = !!process.env.X_BEARER_TOKEN?.trim();
+    if (typeof process.stdout?.write === "function") {
+      process.stdout.write(
+        `[load-env] Loaded .env from ${envPath} | X_BEARER_TOKEN: ${hasX ? "set" : "NOT SET"}\n`,
+      );
+    }
     break;
   }
+}
+if (!loaded && typeof process.stdout?.write === "function") {
+  process.stdout.write(
+    `[load-env] No .env found (tried: ${candidates.join(", ")}) | cwd=${process.cwd()}\n`,
+  );
 }
