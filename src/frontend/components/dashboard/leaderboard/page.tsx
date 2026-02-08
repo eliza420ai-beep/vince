@@ -91,6 +91,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     queryFn: () => fetchKnowledgeWithError(leaderboardsAgentId),
     enabled: mainTab === "knowledge" && !!leaderboardsAgentId,
     staleTime: 5 * 60 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: qualityResult, isLoading: qualityLoading, refetch: refetchQuality } = useQuery({
@@ -291,10 +292,15 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               </Button>
             )}
             {mainTab === "knowledge" && (
-              <Button variant="outline" size="sm" onClick={() => refetchKnowledge()} disabled={knowledgeLoading}>
-                <RefreshCw className={cn("w-4 h-4 mr-2", knowledgeLoading && "animate-spin")} />
-                Refresh
-              </Button>
+              <>
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  Upload via Discord? List updates automatically every minute.
+                </span>
+                <Button variant="outline" size="sm" onClick={() => refetchKnowledge()} disabled={knowledgeLoading}>
+                  <RefreshCw className={cn("w-4 h-4 mr-2", knowledgeLoading && "animate-spin")} />
+                  Refresh
+                </Button>
+              </>
             )}
             {mainTab === "usage" && (
               <Button variant="outline" size="sm" onClick={() => refetchUsage()} disabled={usageFetching}>
