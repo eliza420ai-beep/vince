@@ -234,13 +234,13 @@ async function fetchPageContentViaBrowser(
   runtime: IAgentRuntime,
 ): Promise<string | null> {
   try {
-    const browserService = runtime.getService<{
+    const browserService = runtime.getService("browser") as {
       getPageContent?(url: string, rt: IAgentRuntime): Promise<{
         title?: string;
         description?: string;
         bodyContent?: string;
       }>;
-    }>("browser");
+    } | null;
     if (!browserService?.getPageContent) return null;
     const page = await browserService.getPageContent(url, runtime);
     if (!page?.bodyContent || page.bodyContent.length < 100) return null;
@@ -424,8 +424,9 @@ ${content.slice(0, 12000)}
     }
 
     const citySlug = extractCitySlugFromUrl(url);
+    const entry = citySlug ? CITY_TO_FILE_AND_SECTION[citySlug] : undefined;
     const { file: fileName, section: sectionHeading } =
-      (citySlug && CITY_TO_FILE_AND_SECTION[citySlug]) ?? UNKNOWN_CITY_FALLBACK;
+      entry ?? UNKNOWN_CITY_FALLBACK;
     const cityDisplay = getDisplayCity(citySlug, extract.address);
     const newBlock = formatEntry(extract, url, cityDisplay);
 
