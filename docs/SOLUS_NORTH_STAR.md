@@ -132,6 +132,8 @@ Current implementation lives in [src/agents/solus.ts](../src/agents/solus.ts) an
 
 This doc remains the single place to understand the target design. Implementation choices (e.g. Grok vs existing X API, where memory lives, how many “sub-agents” are first-class) are left to future work.
 
+**Implementation status (Phases 2–5):** Sub-agent Grok orchestration (six specialists + Section 10 synthesis), optional Tavily web verification, persistent memory (`.elizadb/vince-paper-bot/crypto-intel/`: `intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`), pre-flight (session + recommendations PnL + wallet activity), Section 1 (Memory Review), Section 8 (Today's Recommendations with EV), Section 6 (Smart Wallet Activity), post-report extraction, and close-recommendation action are implemented in plugin-vince. Enable with `GROK_SUB_AGENTS_ENABLED=true`. Report output: `knowledge/internal-docs/grok-daily-<date>.md` (action) or `grok-auto-<date>.md` (task).
+
 ---
 
 ## Non-Goals (This Doc)

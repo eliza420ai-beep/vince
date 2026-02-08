@@ -30,7 +30,12 @@ import type { VinceBinanceService } from "../services/binance.service";
 import type { VinceDeribitService } from "../services/deribit.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { VinceMarketRegimeService } from "../services/marketRegime.service";
+import type { VinceXSentimentService } from "../services/xSentiment.service";
+import { CORE_ASSETS } from "../constants/targetAssets";
 import { getOrCreateXAIService } from "../services/fallbacks";
+import { getMemoryDir } from "../memory/intelligenceLog";
+import { runCryptoIntelPostReport } from "../memory/cryptoIntelPrePost";
+import { runSubAgentOrchestration } from "./runSubAgentOrchestration";
 
 // ==========================================
 // Data Context Builder (simplified for task)
@@ -52,6 +57,7 @@ interface GrokTaskContext {
   nftData: string[];
   memesData: string[];
   newsData: string[];
+  xSentimentData: string[];
 }
 
 async function buildTaskDataContext(
@@ -81,6 +87,7 @@ async function buildTaskDataContext(
     nftData: [],
     memesData: [],
     newsData: [],
+    xSentimentData: [],
   };
 
   // Get services
@@ -134,6 +141,32 @@ async function buildTaskDataContext(
     }
   }
 
+  // X (Twitter) vibe check (cached sentiment for core assets)
+  const xSentimentService = runtime.getService(
+    "VINCE_X_SENTIMENT_SERVICE",
+  ) as VinceXSentimentService | null;
+  if (xSentimentService?.isConfigured?.()) {
+    try {
+      const parts: string[] = [];
+      const riskAssets: string[] = [];
+      for (const asset of CORE_ASSETS) {
+        const s = xSentimentService.getTradingSentiment(asset);
+        if (s.confidence > 0) {
+          parts.push(`${asset} ${s.sentiment} ${s.confidence}%`);
+          if (s.hasHighRiskEvent) riskAssets.push(asset);
+        }
+      }
+      if (parts.length > 0) {
+        ctx.xSentimentData.push(`X vibe (cached): ${parts.join(", ")}.`);
+        if (riskAssets.length > 0) {
+          ctx.xSentimentData.push(`Risk flags: ${riskAssets.join(", ")}.`);
+        }
+      }
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
   return ctx;
 }
 
@@ -147,6 +180,9 @@ function formatTaskContext(ctx: GrokTaskContext): string {
   }
   if (ctx.binanceData.length > 0) {
     lines.push(...ctx.binanceData);
+  }
+  if (ctx.xSentimentData.length > 0) {
+    lines.push("X (Twitter) vibe check:", ...ctx.xSentimentData);
   }
 
   return lines.join("\n");
@@ -243,31 +279,51 @@ export const registerGrokExpertTask = async (
           return;
         }
 
-        // Build context
         const ctx = await buildTaskDataContext(runtime);
-        const formattedContext = formatTaskContext(ctx);
-        const prompt = buildTaskPrompt(formattedContext);
+        const subAgentsEnabled =
+          runtime.getSetting("GROK_SUB_AGENTS_ENABLED") === true ||
+          runtime.getSetting("GROK_SUB_AGENTS_ENABLED") === "true" ||
+          process.env.GROK_SUB_AGENTS_ENABLED === "true";
 
-        // Call Grok
-        const result = await xaiService.generateText({
-          prompt,
-          model: "grok-4-1-fast-reasoning",
-          temperature: 0.7,
-          maxTokens: 1500,
-          system:
-            "You are VINCE's daily research assistant. Be brief and actionable.",
-        });
-
-        if (!result.success || !result.text) {
-          logger.error(`[GROK_TASK] Grok API failed: ${result.error}`);
-          return;
+        if (subAgentsEnabled) {
+          const memoryDir = getMemoryDir(runtime);
+          const dataContextText = formatTaskContext(ctx);
+          const xVibeSummary =
+            ctx.xSentimentData.length > 0
+              ? ctx.xSentimentData.join(" ")
+              : "No cached X sentiment.";
+          const report = await runSubAgentOrchestration(
+            runtime,
+            dataContextText,
+            xVibeSummary,
+            { date: ctx.date, runWebSearch: true, memoryDir },
+          );
+          await saveTaskResult(report, ctx.date);
+          try {
+            await runCryptoIntelPostReport(runtime, memoryDir, report);
+          } catch (e) {
+            logger.warn({ err: e }, "[GROK_TASK] Post-report memory update failed");
+          }
+        } else {
+          const formattedContext = formatTaskContext(ctx);
+          const prompt = buildTaskPrompt(formattedContext);
+          const result = await xaiService.generateText({
+            prompt,
+            model: "grok-4-1-fast-reasoning",
+            temperature: 0.7,
+            maxTokens: 1500,
+            system:
+              "You are VINCE's daily research assistant. Be brief and actionable.",
+          });
+          if (!result.success || !result.text) {
+            logger.error(`[GROK_TASK] Grok API failed: ${result.error}`);
+            return;
+          }
+          await saveTaskResult(result.text, ctx.date);
         }
 
-        // Save to knowledge
-        await saveTaskResult(result.text, ctx.date);
-
         logger.info(
-          `[GROK_TASK] Daily pulse completed (${result.usage?.total_tokens || "?"} tokens)`,
+          "[GROK_TASK] Daily pulse completed",
         );
       } catch (error) {
         logger.error(`[GROK_TASK] Failed: ${error}`);

@@ -44,7 +44,12 @@ import type { VinceBinanceService } from "../services/binance.service";
 import type { VinceDeribitService } from "../services/deribit.service";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { VinceMarketRegimeService } from "../services/marketRegime.service";
+import type { VinceXSentimentService } from "../services/xSentiment.service";
+import { CORE_ASSETS } from "../constants/targetAssets";
 import { getOrCreateXAIService, type IXAIService } from "../services/fallbacks";
+import { getMemoryDir } from "../memory/intelligenceLog";
+import { runCryptoIntelPostReport } from "../memory/cryptoIntelPrePost";
+import { runSubAgentOrchestration } from "../tasks/runSubAgentOrchestration";
 
 // ==========================================
 // Data Context Builder
@@ -81,6 +86,9 @@ interface GrokDataContext {
   // News
   newsData: string[];
 
+  // X (Twitter) vibe check (cached sentiment for BTC, ETH, SOL, HYPE)
+  xSentimentData: string[];
+
   // Available Prompt Templates
   promptTemplates: string[];
 }
@@ -114,6 +122,7 @@ async function buildGrokDataContext(
     nftData: [],
     memesData: [],
     newsData: [],
+    xSentimentData: [],
     promptTemplates: [],
   };
 
@@ -391,6 +400,32 @@ async function buildGrokDataContext(
     }
   }
 
+  // X (Twitter) vibe check (cached sentiment for core assets)
+  const xSentimentService = runtime.getService(
+    "VINCE_X_SENTIMENT_SERVICE",
+  ) as VinceXSentimentService | null;
+  if (xSentimentService?.isConfigured?.()) {
+    try {
+      const parts: string[] = [];
+      const riskAssets: string[] = [];
+      for (const asset of CORE_ASSETS) {
+        const s = xSentimentService.getTradingSentiment(asset);
+        if (s.confidence > 0) {
+          parts.push(`${asset} ${s.sentiment} ${s.confidence}%`);
+          if (s.hasHighRiskEvent) riskAssets.push(asset);
+        }
+      }
+      if (parts.length > 0) {
+        ctx.xSentimentData.push(`X vibe (cached): ${parts.join(", ")}.`);
+        if (riskAssets.length > 0) {
+          ctx.xSentimentData.push(`Risk flags: ${riskAssets.join(", ")}.`);
+        }
+      }
+    } catch (e) {
+      logger.warn("[GROK_EXPERT] X sentiment fetch error");
+    }
+  }
+
   // Load Prompt Templates
   try {
     const templatesDir = path.join(
@@ -465,6 +500,12 @@ function formatDataContextForGrok(ctx: GrokDataContext): string {
   if (ctx.newsData.length > 0) {
     lines.push("NEWS:");
     lines.push(...ctx.newsData.map((d) => `  ${d}`));
+    lines.push("");
+  }
+
+  if (ctx.xSentimentData.length > 0) {
+    lines.push("X (TWITTER) VIBE CHECK:");
+    lines.push(...ctx.xSentimentData.map((d) => `  ${d}`));
     lines.push("");
   }
 
@@ -676,31 +717,58 @@ export const vinceGrokExpertAction: Action = {
       const dataContext = await buildGrokDataContext(runtime);
       const formattedContext = formatDataContextForGrok(dataContext);
 
-      // Build the mega-prompt
-      const grokPrompt = buildGrokMegaPrompt(formattedContext);
+      const subAgentsEnabled =
+        runtime.getSetting("GROK_SUB_AGENTS_ENABLED") === true ||
+        runtime.getSetting("GROK_SUB_AGENTS_ENABLED") === "true" ||
+        process.env.GROK_SUB_AGENTS_ENABLED === "true";
 
-      // Call XAI service
-      logger.info("[GROK_EXPERT] Calling Grok API...");
-      const result = await xaiService.generateText({
-        prompt: grokPrompt,
-        model: "grok-4-1-fast-reasoning",
-        temperature: 0.7,
-        maxTokens: 4000,
-        system:
-          "You are VINCE's Grok Expert assistant. Be direct, opinionated, and actionable. No financial advice disclaimers needed - this is for personal research.",
-      });
+      let grokResponse: string;
+      let tokenUsage: string | number = "N/A";
 
-      if (!result.success || !result.text) {
-        logger.error(`[GROK_EXPERT] Grok API failed: ${result.error}`);
-        await callback({
-          text: `Grok API call failed: ${result.error || "Unknown error"}. Try again in a minute.`,
-          actions: ["VINCE_GROK_EXPERT"],
+      if (subAgentsEnabled) {
+        logger.info("[GROK_EXPERT] Running sub-agent orchestration...");
+        const memoryDir = getMemoryDir(runtime);
+        const xVibeSummary =
+          dataContext.xSentimentData.length > 0
+            ? dataContext.xSentimentData.join(" ")
+            : "No cached X sentiment.";
+        grokResponse = await runSubAgentOrchestration(
+          runtime,
+          formattedContext,
+          xVibeSummary,
+          { date: dataContext.date, runWebSearch: true, memoryDir },
+        );
+        logger.info("[GROK_EXPERT] Sub-agent report generated");
+        try {
+          await runCryptoIntelPostReport(runtime, memoryDir, grokResponse);
+        } catch (e) {
+          logger.warn({ err: e }, "[GROK_EXPERT] Post-report memory update failed");
+        }
+      } else {
+        // Single mega-prompt flow
+        const grokPrompt = buildGrokMegaPrompt(formattedContext);
+        logger.info("[GROK_EXPERT] Calling Grok API...");
+        const result = await xaiService.generateText({
+          prompt: grokPrompt,
+          model: "grok-4-1-fast-reasoning",
+          temperature: 0.7,
+          maxTokens: 4000,
+          system:
+            "You are VINCE's Grok Expert assistant. Be direct, opinionated, and actionable. No financial advice disclaimers needed - this is for personal research.",
         });
-        return;
-      }
 
-      const grokResponse = result.text.trim();
-      logger.info("[GROK_EXPERT] Grok response received");
+        if (!result.success || !result.text) {
+          logger.error(`[GROK_EXPERT] Grok API failed: ${result.error}`);
+          await callback({
+            text: `Grok API call failed: ${result.error || "Unknown error"}. Try again in a minute.`,
+            actions: ["VINCE_GROK_EXPERT"],
+          });
+          return;
+        }
+        grokResponse = result.text.trim();
+        if (result.usage?.total_tokens != null) tokenUsage = result.usage.total_tokens;
+        logger.info("[GROK_EXPERT] Grok response received");
+      }
 
       // Save to knowledge folder
       const savedFilename = await saveToKnowledge(
@@ -719,7 +787,7 @@ export const vinceGrokExpertAction: Action = {
           ? `*Saved to: knowledge/internal-docs/${savedFilename}*`
           : "*Failed to save to knowledge folder*",
         "",
-        `*Tokens used: ${result.usage?.total_tokens || "N/A"}*`,
+        `*Tokens used: ${tokenUsage}*`,
         "",
         "*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, HIP3, GROK*",
       ].join("\n");

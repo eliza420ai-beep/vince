@@ -97,6 +97,7 @@ function getCacheFilePath(): string {
 
 export class VinceXSentimentService extends Service {
   static serviceType = "VINCE_X_SENTIMENT_SERVICE";
+  capabilityDescription = "X (Twitter) sentiment for core assets (staggered refresh, cache)";
 
   private cache = new Map<string, CachedSentiment>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;

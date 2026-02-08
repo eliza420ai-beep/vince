@@ -20,6 +20,7 @@ import {
 import { BullBearAnalyzer } from "../analysis/bullBearAnalyzer";
 import type { AnalysisResult } from "../types/analysis";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import type { VinceXSentimentService } from "../services/xSentiment.service";
 
 const DEFAULT_REPORT_HOUR_UTC = 8;
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
@@ -175,6 +176,28 @@ async function buildDailyReportContext(
       }
     } else {
       lines.push("No open positions");
+    }
+  }
+
+  // --- X (Twitter) vibe check (cached sentiment) ---
+  const xSentimentService = runtime.getService(
+    "VINCE_X_SENTIMENT_SERVICE",
+  ) as VinceXSentimentService | null;
+  if (xSentimentService?.isConfigured?.()) {
+    try {
+      const parts: string[] = [];
+      for (const asset of CORE_ASSETS) {
+        const s = xSentimentService.getTradingSentiment(asset);
+        if (s.confidence > 0)
+          parts.push(`${asset} ${s.sentiment} ${s.confidence}%`);
+      }
+      if (parts.length > 0) {
+        lines.push("");
+        lines.push("=== X (TWITTER) VIBE CHECK ===");
+        lines.push(parts.join(", "));
+      }
+    } catch {
+      // Skip
     }
   }
 

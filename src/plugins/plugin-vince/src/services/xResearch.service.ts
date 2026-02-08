@@ -110,6 +110,7 @@ function sleep(ms: number): Promise<void> {
 
 export class VinceXResearchService extends Service {
   static serviceType = "VINCE_X_RESEARCH_SERVICE";
+  capabilityDescription = "X (Twitter) API v2 for search, profile, and thread";
 
   constructor(protected runtime: IAgentRuntime) {
     super();

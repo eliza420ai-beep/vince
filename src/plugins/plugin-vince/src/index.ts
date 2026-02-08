@@ -116,8 +116,9 @@ import { vinceUploadAction } from "./actions/upload.action";
 import { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 import { vinceCodeTaskAction } from "./actions/codeTask.action";
 
-// Actions - Grok Expert (commented out - low value)
-// import { vinceGrokExpertAction } from "./actions/grokExpert.action";
+// Actions - Grok Expert (X vibe check in context; requires XAI_API_KEY)
+import { closeRecommendationAction } from "./actions/closeRecommendation.action";
+import { vinceGrokExpertAction } from "./actions/grokExpert.action";
 
 // Actions - Meme Deep Dive
 import { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
@@ -135,7 +136,7 @@ import { michelinKnowledgeProvider } from "./providers/michelinKnowledge.provide
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 
 // Tasks
-// import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
+import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
 import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
 import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
@@ -232,8 +233,8 @@ export const vincePlugin: Plugin = {
     vinceUploadAction,
     addMichelinRestaurantAction,
     vinceCodeTaskAction,
-    // Grok Expert (commented out - low value)
-    // vinceGrokExpertAction,
+    vinceGrokExpertAction,
+    closeRecommendationAction,
     // Meme Deep Dive
     vinceMemeDeepDiveAction,
     // Early Detection System
@@ -908,13 +909,12 @@ export const vincePlugin: Plugin = {
       })();
     }
 
-    // Register Grok Expert daily task (commented out - low value)
-    // try {
-    //   await registerGrokExpertTask(runtime);
-    //   logger.info("[VINCE] Grok Expert daily task registered");
-    // } catch (e) {
-    //   logger.warn("[VINCE] Failed to register Grok Expert task:", e);
-    // }
+    try {
+      await registerGrokExpertTask(runtime);
+      logger.info("[VINCE] Grok Expert daily task registered");
+    } catch (e) {
+      logger.warn("[VINCE] Failed to register Grok Expert task:", e);
+    }
 
     // ONNX training: when feature store has 90+ complete trades, train models (runs on schedule, max once per 24h)
     // Only for VINCE; defer so db adapter is ready (SQL plugin may not have set it yet during parallel agent init)
@@ -1053,7 +1053,8 @@ export { vinceBotAction } from "./actions/bot.action";
 export { vinceUploadAction } from "./actions/upload.action";
 export { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 export { vinceCodeTaskAction } from "./actions/codeTask.action";
-// export { vinceGrokExpertAction } from "./actions/grokExpert.action";
+export { vinceGrokExpertAction } from "./actions/grokExpert.action";
+export { closeRecommendationAction } from "./actions/closeRecommendation.action";
 export { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 export { vinceWatchlistAction } from "./actions/watchlist.action";
 export { vinceAlertsAction } from "./actions/alerts.action";

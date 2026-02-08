@@ -66,6 +66,8 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 
 So: **one cache file**; filled by either the in-app timer or the cron script (or both); read by the app for trading and for the News tab.
 
+**Used by Grok Expert and daily report:** When Grok Expert or the daily report task is enabled, cached X sentiment is included in their data context so the pulse and daily report can reference CT sentiment (e.g. "X bullish on BTC, neutral ETH"). When `GROK_SUB_AGENTS_ENABLED` is set, each of the six sub-agent prompts receives the same cached X vibe summary in its context. Grok Expert requires `XAI_API_KEY` in `.env` (see [.env.example](.env.example)); the daily report uses the default model. No extra X API usage.
+
 ### MandoMinutes vs X vibe check (both on News tab)
 
 | | MandoMinutes | X vibe check |
@@ -216,4 +218,7 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 | X vibe check cron script | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts) |
 | Crontab example (staggered by asset) | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example) |
 | Signal sources (XSentiment weight, cache path) | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
+| Grok Expert (uses X vibe check in context; requires XAI_API_KEY) | [grokExpert.action.ts](src/plugins/plugin-vince/src/actions/grokExpert.action.ts), [grokExpert.tasks.ts](src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts) |
+| Daily report (uses X vibe check in context) | [dailyReport.tasks.ts](src/plugins/plugin-vince/src/tasks/dailyReport.tasks.ts) |
+| **Crypto intel daily report (sub-agents)** | When `GROK_SUB_AGENTS_ENABLED=true`, Grok Expert produces a 10-section report. Memory dir: `.elizadb/vince-paper-bot/crypto-intel/` (`intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`). Report path: `knowledge/internal-docs/grok-daily-<date>.md` or `grok-auto-<date>.md`. Close recommendations in-chat: "close recommendation TOKEN". |
 | Project dev guide | [CLAUDE.md](CLAUDE.md) (X Research skill section) |
