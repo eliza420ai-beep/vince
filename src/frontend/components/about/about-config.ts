@@ -31,7 +31,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
     headline: "One feed. Your edge.",
     intro:
-      "A paper trading bot that tells you why. It trades perps on Hyperliquid, learns from every decision, and gets better without you redeploying. One view: funding, whale flow, sentiment, regime. Options on Hypersurface. Gold, SPX, NVDA onchain. Memes and intel when you want them—same standard.",
+      "A paper trading bot that tells you why. It trades perps on Hyperliquid, learns from every decision, and gets better without you redeploying. One view: funding, whale flow, sentiment, regime. Onchain options on Hypersurface—covered calls, secured puts.",
     tags: [
       { label: "Paper perps", withSparkles: true },
       { label: "Learns" },
