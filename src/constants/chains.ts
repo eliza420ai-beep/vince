@@ -8,20 +8,16 @@
 import {
   base,
   mainnet,
-  polygon,
   baseSepolia,
   sepolia,
   arbitrum,
-  optimism,
 } from "viem/chains";
 import type { Chain } from "viem/chains";
 
 export type SupportedNetwork =
   | "base"
   | "ethereum"
-  | "polygon"
   | "arbitrum"
-  | "optimism"
   | "base-sepolia"
   | "ethereum-sepolia";
 
@@ -73,21 +69,6 @@ export const CHAIN_CONFIGS: Record<SupportedNetwork, ChainConfig> = {
     coingeckoPlatform: "ethereum",
     swap: { cdpSupported: true },
   },
-  polygon: {
-    name: "Polygon",
-    chain: polygon,
-    rpcUrl: (alchemyKey: string) =>
-      `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-    explorerUrl: "https://polygonscan.com",
-    nativeToken: {
-      symbol: "POL",
-      name: "Polygon",
-      coingeckoId: "polygon-ecosystem-token",
-      decimals: 18,
-    },
-    coingeckoPlatform: "polygon-pos",
-    swap: { cdpSupported: false },
-  },
   arbitrum: {
     name: "Arbitrum",
     chain: arbitrum,
@@ -101,21 +82,6 @@ export const CHAIN_CONFIGS: Record<SupportedNetwork, ChainConfig> = {
       decimals: 18,
     },
     coingeckoPlatform: "arbitrum-one",
-    swap: { cdpSupported: false },
-  },
-  optimism: {
-    name: "Optimism",
-    chain: optimism,
-    rpcUrl: (alchemyKey: string) =>
-      `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-    explorerUrl: "https://optimistic.etherscan.io",
-    nativeToken: {
-      symbol: "ETH",
-      name: "Ethereum",
-      coingeckoId: "ethereum",
-      decimals: 18,
-    },
-    coingeckoPlatform: "optimistic-ethereum",
     swap: { cdpSupported: false },
   },
   "base-sepolia": {
@@ -153,9 +119,7 @@ export const CHAIN_CONFIGS: Record<SupportedNetwork, ChainConfig> = {
 export const MAINNET_NETWORKS: SupportedNetwork[] = [
   "base",
   "ethereum",
-  "polygon",
   "arbitrum",
-  "optimism",
 ];
 
 export const TESTNET_NETWORKS: SupportedNetwork[] = [
@@ -247,9 +211,7 @@ export function normalizeTokenAddress(token: string): string {
 
 export const UNISWAP_V3_ROUTER: Record<SupportedNetwork, string> = {
   ethereum: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-  polygon: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
   arbitrum: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-  optimism: "0xE592427A0AEce92De3Edee1F18E0157C05861564",
   base: "0x2626664c2603336E57B271c5C0b26F421741e481",
   "base-sepolia": "",
   "ethereum-sepolia": "",
@@ -257,9 +219,7 @@ export const UNISWAP_V3_ROUTER: Record<SupportedNetwork, string> = {
 
 export const UNISWAP_V3_QUOTER: Record<SupportedNetwork, string> = {
   ethereum: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-  polygon: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
   arbitrum: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
-  optimism: "0x61fFE014bA17989E743c5F6cB21bF9697530B21e",
   base: "0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a",
   "base-sepolia": "",
   "ethereum-sepolia": "",
@@ -267,9 +227,7 @@ export const UNISWAP_V3_QUOTER: Record<SupportedNetwork, string> = {
 
 export const WRAPPED_NATIVE_TOKEN: Record<SupportedNetwork, string> = {
   ethereum: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  polygon: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
   arbitrum: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  optimism: "0x4200000000000000000000000000000000000006",
   base: "0x4200000000000000000000000000000000000006",
   "base-sepolia": "",
   "ethereum-sepolia": "",

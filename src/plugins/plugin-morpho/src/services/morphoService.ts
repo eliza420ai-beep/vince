@@ -40,9 +40,7 @@ const CHAIN_ID_MAP: Record<SupportedNetwork, number> = {
   'base-sepolia': 84532,
   'ethereum': 1,
   'ethereum-sepolia': 11155111,
-  'polygon': 137,
   'arbitrum': 42161,
-  'optimism': 10,
   'scroll': 534352,
 };
 

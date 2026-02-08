@@ -139,9 +139,7 @@ export function extractEthereumAddress(text: string): string | null {
 export function extractChainName(text: string): string | null {
   const chainKeywords = [
     "ethereum", "eth", "mainnet",
-    "polygon", "matic",
     "arbitrum", "arb",
-    "optimism", "op",
     "base",
     "bsc", "binance",
     "avalanche", "avax",

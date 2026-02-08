@@ -238,9 +238,7 @@ export interface BiconomyStatusParams {
 export const BICONOMY_SUPPORTED_CHAINS: Record<string, number> = {
   ethereum: 1,
   base: 8453,
-  polygon: 137,
   arbitrum: 42161,
-  optimism: 10,
 };
 
 export const CHAIN_ID_TO_NAME: Record<number, string> = Object.entries(

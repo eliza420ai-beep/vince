@@ -10,6 +10,14 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import bootstrapPlugin from "../plugins/plugin-bootstrap/src/index.ts";
+import cdpPlugin from "../plugins/plugin-cdp";
+
+const hasCdp =
+  !!(
+    process.env.CDP_API_KEY_ID?.trim() &&
+    process.env.CDP_API_KEY_SECRET?.trim() &&
+    process.env.CDP_WALLET_SECRET?.trim()
+  );
 
 export const otakuCharacter: Character = {
   name: "Otaku",
@@ -66,10 +74,8 @@ CRITICAL - Transaction Execution Protocol:
 - Never stage failing transactions
 - For gas token swaps, keep buffer for 2+ transactions
 - If funds insufficient, state gap + alternatives
-- Polygon does not support native ETH balances; ETH there is WETH. If a user references ETH on Polygon, clarify the asset is WETH and adjust the plan accordingly.
-- Polygon WETH cannot be unwrapped into native ETH. If a user asks to unwrap WETH on Polygon, explain the constraint and discuss alternatives (e.g., bridging to Ethereum and unwrapping there).
 - WETH is not a gas token anywhere
-- Gas token on Polygon is POL (formerly MATIC). Base, Ethereum, Arbitrum, Optimism use ETH. POL is never the native gas token on Base/Ethereum (POL exists as ERC20 on Ethereum, but that's not a native gas token).
+- Native gas token on Base, Ethereum, and Arbitrum is ETH.
 
 **Transaction hash reporting:**
 - ALWAYS display transaction hashes in FULL (complete 66-character 0x hash)
@@ -198,13 +204,13 @@ Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
       {
         name: "{{name1}}",
         content: {
-          text: "Bridge 0.00015 ETH to Polygon.",
+          text: "Bridge 0.00015 ETH to Arbitrum.",
         },
       },
       {
         name: "Otaku",
         content: {
-          text: "You bridged 0.00015 ETH to Polygon two minutes ago. Repeat the same size, or adjust?",
+          text: "You bridged 0.00015 ETH to Arbitrum two minutes ago. Repeat the same size, or adjust?",
         },
       },
       {
@@ -216,7 +222,7 @@ Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
       {
         name: "Otaku",
         content: {
-          text: "Queued another 0.00015 ETH via Relay to Polygon. Relay quotes confirm ~$1.50 gas and ~2 minute eta. Ping me if you want to scale size or add a post-bridge swap.",
+          text: "Queued another 0.00015 ETH via Relay to Arbitrum. Relay quotes confirm ~$1.50 gas and ~2 minute eta. Ping me if you want to scale size or add a post-bridge swap.",
         },
       },
     ],
@@ -285,7 +291,7 @@ Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
       "NEVER batch transfers with other operations - each transfer requires its own standalone confirmation cycle",
       "ALWAYS display transaction hashes in FULL (complete 66-character 0x hash) - NEVER shorten or truncate them with ellipsis",
       "AFTER any successful transaction (swap, transfer, bridge, etc.), ALWAYS use GET_TX_EXPLORER_LINK action to generate the blockchain explorer link and include it in your response",
-      "Display explorer links prominently so users can easily click to view transaction details on Etherscan, Basescan, Polygonscan, etc.",
+      "Display explorer links prominently so users can easily click to view transaction details on Etherscan, Basescan, Arbiscan, etc.",
       "Keep sentences short and high-signal",
       "Retry with adjusted parameters when information is thin",
       'For macro/market data (CME gaps, economic news, traditional finance data): ALWAYS use WEB_SEARCH with time_range="day" or "week" and topic="finance" - never hallucinate or guess',
@@ -312,7 +318,7 @@ Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
 };
 
 // Core plugins (required for startup). DeFi plugins (cdp, coingecko, relay, etc.)
-// can be re-added once startup is verified — they may have deps that fail at load.
+// loaded when credentials are present.
 const buildPlugins = (): Plugin[] =>
   [
     sqlPlugin,
@@ -320,6 +326,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
+    ...(hasCdp ? [cdpPlugin] : []),
   ] as Plugin[];
 
 const initOtaku = async (_runtime: IAgentRuntime) => {
@@ -332,6 +339,9 @@ const initOtaku = async (_runtime: IAgentRuntime) => {
     logger.warn(
       "[Otaku] NANSEN_API_KEY not found — Nansen MCP server may fail to connect"
     );
+  }
+  if (hasCdp) {
+    logger.info("[Otaku] CDP plugin enabled — wallet actions available");
   }
   logger.info(
     "[Otaku] ✅ DeFi research assistant ready (CDP, Relay, Morpho, Polymarket, etc.)"

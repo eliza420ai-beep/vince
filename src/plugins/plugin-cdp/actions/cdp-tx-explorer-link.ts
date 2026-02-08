@@ -36,7 +36,7 @@ export const cdpTxExplorerLink: Action = {
     network: {
       type: "string",
       description:
-        "Blockchain network: 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'base-sepolia', or 'ethereum-sepolia'",
+        "Blockchain network: 'base', 'ethereum', 'arbitrum', 'base-sepolia', or 'ethereum-sepolia'",
       required: true,
     },
   },
@@ -95,7 +95,7 @@ export const cdpTxExplorerLink: Action = {
 
       if (!network) {
         const errorMsg =
-          "Missing required parameter 'network'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'polygon').";
+          "Missing required parameter 'network'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'arbitrum').";
         logger.error(`[GET_TX_EXPLORER_LINK] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: ` ${errorMsg}`,
@@ -131,9 +131,7 @@ export const cdpTxExplorerLink: Action = {
       const supportedNetworks = [
         "base",
         "ethereum",
-        "polygon",
         "arbitrum",
-        "optimism",
         "base-sepolia",
         "ethereum-sepolia",
       ];

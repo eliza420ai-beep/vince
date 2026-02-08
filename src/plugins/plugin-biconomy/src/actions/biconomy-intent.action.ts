@@ -29,9 +29,7 @@ import {
 const CDP_NETWORK_MAP: Record<string, CdpNetwork> = {
   ethereum: "ethereum",
   base: "base",
-  optimism: "optimism",
   arbitrum: "arbitrum",
-  polygon: "polygon",
   "base-sepolia": "base-sepolia",
 };
 
@@ -80,7 +78,7 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
     inputChain: {
       type: "string",
       description:
-        "Input chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Input chain name (ethereum, base, arbitrum)",
       required: true,
     },
     inputAmount: {
@@ -98,7 +96,7 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
     targetChains: {
       type: "string",
       description:
-        "Target chain names, comma-separated, matching targetTokens order (e.g., 'base,optimism')",
+        "Target chain names, comma-separated, matching targetTokens order (e.g., 'base,arbitrum')",
       required: true,
     },
     targetWeights: {

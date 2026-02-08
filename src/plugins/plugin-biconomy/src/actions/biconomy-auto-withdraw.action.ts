@@ -39,9 +39,7 @@ const ERC20_ABI = [
 const CDP_NETWORK_MAP: Record<number, CdpNetwork> = {
   1: "ethereum",
   8453: "base",
-  10: "optimism",
   42161: "arbitrum",
-  137: "polygon",
 };
 
 const resolveCdpNetworkFromChainId = (chainId: number): CdpNetwork => {
@@ -57,9 +55,7 @@ const getChainNameFromId = (chainId: number): string => {
   const map: Record<number, string> = {
     1: "ethereum",
     8453: "base",
-    10: "optimism",
     42161: "arbitrum",
-    137: "polygon",
   };
   return map[chainId] || "unknown";
 };
@@ -98,7 +94,7 @@ async function getNexusTokenBalances(
   // Check native token balance first
   try {
     const nativeBalance = await publicClient.getBalance({ address: nexusAddress });
-    const nativeSymbol = chainName === "polygon" ? "POL" : "ETH";
+    const nativeSymbol = "ETH";
     logger.info(`[BICONOMY_AUTO_WITHDRAW] Native ${nativeSymbol} balance on ${chainName}: ${formatUnits(nativeBalance, 18)} (${nativeBalance.toString()} wei)`);
     
     if (nativeBalance > 0n) {

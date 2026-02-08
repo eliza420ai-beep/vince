@@ -35,7 +35,7 @@ export const cdpWalletInfo: Action = {
   parameters: {
     chain: {
       type: "string",
-      description: "Optional blockchain network to query (e.g., 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism'). If not provided, fetches data from all supported chains.",
+      description: "Optional blockchain network to query (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, fetches data from all supported chains.",
       required: false,
     },
   },
@@ -64,7 +64,7 @@ export const cdpWalletInfo: Action = {
       const inputParams = chain ? { chain } : {};
 
       // Validate chain parameter if provided
-      const validChains = ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism'];
+      const validChains = ['base', 'ethereum', 'arbitrum'];
       if (chain && !validChains.includes(chain.toLowerCase())) {
         const errorMsg = `Invalid chain: ${chain}. Supported chains: ${validChains.join(', ')}`;
         logger.error(`[USER_WALLET_INFO] ${errorMsg}`);
@@ -326,8 +326,8 @@ export const cdpWalletInfo: Action = {
       { name: "{{agent}}", content: { text: " Fetching your wallet information on ethereum...", action: "USER_WALLET_INFO", chain: "ethereum" } },
     ],
     [
-      { name: "{{user}}", content: { text: "what tokens do I have on polygon?" } },
-      { name: "{{agent}}", content: { text: " Fetching your wallet information on polygon...", action: "USER_WALLET_INFO", chain: "polygon" } },
+      { name: "{{user}}", content: { text: "what tokens do I have on arbitrum?" } },
+      { name: "{{agent}}", content: { text: " Fetching your wallet information on arbitrum...", action: "USER_WALLET_INFO", chain: "arbitrum" } },
     ],
   ],
 };

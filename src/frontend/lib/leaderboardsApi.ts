@@ -103,6 +103,8 @@ export interface DigitalArtCollectionRow {
 export interface DigitalArtLeaderboardSection {
   title: string;
   collections: DigitalArtCollectionRow[];
+  /** All collections by volume (7d > 0), same shape as collections */
+  volumeLeaders?: DigitalArtCollectionRow[];
   oneLiner: string;
   /** X of 12 curated collections meet strict criteria */
   criteriaNote?: string;

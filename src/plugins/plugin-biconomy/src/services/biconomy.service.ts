@@ -64,7 +64,7 @@ export class BiconomyService extends Service {
   }
 
   get capabilityDescription(): string {
-    return "Multi-chain portfolio rebalancing and cross-chain operations via Biconomy Supertransaction API. Supports intent-based swaps, bridging, and complex multi-token operations across Ethereum, Base, Arbitrum, Polygon, Optimism, BSC, and more.";
+    return "Multi-chain portfolio rebalancing and cross-chain operations via Biconomy Supertransaction API. Supports intent-based swaps, bridging, and complex multi-token operations across Ethereum, Base, Arbitrum, and more.";
   }
 
   static async start(runtime: IAgentRuntime): Promise<BiconomyService> {
@@ -81,7 +81,8 @@ export class BiconomyService extends Service {
   }
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
-    this.apiKey = runtime.getSetting("BICONOMY_API_KEY");
+    const raw = runtime.getSetting("BICONOMY_API_KEY");
+    this.apiKey = typeof raw === "string" ? raw : undefined;
     if (!this.apiKey) {
       logger.warn(
         "[BICONOMY SERVICE] No BICONOMY_API_KEY found. Some features may be limited.",

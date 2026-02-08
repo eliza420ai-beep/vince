@@ -32,9 +32,7 @@ import {
 const CDP_NETWORK_MAP: Record<string, CdpNetwork> = {
   ethereum: "ethereum",
   base: "base",
-  optimism: "optimism",
   arbitrum: "arbitrum",
-  polygon: "polygon",
   "base-sepolia": "base-sepolia",
 };
 
@@ -97,13 +95,13 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
     srcChain: {
       type: "string",
       description:
-        "Source chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Source chain name (ethereum, base, arbitrum)",
       required: true,
     },
     dstChain: {
       type: "string",
       description:
-        "Destination chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     amount: {
@@ -211,7 +209,7 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
 
       if (!dstChain) {
         const errorMsg =
-          "Missing required parameter 'dstChain'. Please specify the destination chain (e.g., 'arbitrum', 'optimism').";
+          "Missing required parameter 'dstChain'. Please specify the destination chain (e.g., 'arbitrum').";
         logger.error(`[MEE_CCIP_BRIDGE] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {
@@ -253,7 +251,7 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
       const dstChainId = biconomyService.resolveChainId(dstChain);
 
       if (!srcChainId) {
-        const errorMsg = `Unsupported source chain: ${srcChain}. Supported: ethereum, base, arbitrum, polygon, optimism`;
+        const errorMsg = `Unsupported source chain: ${srcChain}. Supported: ethereum, base, arbitrum`;
         logger.error(`[MEE_CCIP_BRIDGE] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {
@@ -265,7 +263,7 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
       }
 
       if (!dstChainId) {
-        const errorMsg = `Unsupported destination chain: ${dstChain}. Supported: ethereum, base, arbitrum, polygon, optimism`;
+        const errorMsg = `Unsupported destination chain: ${dstChain}. Supported: ethereum, base, arbitrum`;
         logger.error(`[MEE_CCIP_BRIDGE] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {

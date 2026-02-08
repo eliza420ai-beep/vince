@@ -45,7 +45,7 @@ export const checkTransactionConfirmationAction: Action = {
     chain: {
       type: "string",
       description:
-        "Blockchain network to check (ethereum, polygon, arbitrum, optimism, base). Defaults to ethereum if not specified.",
+        "Blockchain network to check (ethereum, arbitrum, base). Defaults to ethereum if not specified.",
       required: false,
     },
   },
@@ -269,7 +269,7 @@ export const checkTransactionConfirmationAction: Action = {
       {
         name: "{{user}}",
         content: {
-          text: "Verify tx 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba on polygon",
+          text: "Verify tx 0x9876543210fedcba9876543210fedcba9876543210fedcba9876543210fedcba on arbitrum",
         },
       },
       {

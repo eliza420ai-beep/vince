@@ -10,9 +10,7 @@
 export type SupportedChain =
   | "base"
   | "ethereum"
-  | "polygon"
-  | "arbitrum"
-  | "optimism";
+  | "arbitrum";
 
 /**
  * Chain UI configuration interface
@@ -64,20 +62,6 @@ export const CHAIN_UI_CONFIGS: Record<SupportedChain, ChainUIConfig> = {
     explorerUrl: "https://etherscan.io",
     color: "#627EEA", // Ethereum purple
   },
-  polygon: {
-    id: "polygon",
-    name: "Polygon",
-    displayName: "Polygon",
-    icon: "/assets/polygon.svg",
-    walletIcon: "/assets/walletIcon/polygon.svg",
-    nativeToken: {
-      symbol: "POL",
-      name: "Polygon",
-      icon: "/assets/polygon.svg",
-    },
-    explorerUrl: "https://polygonscan.com",
-    color: "#8247E5", // Polygon purple
-  },
   arbitrum: {
     id: "arbitrum",
     name: "Arbitrum",
@@ -91,20 +75,6 @@ export const CHAIN_UI_CONFIGS: Record<SupportedChain, ChainUIConfig> = {
     },
     explorerUrl: "https://arbiscan.io",
     color: "#28A0F0", // Arbitrum blue
-  },
-  optimism: {
-    id: "optimism",
-    name: "Optimism",
-    displayName: "Optimism",
-    icon: "/assets/optimism.svg",
-    walletIcon: "/assets/walletIcon/optimism.svg",
-    nativeToken: {
-      symbol: "ETH",
-      name: "Ethereum",
-      icon: "/assets/eth.svg",
-    },
-    explorerUrl: "https://optimistic.etherscan.io",
-    color: "#FF0420", // Optimism red
   },
 };
 

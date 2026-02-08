@@ -24,8 +24,7 @@ export type NansenChain =
   | "solana"
   | "base"
   | "arbitrum"
-  | "polygon"
-  | "optimism";
+  ;
 
 export interface SmartMoneyToken {
   tokenAddress: string;

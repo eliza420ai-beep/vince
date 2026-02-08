@@ -34,9 +34,7 @@ import {
 const CDP_NETWORK_MAP: Record<string, CdpNetwork> = {
   ethereum: "ethereum",
   base: "base",
-  optimism: "optimism",
   arbitrum: "arbitrum",
-  polygon: "polygon",
   "base-sepolia": "base-sepolia",
 };
 
@@ -83,7 +81,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
     srcChain: {
       type: "string",
       description:
-        "Source chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Source chain name (ethereum, base, arbitrum)",
       required: true,
     },
     dstToken: {
@@ -95,7 +93,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
     dstChain: {
       type: "string",
       description:
-        "Destination chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     amount: {
@@ -252,7 +250,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
 
       if (!dstChain) {
         const errorMsg =
-          "Missing required parameter 'dstChain'. Please specify the destination chain (e.g., 'arbitrum', 'optimism').";
+          "Missing required parameter 'dstChain'. Please specify the destination chain (e.g., 'arbitrum').";
         logger.error(`[MEE_FUSION_SWAP] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {
@@ -294,7 +292,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
       const dstChainId = biconomyService.resolveChainId(dstChain);
 
       if (!srcChainId) {
-        const errorMsg = `Unsupported source chain: ${srcChain}. Supported: ethereum, base, arbitrum, polygon, optimism`;
+        const errorMsg = `Unsupported source chain: ${srcChain}. Supported: ethereum, base, arbitrum`;
         logger.error(`[MEE_FUSION_SWAP] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {
@@ -306,7 +304,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
       }
 
       if (!dstChainId) {
-        const errorMsg = `Unsupported destination chain: ${dstChain}. Supported: ethereum, base, arbitrum, polygon, optimism`;
+        const errorMsg = `Unsupported destination chain: ${dstChain}. Supported: ethereum, base, arbitrum`;
         logger.error(`[MEE_FUSION_SWAP] ${errorMsg}`);
         callback?.({ text: `❌ ${errorMsg}` });
         return {
@@ -553,7 +551,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           const withdrawAmountWei = (minOutputBigInt - gasBufferWei).toString();
           const bufferEth = Number(gasBufferWei) / 1e18;
           const withdrawEth = Number(withdrawAmountWei) / 1e18;
-          logger.info(`[MEE_FUSION_SWAP] Withdrawing ${withdrawEth.toFixed(6)} ${dstChain === "polygon" ? "POL" : "ETH"} (leaving ${bufferEth.toFixed(6)} for gas)`);
+          logger.info(`[MEE_FUSION_SWAP] Withdrawing ${withdrawEth.toFixed(6)} ETH (leaving ${bufferEth.toFixed(6)} for gas)`);
           
           // Step 2: Add native withdrawal with fixed amount
           const nativeWithdrawalFlow = biconomyService.buildNativeWithdrawalInstruction(
@@ -600,7 +598,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
 
         // Add native token buffer note if applicable
         const nativeTokenNote = isNativeOutput && minOutputAmount
-          ? `\n\n_Note: A small gas buffer (~${(Number(gasBufferWei) / 1e18).toFixed(4)} ${dstChain === "polygon" ? "POL" : "ETH"}) remains in your Biconomy Nexus for future transactions._`
+          ? `\n\n_Note: A small gas buffer (~${(Number(gasBufferWei) / 1e18).toFixed(4)} ETH) remains in your Biconomy Nexus for future transactions._`
           : '';
 
         const responseText = `

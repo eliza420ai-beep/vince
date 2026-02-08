@@ -22,6 +22,7 @@ import {
   submitKnowledgeUpload,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
+import type { PaperResponse, KnowledgeResponse } from "@/frontend/lib/leaderboardsApi";
 import type { RebelRanking } from "@/frontend/types/dashboard";
 import type {
   LeaderboardEntry,
@@ -81,7 +82,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     staleTime: LEADERBOARDS_STALE_MS,
   });
 
-  const { data: paperResult, isLoading: paperLoading, isFetching: paperFetching, refetch: refetchPaper } = useQuery({
+  const { data: paperResult, isLoading: paperLoading, isFetching: paperFetching, refetch: refetchPaper } = useQuery<{
+    data: PaperResponse | null;
+    error: string | null;
+    status: number | null;
+  }>({
     queryKey: ["paper", leaderboardsAgentId],
     queryFn: () => fetchPaperWithError(leaderboardsAgentId),
     enabled: mainTab === "trading_bot" && !!leaderboardsAgentId,
@@ -96,7 +101,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   });
 
   const queryClient = useQueryClient();
-  const { data: knowledgeResult, isLoading: knowledgeLoading, isFetching: knowledgeFetching, refetch: refetchKnowledge } = useQuery({
+  const { data: knowledgeResult, isLoading: knowledgeLoading, isFetching: knowledgeFetching, refetch: refetchKnowledge } = useQuery<{
+    data: KnowledgeResponse | null;
+    error: string | null;
+    status: number | null;
+  }>({
     queryKey: ["knowledge", leaderboardsAgentId],
     queryFn: () => fetchKnowledgeWithError(leaderboardsAgentId),
     enabled: mainTab === "knowledge" && !!leaderboardsAgentId,
@@ -118,6 +127,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   const leaderboardsData = leaderboardsResult?.data ?? null;
   const leaderboardsError = leaderboardsResult?.error ?? null;
   const leaderboardsStatus = leaderboardsResult?.status ?? null;
+
+  const paperData = paperResult?.data as PaperResponse | null | undefined;
+  const knowledgeData = knowledgeResult?.data as KnowledgeResponse | null | undefined;
 
   const {
     data: leaderboardData,
@@ -878,7 +890,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                   className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
                                   title={
                                     (c.recentSalesPrices ?? []).length > 0
-                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p) => p.toFixed(2)).join(", ")} ETH`
+                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
                                       : undefined
                                   }
                                 >
@@ -926,7 +938,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </tr>
                         </thead>
                         <tbody>
-                          {leaderboardsData.digitalArt.volumeLeaders.map((c) => {
+                          {(leaderboardsData.digitalArt.volumeLeaders ?? []).map((c) => {
                             const g = c.gaps ?? { to2nd: 0, to3rd: 0, to4th: 0, to5th: 0, to6th: 0 };
                             const fmt = (v: number) => (v > 0 ? `${v.toFixed(3)} ETH` : "—");
                             const salesLabel =
@@ -975,7 +987,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                   className={`py-2 px-2 text-right tabular-nums text-xs ${c.allSalesBelowFloor ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}
                                   title={
                                     (c.recentSalesPrices ?? []).length > 0
-                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p) => p.toFixed(2)).join(", ")} ETH`
+                                      ? `Recent: ${(c.recentSalesPrices ?? []).map((p: number) => p.toFixed(2)).join(", ")} ETH`
                                       : undefined
                                   }
                                 >
@@ -1407,57 +1419,57 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
           <TabsContent value="trading_bot" className="mt-6 flex-1 min-h-0 flex flex-col data-[state=active]:flex">
             <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-7rem)] pb-8">
               <>
-            {paperLoading && !paperResult?.data ? (
+            {paperLoading && !paperData ? (
               <div className="space-y-4">
                 <div className="h-32 bg-muted/50 rounded-xl animate-pulse" />
                 <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
               </div>
-            ) : paperResult?.data ? (
+            ) : paperData ? (
               <div className="space-y-6">
                 <DashboardCard title="Portfolio">
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase">Total value</p>
-                      <p className="font-mono font-semibold">${(paperResult.data.portfolio.totalValue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                      <p className="font-mono font-semibold">${(paperData.portfolio.totalValue ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase">Realized P&L</p>
-                      <p className={cn("font-mono font-semibold", (paperResult.data.portfolio.realizedPnl ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
-                        ${(paperResult.data.portfolio.realizedPnl ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      <p className={cn("font-mono font-semibold", (paperData.portfolio.realizedPnl ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400")}>
+                        ${(paperData.portfolio.realizedPnl ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase">Win rate</p>
-                      <p className="font-mono font-semibold">{((paperResult.data.portfolio.winRate ?? 0) * 100).toFixed(0)}%</p>
+                      <p className="font-mono font-semibold">{((paperData.portfolio.winRate ?? 0) * 100).toFixed(0)}%</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase">Trades</p>
-                      <p className="font-mono font-semibold">{paperResult.data.portfolio.tradeCount ?? 0}</p>
+                      <p className="font-mono font-semibold">{paperData.portfolio.tradeCount ?? 0}</p>
                     </div>
                   </div>
                 </DashboardCard>
 
                 {/* Goal Progress */}
-                {paperResult.data.goalProgress && (
+                {paperData.goalProgress && (
                   <DashboardCard title="Goal progress">
                     <div className="space-y-4">
-                      {paperResult.data.goalTargets && (
+                      {paperData.goalTargets && (
                         <div className="text-xs text-muted-foreground">
-                          Targets: ${paperResult.data.goalTargets.daily}/day · ${paperResult.data.goalTargets.monthly.toLocaleString()}/mo
+                          Targets: ${paperData.goalTargets.daily}/day · ${paperData.goalTargets.monthly.toLocaleString()}/mo
                         </div>
                       )}
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Daily</p>
                           <p className="font-mono">
-                            ${paperResult.data.goalProgress.daily.current.toFixed(0)} / ${paperResult.data.goalProgress.daily.target.toFixed(0)}
-                            <span className="ml-1 text-muted-foreground">({paperResult.data.goalProgress.daily.pct.toFixed(0)}%)</span>
+                            ${paperData.goalProgress.daily.current.toFixed(0)} / ${paperData.goalProgress.daily.target.toFixed(0)}
+                            <span className="ml-1 text-muted-foreground">({paperData.goalProgress.daily.pct.toFixed(0)}%)</span>
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Remaining ${paperResult.data.goalProgress.daily.remaining.toFixed(0)} · {paperResult.data.goalProgress.daily.pace}
-                            {paperResult.data.goalProgress.daily.paceAmount !== 0 && (
-                              <span className={cn("ml-1", paperResult.data.goalProgress.daily.paceAmount >= 0 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
-                                ({paperResult.data.goalProgress.daily.paceAmount >= 0 ? "+" : ""}${paperResult.data.goalProgress.daily.paceAmount.toFixed(0)} vs expected)
+                            Remaining ${paperData.goalProgress.daily.remaining.toFixed(0)} · {paperData.goalProgress.daily.pace}
+                            {paperData.goalProgress.daily.paceAmount !== 0 && (
+                              <span className={cn("ml-1", paperData.goalProgress.daily.paceAmount >= 0 ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                                ({paperData.goalProgress.daily.paceAmount >= 0 ? "+" : ""}${paperData.goalProgress.daily.paceAmount.toFixed(0)} vs expected)
                               </span>
                             )}
                           </p>
@@ -1465,14 +1477,14 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Monthly</p>
                           <p className="font-mono">
-                            ${paperResult.data.goalProgress.monthly.current.toFixed(0)} / ${paperResult.data.goalProgress.monthly.target.toFixed(0)}
-                            <span className="ml-1 text-muted-foreground">({paperResult.data.goalProgress.monthly.pct.toFixed(0)}%)</span>
+                            ${paperData.goalProgress.monthly.current.toFixed(0)} / ${paperData.goalProgress.monthly.target.toFixed(0)}
+                            <span className="ml-1 text-muted-foreground">({paperData.goalProgress.monthly.pct.toFixed(0)}%)</span>
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Remaining ${paperResult.data.goalProgress.monthly.remaining.toFixed(0)} · {paperResult.data.goalProgress.monthly.status}
-                            {paperResult.data.goalProgress.monthly.dailyTargetToHitGoal != null && paperResult.data.goalProgress.monthly.status === "behind" && (
+                            Remaining ${paperData.goalProgress.monthly.remaining.toFixed(0)} · {paperData.goalProgress.monthly.status}
+                            {paperData.goalProgress.monthly.dailyTargetToHitGoal != null && paperData.goalProgress.monthly.status === "behind" && (
                               <span className="block mt-0.5 text-amber-600 dark:text-amber-400">
-                                Need ${paperResult.data.goalProgress.monthly.dailyTargetToHitGoal.toFixed(0)}/day to hit goal
+                                Need ${paperData.goalProgress.monthly.dailyTargetToHitGoal.toFixed(0)}/day to hit goal
                               </span>
                             )}
                           </p>
@@ -1483,19 +1495,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 )}
 
                 {/* Signal Sources */}
-                {paperResult.data.signalStatus && (
+                {paperData.signalStatus && (
                   <DashboardCard title="Signal sources">
                     <div className="space-y-3">
                       <div className="flex gap-4 text-sm">
-                        <span className="font-mono">Signals: {paperResult.data.signalStatus.signalCount}</span>
+                        <span className="font-mono">Signals: {paperData.signalStatus.signalCount}</span>
                         <span className="text-muted-foreground">
-                          Last update: {paperResult.data.signalStatus.lastUpdate
-                            ? new Date(paperResult.data.signalStatus.lastUpdate).toLocaleTimeString()
+                          Last update: {paperData.signalStatus.lastUpdate
+                            ? new Date(paperData.signalStatus.lastUpdate).toLocaleTimeString()
                             : "—"}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {(paperResult.data.signalStatus.dataSources ?? []).map((ds) => (
+                        {(paperData.signalStatus.dataSources ?? []).map((ds) => (
                           <span
                             key={ds.name}
                             className={cn(
@@ -1506,7 +1518,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             {ds.available ? "✓" : "✗"} {signalSourceDisplayName(ds.name)}
                           </span>
                         ))}
-                        {(paperResult.data.signalStatus.dataSources ?? []).length === 0 && (
+                        {(paperData.signalStatus.dataSources ?? []).length === 0 && (
                           <span className="text-muted-foreground text-sm">No data sources</span>
                         )}
                       </div>
@@ -1515,33 +1527,33 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 )}
 
                 {/* Thompson Sampling (Bandit) Sources */}
-                {paperResult.data.banditSummary && (
+                {paperData.banditSummary && (
                   <DashboardCard title="Thompson Sampling (Bandit) sources">
                     <div className="space-y-4">
-                      <p className="text-sm font-mono">Total trades processed: {paperResult.data.banditSummary.totalTrades}</p>
+                      <p className="text-sm font-mono">Total trades processed: {paperData.banditSummary.totalTrades}</p>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Top 3 sources</p>
                           <ul className="space-y-1">
-                            {(paperResult.data.banditSummary.topSources ?? []).map((s) => (
+                            {(paperData.banditSummary.topSources ?? []).map((s) => (
                               <li key={s.source} className="flex justify-between text-sm">
                                 <span>{signalSourceDisplayName(s.source)}</span>
                                 <span className="font-mono text-green-600 dark:text-green-400">{(s.winRate * 100).toFixed(1)}%</span>
                               </li>
                             ))}
-                            {(paperResult.data.banditSummary.topSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
+                            {(paperData.banditSummary.topSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
                           </ul>
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Bottom 3 sources</p>
                           <ul className="space-y-1">
-                            {(paperResult.data.banditSummary.bottomSources ?? []).map((s) => (
+                            {(paperData.banditSummary.bottomSources ?? []).map((s) => (
                               <li key={s.source} className="flex justify-between text-sm">
                                 <span>{signalSourceDisplayName(s.source)}</span>
                                 <span className="font-mono text-amber-600 dark:text-amber-400">{(s.winRate * 100).toFixed(1)}%</span>
                               </li>
                             ))}
-                            {(paperResult.data.banditSummary.bottomSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
+                            {(paperData.banditSummary.bottomSources ?? []).length === 0 && <li className="text-muted-foreground">—</li>}
                           </ul>
                         </div>
                       </div>
@@ -1550,11 +1562,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 )}
 
                 <DashboardCard title="Open positions">
-                  {paperResult.data.openPositions.length === 0 ? (
+                  {paperData.openPositions.length === 0 ? (
                     <p className="text-muted-foreground py-4">No open paper positions. Ask VINCE to &quot;bot status&quot; or &quot;trade&quot;.</p>
                   ) : (
                     <div className="space-y-4">
-                      {paperResult.data.openPositions.map((pos) => {
+                      {paperData.openPositions.map((pos) => {
                         const entryTime = pos.openedAt ? new Date(pos.openedAt).toISOString().replace("T", " ").slice(0, 19) + "Z" : "—";
                         const marginUsd = pos.marginUsd ?? (pos.sizeUsd && pos.leverage ? pos.sizeUsd / pos.leverage : 0);
                         const slPct = pos.entryPrice && pos.stopLossPrice
@@ -1724,13 +1736,13 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                   <p className="text-xs text-muted-foreground mb-3">
                     A no-trade is also a decision. When the bot evaluates a signal but does not open (e.g. strength/confidence below bar, book imbalance, ML reject), it appears here—same data as the terminal &quot;SIGNAL EVALUATED - NO TRADE&quot; boxes. Hit Refresh to sync with the running bot.
                   </p>
-                  {(paperResult.data.recentNoTrades?.length ?? 0) === 0 ? (
+                  {(paperData.recentNoTrades?.length ?? 0) === 0 ? (
                     <p className="text-muted-foreground py-4 text-sm rounded-lg bg-muted/30 border border-dashed border-border px-3">
                       No no-trade evaluations in this run yet. They appear as the bot evaluates signals (ETH, SOL, HYPE, etc.) and skips opening when thresholds aren’t met. Refresh after the bot has been running to see them.
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {[...(paperResult.data.recentNoTrades ?? [])]
+                      {[...(paperData.recentNoTrades ?? [])]
                         .sort((a, b) => b.timestamp - a.timestamp)
                         .map((ev, i) => (
                           <div key={`${ev.asset}-${ev.timestamp}-${i}`} className="rounded-lg border border-amber-500/20 bg-amber-500/5 dark:bg-amber-500/10 p-3 text-xs space-y-2">
@@ -1761,7 +1773,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 </DashboardCard>
                 {/* ML & recorded data influence (ONNX, bandit, improvement report) — flagship: open AI interoperability */}
                 <DashboardCard title="ML & recorded data influence">
-                  {paperResult.data.mlStatus != null ? (
+                  {paperData.mlStatus != null ? (
                     <div className="space-y-4">
                       <div className="rounded-lg border border-primary/20 bg-primary/5 dark:bg-primary/10 px-3 py-2.5">
                         <p className="text-xs font-semibold text-foreground mb-1">What this is</p>
@@ -1772,34 +1784,34 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">ONNX models (4 possible)</p>
                         <p className="text-xs font-mono">
-                          {paperResult.data.mlStatus.modelsLoaded.length > 0
-                            ? paperResult.data.mlStatus.modelsLoaded.join(", ")
+                          {paperData.mlStatus.modelsLoaded.length > 0
+                            ? paperData.mlStatus.modelsLoaded.join(", ")
                             : "None loaded (rule-based fallbacks)"}
                         </p>
-                        {paperResult.data.mlStatus.modelsLoaded.length === 0 ? (
+                        {paperData.mlStatus.modelsLoaded.length === 0 ? (
                           <p className="text-xs text-muted-foreground mt-1">
                             The four slots: <span className="font-mono">signal_quality</span>, <span className="font-mono">position_sizing</span>, <span className="font-mono">tp_optimizer</span>, <span className="font-mono">sl_optimizer</span>. To enable: run training after 90+ closed trades, or add .onnx files to <span className="font-mono">.elizadb/vince-paper-bot/models/</span>.
                           </p>
                         ) : (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Signal quality threshold: {(paperResult.data.mlStatus.signalQualityThreshold * 100).toFixed(0)}%
-                            {paperResult.data.mlStatus.suggestedMinStrength != null && ` · Suggested min strength: ${paperResult.data.mlStatus.suggestedMinStrength}%`}
-                            {paperResult.data.mlStatus.suggestedMinConfidence != null && ` · Suggested min confidence: ${paperResult.data.mlStatus.suggestedMinConfidence}%`}
-                            {paperResult.data.mlStatus.tpLevelSkipped != null && ` · TP level ${paperResult.data.mlStatus.tpLevelSkipped + 1} skipped (win rate from report)`}
+                            Signal quality threshold: {(paperData.mlStatus.signalQualityThreshold * 100).toFixed(0)}%
+                            {paperData.mlStatus.suggestedMinStrength != null && ` · Suggested min strength: ${paperData.mlStatus.suggestedMinStrength}%`}
+                            {paperData.mlStatus.suggestedMinConfidence != null && ` · Suggested min confidence: ${paperData.mlStatus.suggestedMinConfidence}%`}
+                            {paperData.mlStatus.tpLevelSkipped != null && ` · TP level ${paperData.mlStatus.tpLevelSkipped + 1} skipped (win rate from report)`}
                           </p>
                         )}
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Thompson Sampling (bandit)</p>
                         <p className="text-xs font-mono">
-                          {paperResult.data.mlStatus.banditReady ? "Active" : "Not active"} · {paperResult.data.mlStatus.banditTradesProcessed} trades processed
+                          {paperData.mlStatus.banditReady ? "Active" : "Not active"} · {paperData.mlStatus.banditTradesProcessed} trades processed
                         </p>
                       </div>
-                      {(paperResult.data.recentMLInfluences?.length ?? 0) > 0 && (
+                      {(paperData.recentMLInfluences?.length ?? 0) > 0 && (
                         <div>
                           <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Recent influence</p>
                           <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                            {[...(paperResult.data.recentMLInfluences ?? [])]
+                            {[...(paperData.recentMLInfluences ?? [])]
                               .sort((a, b) => b.timestamp - a.timestamp)
                               .map((ev, i) => (
                                 <div key={`${ev.asset}-${ev.timestamp}-${i}`} className="rounded border border-border/50 px-2 py-1.5 text-xs">
@@ -1880,19 +1892,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             </div>
 
             {/* Knowledge overview: newly added files (weekly + all-time) */}
-            {knowledgeLoading && !knowledgeResult?.data ? (
+            {knowledgeLoading && !knowledgeData ? (
               <div className="h-32 bg-muted/50 rounded-xl animate-pulse mb-6" />
-            ) : knowledgeResult?.data ? (
+            ) : knowledgeData ? (
               <div className="mb-6 space-y-4">
                 <DashboardCard title="Newly added knowledge">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">This week</p>
-                      <p className="text-2xl font-mono font-bold">{knowledgeResult.data.weekly.count}</p>
+                      <p className="text-2xl font-mono font-bold">{knowledgeData.weekly.count}</p>
                       <p className="text-xs text-muted-foreground mt-1">files added in the last 7 days</p>
-                      {knowledgeResult.data.weekly.files.length > 0 && (
+                      {knowledgeData.weekly.files.length > 0 && (
                         <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-48 overflow-y-auto">
-                          {knowledgeResult.data.weekly.files.map((f, i) => {
+                          {knowledgeData.weekly.files.map((f, i) => {
                             const folder = f.folder ?? f.relativePath.split("/")[0] ?? "root";
                             const dateStr = new Date(f.mtime).toLocaleDateString();
                             return (
@@ -1910,11 +1922,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">All time</p>
-                      <p className="text-2xl font-mono font-bold">{knowledgeResult.data.allTime.count}</p>
+                      <p className="text-2xl font-mono font-bold">{knowledgeData.allTime.count}</p>
                       <p className="text-xs text-muted-foreground mt-1">files in knowledge base</p>
-                      {knowledgeResult.data.allTime.files.length > 0 && (
+                      {knowledgeData.allTime.files.length > 0 && (
                         <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground max-h-48 overflow-y-auto">
-                          {knowledgeResult.data.allTime.files.map((f, i) => {
+                          {knowledgeData.allTime.files.map((f, i) => {
                             const folder = f.folder ?? f.relativePath.split("/")[0] ?? "root";
                             const dateStr = new Date(f.mtime).toLocaleDateString();
                             return (

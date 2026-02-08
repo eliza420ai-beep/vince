@@ -46,10 +46,6 @@ const NETWORK_TO_PLATFORM: Record<string, string> = {
   "ethereum-hoodi": "ethereum",
   arbitrum: "arbitrum-one",
   "arbitrum-sepolia": "arbitrum-one",
-  optimism: "optimistic-ethereum",
-  "optimism-sepolia": "optimistic-ethereum",
-  polygon: "polygon-pos",
-  "polygon-mumbai": "polygon-pos",
 };
 
 const HARDCODED_TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
@@ -76,27 +72,6 @@ const HARDCODED_TOKEN_ADDRESSES: Record<string, Record<string, string>> = {
     weth: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
     wbtc: "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
     arb: "0x912CE59144191C1204E64559FE8253a0e49E6548",
-  },
-  optimism: {
-    usdc: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85",
-    "usdc.e": "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // Bridged USDC (legacy)
-    usdce: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", // Alias without dot
-    usdt: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58",
-    dai: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1",
-    weth: "0x4200000000000000000000000000000000000006",
-    wbtc: "0x68f180fcCe6836688e9084f035309E29Bf0A2095",
-    op: "0x4200000000000000000000000000000000000042",
-  },
-  polygon: {
-    usdc: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-    "usdc.e": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", // Bridged USDC (legacy)
-    usdce: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174", // Alias without dot
-    usdt: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
-    dai: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
-    weth: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
-    wbtc: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
-    wmatic: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270",
-    wpol: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", // Same as WMATIC (rebranded)
   },
 };
 
@@ -275,41 +250,6 @@ export async function resolveTokenToAddress(
     return "0x0000000000000000000000000000000000000000";
   }
 
-  // Handle MATIC/POL on Polygon (use WMATIC/WPOL)
-  if (
-    (trimmedToken.toLowerCase() === "matic" ||
-      trimmedToken.toLowerCase() === "pol") &&
-    network === "polygon"
-  ) {
-    const wrappedMatic =
-      HARDCODED_TOKEN_ADDRESSES[network]?.["wmatic"] ??
-      HARDCODED_TOKEN_ADDRESSES[network]?.["wpol"];
-    if (wrappedMatic) {
-      logger.info(
-        `Mapping ${token} to WMATIC/WPOL on Polygon: ${wrappedMatic}`,
-      );
-      return wrappedMatic as `0x${string}`;
-    }
-    logger.warn(
-      `No WMATIC mapping found for Polygon, falling back to zero address`,
-    );
-    return "0x0000000000000000000000000000000000000000";
-  }
-
-  // Handle MATIC on other chains (would be wrapped/bridged MATIC)
-  if (trimmedToken.toLowerCase() === "matic" && network !== "polygon") {
-    logger.debug(`MATIC on ${network} needs to be resolved via CoinGecko`);
-    // Fall through to normal resolution
-  }
-
-  // Handle POL on other chains (ERC20 token on Ethereum, not native gas token)
-  // POL exists as ERC20 on Ethereum mainnet, but is NOT a native gas token anywhere except Polygon
-  if (trimmedToken.toLowerCase() === "pol" && network !== "polygon") {
-    logger.debug(
-      `POL on ${network} is an ERC20 token (not native gas token), resolving via CoinGecko`,
-    );
-    // Fall through to normal resolution (will resolve to ERC20 contract address)
-  }
   if (trimmedToken.startsWith("0x") && trimmedToken.length === 42) {
     logger.debug(
       `Token ${token} looks like an address, validating with CoinGecko`,

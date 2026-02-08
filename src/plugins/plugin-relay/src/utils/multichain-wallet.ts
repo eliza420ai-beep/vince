@@ -4,14 +4,7 @@ import {
   type Address,
   type WalletClient,
 } from "viem";
-import {
-  arbitrum,
-  base,
-  mainnet,
-  optimism,
-  polygon,
-  type Chain,
-} from "viem/chains";
+import { arbitrum, base, mainnet, type Chain } from "viem/chains";
 import type { Account } from "viem/accounts";
 
 // Map of chain IDs to viem Chain objects
@@ -19,8 +12,6 @@ const CHAIN_MAP: Record<number, Chain> = {
   [mainnet.id]: mainnet,
   [base.id]: base,
   [arbitrum.id]: arbitrum,
-  [polygon.id]: polygon,
-  [optimism.id]: optimism,
 };
 
 // Default RPC URLs for each chain
@@ -28,8 +19,6 @@ const DEFAULT_RPC_URLS: Record<number, string> = {
   [mainnet.id]: "https://eth.llamarpc.com",
   [base.id]: "https://mainnet.base.org",
   [arbitrum.id]: "https://arb1.arbitrum.io/rpc",
-  [polygon.id]: "https://polygon-rpc.com",
-  [optimism.id]: "https://mainnet.optimism.io",
 };
 
 /**

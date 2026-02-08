@@ -13,15 +13,10 @@ import { CdpService } from "../services/cdp.service";
 import { validateCdpService } from "../utils/actionHelpers";
 import { type CdpNetwork } from "../types";
 
-// WETH contract address on Polygon (bridged from Ethereum via PoS Bridge)
-const WETH_POLYGON_ADDRESS = "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619";
-
 const SUPPORTED_NETWORKS: readonly CdpNetwork[] = [
   "base",
   "ethereum",
   "arbitrum",
-  "optimism",
-  "polygon",
 ];
 
 interface TransferParams {
@@ -57,7 +52,7 @@ export const cdpWalletTokenTransfer: Action = {
     "TRANSFER_TOKENS_CDP",
     "PAY_WITH_CDP",
   ],
-  description: "Use this action when you need to transfer tokens (ERC20 or native tokens like ETH) from user's wallet. For NFTs, use USER_WALLET_NFT_TRANSFER instead. Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. POL is never the native gas token on Base/Ethereum (POL ERC20 exists on Ethereum but is not a native gas token). Treat 'ETH' on Polygon as 'WETH'. IMPORTANT: Before executing, you MUST present a clear summary (recipient, amount, token, network, USD value) and get explicit user confirmation ('yes', 'confirm', 'go ahead'). Never execute transfers without confirmed intent - they are irreversible.",
+  description: "Use this action when you need to transfer tokens (ERC20 or native tokens like ETH) from user's wallet. For NFTs, use USER_WALLET_NFT_TRANSFER instead. Native gas token: ETH on Base, Ethereum, and Arbitrum. IMPORTANT: Before executing, you MUST present a clear summary (recipient, amount, token, network, USD value) and get explicit user confirmation ('yes', 'confirm', 'go ahead'). Never execute transfers without confirmed intent - they are irreversible.",
   
   // Parameter schema for tool calling
   parameters: {
@@ -68,7 +63,7 @@ export const cdpWalletTokenTransfer: Action = {
     },
     token: {
       type: "string",
-      description: "Token symbol or address to transfer (e.g., 'USDC', 'ETH', 'wlfi', or '0x...'). On Polygon, the native gas token is POL ($POL, formerly MATIC). If 'ETH' is specified for Polygon, interpret it as 'WETH'.",
+      description: "Token symbol or address to transfer (e.g., 'USDC', 'ETH', or '0x...').",
       required: true,
     },
     amount: {
@@ -83,7 +78,7 @@ export const cdpWalletTokenTransfer: Action = {
     },
     network: {
       type: "string",
-      description: "Network to execute transfer on: 'base', 'ethereum', 'arbitrum', 'optimism', or 'polygon'",
+      description: "Network to execute transfer on: 'base', 'ethereum', or 'arbitrum'",
       required: true,
     },
   },
@@ -254,7 +249,7 @@ export const cdpWalletTokenTransfer: Action = {
 
       if (!networkRaw) {
         const errorMsg =
-          "Missing required parameter 'network'. Please specify the network (base, ethereum, arbitrum, optimism, or polygon).";
+          "Missing required parameter 'network'. Please specify the network (base, ethereum, or arbitrum).";
         logger.error(`[USER_WALLET_TOKEN_TRANSFER] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: ` ${errorMsg}`,
@@ -395,36 +390,18 @@ export const cdpWalletTokenTransfer: Action = {
         tokenAddress = foundToken.contractAddress!;
         decimals = foundToken.decimals;
       } else if (transferParams.token === "eth") {
-        if (resolvedNetwork === "polygon") {
-          tokenAddress = WETH_POLYGON_ADDRESS;
-          const foundToken = walletInfo.tokens.find(
-            (t) =>
-              t.chain === resolvedNetwork &&
-              t.contractAddress?.toLowerCase() === tokenAddress.toLowerCase(),
+        tokenAddress = "eth";
+        const foundToken = walletInfo.tokens.find(
+          (t) => t.chain === resolvedNetwork && !t.contractAddress,
+        );
+
+        if (!foundToken) {
+          throw new Error(
+            `Token ${originalTokenInput.toUpperCase()} not found in your wallet on ${resolvedNetwork}.`,
           );
-
-          if (!foundToken) {
-            throw new Error(
-              `Token ${originalTokenInput.toUpperCase()} not found in your wallet on ${resolvedNetwork}.`,
-            );
-          }
-
-          walletToken = foundToken;
-        } else {
-          tokenAddress = "eth";
-          const foundToken = walletInfo.tokens.find(
-            (t) => t.chain === resolvedNetwork && !t.contractAddress,
-          );
-
-          if (!foundToken) {
-            throw new Error(
-              `Token ${originalTokenInput.toUpperCase()} not found in your wallet on ${resolvedNetwork}.`,
-            );
-          }
-
-          walletToken = foundToken;
         }
 
+        walletToken = foundToken;
         decimals = walletToken.decimals ?? 18;
       } else {
         const foundToken = walletInfo.tokens.find(
@@ -434,15 +411,6 @@ export const cdpWalletTokenTransfer: Action = {
         );
 
         if (!foundToken) {
-          if (
-            (transferParams.token === "pol" || transferParams.token === "matic") &&
-            resolvedNetwork !== "polygon"
-          ) {
-            throw new Error(
-              `Token ${originalTokenInput.toUpperCase()} is only available on Polygon. Please set the network to 'polygon'.`,
-            );
-          }
-
           throw new Error(
             `Token ${originalTokenInput.toUpperCase()} not found in your wallet on ${resolvedNetwork}.`,
           );

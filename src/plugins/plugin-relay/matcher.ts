@@ -20,9 +20,7 @@ export const relayKeywordPatterns: PluginKeywordPatterns = {
     "send",
     // Chain names
     "base",
-    "polygon",
     "arbitrum",
-    "optimism",
     "ethereum",
     // Bridge-specific terms
     "liquidity",
@@ -35,8 +33,8 @@ export const relayKeywordPatterns: PluginKeywordPatterns = {
     /bridge.*to/i,
     /move.*to/i,
     /cross.chain/i,
-    /transfer.*(?:base|polygon|arbitrum|optimism|ethereum)/i,
-    /send.*(?:base|polygon|arbitrum|optimism|ethereum)/i,
+    /transfer.*(?:base|arbitrum|ethereum)/i,
+    /send.*(?:base|arbitrum|ethereum)/i,
   ],
 };
 

@@ -39,9 +39,7 @@ const ERC20_ABI = [
 const CDP_NETWORK_MAP: Record<number, CdpNetwork> = {
   1: "ethereum",
   8453: "base",
-  10: "optimism",
   42161: "arbitrum",
-  137: "polygon",
 };
 
 const resolveCdpNetworkFromChainId = (chainId: number): CdpNetwork => {
@@ -57,9 +55,7 @@ const getChainNameFromId = (chainId: number): string => {
   const map: Record<number, string> = {
     1: "ethereum",
     8453: "base",
-    10: "optimism",
     42161: "arbitrum",
-    137: "polygon",
   };
   return map[chainId] || "unknown";
 };
@@ -173,7 +169,7 @@ Parameters: chain, token, amount (required for native tokens), fundingAmount (op
   parameters: {
     chain: {
       type: "string",
-      description: "Chain name (e.g., 'base', 'ethereum', 'arbitrum', 'optimism', 'polygon'). Default: base",
+      description: "Chain name (e.g., 'base', 'ethereum', 'arbitrum'). Default: base",
       required: false,
     },
     token: {
@@ -298,7 +294,7 @@ Parameters: chain, token, amount (required for native tokens), fundingAmount (op
 
       const isNativeWithdrawal = isNativeToken(tokenAddress);
       const tokenLabel = isNativeWithdrawal
-        ? (chainName === "polygon" ? "POL" : "ETH")
+        ? "ETH"
         : tokenParam.toUpperCase();
 
       callback?.({ text: `🔄 Creating ${isNativeWithdrawal ? "native token" : "ERC20"} withdrawal instruction for ${tokenLabel} on ${chainName}...` });

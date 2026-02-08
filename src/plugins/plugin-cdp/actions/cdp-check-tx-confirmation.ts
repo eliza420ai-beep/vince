@@ -40,7 +40,7 @@ export const cdpCheckTxConfirmation: Action = {
     network: {
       type: "string",
       description:
-        "Blockchain network: 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'base-sepolia', or 'ethereum-sepolia'",
+        "Blockchain network: 'base', 'ethereum', 'arbitrum', 'base-sepolia', or 'ethereum-sepolia'",
       required: true,
     },
   },
@@ -97,7 +97,7 @@ export const cdpCheckTxConfirmation: Action = {
 
       if (!network) {
         const errorMsg =
-          "Missing required parameter 'network'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'polygon').";
+          "Missing required parameter 'network'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'arbitrum').";
         logger.error(`[CHECK_TX_CONFIRMATION] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: ` ${errorMsg}`,
@@ -133,9 +133,7 @@ export const cdpCheckTxConfirmation: Action = {
       const supportedNetworks = [
         "base",
         "ethereum",
-        "polygon",
         "arbitrum",
-        "optimism",
         "base-sepolia",
         "ethereum-sepolia",
       ];

@@ -47,11 +47,7 @@ const WETH_ADDRESSES: Record<string, string> = {
   "base-sepolia": "0x4200000000000000000000000000000000000006",
   "ethereum": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
   "arbitrum": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  "optimism": "0x4200000000000000000000000000000000000006",
-  "polygon": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
 };
-
-const WMATIC_ADDRESS = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 
 /**
  * Resolve token to address using CoinGecko
@@ -75,13 +71,7 @@ const resolveTokenToAddress = async (
   const trimmedToken = token.trim();
   
   // For native ETH - CDP uses special native token address
-  // EXCEPTION: On Polygon, ETH refers to WETH (bridged ETH), not the native gas token
   if (trimmedToken.toLowerCase() === "eth") {
-    if (network === "polygon") {
-      const wethAddress = WETH_ADDRESSES[network];
-      logger.info(`Using WETH contract address for ETH on Polygon: ${wethAddress}`);
-      return wethAddress as `0x${string}`;
-    }
     logger.info(`Using native token address for ETH: ${NATIVE_TOKEN_ADDRESS}`);
     return NATIVE_TOKEN_ADDRESS as `0x${string}`;
   }
@@ -94,20 +84,6 @@ const resolveTokenToAddress = async (
       return wethAddress as `0x${string}`;
     }
     logger.warn(`No WETH address configured for network ${network}`);
-  }
-  
-  // For native MATIC/POL on Polygon - use native token address
-  // Note: POL exists as ERC20 on Ethereum mainnet, but is NOT a native gas token there
-  // POL on Ethereum would fall through to CoinGecko resolution (ERC20 contract address)
-  if ((trimmedToken.toLowerCase() === "matic" || trimmedToken.toLowerCase() === "pol") && network === "polygon") {
-    logger.info(`Using native token address for ${trimmedToken.toUpperCase()}: ${NATIVE_TOKEN_ADDRESS}`);
-    return NATIVE_TOKEN_ADDRESS as `0x${string}`;
-  }
-  
-  // For explicit WMATIC on Polygon - use actual WMATIC contract address
-  if (trimmedToken.toLowerCase() === "wmatic" && network === "polygon") {
-    logger.info(`Using WMATIC contract address for Polygon: ${WMATIC_ADDRESS}`);
-    return WMATIC_ADDRESS as `0x${string}`;
   }
   
   // If it looks like an address, validate it with CoinGecko to prevent fake addresses
@@ -183,7 +159,7 @@ export const cdpWalletSwap: Action = {
     },
     network: {
       type: "string",
-      description: "Network to execute swap on: 'base', 'ethereum', 'arbitrum', 'optimism', or 'polygon' (default: 'base')",
+      description: "Network to execute swap on: 'base', 'ethereum', or 'arbitrum' (default: 'base')",
       required: false,
     },
   },
@@ -732,45 +708,6 @@ export const cdpWalletSwap: Action = {
         name: "{{agent}}",
         content: {
           text: "I'll swap 95% of your ETH to USDC (keeping some for gas).",
-          action: "USER_WALLET_SWAP",
-        },
-      },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "swap all my MATIC for USDC on polygon" },
-      },
-      {
-        name: "{{agent}}",
-        content: {
-          text: "I'll swap 95% of your MATIC to USDC on Polygon (keeping some for gas).",
-          action: "USER_WALLET_SWAP",
-        },
-      },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "swap 10 POL to USDC on polygon" },
-      },
-      {
-        name: "{{agent}}",
-        content: {
-          text: "I'll swap 10 POL to USDC on Polygon.",
-          action: "USER_WALLET_SWAP",
-        },
-      },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "swap 5 USDC to ETH on polygon" },
-      },
-      {
-        name: "{{agent}}",
-        content: {
-          text: "I'll swap 5 USDC to WETH on Polygon.",
           action: "USER_WALLET_SWAP",
         },
       },

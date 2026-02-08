@@ -35,7 +35,7 @@ export const getTokenPriceChartAction: Action = {
     },
     chain: {
       type: "string",
-      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.",
+      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.",
       required: true,
     },
   },
@@ -84,7 +84,7 @@ export const getTokenPriceChartAction: Action = {
       // Extract and validate chain parameter (required)
       const chain: string | undefined = params?.chain?.trim()?.toLowerCase();
       if (!chain) {
-        const errorMsg = "Missing required parameter 'chain'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'polygon'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.";
+        const errorMsg = "Missing required parameter 'chain'. Please specify the blockchain network (e.g., 'base', 'ethereum', 'arbitrum'). Use GET_TOKEN_METADATA first to determine the correct chain for a specific token.";
         logger.error(`[GET_TOKEN_PRICE_CHART] ${errorMsg}`);
         const errorResult: ActionResult = {
           text: errorMsg,
@@ -211,9 +211,7 @@ Please check the following:
    | ------------ | ----------- |
    | **base**     | base        |
    | **ethereum** | ethereum    |
-   | **polygon**  | polygon     |
    | **arbitrum** | arbitrum    |
-   | **optimism** | optimism    |
    
 3. **Timeframe**: Optional - '1h', '24h', '7d', '30d', '90d', or '1y' (default: '24h')
 

@@ -25,25 +25,17 @@ type CheckBalanceInput = {
 
 type CheckBalanceActionResult = ActionResult & { input: CheckBalanceInput };
 
-const POLYGON_NATIVE_ALIASES = new Set(["pol", "matic"]);
-
 interface NormalizedTokenQuery {
   canonicalSymbol: string;
   searchSymbols: string[];
-  isPolygonNativeAlias: boolean;
-  wasRequestedAsMatic: boolean;
 }
 
 const normalizeTokenQuery = (token: string): NormalizedTokenQuery => {
   const trimmed = token.trim();
   const lower = trimmed.toLowerCase();
-  const isAlias = POLYGON_NATIVE_ALIASES.has(lower);
-
   return {
-    canonicalSymbol: isAlias ? "POL" : trimmed.toUpperCase(),
-    searchSymbols: isAlias ? Array.from(POLYGON_NATIVE_ALIASES) : [lower],
-    isPolygonNativeAlias: isAlias,
-    wasRequestedAsMatic: lower === "matic",
+    canonicalSymbol: trimmed.toUpperCase(),
+    searchSymbols: [lower],
   };
 };
 
@@ -65,12 +57,12 @@ export const cdpWalletCheckBalance: Action = {
     token: {
       type: "string",
       description:
-        "Token symbol (e.g., 'ETH', 'USDC', 'POL' formerly 'MATIC') or contract address (0x...)",
+        "Token symbol (e.g., 'ETH', 'USDC') or contract address (0x...)",
       required: true,
     },
     chain: {
       type: "string",
-      description: "Blockchain network to check (e.g., 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism'). If not provided, searches across all chains.",
+      description: "Blockchain network to check (e.g., 'base', 'ethereum', 'arbitrum'). If not provided, searches across all chains.",
       required: false,
     },
     minAmount: {
@@ -141,7 +133,7 @@ export const cdpWalletCheckBalance: Action = {
       }
 
       // Validate chain if provided
-      const validChains = ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'scroll'];
+      const validChains = ['base', 'ethereum', 'arbitrum', 'scroll'];
       if (chain && !validChains.includes(chain)) {
         const errorMsg = `Invalid chain: ${chain}. Supported chains: ${validChains.join(', ')}`;
         logger.error(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
@@ -241,21 +233,9 @@ export const cdpWalletCheckBalance: Action = {
         });
 
         if (matchingTokens.length > 0) {
-          const sorted = matchingTokens.sort((a, b) => {
-            if (normalizedToken?.isPolygonNativeAlias) {
-              const aChain = a.chain.toLowerCase();
-              const bChain = b.chain.toLowerCase();
-              const aIsPolygonNative = a.contractAddress === null && aChain === "polygon";
-              const bIsPolygonNative = b.contractAddress === null && bChain === "polygon";
-
-              if (aIsPolygonNative !== bIsPolygonNative) {
-                return aIsPolygonNative ? -1 : 1;
-              }
-            }
-
-            return parseFloat(b.balance) - parseFloat(a.balance);
-          });
-
+          const sorted = matchingTokens.sort(
+            (a, b) => parseFloat(b.balance) - parseFloat(a.balance)
+          );
           matchedToken = sorted[0];
         }
       }
@@ -264,11 +244,7 @@ export const cdpWalletCheckBalance: Action = {
         const tokenLabel = normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase();
         const errorMsg = `Token ${tokenLabel} not found in wallet${chainInfo}`;
         logger.warn(`[CHECK_TOKEN_BALANCE] ${errorMsg}`);
-        
-        const aliasSuffix = normalizedToken?.wasRequestedAsMatic
-          ? " (formerly MATIC)"
-          : "";
-        const text = ` You don't have any ${tokenLabel}${aliasSuffix}${chainInfo}. Current balance: 0`;
+        const text = ` You don't have any ${tokenLabel}${chainInfo}. Current balance: 0`;
 
         const result: CheckBalanceActionResult = {
           text,
@@ -306,16 +282,7 @@ export const cdpWalletCheckBalance: Action = {
 
       // Format response
       const displaySymbol = matchedToken.symbol || (normalizedToken?.canonicalSymbol ?? tokenInput.toUpperCase());
-      const interpretedMatic =
-        normalizedToken?.wasRequestedAsMatic &&
-        matchedToken.contractAddress === null &&
-        matchedToken.chain.toLowerCase() === "polygon";
-
-      let text = interpretedMatic
-        ? " Interpreting MATIC as POL (Polygon native token).\n\n"
-        : " ";
-
-      text += `**${displaySymbol.toUpperCase()} Balance**\n\n`;
+      let text = ` **${displaySymbol.toUpperCase()} Balance**\n\n`;
       text += `**Chain:** ${matchedToken.chain.charAt(0).toUpperCase() + matchedToken.chain.slice(1)}\n`;
       text += `**Balance:** ${matchedToken.balanceFormatted} ${matchedToken.symbol}\n`;
       text += `**USD Value:** $${matchedToken.usdValue.toFixed(2)}\n`;

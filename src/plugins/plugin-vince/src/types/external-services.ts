@@ -275,9 +275,7 @@ export type NansenChain =
   | "ethereum"
   | "solana"
   | "base"
-  | "arbitrum"
-  | "polygon"
-  | "optimism";
+  | "arbitrum";
 
 export interface INansenSmartMoneyToken {
   tokenAddress: string;

@@ -13,7 +13,7 @@ export const defiLlamaKeywordPatterns: PluginKeywordPatterns = {
     // DeFi protocols
     "aave", "curve", "lido", "uniswap", "compound", "morpho", "eigen",
     // Chain data
-    "chain", "chains", "ethereum", "polygon", "arbitrum", "optimism",
+    "chain", "chains", "ethereum", "arbitrum",
     // Market data
     "volume", "fees", "revenue", "ranking", "top protocols",
   ],

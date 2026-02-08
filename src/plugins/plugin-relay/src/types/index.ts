@@ -17,8 +17,6 @@ export const RelaySupportedChains = {
   ETHEREUM: 1,
   BASE: 8453,
   ARBITRUM: 42161,
-  POLYGON: 137,
-  OPTIMISM: 10,
   ZORA: 7777777,
   BLAST: 81457,
   SCROLL: 534352,

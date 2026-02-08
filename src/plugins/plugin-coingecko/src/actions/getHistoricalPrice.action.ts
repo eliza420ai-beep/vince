@@ -35,7 +35,7 @@ export const getHistoricalPriceAction: Action = {
     },
     chain: {
       type: "string",
-      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'polygon', 'arbitrum', 'optimism'). Required for contract addresses, optional for native tokens. Use GET_TOKEN_METADATA first to determine the correct chain.",
+      description: "Blockchain network for the token (e.g., 'base', 'ethereum', 'arbitrum'). Required for contract addresses, optional for native tokens. Use GET_TOKEN_METADATA first to determine the correct chain.",
       required: false,
     },
   },
@@ -193,9 +193,7 @@ Please check the following:
    | ------------ | ----------- |
    | **base**     | base        |
    | **ethereum** | ethereum    |
-   | **polygon**  | polygon     |
    | **arbitrum** | arbitrum    |
-   | **optimism** | optimism    |
    
 4. **Historical data availability**: CoinGecko may not have historical data for very new tokens or dates before the token was listed.
 

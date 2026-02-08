@@ -8,14 +8,7 @@ import {
   type State,
 } from "@elizaos/core";
 import type { Execute } from "@relayprotocol/relay-sdk";
-import {
-  arbitrum,
-  base,
-  type Chain,
-  mainnet,
-  optimism,
-  polygon,
-} from "viem/chains";
+import { arbitrum, base, type Chain, mainnet } from "viem/chains";
 import { parseUnits } from "viem";
 import { RelayService } from "../services/relay.service";
 import {
@@ -37,16 +30,12 @@ const SUPPORTED_CHAINS: Record<string, Chain> = {
   ethereum: mainnet,
   base: base,
   arbitrum: arbitrum,
-  polygon: polygon,
-  optimism: optimism,
 };
 
 const CDP_NETWORK_MAP: Record<string, CdpNetwork> = {
   ethereum: "ethereum",
   base: "base",
-  optimism: "optimism",
   arbitrum: "arbitrum",
-  polygon: "polygon",
   "base-sepolia": "base-sepolia",
 };
 
@@ -54,8 +43,6 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 const NATIVE_DECIMALS: Record<string, number> = {
   eth: 18,
-  matic: 18,
-  pol: 18,
 };
 
 const resolveCdpNetwork = (chainName: string): CdpNetwork => {
@@ -98,7 +85,7 @@ const resolveChainNameToId = (chainName: string): number | null => {
 export const relayQuoteAction: Action = {
   name: "GET_RELAY_QUOTE",
   description:
-    "Use this action when you need a cross-chain bridge/swap quote. Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. POL is never the native gas token on Base/Ethereum (POL ERC20 exists on Ethereum but is not a native gas token). Treat 'ETH' on Polygon as 'WETH'.",
+    "Use this action when you need a cross-chain bridge/swap quote. Native gas token: ETH on Base, Ethereum, and Arbitrum.",
   similes: [
     "QUOTE_BRIDGE",
     "QUOTE_CROSS_CHAIN",
@@ -112,19 +99,19 @@ export const relayQuoteAction: Action = {
     originChain: {
       type: "string",
       description:
-        "Origin chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Origin chain name (ethereum, base, arbitrum)",
       required: true,
     },
     destinationChain: {
       type: "string",
       description:
-        "Destination chain name (ethereum, base, arbitrum, polygon, optimism)",
+        "Destination chain name (ethereum, base, arbitrum)",
       required: true,
     },
     currency: {
       type: "string",
       description:
-        "Token symbol to bridge (e.g., 'eth', 'usdc', 'usdt', 'weth'). On Polygon, the native gas token is POL ($POL, formerly MATIC). If 'ETH' is specified for Polygon, interpret it as 'WETH'.",
+        "Token symbol to bridge (e.g., 'eth', 'usdc', 'usdt', 'weth')",
       required: true,
     },
     toCurrency: {

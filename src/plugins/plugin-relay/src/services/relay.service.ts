@@ -9,7 +9,7 @@ import {
 } from "@relayprotocol/relay-sdk";
 import { type Address, type Chain, type WalletClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
+import { arbitrum, base, mainnet } from "viem/chains";
 import type {
   ExecuteCallRequest,
   QuoteRequest,
@@ -37,7 +37,7 @@ export class RelayService extends Service {
   }
 
   get capabilityDescription(): string {
-    return "Cross-chain bridging and token transfers via Relay Protocol. Supports quote generation, bridge execution, and transaction status tracking across multiple EVM chains including Ethereum, Base, Arbitrum, Polygon, Optimism, and more.";
+    return "Cross-chain bridging and token transfers via Relay Protocol. Supports quote generation, bridge execution, and transaction status tracking across Ethereum, Base, and Arbitrum.";
   }
 
   static async start(runtime: IAgentRuntime): Promise<RelayService> {
@@ -57,13 +57,7 @@ export class RelayService extends Service {
     this.apiKey = runtime.getSetting("RELAY_API_KEY");
 
     // Define supported chains
-    const supportedChains: Chain[] = [
-      mainnet,
-      base,
-      arbitrum,
-      polygon,
-      optimism,
-    ];
+    const supportedChains: Chain[] = [mainnet, base, arbitrum];
 
     // Initialize Relay SDK with createClient (singleton)
     try {

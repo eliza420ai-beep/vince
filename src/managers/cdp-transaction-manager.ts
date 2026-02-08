@@ -517,9 +517,7 @@ export class CdpTransactionManager {
     const mapping: Record<string, string> = {
       ethereum: "eth-mainnet",
       base: "base-mainnet",
-      polygon: "matic-mainnet", // Alchemy uses 'matic-mainnet' not 'polygon-mainnet'
       arbitrum: "arb-mainnet",
-      optimism: "opt-mainnet",
       scroll: "scroll-mainnet",
     };
     return mapping[chain] || null;
@@ -2838,9 +2836,7 @@ export class CdpTransactionManager {
 
       const chainIdMap: Record<string, string> = {
         ethereum: "1",
-        polygon: "137",
         arbitrum: "42161",
-        optimism: "10",
         base: "8453",
       };
 
@@ -2944,9 +2940,7 @@ export class CdpTransactionManager {
 
     const chainIdMap: Record<string, string> = {
       ethereum: "1",
-      polygon: "137",
       arbitrum: "42161",
-      optimism: "10",
       base: "8453",
     };
 
@@ -3119,17 +3113,13 @@ export class CdpTransactionManager {
     const networkToPlatformId: Record<string, string> = {
       ethereum: "ethereum",
       base: "base",
-      polygon: "polygon-pos",
       arbitrum: "arbitrum-one",
-      optimism: "optimistic-ethereum",
     };
 
     const chainIdToNetwork: Record<string, string> = {
       ethereum: "ethereum",
       base: "base",
-      "polygon-pos": "polygon",
       "arbitrum-one": "arbitrum",
-      "optimistic-ethereum": "optimism",
     };
 
     let tokens: any[] = [];
@@ -3141,13 +3131,7 @@ export class CdpTransactionManager {
       // Search by contract address
       const platforms = chain
         ? [networkToPlatformId[chain.toLowerCase()]]
-        : [
-            "ethereum",
-            "base",
-            "polygon-pos",
-            "arbitrum-one",
-            "optimistic-ethereum",
-          ];
+        : ["ethereum", "base", "arbitrum-one"];
 
       for (const platformId of platforms) {
         if (!platformId) continue;
@@ -3206,7 +3190,7 @@ export class CdpTransactionManager {
 
         const networksToTry = chain
           ? [chain.toLowerCase()]
-          : ["ethereum", "base", "polygon", "arbitrum", "optimism"];
+          : ["ethereum", "base", "arbitrum"];
 
         for (const networkName of networksToTry) {
           try {
@@ -3526,9 +3510,7 @@ export class CdpTransactionManager {
     const chainToCategory: Record<string, string> = {
       ethereum: "ethereum-ecosystem",
       base: "base-ecosystem",
-      polygon: "polygon-ecosystem",
       arbitrum: "arbitrum-ecosystem",
-      optimism: "optimism-ecosystem",
     };
 
     const categoryId = chainToCategory[chain.toLowerCase()];
@@ -3562,9 +3544,7 @@ export class CdpTransactionManager {
           const networkToPlatformId: Record<string, string> = {
             ethereum: "ethereum",
             base: "base",
-            polygon: "polygon-pos",
             arbitrum: "arbitrum-one",
-            optimism: "optimistic-ethereum",
           };
 
           const platformId = networkToPlatformId[chain.toLowerCase()];
@@ -3672,9 +3652,7 @@ export class CdpTransactionManager {
         const networkToPlatformId: Record<string, string> = {
           ethereum: "ethereum",
           base: "base",
-          polygon: "polygon-pos",
           arbitrum: "arbitrum-one",
-          optimism: "optimistic-ethereum",
         };
 
         const platformId = networkToPlatformId[chain.toLowerCase()];

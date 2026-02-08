@@ -51,9 +51,16 @@ export const cdpPlugin: Plugin = {
     "Coinbase Developer Platform plugin providing authenticated EVM account creation, token transfers, NFT transfers, swaps, and x402 paid API requests via CDP SDK",
   evaluators: [],
   providers: [walletStateProvider],
-  actions: [cdpWalletInfo, cdpWalletCheckBalance, cdpWalletTokenTransfer, cdpWalletNftTransfer, 
-    // cdpWalletSwap, 
-    cdpResolveEns, cdpTxExplorerLink, cdpCheckTxConfirmation],
+  actions: [
+    cdpWalletInfo,
+    cdpWalletCheckBalance,
+    cdpWalletTokenTransfer,
+    cdpWalletNftTransfer,
+    cdpWalletSwap,
+    cdpResolveEns,
+    cdpTxExplorerLink,
+    cdpCheckTxConfirmation,
+  ],
   services: [CdpService],
 };
 

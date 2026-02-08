@@ -16,24 +16,15 @@ export const NATIVE_TOKEN_ADDRESS =
  * Chains that have native ETH as the gas token.
  * On these chains, "eth" should resolve to the zero address (native ETH).
  */
-const NATIVE_ETH_CHAINS = new Set(["base", "ethereum", "arbitrum", "optimism"]);
+const NATIVE_ETH_CHAINS = new Set(["base", "ethereum", "arbitrum"]);
 
 /**
- * Chains where ETH refers to WETH (bridged ETH), not native gas token.
- * On Polygon, there is no native ETH - the gas token is POL.
- */
-const ETH_IS_WETH_CHAINS = new Set(["polygon"]);
-
-/**
- * WETH addresses per chain for when we need to resolve WETH explicitly
- * or when ETH should be treated as WETH (e.g., on Polygon).
+ * WETH addresses per chain for when we need to resolve WETH explicitly.
  */
 const WETH_ADDRESSES: Record<string, string> = {
   base: "0x4200000000000000000000000000000000000006",
   ethereum: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  polygon: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
   arbitrum: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-  optimism: "0x4200000000000000000000000000000000000006",
 };
 
 /**
@@ -44,7 +35,7 @@ const WETH_ADDRESSES: Record<string, string> = {
  * - Only on Polygon does "eth" resolve to WETH (since Polygon has no native ETH)
  *
  * @param token - Token symbol (e.g., "eth", "usdc") or contract address
- * @param network - Network name (e.g., "base", "polygon")
+ * @param network - Network name (e.g., "base", "ethereum", "arbitrum")
  * @returns Token address or null if not found
  */
 export async function resolveTokenForBiconomy(
@@ -75,18 +66,6 @@ export async function resolveTokenForBiconomy(
       );
       return NATIVE_TOKEN_ADDRESS;
     }
-
-    if (ETH_IS_WETH_CHAINS.has(normalizedNetwork)) {
-      const wethAddress = WETH_ADDRESSES[normalizedNetwork];
-      if (wethAddress) {
-        logger.info(
-          `[Biconomy] ETH on ${normalizedNetwork} is WETH: ${wethAddress}`,
-        );
-        return wethAddress as `0x${string}`;
-      }
-    }
-
-    // Fallback: use relay resolver (which maps to WETH)
     logger.warn(
       `[Biconomy] Unknown network ${normalizedNetwork} for ETH, falling back to relay resolver`,
     );
@@ -101,15 +80,6 @@ export async function resolveTokenForBiconomy(
       );
       return wethAddress as `0x${string}`;
     }
-  }
-
-  // Handle native POL/MATIC on Polygon
-  if (
-    (normalizedToken === "pol" || normalizedToken === "matic") &&
-    normalizedNetwork === "polygon"
-  ) {
-    logger.info(`[Biconomy] Using native POL (zero address) for Polygon`);
-    return NATIVE_TOKEN_ADDRESS;
   }
 
   // For all other tokens, delegate to the relay resolver

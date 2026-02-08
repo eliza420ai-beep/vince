@@ -48,7 +48,7 @@ export const cdpWalletNftTransfer: Action = {
     },
     network: {
       type: "string",
-      description: "Network where the NFT exists: 'base', 'ethereum', 'arbitrum', 'optimism', or 'polygon'",
+      description: "Network where the NFT exists: 'base', 'ethereum', or 'arbitrum'",
       required: true,
     },
   },

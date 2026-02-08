@@ -22,14 +22,14 @@ export const getTrendingTokensAction: Action = {
     "POPULAR_TOKENS",
   ],
   description:
-    "Use this action when the user asks about trending or popular tokens on a specific blockchain network. Returns trending pools with token metadata including price, volume, market cap, and price changes. Supports networks like 'base', 'ethereum', 'arbitrum', 'optimism', 'polygon', and more.",
+    "Use this action when the user asks about trending or popular tokens on a specific blockchain network. Returns trending pools with token metadata including price, volume, market cap, and price changes. Supports networks: 'base', 'ethereum', 'arbitrum'.",
 
   // Parameter schema for tool calling
   parameters: {
     network: {
       type: "string",
       description:
-        "The blockchain network to fetch trending tokens for (e.g., 'base', 'ethereum', 'arbitrum', 'optimism', 'polygon'). Defaults to 'base'.",
+        "The blockchain network to fetch trending tokens for (e.g., 'base', 'ethereum', 'arbitrum'). Defaults to 'base'.",
       required: true,
     },
     limit: {
@@ -136,11 +136,9 @@ Please provide the correct chain parameter:
 | ------------ | ----------------------- |
 | **base**     | base                    |
 | **ethereum** | eth                     |
-| **polygon**  | polygon_pos             |
 | **arbitrum** | arbitrum                |
-| **optimism** | optimism                |
 
-Example: "Get trending tokens on eth" or "Show me trending tokens on polygon_pos"`;
+Example: "Get trending tokens on eth" or "Show me trending tokens on base"`;
 
       const errorResult: ActionResult = {
         text: errorText,

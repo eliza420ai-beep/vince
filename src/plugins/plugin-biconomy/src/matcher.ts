@@ -17,7 +17,7 @@ export const biconomyKeywordPatterns: PluginKeywordPatterns = {
     // Tokens
     "usdc", "eth", "weth", "usdt", "dai", "wbtc", "link",
     // Chains
-    "base", "ethereum", "arbitrum", "optimism", "polygon", "bsc",
+    "base", "ethereum", "arbitrum", "bsc",
     // Transaction types
     "transfer", "send",
     // Withdrawals
@@ -28,7 +28,7 @@ export const biconomyKeywordPatterns: PluginKeywordPatterns = {
     /swap.*on/i,
     /cross.chain/i,
     /withdraw(?:\s+all|\s+everything|\s+funds)?/i,
-    /(?:base|ethereum|arbitrum|optimism|polygon)\s+to\s+(?:base|ethereum|arbitrum|optimism|polygon)/i,
+    /(?:base|ethereum|arbitrum)\s+to\s+(?:base|ethereum|arbitrum)/i,
   ],
 };
 
