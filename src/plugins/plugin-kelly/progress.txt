@@ -1,0 +1,113 @@
+================================================================================
+PLUGIN-KELLY — PROGRESS AND RECOMMENDATIONS
+================================================================================
+
+--------------------------------------------------------------------------------
+SECTION 1 — PROGRESS (what is done)
+--------------------------------------------------------------------------------
+
+Plugin structure
+  - plugin-kelly with services (KellyLifestyleService), actions (8), evaluators (1), providers (2), tasks (2).
+  - Init runs only when character name is Kelly.
+
+Actions
+  - KELLY_DAILY_BRIEFING: day-aware picks (health, dining, hotels) from the-good-life and curated-open-schedule.
+  - KELLY_RECOMMEND_PLACE: one best pick + one alternative for hotel or restaurant; open today and Landes favorites for SW France.
+  - KELLY_RECOMMEND_WINE: one pick + alternative, SW France/Bordeaux default, tasting note and service.
+  - KELLY_SURF_FORECAST: Biarritz wave height, period, direction, sea temp; interpretation with surf-ocean voice tint; rain/storm suggests indoor or surfer yoga.
+  - KELLY_ITINERARY: multi-day trip plans (hotel, lunch, dinner per day) from the-good-life only.
+  - KELLY_RECOMMEND_WORKOUT: one concrete workout (pool, gym, surfer yoga, swim) from pool/gym season and swimming context.
+  - KELLY_WEEK_AHEAD: 3–5 suggestions for the week (dining, hotels, wellness) from the-good-life and curated schedule.
+  - KELLY_SWIMMING_TIPS: tips for daily 1000m, winter pools, swimmer yoga from swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers.
+  - All use the-good-life knowledge and curated-open-schedule.
+
+Providers
+  - kellyContext: today's wellness tip, day of week, season (pool/gym), restaurants open today (SW France/Landes), location context, yoga line, winter swimming line (gym season), known preferences from facts.
+  - weather: Bordeaux + Biarritz conditions; marine/surf data for Biarritz (wave height, period, direction, sea temp); high-wind caution; cached 30 min; no beach/surf/outdoor dining in rain or storm.
+
+Evaluator
+  - lifestyleFeedback: captures lifestyle preferences from conversation for future personalization.
+
+Tasks
+  - Daily lifestyle briefing push to channels whose name contains "kelly" or "lifestyle".
+  - Optional nudge task (configurable via KELLY_NUDGE_ENABLED, day/hour) to channels with "lifestyle" in name.
+
+Knowledge (the-good-life) used
+  - curated-open-schedule: restaurants by day, hotels by season, palace close/reopen (Winter, Palace indoor pools), fitness/health (pool season, gym season).
+  - lifestyle: swimming-daily-winter-pools (1000m+ daily, 12x6 pool, heating off Dec–Feb, winter palace pools, close/reopen dates), surf-ocean-voice (traits, phrase patterns, benefit-led/craft/no jargon, banned list), wellness-reminders, yoga-practice, daily-yoga-surfers-vinyasa, yoga-vinyasa-surfers-swimmers, creative-practice (painting, photography, music, cinema, Blender+MCP).
+  - creative-production (deep knowledge): oil-painting, hasselblad-fuji-capture-one, ableton-push-3, blackmagic-design, capture-one-pro, davinci-resolve, blender-claude-mcp. creative-practice.md has "Deep knowledge:" line per section; kelly.ts LIFESTYLE KNOWLEDGE list includes these docs for technique and workflow tips.
+
+Agent (kelly.ts) prompt work
+  - YOUR HUMAN'S CONTEXT: swimming as #1 sport (1000m+ a day, 12x6 pool), tips wanted, pool heating off early Dec–end Feb (5/3 wetsuit option), winter indoor swim at Palais/Caudalie; use curated-open-schedule and swimming-daily-winter-pools for exact close/reopen; only suggest those hotels when open.
+  - Health & fitness and Fitness coach: reference swimming-daily-winter-pools; primary sport 1000m+ daily; winter = wetsuit or Palais/Caudalie when open.
+  - SURF AND OCEAN VOICE: when topic is surf, waves, ocean, rebalance, touch grass — use lifestyle/surf-ocean-voice; never name a pro surfer; same facts in that voice.
+  - VOICE PRINCIPLES: benefit-led (Apple), confident and craft (Porsche OG), zero AI-slop jargon (explicit banned list in constants/voice.ts).
+  - NO FILLER: reference voice principles; banned list expanded with jargon.
+  - style.all: first line "Benefit-led (Apple), confident and craft (Porsche OG), zero AI-slop jargon."
+  - kelly-decision-rules / kelly-voice-principles: RAG-retrievable for when to use which action, default region, voice rules.
+
+Surf forecast
+  - formatInterpretation returns lines in surf-ocean voice (e.g. "Time slows down when it's like this", "There's a flow to it", "put yourself in the right part of it").
+
+Winter swimming
+  - kellyContext injects one line in gym season: backyard pool heating off until end Feb; 5/3 wetsuit or indoor swim at Palais (reopens Feb 12) / Caudalie (reopens Feb 5). getPalacePoolReopenDates() in service.
+
+Observability
+  - Health check (getKellyHealth) on init: verifies curated-open-schedule present and service returns context; logs warning if missing.
+  - Action usage logged at debug level when an action fires (for tuning triggers).
+
+Testing
+  - Unit tests: dailyBriefing, recommendPlace, recommendWine, itinerary, recommendWorkout, weekAhead, swimmingTips, surfForecast (validate + handler with mocks); kellyContext (winter swimming line); lifestyle.service; lifestyleFeedback.evaluator; jargon (formatInterpretation-style strings + BANNED_JARGON). Weather provider test with mocked fetch. Integration-style test (kellyContext + one action with mocked useModel). Surf handler output checked for no banned jargon.
+
+
+--------------------------------------------------------------------------------
+SECTION 2 — RECOMMENDATIONS (improve the plugin further)
+--------------------------------------------------------------------------------
+
+Actions
+  - KELLY_ITINERARY: optional output format (e.g. calendar-friendly or copy-paste for notes).
+  - KELLY_SURF_FORECAST: add optional "best window" (e.g. morning vs afternoon) if marine data allows.
+  - Consider KELLY_RECOMMEND_EXPERIENCE (e.g. one-off experiences, wine tasting, spa) from the-good-life.
+
+Providers
+  - kellyContext: add "last recommended place" or "last positive feedback" from evaluator memory so Kelly can say "last time you loved X".
+  - weather: add one more location (e.g. Landes or Arcachon) if useful for "beach vs indoor" decisions.
+  - Optional "seasonal highlights" provider (e.g. truffle season, oyster season, local events) from a small knowledge file or API.
+
+Service (KellyLifestyleService)
+  - Consider reading curated-open-schedule from runtime/knowledge instead of filesystem if RAG or project layout prefers it.
+
+Knowledge / RAG
+  - Optional: "seasonal-events-sw-france" (festivals, markets, closures) updated periodically.
+
+Voice and UX
+  - Add 2–3 more messageExamples in kelly.ts that show benefit-led, craft, no-jargon replies (hotel, wine, surf).
+  - In actions that return a single pick, add one optional "why this for you" sentence using benefit-led language.
+
+Evaluator
+  - lifestyleFeedback: extend to capture "preferred cuisine" or "preferred vibe" (quiet vs lively) from freeform feedback.
+  - Store feedback in a structured way (e.g. tags: hotel, restaurant, liked, disliked) so providers can inject "you prefer X" lines.
+  - Consider writing back to a small "user-preferences" knowledge or memory so Kelly can say "you usually prefer quieter spots".
+
+Tasks
+  - Daily briefing task: add retry with backoff if runtime or service is not ready.
+  - Optional "weekly digest" task (e.g. Sunday) that summarizes the week's suggestions or top picks.
+  - Task: optional "winter swim reminder" in Jan/Feb that nudges once with Palais/Caudalie reopen dates.
+
+Observability and ops
+  - Optional: metrics (e.g. daily briefing sent count, recommendPlace call count) for dashboards.
+
+Documentation
+  - Add inline comments in lifestyle.service.ts for the curated schedule parsing logic so new sections (e.g. palace pools) are easy to add.
+
+Agent prompt (kelly.ts)
+  - Add one RULES line: "When suggesting a hotel for winter swim, state the reopen date so the user can plan."
+  - Add messageExample for "when can I swim at the Palais?" with answer "reopens Feb 12" and no stay before that.
+
+Misc
+  - If many more actions are added, consider a single KELLY_DISPATCH (router) action that picks the right sub-action to reduce prompt complexity.
+  - Optional: validate curated-open-schedule structure on init (e.g. required sections exist) and log a warning if not.
+
+================================================================================
+End of progress.txt
+================================================================================

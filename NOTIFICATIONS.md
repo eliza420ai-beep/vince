@@ -76,8 +76,10 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 |---------|---------|-------------|
 | `VINCE_DAILY_REPORT_ENABLED` | `true` | Set to `false` to disable scheduled daily report |
 | `VINCE_DAILY_REPORT_HOUR` | `8` | Hour (UTC) to run the daily report (morning) |
-| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled lifestyle briefing |
+| `VINCE_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled lifestyle briefing (or when using Kelly for lifestyle channel) |
 | `VINCE_LIFESTYLE_HOUR` | `8` | Hour (UTC) to run the lifestyle briefing |
+| `KELLY_LIFESTYLE_DAILY_ENABLED` | `true` | Set to `false` to disable Kelly's scheduled concierge briefing. Runs only when the Kelly agent is run (plugin-kelly loaded). |
+| `KELLY_LIFESTYLE_HOUR` | `8` | Hour (UTC) for Kelly's daily briefing. Channels whose name contains "kelly" or "lifestyle" receive the push. |
 | `VINCE_NEWS_DAILY_ENABLED` | `true` | Set to `false` to disable scheduled news briefing |
 | `VINCE_NEWS_HOUR` | `7` | Hour (UTC) to run the news briefing |
 | `VINCE_NEWS_PUSH_REQUIRE_FRESH` | `true` | When `true`, skip push if Mando's publish date can't be inferred or is stale. Mando doesn't update every day. Set `false` to push anyway. |
@@ -89,7 +91,8 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 ```
 #daily (or #vince-daily-reports)   ← Daily report at 08:00 UTC
 #vince-news            ← News briefing at 07:00 UTC (MandoMinutes - only when Mando has updated)
-#vince-lifestyle       ← Lifestyle briefing at 08:00 UTC (dining, hotel, health, fitness)
+#vince-lifestyle       ← VINCE lifestyle briefing at 08:00 UTC (set VINCE_LIFESTYLE_DAILY_ENABLED=false if using Kelly for this)
+#kelly or #lifestyle    ← Kelly concierge briefing at 08:00 UTC (when Kelly agent is run; KELLY_LIFESTYLE_DAILY_ENABLED, KELLY_LIFESTYLE_HOUR)
 #vince-alerts          ← Alerts and paper trades
 #vince-general         ← Optional: general chat with VINCE
 ```

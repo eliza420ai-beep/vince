@@ -38,6 +38,10 @@ interface LifestyleDataContext {
   activity: { suggestion: string; reason: string }[];
   curatedRestaurants: string[];
   curatedHotels: string[];
+  wellnessTip: string;
+  touchGrassNote: string;
+  wineOfTheDay: string;
+  travelIdeaOfTheWeek: string;
 }
 
 function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
@@ -48,6 +52,30 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
     `Season: ${ctx.season === "pool" ? "Pool season (Apr-Nov)" : "Gym season (Dec-Mar)"}`,
   );
   lines.push("");
+
+  if (ctx.wellnessTip) {
+    lines.push("WELLNESS/FITNESS TIP FOR TODAY:");
+    lines.push(ctx.wellnessTip);
+    lines.push("");
+  }
+
+  if (ctx.wineOfTheDay) {
+    lines.push("WINE OF THE DAY:");
+    lines.push(ctx.wineOfTheDay);
+    lines.push("");
+  }
+
+  if (ctx.travelIdeaOfTheWeek) {
+    lines.push("TRAVEL IDEA OF THE WEEK:");
+    lines.push(ctx.travelIdeaOfTheWeek);
+    lines.push("");
+  }
+
+  if (ctx.touchGrassNote) {
+    lines.push("REBALANCE NOTE:");
+    lines.push(ctx.touchGrassNote);
+    lines.push("");
+  }
 
   if (ctx.specialNotes.length > 0) {
     lines.push("SPECIAL NOTES:");
@@ -121,9 +149,12 @@ Write a lifestyle briefing that:
 1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
 2. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge (e.g. Paris MICHELIN, Bordeaux region, southwest palace hotels)—only real places from that knowledge, never invent names.
 3. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
-4. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
-5. End with a specific suggestion for the day (dining, hotel, or activity).
-6. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
+4. If a WELLNESS/FITNESS TIP is provided, include one short line weaving it in (e.g. "Today's wellness note: ...").
+5. If WINE OF THE DAY and TRAVEL IDEA OF THE WEEK are provided, mention them in one sentence each (e.g. "Wine to try: Margaux." "Travel idea: Lisbon road trip.").
+6. If a REBALANCE NOTE is provided (e.g. Friday or weekend), add one sentence encouraging a rebalance—dinner, pool, or a walk—without mentioning work or markets.
+7. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
+8. End with a specific suggestion for the day (dining, hotel, or activity).
+9. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
 
 STYLE RULES:
 - Write like a discerning friend helping plan the day
@@ -152,18 +183,24 @@ Write the briefing:`;
   }
 }
 
+/** Filter for which channel names to push to: "kelly" | "lifestyle" | "both" (default both). */
+type ChannelNameFilter = "kelly" | "lifestyle" | "both";
+
 /**
- * Push text to channels whose name contains "kelly" or "lifestyle".
+ * Push text to channels whose name contains "kelly" or "lifestyle" (or only one if filter set).
  * Uses runtime.getAllWorlds() / getRooms() and sendMessageToTarget.
  */
 async function pushToKellyChannels(
   runtime: IAgentRuntime,
   text: string,
+  nameFilter: ChannelNameFilter = "both",
 ): Promise<number> {
   if (!text?.trim()) return 0;
 
   const nameMatches = (room: { name?: string }): boolean => {
     const name = (room.name ?? "").toLowerCase();
+    if (nameFilter === "kelly") return name.includes("kelly");
+    if (nameFilter === "lifestyle") return name.includes("lifestyle");
     return name.includes("kelly") || name.includes("lifestyle");
   };
 
@@ -283,11 +320,22 @@ export async function registerKellyLifestyleDailyTask(
         return;
       }
 
-      const lifestyleService = rt.getService(
+      const maxRetries = 3;
+      const backoffMs = [2000, 5000, 10000];
+      let lifestyleService = rt.getService(
         "KELLY_LIFESTYLE_SERVICE",
       ) as KellyLifestyleService | null;
+      for (let i = 0; i < maxRetries && !lifestyleService; i++) {
+        logger.warn(
+          `[KellyLifestyleDaily] KellyLifestyleService not ready, retry ${i + 1}/${maxRetries} in ${backoffMs[i]}ms`,
+        );
+        await new Promise((r) => setTimeout(r, backoffMs[i]));
+        lifestyleService = rt.getService(
+          "KELLY_LIFESTYLE_SERVICE",
+        ) as KellyLifestyleService | null;
+      }
       if (!lifestyleService) {
-        logger.warn("[KellyLifestyleDaily] KellyLifestyleService not available");
+        logger.warn("[KellyLifestyleDaily] KellyLifestyleService not available after retries");
         return;
       }
 
@@ -297,11 +345,15 @@ export async function registerKellyLifestyleDailyTask(
         const season = lifestyleService.getCurrentSeason();
         const curated = lifestyleService.getCuratedOpenContext?.() ?? null;
 
+        const dayLower = briefing.day.toLowerCase();
+        const isFriday = dayLower === "friday";
+        const isSaturday = dayLower === "saturday";
+
         const ctx: LifestyleDataContext = {
           day: briefing.day.charAt(0).toUpperCase() + briefing.day.slice(1),
           date: briefing.date,
           season,
-          isFriday: briefing.day.toLowerCase() === "friday",
+          isFriday,
           specialNotes: briefing.specialNotes,
           health: briefing.suggestions
             .filter((s) => s.category === "health")
@@ -321,13 +373,36 @@ export async function registerKellyLifestyleDailyTask(
             .map((s) => ({ suggestion: s.suggestion, reason: s.reason })),
           curatedRestaurants: curated?.restaurants ?? [],
           curatedHotels: curated?.hotels ?? [],
+          wellnessTip: lifestyleService.getWellnessTipOfTheDay?.() ?? "",
+          touchGrassNote:
+            isFriday || isSaturday
+              ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner, pool, or a walk—without mentioning work or markets."
+              : "",
+          wineOfTheDay: lifestyleService.getWineOfTheDay?.() ?? "",
+          travelIdeaOfTheWeek: lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
         };
 
         const dataContext = buildLifestyleDataContext(ctx);
-        const humanBriefing = await generateLifestyleHumanBriefing(
-          rt,
-          dataContext,
-        );
+        let humanBriefing = "";
+        let lastErr: unknown;
+        for (let r = 0; r < maxRetries; r++) {
+          try {
+            humanBriefing = await generateLifestyleHumanBriefing(rt, dataContext);
+            break;
+          } catch (genErr) {
+            lastErr = genErr;
+            if (r < maxRetries - 1) {
+              logger.warn(
+                `[KellyLifestyleDaily] Briefing generation failed, retry ${r + 1} in ${backoffMs[r]}ms`,
+              );
+              await new Promise((res) => setTimeout(res, backoffMs[r]));
+            }
+          }
+        }
+        if (!humanBriefing?.trim()) {
+          logger.error(`[KellyLifestyleDaily] Briefing failed after ${maxRetries} attempts: ${lastErr}`);
+          humanBriefing = "Lifestyle data's glitching. Check knowledge/the-good-life for recommendations.";
+        }
 
         const message = [
           `**${ctx.day}** _${ctx.date}_`,
@@ -367,5 +442,87 @@ export async function registerKellyLifestyleDailyTask(
 
   logger.info(
     `[KellyLifestyleDaily] Task registered (runs at ${lifestyleHour}:00 UTC, push to channels with "kelly" or "lifestyle" in name)`,
+  );
+}
+
+const NUDGE_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
+const DEFAULT_NUDGE_DAY = "wednesday";
+const DEFAULT_NUDGE_HOUR_UTC = 9;
+const NUDGE_MESSAGE =
+  "It's midweek escape day. Want one pick for hotel + dinner?";
+
+/**
+ * Register optional nudge task: on a configurable day (default Wednesday) at a set hour,
+ * send one line to kelly/lifestyle channels. Set KELLY_NUDGE_ENABLED=true to enable.
+ */
+export async function registerKellyNudgeTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const enabled =
+    process.env.KELLY_NUDGE_ENABLED === "true" ||
+    process.env.KELLY_NUDGE_ENABLED === "1";
+  if (!enabled) {
+    logger.debug("[KellyNudge] Disabled (KELLY_NUDGE_ENABLED not true)");
+    return;
+  }
+
+  const nudgeDay = (process.env.KELLY_NUDGE_DAY ?? DEFAULT_NUDGE_DAY).toLowerCase();
+  const nudgeHour =
+    parseInt(process.env.KELLY_NUDGE_HOUR ?? String(DEFAULT_NUDGE_HOUR_UTC), 10) ||
+    DEFAULT_NUDGE_HOUR_UTC;
+  const taskWorldId = runtime.agentId as UUID;
+
+  runtime.registerTaskWorker({
+    name: "KELLY_NUDGE_WEDNESDAY",
+    validate: async () => true,
+    execute: async (rt) => {
+      if (
+        process.env.KELLY_NUDGE_ENABLED !== "true" &&
+        process.env.KELLY_NUDGE_ENABLED !== "1"
+      )
+        return;
+
+      const now = new Date();
+      // Nudge only to channels whose name contains "lifestyle" (configurable)
+      const dayNames = [
+        "sunday",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+      ];
+      const currentDay = dayNames[now.getUTCDay()];
+      const hourUtc = now.getUTCHours();
+
+      if (currentDay !== nudgeDay || hourUtc !== nudgeHour) {
+        logger.debug(
+          `[KellyNudge] Skip: today ${currentDay}, hour ${hourUtc} UTC (target: ${nudgeDay} ${nudgeHour}:00)`,
+        );
+        return;
+      }
+
+      const sent = await pushToKellyChannels(rt, NUDGE_MESSAGE, "lifestyle");
+      if (sent > 0) {
+        logger.info(`[KellyNudge] Sent nudge to ${sent} channel(s)`);
+      }
+    },
+  });
+
+  await runtime.createTask({
+    name: "KELLY_NUDGE_WEDNESDAY",
+    description: "Optional midweek nudge to kelly/lifestyle channels",
+    roomId: taskWorldId,
+    worldId: taskWorldId,
+    tags: ["kelly", "nudge", "repeat"],
+    metadata: {
+      updatedAt: Date.now(),
+      updateInterval: NUDGE_INTERVAL_MS,
+    },
+  });
+
+  logger.info(
+    `[KellyNudge] Task registered (${nudgeDay} at ${nudgeHour}:00 UTC, KELLY_NUDGE_ENABLED=true)`,
   );
 }

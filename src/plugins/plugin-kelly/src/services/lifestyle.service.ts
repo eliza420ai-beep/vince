@@ -22,6 +22,7 @@ export interface CuratedOpenContext {
   hotels: string[];
   fitnessNote: string;
   rawSection: string;
+  palacePoolReopenDates?: Record<string, string>;
 }
 
 export class KellyLifestyleService extends Service {
@@ -35,27 +36,49 @@ export class KellyLifestyleService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<KellyLifestyleService> {
     const service = new KellyLifestyleService(runtime);
+    service.validateCuratedScheduleStructure();
     logger.debug("[KellyLifestyle] Service initialized");
     return service;
+  }
+
+  /** Optional: validate that curated-open-schedule has required sections; log warning if not. */
+  private validateCuratedScheduleStructure(): void {
+    const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
+    if (!fs.existsSync(fullPath)) return;
+    try {
+      const content = fs.readFileSync(fullPath, "utf-8");
+      const required = ["## Restaurants by Day", "## Hotels by Season", "## Fitness / Health"];
+      const missing = required.filter((s) => !content.includes(s));
+      if (missing.length > 0) {
+        logger.warn("[KellyLifestyle] Curated schedule missing sections: " + missing.join(", "));
+      }
+    } catch {
+      // ignore
+    }
   }
 
   async stop(): Promise<void> {
     logger.info("[KellyLifestyle] Service stopped");
   }
 
-  getCuratedOpenContext(day?: DayOfWeek): CuratedOpenContext | null {
+  getCuratedOpenContext(day?: DayOfWeek, monthOverride?: number): CuratedOpenContext | null {
     const d = day ?? this.getDayOfWeek();
-    const month = this.getMonth();
+    const month = monthOverride ?? this.getMonth();
     const isWinter = month <= 2;
 
     const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
     if (!fs.existsSync(fullPath)) {
-      logger.debug("[KellyLifestyle] Curated schedule not found");
+      logger.warn("[KellyLifestyle] Curated schedule file missing: " + CURATED_SCHEDULE_PATH);
       return null;
     }
 
     try {
       const content = fs.readFileSync(fullPath, "utf-8");
+      if (!content || !content.trim()) {
+        logger.warn("[KellyLifestyle] Curated schedule file is empty: " + CURATED_SCHEDULE_PATH);
+        return null;
+      }
+      // Expected structure: ## Restaurants by Day, ### Monday … ### Sunday; ## Hotels by Season, ### Winter / ### March–November; ## Fitness / Health.
       const dayCapitalized = d.charAt(0).toUpperCase() + d.slice(1);
       const daySection = this.extractSection(content, `### ${dayCapitalized}`);
       const hotelSection = isWinter
@@ -69,12 +92,15 @@ export class KellyLifestyleService extends Service {
       const restaurants = this.parseRestaurantLines(daySection);
       const hotels = this.parseHotelLines(hotelSection);
 
+      const palacePoolReopenDates = isWinter ? this.parsePalacePoolReopenDates(content) : undefined;
+
       return {
         restaurants,
         hotels,
         fitnessNote:
           fitnessSection?.split("\n").slice(0, 4).join(" ").trim() || "",
         rawSection: [daySection, hotelSection].filter(Boolean).join("\n\n"),
+        palacePoolReopenDates,
       };
     } catch (e) {
       logger.debug(`[KellyLifestyle] Error loading curated schedule: ${e}`);
@@ -82,6 +108,51 @@ export class KellyLifestyleService extends Service {
     }
   }
 
+  /** Returns palace indoor pool reopen dates (e.g. Palais Feb 12, Caudalie Feb 5, Eugenie Mar 6). From curated-open-schedule or fallback constant. */
+  getPalacePoolReopenDates(): Record<string, string> {
+    const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const content = fs.readFileSync(fullPath, "utf-8");
+        const parsed = this.parsePalacePoolReopenDates(content);
+        if (Object.keys(parsed).length > 0) return parsed;
+      } catch {
+        // fallback
+      }
+    }
+    return { Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" };
+  }
+
+  /** Parse "Palace indoor pools (winter swim)" subsection for "reopens Feb 12" etc. */
+  private parsePalacePoolReopenDates(content: string): Record<string, string> {
+    const subsection = this.extractSection(content, "**Palace indoor pools (winter swim)**");
+    if (!subsection) return {};
+    const out: Record<string, string> = {};
+    const re = /reopens\s+(\w+\s+\d+)/i;
+    const lines = subsection.split("\n");
+    for (const line of lines) {
+      const match = line.match(re);
+      if (match) {
+        const dateStr = match[1] ?? match[0].replace(/reopens\s+/i, "").trim();
+        if (line.includes("Palais")) out.Palais = dateStr;
+        else if (line.includes("Caudalie")) out.Caudalie = dateStr;
+        else if (line.includes("Eugénie") || line.includes("Eugenie")) out.Eugenie = dateStr;
+      }
+    }
+    return out;
+  }
+
+  /** Restaurants open on the given day (from curated-open-schedule). */
+  getRestaurantsOpenToday(day?: DayOfWeek): string[] {
+    return this.getCuratedOpenContext(day)?.restaurants ?? [];
+  }
+
+  /** Hotels for the given month (winter vs March–November). */
+  getHotelsThisSeason(month?: number): string[] {
+    return this.getCuratedOpenContext(undefined, month)?.hotels ?? [];
+  }
+
+  /** Extract text under a given header until the next ## or ###. Sections are delimited by \n## or \n###. */
   private extractSection(content: string, header: string): string {
     const start = content.indexOf(header);
     if (start === -1) return "";
@@ -98,6 +169,7 @@ export class KellyLifestyleService extends Service {
     return afterHeader.slice(0, end).trim();
   }
 
+  /** Parse restaurant lines: each line starts with "- **Name** | Location | Hours | ...". Returns "Name | Location | ..." strings. */
   private parseRestaurantLines(section: string): string[] {
     const lines = section
       .split("\n")
@@ -110,6 +182,7 @@ export class KellyLifestyleService extends Service {
     });
   }
 
+  /** Parse hotel lines: bullet lines with "|" that are not bold (format "- Hotel Name | Location | ..."). */
   private parseHotelLines(section: string): string[] {
     const lines = section.split("\n").filter((l) => {
       const t = l.trim();
@@ -322,5 +395,62 @@ export class KellyLifestyleService extends Service {
 
   getCurrentSeason(): "pool" | "gym" {
     return this.isPoolSeason() ? "pool" : "gym";
+  }
+
+  /** One short wellness or fitness tip, rotated by day so it varies. */
+  getWellnessTipOfTheDay(): string {
+    const tips = [
+      "5-min journaling: write 3 things that went well today.",
+      "Box breathing (4-4-4-4): inhale, hold, exhale, hold—activates calm.",
+      "Legs up the wall (5 min): passive inversion for recovery.",
+      "No screens 30 min before bed—melatonin needs the break.",
+      "10-min Yin: pigeon, thread the needle, seated twist.",
+      "Cool room (18–19°C) for sleep—core temp drop triggers rest.",
+      "10 deep breaths: simple but effective. Focus only on the breath.",
+      "Cat-Cow + Child's Pose (5 min): gentle spinal mobility before bed.",
+      "Gratitude moment: name 3 specific good things from today.",
+      "Sun Salutation A (3 rounds): full body activation in under 10 minutes.",
+      "Warm lemon water first thing—gentle reset after sleep.",
+      "Aim for eight hours; a cool, dark room helps the body drop into rest.",
+      "Functional fitness: stay mobile, flexible, and strong—not bulky—for the long run.",
+      "Stretch daily; it's one of the keys to performing well for decades.",
+      "When the day's good, move first—swim or surf—then refuel with a proper breakfast.",
+      "Mental health is longevity: a few minutes of reflection or journaling pays off for years.",
+      "Recovery is part of the plan: sleep, nutrition, and listening to your body.",
+    ];
+    const dayOfWeek = new Date().getDay();
+    const dayOfMonth = new Date().getDate();
+    const index = (dayOfWeek * 7 + dayOfMonth) % tips.length;
+    return tips[index] ?? tips[0];
+  }
+
+  /** Wine of the day — region or bottle idea, rotated by day of week (the-good-life regions). */
+  getWineOfTheDay(): string {
+    const wines = [
+      "Margaux (Bordeaux) — classic left bank.",
+      "Sancerre (Loire) — crisp, mineral.",
+      "Chablis (Burgundy) — steely Chardonnay.",
+      "Châteauneuf-du-Pape (Rhône) — full-bodied red.",
+      "Champagne — any day.",
+      "Saint-Émilion (Bordeaux) — right bank elegance.",
+      "South African Chenin or Pinotage — discovery.",
+    ];
+    const dayOfWeek = new Date().getDay();
+    return wines[dayOfWeek] ?? wines[0];
+  }
+
+  /** Travel idea of the week — one destination, rotated by week of month (from roadtrips/uhnw). */
+  getTravelIdeaOfTheWeek(): string {
+    const ideas = [
+      "Lisbon road trip (Portugal).",
+      "Southwest France — Bordeaux + Basque coast.",
+      "Switzerland or Lugano.",
+      "Côte d'Azur or Monaco.",
+    ];
+    const weekOfMonth = Math.min(
+      3,
+      Math.floor((new Date().getDate() - 1) / 7),
+    );
+    return ideas[weekOfMonth] ?? ideas[0];
   }
 }

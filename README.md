@@ -35,7 +35,7 @@
 
 ## TL;DR
 
-**VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent (hotels, dining, wine, health, fitness): she uses **plugin-kelly** and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
+**VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent: travel advisor, private sommelier, Michelin guide for fine dining, health guru, and fitness coach—and the one who motivates you to touch grass and rebalance. She uses **plugin-kelly** only (no vincePlugin) and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. She knows your context (paper perps, options income) but never gives trading advice. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
 
 ---
 
@@ -292,7 +292,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
 | 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
 | 👤 | **Teammate context** | USER/SOUL/TOOLS/MEMORY keep responses in character |
-| 🍷 | **Kelly (concierge agent)** | Separate agent, lifestyle only: five-star hotels, fine dining, wine, health, fitness. Uses **plugin-kelly**; action **KELLY_DAILY_BRIEFING**; scheduled push to channels with "kelly" or "lifestyle". No trading. See [plugin-kelly](src/plugins/plugin-kelly/). |
+| 🍷 | **Kelly (concierge agent)** | Separate agent: travel advisor, sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator. Uses **plugin-kelly** only; action **KELLY_DAILY_BRIEFING**; scheduled push to channels with "kelly" or "lifestyle". No trading. See [plugin-kelly](src/plugins/plugin-kelly/). |
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
 | 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |

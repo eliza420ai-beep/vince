@@ -1,6 +1,7 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-07 (V4.33 — Kelly agent + plugin-kelly)
+# Last updated: 2026-02-08 (Kelly uses plugin-kelly only)
 # Update this file after every feature completion or session end.
+# Note: Kelly no longer uses plugin-vince; she uses plugin-kelly and KELLY_DAILY_BRIEFING.
 
 ================================================================================
 COMPLETED
