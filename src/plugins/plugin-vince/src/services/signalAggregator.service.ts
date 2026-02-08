@@ -33,6 +33,7 @@ import type { VinceTopTradersService } from "./topTraders.service";
 import type { VinceBinanceService } from "./binance.service";
 import type { VinceBinanceLiquidationService } from "./binanceLiquidation.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
+import type { VinceXSentimentService } from "./xSentiment.service";
 import type { VinceDeribitService } from "./deribit.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceSanbaseService } from "./sanbase.service";
@@ -905,6 +906,82 @@ export class VinceSignalAggregatorService extends Service {
       } catch (e) {
         logger.debug(`[VinceSignalAggregator] News sentiment error: ${e}`);
         triedNoContribution.push("NewsSentiment");
+      }
+    }
+
+    // =========================================
+    // 5b. X (Twitter) Sentiment — cached, 15-min refresh
+    // =========================================
+    const xSentimentService = this.runtime.getService(
+      "VINCE_X_SENTIMENT_SERVICE",
+    ) as VinceXSentimentService | null;
+    if (xSentimentService?.isConfigured()) {
+      try {
+        const { sentiment, confidence, hasHighRiskEvent } =
+          xSentimentService.getTradingSentiment(asset);
+        if (confidence >= 40) {
+          const discount = Math.round(confidence * 0.8);
+          const strength = 52 + Math.min(15, confidence / 6);
+          if (sentiment === "bullish") {
+            if (hasHighRiskEvent) {
+              triedNoContribution.push("XSentiment(blocked:risk)");
+            } else {
+              signals.push({
+                asset,
+                direction: "long",
+                strength,
+                confidence: discount,
+                source: "XSentiment",
+                factors: [`X sentiment bullish (${confidence}% confidence)`],
+                timestamp: Date.now(),
+              });
+              sources.push("XSentiment");
+              allFactors.push(
+                `X sentiment bullish (${confidence}% confidence)`,
+              );
+            }
+          } else if (sentiment === "bearish") {
+            signals.push({
+              asset,
+              direction: "short",
+              strength: hasHighRiskEvent
+                ? Math.min(70, strength + 8)
+                : strength,
+              confidence: discount,
+              source: "XSentiment",
+              factors: hasHighRiskEvent
+                ? [`X sentiment bearish (${confidence}%) + risk event active`]
+                : [`X sentiment bearish (${confidence}% confidence)`],
+              timestamp: Date.now(),
+            });
+            sources.push("XSentiment");
+            allFactors.push(
+              hasHighRiskEvent
+                ? `X bearish (${confidence}%) + risk event`
+                : `X sentiment bearish (${confidence}% confidence)`,
+            );
+          } else if (sentiment === "neutral" && confidence >= 40) {
+            signals.push({
+              asset,
+              direction: "neutral",
+              strength: 45,
+              confidence: Math.round(confidence * 0.6),
+              source: "XSentiment",
+              factors: [`X sentiment neutral (${confidence}% confidence)`],
+              timestamp: Date.now(),
+            });
+            sources.push("XSentiment");
+            allFactors.push(
+              `X sentiment neutral (${confidence}% confidence)`,
+            );
+          }
+        }
+        if (!sources.includes("XSentiment")) {
+          triedNoContribution.push("XSentiment");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] X sentiment error: ${e}`);
+        triedNoContribution.push("XSentiment");
       }
     }
 
@@ -1873,6 +1950,23 @@ export class VinceSignalAggregatorService extends Service {
             }
           }
 
+          // X sentiment for ML when XSentiment contributed
+          let xSentiment: number | undefined;
+          if (signal.sources.includes("XSentiment") && signal.asset) {
+            const xSentimentSvc = this.runtime.getService(
+              "VINCE_X_SENTIMENT_SERVICE",
+            ) as VinceXSentimentService | null;
+            if (xSentimentSvc?.isConfigured()) {
+              const { sentiment, confidence } =
+                xSentimentSvc.getTradingSentiment(signal.asset);
+              if (sentiment === "bullish")
+                xSentiment = Math.min(1, confidence / 100);
+              else if (sentiment === "bearish")
+                xSentiment = Math.max(-1, -confidence / 100);
+              else xSentiment = 0;
+            }
+          }
+
           // Prepare ML input (assetTicker for asset_* dummies when model has signal_quality_feature_names)
           const input: SignalQualityInput = {
             priceChange24h: marketData?.priceChange24h ?? 0,
@@ -1895,6 +1989,7 @@ export class VinceSignalAggregatorService extends Service {
             ...(newsNasdaqChange !== undefined && { newsNasdaqChange }),
             ...(newsMacroRiskOn !== undefined && { newsMacroRiskOn }),
             ...(newsMacroRiskOff !== undefined && { newsMacroRiskOff }),
+            ...(xSentiment !== undefined && { xSentiment }),
             ...(signal.asset && { assetTicker: signal.asset }),
             isWeekend: session === "weekend" ? 1 : 0,
             isOpenWindow:

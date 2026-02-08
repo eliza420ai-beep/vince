@@ -718,6 +718,12 @@ Plan for growth with proper infrastructure and monitoring.
 
 ---
 
+## X Research skill (Cursor / Claude)
+
+**skills/x-research/** is a Cursor/Claude skill for read-only X (Twitter) research: agentic search, thread following, watchlist, sourced briefings. Use when you need “what are people saying on X about …” or “search X for …” from the IDE. Requires **X_BEARER_TOKEN** (env or project `.env`) and Bun. See [skills/x-research/README.md](skills/x-research/README.md) for setup and CLI usage. VINCE can also do in-chat X research via **VINCE_X_RESEARCH** when `X_BEARER_TOKEN` is set (plugin-vince).
+
+---
+
 ## Kelly: plugin-discovery
 
 Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?” capability discovery and **@elizaos/plugin-todo** (vendored in `packages/plugin-todo`) for todo/list and reminders; rolodex is optional (in-app reminders only without it). Discovery lives in `packages/plugin-discovery`; `DISCOVERY_REQUIRE_PAYMENT=false` keeps summary and manifest free—set `DISCOVERY_REQUIRE_PAYMENT=true` and add plugin-commerce for paid. Todo lives in `packages/plugin-todo`; without plugin-rolodex only in-app reminders work.

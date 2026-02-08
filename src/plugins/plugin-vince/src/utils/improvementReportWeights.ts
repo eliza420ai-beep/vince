@@ -38,6 +38,8 @@ const FEATURE_TO_SOURCE: Record<string, string> = {
   market_volumeRatio: "CoinGlass",
   news_etfFlowBtc: "NewsSentiment",
   news_etfFlowEth: "NewsSentiment",
+  x_sentiment: "XSentiment",
+  signal_xSentimentScore: "XSentiment",
   session_isOpenWindow: "_session",
 };
 

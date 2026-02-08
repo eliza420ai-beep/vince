@@ -41,7 +41,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Paper bot",
         description:
-          "You see the why. Signal. Size. Exit. Funding, whale flow, sentiment, regime—one feed. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
+          "You see the why. Signal. Size. Exit. Funding, whale flow, X (Twitter) sentiment, regime—one feed. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
       },
       {
         title: "ALOHA",
@@ -67,7 +67,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "The paper bot. ALOHA. Perps. Options on Hypersurface. Every decision explained.",
+          "The paper bot. ALOHA. Perps. Options on Hypersurface. X sentiment feeds the algo. Every decision explained.",
         points: [],
         example: "",
       },

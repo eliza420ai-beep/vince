@@ -31,6 +31,7 @@ import type { VinceCoinGlassService } from "./coinglass.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceMarketRegimeService } from "./marketRegime.service";
 import type { VinceNewsSentimentService } from "./newsSentiment.service";
+import type { VinceXSentimentService } from "./xSentiment.service";
 import {
   getCurrentSession,
   type TradingSession,
@@ -133,6 +134,8 @@ export interface SignalFeatures {
   highestWeightSource: string;
   /** Derived sentiment from factors (-100 to +100, null if no factors) */
   avgSentiment?: number | null;
+  /** X (Twitter) sentiment when XSentiment contributed: -confidence to +confidence (0 if neutral/absent) */
+  xSentimentScore?: number | null;
 }
 
 /**
@@ -505,7 +508,10 @@ export class VinceFeatureStoreService extends Service {
       // Collect all features
       const market = await this.collectMarketFeatures(params.asset);
       const session = this.collectSessionFeatures();
-      const signalFeatures = this.collectSignalFeatures(params.signal);
+      const signalFeatures = this.collectSignalFeatures(
+        params.signal,
+        params.asset,
+      );
       const regime = await this.collectRegimeFeatures(params.asset);
       const news = await this.collectNewsFeatures();
 
@@ -559,7 +565,10 @@ export class VinceFeatureStoreService extends Service {
     try {
       const market = await this.collectMarketFeatures(params.asset);
       const session = this.collectSessionFeatures();
-      const signalFeatures = this.collectSignalFeatures(params.signal);
+      const signalFeatures = this.collectSignalFeatures(
+        params.signal,
+        params.asset,
+      );
       const regime = await this.collectRegimeFeatures(params.asset);
       const news = await this.collectNewsFeatures();
 
@@ -984,7 +993,10 @@ export class VinceFeatureStoreService extends Service {
     };
   }
 
-  private collectSignalFeatures(signal: AggregatedSignal): SignalFeatures {
+  private collectSignalFeatures(
+    signal: AggregatedSignal,
+    asset?: string,
+  ): SignalFeatures {
     const sources = signal.sources || [];
 
     // Detect special signal types
@@ -1045,6 +1057,24 @@ export class VinceFeatureStoreService extends Service {
       }
     }
 
+    let xSentimentScore: number | null = null;
+    if (sources.includes("XSentiment") && asset) {
+      const xSentimentService = this.runtime.getService(
+        "VINCE_X_SENTIMENT_SERVICE",
+      ) as VinceXSentimentService | null;
+      if (xSentimentService?.isConfigured()) {
+        try {
+          const { sentiment, confidence } =
+            xSentimentService.getTradingSentiment(asset);
+          if (sentiment === "bullish") xSentimentScore = confidence;
+          else if (sentiment === "bearish") xSentimentScore = -confidence;
+          else xSentimentScore = 0;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     return {
       direction: signal.direction,
       strength: signal.strength,
@@ -1060,6 +1090,7 @@ export class VinceFeatureStoreService extends Service {
       hasOICap,
       highestWeightSource,
       avgSentiment: avgSentiment ?? undefined,
+      xSentimentScore: xSentimentScore ?? undefined,
     };
   }
 

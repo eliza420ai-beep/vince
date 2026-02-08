@@ -58,6 +58,9 @@ export interface SignalQualityInput {
   /** 0 or 1; risk_off (tradfi outperforming); used when model has 20 inputs. */
   newsMacroRiskOff?: number;
 
+  /** X (Twitter) sentiment when XSentiment contributed: -1 to 1 (confidence-weighted). */
+  xSentiment?: number;
+
   /** Asset symbol for asset dummies (e.g. "BTC", "ETH"); used when model has asset_* features. */
   assetTicker?: string;
 
@@ -747,6 +750,9 @@ export class VinceMLInferenceService extends Service {
         return input.newsMacroRiskOn ?? 0;
       case "news_macro_risk_off":
         return input.newsMacroRiskOff ?? 0;
+      case "x_sentiment":
+      case "signal_xSentimentScore":
+        return Math.max(-1, Math.min(1, input.xSentiment ?? 0));
       case "regime_volatility_high":
         return input.volatilityRegimeHigh;
       case "regime_bullish":

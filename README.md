@@ -53,6 +53,7 @@
 | [**plugin-personality**](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) | Kelly only: character evolution, MODIFY_CHARACTER, self-reflection (experimental) |
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
+| [**skills/x-research**](skills/x-research/README.md) | X (Twitter) read-only research · sentiment on X · Cursor/Claude skill + VINCE in-chat |
 
 ---
 
@@ -62,6 +63,7 @@
 |:---|:---|
 | [North Star](#-north-star) | Proactive agent, push not pull |
 | [Current Focus](#-current-focus-feb-2026) | ALOHA, ML paper trading |
+| [X research & sentiment](#-x-research--sentiment-on-x) | Paper algo signal + Cursor skill + VINCE in-chat |
 | [Milestone](#-milestone-full-ml-loop) | Shipped · no redeploy tax |
 | [Heart of VINCE](#-heart-of-vince) | signals → trades → learning |
 | [Star Feature](#-star-feature) | Self-improving paper bot |
@@ -126,6 +128,21 @@ Every sprint feeds the paper bot more signal coverage, cleaner features, faster 
 
 ---
 
+## ◆ X research & sentiment on X
+
+We **search X (Twitter) for sentiment** and use it in **three** places:
+
+| | What | Where |
+|:---:|---|:---|
+| 🤖 | **Paper trading algo** | **XSentiment** is a signal source in the aggregator (weight 0.5). Cached every 15 min; rate-limit aware. When confidence ≥ 40%, it votes long/short/neutral and appears in **WHY THIS TRADE**. Feature store records `signal_xSentimentScore` for ML. → [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
+| 🔍 | **Cursor / Claude skill** | **skills/x-research/** — CLI (`bun run x-search.ts search "BNKR"`), watchlist, thread/profile, 15min cache. Use from the IDE for deep dives; paste results into VINCE or knowledge. |
+| 💬 | **VINCE in-chat** | When `X_BEARER_TOKEN` is set, ask *"what are people saying about BNKR?"* or *"search X for …"* → **VINCE_X_RESEARCH** returns sourced tweets (read-only). |
+| ✅ | **Tests** | `bun test skills/x-research/sentiment.test.ts` (skill) and `bun test src/plugins/plugin-vince/src/__tests__/xSentiment.service.test.ts` (paper algo: cache, rate limit, sentiment). |
+
+Same **X API Bearer token** (Basic tier or higher); read-only, no posting. See [skills/x-research/README.md](skills/x-research/README.md) for setup and [skills/x-research/SKILL.md](skills/x-research/SKILL.md) for the research loop.
+
+---
+
 ## 🚀 Milestone: Full ML Loop
 
 <div align="center">
@@ -161,7 +178,7 @@ Every sprint feeds the paper bot more signal coverage, cleaner features, faster 
 
 The core is a **multi-factor paper trading pipeline**:
 
-- **15+ signal sources** — CoinGlass, Binance, MarketRegime, News, Deribit, liquidations, Sanbase, Hyperliquid OI cap/funding extreme
+- **15+ signal sources** — CoinGlass, Binance, MarketRegime, News, **X (Twitter) sentiment**, Deribit, liquidations, Sanbase, Hyperliquid OI cap/funding extreme
 - **50+ features per decision** — stored with **decision drivers** ("WHY THIS TRADE")
 - **Python training pipeline** — `train_models.py` → ONNX + improvement report (feature importances, holdout metrics AUC/MAE/quantile, suggested signal factors). Optional: `--recency-decay`, `--balance-assets`, `--tune-hyperparams`.
 
@@ -298,6 +315,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
 | 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |
+| 🐦 | **X research & sentiment** | **Paper algo:** X sentiment is a signal source (weight 0.5, 15-min cache, rate-limit aware). **skills/x-research** (Cursor skill) + **VINCE_X_RESEARCH** in-chat when `X_BEARER_TOKEN` set. → [skills/x-research](skills/x-research/README.md) · [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
 
 ### Action Status
 
@@ -358,6 +376,7 @@ elizaos test         # Run tests
 | `bun run db:bootstrap` | Run DB bootstrap (Postgres) |
 | `bun run scripts/ingest-urls.ts --file urls.txt` | Batch ingest URLs/YouTube into `knowledge/` |
 | `bun run train-models` | Train ML models (from plugin or repo root); see [scripts/README](src/plugins/plugin-vince/scripts/README.md) |
+| `bun test skills/x-research/sentiment.test.ts` | Prove X research → sentiment (unit + optional live with `X_BEARER_TOKEN`) |
 
 ### Web UI (Otaku-style frontend)
 
@@ -502,6 +521,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [BINANCE_DATA_IMPROVEMENTS](src/plugins/plugin-vince/BINANCE_DATA_IMPROVEMENTS.md) | Binance endpoints, 451 proxy |
 | [HYPERLIQUID_ENDPOINTS](src/plugins/plugin-vince/HYPERLIQUID_ENDPOINTS.md) | HL endpoints |
 | [progress.txt](src/plugins/plugin-vince/progress.txt) | Tracker, backlog |
+| [skills/x-research](skills/x-research/README.md) | X (Twitter) research · sentiment · Cursor skill + VINCE in-chat · `bun test skills/x-research/sentiment.test.ts` |
 | [Frontend docs](src/frontend/docs/README.md) · [progress.txt](src/frontend/progress.txt) | Chat UI, Market Pulse, quick start, reference docs, status |
 
 ---

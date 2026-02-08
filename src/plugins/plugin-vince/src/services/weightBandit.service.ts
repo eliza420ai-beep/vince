@@ -98,6 +98,7 @@ const KNOWN_SOURCES = [
   "HyperliquidBias",
   "MarketRegime",
   "NewsSentiment",
+  "XSentiment",
 ];
 
 // ==========================================

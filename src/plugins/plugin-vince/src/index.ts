@@ -52,6 +52,8 @@ import { VinceHIP3Service } from "./services/hip3.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
 import { VinceNotificationService } from "./services/notification.service";
 import { VinceAlertService } from "./services/alert.service";
+import { VinceXResearchService } from "./services/xResearch.service";
+import { VinceXSentimentService } from "./services/xSentiment.service";
 
 // Fallback services factory (for external service source tracking)
 import {
@@ -123,6 +125,7 @@ import { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 // Actions - Early Detection System
 import { vinceWatchlistAction } from "./actions/watchlist.action";
 import { vinceAlertsAction } from "./actions/alerts.action";
+import { vinceXResearchAction } from "./actions/xResearch.action";
 
 // Providers
 import { vinceContextProvider } from "./providers/vinceContext.provider";
@@ -183,6 +186,8 @@ export const vincePlugin: Plugin = {
     VinceBinanceLiquidationService,
     VinceMarketRegimeService,
     VinceHIP3Service,
+    VinceXResearchService, // X (Twitter) read-only research when X_BEARER_TOKEN set
+    VinceXSentimentService, // X sentiment for paper algo (cached, 15-min refresh)
     // Early Detection System
     VinceWatchlistService,
     VinceNotificationService,
@@ -234,6 +239,7 @@ export const vincePlugin: Plugin = {
     // Early Detection System
     vinceWatchlistAction,
     vinceAlertsAction,
+    vinceXResearchAction, // X research when X_BEARER_TOKEN set
   ],
 
   // API route: dashboard pulse (snapshot + LLM insight) for frontend

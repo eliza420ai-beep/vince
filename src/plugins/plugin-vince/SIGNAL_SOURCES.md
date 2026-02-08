@@ -43,6 +43,7 @@ These are the only names that count as "sources" in the aggregator. If a source 
 | **LiquidationCascade**        | VinceBinanceLiquidationService                    | Cascade detected                                                          |
 | **LiquidationPressure**       | VinceBinanceLiquidationService                    | Per-symbol pressure                                                       |
 | **NewsSentiment**             | VinceNewsSentimentService                         | Sentiment bullish/bearish/neutral (confidence ≥40)                        |
+| **XSentiment**                | VinceXSentimentService                            | X (Twitter) sentiment from search (confidence ≥40); 15-min cache; needs X_BEARER_TOKEN + VinceXResearchService |
 | **DeribitIVSkew**             | VinceDeribitService                               | IV skew fearful, bullish, or neutral (BTC/ETH/SOL)                        |
 | **DeribitPutCallRatio**       | VinceDeribitService                               | P/C ratio &gt;1.2 or &lt;0.82                                             |
 | **MarketRegime**              | VinceMarketDataService + VinceMarketRegimeService | Regime (bullish/bearish/volatile/neutral)                                 |
@@ -55,6 +56,34 @@ These are the only names that count as "sources" in the aggregator. If a source 
 | **CrossVenueFunding**         | Hyperliquid + Binance/Bybit                       | Funding arb opportunity                                                   |
 
 So **"2 sources"** = 2 of the above had at least one factor this time. To get more sources: fix config (e.g. Sanbase key), relax thresholds (see IMPROVEMENT_WEIGHTS_AND_TUNING.md), or add new sources below.
+
+### Confirmation: X sentiment **does** impact the paper trading algo
+
+The pipeline is wired end-to-end:
+
+1. **VincePaperTradingService** (or the bot tick) calls **`signalAggregator.getSignal(asset)`**.
+2. **getSignal(asset)** returns **`aggregateSignals(asset)`** (see `signalAggregator.service.ts`).
+3. **aggregateSignals()** includes the **XSentiment** block: it calls **`xSentimentService.getTradingSentiment(asset)`** and, when **confidence ≥ 40**, pushes **long/short/neutral** into `signals` with **`source: "XSentiment"`** and appends to **`sources`** and **`allFactors`**.
+4. The **aggregated signal** (direction, strength, confidence, **sources**, factors) is what the paper trading service uses to:
+   - Decide **direction** (long/short) and **strength/confidence** for the trade.
+   - Build **supporting reasons** and **sourceBreakdown** (so **XSentiment** appears in “WHY THIS TRADE” and in the source count).
+   - Feed the **ML signal-quality** model (when XSentiment contributed, **xSentiment** is passed into the model input).
+   - Record the **feature store** (e.g. **signal_xSentimentScore**) for training and the improvement report.
+
+So when X sentiment has sufficient confidence, it **votes** in the same way as NewsSentiment or CoinGlass: it changes the net signal and can tip the decision to open or size a paper trade, and it is visible in logs and WHY THIS TRADE.
+
+### How much weight does X sentiment have?
+
+- **Default (static) weight: 0.5** (in `dynamicConfig.ts` → `DEFAULT_SOURCE_WEIGHTS.XSentiment`). So each X sentiment vote is **half** as influential as a baseline (1.0) source like CoinGlass or MarketRegime.
+- **Relative to others:** NewsSentiment is 0.6; high-impact sources (e.g. LiquidationCascade) are 2.0; Binance funding extreme 1.5; so X is on the **lower, “noisy / lagging”** tier by design.
+- **How it’s applied:** In the aggregator, each signal’s **confidence** and **strength** are multiplied by `sourceWeight * recencyDecay`. Net direction and final strength/confidence are weighted averages over all sources, so X sentiment **does** move the needle when it agrees or disagrees with others, but with 0.5x scaling.
+- **Adaptive weight:** If the weight bandit is enabled (`ML_CONFIG.useBanditWeights`), the effective weight for XSentiment can be **sampled from a learned distribution** (Thompson Sampling) and may differ from 0.5. After retraining, **run-improvement-weights** can also nudge the stored XSentiment weight from the improvement report (feature `signal_xSentimentScore` → source `XSentiment`).
+
+### Will X sentiment improve the paper trading algo?
+
+- **It can.** XSentiment adds another vote (bullish/bearish/neutral) with confidence, same as NewsSentiment. When X and other sources agree, the aggregator gets more confirming factors; when they disagree, the weight bandit and ML can learn over time whether X helps (via `signal_xSentimentScore` in the feature store and improvement report).
+- **Initial weight** is 0.5 (see dynamicConfig). After you retrain and run `run-improvement-weights`, the XSentiment weight can move up or down based on feature importance.
+- **Best way to know:** run the bot with X_BEARER_TOKEN set, collect trades, retrain with the new `signal_xSentimentScore` column, then check the improvement report and holdout metrics.
 
 ### Data we have that do NOT yet influence the trading bot
 
@@ -85,6 +114,7 @@ These services exist and return data, but they are **not** wired into the signal
 | 3   | **Binance** (intel)     | Top trader positions %, taker buy/sell ratio, OI trend, funding extremes.                                                                    | **VINCE_BINANCE_SERVICE** – **no API key**. Public endpoints. Should always contribute when conditions hit (e.g. taker flow >1.3 or <0.7, OI drop, extreme funding). |
 | 4   | **BinanceLiquidations** | Cascade and per-symbol liquidation pressure.                                                                                                 | **VINCE_BINANCE_LIQUIDATION_SERVICE** – no key. Contributes when cascade or pressure detected.                                                                       |
 | 5   | **NewsSentiment**       | Bullish/bearish news from MandoMinutes.                                                                                                      | **VINCE_NEWS_SENTIMENT_SERVICE**. Depends on MandoMinutes cache (plugin-web-search **MANDO_MINUTES**). Ensure that action/cache is populated.                        |
+| 5b  | **XSentiment**          | X (Twitter) search sentiment for BTC/ETH/SOL/HYPE. **Default weight: 0.5** (see below).                                                        | **VINCE_X_SENTIMENT_SERVICE**. Depends on **X_BEARER_TOKEN** and **VinceXResearchService**. Refreshes every 15 min; does not call X API from aggregator tick.      |
 | 6   | **Deribit**             | IV skew (fear/greed from options).                                                                                                           | **VINCE_DERIBIT_SERVICE** – registered; may use fallback. Contributes for BTC/ETH/SOL when skew is fearful or bullish.                                               |
 | 7   | **MarketRegime**        | Bullish/bearish/volatile from 24h price + sentiment.                                                                                         | **VINCE_MARKET_DATA_SERVICE** (enriched context). Uses CoinGlass/CoinGecko. Contributes when regime is not neutral.                                                  |
 | 8   | **Sanbase**             | Exchange flows, whale activity.                                                                                                              | **VINCE_SANBASE_SERVICE** + **isConfigured()**. Needs **SANBASE_API_KEY** (or similar). If not configured, skipped.                                                  |
@@ -112,6 +142,21 @@ These services exist and return data, but they are **not** wired into the signal
 - **DEBUG: why a source didn’t contribute** – Set `LOG_LEVEL=debug`. You will see lines like `[VinceSignalAggregator] BTC: tried but no contribution this tick: Binance, NewsSentiment, DeribitIVSkew, MarketRegime` so you can tell whether a source was tried but thresholds weren’t met or errored.
 - **"WHY THIS TRADE"** – In the paper trade open banner, the line **"WHY THIS TRADE: N factors, M sources agreeing"** plus the bullet list shows all contributing factors (up to 12 in the log; full list in feature store and journal).
 - **getStatus()** – The aggregator’s `getStatus()` returns `dataSources: { name, available }[]`. `available` means the service is registered; it does not guarantee that the service returns a signal on every tick (signals depend on thresholds and data).
+
+### How to test X sentiment
+
+1. **Unit tests** – From repo root:
+   ```bash
+   bun test src/plugins/plugin-vince/src/__tests__/xSentiment.service.test.ts
+   ```
+   Confirms cache, refresh, rate-limit backoff, and `getTradingSentiment` shape.
+
+2. **Live: see XSentiment in the algo** – Start VINCE with `X_BEARER_TOKEN` set (and not rate limited). After ~15 min (first refresh) or on the next aggregation:
+   - Logs: look for `[VinceSignalAggregator] ASSET: N source(s) → M factors | Sources: ..., XSentiment` when X sentiment confidence ≥ 40.
+   - Paper trade banner: when a trade opens, **WHY THIS TRADE** can list e.g. `X sentiment bullish (50% confidence)` if XSentiment contributed.
+   - Debug: `LOG_LEVEL=debug` shows `tried but no contribution: XSentiment` when the source was tried but confidence was too low or cache empty/rate limited.
+
+3. **Rate limit** – If you see `[VinceXSentimentService] X API rate limited. Skipping refresh for N min`, the service backs off and keeps serving cached sentiment (or neutral) until the reset time; no further X calls until then.
 
 ---
 

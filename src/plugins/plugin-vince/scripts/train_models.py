@@ -205,6 +205,7 @@ OPTIONAL_FEATURE_COLUMNS = (
     "market_bidAskSpread",
     "market_priceVsSma20",
     "signal_hasOICap",
+    "signal_xSentimentScore",  # X (Twitter) sentiment when XSentiment source contributed
 )
 
 
