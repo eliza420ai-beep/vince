@@ -29,6 +29,42 @@ const LIFESTYLE_FACT_HINTS = [
   "activity",
 ];
 
+const DAY_NAMES = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
+type DayName = (typeof DAY_NAMES)[number];
+
+/** Detect if the user is asking for recommendations for a specific day (e.g. "Monday lunch", "tomorrow is Monday", "place to eat on Monday"). */
+function detectRequestedDay(messageText: string): DayName | null {
+  const lower = (messageText ?? "").toLowerCase().trim();
+  if (!lower) return null;
+  const dayTrigger =
+    /\b(on|for|tomorrow is)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
+      lower,
+    ) ||
+    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(lunch|dinner|recommendations|picks|open)\b/i.exec(
+      lower,
+    ) ||
+    /\b(place to eat|where to eat|eat|recommend|restaurant| lunch)\s+.*\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
+      lower,
+    ) ||
+    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.*\b(lunch|dinner|eat|place|restaurant)\b/i.exec(
+      lower,
+    );
+  if (dayTrigger) {
+    const day = dayTrigger[2] ?? dayTrigger[3];
+    if (day && DAY_NAMES.includes(day as DayName)) return day as DayName;
+  }
+  return null;
+}
+
 function isLifestyleFact(text: string): boolean {
   const lower = text.toLowerCase();
   return LIFESTYLE_FACT_HINTS.some((h) => lower.includes(h));
@@ -51,6 +87,13 @@ export const kellyContextProvider: Provider = {
     const values: Record<string, unknown> = {};
     const textParts: string[] = [];
 
+    const messageText = (message.content?.text ?? "") || "";
+    const requestedDayLower = detectRequestedDay(messageText);
+    const requestedDayCap =
+      requestedDayLower
+        ? requestedDayLower.charAt(0).toUpperCase() + requestedDayLower.slice(1)
+        : null;
+
     if (service) {
       const wellnessTip = service.getWellnessTipOfTheDay?.() ?? "";
       const briefing = service.getDailyBriefing();
@@ -61,9 +104,15 @@ export const kellyContextProvider: Provider = {
       values.kellyWellnessTip = wellnessTip;
       values.kellyDay = day;
       values.kellySeason = season;
+      if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
 
       textParts.push(`Today's wellness tip: ${wellnessTip || "—"}`);
       textParts.push(`Day: ${day}`);
+      if (requestedDayCap) {
+        textParts.push(
+          `**User asked for ${requestedDayCap}.** Use ${requestedDayCap}'s list below for this request; do not use today's list.`,
+        );
+      }
       textParts.push(
         `Season: ${season === "pool" ? "Pool (Apr–Nov)" : "Gym (Dec–Mar)"}`,
       );
@@ -80,16 +129,18 @@ export const kellyContextProvider: Provider = {
         );
       }
 
-      const curated = service.getCuratedOpenContext();
+      const dayForCurated = requestedDayLower ?? undefined;
+      const curated = service.getCuratedOpenContext(dayForCurated);
       if (curated) {
         values.kellyRestaurantsOpenToday = curated.rawSection;
+        const dayLabel = requestedDayCap ?? "today";
         if (curated.restaurants.length > 0) {
           textParts.push(
-            `**Restaurants open today (SW France / Landes):**\n${curated.restaurants.join("\n")}\nFor 'where to eat' in SW France or Landes, only suggest from this list when the user is asking for today.`,
+            `**Restaurants open ${dayLabel} (SW France / Landes):**\n${curated.restaurants.join("\n")}\nFor 'where to eat' in SW France or Landes, only suggest from this list${requestedDayCap ? ` for ${requestedDayCap}` : " when the user is asking for today"}.`,
           );
         } else {
           textParts.push(
-            "**Restaurants open today:** None in curated list (Monday/Tuesday). Suggest cooking at home or check MICHELIN Guide for exceptions.",
+            `**Restaurants open ${dayLabel}:** None in curated list. Suggest cooking at home or check MICHELIN Guide for exceptions.`,
           );
         }
       }
@@ -107,7 +158,9 @@ export const kellyContextProvider: Provider = {
       values.kellyDay = days[now.getDay()];
       values.kellySeason = "pool";
       values.kellyWellnessTip = "";
+      if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
       textParts.push(`Day: ${values.kellyDay}`);
+      if (requestedDayCap) textParts.push(`**User asked for ${requestedDayCap}.**`);
       textParts.push("Season: pool");
     }
 

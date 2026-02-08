@@ -129,25 +129,39 @@ export const kellyRecommendPlaceAction: Action = {
       const lifestyleService = runtime.getService(
         "KELLY_LIFESTYLE_SERVICE",
       ) as KellyLifestyleService | null;
+      const requestedDay = state.values?.kellyRequestedDay as string | undefined;
       if (applyOpenTodayFilter && lifestyleService) {
-        const curated = lifestyleService.getCuratedOpenContext();
+        const dayOverride = requestedDay
+          ? (requestedDay.toLowerCase() as
+              | "monday"
+              | "tuesday"
+              | "wednesday"
+              | "thursday"
+              | "friday"
+              | "saturday"
+              | "sunday")
+          : undefined;
+        const curated = lifestyleService.getCuratedOpenContext(dayOverride);
         const day =
+          requestedDay ??
           (state.values?.kellyDay as string) ??
           new Date().toLocaleDateString("en-US", { weekday: "long" });
+        const dayLabel = requestedDay ? requestedDay : "today";
         if (curated) {
           if (curated.restaurants.length === 0) {
             openTodayBlock =
-              "**Today is " +
-              day +
-              ".** No curated restaurants open today; say so and suggest checking MICHELIN Guide or cooking at home.\n\n";
+              (requestedDay
+                ? `**User asked for ${requestedDay}.** `
+                : `**Today is ${day}.** `) +
+              `No curated restaurants open ${dayLabel}; say so and suggest checking MICHELIN Guide or cooking at home.\n\n`;
           } else {
             const openList =
               (state.values?.kellyRestaurantsOpenToday as string) ??
               curated.rawSection;
             openTodayBlock =
-              "**Today is " +
-              day +
-              ".** Only recommend restaurants that are **open today**. Restaurants open today:\n" +
+              (requestedDay
+                ? `**User asked for ${requestedDay}.** Only recommend restaurants that are **open ${requestedDay}**. Restaurants open ${requestedDay}:\n`
+                : `**Today is ${day}.** Only recommend restaurants that are **open today**. Restaurants open today:\n`) +
               openList +
               "\n\nOur favorites in the Landes are in landes-locals (Maison Devaux, Auberge du Lavoir, Le Relais de la Poste, Côté Quillier, La Table du Marensin, etc.); prefer them when they're open.\n\n";
           }
@@ -173,7 +187,7 @@ Output exactly:
 1. **Best pick:** [Name] — one short sentence why (from context). Add one benefit-led sentence why this fits them (e.g. "You get a quiet table and the classic three-star experience").
 2. **Alternative:** [Name] — one short sentence why (from context).
 
-If the user asks for "open now" or "open today", only suggest from the curated list for today (already in context). If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition."
+If the user asked for a specific day (e.g. Monday), only suggest from the curated list for that day. If they asked for "open now" or "open today", only suggest from the curated list for today. If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition."
 
 Output only the recommendation text, no XML or extra commentary. No jargon (no leverage, utilize, streamline, robust, etc.).`;
 
