@@ -290,6 +290,7 @@ export class VinceXSentimentService extends Service {
         logger.info(
           `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
         );
+        return; // Do not throw — allow service to start and serve from cache; timer will retry after reset
       }
       throw e;
     }
