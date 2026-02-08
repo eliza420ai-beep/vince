@@ -11,7 +11,7 @@ import type { IAgentRuntime } from "@elizaos/core";
 import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
-import { debugLog, loadEnvOnce } from "../utils/loadEnvOnce";
+import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -90,11 +90,7 @@ export class VinceXSentimentService extends Service {
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceXSentimentService> {
-    // #region agent log
-    debugLog("xSentiment.service.ts:start", "XSentiment.start entered", { hypothesisId: "H3" });
-    // #endregion
     loadEnvOnce();
-    debugLog("xSentiment.service.ts:start", "after loadEnvOnce", { hypothesisId: "H3 H5", hasXBearer: !!process.env.X_BEARER_TOKEN?.trim() });
     const service = new VinceXSentimentService(runtime);
     // Runtime starts all services in parallel; XResearch may not be registered yet. Yield and retry once.
     let xResearch = runtime.getService(
@@ -106,9 +102,6 @@ export class VinceXSentimentService extends Service {
         "VINCE_X_RESEARCH_SERVICE",
       ) as VinceXResearchService | null;
     }
-    // #region agent log
-    debugLog("xSentiment.service.ts:start", "xResearch service check", { hypothesisId: "H3", xResearchNull: !xResearch, isConfigured: !!xResearch?.isConfigured() });
-    // #endregion
     if (!xResearch?.isConfigured()) {
       logger.info(
         "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",

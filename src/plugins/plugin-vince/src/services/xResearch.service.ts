@@ -8,7 +8,7 @@
 
 import { Service, logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
-import { debugLog, loadEnvOnce } from "../utils/loadEnvOnce";
+import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const BASE = "https://api.x.com/2";
 const RATE_DELAY_MS = 350;
@@ -118,17 +118,11 @@ export class VinceXResearchService extends Service {
     const fromEnv = process.env.X_BEARER_TOKEN?.trim();
     const fromRuntime = this.runtime.getSetting?.("X_BEARER_TOKEN");
     const s = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
-    // #region agent log
-    debugLog("xResearch.service.ts:getToken", "token source", { hypothesisId: "H5", fromEnv: !!fromEnv, fromRuntime: !!s });
-    // #endregion
     if (fromEnv) return fromEnv;
     return s || null;
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceXResearchService> {
-    // #region agent log
-    debugLog("xResearch.service.ts:start", "XResearch.start entered", { hypothesisId: "H3" });
-    // #endregion
     const service = new VinceXResearchService(runtime);
     const token = service.getToken();
     if (!token) {
