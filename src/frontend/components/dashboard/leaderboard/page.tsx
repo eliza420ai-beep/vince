@@ -33,6 +33,15 @@ import { cn } from "@/frontend/lib/utils";
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
 
+/** Display names for signal sources on the Trading Bot tab */
+const SIGNAL_SOURCE_DISPLAY_NAMES: Record<string, string> = {
+  XSentiment: "X (Twitter) sentiment",
+  NewsSentiment: "News sentiment",
+};
+function signalSourceDisplayName(name: string): string {
+  return SIGNAL_SOURCE_DISPLAY_NAMES[name] ?? name;
+}
+
 type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art" | "usage";
 
 // Type assertion for gamification service (will be available after API client rebuild)
@@ -1494,7 +1503,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                               ds.available ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-500/10 text-red-700 dark:text-red-400",
                             )}
                           >
-                            {ds.available ? "✓" : "✗"} {ds.name}
+                            {ds.available ? "✓" : "✗"} {signalSourceDisplayName(ds.name)}
                           </span>
                         ))}
                         {(paperResult.data.signalStatus.dataSources ?? []).length === 0 && (
@@ -1516,7 +1525,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           <ul className="space-y-1">
                             {(paperResult.data.banditSummary.topSources ?? []).map((s) => (
                               <li key={s.source} className="flex justify-between text-sm">
-                                <span>{s.source}</span>
+                                <span>{signalSourceDisplayName(s.source)}</span>
                                 <span className="font-mono text-green-600 dark:text-green-400">{(s.winRate * 100).toFixed(1)}%</span>
                               </li>
                             ))}
@@ -1528,7 +1537,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           <ul className="space-y-1">
                             {(paperResult.data.banditSummary.bottomSources ?? []).map((s) => (
                               <li key={s.source} className="flex justify-between text-sm">
-                                <span>{s.source}</span>
+                                <span>{signalSourceDisplayName(s.source)}</span>
                                 <span className="font-mono text-amber-600 dark:text-amber-400">{(s.winRate * 100).toFixed(1)}%</span>
                               </li>
                             ))}
@@ -1641,7 +1650,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                 {sources.length > 0 && (
                                   <div>
                                     <p className="text-xs text-muted-foreground mb-1">Sources</p>
-                                    <p className="text-xs">{sources.join(", ")}</p>
+                                    <p className="text-xs">{sources.map(signalSourceDisplayName).join(", ")}</p>
                                   </div>
                                 )}
                               </div>

@@ -2160,6 +2160,12 @@ export class VinceSignalAggregatorService extends Service {
         available: !!this.runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE"),
       },
       {
+        name: "XSentiment",
+        available:
+          (this.runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null)
+            ?.isConfigured?.() ?? false,
+      },
+      {
         name: "Deribit",
         available: !!this.runtime.getService("VINCE_DERIBIT_SERVICE"),
       },
