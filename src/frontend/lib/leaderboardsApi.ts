@@ -115,6 +115,8 @@ export interface XSentimentAssetRow {
   sentiment: "bullish" | "bearish" | "neutral";
   confidence: number;
   hasHighRiskEvent: boolean;
+  /** Unix ms; show "Updated X min ago" in UI */
+  updatedAt?: number;
 }
 
 export interface NewsLeaderboardSection {

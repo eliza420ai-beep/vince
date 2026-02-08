@@ -128,6 +128,8 @@ export interface XSentimentAssetRow {
   sentiment: "bullish" | "bearish" | "neutral";
   confidence: number;
   hasHighRiskEvent: boolean;
+  /** Unix ms; for UI "Updated X min ago". */
+  updatedAt?: number;
 }
 
 export interface NewsLeaderboardSection {
@@ -573,6 +575,7 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
         sentiment: s.sentiment,
         confidence: s.confidence,
         hasHighRiskEvent: s.hasHighRiskEvent,
+        ...(s.updatedAt != null && { updatedAt: s.updatedAt }),
       };
     });
     xSentiment = { assets };

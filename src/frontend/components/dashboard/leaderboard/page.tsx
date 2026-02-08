@@ -794,35 +794,48 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                   <DashboardCard title="X (Twitter) vibe check">
                     <p className="text-xs text-muted-foreground mb-3">Cached sentiment from staggered refresh (BTC→SOL→ETH→HYPE every 7.5 min). Same data feeds the trading algo.</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {leaderboardsData.news.xSentiment.assets.map((row) => (
-                        <div
-                          key={row.asset}
-                          className={cn(
-                            "rounded-lg border px-3 py-2 text-center",
-                            row.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
-                            row.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
-                            row.sentiment === "neutral" && "border-border bg-muted/30",
-                          )}
-                        >
-                          <span className="font-semibold text-foreground">{row.asset}</span>
-                          <div className="text-xs mt-1">
-                            <span
-                              className={cn(
-                                row.sentiment === "bullish" && "text-green-600 dark:text-green-400",
-                                row.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                      {leaderboardsData.news.xSentiment.assets.map((row) => {
+                        const updatedAt = row.updatedAt;
+                        const ageMin = updatedAt != null ? Math.floor((Date.now() - updatedAt) / 60_000) : null;
+                        const isStale = ageMin != null && ageMin > 45;
+                        return (
+                          <div
+                            key={row.asset}
+                            className={cn(
+                              "rounded-lg border px-3 py-2 text-center",
+                              row.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
+                              row.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
+                              row.sentiment === "neutral" && "border-border bg-muted/30",
+                            )}
+                          >
+                            <span className="font-semibold text-foreground">{row.asset}</span>
+                            <div className="text-xs mt-1">
+                              <span
+                                className={cn(
+                                  row.sentiment === "bullish" && "text-green-600 dark:text-green-400",
+                                  row.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                                )}
+                              >
+                                {row.sentiment === "bullish" ? "Bullish" : row.sentiment === "bearish" ? "Bearish" : "Neutral"}
+                              </span>
+                              {row.confidence > 0 && (
+                                <span className="text-muted-foreground ml-1">({row.confidence}%)</span>
                               )}
-                            >
-                              {row.sentiment === "bullish" ? "Bullish" : row.sentiment === "bearish" ? "Bearish" : "Neutral"}
-                            </span>
-                            {row.confidence > 0 && (
-                              <span className="text-muted-foreground ml-1">({row.confidence}%)</span>
+                            </div>
+                            {row.hasHighRiskEvent && (
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block">Risk event</span>
+                            )}
+                            {updatedAt != null && (
+                              <span className={cn(
+                                "text-[10px] block mt-1",
+                                isStale ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+                              )}>
+                                {isStale ? "Stale" : ageMin === 0 ? "Updated just now" : `Updated ${ageMin}m ago`}
+                              </span>
                             )}
                           </div>
-                          {row.hasHighRiskEvent && (
-                            <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block">Risk event</span>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </DashboardCard>
                 )}

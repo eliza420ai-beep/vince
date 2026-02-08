@@ -122,6 +122,33 @@ See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vinc
 | Leaderboards API (news + xSentiment) | [dashboardLeaderboards.ts](src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts) (`buildNewsSection`) |
 | Leaderboard News tab UI | [leaderboard/page.tsx](src/frontend/components/dashboard/leaderboard/page.tsx) (News tab, “X (Twitter) vibe check” card) |
 
+### Troubleshooting (X vibe check)
+
+| Symptom | Likely cause | What to do |
+|--------|----------------|------------|
+| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (~7.5 min). |
+| **Card shows “Neutral” (0%) for all assets** | Cache empty or first refresh not done yet | Wait for first refresh, or run cron once per asset. Check logs for `[VinceXSentimentService] Started`. |
+| **One or more assets never update** | X API rate limit (429) | Logs show “X API rate limited. Skipping refresh for N min”. Service serves cached (or neutral) until reset. Reduce cron frequency or rely on in-app stagger only. |
+| **Cron runs but cache file unchanged** | Wrong cwd, missing `.env`, or script error | Run from repo root: `cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC`. Ensure `X_BEARER_TOKEN` is in `.env`. Check script exit code (0 = success). |
+| **Stale data on leaderboard** | App was down; cron not set or failed | Use cron when the app isn’t always on. Optionally show `updatedAt` in the UI to spot stale tiles. |
+
+---
+
+## Further improvements (X vibe check)
+
+Ideas to make the system more robust and easier to operate. **Done:** `updatedAt` is exposed per asset and the News tab shows “Updated X min ago” or “Stale” (if &gt;45 min) on each vibe-check tile.
+
+| Area | Improvement | Benefit |
+|------|--------------|---------|
+| **UX** | ~~Expose `updatedAt` per asset~~ ✅ Done: API returns `updatedAt`, UI shows “Updated X min ago” / “Stale” | Users see freshness at a glance; easier to spot rate limits or cron failures. |
+| **UX** | Empty state when configured but no data yet | Show “X vibe check: first refresh in ~7 min” instead of hiding the card. |
+| **Reliability** | **Single shared sentiment logic** — move keyword lists and `simpleSentiment` / `computeSentiment` into a small shared module (e.g. `plugin-vince/src/utils/xSentimentLogic.ts`) used by both the service and the cron script | Prevents drift between in-app and cron; one place to tune thresholds and keywords. |
+| **Reliability** | **Atomic cache writes** — write to a `.tmp` file then rename, in both service and cron | Avoids corrupt or half-written cache if app and cron write at the same time. |
+| **Observability** | Optional debug: expose “last refresh per asset” and “rate limited until” (e.g. in News payload or a small `/api/debug/x-sentiment`) | Support can see why a tile is stale without digging into logs. |
+| **Observability** | Cron: log one JSON line per run (asset, sentiment, confidence, durationMs) | Easier to aggregate and alert (e.g. “no successful run in 1h”). |
+| **Consistency** | Align HYPE query: service uses `"HYPE crypto"`, cron uses `"HYPE crypto -is:retweet"` | Use the same query in both (e.g. both `-is:retweet`) for comparable results. |
+| **Docs / runbook** | When to use cron vs in-app only | e.g. “App always on → in-app stagger is enough. App off most of the day → set up cron and point path to repo.” |
+
 ---
 
 ## CLI (multi-query, watchlist, save)

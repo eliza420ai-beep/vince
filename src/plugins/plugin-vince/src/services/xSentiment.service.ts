@@ -181,11 +181,13 @@ export class VinceXSentimentService extends Service {
 
   /**
    * Same interface as NewsSentiment for the signal aggregator.
+   * updatedAt is included for UI (e.g. "Updated X min ago").
    */
   getTradingSentiment(asset: string): {
     sentiment: "bullish" | "bearish" | "neutral";
     confidence: number;
     hasHighRiskEvent: boolean;
+    updatedAt?: number;
   } {
     const cached = this.cache.get(asset);
     if (!cached) {
@@ -199,6 +201,7 @@ export class VinceXSentimentService extends Service {
       sentiment: cached.sentiment,
       confidence: cached.confidence,
       hasHighRiskEvent: cached.hasHighRiskEvent,
+      updatedAt: cached.updatedAt,
     };
   }
 
