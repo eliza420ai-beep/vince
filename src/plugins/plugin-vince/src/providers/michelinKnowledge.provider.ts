@@ -1,10 +1,10 @@
 /**
  * Michelin Knowledge Provider
  *
- * When Eliza receives a message in a room whose name contains "knowledge" and
- * the message contains a guide.michelin.com URL, injects a strong instruction
- * so the LLM chooses ADD_MICHELIN_RESTAURANT instead of REPLY. Without this,
- * the model often replies conversationally and never runs the action.
+ * When any agent receives a message in a room whose name contains "knowledge"
+ * and the message contains a guide.michelin.com URL, injects a strong instruction
+ * so the LLM chooses ADD_MICHELIN_RESTAURANT instead of REPLY. Works for both
+ * VINCE and Eliza so that whichever bot is in the channel can add the restaurant.
  */
 
 import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
@@ -20,9 +20,6 @@ export const michelinKnowledgeProvider: Provider = {
     message: Memory,
     _state: State,
   ): Promise<{ text: string; values?: Record<string, unknown>; data?: Record<string, unknown> }> => {
-    if (runtime.character?.name !== "Eliza") {
-      return { text: "" };
-    }
     const text = message.content?.text ?? "";
     if (!text.includes("guide.michelin.com")) {
       return { text: "" };

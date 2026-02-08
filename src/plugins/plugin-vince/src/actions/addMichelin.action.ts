@@ -219,13 +219,12 @@ function insertBlockIntoSection(
 export const addMichelinRestaurantAction: Action = {
   name: "ADD_MICHELIN_RESTAURANT",
   similes: ["MICHELIN_TO_KNOWLEDGE", "ADD_MICHELIN"],
-  description: `Use when the message is in the **knowledge** channel and contains a **guide.michelin.com** link. Adds that restaurant to the Michelin knowledge base (knowledge/the-good-life/michelin-restaurants/).`,
+  description: `Use when the message is in the **knowledge** channel and contains a **guide.michelin.com** link. Adds that restaurant to the Michelin knowledge base (knowledge/the-good-life/michelin-restaurants/). You MUST use this action for Michelin links in #knowledge — do not use REPLY.`,
 
   validate: async (
     runtime: IAgentRuntime,
     message: Memory,
   ): Promise<boolean> => {
-    if (runtime.character?.name !== "Eliza") return false;
     const text = message.content?.text ?? "";
     if (!text.includes("guide.michelin.com")) return false;
     if (!extractMichelinUrl(text)) return false;
