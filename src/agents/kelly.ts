@@ -33,6 +33,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
+import personalityPlugin from "@elizaos/plugin-personality";
 import { kellyPlugin } from "../plugins/plugin-kelly/src/index.ts";
 
 const kellyHasDiscord =
@@ -51,6 +52,7 @@ export const kellyCharacter: Character = {
   plugins: [
     "@elizaos/plugin-sql",
     "@elizaos/plugin-bootstrap",
+    "@elizaos/plugin-personality",
     ...(process.env.ANTHROPIC_API_KEY?.trim()
       ? ["@elizaos/plugin-anthropic"]
       : []),
@@ -816,6 +818,7 @@ const buildPlugins = (): Plugin[] =>
   [
     sqlPlugin,
     bootstrapPlugin,
+    personalityPlugin, // character evolution + MODIFY_CHARACTER (Kelly only)
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),

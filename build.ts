@@ -51,6 +51,8 @@ async function build() {
             "node:*",
             "@elizaos/core",
             "@elizaos/plugin-bootstrap",
+            "@elizaos/plugin-browser",
+            "@elizaos/plugin-personality",
             "@elizaos/plugin-sql",
             "@elizaos/cli",
             "zod",

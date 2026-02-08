@@ -94,6 +94,12 @@ async function getEffectiveRoomName(
 }
 
 /** City slug from URL path → { file, section } for insertion */
+/** Fallback when city slug from URL is not in the map (e.g. other Nouvelle-Aquitaine towns). */
+const UNKNOWN_CITY_FALLBACK = {
+  file: "southwest-france-extended.md",
+  section: "### Other (Nouvelle-Aquitaine)",
+} as const;
+
 const CITY_TO_FILE_AND_SECTION: Record<
   string,
   { file: string; section: string }
@@ -101,6 +107,7 @@ const CITY_TO_FILE_AND_SECTION: Record<
   biarritz: { file: "biarritz-region.md", section: "### Biarritz Area" },
   bayonne: { file: "biarritz-region.md", section: "### Bayonne" },
   bordeaux: { file: "bordeaux-region.md", section: "### Bordeaux" },
+  arcachon: { file: "bordeaux-region.md", section: "### Arcachon / Bassin" },
   "la-rochelle": { file: "la-rochelle-region.md", section: "### La Rochelle" },
   anglet: { file: "biarritz-region.md", section: "### Biarritz Area" },
   "saint-jean-de-luz": {
@@ -120,7 +127,7 @@ function extractMichelinUrl(text: string): string | null {
 function extractCitySlugFromUrl(url: string): string {
   const match = url.match(MICHELIN_PATH_CITY_REGEX);
   if (match) return match[1].toLowerCase().trim();
-  return "biarritz"; // default to Biarritz region
+  return ""; // unknown; caller uses UNKNOWN_CITY_FALLBACK
 }
 
 function getDisplayCity(citySlug: string, address: string): string {
@@ -128,6 +135,7 @@ function getDisplayCity(citySlug: string, address: string): string {
     biarritz: "Biarritz",
     bayonne: "Bayonne",
     bordeaux: "Bordeaux",
+    arcachon: "Arcachon",
     "la-rochelle": "La Rochelle",
     anglet: "Anglet",
     "saint-jean-de-luz": "Saint-Jean-de-Luz",
@@ -139,6 +147,7 @@ function getDisplayCity(citySlug: string, address: string): string {
     const postcodeMatch = address.match(/\d{5}\s+(\w[\w\s-]+?)(?:\s*$|,|\.)/);
     if (postcodeMatch) return postcodeMatch[1].trim();
   }
+  if (!citySlug) return "Nouvelle-Aquitaine";
   return citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
 }
 
@@ -214,6 +223,45 @@ function htmlToVisibleText(html: string): string {
 }
 
 const MICHELIN_CONTENT_MAX_CHARS = 12_000;
+
+/**
+ * Try to get page content via @elizaos/plugin-browser (Playwright) when available.
+ * Returns full DOM text (bodyContent) so phone, "Visit Website", description are present.
+ * When the plugin is not registered, returns null and caller should use fetchPageContent().
+ */
+async function fetchPageContentViaBrowser(
+  url: string,
+  runtime: IAgentRuntime,
+): Promise<string | null> {
+  try {
+    const browserService = runtime.getService<{
+      getPageContent?(url: string, rt: IAgentRuntime): Promise<{
+        title?: string;
+        description?: string;
+        bodyContent?: string;
+      }>;
+    }>("browser");
+    if (!browserService?.getPageContent) return null;
+    const page = await browserService.getPageContent(url, runtime);
+    if (!page?.bodyContent || page.bodyContent.length < 100) return null;
+    const parts = [page.title, page.description, page.bodyContent].filter(
+      (s): s is string => typeof s === "string" && s.trim().length > 0,
+    );
+    const combined = parts.join("\n\n").trim();
+    if (combined.length < 100) return null;
+    logger.debug(
+      { url, length: combined.length },
+      "[ADD_MICHELIN] Content from plugin-browser",
+    );
+    return combined.slice(0, MICHELIN_CONTENT_MAX_CHARS);
+  } catch (e) {
+    logger.debug(
+      { url, err: String(e) },
+      "[ADD_MICHELIN] Browser service failed, falling back to fetch",
+    );
+    return null;
+  }
+}
 
 /** Prefer raw fetch so we get full page text (phone, Visit Website, description). Summarize often returns only meta/og. */
 async function fetchPageContent(url: string): Promise<string | null> {
@@ -330,7 +378,11 @@ export const addMichelinRestaurantAction: Action = {
       });
     }
 
-    const content = await fetchPageContent(url);
+    // Prefer @elizaos/plugin-browser (Playwright) when present for full DOM text; else raw fetch
+    let content = await fetchPageContentViaBrowser(url, runtime);
+    if (!content || content.length < 100) {
+      content = await fetchPageContent(url);
+    }
     if (!content || content.length < 100) {
       if (callback) {
         await callback({
@@ -373,8 +425,7 @@ ${content.slice(0, 12000)}
 
     const citySlug = extractCitySlugFromUrl(url);
     const { file: fileName, section: sectionHeading } =
-      CITY_TO_FILE_AND_SECTION[citySlug] ??
-      CITY_TO_FILE_AND_SECTION["biarritz"];
+      (citySlug && CITY_TO_FILE_AND_SECTION[citySlug]) ?? UNKNOWN_CITY_FALLBACK;
     const cityDisplay = getDisplayCity(citySlug, extract.address);
     const newBlock = formatEntry(extract, url, cityDisplay);
 
