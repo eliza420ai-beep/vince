@@ -3,11 +3,12 @@
  *
  * When Eliza receives a message in a Discord channel whose name contains "knowledge"
  * and the message contains a guide.michelin.com URL, this action fetches the page,
- * extracts restaurant fields (name, address, phone, price, style, chef, notes),
- * and appends a formatted entry to the appropriate file under
+ * extracts restaurant fields (name, address, phone, website, price, style, chef,
+ * description, notes), and appends a formatted entry to the appropriate file under
  * knowledge/the-good-life/michelin-restaurants/.
  *
  * See: knowledge/the-good-life/michelin-restaurants/README.md "How to add new lunch spots"
+ * Fallback: docs/todo-michelin-crawlee.md if phone/website are often missing.
  */
 
 import type {
@@ -84,9 +85,11 @@ interface MichelinExtract {
   name: string;
   address: string;
   phone: string;
+  website: string;
   price: string;
   style: string;
   chef: string;
+  description: string;
   notes: string;
 }
 
@@ -103,8 +106,13 @@ function formatEntry(
     `- **Price**: ${extract.price || "—"}`,
     `- **Style**: ${extract.style || "—"}`,
   ];
+  if (extract.website?.trim()) lines.push(`- **Website**: ${extract.website.trim()}`);
   if (extract.chef?.trim()) lines.push(`- **Chef**: ${extract.chef.trim()}`);
   lines.push(`- **Notes**: ${extract.notes || "From the Guide"}`);
+  if (extract.description?.trim()) {
+    lines.push("");
+    lines.push("> " + extract.description.trim().replace(/\n/g, "\n> "));
+  }
   return lines.join("\n");
 }
 
@@ -119,9 +127,11 @@ function parseJsonFromModelResponse(raw: string): MichelinExtract | null {
       name: String(parsed.name ?? "").trim() || "Restaurant",
       address: String(parsed.address ?? "").trim(),
       phone: String(parsed.phone ?? "").trim(),
+      website: String(parsed.website ?? "").trim(),
       price: String(parsed.price ?? "").trim(),
       style: String(parsed.style ?? "").trim(),
       chef: String(parsed.chef ?? "").trim(),
+      description: String(parsed.description ?? "").trim(),
       notes: String(parsed.notes ?? "").trim(),
     };
   } catch {
@@ -129,14 +139,41 @@ function parseJsonFromModelResponse(raw: string): MichelinExtract | null {
   }
 }
 
+/** Simple HTML strip so visible text can be passed to the LLM (e.g. for phone/website in sidebar). */
+function htmlToVisibleText(html: string): string {
+  return (
+    html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+/** True if content likely already has contact info (phone or website cues). */
+function contentHasContactCues(content: string): boolean {
+  const lower = content.toLowerCase();
+  const hasPhone = /\+\d{2}\s*\d[\d\s.]{8,}/.test(content) || /tel:/i.test(content);
+  const hasWebsite =
+    /\bvisit\s+website\b/i.test(lower) ||
+    /\bwebsite\b/i.test(lower) ||
+    /\bsite\s+web\b/i.test(lower) ||
+    /https?:\/\/[^\s"]+/.test(content);
+  return hasPhone || hasWebsite;
+}
+
+const MICHELIN_CONTENT_MAX_CHARS = 12_000;
+
 async function fetchPageContent(url: string): Promise<string | null> {
+  let content: string | null = null;
   try {
     const summarized = await runSummarizeCli(url, {
       isYouTube: false,
       extractOnly: true,
     });
     if (summarized && "content" in summarized && summarized.content?.length) {
-      return summarized.content;
+      content = summarized.content;
     }
   } catch (e) {
     logger.debug(
@@ -144,6 +181,24 @@ async function fetchPageContent(url: string): Promise<string | null> {
       "[ADD_MICHELIN] runSummarizeCli failed, trying fetch",
     );
   }
+  if (!content) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (compatible; ElizaOS/1.0; +https://github.com/elizaos/eliza)",
+        },
+      });
+      if (!res.ok) return null;
+      const html = await res.text();
+      content = htmlToVisibleText(html);
+    } catch (e) {
+      logger.warn({ url, err: String(e) }, "[ADD_MICHELIN] fetch failed");
+      return null;
+    }
+  }
+  if (!content || content.length < 100) return content;
+  if (contentHasContactCues(content)) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
   try {
     const res = await fetch(url, {
       headers: {
@@ -151,11 +206,15 @@ async function fetchPageContent(url: string): Promise<string | null> {
           "Mozilla/5.0 (compatible; ElizaOS/1.0; +https://github.com/elizaos/eliza)",
       },
     });
-    if (!res.ok) return null;
-    return await res.text();
-  } catch (e) {
-    logger.warn({ url, err: String(e) }, "[ADD_MICHELIN] fetch failed");
-    return null;
+    if (!res.ok) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
+    const html = await res.text();
+    const fetchText = htmlToVisibleText(html);
+    if (fetchText.length < 50) return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
+    const combined = (content + "\n\n" + fetchText).slice(0, MICHELIN_CONTENT_MAX_CHARS);
+    logger.debug("[ADD_MICHELIN] Augmented content with raw fetch for contact info");
+    return combined;
+  } catch {
+    return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
   }
 }
 
@@ -247,7 +306,10 @@ export const addMichelinRestaurantAction: Action = {
     }
 
     const extractPrompt = `From this Michelin Guide page content, extract the following as JSON only (no markdown, no explanation). Use empty string "" for missing fields.
-{"name":"restaurant name","address":"full address","phone":"+33 ... or phone","price":"e.g. €€ or €€€","style":"e.g. Cuisine créative","chef":"chef name if shown","notes":"one line why worth a visit or Nouveau/Bib/star"}
+
+Extract phone if present (e.g. +33 6 87 62 06 07). Extract website URL if present (e.g. from "Visit Website" link or similar in the content).
+
+{"name":"restaurant name","address":"full address","phone":"+33 ... or phone if present","website":"restaurant website URL if present (e.g. from Visit Website link); empty if not found","price":"e.g. €€ or €€€","style":"e.g. Cuisine créative","chef":"chef name if shown","description":"the main paragraph about the restaurant from the Guide (the long descriptive text); empty if not found","notes":"short tagline e.g. Nouveau, Bib, Chef's Table, or one line why worth a visit"}
 
 Content (excerpt):
 ${content.slice(0, 12000)}
