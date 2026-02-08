@@ -11,7 +11,7 @@ import type { IAgentRuntime } from "@elizaos/core";
 import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
-import { loadEnvOnce } from "../utils/loadEnvOnce";
+import { debugLog, loadEnvOnce } from "../utils/loadEnvOnce";
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -91,17 +91,23 @@ export class VinceXSentimentService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceXSentimentService> {
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'XSentiment.start entered',data:{hypothesisId:'H3'},timestamp:Date.now()})}).catch(()=>{});
+    debugLog("xSentiment.service.ts:start", "XSentiment.start entered", { hypothesisId: "H3" });
     // #endregion
     loadEnvOnce();
-    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'after loadEnvOnce',data:{hypothesisId:'H3 H5',hasXBearer:!!process.env.X_BEARER_TOKEN?.trim()},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
+    debugLog("xSentiment.service.ts:start", "after loadEnvOnce", { hypothesisId: "H3 H5", hasXBearer: !!process.env.X_BEARER_TOKEN?.trim() });
     const service = new VinceXSentimentService(runtime);
-    const xResearch = runtime.getService(
+    // Runtime starts all services in parallel; XResearch may not be registered yet. Yield and retry once.
+    let xResearch = runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
     ) as VinceXResearchService | null;
+    if (!xResearch?.isConfigured()) {
+      await new Promise((r) => setImmediate(r));
+      xResearch = runtime.getService(
+        "VINCE_X_RESEARCH_SERVICE",
+      ) as VinceXResearchService | null;
+    }
     // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'xSentiment.service.ts:start',message:'xResearch service check',data:{hypothesisId:'H3',xResearchNull:!xResearch,isConfigured:!!xResearch?.isConfigured()},timestamp:Date.now()})}).catch(()=>{});
+    debugLog("xSentiment.service.ts:start", "xResearch service check", { hypothesisId: "H3", xResearchNull: !xResearch, isConfigured: !!xResearch?.isConfigured() });
     // #endregion
     if (!xResearch?.isConfigured()) {
       logger.info(

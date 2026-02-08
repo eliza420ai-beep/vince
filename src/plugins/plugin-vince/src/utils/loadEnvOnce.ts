@@ -2,14 +2,32 @@
  * Load .env once from project root (walk up from cwd or from this file's dir).
  * Call from services that need X_BEARER_TOKEN so it works regardless of startup (elizaos dev, bun run dev, etc.).
  */
-import { existsSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 let _done = false;
 
+const DEBUG_LOG = "/Users/macbookpro16/vince/.cursor/debug.log";
+const DEBUG_LOG_FALLBACK = resolve(process.cwd(), "vince-debug.log");
 // #region agent log
-const _dbg = (msg: string, data: Record<string, unknown>) => { fetch('http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'loadEnvOnce.ts',message:msg,data,timestamp:Date.now()})}).catch(()=>{}); };
+function _writeLog(line: string) {
+  try { appendFileSync(DEBUG_LOG, line + "\n"); } catch (_) {
+    try { appendFileSync(DEBUG_LOG_FALLBACK, line + "\n"); } catch (_) {}
+  }
+}
+function _dbg(msg: string, data: Record<string, unknown>) {
+  const payload = { location: "loadEnvOnce.ts", message: msg, data, timestamp: Date.now() };
+  const line = JSON.stringify(payload);
+  fetch("http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02", { method: "POST", headers: { "Content-Type": "application/json" }, body: line }).catch(() => {});
+  _writeLog(line);
+}
+export function debugLog(location: string, message: string, data: Record<string, unknown>) {
+  const payload = { location, message, data, timestamp: Date.now() };
+  const line = JSON.stringify(payload);
+  fetch("http://127.0.0.1:7243/ingest/ba1458fc-b64e-474b-974f-75567a9e0b02", { method: "POST", headers: { "Content-Type": "application/json" }, body: line }).catch(() => {});
+  _writeLog(line);
+}
 // #endregion
 
 function findProjectRoot(): string | null {
