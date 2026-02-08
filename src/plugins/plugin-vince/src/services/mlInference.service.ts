@@ -499,11 +499,11 @@ export class VinceMLInferenceService extends Service {
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg.includes("no available backend found")) {
-        // ONNX runtime has no usable backend on this platform; disable and use rule-based fallbacks.
+        // ONNX runtime has no usable native backend on this platform; disable and use rule-based fallbacks.
         this.ort = null;
         logger.info(
-          "[MLInference] ONNX backend not available on this platform - using rule-based fallbacks. " +
-            "Install/build onnxruntime-node for your OS/arch for ML inference.",
+          "[MLInference] ONNX backend not available on this platform — using rule-based fallbacks. " +
+            "Paper bot still runs. To enable ML: try `bun rebuild onnxruntime-node` or reinstall deps; see Node/OS compatibility at https://www.npmjs.com/package/onnxruntime-node.",
         );
         return;
       }
