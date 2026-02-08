@@ -1,94 +1,102 @@
 # Bankr — TL;DR
 
-Quick reference for Bankr, its repos, and API. Relevant for VINCE’s [token/ticker path](knowledge/internal-docs/vince-as-ticker-bankr-deep-dive.md), possible skill/execution integration, and **utility-token launch** (access, dev funding, contributor rewards, premium APIs).
+What Bankr is, why it matters for VINCE, and how it compares. Use this for the [token/ticker path](knowledge/internal-docs/vince-as-ticker-bankr-deep-dive.md), skill/execution integration, and a **utility token** that pays for access, dev, contributors, and premium APIs.
 
-**Contents:** [VINCE utility-token vision](#vince-utility-token-vision) · [Bankr product & API](#bankr--product--api) · [How Bankr differs](#how-bankr-differs-from-other-ai-agent-launchpads) · [Bankr vs BAGS](#launch-platform-comparison-bankr-vs-bags) · [Links](#links)
+**Idea:** Skills become the product. You ship a skill; others install it. You get paid when they use it. That’s the shift: from big apps to small, reusable skills that compound.
+
+**Contents:** [What the token does for VINCE](#what-the-token-does-for-vince) · [Bankr product & API](#bankr--product--api) · [Why Bankr is different](#why-bankr-is-different) · [Bankr vs BAGS](#bankr-vs-bags) · [Links](#links)
 
 ---
 
-## VINCE utility-token vision
+## What the token does for VINCE
 
-A **utility token** for VINCE could align incentives and fund the stack without relying only on grants or out-of-pocket spend:
+A token that **pays for the thing** — not grants, not out-of-pocket:
 
-| Use | How the token helps |
-|:---|:---|
-| **Access** | Hold or pay token to access the paper bot, live signals, or future execution tier. Gates usage and reduces abuse. |
-| **Ongoing dev & infra** | Token revenue (fees, subscriptions, or allocations) backs **dev work** and **expensive inference** (e.g. Claude 4.6 credits) so the agent and ML pipeline stay current. |
-| **GitHub contributor rewards** | Allocate token to **reward devs** who collab on GitHub—e.g. algo improvements, ML/ONNX pipeline, signal factors, plugin-vince features. Bounty/retroactive rewards for merged PRs or accepted proposals. |
-| **Premium data APIs** | Use **fees earned from the token** (trading fees, access fees, or protocol revenue) to pay for **high-tier APIs** (CoinGlass, Messari, etc.) and add them as **signal factors**, improving model inputs without burning personal/team budget. |
+| You get | How |
+|:--------|:----|
+| **Gated access** | Hold or spend token for paper bot, live signals, or execution. Fewer freeloaders, clearer usage. |
+| **Dev and infra paid** | Fees and subscriptions fund the stack: dev time and inference (e.g. Claude). The agent stays current because revenue flows in. |
+| **Contributors rewarded** | Allocate token to people who ship: algo work, ML/ONNX, signal factors, plugin-vince. Bounties or retro for merged PRs and accepted proposals. |
+| **Better data, paid for** | Use token revenue to buy high-tier APIs (CoinGlass, Messari). Feed the model better inputs without burning your own budget. |
 
-**In one line:** Token = **access gating** + **funding dev/Claude** + **incentivizing open-source algo/ML work** + **financing better data** (CoinGlass, Messari, etc.) for the self-improving loop.
+One line: **Token = who gets in + who gets paid + what data the model sees.** The loop improves because money is attached to the right levers.
 
 ---
 
 ## [Bankr](https://bankr.bot/) · Product & [API](https://bankr.bot/#api)
 
-**TL;DR:** AI agent that **funds itself** via $BNKR. Swap/bridge (Base, Solana, Polygon, Ethereum), limit/stop/DCA/TWAP, copy trade, token launchpad, Bankr Earn (USDC yield), stake $BNKR for rewards. **Build on Bankr:** get an [API key](https://bankr.bot/api) and use the **Trading Engine** (advanced orders, take a fee on trades) or the **x402 SDK** (pay-per-request to the Bankr agent). Backed by Coinbase Ventures, Polygon.
+An agent that **pays for itself** with $BNKR. Swap and bridge (Base, Solana, Polygon, Ethereum). Limit, stop, DCA, TWAP. Copy trade, token launchpad, Bankr Earn (USDC yield), stake $BNKR for rewards.
+
+**Build on it:** [API key](https://bankr.bot/api). **Trading Engine** — advanced orders, you take a fee on trades. **x402** — pay per request to the agent. Backed by Coinbase Ventures, Polygon.
 
 ---
 
-## [openclaw-skills](https://github.com/BankrBot/openclaw-skills) · Moltbot skill library
+## [openclaw-skills](https://github.com/BankrBot/openclaw-skills) · Skill library
 
-**TL;DR:** Public repo of **skills for Moltbot/OpenClaw** (and Bankr). Each top-level dir is a provider (e.g. `bankr/`, `base/`, `neynar/`, `zapper/`); each subdir is an installable skill with `SKILL.md` (+ optional `references/`, `scripts/`). Skills cover Polymarket, crypto trading, DeFi, automation, token deployment, etc. **Install:** give your agent the repo URL and pick a skill (e.g. Bankr skill for trading). Add a skill via PR (new provider dir + `SKILL.md`). ~384 stars; Bankr, erc-8004, botchan, qrcoin, yoink are listed.
+Public repo of skills for Moltbot/OpenClaw and Bankr. One top-level dir per provider (`bankr/`, `base/`, `neynar/`, `zapper/`); under each, installable skills with `SKILL.md` (and optional `references/`, `scripts/`). Polymarket, crypto, DeFi, automation, token deployment.
+
+**Use it:** Point your agent at the repo and pick a skill (e.g. Bankr for trading). **Add one:** open a PR with a new provider dir and `SKILL.md`. ~384 stars; Bankr, erc-8004, botchan, qrcoin, yoink listed.
 
 ---
 
-## [tokenized-agents](https://github.com/BankrBot/tokenized-agents) · Tokenized agent registry
+## [tokenized-agents](https://github.com/BankrBot/tokenized-agents) · Registry
 
-**TL;DR:** **Community registry of AI agents that launched tokens through Bankr.** Tokens let agents be self-sustaining and fund development; the repo tracks which agents are “tokenized.” **Vision:** agents learn something → save to Bankr skills repo → every agent gets the upgrade (“one agent’s lesson = every agent’s upgrade”). Goal: onchain agents that get smarter and self-fund. **Add an agent:** submit a PR. Links to [Moltbot Skills](https://github.com/BankrBot/openclaw-skills), Bankr Claude Code Plugins + Skills, and [Bankr Agent API](https://bankr.bot/api).
+Registry of agents that launched tokens via Bankr. Tokens fund development; the repo records who’s tokenized.
+
+**Mechanism:** An agent learns something → it’s written into the skills repo → any agent can install it. One fix, everyone upgraded. Agents onchain, improving, funded by use. Add yours: PR. Links to [Moltbot Skills](https://github.com/BankrBot/openclaw-skills), Bankr Claude Code Plugins + Skills, [Bankr Agent API](https://bankr.bot/api).
 
 ---
 
 ## [Bankr Agent API](https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3) (Notion)
 
-**TL;DR:** Notion doc for the **Bankr Agent API** — programmatic control of a Bankr wallet and agent (also referenced from [bankr.bot/api](https://bankr.bot/api)). Use for building skills, plugins, or automation (e.g. advanced orders, swaps, DMs). Get an API key from [bankr.bot/api](https://bankr.bot/api) and refer to the Notion page for endpoints and usage.
+Programmatic control of a Bankr wallet and agent. [API key](https://bankr.bot/api); Notion has endpoints and usage. Use it to build skills, plugins, or automation (orders, swaps, DMs).
 
 ---
 
-## How Bankr differs from other AI agent launchpads
+## Why Bankr is different
 
-| Dimension | Bankr | Typical alternatives |
-|-----------|--------|------------------------|
-| **Economics** | Token **funds the agent**: trading fees and subscriptions ($BNKR) pay for compute. “Self-sustaining from day one.” | Agent frameworks (Eliza, LangChain, etc.): you pay infra/API; no built-in token or revenue loop. Token launchpads: you get a token, but no native wallet/execution or shared skill layer. |
-| **Agent + wallet + execution** | One stack: agent, **built-in cross-chain wallet**, and execution (swap, bridge, limit/stop/DCA, perps, Polymarket). Agent can trade and hold. | Many “agent launchpads” are chat-only or API-only; execution is a separate integration. Wallet often user’s own or third-party. |
-| **Shared skills** | **OpenClaw skills repo**: one agent’s learning (e.g. “don’t write cringe tweets”) is saved and **every agent can install it**. Upgrades compound across agents. | Most platforms: each agent is isolated or skills are private. No shared, composable skill library that auto-improves the whole ecosystem. |
-| **Token utility** | $BNKR = Bankr Club subscription, stake-for-rewards, native to the product. Fair launch by the agent on Farcaster. | Many launchpads: token is governance or speculative; utility (e.g. pay for API, subscriptions) is added later or not at all. |
-| **Distribution** | Live where users are: Terminal, X, Telegram, Farcaster, Base App, XMTP. “Add Bankr to the chat” inside Base. | Often one surface (e.g. web only) or “bring your own Discord bot” with no shared distribution. |
-| **Build surface** | **Trading Engine API** (fee on trades) + **x402** pay-per-request + **skills** (install Bankr or add your own). You can be the agent or a skill provider. | Either “use our agent” or “use our SDK”; fewer ways to earn (e.g. take a fee on volume) or to plug in as a skill. |
+| Dimension | Bankr | Others |
+|:----------|:------|:-------|
+| **Who pays** | The token. Trading fees and subscriptions pay for compute. The agent funds itself from day one. | You pay infra and APIs. Launchpads give you a token but no wallet or execution in the same stack. |
+| **Stack** | Agent, wallet, execution in one place. Cross-chain wallet; swap, bridge, limit/stop/DCA, perps, Polymarket. The agent can trade and hold. | Chat or API only; execution is something you wire in. Wallet is yours or a third party’s. |
+| **Skills** | OpenClaw repo. One agent writes a skill (e.g. “don’t write cringe tweets”); every agent can install it. Upgrades spread. | Agents are isolated or skills stay private. No shared library that improves as people add to it. |
+| **Token job** | $BNKR: Bankr Club, stake for rewards, baked into the product. Fair launch by the agent on Farcaster. | Token is governance or speculation; paying for API or subscriptions comes later or not at all. |
+| **Where it runs** | Terminal, X, Telegram, Farcaster, Base App, XMTP. “Add Bankr to the chat” in Base. | Often one surface (e.g. web) or you bring your own bot; no shared distribution. |
+| **How you build** | Trading Engine API (fee on trades), x402 (pay per request), skills (use Bankr or ship your own). You run the agent or you ship a skill. | Use their agent or their SDK; fewer ways to earn (e.g. fee on volume) or to plug in as a skill. |
 
-**In one line:** Bankr is an **agent-first launchpad with built-in wallet and execution**, a **token that pays for the agent**, and a **shared skills repo** so agents get smarter together—not just “launch a token” or “host an agent” in isolation.
+**Summary:** Bankr is wallet + execution + token that pays the agent + shared skills. Not “launch a token” or “host an agent” by themselves.
 
 ---
 
-## Launch platform comparison: Bankr vs BAGS
+## Bankr vs BAGS
 
-VINCE is considering a **utility token** (access, dev funding, contributor rewards, premium APIs). Two launch options:
+VINCE is weighing a utility token (access, dev, contributors, premium APIs). Two ways to do it:
 
 | Dimension | [Bankr](https://bankr.bot/) | [BAGS](https://bags.fm/) |
-|-----------|-----------------------------|---------------------------|
-| **Positioning** | **Agent-first**: token funds the agent (compute, execution, subscriptions). Built-in wallet + swap/limit/perps. | **Creator/idea funding**: “Get funding for your ideas.” Launch a coin, verify with social, earn from volume. [$21M+ earned by creators](https://bags.fm/). |
-| **Token utility** | $BNKR = Bankr Club, stake-for-rewards, **native to product** (agent pays for itself). Fair launch by agent on Farcaster. | Coin tied to **your project**; creators earn **1% of trading volume forever**. Optional **dividends** to top 100 holders. |
-| **Fit for VINCE** | **Strong**: VINCE is an AI agent. Bankr’s “token funds the agent” maps directly to funding Claude, APIs, and dev. Trading Engine API = fee on trades; x402 = pay-per-request. Shared skills (OpenClaw) could host VINCE-style skills. | **Good for awareness + royalties**: Launch “VINCE coin” as the project token; earn 1% volume → fund dev/APIs. Less agent-native; more “community coin for the algo project.” Dividends could reward holders or contributors. |
-| **Execution / wallet** | **Included**: cross-chain wallet, swap, bridge, limit/stop/DCA, perps. Agent can trade and hold. | **Not included**: BAGS is launch + trade the coin; no built-in execution for an agent. Solana-based (SOL for launch). |
-| **Build / integrate** | Trading Engine API (fee on trades), x402 pay-per-request, [OpenClaw skills](https://github.com/BankrBot/openclaw-skills). Add VINCE as skill or tokenized agent. | [API](https://docs.bags.fm), [Dev Blueprint](https://bags.fm/blueprint), mobile app. Launch flow: logo, name, ticker, description; optional fee sharing (up to 100 accounts). |
-| **Backing / ecosystem** | Coinbase Ventures, Polygon. Tokenized agents registry; shared skill upgrades across agents. | Bags Holdings; large creator volume; Discord, app, drops ($100K challenge). |
-| **Best for** | **Agent sustainability**: token pays for the agent stack and fits into an agent-first product (VINCE as Bankr agent or skill). | **Community funding + royalties**: simple “launch a coin for VINCE,” earn 1% forever, use proceeds for dev/APIs; dividends to reward holders/contributors. |
+|:----------|:----------------------------|:-------------------------|
+| **What it is** | Token pays the agent: compute, execution, subscriptions. Wallet + swap/limit/perps in the product. | Funding for ideas. Launch a coin, verify with social, earn from volume. [$21M+ to creators](https://bags.fm/). |
+| **Token** | $BNKR = Club, stake, native to the product. Agent pays for itself. Fair launch on Farcaster. | Coin for your project. Creators earn **1% of volume forever**. Optional dividends to top 100 holders. |
+| **VINCE fit** | Direct. VINCE is an agent; “token funds the agent” maps to funding Claude, APIs, dev. Trading Engine = fee on trades; x402 = pay per request. OpenClaw can hold VINCE-style skills. | Good for attention and royalties. Launch “VINCE coin,” earn 1%, fund dev/APIs. Less about the agent; more “community coin for the algo project.” Dividends can reward holders or contributors. |
+| **Execution / wallet** | Included. Cross-chain wallet, swap, bridge, limit/stop/DCA, perps. | Not included. BAGS is launch + trade the coin. Solana; SOL to launch. |
+| **Build** | Trading Engine API, x402, [OpenClaw skills](https://github.com/BankrBot/openclaw-skills). Add VINCE as skill or tokenized agent. | [API](https://docs.bags.fm), [Dev Blueprint](https://bags.fm/blueprint), mobile app. Launch: logo, name, ticker, description; optional fee sharing (up to 100 accounts). |
+| **Backing** | Coinbase Ventures, Polygon. Tokenized agents registry; shared skill upgrades. | Bags Holdings; large creator volume; Discord, app, drops ($100K challenge). |
+| **Pick when** | VINCE is the product: token pays the stack, you want wallet + execution + skills in one place. | You want a coin for the VINCE project: royalties, dividends, use revenue for dev/Claude/APIs and optional rewards for GitHub contributors. |
 
-**Summary:**  
-- **Bankr** = better fit if VINCE is **the agent** (token funds agent compute, execution, APIs) and we want wallet + execution + skills in one stack.  
-- **BAGS** = better fit for **“launch a coin for the VINCE project,”** earn royalties and dividends, use revenue for dev/Claude/APIs and optional token rewards for GitHub contributors.
+**Bottom line:**  
+- **Bankr** when VINCE is the agent and you want one stack (token funds compute, execution, APIs).  
+- **BAGS** when you want “a coin for VINCE,” 1% forever, and to use proceeds for dev and contributor rewards.
 
-Both can support the utility-token vision (access, dev funding, API fees); Bankr aligns with **agent-as-product**; BAGS with **project-as-creator** and ongoing volume royalties.
+Both support access, dev funding, API spend; Bankr is agent-as-product; BAGS is project-as-creator with volume royalties.
 
 ---
 
 ## Links
 
 | What | URL |
-|------|-----|
-| Bankr site | https://bankr.bot/ |
-| Bankr API / get key | https://bankr.bot/api · https://bankr.bot/#api |
+|:-----|:----|
+| Bankr | https://bankr.bot/ |
+| Bankr API / key | https://bankr.bot/api · https://bankr.bot/#api |
 | Agent API (Notion) | https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3 |
-| OpenClaw skills repo | https://github.com/BankrBot/openclaw-skills |
-| Tokenized agents repo | https://github.com/BankrBot/tokenized-agents |
-| **BAGS** (alternative launch) | https://bags.fm/ · [How it works](https://bags.fm/how-it-works) · [Launch](https://bags.fm/launch) · [API docs](https://docs.bags.fm) · [Dev Blueprint](https://bags.fm/blueprint) |
+| OpenClaw skills | https://github.com/BankrBot/openclaw-skills |
+| Tokenized agents | https://github.com/BankrBot/tokenized-agents |
+| **BAGS** | https://bags.fm/ · [How it works](https://bags.fm/how-it-works) · [Launch](https://bags.fm/launch) · [API](https://docs.bags.fm) · [Blueprint](https://bags.fm/blueprint) |
