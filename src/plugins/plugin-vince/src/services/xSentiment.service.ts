@@ -2,8 +2,8 @@
  * VINCE X (Twitter) Sentiment Service
  *
  * Produces trading sentiment (bullish/bearish/neutral + confidence) from X search
- * results for use by the signal aggregator. Caches per-asset; refreshes every 15 min
- * to respect X API rate limits. Depends on VinceXResearchService.
+ * results for use by the signal aggregator. Caches per-asset; refreshes at configurable
+ * interval (default 30 min) to respect X API rate limits. Depends on VinceXResearchService.
  */
 
 import { Service, logger } from "@elizaos/core";
@@ -13,11 +13,20 @@ import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
-const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min
-const CACHE_TTL_MS = 15 * 60 * 1000;
+function getRefreshIntervalMs(): number {
+  loadEnvOnce();
+  const min = parseInt(process.env.X_SENTIMENT_REFRESH_MINUTES ?? "30", 10);
+  return Math.max(15, Math.min(120, min)) * 60 * 1000;
+}
+function getAssetDelayMs(): number {
+  loadEnvOnce();
+  if (process.env.NODE_ENV === "test") return 0;
+  const ms = parseInt(process.env.X_SENTIMENT_ASSET_DELAY_MS ?? "800", 10);
+  return Math.max(400, Math.min(3000, ms));
+}
+
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min (match default refresh)
 const MIN_TWEETS_FOR_CONFIDENCE = 3;
-/** Delay between assets to avoid bursting the X API (shared 450/15min with other callers). */
-const DELAY_BETWEEN_ASSETS_MS = 400;
 
 /** Parse "Resets in Ns" from X API rate-limit error. Returns seconds or 0. Exported for tests. */
 export function parseRateLimitResetSeconds(message: string): number {
@@ -84,6 +93,9 @@ export class VinceXSentimentService extends Service {
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   /** When set, skip refresh until this time (ms) to respect X API rate limit. */
   private rateLimitedUntilMs = 0;
+  private getDelayMs(): number {
+    return getAssetDelayMs();
+  }
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -108,17 +120,30 @@ export class VinceXSentimentService extends Service {
       );
       return service;
     }
+    const refreshMs = getRefreshIntervalMs();
+    const delayMs = getAssetDelayMs();
+    const refreshMin = Math.round(refreshMs / 60_000);
     logger.info(
-      "[VinceXSentimentService] Started (refresh every 15 min, assets: " +
+      "[VinceXSentimentService] Started (refresh every " +
+        refreshMin +
+        " min, assets: " +
         CORE_ASSETS.join(", ") +
         ")",
     );
+    // Stagger initial refresh 0–2 min to avoid multi-agent burst (shared X token). Skip in tests.
+    if (process.env.NODE_ENV !== "test" && !process.env.X_SENTIMENT_JITTER_MS) {
+      const jitterMs = Math.floor(Math.random() * 2 * 60 * 1000);
+      await new Promise((r) => setTimeout(r, jitterMs));
+    } else if (process.env.X_SENTIMENT_JITTER_MS) {
+      const ms = Math.max(0, parseInt(process.env.X_SENTIMENT_JITTER_MS, 10));
+      await new Promise((r) => setTimeout(r, ms));
+    }
     await service.refreshAll();
     service.refreshTimer = setInterval(() => {
       service.refreshAll().catch((e) =>
         logger.warn("[VinceXSentimentService] Refresh failed: " + (e as Error).message),
       );
-    }, REFRESH_INTERVAL_MS);
+    }, refreshMs);
     return service;
   }
 
@@ -184,7 +209,7 @@ export class VinceXSentimentService extends Service {
     for (const asset of CORE_ASSETS) {
       try {
         await this.refreshForAsset(asset, xResearch);
-        await new Promise((r) => setTimeout(r, DELAY_BETWEEN_ASSETS_MS));
+        await new Promise((r) => setTimeout(r, this.getDelayMs()));
       } catch (e) {
         const msg = (e as Error).message;
         const isRateLimit =
@@ -194,8 +219,8 @@ export class VinceXSentimentService extends Service {
         if (isRateLimit) {
           const waitSec = parseRateLimitResetSeconds(msg) || 600;
           this.rateLimitedUntilMs = Date.now() + waitSec * 1000;
-          logger.warn(
-            `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min.`,
+          logger.info(
+            `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
           );
           return;
         }

@@ -10,7 +10,8 @@ import {
 } from "../services/xSentiment.service";
 import { createMockRuntime } from "./test-utils";
 
-const CACHE_TTL_MS = 15 * 60 * 1000;
+/** Must exceed service CACHE_TTL_MS (30 min) to trigger stale behavior. */
+const STALE_CACHE_AGE_MS = 31 * 60 * 1000;
 
 const mockTweets = (texts: string[]) =>
   texts.map((text, i) => ({
@@ -107,7 +108,7 @@ describe("VinceXSentimentService", () => {
       const cache = (service as any).cache as Map<string, { updatedAt: number }>;
       const entry = cache.get("BTC");
       expect(entry).toBeDefined();
-      entry!.updatedAt = Date.now() - CACHE_TTL_MS - 1;
+      entry!.updatedAt = Date.now() - STALE_CACHE_AGE_MS;
       const out = service.getTradingSentiment("BTC");
       expect(out).toEqual({
         sentiment: "neutral",
