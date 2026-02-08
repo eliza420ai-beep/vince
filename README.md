@@ -50,6 +50,7 @@
 | [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
 | [**plugin-kelly/**](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
+| [**plugin-personality**](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) | Kelly only: character evolution, MODIFY_CHARACTER, self-reflection (experimental) |
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 
@@ -65,6 +66,7 @@
 | [Heart of VINCE](#-heart-of-vince) | signals → trades → learning |
 | [Star Feature](#-star-feature) | Self-improving paper bot |
 | [Features](#-features) | What matters + actions |
+| [Kelly: Self-modification](#kelly-self-modification-plugin-personality-experimental) | plugin-personality (experimental) |
 | [Leaderboard page](#leaderboard-page-dashboard-hub) | Dashboard hub · no chat required |
 | [Getting Started](#-getting-started) | Install · dev · production |
 | [Production](#-production) | Supabase · ML on Cloud |
@@ -292,7 +294,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
 | 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
 | 👤 | **Teammate context** | USER/SOUL/TOOLS/MEMORY keep responses in character |
-| 🍷 | **Kelly (concierge agent)** | Separate agent: travel advisor, sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator. Uses **plugin-kelly** only; action **KELLY_DAILY_BRIEFING**; scheduled push to channels with "kelly" or "lifestyle". No trading. See [plugin-kelly](src/plugins/plugin-kelly/). |
+| 🍷 | **Kelly (concierge agent)** | Separate agent: travel advisor, sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator. Uses **plugin-kelly** only; action **KELLY_DAILY_BRIEFING**; scheduled push to channels with "kelly" or "lifestyle". **Experimental:** [plugin-personality](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) for character evolution (MODIFY_CHARACTER, self-reflection). No trading. See [plugin-kelly](src/plugins/plugin-kelly/). |
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
 | 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |
@@ -304,6 +306,19 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | ⭐ | **ALOHA** (includes PERPS & OPTIONS) — Core value |
 | 📊 | **VINCE_PERPS / VINCE_OPTIONS** — Used inside ALOHA; subcomponents |
 | 📋 | **Everything else** — Heritage, not product focus |
+
+### Kelly: Self-modification (plugin-personality, experimental)
+
+**Kelly** is the only agent that loads [**@elizaos/plugin-personality**](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) (ElizaOS Self-Modification Plugin). It lets her evolve her character over time through conversation analysis, user feedback, and self-reflection—e.g. adjusting bio, style, or topics when users say what worked or didn’t.
+
+| What | Details |
+|:---|:---|
+| **Scope** | Kelly only (VINCE does not use plugin-personality). |
+| **Components** | **CHARACTER_EVOLUTION** evaluator (periodic learning), **MODIFY_CHARACTER** action (user/self-requested changes), **CHARACTER_EVOLUTION** provider (self-reflection context), **CharacterFileManager** (safe file updates + backups). |
+| **Safety** | Backups before changes, validation (gradual change, no harmful edits), optional admin approval and confidence thresholds. |
+| **Config** | Optional env in `.env.example`: `ENABLE_AUTO_EVOLUTION`, `EVOLUTION_COOLDOWN_MS`, `REQUIRE_ADMIN_APPROVAL`. See [plugin-personality README](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) for full options. |
+
+Example: *"You should be more encouraging when suggesting wine"* → Kelly can apply a gradual character update (e.g. style/bio) and confirm; *"That place was too loud—anywhere quieter?"* feeds into the same learning loop. Character file must be writable for persistent changes; SQL plugin is required.
 
 ---
 
@@ -476,6 +491,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [docs/CLAUDE_CODE_CONTROLLER.md](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
 | [plugin-kelly/](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
+| [plugin-personality](https://github.com/elizaos-plugins/plugin-personality/blob/next/README.md) | Kelly only: character evolution (experimental) |
 | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) | Aggregator sources, contribution rules |
 | [IMPROVEMENT_WEIGHTS_AND_TUNING.md](src/plugins/plugin-vince/IMPROVEMENT_WEIGHTS_AND_TUNING.md) | Data-driven weights, holdout metrics |
 | [ML_IMPROVEMENT_PROOF.md](src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) | How to prove ML improves the algo (validate_ml_improvement, tests) |
