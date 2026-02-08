@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DashboardPageLayout from "@/frontend/components/dashboard/layout";
 import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
 import DashboardCard from "@/frontend/components/dashboard/card";
@@ -86,13 +86,18 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     staleTime: 60 * 1000,
   });
 
-  const { data: knowledgeResult, isLoading: knowledgeLoading, refetch: refetchKnowledge } = useQuery({
+  const queryClient = useQueryClient();
+  const { data: knowledgeResult, isLoading: knowledgeLoading, isFetching: knowledgeFetching, refetch: refetchKnowledge } = useQuery({
     queryKey: ["knowledge", leaderboardsAgentId],
     queryFn: () => fetchKnowledgeWithError(leaderboardsAgentId),
     enabled: mainTab === "knowledge" && !!leaderboardsAgentId,
     staleTime: 5 * 60 * 1000,
     refetchInterval: 60 * 1000,
   });
+  const handleRefreshKnowledge = () => {
+    queryClient.invalidateQueries({ queryKey: ["knowledge", leaderboardsAgentId] });
+    refetchKnowledge();
+  };
 
   const { data: qualityResult, isLoading: qualityLoading, refetch: refetchQuality } = useQuery({
     queryKey: ["knowledge-quality", leaderboardsAgentId],
@@ -296,8 +301,8 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <span className="text-xs text-muted-foreground hidden sm:inline">
                   Upload via Discord? List reflects local knowledge/ folder; updates every minute.
                 </span>
-                <Button variant="outline" size="sm" onClick={() => refetchKnowledge()} disabled={knowledgeLoading}>
-                  <RefreshCw className={cn("w-4 h-4 mr-2", knowledgeLoading && "animate-spin")} />
+                <Button variant="outline" size="sm" onClick={handleRefreshKnowledge} disabled={knowledgeLoading || knowledgeFetching}>
+                  <RefreshCw className={cn("w-4 h-4 mr-2", (knowledgeLoading || knowledgeFetching) && "animate-spin")} />
                   Refresh
                 </Button>
               </>
