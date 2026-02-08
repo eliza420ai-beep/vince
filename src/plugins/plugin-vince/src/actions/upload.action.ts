@@ -754,8 +754,8 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       return false;
     }
 
-    // Let ADD_MICHELIN_RESTAURANT handle Michelin Guide links in #knowledge (Eliza only)
-    if (runtime.character?.name === "Eliza" && text.includes("guide.michelin.com")) {
+    // Never run generic upload for Michelin Guide links in #knowledge — ADD_MICHELIN_RESTAURANT (Eliza) handles them
+    if (text.includes("guide.michelin.com")) {
       try {
         const room = await runtime.getRoom(message.roomId);
         const roomName = (room?.name ?? "").toLowerCase();

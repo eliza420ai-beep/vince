@@ -39,6 +39,7 @@ const CITY_TO_FILE_AND_SECTION: Record<
   biarritz: { file: "biarritz-region.md", section: "### Biarritz Area" },
   bayonne: { file: "biarritz-region.md", section: "### Bayonne" },
   bordeaux: { file: "bordeaux-region.md", section: "### Bordeaux" },
+  "la-rochelle": { file: "la-rochelle-region.md", section: "### La Rochelle" },
   anglet: { file: "biarritz-region.md", section: "### Biarritz Area" },
   "saint-jean-de-luz": {
     file: "biarritz-region.md",
@@ -65,6 +66,7 @@ function getDisplayCity(citySlug: string, address: string): string {
     biarritz: "Biarritz",
     bayonne: "Bayonne",
     bordeaux: "Bordeaux",
+    "la-rochelle": "La Rochelle",
     anglet: "Anglet",
     "saint-jean-de-luz": "Saint-Jean-de-Luz",
     guethary: "Guéthary",
