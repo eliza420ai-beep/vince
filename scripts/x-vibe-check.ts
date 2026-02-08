@@ -5,7 +5,7 @@
  *
  * Usage:
  *   bun run scripts/x-vibe-check.ts [BTC|ETH|SOL|HYPE]
- *   (no arg: derive asset from timestamp so */8 * * * * gives round-robin)
+ *   (no arg: derive asset from timestamp; crontab every 8 min gives round-robin)
  *
  * Requires X_BEARER_TOKEN in .env. Cache: .elizadb/vince-paper-bot/x-sentiment-cache.json
  */

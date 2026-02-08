@@ -51,6 +51,79 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 
 ---
 
+## X vibe check (trading algo + leaderboard)
+
+**Purpose:** Cached X (Twitter) sentiment for **BTC, ETH, SOL, HYPE** so the paper trading algo and the leaderboard News tab can show “what’s CT saying” without hitting the X API on every request. Same keyword sentiment logic as in-chat; data is **cached** and refreshed on a schedule.
+
+### How it works
+
+| Layer | What it does |
+|-------|----------------|
+| **Cache file** | `.elizadb/vince-paper-bot/x-sentiment-cache.json` — one JSON object keyed by asset (BTC, ETH, SOL, HYPE). Each entry: `sentiment` (bullish/bearish/neutral), `confidence` (0–100), `hasHighRiskEvent`, `updatedAt`. |
+| **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset every 7.5 minutes** in round-robin (BTC → SOL → ETH → HYPE). One X API call per tick to stay under rate limits. After each refresh it merges that asset back into the cache file. |
+| **Optional cron** | If the app isn’t always on, or you want all X usage in cron: run `scripts/x-vibe-check.ts` once per asset (at different minutes). Each run does one X search, computes sentiment, and merges that asset into the same cache file. No ElizaOS runtime needed. |
+| **Consumers** | **Signal aggregator** (paper trading algo) calls `getTradingSentiment(asset)` — reads from in-memory cache (backed by the file). **Leaderboard News tab** shows the same data in an “X (Twitter) vibe check” card next to MandoMinutes. |
+
+So: **one cache file**; filled by either the in-app timer or the cron script (or both); read by the app for trading and for the News tab.
+
+### MandoMinutes vs X vibe check (both on News tab)
+
+| | MandoMinutes | X vibe check |
+|--|--------------|---------------|
+| **Source** | MandoMinutes site / shared runtime cache | X search API, keyword sentiment |
+| **Cached where** | Runtime/DB cache (e.g. `mando_minutes:latest:v9`) | File: `.elizadb/vince-paper-bot/x-sentiment-cache.json` |
+| **Filled by** | App (or MANDO_MINUTES action) | In-app 7.5 min timer and/or cron script |
+| **Leaderboard** | “MandoMinutes” card (headlines, TLDR, sentiment) | “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
+
+Both appear on the **Leaderboard → News** tab when data is available.
+
+### Optional cron (staggered by asset)
+
+**Script:** `scripts/x-vibe-check.ts`
+
+- **With arg:** `bun run scripts/x-vibe-check.ts BTC` (or ETH, SOL, HYPE) — refreshes that asset only and merges it into the cache file.
+- **No arg:** `bun run scripts/x-vibe-check.ts` — derives asset from current time (round-robin every 7.5 min). One cron line every 8 min gives automatic rotation.
+
+**Requires:** `X_BEARER_TOKEN` in `.env` (script loads it from repo root).
+
+**Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`):
+
+- **Option A — One line, round-robin (script picks asset from time):**
+  ```cron
+  */8 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+  ```
+
+- **Option B — Four lines, one asset per 30 min at different minutes (BTC → ETH → SOL → HYPE):**
+  ```cron
+  0,30 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  8,38 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  16,46 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  24,54 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  ```
+
+A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (copy into `crontab -e` and fix the path).
+
+### Config (in-app only)
+
+| Env | Default | Meaning |
+|-----|--------|--------|
+| `X_BEARER_TOKEN` | — | Required for X search; same token as CLI and in-chat. |
+| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `450000` (7.5 min) | Interval between single-asset refreshes in the app. |
+
+See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (XSentiment row).
+
+### Where it’s implemented
+
+| Piece | Location |
+|-------|----------|
+| In-app service (staggered refresh + cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |
+| Optional cron script | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts) |
+| Crontab example | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example) |
+| Leaderboards API (news + xSentiment) | [dashboardLeaderboards.ts](src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts) (`buildNewsSection`) |
+| Leaderboard News tab UI | [leaderboard/page.tsx](src/frontend/components/dashboard/leaderboard/page.tsx) (News tab, “X (Twitter) vibe check” card) |
+
+---
+
 ## CLI (multi-query, watchlist, save)
 
 **Location:** `skills/x-research/`. Same idea as [rohunvora/x-research-skill](https://github.com/rohunvora/x-research-skill), vendored here.
@@ -112,4 +185,8 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 | X API reference | [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md) |
 | In-chat action | plugin-vince: `VINCE_X_RESEARCH` ([actions/xResearch.action.ts](src/plugins/plugin-vince/src/actions/xResearch.action.ts)) |
 | Service (search, profile, thread, tweet, cache) | [services/xResearch.service.ts](src/plugins/plugin-vince/src/services/xResearch.service.ts) |
+| X vibe check service (staggered refresh, cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |
+| X vibe check cron script | [scripts/x-vibe-check.ts](scripts/x-vibe-check.ts) |
+| Crontab example (staggered by asset) | [scripts/x-vibe-check-crontab.example](scripts/x-vibe-check-crontab.example) |
+| Signal sources (XSentiment weight, cache path) | [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
 | Project dev guide | [CLAUDE.md](CLAUDE.md) (X Research skill section) |

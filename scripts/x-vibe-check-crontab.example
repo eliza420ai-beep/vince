@@ -1,0 +1,11 @@
+# X vibe check: one asset per run, staggered to avoid rate limits.
+# Copy these lines into your crontab (crontab -e). Replace /path/to/vince with your repo root.
+#
+# Option A – One line, round-robin (script picks asset from time):
+#   */8 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+#
+# Option B – Four lines, one asset per 30 min at different minutes (uncomment to use):
+# 0,30 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+# 8,38 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+# 16,46 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+# 24,54 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
