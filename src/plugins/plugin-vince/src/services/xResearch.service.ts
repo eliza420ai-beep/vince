@@ -8,45 +8,9 @@
 
 import { Service, logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const BASE = "https://api.x.com/2";
-
-/** One-time lazy load of .env from project root when token is missing (e.g. elizaos dev doesn't load .env). */
-let _envLoaded = false;
-function loadDotEnvOnce(): void {
-  if (_envLoaded) return;
-  _envLoaded = true;
-  let dir = process.cwd();
-  for (let i = 0; i < 6; i++) {
-    const envPath = resolve(dir, ".env");
-    if (existsSync(envPath)) {
-      try {
-        const content = readFileSync(envPath, "utf8");
-        for (const line of content.split("\n")) {
-          const trimmed = line.trim();
-          if (trimmed && !trimmed.startsWith("#")) {
-            const eq = trimmed.indexOf("=");
-            if (eq > 0) {
-              const key = trimmed.slice(0, eq).trim();
-              let val = trimmed.slice(eq + 1).trim();
-              if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
-                val = val.slice(1, -1);
-              if (!process.env[key]) process.env[key] = val;
-            }
-          }
-        }
-      } catch {
-        // ignore
-      }
-      return;
-    }
-    const parent = resolve(dir, "..");
-    if (parent === dir) return;
-    dir = parent;
-  }
-}
 const RATE_DELAY_MS = 350;
 
 export interface XTweet {
@@ -150,11 +114,8 @@ export class VinceXResearchService extends Service {
 
   /** Token from env or character secrets (X_BEARER_TOKEN). Lazy-loads .env once if missing. */
   private getToken(): string | null {
-    let fromEnv = process.env.X_BEARER_TOKEN?.trim();
-    if (!fromEnv) {
-      loadDotEnvOnce();
-      fromEnv = process.env.X_BEARER_TOKEN?.trim();
-    }
+    loadEnvOnce();
+    const fromEnv = process.env.X_BEARER_TOKEN?.trim();
     if (fromEnv) return fromEnv;
     const fromRuntime = this.runtime.getSetting?.("X_BEARER_TOKEN");
     const s = typeof fromRuntime === "string" ? fromRuntime.trim() : "";

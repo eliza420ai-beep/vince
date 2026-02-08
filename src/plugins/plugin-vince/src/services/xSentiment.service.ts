@@ -11,6 +11,7 @@ import type { IAgentRuntime } from "@elizaos/core";
 import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -89,6 +90,7 @@ export class VinceXSentimentService extends Service {
   }
 
   static async start(runtime: IAgentRuntime): Promise<VinceXSentimentService> {
+    loadEnvOnce();
     const service = new VinceXSentimentService(runtime);
     const xResearch = runtime.getService(
       "VINCE_X_RESEARCH_SERVICE",
