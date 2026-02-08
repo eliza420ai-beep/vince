@@ -63,7 +63,14 @@ export async function buildUsageResponse(
   let totalTokens = 0;
 
   for (const log of logs) {
-    const body = log.body as Record<string, unknown> | undefined;
+    let body = log.body as Record<string, unknown> | string | undefined;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body) as Record<string, unknown>;
+      } catch {
+        continue;
+      }
+    }
     if (!body || typeof body !== "object") continue;
 
     const status = body.status as string | undefined;
@@ -74,9 +81,12 @@ export async function buildUsageResponse(
     const ts = endTime ?? startTime ?? 0;
     if (ts < from || ts > to) continue;
 
-    const usage = body.usage as { total_tokens?: number } | undefined;
-    const estimatedTokens = body.estimatedTokens as number | undefined;
-    const tokens = usage?.total_tokens ?? estimatedTokens ?? 0;
+    const usage = body.usage as { total_tokens?: number; totalTokens?: number } | undefined;
+    const estimatedTokens =
+      (body.estimatedTokens as number | undefined) ??
+      (body.estimated_tokens as number | undefined);
+    const tokens =
+      usage?.total_tokens ?? usage?.totalTokens ?? estimatedTokens ?? 0;
     totalTokens += tokens;
 
     const dateKey = toDateKey(ts);
