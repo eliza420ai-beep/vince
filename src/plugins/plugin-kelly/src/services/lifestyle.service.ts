@@ -271,8 +271,8 @@ export class KellyLifestyleService extends Service {
     } else if (day === "friday") {
       suggestions.push({
         category: "dining",
-        suggestion: "Light lunch - save appetite for a special dinner",
-        reason: "Friday - good evening for fine dining",
+        suggestion: "Gastronomic lunch to close the week",
+        reason: "Friday — we go out for lunch, not dinner; dinner at home",
         priority: 2,
         daySpecific: true,
       });
@@ -330,16 +330,16 @@ export class KellyLifestyleService extends Service {
     if (day === "friday") {
       suggestions.push({
         category: "activity",
-        suggestion: "Focus on wellness and a nice dinner to close the week",
-        reason: "Friday - wind down, pool or gym, then fine dining",
+        suggestion: "Focus on wellness and a great lunch to close the week; dinner at home",
+        reason: "Friday — wind down, pool or gym, lunch out; we do dinner at home",
         priority: 1,
         daySpecific: true,
       });
     } else if (day === "wednesday") {
       suggestions.push({
         category: "activity",
-        suggestion: "Midweek escape day - hotel and restaurant",
-        reason: "Optimal day for a 5-star stay and dinner",
+        suggestion: "Midweek escape day — hotel and lunch (we go out for lunch, not dinner)",
+        reason: "Optimal day for a 5-star stay and a restaurant lunch",
         priority: 1,
         daySpecific: true,
       });
@@ -439,18 +439,23 @@ export class KellyLifestyleService extends Service {
     return wines[dayOfWeek] ?? wines[0];
   }
 
-  /** Travel idea of the week — one destination, rotated by week of month (from roadtrips/uhnw). */
-  getTravelIdeaOfTheWeek(): string {
+  /** Day trip idea of the week. We live in SW France: only suggest day trips within Bordeaux–Biarritz, max 1h north of Bordeaux, or max 1h south of Biarritz. */
+  getDayTripIdeaOfTheWeek(): string {
     const ideas = [
-      "Lisbon road trip (Portugal).",
-      "Southwest France — Bordeaux + Basque coast.",
-      "Switzerland or Lugano.",
-      "Côte d'Azur or Monaco.",
+      "Saint-Émilion: château visit + Michelin lunch (within 1h Bordeaux).",
+      "Arcachon basin: Cap Ferret or Dune du Pilat + lunch (Bordeaux–Biarritz corridor).",
+      "Biarritz to Guéthary: coast drive + lunch (south of Biarritz, max 1h).",
+      "Pays Basque interior: Espelette or Saint-Jean-Pied-de-Port for lunch (day trip from Biarritz).",
     ];
     const weekOfMonth = Math.min(
       3,
       Math.floor((new Date().getDate() - 1) / 7),
     );
     return ideas[weekOfMonth] ?? ideas[0];
+  }
+
+  /** @deprecated Use getDayTripIdeaOfTheWeek. Kept for backward compatibility. */
+  getTravelIdeaOfTheWeek(): string {
+    return this.getDayTripIdeaOfTheWeek();
   }
 }

@@ -55,7 +55,9 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   }
 
   if (ctx.travelIdeaOfTheWeek) {
-    lines.push("TRAVEL IDEA OF THE WEEK:");
+    lines.push(
+      "DAY TRIP IDEA (we live in SW France — suggest only day trips: Bordeaux–Biarritz, max 1h north of Bordeaux, max 1h south of Biarritz):",
+    );
     lines.push(ctx.travelIdeaOfTheWeek);
     lines.push("");
   }
@@ -136,14 +138,15 @@ ${dataContext}
 
 Write a lifestyle briefing that:
 1. Start with the day's vibe - what kind of day is it? Pool day, gym day, midweek escape day?
-2. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge (e.g. Paris MICHELIN, Bordeaux region, southwest palace hotels)—only real places from that knowledge, never invent names.
-3. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
-4. If a WELLNESS/FITNESS TIP is provided, include one short line weaving it in (e.g. "Today's wellness note: ...").
-5. If WINE OF THE DAY and TRAVEL IDEA OF THE WEEK are provided, mention them in one sentence each (e.g. "Wine to try: Margaux." "Travel idea: Lisbon road trip.").
-6. If a REBALANCE NOTE is provided (e.g. Friday or weekend), add one sentence encouraging a rebalance—dinner, pool, or a walk—without mentioning work or markets.
-7. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
-8. End with a specific suggestion for the day (dining, hotel, or activity).
-9. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
+2. CRITICAL — LUNCH NOT DINNER: We go out for lunch in 99% of cases, not dinner. All restaurant suggestions in the briefing must be for LUNCH. Do not suggest "go out for dinner" or "tonight's dinner at X" or "Relais de la Poste for dinner"—suggest lunch at those places. For evening/tonight, suggest dinner at home, pool, wine at home, or rest—not a restaurant outing.
+3. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge—only real places, never invent names.
+4. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
+5. If a WELLNESS/FITNESS TIP is provided, include one short line weaving it in.
+6. If WINE OF THE DAY and DAY TRIP IDEA are provided, mention them in one sentence each (e.g. "Wine to try: Margaux." "Day trip idea: Saint-Émilion for château + lunch."). We live in SW France—do not suggest "travel to Southwest France"; suggest a concrete day trip within the geography (Bordeaux–Biarritz, max 1h north of Bordeaux, max 1h south of Biarritz).
+7. If a REBALANCE NOTE is provided (Friday or weekend), add one sentence encouraging rebalance—dinner at home, pool, or a walk—without mentioning work or markets.
+8. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
+9. End with a specific suggestion for the day (dining = lunch, hotel, or activity).
+10. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
 
 STYLE RULES:
 - Write like a discerning friend helping plan the day
@@ -289,10 +292,10 @@ export const kellyDailyBriefingAction: Action = {
         wellnessTip: lifestyleService.getWellnessTipOfTheDay?.() ?? "",
         touchGrassNote:
           isFriday || isSaturday
-            ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner, pool, or a walk—without mentioning work or markets."
+            ? "If it's been a heavy week, add one sentence encouraging a weekend rebalance—dinner at home, pool, or a walk—without mentioning work or markets."
             : "",
         wineOfTheDay: lifestyleService.getWineOfTheDay?.() ?? "",
-        travelIdeaOfTheWeek: lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
+        travelIdeaOfTheWeek: lifestyleService.getDayTripIdeaOfTheWeek?.() ?? lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
       };
 
       const dataContext = buildLifestyleDataContext(ctx);

@@ -100,7 +100,7 @@ Rules:
       {
         name: "Kelly",
         content: {
-          text: "**Wed:** Midweek escape—Relais de la Poste + lunch at Côté Quillier. **Thu:** Maison Devaux or Auberge du Lavoir for gastronomic lunch. **Fri:** Light lunch, save appetite for dinner. **Wellness:** Pool session (pool season) or gym + mobility (gym season). One palace stay this week if you can—Palais or Caudalie once they reopen.",
+          text: "**Wed:** Midweek escape—Relais de la Poste + lunch at Côté Quillier. **Thu:** Maison Devaux or Auberge du Lavoir for gastronomic lunch. **Fri:** Gastronomic lunch to close the week; dinner at home. **Wellness:** Pool session (pool season) or gym + mobility (gym season). One palace stay this week if you can—Palais or Caudalie once they reopen.",
           actions: ["KELLY_WEEK_AHEAD"],
         },
       },
