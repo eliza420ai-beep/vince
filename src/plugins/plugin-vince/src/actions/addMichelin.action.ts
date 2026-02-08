@@ -21,8 +21,6 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-import { runSummarizeCli } from "./upload.action";
-
 const MICHELIN_URL_REGEX =
   /https?:\/\/guide\.michelin\.com\/[^\s<>"{}|\\^`[\]]+/i;
 
@@ -239,19 +237,7 @@ async function fetchPageContent(url: string): Promise<string | null> {
       "[ADD_MICHELIN] fetch failed, trying summarize",
     );
   }
-  if (!content || content.length < 500) {
-    try {
-      const summarized = await runSummarizeCli(url, {
-        isYouTube: false,
-        extractOnly: true,
-      });
-      if (summarized && "content" in summarized && summarized.content?.length) {
-        content = summarized.content;
-      }
-    } catch {
-      // keep null or short content
-    }
-  }
+  // Do NOT fall back to summarize for Michelin: it returns only og:meta (same boilerplate for every restaurant). Prefer raw HTML or ask user to add manually.
   if (!content || content.length < 100) return content;
   return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
 }

@@ -55,6 +55,27 @@ import type {
 
 // Minimum text length to be considered for ingestion
 const MIN_TEXT_LENGTH = 50;
+
+/** Collect all URL-containing text from message (text + embeds + attachments). Used to reject Michelin links so ADD_MICHELIN in #knowledge handles them. */
+function getMessageTextForUrlCheck(message: Memory): string {
+  const content = message.content as Record<string, unknown> | undefined;
+  if (!content) return message.content?.text ?? "";
+  const parts: string[] = [];
+  if (typeof content.text === "string" && content.text.trim()) parts.push(content.text.trim());
+  const attachments = content.attachments as Array<{ url?: string }> | undefined;
+  if (Array.isArray(attachments)) {
+    for (const a of attachments) {
+      if (a?.url && typeof a.url === "string") parts.push(a.url);
+    }
+  }
+  const embeds = content.embeds as Array<{ url?: string }> | undefined;
+  if (Array.isArray(embeds)) {
+    for (const e of embeds) {
+      if (e?.url && typeof e.url === "string") parts.push(e.url);
+    }
+  }
+  return parts.join(" ");
+}
 const AUTO_INGEST_LENGTH = 500;
 const LONG_DUMP_LENGTH = 1000;
 
@@ -748,15 +769,16 @@ Use this action whenever you want to add long-form research to knowledge/.`,
     message: Memory,
   ): Promise<boolean> => {
     const text = message.content?.text || "";
+    const fullMessageText = getMessageTextForUrlCheck(message);
 
     // Skip agent's own messages
     if (message.entityId === runtime.agentId) {
       return false;
     }
 
-    // Never run generic upload for Michelin Guide links — ADD_MICHELIN_RESTAURANT (Eliza in #knowledge) handles them; avoids messy vince-upload-* files
-    if (text.includes("guide.michelin.com")) {
-      logger.info("[VINCE_UPLOAD] Skipping: Michelin link → ADD_MICHELIN_RESTAURANT");
+    // Never run generic upload for Michelin Guide links — ADD_MICHELIN_RESTAURANT (Eliza in #knowledge) handles them; avoids worthless meta-only extraction
+    if (fullMessageText.includes("guide.michelin.com")) {
+      logger.info("[VINCE_UPLOAD] Skipping: Michelin link → use #knowledge + ADD_MICHELIN_RESTAURANT");
       return false;
     }
 
@@ -900,6 +922,15 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           if (callback) {
             await callback({
               text: `⚠️ **X (Twitter) links can't be fetched here**\n\nWe don't have the X API, so I can't pull the post/thread content from that link. Summarize only gets the page shell (hence the 14-word “article” you saw).\n\n**What works:** Paste the thread or article text into chat (in one or more messages), then say **\"upload that\"** and I'll combine those messages and save them to knowledge so we keep most or all of the content.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
+              actions: ["VINCE_UPLOAD"],
+            });
+          }
+          return;
+        }
+        if (singleUrl.includes("guide.michelin.com")) {
+          if (callback) {
+            await callback({
+              text: `🔗 **Michelin Guide links need #knowledge**\n\nGeneric upload only gets meta descriptions (worthless for restaurants). **Post this link in #knowledge** and Eliza will run **ADD_MICHELIN_RESTAURANT**: full page fetch, extract address/phone/chef/style, and append to \`knowledge/the-good-life/michelin-restaurants/\`.\n\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*`,
               actions: ["VINCE_UPLOAD"],
             });
           }
