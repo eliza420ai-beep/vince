@@ -259,7 +259,7 @@ export const registerGrokExpertTask = async (
       }
     }
   } catch (e) {
-    logger.warn("[GROK_TASK] Failed to clear existing tasks");
+    logger.debug("[GROK_TASK] Failed to clear existing tasks (expected if DB not ready yet)");
   }
 
   // Register the task worker
@@ -345,7 +345,6 @@ export const registerGrokExpertTask = async (
     tags: ["grok-expert", "vince", "queue", "repeat", "daily"],
   });
 
-  logger.info("[GROK_TASK] Grok Expert daily task registered (24h interval)");
 };
 
 export default registerGrokExpertTask;

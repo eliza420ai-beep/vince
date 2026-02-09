@@ -911,7 +911,7 @@ export const vincePlugin: Plugin = {
 
     try {
       await registerGrokExpertTask(runtime);
-      logger.info("[VINCE] Grok Expert daily task registered");
+      logger.debug("[VINCE] Grok Expert daily task registered");
     } catch (e) {
       logger.warn("[VINCE] Failed to register Grok Expert task:", e);
     }
