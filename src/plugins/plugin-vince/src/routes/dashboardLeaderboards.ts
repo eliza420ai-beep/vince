@@ -141,6 +141,8 @@ export interface NewsLeaderboardSection {
   oneLiner: string;
   /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (from cached sentiment, same as trading algo). */
   xSentiment?: { assets: XSentimentAssetRow[] };
+  /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
+  listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
 }
 
 export interface DigitalArtCollectionRow {
@@ -567,6 +569,7 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
 
   const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
   let xSentiment: { assets: XSentimentAssetRow[] } | undefined;
+  let listSentiment: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number } | undefined;
   if (xSentimentService?.isConfigured?.()) {
     const assets: XSentimentAssetRow[] = CORE_ASSETS.map((asset) => {
       const s = xSentimentService.getTradingSentiment(asset);
@@ -579,6 +582,19 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
       };
     });
     xSentiment = { assets };
+    try {
+      const listS = await xSentimentService.getListSentiment();
+      if (listS.confidence > 0) {
+        listSentiment = {
+          sentiment: listS.sentiment,
+          confidence: listS.confidence,
+          hasHighRiskEvent: listS.hasHighRiskEvent,
+          ...(listS.updatedAt != null && { updatedAt: listS.updatedAt }),
+        };
+      }
+    } catch {
+      // optional: skip list sentiment
+    }
   }
 
   return {
@@ -587,6 +603,7 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     sentiment,
     oneLiner: tldr ?? "News sentiment loaded.",
     ...(xSentiment && { xSentiment }),
+    ...(listSentiment && { listSentiment }),
   };
 }
 

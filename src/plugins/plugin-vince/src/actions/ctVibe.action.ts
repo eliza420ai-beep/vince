@@ -155,6 +155,15 @@ export const vinceCtVibeAction: Action = {
             sentimentLines.push(`${asset}: ${s.sentiment} (${s.confidence}%)${risk}`);
           }
         }
+        try {
+          const listS = await xSentimentService.getListSentiment();
+          if (listS.confidence > 0) {
+            const risk = listS.hasHighRiskEvent ? " [risk flag]" : "";
+            sentimentLines.push(`List (curated): ${listS.sentiment} (${listS.confidence}%)${risk}`);
+          }
+        } catch {
+          // optional: skip list sentiment
+        }
       }
 
       let standoutQuote: string | null = null;

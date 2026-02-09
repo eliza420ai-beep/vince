@@ -79,6 +79,17 @@ function getSentimentSortOrder(): "relevancy" | "recency" {
   return "relevancy";
 }
 
+/** Assets to refresh for X sentiment. Default CORE_ASSETS; override with X_SENTIMENT_ASSETS (comma-separated). */
+function getSentimentAssets(): string[] {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_ASSETS?.trim();
+  if (!v) return [...CORE_ASSETS];
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 /** Build search query for an asset: expanded for majors ($BTC OR Bitcoin etc). */
 export function buildSentimentQuery(asset: string): string {
   if (asset === "HYPE") return "HYPE crypto";
@@ -254,12 +265,13 @@ export class VinceXSentimentService extends Service {
     const staggerMs = getStaggerIntervalMs();
     const staggerMin = Math.round(staggerMs / 60_000);
     const cachePath = getCacheFilePath();
-    const cycleHours = (staggerMs * CORE_ASSETS.length) / (60 * 60 * 1000);
+    const sentimentAssets = getSentimentAssets();
+    const cycleHours = (staggerMs * sentimentAssets.length) / (60 * 60 * 1000);
     logger.info(
       "[VinceXSentimentService] Started (one asset every " +
         (staggerMin >= 60 ? `${Math.round(staggerMin / 60)}h` : `${staggerMin} min`) +
         ", " +
-        CORE_ASSETS.length +
+        sentimentAssets.length +
         " assets = full cycle every " +
         (cycleHours >= 1 ? `${cycleHours.toFixed(1)}h` : `${Math.round(cycleHours * 60)} min`) +
         ", cache: " +
@@ -277,7 +289,8 @@ export class VinceXSentimentService extends Service {
     await service.refreshOneAsset(0);
     service.staggerIndex = 1; // next tick will do SOL, then ETH, HYPE, then back to BTC
     service.refreshTimer = setInterval(() => {
-      const idx = service.staggerIndex % CORE_ASSETS.length;
+      const sentimentAssets = getSentimentAssets();
+      const idx = service.staggerIndex % sentimentAssets.length;
       service
         .refreshOneAsset(idx)
         .then(() => {
@@ -331,6 +344,93 @@ export class VinceXSentimentService extends Service {
       hasHighRiskEvent: cached.hasHighRiskEvent,
       updatedAt: cached.updatedAt,
     };
+  }
+
+  private listSentimentCache: CachedSentiment | null = null;
+  private listSentimentCacheTs = 0;
+  private static LIST_SENTIMENT_TTL_MS = 15 * 60 * 1000; // 15 min
+
+  /**
+   * Sentiment over the curated list feed (X_LIST_ID). Same scoring as per-asset; cached 15 min.
+   * Returns neutral when list not configured or X_SENTIMENT_LIST_ENABLED=false.
+   */
+  async getListSentiment(): Promise<{
+    sentiment: "bullish" | "bearish" | "neutral";
+    confidence: number;
+    hasHighRiskEvent: boolean;
+    updatedAt?: number;
+  }> {
+    loadEnvOnce();
+    const listEnabled = process.env.X_SENTIMENT_LIST_ENABLED;
+    if (listEnabled !== undefined && listEnabled !== "" && !/^(1|true|yes)$/i.test(listEnabled.trim())) {
+      return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    }
+    const xResearch = this.runtime.getService(
+      "VINCE_X_RESEARCH_SERVICE",
+    ) as VinceXResearchService | null;
+    if (!xResearch?.isConfigured()) return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    const listId = xResearch.getListId();
+    if (!listId) return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    const now = Date.now();
+    if (this.listSentimentCache && now - this.listSentimentCacheTs < VinceXSentimentService.LIST_SENTIMENT_TTL_MS) {
+      return {
+        sentiment: this.listSentimentCache.sentiment,
+        confidence: this.listSentimentCache.confidence,
+        hasHighRiskEvent: this.listSentimentCache.hasHighRiskEvent,
+        updatedAt: this.listSentimentCache.updatedAt,
+      };
+    }
+    try {
+      const { tweets } = await xResearch.getListPosts(listId, { maxResults: 50 });
+      const minTweets = getMinTweetsForConfidence();
+      if (tweets.length < minTweets) {
+        const entry: CachedSentiment = {
+          sentiment: "neutral",
+          confidence: 0,
+          hasHighRiskEvent: false,
+          updatedAt: now,
+        };
+        this.listSentimentCache = entry;
+        this.listSentimentCacheTs = now;
+        return { ...entry };
+      }
+      const keywordLists = getKeywordLists();
+      const engagementCap = getEngagementCap();
+      let sumSentiment = 0;
+      let weightedSum = 0;
+      let totalWeight = 0;
+      let riskTweetCount = 0;
+      for (const t of tweets) {
+        const s = simpleSentiment(t.text, { bullish: keywordLists.bullish, bearish: keywordLists.bearish });
+        if (hasRiskKeyword(t.text, keywordLists.risk)) riskTweetCount += 1;
+        const rawWeight = 1 + Math.log10(1 + (t.metrics.likes || 0));
+        const weight = Math.min(rawWeight, engagementCap);
+        sumSentiment += s;
+        weightedSum += s * weight;
+        totalWeight += weight;
+      }
+      const hasRisk = riskTweetCount >= getRiskMinTweets();
+      const avgRaw = sumSentiment / tweets.length;
+      const avgWeighted = totalWeight > 0 ? weightedSum / totalWeight : 0;
+      const avgSentiment = avgWeighted !== 0 ? avgWeighted : avgRaw;
+      const threshold = getBullBearThreshold();
+      let sentiment: "bullish" | "bearish" | "neutral" = "neutral";
+      if (avgSentiment > threshold) sentiment = "bullish";
+      else if (avgSentiment < -threshold) sentiment = "bearish";
+      const strength = Math.min(
+        1,
+        Math.abs(avgSentiment) * 2 +
+          tweets.length / 25 +
+          (tweets.length >= minTweets && Math.abs(avgSentiment) > 0.2 ? 0.08 : 0),
+      );
+      const confidence = Math.round(Math.min(100, strength * 70));
+      const entry: CachedSentiment = { sentiment, confidence, hasHighRiskEvent: hasRisk, updatedAt: now };
+      this.listSentimentCache = entry;
+      this.listSentimentCacheTs = now;
+      return { ...entry };
+    } catch {
+      return { sentiment: "neutral", confidence: 0, hasHighRiskEvent: false };
+    }
   }
 
   /** Load persistent cache from file so getTradingSentiment has data on startup. */
@@ -407,7 +507,8 @@ export class VinceXSentimentService extends Service {
       return;
     }
 
-    const asset = CORE_ASSETS[index % CORE_ASSETS.length];
+    const sentimentAssets = getSentimentAssets();
+    const asset = sentimentAssets[index % sentimentAssets.length];
     try {
       await this.refreshForAsset(asset, xResearch);
       this.saveAssetToCacheFile(asset);

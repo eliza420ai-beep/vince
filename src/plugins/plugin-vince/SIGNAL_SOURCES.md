@@ -93,6 +93,12 @@ So when X sentiment has sufficient confidence, it **votes** in the same way as N
 - **Risk:** **hasHighRiskEvent** is set when **≥ X_SENTIMENT_RISK_MIN_TWEETS** tweets (default 2) contain risk keywords (rug, scam, exploit, hack, etc.), to reduce single-troll false positives. X risk is lexical only; consider future filters (e.g. follower count) if the API allows.
 - **Env knobs:** See `.env.example`: **X_SENTIMENT_SINCE**, **X_SENTIMENT_SORT_ORDER**, **X_SENTIMENT_CONFIDENCE_FLOOR**, **X_SENTIMENT_MIN_TWEETS**, **X_SENTIMENT_BULL_BEAR_THRESHOLD**, **X_SENTIMENT_RISK_MIN_TWEETS**, **X_SENTIMENT_ENGAGEMENT_CAP**, **X_SENTIMENT_SOFT_TIER_ENABLED**, **X_SENTIMENT_KEYWORDS_PATH**.
 
+### X list feed (curated list sentiment)
+
+When **X_LIST_ID** is set (e.g. your curated list ID from x.com/i/lists/…), **VinceXResearchService** can fetch list metadata and list posts via **getListById**, **getListPosts**, and **getListMembers**. List posts are cached **15 minutes** (same TTL as search). **VinceXSentimentService.getListSentiment()** runs the same keyword/phrase/risk scoring over list posts and returns one aggregate sentiment (bullish/bearish/neutral + confidence + hasHighRiskEvent); result is cached in-memory for **15 minutes**. Set **X_SENTIMENT_LIST_ENABLED=false** to disable list sentiment (default: enabled when X_LIST_ID is set). List sentiment is exposed in: **CT Vibe** action (line "List (curated): …"), **leaderboard** News section (X vibe card shows a "List (curated)" row when present). List feed does **not** currently feed the signal aggregator as a separate source; it is an additional alpha/vibe signal for display and CT Vibe only.
+
+**Tuning:** **X_SENTIMENT_ASSETS** (optional) is a comma-separated list of tickers to refresh for per-asset sentiment; default is BTC,ETH,SOL,HYPE. Add more tickers when you have quota (e.g. X_SENTIMENT_ASSETS=BTC,ETH,SOL,HYPE,DOGE). Stagger still runs one asset per interval, so more assets = longer full cycle.
+
 ### Data we have that do NOT yet influence the trading bot
 
 These services exist and return data, but they are **not** wired into the signal aggregator for the paper trading algo. They are used for other actions (memes, NFT, lifestyle, alerts, etc.) or for context only.

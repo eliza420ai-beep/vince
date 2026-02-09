@@ -126,6 +126,8 @@ export interface NewsLeaderboardSection {
   oneLiner: string;
   /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (cached, same as trading algo). */
   xSentiment?: { assets: XSentimentAssetRow[] };
+  /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
+  listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
 }
 
 export interface MoreLeaderboardSection {

@@ -85,6 +85,7 @@
     "streamdown": "^2.1.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
+    "@xdevplatform/xdk": "^0.1.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {

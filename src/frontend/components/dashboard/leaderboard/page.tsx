@@ -801,6 +801,33 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         );
                       })}
                     </div>
+                    {leaderboardsData.news.listSentiment && leaderboardsData.news.listSentiment.confidence > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <p className="text-xs text-muted-foreground mb-1">List (curated)</p>
+                        <div
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-center inline-block min-w-[120px]",
+                            leaderboardsData.news.listSentiment.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
+                            leaderboardsData.news.listSentiment.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
+                            leaderboardsData.news.listSentiment.sentiment === "neutral" && "border-border bg-muted/30",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              leaderboardsData.news.listSentiment.sentiment === "bullish" && "text-green-600 dark:text-green-400",
+                              leaderboardsData.news.listSentiment.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                            )}
+                          >
+                            {leaderboardsData.news.listSentiment.sentiment === "bullish" ? "Bullish" : leaderboardsData.news.listSentiment.sentiment === "bearish" ? "Bearish" : "Neutral"}
+                          </span>
+                          <span className="text-muted-foreground text-xs ml-1">({leaderboardsData.news.listSentiment.confidence}%)</span>
+                          {leaderboardsData.news.listSentiment.hasHighRiskEvent && (
+                            <span className="text-[10px] text-amber-600 dark:text-amber-400 ml-2">Risk event</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </DashboardCard>
                 )}
 
