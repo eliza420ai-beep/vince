@@ -26,6 +26,20 @@ To support this in code later:
 - Add env **`X_BEARER_TOKEN_SENTIMENT`** (or `X_BEARER_TOKEN_BACKGROUND`). When set, **VinceXSentimentService** (and list refresh) would use this token for their X calls instead of `X_BEARER_TOKEN`. In-chat research would keep using `X_BEARER_TOKEN`.
 - Implementation: pass a token override into the service that performs the HTTP/XDK call (e.g. xResearch accepts an optional `tokenOverride` for “background” calls, or sentiment holds the second token and calls a shared fetcher with that token). Not implemented in the initial X all-in rollout; add when you need to scale.
 
+## TypeScript XDK
+
+VINCE uses the **official TypeScript XDK** ([@xdevplatform/xdk](https://www.npmjs.com/package/@xdevplatform/xdk)) when installed; it falls back to raw `fetch` otherwise. The XDK provides:
+
+- **Authentication:** We use **App-Only (Bearer token)** — `new Client({ bearerToken })`. OAuth 1.0a/2.0 User Context are supported by the XDK but not used here.
+- **Endpoints we use:** `posts.searchRecent`, `posts.getByIds`, `users.getByUsernames`, and list APIs (`lists.getListById`, `lists.getListPosts`, etc.) for list feed and sentiment.
+- **Pagination / streaming:** We use our own 15‑minute cache and rate-limit handling; the XDK’s pagination and streaming are available for future use.
+
+Official XDK docs and index:
+
+- **Documentation index (discover all pages):** [https://docs.x.com/llms.txt](https://docs.x.com/llms.txt)
+- **XDK docs:** [TypeScript XDK](https://docs.x.com/xdks/typescript/install) — Installation, [Authentication](https://docs.x.com/xdks/typescript/authentication), [Pagination](https://docs.x.com/xdks/typescript/pagination), [Streaming](https://docs.x.com/xdks/typescript/streaming), [API Reference](https://docs.x.com/xdks/typescript/reference/Client)
+- **Code samples:** [xdevplatform/samples (javascript)](https://github.com/xdevplatform/samples/tree/main/javascript)
+
 ## References
 
 - [X API v2 docs](https://developer.x.com/en/docs/twitter-api)
