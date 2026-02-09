@@ -16,6 +16,9 @@ const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes, match x-research-skill
 
 const CACHE_PREFIX = "vince_x_research:";
 
+/** Shared with VinceXSentimentService so in-chat research respects vibe-check cooldown and vice versa. */
+export const X_RATE_LIMITED_UNTIL_CACHE_KEY = "vince_x:rate_limited_until_ms";
+
 export interface XTweet {
   id: string;
   text: string;
@@ -147,9 +150,24 @@ export class VinceXResearchService extends Service {
     return !!this.getToken();
   }
 
+  /**
+   * Check shared rate-limit cooldown (set by vibe check or a previous 429).
+   * Throws if still in cooldown so we don't burn the same token.
+   */
+  private async ensureNotRateLimited(): Promise<void> {
+    const until = await this.runtime.getCache<number>(X_RATE_LIMITED_UNTIL_CACHE_KEY);
+    if (!until) return;
+    const now = Date.now();
+    if (now < until) {
+      const waitSec = Math.ceil((until - now) / 1000);
+      throw new Error(`X API rate limited. Resets in ${waitSec}s`);
+    }
+  }
+
   private async apiGet(url: string): Promise<RawResponse> {
     const token = this.getToken();
     if (!token) throw new Error("X_BEARER_TOKEN not set");
+    await this.ensureNotRateLimited();
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -158,6 +176,8 @@ export class VinceXResearchService extends Service {
       const waitSec = reset
         ? Math.max(parseInt(reset, 10) - Math.floor(Date.now() / 1000), 1)
         : 60;
+      const untilMs = Date.now() + waitSec * 1000;
+      await this.runtime.setCache(X_RATE_LIMITED_UNTIL_CACHE_KEY, untilMs);
       throw new Error(`X API rate limited. Resets in ${waitSec}s`);
     }
     if (!res.ok) {

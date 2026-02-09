@@ -14,6 +14,7 @@ import { Service, logger } from "@elizaos/core";
 import type { IAgentRuntime } from "@elizaos/core";
 import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
+import { X_RATE_LIMITED_UNTIL_CACHE_KEY } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import {
@@ -391,6 +392,12 @@ export class VinceXSentimentService extends Service {
     ) as VinceXResearchService | null;
     if (!xResearch?.isConfigured()) return;
 
+    // Sync from shared cache so we respect cooldowns set by in-chat X research (same token).
+    const cachedUntil = await this.runtime.getCache<number>(X_RATE_LIMITED_UNTIL_CACHE_KEY);
+    if (cachedUntil && cachedUntil > this.rateLimitedUntilMs) {
+      this.rateLimitedUntilMs = cachedUntil;
+    }
+
     const now = Date.now();
     if (now < this.rateLimitedUntilMs) {
       const waitMin = Math.ceil((this.rateLimitedUntilMs - now) / 60_000);
@@ -413,6 +420,7 @@ export class VinceXSentimentService extends Service {
       if (isRateLimit) {
         const waitSec = parseRateLimitResetSeconds(msg) || 600;
         this.rateLimitedUntilMs = Date.now() + waitSec * 1000;
+        await this.runtime.setCache(X_RATE_LIMITED_UNTIL_CACHE_KEY, this.rateLimitedUntilMs);
         logger.info(
           `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
         );
