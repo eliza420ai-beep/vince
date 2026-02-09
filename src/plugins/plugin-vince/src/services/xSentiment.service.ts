@@ -2,9 +2,10 @@
  * VINCE X (Twitter) Sentiment Service
  *
  * Produces trading sentiment (bullish/bearish/neutral + confidence) from X search
- * results for use by the signal aggregator. Staggered refresh: one asset every 7.5 min
- * (BTC→SOL→ETH→HYPE) to stay under X API rate limits. Persistent cache file for
- * restarts and optional cron. Depends on VinceXResearchService.
+ * results for use by the signal aggregator. Staggered refresh: one asset every 15 min
+ * (BTC→SOL→ETH→HYPE) by default to keep X API headroom for in-chat VINCE_X_RESEARCH.
+ * Set X_SENTIMENT_ENABLED=false to disable background refresh (in-chat only).
+ * Persistent cache file for restarts and optional cron. Depends on VinceXResearchService.
  */
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -17,13 +18,20 @@ import { CORE_ASSETS } from "../constants/targetAssets";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
-const STAGGER_INTERVAL_MS_DEFAULT = 7.5 * 60 * 1000; // 7.5 min between single-asset refreshes
+const STAGGER_INTERVAL_MS_DEFAULT = 15 * 60 * 1000; // 15 min between single-asset refreshes (keeps X API headroom for in-chat VINCE_X_RESEARCH)
 const CACHE_FILENAME = "x-sentiment-cache.json";
 
 function getStaggerIntervalMs(): number {
   loadEnvOnce();
   const ms = parseInt(process.env.X_SENTIMENT_STAGGER_INTERVAL_MS ?? String(STAGGER_INTERVAL_MS_DEFAULT), 10);
-  return Math.max(60_000, Math.min(30 * 60_000, ms)); // 1 min to 30 min
+  return Math.max(10 * 60_000, Math.min(30 * 60_000, ms)); // 10 min to 30 min (min 10 to avoid exhausting X API)
+}
+
+function isSentimentEnabled(): boolean {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_ENABLED;
+  if (v === undefined || v === "") return true;
+  return /^(1|true|yes)$/i.test(v.trim());
 }
 
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min (match default refresh)
@@ -126,6 +134,12 @@ export class VinceXSentimentService extends Service {
     if (!xResearch?.isConfigured()) {
       logger.info(
         "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",
+      );
+      return service;
+    }
+    if (!isSentimentEnabled()) {
+      logger.info(
+        "[VinceXSentimentService] Background refresh disabled (X_SENTIMENT_ENABLED=false). Serving from cache; in-chat VINCE_X_RESEARCH uses X API.",
       );
       return service;
     }

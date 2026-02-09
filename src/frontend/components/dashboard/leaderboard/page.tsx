@@ -792,7 +792,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 </DashboardCard>
                 {leaderboardsData.news.xSentiment && (
                   <DashboardCard title="X (Twitter) vibe check">
-                    <p className="text-xs text-muted-foreground mb-3">Cached sentiment from staggered refresh (BTC→SOL→ETH→HYPE every 7.5 min). Same data feeds the trading algo.</p>
+                    <p className="text-xs text-muted-foreground mb-3">Cached sentiment from staggered refresh (BTC→SOL→ETH→HYPE every 15 min). Same data feeds the trading algo.</p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {leaderboardsData.news.xSentiment.assets.map((row) => {
                         const updatedAt = row.updatedAt;

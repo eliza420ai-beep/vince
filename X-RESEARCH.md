@@ -60,7 +60,7 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 | Layer | What it does |
 |-------|----------------|
 | **Cache file** | `.elizadb/vince-paper-bot/x-sentiment-cache.json` — one JSON object keyed by asset (BTC, ETH, SOL, HYPE). Each entry: `sentiment` (bullish/bearish/neutral), `confidence` (0–100), `hasHighRiskEvent`, `updatedAt`. |
-| **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset every 7.5 minutes** in round-robin (BTC → SOL → ETH → HYPE). One X API call per tick to stay under rate limits. After each refresh it merges that asset back into the cache file. |
+| **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset every 15 minutes** in round-robin (BTC → SOL → ETH → HYPE). Keeps X API headroom for in-chat VINCE_X_RESEARCH. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
 | **Optional cron** | If the app isn’t always on, or you want all X usage in cron: run `scripts/x-vibe-check.ts` once per asset (at different minutes). Each run does one X search, computes sentiment, and merges that asset into the same cache file. No ElizaOS runtime needed. |
 | **Consumers** | **Signal aggregator** (paper trading algo) calls `getTradingSentiment(asset)` — reads from in-memory cache (backed by the file). **Leaderboard News tab** shows the same data in an “X (Twitter) vibe check” card next to MandoMinutes. |
 
@@ -74,7 +74,7 @@ So: **one cache file**; filled by either the in-app timer or the cron script (or
 |--|--------------|---------------|
 | **Source** | MandoMinutes site / shared runtime cache | X search API, keyword sentiment |
 | **Cached where** | Runtime/DB cache (e.g. `mando_minutes:latest:v9`) | File: `.elizadb/vince-paper-bot/x-sentiment-cache.json` |
-| **Filled by** | App (or MANDO_MINUTES action) | In-app 7.5 min timer and/or cron script |
+| **Filled by** | App (or MANDO_MINUTES action) | In-app 15 min timer and/or cron script |
 | **Leaderboard** | “MandoMinutes” card (headlines, TLDR, sentiment) | “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
 
 Both appear on the **Leaderboard → News** tab when data is available.
@@ -84,7 +84,7 @@ Both appear on the **Leaderboard → News** tab when data is available.
 **Script:** `scripts/x-vibe-check.ts`
 
 - **With arg:** `bun run scripts/x-vibe-check.ts BTC` (or ETH, SOL, HYPE) — refreshes that asset only and merges it into the cache file.
-- **No arg:** `bun run scripts/x-vibe-check.ts` — derives asset from current time (round-robin every 7.5 min). One cron line every 8 min gives automatic rotation.
+- **No arg:** `bun run scripts/x-vibe-check.ts` — derives asset from current time (round-robin every 15 min). One cron line every 16 min gives automatic rotation.
 
 **Requires:** `X_BEARER_TOKEN` in `.env` (script loads it from repo root).
 
@@ -110,7 +110,7 @@ A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (c
 | Env | Default | Meaning |
 |-----|--------|--------|
 | `X_BEARER_TOKEN` | — | Required for X search; same token as CLI and in-chat. |
-| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `450000` (7.5 min) | Interval between single-asset refreshes in the app. |
+| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `900000` (15 min) | Interval between single-asset refreshes in the app. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
 
 See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (XSentiment row).
 
@@ -128,7 +128,7 @@ See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vinc
 
 | Symptom | Likely cause | What to do |
 |--------|----------------|------------|
-| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (~7.5 min). |
+| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (~15 min). |
 | **Card shows “Neutral” (0%) for all assets** | Cache empty or first refresh not done yet | Wait for first refresh, or run cron once per asset. Check logs for `[VinceXSentimentService] Started`. |
 | **One or more assets never update** | X API rate limit (429) | Logs show “X API rate limited. Skipping refresh for N min”. Service serves cached (or neutral) until reset. Reduce cron frequency or rely on in-app stagger only. |
 | **Cron runs but cache file unchanged** | Wrong cwd, missing `.env`, or script error | Run from repo root: `cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC`. Ensure `X_BEARER_TOKEN` is in `.env`. Check script exit code (0 = success). |
