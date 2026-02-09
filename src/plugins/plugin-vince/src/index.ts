@@ -26,7 +26,7 @@ import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import type { Service } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { buildPulseResponse } from "./routes/dashboardPulse";
-import { buildLeaderboardsResponse } from "./routes/dashboardLeaderboards";
+import { buildLeaderboardsResponse, buildDebugXSentimentResponse } from "./routes/dashboardLeaderboards";
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
@@ -323,6 +323,42 @@ export const vincePlugin: Plugin = {
             message: err instanceof Error ? err.message : String(err),
           });
           return;
+        }
+      },
+    },
+    {
+      name: "vince-debug-x-sentiment",
+      path: "/vince/debug/x-sentiment",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Debug X sentiment requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/debug/x-sentiment",
+          });
+          return;
+        }
+        try {
+          const data = await buildDebugXSentimentResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] Debug X sentiment route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build debug X sentiment",
+            message: err instanceof Error ? err.message : String(err),
+          });
         }
       },
     },

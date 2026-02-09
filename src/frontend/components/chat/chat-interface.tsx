@@ -208,7 +208,7 @@ function getQuickActionsForAgent(agentName: string): { label: string; message: s
 // Limitations for quick actions (shown under the Quick: buttons when present). Keep short and clear.
 const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
   vince:
-    "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. See X-RESEARCH.md.",
+    "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. One token? See X-RESEARCH.md for rate-limit options.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)

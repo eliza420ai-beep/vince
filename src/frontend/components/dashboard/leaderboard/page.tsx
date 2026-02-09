@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import DashboardPageLayout from "@/frontend/components/dashboard/layout";
 import RebelsRanking from "@/frontend/components/dashboard/rebels-ranking";
@@ -127,6 +127,22 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   const leaderboardsData = leaderboardsResult?.data ?? null;
   const leaderboardsError = leaderboardsResult?.error ?? null;
   const leaderboardsStatus = leaderboardsResult?.status ?? null;
+
+  const rateLimitedUntil = leaderboardsData?.news?.xSentiment?.rateLimitedUntil;
+  const [xRateLimitCountdownSec, setXRateLimitCountdownSec] = useState<number | null>(null);
+  useEffect(() => {
+    if (rateLimitedUntil == null) {
+      setXRateLimitCountdownSec(null);
+      return;
+    }
+    const tick = () => {
+      const rem = Math.max(0, Math.ceil((rateLimitedUntil - Date.now()) / 1000));
+      setXRateLimitCountdownSec(rem > 0 ? rem : null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [rateLimitedUntil]);
 
   const paperData = paperResult?.data as PaperResponse | null | undefined;
   const knowledgeData = knowledgeResult?.data as KnowledgeResponse | null | undefined;
@@ -757,6 +773,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     <p className="text-xs text-muted-foreground mb-3">
                       Our #1 X (Twitter) sentiment signal. Staggered refresh: one asset per hour (no burst)—e.g. 4 assets = full cycle every 4h; 24 assets = one per hour, full cycle every 24h. Same data feeds the trading algo. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics.
                     </p>
+                    {xRateLimitCountdownSec != null && xRateLimitCountdownSec > 0 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                        X API rate limited. Retry in {xRateLimitCountdownSec}s
+                      </p>
+                    )}
+                    {leaderboardsData.news.xSentiment.assets.every(
+                      (a) => a.confidence === 0 && (a.updatedAt == null || a.updatedAt === 0),
+                    ) ? (
+                      <p className="text-sm text-muted-foreground py-4 text-center rounded-lg border border-dashed border-border bg-muted/20">
+                        X vibe check: first refresh in ~1 hour (one asset per interval). Same data feeds the trading algo.
+                      </p>
+                    ) : (
+                    <>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {leaderboardsData.news.xSentiment.assets.map((row) => {
                         const updatedAt = row.updatedAt;
@@ -827,6 +856,8 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           )}
                         </div>
                       </div>
+                    )}
+                    </>
                     )}
                   </DashboardCard>
                 )}

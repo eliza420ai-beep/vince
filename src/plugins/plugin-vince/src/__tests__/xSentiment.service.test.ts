@@ -44,17 +44,33 @@ const mockTweets = (texts: string[]) =>
     tweet_url: "https://x.com/u/status/1",
   }));
 
+/** Mock X research service with getSentimentCooldownKey so sentiment service refreshOneAsset does not throw. */
+function mockXResearch(overrides: { search?: any } = {}) {
+  return {
+    isConfigured: () => true,
+    search: overrides.search ?? vi.fn().mockResolvedValue([]),
+    getSentimentCooldownKey: (i?: number) => `vince_x:rate_limited_sentiment_${i ?? 0}`,
+  };
+}
+
 describe("VinceXSentimentService", () => {
   const envRestore: Record<string, string | undefined> = {};
   beforeEach(() => {
     envRestore.X_SENTIMENT_ENABLED = process.env.X_SENTIMENT_ENABLED;
     process.env.X_SENTIMENT_ENABLED = "true";
+    envRestore.X_SENTIMENT_ASSETS = process.env.X_SENTIMENT_ASSETS;
+    process.env.X_SENTIMENT_ASSETS = "BTC,ETH,SOL,HYPE";
   });
   afterEach(() => {
     if (envRestore.X_SENTIMENT_ENABLED !== undefined) {
       process.env.X_SENTIMENT_ENABLED = envRestore.X_SENTIMENT_ENABLED;
     } else {
       delete process.env.X_SENTIMENT_ENABLED;
+    }
+    if (envRestore.X_SENTIMENT_ASSETS !== undefined) {
+      process.env.X_SENTIMENT_ASSETS = envRestore.X_SENTIMENT_ASSETS;
+    } else {
+      delete process.env.X_SENTIMENT_ASSETS;
     }
     vi.restoreAllMocks();
   });
@@ -94,10 +110,7 @@ describe("VinceXSentimentService", () => {
     it("returns neutral and 0 confidence when cache is empty (no refresh for asset)", async () => {
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search: vi.fn().mockResolvedValue([]),
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search: vi.fn().mockResolvedValue([]) }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -115,10 +128,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -141,10 +151,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -165,10 +172,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -185,10 +189,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -208,10 +209,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -225,10 +223,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -240,10 +235,7 @@ describe("VinceXSentimentService", () => {
       const search = vi.fn().mockResolvedValue([]);
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -261,10 +253,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -281,10 +270,7 @@ describe("VinceXSentimentService", () => {
         .mockRejectedValueOnce(new Error("X API rate limited. Resets in 120s"));
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -300,10 +286,7 @@ describe("VinceXSentimentService", () => {
         .mockRejectedValueOnce(new Error("429 Too Many Requests"));
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -321,10 +304,7 @@ describe("VinceXSentimentService", () => {
         .mockResolvedValue(tweets);
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -368,10 +348,7 @@ describe("VinceXSentimentService", () => {
       const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -387,11 +364,13 @@ describe("VinceXSentimentService", () => {
   });
 
   describe("buildSentimentQuery", () => {
-    it("returns expanded query for BTC, ETH, SOL and HYPE crypto for HYPE", () => {
+    it("returns expanded query for BTC, ETH, SOL, HYPE, DOGE, PEPE and passthrough for unknown", () => {
       expect(buildSentimentQuery("BTC")).toBe("$BTC OR Bitcoin");
       expect(buildSentimentQuery("ETH")).toBe("$ETH OR Ethereum");
       expect(buildSentimentQuery("SOL")).toBe("$SOL OR Solana");
       expect(buildSentimentQuery("HYPE")).toBe("HYPE crypto");
+      expect(buildSentimentQuery("DOGE")).toBe("$DOGE OR Dogecoin");
+      expect(buildSentimentQuery("PEPE")).toBe("$PEPE OR Pepe");
       expect(buildSentimentQuery("XYZ")).toBe("$XYZ");
     });
   });
@@ -429,10 +408,7 @@ describe("VinceXSentimentService", () => {
       );
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = await VinceXSentimentService.start(runtime);
@@ -461,10 +437,7 @@ describe("VinceXSentimentService", () => {
       const search = vi.fn().mockResolvedValue(mockTweets(["bullish moon", "pump"]));
       const runtime = createMockRuntime({
         services: {
-          VINCE_X_RESEARCH_SERVICE: {
-            isConfigured: () => true,
-            search,
-          },
+          VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
         } as any,
       });
       const service = new VinceXSentimentService(runtime);
@@ -497,10 +470,7 @@ describe("VinceXSentimentService", () => {
         const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
         const runtime = createMockRuntime({
           services: {
-            VINCE_X_RESEARCH_SERVICE: {
-              isConfigured: () => true,
-              search,
-            },
+            VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
           } as any,
         });
         const service = await VinceXSentimentService.start(runtime);
@@ -523,10 +493,7 @@ describe("VinceXSentimentService", () => {
         );
         const runtime = createMockRuntime({
           services: {
-            VINCE_X_RESEARCH_SERVICE: {
-              isConfigured: () => true,
-              search,
-            },
+            VINCE_X_RESEARCH_SERVICE: mockXResearch({ search }),
           } as any,
         });
         const service = new VinceXSentimentService(runtime);

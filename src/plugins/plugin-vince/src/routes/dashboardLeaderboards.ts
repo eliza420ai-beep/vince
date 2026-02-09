@@ -140,7 +140,11 @@ export interface NewsLeaderboardSection {
   /** TLDR / one-liner summary for the News tab */
   oneLiner: string;
   /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (from cached sentiment, same as trading algo). */
-  xSentiment?: { assets: XSentimentAssetRow[] };
+  xSentiment?: {
+    assets: XSentimentAssetRow[];
+    /** When set and > Date.now(), UI can show "Retry in Xs" (rate limit cooldown). */
+    rateLimitedUntil?: number | null;
+  };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
   listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
 }
@@ -568,7 +572,9 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
   }
 
   const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
-  let xSentiment: { assets: XSentimentAssetRow[] } | undefined;
+  let xSentiment:
+    | { assets: XSentimentAssetRow[]; rateLimitedUntil?: number }
+    | undefined;
   let listSentiment: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number } | undefined;
   if (xSentimentService?.isConfigured?.()) {
     const assets: XSentimentAssetRow[] = CORE_ASSETS.map((asset) => {
@@ -581,7 +587,12 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
         ...(s.updatedAt != null && { updatedAt: s.updatedAt }),
       };
     });
-    xSentiment = { assets };
+    const now = Date.now();
+    const rateLimitedUntilMs = xSentimentService.getRateLimitedUntilMs();
+    xSentiment = {
+      assets,
+      ...(rateLimitedUntilMs > now && { rateLimitedUntil: rateLimitedUntilMs }),
+    };
     try {
       const listS = await xSentimentService.getListSentiment();
       if (listS.confidence > 0) {
@@ -604,6 +615,43 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     oneLiner: tldr ?? "News sentiment loaded.",
     ...(xSentiment && { xSentiment }),
     ...(listSentiment && { listSentiment }),
+  };
+}
+
+/** Debug payload: last refresh per asset + rate limited until. GET /vince/debug/x-sentiment */
+export interface DebugXSentimentResponse {
+  assets: Array<{
+    asset: string;
+    sentiment: string;
+    confidence: number;
+    hasHighRiskEvent: boolean;
+    updatedAt?: number;
+  }>;
+  rateLimitedUntil: number | null;
+}
+
+export async function buildDebugXSentimentResponse(
+  runtime: IAgentRuntime,
+): Promise<DebugXSentimentResponse> {
+  const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
+  if (!xSentimentService?.isConfigured?.()) {
+    return { assets: [], rateLimitedUntil: null };
+  }
+  const assets = CORE_ASSETS.map((asset) => {
+    const s = xSentimentService.getTradingSentiment(asset);
+    return {
+      asset,
+      sentiment: s.sentiment,
+      confidence: s.confidence,
+      hasHighRiskEvent: s.hasHighRiskEvent,
+      ...(s.updatedAt != null && { updatedAt: s.updatedAt }),
+    };
+  });
+  const now = Date.now();
+  const rateLimitedUntilMs = xSentimentService.getRateLimitedUntilMs();
+  return {
+    assets,
+    rateLimitedUntil: rateLimitedUntilMs > now ? rateLimitedUntilMs : null,
   };
 }
 

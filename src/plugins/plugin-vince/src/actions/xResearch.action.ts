@@ -105,7 +105,7 @@ function extractQuery(text: string): string {
 }
 
 /** Known tickers we expand to X search query (e.g. BTC → $BTC OR Bitcoin) so results are about the asset, not random tweets that mention the ticker. */
-const KNOWN_TICKERS = new Set(["BTC", "ETH", "SOL", "HYPE"]);
+const KNOWN_TICKERS = new Set(["BTC", "ETH", "SOL", "HYPE", "DOGE", "PEPE"]);
 
 function expandQueryForSearch(rawQuery: string): string {
   const upper = rawQuery.trim().toUpperCase();

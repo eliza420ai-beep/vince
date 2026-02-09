@@ -125,7 +125,11 @@ export interface NewsLeaderboardSection {
   sentiment: string;
   oneLiner: string;
   /** X (Twitter) vibe check for BTC, ETH, SOL, HYPE (cached, same as trading algo). */
-  xSentiment?: { assets: XSentimentAssetRow[] };
+  xSentiment?: {
+    assets: XSentimentAssetRow[];
+    /** When set and > Date.now(), show "Retry in Xs" (rate limit cooldown). */
+    rateLimitedUntil?: number | null;
+  };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
   listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
 }

@@ -161,5 +161,84 @@ describe("vinceXResearchAction", () => {
       expect(errorCall!.text).toContain("Resets in 900s");
       expect(errorCall!.text).toMatch(/X_BEARER_TOKEN|X API tier/);
     });
+
+    describe("query expansion for known tickers", () => {
+      it("expands BTC to $BTC OR Bitcoin when user asks what people are saying about BTC", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about BTC?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("$BTC OR Bitcoin", expect.any(Object));
+      });
+
+      it("expands ETH to $ETH OR Ethereum", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about ETH?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("$ETH OR Ethereum", expect.any(Object));
+      });
+
+      it("expands SOL to $SOL OR Solana", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about SOL?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("$SOL OR Solana", expect.any(Object));
+      });
+
+      it("expands HYPE to HYPE crypto", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about HYPE?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("HYPE crypto", expect.any(Object));
+      });
+
+      it("expands DOGE to $DOGE OR Dogecoin", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about DOGE?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("$DOGE OR Dogecoin", expect.any(Object));
+      });
+
+      it("expands PEPE to $PEPE OR Pepe", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about PEPE?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("$PEPE OR Pepe", expect.any(Object));
+      });
+
+      it("leaves unknown ticker BNKR unchanged", async () => {
+        const searchFn = vi.fn().mockResolvedValue([mockTweet]);
+        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const msg = createMockMessage("What are people saying about BNKR?");
+        const callback = createMockCallback();
+
+        await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+        expect(searchFn).toHaveBeenCalledWith("BNKR", expect.any(Object));
+      });
+    });
   });
 });

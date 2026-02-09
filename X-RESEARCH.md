@@ -158,6 +158,8 @@ Both appear on the **Leaderboard → News** tab when data is available.
 
 A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (copy into `crontab -e` and fix the path).
 
+**Cron vs in-app:** If the app is always on, the in-app stagger (one asset per interval) is enough—no cron needed. If the app is off most of the day, set up cron and run from repo root (`cd /path/to/vince && bun run scripts/x-vibe-check.ts` or per-asset) so the cache is filled even when the app isn’t running.
+
 ### Config (in-app only)
 
 | Env | Default | Meaning |
