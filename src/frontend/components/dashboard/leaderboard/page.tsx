@@ -751,11 +751,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               </div>
             ) : leaderboardsData?.news ? (
               <div className="flex flex-col gap-6">
-                {/* X (Twitter) first: our #1 news source and #1 sentiment signal */}
+                {/* X (Twitter) sentiment — same data feeds the trading algo */}
                 {leaderboardsData.news.xSentiment && (
                   <DashboardCard title="X (Twitter) vibe check" className="shrink-0">
                     <p className="text-xs text-muted-foreground mb-3">
-                      Our #1 news source and #1 sentiment signal. Staggered refresh: one asset per hour (no burst)—e.g. 4 assets = full cycle every 4h; 24 assets = one per hour, full cycle every 24h. Same data feeds the trading algo. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics.
+                      Our #1 X (Twitter) sentiment signal. Staggered refresh: one asset per hour (no burst)—e.g. 4 assets = full cycle every 4h; 24 assets = one per hour, full cycle every 24h. Same data feeds the trading algo. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics.
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {leaderboardsData.news.xSentiment.assets.map((row) => {
