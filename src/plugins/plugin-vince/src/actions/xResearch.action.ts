@@ -103,15 +103,17 @@ function extractQuery(text: string): string {
   return text.trim() || "crypto";
 }
 
-/** Parse optional search options from natural language (last 24h, by likes, top 5). */
+/** Parse optional search options from natural language (last 24h, by likes, top 5, more pages). */
 function parseSearchOptions(text: string): {
   since?: string;
   sortByLikes: boolean;
   limit: number;
+  pages?: number;
 } {
   let since: string | undefined;
   let sortByLikes = true;
   let limit = 12;
+  let pages: number | undefined;
   const t = text.toLowerCase();
   const hm = t.match(/\b(?:last|past)\s+(\d+)\s*(?:h|hr|hours?)\b/);
   if (hm?.[1]) since = `${hm[1]}h`;
@@ -122,7 +124,13 @@ function parseSearchOptions(text: string): {
   if (/\b(?:most\s+recent|recent\s+first)\b/.test(t)) sortByLikes = false;
   const lm = t.match(/\b(?:top|first)\s+(\d{1,2})\b/);
   if (lm?.[1]) limit = Math.min(20, Math.max(5, parseInt(lm[1], 10)));
-  return { since, sortByLikes, limit };
+  if (/\bmore\s+(?:results?|pages?)\b/.test(t)) pages = 2;
+  else {
+    const pm = t.match(/(?:(\d+)\s+pages?|pages?\s+of\s+(\d+))/);
+    const n = pm?.[1] ?? pm?.[2];
+    if (n) pages = Math.min(5, Math.max(2, parseInt(n, 10)));
+  }
+  return { since, sortByLikes, limit, pages };
 }
 
 function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
@@ -272,8 +280,8 @@ export const vinceXResearchAction: Action = {
         actions: ["VINCE_X_RESEARCH"],
       });
       const tweets = await svc.search(query, {
-        maxResults: 50,
-        pages: 1,
+        maxResults: Math.min(100, Math.max(opts.limit, 20)),
+        pages: opts.pages ?? 1,
         sortOrder: opts.since ? "recency" : "relevancy",
         since: opts.since ?? "7d",
       });
@@ -287,7 +295,10 @@ export const vinceXResearchAction: Action = {
       return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      await sendError(`X research failed: ${msg}`);
+      const hint =
+        /rate limit|429/i.test(msg) &&
+        " Add X_BEARER_TOKEN_SENTIMENT in .env for vibe check so in-chat keeps working; see docs/X-API.md.";
+      await sendError(`X research failed: ${msg}${hint ?? ""}`);
       return { success: false };
     }
   },

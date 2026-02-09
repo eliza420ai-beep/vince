@@ -23,6 +23,8 @@ const CACHE_PREFIX = "vince_x_research:";
 
 /** Shared with VinceXSentimentService so in-chat research respects vibe-check cooldown and vice versa. */
 export const X_RATE_LIMITED_UNTIL_CACHE_KEY = "vince_x:rate_limited_until_ms";
+/** When using X_BEARER_TOKEN_SENTIMENT, cooldown is stored here so in-chat (primary token) is not blocked. With multiple tokens, append _0, _1, … per token. */
+export const X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY = "vince_x:rate_limited_sentiment_until_ms";
 
 export interface XTweet {
   id: string;
@@ -131,7 +133,18 @@ type XDKClient = {
     getPosts?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
     getMembers?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
   };
+  /** Optional XDK streaming (filtered stream). Present when XDK supports it. */
+  stream?: {
+    filteredStream?: (params?: { expansions?: string[]; "tweet.fields"?: string[] }) => AsyncIterable<unknown>;
+  };
 };
+
+/** Result of one page from paginated search or list posts. */
+export interface XResearchPageResult {
+  tweets: XTweet[];
+  nextToken?: string;
+  done: boolean;
+}
 
 async function createXDKClient(token: string): Promise<XDKClient | null> {
   try {
@@ -159,9 +172,43 @@ export class VinceXResearchService extends Service {
     super();
   }
 
-  /** Token from env or character secrets (X_BEARER_TOKEN). Lazy-loads .env once if missing. */
-  private getToken(): string | null {
+  /**
+   * List of background (sentiment) tokens: comma-separated X_BEARER_TOKEN_SENTIMENT, or
+   * X_BEARER_TOKEN_SENTIMENT_1, _2, _3, _4. Fallback: X_BEARER_TOKEN_BACKGROUND. Used for round-robin per asset.
+   */
+  private getSentimentTokenList(): string[] {
     loadEnvOnce();
+    const raw = process.env.X_BEARER_TOKEN_SENTIMENT?.trim();
+    if (raw?.includes(",")) {
+      const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+      if (list.length) return list;
+    }
+    const numbered: string[] = [];
+    for (let i = 1; i <= 20; i++) {
+      const v = process.env[`X_BEARER_TOKEN_SENTIMENT_${i}`]?.trim();
+      if (!v) break;
+      numbered.push(v);
+    }
+    if (numbered.length) return numbered;
+    const bg = process.env.X_BEARER_TOKEN_BACKGROUND?.trim();
+    return bg ? [bg] : [];
+  }
+
+  /** Number of background tokens (for per-token cooldown and round-robin). Exported for sentiment service. */
+  getSentimentTokenCount(): number {
+    const list = this.getSentimentTokenList();
+    return list.length;
+  }
+
+  /** Token: primary (in-chat) or background (sentiment/list). tokenIndex used for round-robin when multiple sentiment tokens. */
+  private getToken(useBackground?: boolean, tokenIndex?: number): string | null {
+    loadEnvOnce();
+    if (useBackground) {
+      const list = this.getSentimentTokenList();
+      if (list.length === 0) return null;
+      if (list.length === 1 || tokenIndex === undefined) return list[0];
+      return list[tokenIndex % list.length] ?? list[0];
+    }
     const fromEnv = process.env.X_BEARER_TOKEN?.trim();
     const fromRuntime = this.runtime.getSetting?.("X_BEARER_TOKEN");
     const s = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
@@ -169,10 +216,36 @@ export class VinceXResearchService extends Service {
     return s || null;
   }
 
-  private async getClient(): Promise<XDKClient | null> {
+  private backgroundClient: XDKClient | null = null;
+  private backgroundClientsByIndex: Map<number, XDKClient> = new Map();
+  private backgroundReady = false;
+
+  private async getClient(useBackground?: boolean, tokenIndex?: number): Promise<XDKClient | null> {
+    if (useBackground) {
+      const n = this.getSentimentTokenCount();
+      if (n > 1 && tokenIndex !== undefined) {
+        const idx = tokenIndex % n;
+        let client: XDKClient | null = this.backgroundClientsByIndex.get(idx) ?? null;
+        if (!client) {
+          const token = this.getToken(true, idx);
+          if (!token) return null;
+          client = await createXDKClient(token);
+          if (!client) return null;
+          this.backgroundClientsByIndex.set(idx, client);
+        }
+        return client;
+      }
+      if (this.backgroundReady) return this.backgroundClient;
+      this.backgroundReady = true;
+      const token = this.getToken(true);
+      if (!token) return null;
+      const bgClient = await createXDKClient(token);
+      this.backgroundClient = bgClient;
+      return this.backgroundClient;
+    }
     if (this.xdkReady) return this.xdkClient;
     this.xdkReady = true;
-    const token = this.getToken();
+    const token = this.getToken(false);
     if (!token) return null;
     this.xdkClient = await createXDKClient(token);
     return this.xdkClient;
@@ -204,12 +277,23 @@ export class VinceXResearchService extends Service {
     return !!this.getToken();
   }
 
+  private sentimentCooldownKey(tokenIndex?: number): string {
+    const n = this.getSentimentTokenCount();
+    if (n <= 1 || tokenIndex === undefined) return X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY;
+    return `${X_RATE_LIMITED_SENTIMENT_UNTIL_CACHE_KEY}_${tokenIndex % n}`;
+  }
+
+  /** Cooldown cache key for a given sentiment token index (for multi-token setup). Used by sentiment service. */
+  getSentimentCooldownKey(tokenIndex?: number): string {
+    return this.sentimentCooldownKey(tokenIndex);
+  }
+
   /**
-   * Check shared rate-limit cooldown (set by vibe check or a previous 429).
-   * Throws if still in cooldown so we don't burn the same token.
+   * Check rate-limit cooldown for the given token. useBackground = sentiment/background; tokenIndex for per-token cooldown when multiple.
    */
-  private async ensureNotRateLimited(): Promise<void> {
-    const until = await this.runtime.getCache<number>(X_RATE_LIMITED_UNTIL_CACHE_KEY);
+  private async ensureNotRateLimited(useBackground?: boolean, tokenIndex?: number): Promise<void> {
+    const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+    const until = await this.runtime.getCache<number>(key);
     if (!until) return;
     const now = Date.now();
     if (now < until) {
@@ -218,21 +302,22 @@ export class VinceXResearchService extends Service {
     }
   }
 
-  private handle429(err: unknown): never {
+  private handle429(err: unknown, useBackground?: boolean, tokenIndex?: number): never {
     const msg = err instanceof Error ? err.message : String(err);
     const resetMatch = msg.match(/reset[:\s]+(\d+)/i);
     const waitSec = resetMatch
       ? Math.max(parseInt(resetMatch[1], 10) - Math.floor(Date.now() / 1000), 1)
       : 60;
     const untilMs = Date.now() + waitSec * 1000;
-    this.runtime.setCache(X_RATE_LIMITED_UNTIL_CACHE_KEY, untilMs).catch(() => {});
+    const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+    this.runtime.setCache(key, untilMs).catch(() => {});
     throw new Error(`X API rate limited. Resets in ${waitSec}s`);
   }
 
-  private async apiGet(url: string): Promise<RawResponse> {
-    const token = this.getToken();
-    if (!token) throw new Error("X_BEARER_TOKEN not set");
-    await this.ensureNotRateLimited();
+  private async apiGet(url: string, useBackground?: boolean, tokenIndex?: number): Promise<RawResponse> {
+    const token = this.getToken(useBackground, tokenIndex);
+    if (!token) throw new Error(useBackground ? "X_BEARER_TOKEN_SENTIMENT (or X_BEARER_TOKEN_BACKGROUND) not set" : "X_BEARER_TOKEN not set");
+    await this.ensureNotRateLimited(useBackground, tokenIndex);
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -242,7 +327,8 @@ export class VinceXResearchService extends Service {
         ? Math.max(parseInt(reset, 10) - Math.floor(Date.now() / 1000), 1)
         : 60;
       const untilMs = Date.now() + waitSec * 1000;
-      await this.runtime.setCache(X_RATE_LIMITED_UNTIL_CACHE_KEY, untilMs);
+      const key = useBackground ? this.sentimentCooldownKey(tokenIndex) : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+      await this.runtime.setCache(key, untilMs);
       throw new Error(`X API rate limited. Resets in ${waitSec}s`);
     }
     if (!res.ok) {
@@ -259,6 +345,7 @@ export class VinceXResearchService extends Service {
   /**
    * Search recent tweets (last 7 days). Auto-adds -is:retweet if not in query.
    * Results are cached 15 minutes (match x-research-skill).
+   * useBackgroundToken: when true, use sentiment token(s). tokenIndex: round-robin when multiple sentiment tokens (e.g. one per asset).
    */
   async search(
     query: string,
@@ -267,9 +354,13 @@ export class VinceXResearchService extends Service {
       pages?: number;
       sortOrder?: "relevancy" | "recency";
       since?: string;
+      useBackgroundToken?: boolean;
+      tokenIndex?: number;
     } = {},
   ): Promise<XTweet[]> {
-    const parts = `${query}|${opts.sortOrder ?? "relevancy"}|${opts.since ?? ""}|${opts.pages ?? 1}`;
+    const useBg = !!opts.useBackgroundToken;
+    const tokenIdx = opts.tokenIndex;
+    const parts = `${query}|${opts.sortOrder ?? "relevancy"}|${opts.since ?? ""}|${opts.pages ?? 1}|${useBg}`;
     const key = this.cacheKey("search", parts);
     const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number }>(key);
     if (cached?.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
@@ -284,12 +375,12 @@ export class VinceXResearchService extends Service {
     const pages = opts.pages || 1;
     const sort = opts.sortOrder || "relevancy";
 
-    const client = await this.getClient();
+    const client = await this.getClient(useBg, tokenIdx);
     const searchRecent = client?.posts?.searchRecent;
 
     if (searchRecent) {
       try {
-        await this.ensureNotRateLimited();
+        await this.ensureNotRateLimited(useBg, tokenIdx);
         // XDK search_recent pattern: https://github.com/xdevplatform/samples/blob/main/javascript/posts/search_recent.js
         const all: XTweet[] = [];
         let nextToken: string | undefined;
@@ -322,7 +413,7 @@ export class VinceXResearchService extends Service {
         return all;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err, useBg, tokenIdx);
         throw err;
       }
     }
@@ -339,7 +430,7 @@ export class VinceXResearchService extends Service {
     for (let page = 0; page < pages; page++) {
       const pagination = nextToken ? `&pagination_token=${nextToken}` : "";
       const url = `${BASE}/tweets/search/recent?query=${encoded}&max_results=${maxResults}&${FIELDS}&sort_order=${sort}${timeFilter}${pagination}`;
-      const raw = await this.apiGet(url);
+      const raw = await this.apiGet(url, useBg, tokenIdx);
       const tweets = parseTweets(raw);
       all.push(...tweets);
       nextToken = raw.meta?.next_token;
@@ -348,6 +439,193 @@ export class VinceXResearchService extends Service {
     }
     await this.runtime.setCache(key, { tweets: all, ts: Date.now() });
     return all;
+  }
+
+  /**
+   * Search recent tweets with XDK-style pagination: yields one page at a time.
+   * Use for "load more" or async iteration. Does not use 15-min cache so each page is live.
+   * Respects rate limits and shared cooldown.
+   */
+  async *searchPaginated(
+    query: string,
+    opts: {
+      maxResults?: number;
+      maxPages?: number;
+      sortOrder?: "relevancy" | "recency";
+      since?: string;
+    } = {},
+  ): AsyncGenerator<XResearchPageResult, void, unknown> {
+    let q = query.trim();
+    if (!q.toLowerCase().includes("-is:retweet")) {
+      q = `${q} -is:retweet`;
+    }
+    const maxResults = Math.max(Math.min(opts.maxResults ?? 100, 100), 10);
+    const maxPages = opts.maxPages ?? 5;
+    const sort = opts.sortOrder ?? "relevancy";
+
+    const client = await this.getClient();
+    const searchRecent = client?.posts?.searchRecent;
+
+    const baseParams: Record<string, unknown> = {
+      maxResults,
+      tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+      expansions: ["author_id"],
+      userFields: ["username", "name", "public_metrics"],
+      sortOrder: sort,
+    };
+    if (opts.since) {
+      const startTime = parseSince(opts.since);
+      if (startTime) baseParams.startTime = startTime;
+    }
+
+    let nextToken: string | undefined;
+    let pageCount = 0;
+
+    while (pageCount < maxPages) {
+      await this.ensureNotRateLimited();
+
+      if (searchRecent) {
+        try {
+          const params = { ...baseParams, ...(nextToken && { nextToken }) };
+          const raw = await searchRecent.call(client!.posts!, q, params);
+          const asRaw: RawResponse = { data: raw?.data, includes: raw?.includes, meta: raw?.meta };
+          const tweets = parseTweets(asRaw);
+          nextToken = raw?.meta?.next_token ?? (raw?.meta as any)?.nextToken;
+          pageCount++;
+          yield { tweets, nextToken, done: !nextToken };
+          if (!nextToken) return;
+          if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+          throw err;
+        }
+      } else {
+        const encoded = encodeURIComponent(q);
+        let timeFilter = "";
+        if (opts.since) {
+          const startTime = parseSince(opts.since);
+          if (startTime) timeFilter = `&start_time=${startTime}`;
+        }
+        const pagination = nextToken ? `&pagination_token=${nextToken}` : "";
+        const url = `${BASE}/tweets/search/recent?query=${encoded}&max_results=${maxResults}&${FIELDS}&sort_order=${sort}${timeFilter}${pagination}`;
+        const raw = await this.apiGet(url);
+        const tweets = parseTweets(raw);
+        nextToken = raw.meta?.next_token;
+        pageCount++;
+        yield { tweets, nextToken, done: !nextToken };
+        if (!nextToken) return;
+        if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
+      }
+    }
+  }
+
+  /**
+   * Collect up to maxTweets from search using XDK-style pagination (async iteration).
+   * Use when you need "all" or "more" results without a fixed page count.
+   */
+  async searchAll(
+    query: string,
+    opts: {
+      maxTweets?: number;
+      maxPages?: number;
+      sortOrder?: "relevancy" | "recency";
+      since?: string;
+    } = {},
+  ): Promise<XTweet[]> {
+    const maxTweets = opts.maxTweets ?? 500;
+    const collected: XTweet[] = [];
+    for await (const page of this.searchPaginated(query, {
+      maxResults: 100,
+      maxPages: opts.maxPages ?? 10,
+      sortOrder: opts.sortOrder,
+      since: opts.since,
+    })) {
+      for (const t of page.tweets) {
+        collected.push(t);
+        if (collected.length >= maxTweets) return collected;
+      }
+      if (page.done) break;
+    }
+    return collected;
+  }
+
+  /**
+   * Get list posts with XDK-style pagination: yields one page at a time.
+   * Does not use 15-min cache so each page is live.
+   */
+  async *getListPostsPaginated(
+    listId?: string,
+    opts: { maxResults?: number; maxPages?: number } = {},
+  ): AsyncGenerator<XResearchPageResult, void, unknown> {
+    const id = listId?.trim() || this.getListId();
+    if (!id) return;
+
+    const maxResults = Math.min(opts.maxResults ?? 100, 100);
+    const maxPages = opts.maxPages ?? 5;
+    let nextToken: string | undefined;
+    let pageCount = 0;
+
+    while (pageCount < maxPages) {
+      await this.ensureNotRateLimited();
+      const client = await this.getClient();
+      const getPosts = client?.lists?.getPosts;
+
+      if (getPosts) {
+        try {
+          const res = await getPosts.call(client.lists, id, {
+            tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+            expansions: ["author_id"],
+            userFields: ["username", "name", "public_metrics"],
+            maxResults,
+            ...(nextToken && { paginationToken: nextToken }),
+          });
+          const asRaw: RawResponse = { data: res?.data, includes: res?.includes, meta: res?.meta };
+          const tweets = parseTweets(asRaw);
+          nextToken = res?.meta?.next_token ?? (res?.meta as any)?.nextToken;
+          pageCount++;
+          yield { tweets, nextToken, done: !nextToken };
+          if (!nextToken) return;
+          if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+          throw err;
+        }
+      } else {
+        const pagination = nextToken ? `&pagination_token=${encodeURIComponent(nextToken)}` : "";
+        const url = `${BASE}/lists/${id}/tweets?max_results=${maxResults}&${FIELDS}${pagination}`;
+        const raw = await this.apiGet(url);
+        const tweets = parseTweets(raw);
+        nextToken = raw.meta?.next_token;
+        pageCount++;
+        yield { tweets, nextToken, done: !nextToken };
+        if (!nextToken) return;
+        if (pageCount < maxPages) await sleep(RATE_DELAY_MS);
+      }
+    }
+  }
+
+  /**
+   * Optional: stream from X Filtered Stream when XDK supports it.
+   * Requires X API access that includes filtered stream. Returns async iterable of tweet-like events.
+   * When XDK does not expose stream API, throws with a clear message.
+   */
+  async streamFilteredStream(opts?: {
+    expansions?: string[];
+    tweetFields?: string[];
+  }): Promise<AsyncIterable<unknown>> {
+    const client = await this.getClient();
+    const stream = client?.stream?.filteredStream;
+    if (!stream) {
+      throw new Error(
+        "X filtered stream not available. The XDK may not expose stream.filteredStream for this tier, or @xdevplatform/xdk streaming is not loaded.",
+      );
+    }
+    return stream({
+      expansions: opts?.expansions ?? ["author_id"],
+      "tweet.fields": opts?.tweetFields ?? ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+    });
   }
 
   /**
@@ -552,23 +830,26 @@ export class VinceXResearchService extends Service {
 
   /**
    * Get recent posts from a list. Returns XTweet[]; cached 15 min. Uses XDK when available.
+   * useBackgroundToken: when true, use sentiment token(s). tokenIndex: round-robin when multiple.
    */
   async getListPosts(
     listId?: string,
-    opts: { maxResults?: number; nextToken?: string } = {},
+    opts: { maxResults?: number; nextToken?: string; useBackgroundToken?: boolean; tokenIndex?: number } = {},
   ): Promise<{ tweets: XTweet[]; nextToken?: string }> {
     const id = listId?.trim() || this.getListId();
     if (!id) return { tweets: [] };
-    const cacheKey = this.cacheKey("list_posts", `${id}|${opts.nextToken ?? ""}`);
+    const useBg = !!opts.useBackgroundToken;
+    const tokenIdx = opts.tokenIndex;
+    const cacheKey = this.cacheKey("list_posts", `${id}|${opts.nextToken ?? ""}|${useBg}`);
     const cached = await this.runtime.getCache<{ tweets: XTweet[]; nextToken?: string; ts: number }>(cacheKey);
     if (cached?.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
       return { tweets: cached.tweets, nextToken: cached.nextToken };
     }
-    const client = await this.getClient();
+    const client = await this.getClient(useBg, tokenIdx);
     const getPosts = client?.lists?.getPosts;
     if (getPosts) {
       try {
-        await this.ensureNotRateLimited();
+        await this.ensureNotRateLimited(useBg, tokenIdx);
         const res = await getPosts.call(client.lists, id, {
           tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
           expansions: ["author_id"],
@@ -583,14 +864,14 @@ export class VinceXResearchService extends Service {
         return { tweets, nextToken };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
+        if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err, useBg, tokenIdx);
         throw err;
       }
     }
     const maxResults = Math.min(opts.maxResults ?? 100, 100);
     const pagination = opts.nextToken ? `&pagination_token=${encodeURIComponent(opts.nextToken)}` : "";
     const url = `${BASE}/lists/${id}/tweets?max_results=${maxResults}&${FIELDS}${pagination}`;
-    const raw = await this.apiGet(url);
+    const raw = await this.apiGet(url, useBg, tokenIdx);
     const tweets = parseTweets(raw);
     const nextToken = raw.meta?.next_token;
     await this.runtime.setCache(cacheKey, { tweets, nextToken, ts: Date.now() });
@@ -614,7 +895,7 @@ export class VinceXResearchService extends Service {
           ...(opts.nextToken && { paginationToken: opts.nextToken }),
         });
         const users = res?.data ?? [];
-        const nextToken = res?.meta?.next_token ?? (res?.meta as any)?.nextToken;
+        const nextToken = (res as any)?.meta?.next_token ?? (res as any)?.meta?.nextToken;
         return { users: Array.isArray(users) ? users : [users], nextToken };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

@@ -203,6 +203,67 @@ describe("VinceXResearchService", () => {
     });
   });
 
+  describe("searchPaginated", () => {
+    it("yields one page per call with tweets, nextToken, and done", async () => {
+      const runtime = createMockRuntimeWithCache();
+      const page1 = {
+        data: [
+          {
+            id: "1",
+            text: "first",
+            author_id: "u1",
+            created_at: new Date().toISOString(),
+            conversation_id: "1",
+            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            entities: { urls: [], mentions: [], hashtags: [] },
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "u", name: "U" }] },
+        meta: { next_token: "token2" },
+      };
+      const page2 = {
+        data: [
+          {
+            id: "2",
+            text: "second",
+            author_id: "u1",
+            created_at: new Date().toISOString(),
+            conversation_id: "2",
+            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            entities: { urls: [], mentions: [], hashtags: [] },
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "u", name: "U" }] },
+        meta: {},
+      };
+      const searchRecent = vi
+        .fn()
+        .mockResolvedValueOnce(page1)
+        .mockResolvedValueOnce(page2);
+      const mockClient = { posts: { searchRecent } };
+      const service = new VinceXResearchService(runtime);
+      (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue(mockClient);
+
+      const pages: { tweets: XTweet[]; nextToken?: string; done: boolean }[] = [];
+      for await (const page of service.searchPaginated("test", { maxPages: 3 })) {
+        pages.push(page);
+      }
+
+      expect(pages).toHaveLength(2);
+      expect(pages[0].tweets).toHaveLength(1);
+      expect(pages[0].tweets[0].id).toBe("1");
+      expect(pages[0].tweets[0].text).toBe("first");
+      expect(pages[0].nextToken).toBe("token2");
+      expect(pages[0].done).toBe(false);
+      expect(pages[1].tweets).toHaveLength(1);
+      expect(pages[1].tweets[0].id).toBe("2");
+      expect(pages[1].nextToken).toBeUndefined();
+      expect(pages[1].done).toBe(true);
+      expect(searchRecent).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe("rate limit", () => {
     it("when cache has future rate limited until, search throws and does not call fetch", async () => {
       const cache = new Map<string, unknown>();

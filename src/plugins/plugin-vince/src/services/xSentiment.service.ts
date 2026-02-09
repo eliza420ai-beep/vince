@@ -106,6 +106,12 @@ export function parseRateLimitResetSeconds(message: string): number {
   const match = message.match(/Resets?\s+in\s+(\d+)\s*s/i);
   return match ? Math.max(1, parseInt(match[1], 10)) : 0;
 }
+
+/** True when a second token is set for sentiment/background so in-chat keeps using primary. */
+function useBackgroundToken(): boolean {
+  loadEnvOnce();
+  return !!(process.env.X_BEARER_TOKEN_SENTIMENT?.trim() || process.env.X_BEARER_TOKEN_BACKGROUND?.trim());
+}
 /** Phrase override: if text matches a phrase, return -1 (bearish), 0 (neutral), or 1 (bullish); else null. */
 function getPhraseOverride(text: string): number | null {
   const lower = text.toLowerCase();
@@ -381,7 +387,7 @@ export class VinceXSentimentService extends Service {
       };
     }
     try {
-      const { tweets } = await xResearch.getListPosts(listId, { maxResults: 50 });
+      const { tweets } = await xResearch.getListPosts(listId, { maxResults: 50, useBackgroundToken: useBackgroundToken() });
       const minTweets = getMinTweetsForConfidence();
       if (tweets.length < minTweets) {
         const entry: CachedSentiment = {
@@ -484,7 +490,7 @@ export class VinceXSentimentService extends Service {
 
   /**
    * Refresh sentiment for one asset (staggered tick). Respects rate limit; on 429
-   * sets rateLimitedUntilMs so subsequent ticks skip until reset.
+   * sets rateLimitedUntilMs so subsequent ticks skip until reset. With multiple sentiment tokens, cooldown is per-token.
    */
   async refreshOneAsset(index: number): Promise<void> {
     const xResearch = this.runtime.getService(
@@ -492,8 +498,10 @@ export class VinceXSentimentService extends Service {
     ) as VinceXResearchService | null;
     if (!xResearch?.isConfigured()) return;
 
-    // Sync from shared cache so we respect cooldowns set by in-chat X research (same token).
-    const cachedUntil = await this.runtime.getCache<number>(X_RATE_LIMITED_UNTIL_CACHE_KEY);
+    const limitKey = useBackgroundToken()
+      ? xResearch.getSentimentCooldownKey(index)
+      : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+    const cachedUntil = await this.runtime.getCache<number>(limitKey);
     if (cachedUntil && cachedUntil > this.rateLimitedUntilMs) {
       this.rateLimitedUntilMs = cachedUntil;
     }
@@ -510,7 +518,7 @@ export class VinceXSentimentService extends Service {
     const sentimentAssets = getSentimentAssets();
     const asset = sentimentAssets[index % sentimentAssets.length];
     try {
-      await this.refreshForAsset(asset, xResearch);
+      await this.refreshForAsset(asset, xResearch, index);
       this.saveAssetToCacheFile(asset);
     } catch (e) {
       const msg = (e as Error).message;
@@ -521,7 +529,10 @@ export class VinceXSentimentService extends Service {
       if (isRateLimit) {
         const waitSec = parseRateLimitResetSeconds(msg) || 600;
         this.rateLimitedUntilMs = Date.now() + waitSec * 1000;
-        await this.runtime.setCache(X_RATE_LIMITED_UNTIL_CACHE_KEY, this.rateLimitedUntilMs);
+        const limitKey = useBackgroundToken()
+          ? xResearch.getSentimentCooldownKey(index)
+          : X_RATE_LIMITED_UNTIL_CACHE_KEY;
+        await this.runtime.setCache(limitKey, this.rateLimitedUntilMs);
         logger.info(
           `[VinceXSentimentService] X API rate limited. Skipping refresh for ${Math.ceil(waitSec / 60)} min (serving cached sentiment).`,
         );
@@ -534,6 +545,7 @@ export class VinceXSentimentService extends Service {
   private async refreshForAsset(
     asset: string,
     xResearch: VinceXResearchService,
+    assetIndex: number,
   ): Promise<void> {
     const query = buildSentimentQuery(asset);
     const since = getSentimentSince();
@@ -543,6 +555,8 @@ export class VinceXSentimentService extends Service {
       pages: 1,
       sortOrder,
       since,
+      useBackgroundToken: useBackgroundToken(),
+      tokenIndex: assetIndex,
     });
 
     const minTweets = getMinTweetsForConfidence();
