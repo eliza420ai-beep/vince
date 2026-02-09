@@ -44,11 +44,22 @@
 | Agent | Lane |
 |:---|:---|
 | **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
-| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. |
+| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
 | **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **Otaku** | DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP wallet. When you need DeFi edge. |
 | **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
 | **Sentinel** | Keeps the ElizaOS project running smooth, profitable, and well coded. Ops, cost steward, ONNX, ART, clawdbot, task briefs for Claude. |
+
+**Startup analogy** — who’s CEO, CDO, CFO, COO, CHRO, CTO?
+
+| Role | Agent | Why |
+|:---|:---|:---|
+| **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
+| **CDO** | VINCE | Data powerhouse: options, perps, memes, news, X/CT, paper bot. Push intel only—no marketing or external promo. |
+| **CFO** | Solus | Capital and risk: size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
+| **COO** | Otaku | DeFi ops executor: token discovery, Morpho, yield, CDP. On-chain execution; keeps daily operations seamless. |
+| **CHRO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |
+| **CTO** | Sentinel | Systems, cost, code: ops, ONNX, clawdbot, task briefs. Keeps the stack running and profitable. |
 
 One team, one dream.
 

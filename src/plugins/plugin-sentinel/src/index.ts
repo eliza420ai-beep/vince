@@ -2,7 +2,8 @@
  * Plugin-Sentinel — Core dev: ops, architecture, benchmarks, examples, plugins, cost steward.
  *
  * Actions: SENTINEL_SUGGEST, SENTINEL_CLAWDBOT_GUIDE, SENTINEL_SETTINGS_SUGGEST,
- * SENTINEL_ONNX_STATUS, SENTINEL_ART_GEMS, SENTINEL_COST_STATUS, SENTINEL_ART_PITCH. Weekly + optional daily tasks. Sentinel only.
+ * SENTINEL_ONNX_STATUS, SENTINEL_ART_GEMS, SENTINEL_COST_STATUS, SENTINEL_ART_PITCH,
+ * SENTINEL_INVESTOR_REPORT, SENTINEL_HOW_DID_WE_DO, SENTINEL_SECURITY_CHECKLIST. Weekly + optional daily tasks. Sentinel only.
  */
 
 import type { IAgentRuntime, Plugin } from "@elizaos/core";
@@ -15,6 +16,9 @@ import { sentinelArtGemsAction } from "./actions/sentinelArtGems.action";
 import { sentinelDocImproveAction } from "./actions/sentinelDocImprove.action";
 import { sentinelCostStatusAction } from "./actions/sentinelCostStatus.action";
 import { sentinelArtPitchAction } from "./actions/sentinelArtPitch.action";
+import { sentinelInvestorReportAction } from "./actions/sentinelInvestorReport.action";
+import { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
+import { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
 import { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 import { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
 
@@ -32,6 +36,9 @@ export const sentinelPlugin: Plugin = {
     sentinelDocImproveAction,
     sentinelCostStatusAction,
     sentinelArtPitchAction,
+    sentinelInvestorReportAction,
+    sentinelHowDidWeDoAction,
+    sentinelSecurityChecklistAction,
   ],
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -58,5 +65,8 @@ export { sentinelArtGemsAction } from "./actions/sentinelArtGems.action";
 export { sentinelDocImproveAction } from "./actions/sentinelDocImprove.action";
 export { sentinelCostStatusAction } from "./actions/sentinelCostStatus.action";
 export { sentinelArtPitchAction } from "./actions/sentinelArtPitch.action";
+export { sentinelInvestorReportAction } from "./actions/sentinelInvestorReport.action";
+export { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
+export { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
 export { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 export { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
