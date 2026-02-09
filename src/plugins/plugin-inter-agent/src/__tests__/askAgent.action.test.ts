@@ -71,21 +71,21 @@ describe("askAgentAction", () => {
       const runtime = createMockRuntime();
       const msg = createMessage("Ask Vince about Bitcoin");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toEqual({ success: true });
+      expect(result).toBe(true);
     });
 
     it("returns true for what would Solus say about Y", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("What would Solus say about that trade?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toEqual({ success: true });
+      expect(result).toBe(true);
     });
 
     it("returns true for ping Kelly", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("Ping Kelly. What wine for steak?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toEqual({ success: true });
+      expect(result).toBe(true);
     });
 
     it("returns true when state.values.actionResult.text contains ask-intent", async () => {
@@ -97,21 +97,21 @@ describe("askAgentAction", () => {
         text: "",
       };
       const result = await askAgentAction.validate!(runtime, msg, state);
-      expect(result).toEqual({ success: true });
+      expect(result).toBe(true);
     });
 
     it("returns false for empty message", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("   ");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toEqual({ success: false });
+      expect(result).toBe(false);
     });
 
     it("returns false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("What is the weather today?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toEqual({ success: false });
+      expect(result).toBe(false);
     });
   });
 
