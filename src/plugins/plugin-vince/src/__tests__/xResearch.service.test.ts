@@ -3,7 +3,10 @@
  * Cache: two identical search() calls return same result and second does not hit API.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { VinceXResearchService } from "../services/xResearch.service";
+import {
+  VinceXResearchService,
+  X_RATE_LIMITED_UNTIL_CACHE_KEY,
+} from "../services/xResearch.service";
 import type { IAgentRuntime } from "@elizaos/core";
 import type { XTweet } from "../services/xResearch.service";
 
@@ -77,7 +80,7 @@ describe("VinceXResearchService", () => {
       expect(result2).toEqual(result1);
       expect(fetchSpy).toHaveBeenCalledTimes(1);
       expect(runtime.setCache).toHaveBeenCalled();
-      expect(runtime.getCache).toHaveBeenCalledTimes(2);
+      expect(runtime.getCache).toHaveBeenCalledTimes(3); // rate-limit key once, search cache key twice (miss then hit)
     });
   });
 
@@ -98,6 +101,62 @@ describe("VinceXResearchService", () => {
       );
       expect(getTweetSpy).toHaveBeenCalledWith(threadId);
       expect(Array.isArray(tweets)).toBe(true);
+    });
+  });
+
+  describe("rate limit", () => {
+    it("when cache has future rate limited until, search throws and does not call fetch", async () => {
+      const cache = new Map<string, unknown>();
+      cache.set(X_RATE_LIMITED_UNTIL_CACHE_KEY, Date.now() + 120_000);
+      const runtime: IAgentRuntime = {
+        getCache: vi.fn(async (key: string) => cache.get(key)),
+        setCache: vi.fn(async (key: string, value: unknown) => {
+          cache.set(key, value);
+          return true;
+        }),
+        getSetting: vi.fn(() => null),
+      } as unknown as IAgentRuntime;
+
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      const service = new VinceXResearchService(runtime);
+      (service as any).getToken = () => "fake-token";
+
+      await expect(
+        service.search("test", { pages: 1, sortOrder: "relevancy" }),
+      ).rejects.toThrow(/X API rate limited\. Resets in \d+s/);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("when fetch returns 429 with x-rate-limit-reset, search throws and sets shared cooldown cache", async () => {
+      const cache = new Map<string, unknown>();
+      const setCache = vi.fn(async (key: string, value: unknown) => {
+        cache.set(key, value);
+        return true;
+      });
+      const runtime: IAgentRuntime = {
+        getCache: vi.fn(async (key: string) => cache.get(key)),
+        setCache,
+        getSetting: vi.fn(() => null),
+      } as unknown as IAgentRuntime;
+
+      const resetEpoch = Math.floor(Date.now() / 1000) + 900;
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: false,
+        status: 429,
+        headers: new Headers({ "x-rate-limit-reset": String(resetEpoch) }),
+        json: async () => ({}),
+      } as Response);
+
+      const service = new VinceXResearchService(runtime);
+      (service as any).getToken = () => "fake-token";
+
+      await expect(
+        service.search("test", { pages: 1, sortOrder: "relevancy" }),
+      ).rejects.toThrow(/X API rate limited.*Resets in/);
+      expect(setCache).toHaveBeenCalledWith(
+        X_RATE_LIMITED_UNTIL_CACHE_KEY,
+        expect.any(Number),
+      );
     });
   });
 });

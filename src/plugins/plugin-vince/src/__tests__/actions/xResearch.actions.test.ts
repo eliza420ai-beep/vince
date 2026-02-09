@@ -143,5 +143,23 @@ describe("vinceXResearchAction", () => {
       expect(result.success).toBe(true);
       expect(getTweetFn).toHaveBeenCalledWith("1234567890123456789");
     });
+
+    it("when service throws rate limit error, sends user-facing error and returns success false", async () => {
+      const runtime = createRuntimeWithXResearchService({
+        search: () => Promise.reject(new Error("X API rate limited. Resets in 900s")),
+      });
+      const msg = createMockMessage("What are people saying about BTC?");
+      const callback = createMockCallback();
+
+      const result = await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+      expect(result.success).toBe(false);
+      const errorCall = callback.calls.find((c) => c.text?.includes("X research failed"));
+      expect(errorCall).toBeDefined();
+      expect(errorCall!.text).toContain("X research failed");
+      expect(errorCall!.text).toContain("rate limited");
+      expect(errorCall!.text).toContain("Resets in 900s");
+      expect(errorCall!.text).toMatch(/X_BEARER_TOKEN|X API tier/);
+    });
   });
 });
