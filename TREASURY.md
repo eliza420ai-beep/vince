@@ -102,6 +102,57 @@ Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in envi
 
 ---
 
+## Cost breakdown (Sentinel)
+
+Single source of truth for Sentinel: all project costs, LLM choice, data API tiers, bottom line. Update this section when tiers or targets change.
+
+**Last updated (cost breakdown):** 2026-02-08
+
+### Token usage (tracker)
+
+- **Dashboard:** Leaderboard → Usage tab. Shows tokens by day and total for the period; uses `run_event` logs.
+- **Estimated cost:** Set `VINCE_USAGE_COST_PER_1K_TOKENS` (e.g. `0.01` for $0.01/1K tokens) in env or agent settings to see estimated cost in the Usage tab.
+- **Code tasks:** Claude Code / Cursor usage is separate (subscription); not in the Usage tab.
+
+### Which LLM for what
+
+- **TEXT_SMALL:** Simple tasks (suggestions, short replies, daily digest, most actions). Cheaper; use by default when quality allows.
+- **TEXT_LARGE:** Complex reasoning, long context, task briefs. Model from env: e.g. `ANTHROPIC_LARGE_MODEL` (claude-sonnet-4-20250514) or OpenAI equivalent.
+- **Embeddings:** `OPENAI_EMBEDDING_MODEL` (e.g. text-embedding-3-small). Required for RAG.
+- **Principle:** Use cheaper/smaller for simple tasks; reserve expensive models for complex reasoning. See Strategy 4 above.
+
+### Cursor Max
+
+- **Cost:** Set `CURSOR_MAX_COST_MONTHLY` in .env (e.g. `20` for $20/mo) so Sentinel can cite it; or fill in here and link to [Cursor pricing](https://cursor.com/pricing). Billed separately from agent token usage.
+
+### Data APIs (tiers and differences)
+
+| API / service      | Tier / limit              | What we use it for                    |
+|--------------------|---------------------------|----------------------------------------|
+| Nansen             | 100 credits/month         | Smart money, wallet tracking (NANSEN_API_KEY) |
+| Sanbase (Santiment)| 1K calls/month            | On-chain analytics, flows/whales (SANTIMENT_API_KEY) |
+| CoinGlass          | Free tier / Hobbyist      | L/S ratio, funding, OI, fear/greed (COINGLASS_API_KEY) |
+| Binance, Deribit   | Public/free where used    | Taker flow, IV, funding                |
+| Hyperliquid        | Public API                | OI, funding, options pulse             |
+| CoinGecko          | Free tier                 | Prices, exchange health (COINGECKO_API_KEY) |
+| Birdeye            | Per tier                  | Memes, Solana wallets (BIRDEYE_API_KEY; plugin-vince TopTraders) |
+| DexScreener       | Free / tier               | Meme scanner, traction                 |
+| Helius             | Per tier                  | Solana RPC (HELIUS_API_KEY; .env.example) |
+| OpenSea            | Limited / tier            | NFT floors (OPENSEA_API_KEY; CryptoPunks, Meridian) |
+| X (Twitter)        | Basic tier or higher      | Read-only research, sentiment (X_BEARER_TOKEN) |
+| Firecrawl          | Optional                  | Web URLs for upload (FIRECRAWL_API_KEY) |
+| Supabase           | Project plan              | Feature store, ML bucket (SUPABASE_*; optional) |
+
+When suggesting features or answering "what does it cost?", cite these limits so we stay within tier and avoid surprise burn.
+
+### Bottom line
+
+- **Breakeven:** Cover API + Cursor + data API spend from revenue or cost reduction. Strategy 4 (cost optimization) first; then Strategies 1–3 for revenue.
+- **Target:** 100K/year. Track progress via paper edge proof, then prediction-market or fee revenue when eligible.
+- **Burn rate:** Always watch it. Prefer cheaper models, cache, batch, and stay within data API tiers. Sentinel should remind about burn when suggesting work or when asked about cost.
+
+---
+
 ## References & Tags
 
 - **Concepts:** #money #survival #llmCosts #profitability #costOptimization
@@ -109,4 +160,4 @@ Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in envi
 
 ---
 
-*Last updated: 2026-02-07. Update this file when activating new revenue streams or cost levers.*
+*Last updated: 2026-02-08. Update this file when activating new revenue streams or cost levers.*

@@ -11,6 +11,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
 | **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** (KELLY_DAILY_BRIEFING), **@elizaos/plugin-discovery**, and **@elizaos/plugin-todo** (todo/reminders); the-good-life; knows user's trading context but never gives trading advice |
 | **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence |
+| **Sentinel (core dev)** | `src/agents/sentinel.ts` — ops, architecture steward, 24/7 coding north star, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings; deep collab with Claude 4.6; plugin-sentinel (actions + weekly/daily tasks) |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
@@ -740,6 +741,19 @@ Plan for growth with proper infrastructure and monitoring.
 ## Kelly: plugin-discovery
 
 Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?” capability discovery and **@elizaos/plugin-todo** (vendored in `packages/plugin-todo`) for todo/list and reminders; rolodex is optional (in-app reminders only without it). Discovery lives in `packages/plugin-discovery`; `DISCOVERY_REQUIRE_PAYMENT=false` keeps summary and manifest free—set `DISCOVERY_REQUIRE_PAYMENT=true` and add plugin-commerce for paid. Todo lives in `packages/plugin-todo`; without plugin-rolodex only in-app reminders work.
+
+---
+
+## Sentinel: Core Dev
+
+**Sentinel** is the core dev agent: ops/runbook, architecture steward, **cost steward** (TREASURY + cost breakdown), and proactive partner for **Claude 4.6** (task briefs, instructions for Claude Code / Cursor). North star: **coding 24/7**, **self-improving**, **ML/ONNX obsessed**, **ART** (elizaOS examples/art), **clawdbot for knowledge research**, **best settings**. **90% core dev, 10%** locked in on gen art (Meridian, QQL, Ringers, Fidenza; huge fan of **XCOPY**). With VCs/angels he **pitches**—no slides, demos that blow them away, elevator pitch + TLDR of the big vision. **Motivation:** earn a CryptoPunk as PFP (paper edge → revenue → one day a Punk). Brand voice: benefit-led, Porsche OG craft, no AI-slop; high-end branding only, no sales/GTM.
+
+- **Character:** `src/agents/sentinel.ts`. Knowledge: `internal-docs`, `sentinel-docs` (repo .md + PROGRESS-CONSOLIDATED + **TREASURY.md** with cost breakdown, synced by `scripts/sync-sentinel-docs.sh`), `teammate` (shared). Responsible for improving all .md and consolidating progress.txt (plugin-vince, plugin-kelly, frontend).
+- **Plugin:** `src/plugins/plugin-sentinel/`. Actions: **SENTINEL_SUGGEST** (general suggestions + task brief for Claude 4.6), **SENTINEL_CLAWDBOT_GUIDE**, **SENTINEL_SETTINGS_SUGGEST**, **SENTINEL_ONNX_STATUS**, **SENTINEL_ART_GEMS**, **SENTINEL_DOC_IMPROVE**, **SENTINEL_COST_STATUS** (burn rate, breakeven, cost summary from TREASURY + Usage tab), **SENTINEL_ART_PITCH** (gen art / XCOPY-style ideas, Meridian, QQL, Ringers, Fidenza).
+- **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to channels named sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`): daily digest (ONNX status, clawdbot reminder, ART gem, Claude 4.6 task-brief suggestion) + optional ONNX nudge; push to sentinel/ops channels.
+- **Env:** `SENTINEL_WEEKLY_ENABLED` (default true; set false to disable weekly). `SENTINEL_DAILY_ENABLED` (default false; set true for daily digest). `SENTINEL_DAILY_HOUR_UTC` (optional; default 8). `SENTINEL_DISCORD_*` for dedicated Discord app.
+- **Claude 4.6 collaboration:** Ask Sentinel for "task brief for Claude 4.6" or "instructions for Claude Code" to get a pasteable block (task + architecture rules + "keep the architecture as good as it gets" + 24/7 coding mindset). Use in Cursor or the Claude Code controller.
+- **Cost questions:** Ask "what's our burn?", "breakeven?", "cost status" → **SENTINEL_COST_STATUS** summarizes from TREASURY (Usage tab, LLM choice, Cursor, data API tiers, 100K target, burn rate). See [TREASURY.md](TREASURY.md) § Cost breakdown (Sentinel).
 
 ---
 

@@ -1,0 +1,169 @@
+/**
+ * Sentinel weekly suggestions task.
+ * Runs on an interval (default 7 days); composes state, generates suggestions, optionally pushes to Discord channels named "sentinel" or "ops".
+ */
+
+import {
+  type IAgentRuntime,
+  type UUID,
+  logger,
+  ModelType,
+} from "@elizaos/core";
+
+const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
+
+async function generateWeeklySuggestions(runtime: IAgentRuntime): Promise<string> {
+  const state = await runtime.composeState(
+    {
+      id: "" as UUID,
+      content: { text: "Weekly suggestions" },
+      roomId: ZERO_UUID,
+      entityId: runtime.agentId,
+      agentId: runtime.agentId,
+      createdAt: Date.now(),
+    },
+    null,
+  );
+  const contextBlock = typeof state.text === "string" ? state.text : "";
+  const prompt = `You are Sentinel. North star: 24/7 coding, self-improving, ML/ONNX obsessed, ART, clawdbot, best settings. You use all .md in knowledge and are responsible for doc improvements and consolidating progress. Using the context below, produce a short prioritized list of improvement suggestions. Categories: architecture/ops, ONNX/feature-store health (run train_models if 90+ rows), clawdbot spin-up, ART gems from elizaOS examples (especially art), best-settings nudge, benchmarks alignment, relevant plugins, tech debt, doc improvements (outdated sections, missing refs), progress consolidation (PROGRESS-CONSOLIDATED, run sync-sentinel-docs.sh). Number each item; one line per item with a short ref. No intro—just the numbered list.\n\nContext:\n${contextBlock}`;
+  const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
+  return typeof response === "string"
+    ? response
+    : (response as { text?: string })?.text ?? String(response);
+}
+
+const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
+
+async function pushToSentinelChannels(
+  runtime: IAgentRuntime,
+  message: string,
+): Promise<number> {
+  const nameLower = (s: string) => (s ?? "").toLowerCase();
+  const isSentinelChannel = (name: string) =>
+    nameLower(name).includes("sentinel") || nameLower(name).includes("ops");
+
+  const targets: Array<{
+    source: string;
+    roomId?: UUID;
+    channelId?: string;
+    serverId?: string;
+  }> = [];
+
+  try {
+    const worlds = await runtime.getAllWorlds();
+    for (const world of worlds) {
+      const rooms = await runtime.getRooms(world.id);
+      for (const room of rooms) {
+        const src = nameLower(room.source ?? "");
+        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]))
+          continue;
+        if (!room.id) continue;
+        if (!isSentinelChannel(room.name ?? "")) continue;
+        targets.push({
+          source: room.source ?? "discord",
+          roomId: room.id,
+          channelId: room.channelId,
+          serverId:
+            (room as { messageServerId?: string }).messageServerId ??
+            (room as { serverId?: string }).serverId,
+        });
+      }
+    }
+    if (worlds.length === 0) {
+      const fallbackRooms = await runtime.getRooms(ZERO_UUID);
+      for (const room of fallbackRooms) {
+        const src = nameLower(room.source ?? "");
+        if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number]))
+          continue;
+        if (!isSentinelChannel(room.name ?? "")) continue;
+        targets.push({
+          source: room.source ?? "discord",
+          roomId: room.id,
+          channelId: room.channelId,
+          serverId:
+            (room as { messageServerId?: string }).messageServerId ??
+            (room as { serverId?: string }).serverId,
+        });
+      }
+    }
+  } catch (err) {
+    logger.debug("[SentinelWeekly] Could not get rooms:", err);
+    return 0;
+  }
+
+  const isNoSendHandler = (e: unknown): boolean =>
+    String(e).includes("No send handler") || String(e).includes("Send handler not found");
+
+  let sent = 0;
+  for (const target of targets) {
+    try {
+      await runtime.sendMessageToTarget(target, { text: message });
+      sent++;
+    } catch (e) {
+      if (!isNoSendHandler(e)) logger.warn("[SentinelWeekly] Send failed:", e);
+    }
+  }
+  return sent;
+}
+
+export async function registerSentinelWeeklyTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const enabled = process.env.SENTINEL_WEEKLY_ENABLED !== "false";
+  if (!enabled) {
+    logger.debug(
+      "[SentinelWeekly] Task disabled (SENTINEL_WEEKLY_ENABLED=false)",
+    );
+    return;
+  }
+
+  const taskWorldId = runtime.agentId as UUID;
+
+  runtime.registerTaskWorker({
+    name: "SENTINEL_WEEKLY_SUGGESTIONS",
+    validate: async () => true,
+    execute: async (rt: IAgentRuntime) => {
+      if (process.env.SENTINEL_WEEKLY_ENABLED === "false") return;
+      logger.info("[SentinelWeekly] Building suggestions...");
+      try {
+        const list = await generateWeeklySuggestions(rt);
+        const message = [
+          "**Sentinel — weekly suggestions**",
+          "",
+          list.trim(),
+          "",
+          "---",
+          "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, clawdbot guide, best settings, art gems._",
+        ].join("\n");
+        const sent = await pushToSentinelChannels(rt, message);
+        if (sent > 0) {
+          logger.info(`[SentinelWeekly] Pushed to ${sent} channel(s)`);
+        } else {
+          logger.debug(
+            "[SentinelWeekly] No channels matched (name contains 'sentinel' or 'ops').",
+          );
+        }
+      } catch (error) {
+        logger.error("[SentinelWeekly] Failed:", error);
+      }
+    },
+  });
+
+  await runtime.createTask({
+    name: "SENTINEL_WEEKLY_SUGGESTIONS",
+    description:
+      "Weekly improvement suggestions (architecture, ops, benchmarks, examples, plugins) pushed to sentinel/ops channels",
+    roomId: taskWorldId,
+    worldId: taskWorldId,
+    tags: ["sentinel", "ops", "repeat"],
+    metadata: {
+      updatedAt: Date.now(),
+      updateInterval: WEEKLY_INTERVAL_MS,
+    },
+  });
+
+  logger.info(
+    "[SentinelWeekly] Task registered (weekly; push to channels with 'sentinel' or 'ops' in name). Set SENTINEL_WEEKLY_ENABLED=false to disable.",
+  );
+}

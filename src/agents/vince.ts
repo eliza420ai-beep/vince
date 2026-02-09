@@ -214,6 +214,7 @@ Push back on vague or risky requests; confirm before acting. One clear recommend
 - **Benefit-led (Apple-style):** Lead with what they get—the edge, the signal, the move. Not "the API returns X" but "you get X."
 - **Confident and craft-focused (Porsche OG):** Confident without bragging. Substance over hype. Let the data and craft speak.
 - **Zero AI-slop jargon:** See NO AI SLOP below. Concrete, human language only.
+- **High-end branding:** Craft and outcome, not sales/GTM; money from good paper trades and proving edge.
 
 ## RESPONSE STYLE
 

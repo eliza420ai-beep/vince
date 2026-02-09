@@ -1,0 +1,89 @@
+/**
+ * SENTINEL_DOC_IMPROVE — Suggest improvements to repo .md and consolidate progress.txt (plugin-vince, plugin-kelly, frontend).
+ */
+
+import type {
+  Action,
+  IAgentRuntime,
+  Memory,
+  State,
+  HandlerCallback,
+} from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
+
+const TRIGGERS = [
+  "improve docs",
+  "improve documentation",
+  "consolidate progress",
+  "progress.txt",
+  "update docs",
+  "update documentation",
+  "doc improvements",
+  "progress consolidation",
+];
+
+function wantsDocImprove(text: string): boolean {
+  const lower = text.toLowerCase();
+  return TRIGGERS.some((t) => lower.includes(t));
+}
+
+export const sentinelDocImproveAction: Action = {
+  name: "SENTINEL_DOC_IMPROVE",
+  similes: ["DOC_IMPROVE", "CONSOLIDATE_PROGRESS", "PROGRESS_CONSOLIDATION"],
+  description:
+    "Suggests improvements to repo .md (internal-docs, sentinel-docs, teammate) and consolidation of progress.txt files (plugin-vince, plugin-kelly, frontend). Uses PROGRESS-CONSOLIDATED and knowledge.",
+
+  validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = (message.content?.text ?? "").toLowerCase();
+    return wantsDocImprove(text);
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    _state: State,
+    _options: unknown,
+    callback: HandlerCallback,
+  ): Promise<boolean> => {
+    logger.debug("[SENTINEL_DOC_IMPROVE] Action fired");
+    try {
+      const state = await runtime.composeState(message);
+      const contextBlock = typeof state.text === "string" ? state.text : "";
+      const prompt = `You are Sentinel. You use all .md in knowledge (internal-docs, sentinel-docs, teammate) and are responsible for keeping docs improved and consolidating progress. The user asked about improving docs or consolidating progress.
+
+Using the context below (which includes PROGRESS-CONSOLIDATED, sentinel-docs README, internal-docs, and other knowledge), output a short prioritized list:
+1) Concrete doc improvements: which file, what to add/change (one line per item). Prefer README, CLAUDE.md, FEATURE-STORE, DEPLOY, internal-docs, plugin READMEs.
+2) Progress consolidation: suggest edits to PROGRESS-CONSOLIDATED or the three source progress.txt files (src/plugins/plugin-vince/progress.txt, src/plugins/plugin-kelly/progress.txt, src/frontend/progress.txt); or suggest a single source of truth. Remind to run scripts/sync-sentinel-docs.sh after updating progress.
+Number each item; one line per item with a short ref. No preamble—just the list.
+
+Context:\n${contextBlock}`;
+      const response = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt,
+      });
+      const text =
+        typeof response === "string"
+          ? response
+          : (response as { text?: string })?.text ?? String(response);
+      await callback({ text: text.trim() });
+      return true;
+    } catch (error) {
+      logger.error("[SENTINEL_DOC_IMPROVE] Failed:", error);
+      await callback({
+        text: "Doc improvements: 1) Run scripts/sync-sentinel-docs.sh to refresh knowledge/sentinel-docs and PROGRESS-CONSOLIDATED. 2) Update README/CLAUDE.md if Sentinel or new actions are missing. 3) Consolidate: keep plugin-vince, plugin-kelly, frontend progress.txt as sources; PROGRESS-CONSOLIDATED is the merged view—sync after edits. Refs: knowledge/sentinel-docs/README.md.",
+      });
+      return false;
+    }
+  },
+
+  examples: [
+    [
+      { name: "{{user1}}", content: { text: "Improve our docs and consolidate progress." } },
+      {
+        name: "Sentinel",
+        content: {
+          text: "1) Run scripts/sync-sentinel-docs.sh to refresh sentinel-docs and PROGRESS-CONSOLIDATED. 2) README: add Sentinel to agents table. 3) internal-docs: link FEATURE-STORE in KNOWLEDGE-QUALITY-GUIDE. 4) Progress: keep three progress.txt; sync consolidated view weekly. Refs: sentinel-docs/README.md.",
+        },
+      },
+    ],
+  ],
+};
