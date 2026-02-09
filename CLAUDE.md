@@ -15,6 +15,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
+| **Multi-agent (ASK_AGENT, Discord, A2A)** | [MULTI_AGENT.md](MULTI_AGENT.md) |
 | **Project overview** | [README.md](README.md) |
 | **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 

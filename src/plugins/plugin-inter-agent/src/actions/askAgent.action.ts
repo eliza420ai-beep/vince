@@ -5,6 +5,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -12,7 +13,7 @@ import type {
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 
-const ALLOWED_AGENT_NAMES = [
+const DEFAULT_ALLOWED_AGENT_NAMES = [
   "Vince",
   "Kelly",
   "Solus",
@@ -20,6 +21,17 @@ const ALLOWED_AGENT_NAMES = [
   "Eliza",
   "Otaku",
 ] as const;
+
+/** Get allowed A2A targets from character settings or fallback to defaults. */
+function getAllowedTargets(runtime: IAgentRuntime): readonly string[] {
+  const settings = runtime.character?.settings as Record<string, unknown> | undefined;
+  const interAgent = settings?.interAgent as { allowedTargets?: string[] } | undefined;
+  const fromSettings = interAgent?.allowedTargets;
+  if (Array.isArray(fromSettings) && fromSettings.length > 0) {
+    return fromSettings.map((s) => String(s).trim()).filter(Boolean);
+  }
+  return DEFAULT_ALLOWED_AGENT_NAMES;
+}
 
 const POLL_INTERVAL_MS = 1800;
 const JOB_TIMEOUT_MS = 90_000;  // Allow slow agents (e.g. ASK_AGENT → Vince) up to 90s
@@ -93,7 +105,8 @@ async function fetchAgents(baseUrl: string): Promise<AgentListItem[]> {
   const list = (direct ?? nested ?? dataAsArray) as AgentListItem[] | undefined;
   const out = Array.isArray(list) ? list : [];
   if (out.length === 0 && (direct ?? nested ?? dataAsArray) === undefined) {
-    logger.debug("[ASK_AGENT] fetchAgents: response shape had no agents", { hasData: !!data, keys: data && typeof data === "object" && !Array.isArray(data) ? Object.keys(data) : [] });
+    const keys = data && typeof data === "object" && !Array.isArray(data) ? Object.keys(data) : [];
+    logger.debug(`[ASK_AGENT] fetchAgents: response shape had no agents (hasData=${!!data}, keys=${JSON.stringify(keys)})`);
   }
   return out;
 }
@@ -106,6 +119,41 @@ function getAgentId(a: AgentListItem): string {
   return (a.id ?? a.agentId ?? "").trim();
 }
 
+/** Poll target room for latest assistant reply created after sentAt.
+ * Uses targetRuntime when provided so we see the target agent's messages; otherwise falls back to caller runtime. */
+async function pollForTargetReply(
+  runtime: IAgentRuntime,
+  roomId: string,
+  targetAgentId: string,
+  sentAt: number,
+  timeoutMs: number,
+  pollIntervalMs: number = 500,
+  targetRuntime: IAgentRuntime | null = null
+): Promise<string | null> {
+  const fetchRuntime = targetRuntime ?? runtime;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const memories = await fetchRuntime.getMemories({
+      tableName: "messages",
+      roomId: roomId as import("@elizaos/core").UUID,
+      count: 15,
+    });
+    const fromTarget = memories.filter(
+      (m) =>
+        m.entityId === targetAgentId &&
+        (m.createdAt ?? 0) > sentAt &&
+        typeof m.content?.text === "string" &&
+        (m.content.text as string).trim().length > 0
+    );
+    if (fromTarget.length > 0) {
+      const latest = fromTarget.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0];
+      return (latest.content?.text as string).trim();
+    }
+    await new Promise((r) => setTimeout(r, pollIntervalMs));
+  }
+  return null;
+}
+
 /** Extract reply text from handleMessage result (sync mode). */
 function extractReplyFromHandleMessageResult(result: unknown): string | null {
   if (!result || typeof result !== "object") return null;
@@ -114,19 +162,26 @@ function extractReplyFromHandleMessageResult(result: unknown): string | null {
   if (!processing) return null;
   const responseContent = processing.responseContent as Record<string, unknown> | undefined;
   if (responseContent) {
-    const text = responseContent.text;
+    let text = responseContent.text;
     if (typeof text === "string" && text.trim()) return text.trim();
+    text = responseContent.message;
+    if (typeof text === "string" && text.trim()) return text.trim();
+    const actions = responseContent.actions as string[] | undefined;
+    if (Array.isArray(actions) && actions.includes("REPLY") && typeof responseContent.thought === "string" && responseContent.thought.trim()) {
+      return responseContent.thought.trim();
+    }
     const actionCallbacks = responseContent.actionCallbacks;
     if (actionCallbacks != null) {
       const last = Array.isArray(actionCallbacks) ? actionCallbacks[actionCallbacks.length - 1] : actionCallbacks;
-      const t = last && typeof last === "object" && "text" in last ? (last as { text?: unknown }).text : null;
+      const lastObj = last && typeof last === "object" ? (last as Record<string, unknown>) : null;
+      const t = lastObj?.text ?? lastObj?.message;
       if (typeof t === "string" && t.trim()) return t.trim();
     }
   }
-  const responseMessages = processing.responseMessages as Array<{ content?: { text?: string } }> | undefined;
+  const responseMessages = processing.responseMessages as Array<{ content?: { text?: string; message?: string } }> | undefined;
   if (Array.isArray(responseMessages) && responseMessages.length > 0) {
     const lastMsg = responseMessages[responseMessages.length - 1];
-    const t = lastMsg?.content?.text;
+    const t = lastMsg?.content?.text ?? lastMsg?.content?.message;
     if (typeof t === "string" && t.trim()) return t.trim();
   }
   return null;
@@ -165,7 +220,7 @@ function extractTargetAndQuestion(
   currentAgentName: string
 ): { targetName: string; question: string } | null {
   const lower = text.toLowerCase();
-  for (const name of ALLOWED_AGENT_NAMES) {
+  for (const name of DEFAULT_ALLOWED_AGENT_NAMES) {
     if (name.toLowerCase() === currentAgentName.toLowerCase()) continue;
     const nameLower = name.toLowerCase();
     const askMatch = new RegExp(
@@ -215,7 +270,7 @@ export const askAgentAction: Action = {
     const text = (message.content?.text ?? "").trim();
     if (!text) return false;
     if (wantsToAskAnotherAgent(text)) return true;
-    const stateText = state?.values?.actionResult?.text ?? state?.text ?? "";
+    const stateText = (state?.values?.actionResult as { text?: string } | undefined)?.text ?? state?.text ?? "";
     if (typeof stateText === "string" && wantsToAskAnotherAgent(stateText))
       return true;
     return false;
@@ -227,7 +282,7 @@ export const askAgentAction: Action = {
     state: State | undefined,
     _options: unknown,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<ActionResult | void> => {
     const fromName = runtime.character?.name ?? "I";
     const userText = (message.content?.text ?? "").trim();
 
@@ -251,7 +306,7 @@ export const askAgentAction: Action = {
           text: "I didn't catch which agent you want to ask or what to ask. Try: \"Ask Vince about Bitcoin\" or \"What would Solus say about that?\"",
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
     }
 
@@ -260,7 +315,19 @@ export const askAgentAction: Action = {
         text: "That's me—I'll answer directly. If you had something specific in mind, ask and I'll give you my take.",
         actions: ["ASK_AGENT"],
       });
-      return true;
+      return { success: true };
+    }
+
+    const allowedTargets = getAllowedTargets(runtime);
+    const targetAllowed = allowedTargets.some(
+      (a) => a.toLowerCase().trim() === targetName.toLowerCase().trim()
+    );
+    if (!targetAllowed) {
+      await callback({
+        text: `I'm not allowed to ask ${targetName}. I can only ask: ${allowedTargets.join(", ")}.`,
+        actions: ["ASK_AGENT"],
+      });
+      return { success: false };
     }
 
     const baseUrl = getBaseUrl();
@@ -293,11 +360,11 @@ export const askAgentAction: Action = {
           text: message,
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
 
       const targetAgentId = getAgentId(target as AgentListItem) || (target as { id: string }).id;
-      const content = `[From ${fromName}, on behalf of the user]: ${question}`;
+      const content = `[To ${targetName} — you are being asked. Answer directly as yourself.][From ${fromName}, on behalf of the user]: ${question}`;
 
       // When elizaOS is available, try in-process: sync first, then async, then optional direct messageService.
       const eliza = (runtime as {
@@ -312,6 +379,7 @@ export const askAgentAction: Action = {
       }).elizaOS;
       if (eliza?.handleMessage) {
         logger.info("[ASK_AGENT] Using in-process path for " + targetName);
+        const sentAt = Date.now();
         const userMsg = {
           id: message.id ?? crypto.randomUUID(),
           entityId: message.entityId,
@@ -319,25 +387,34 @@ export const askAgentAction: Action = {
           content: { text: content, source: message.content?.source ?? "ask_agent" },
           createdAt: message.createdAt ?? Date.now(),
         };
-        // Ensure the relaying agent (e.g. Kelly) exists in the target's room so core formatMessages
-        // can resolve both user and relayer entityIds and avoid "No entity found for message" warnings.
+        // Ensure entities exist in the target's room so core formatMessages can resolve
+        // entityIds and avoid "No entity found for message" warnings.
         if (eliza.getAgent) {
           const targetRuntime = eliza.getAgent(targetAgentId) as IAgentRuntime | undefined;
           if (targetRuntime?.ensureConnection) {
-            try {
-              const worldId = (message as { worldId?: string }).worldId ?? message.roomId;
-              await targetRuntime.ensureConnection({
-                entityId: runtime.agentId,
-                roomId: message.roomId,
-                worldId,
-                source: message.content?.source ?? "ask_agent",
-                channelId: message.roomId,
-                name: fromName,
-                userName: fromName,
-              });
-            } catch (ensureErr) {
-              logger.debug("[ASK_AGENT] ensureConnection for relayer in target runtime", ensureErr);
-            }
+            const worldId = (message as { worldId?: string }).worldId ?? message.roomId;
+            const source = message.content?.source ?? "ask_agent";
+            const ensureOne = async (entityId: string, name: string, userName?: string) => {
+              try {
+                await targetRuntime!.ensureConnection!({
+                  entityId: entityId as import("@elizaos/core").UUID,
+                  roomId: message.roomId,
+                  worldId: worldId as import("@elizaos/core").UUID,
+                  source,
+                  channelId: message.roomId,
+                  name,
+                  userName: userName ?? name,
+                });
+              } catch (err) {
+                logger.debug(`[ASK_AGENT] ensureConnection entityId=${entityId} name=${name}`, String(err));
+              }
+            };
+            await ensureOne(runtime.agentId, fromName);
+            const userName =
+              (await runtime.getEntityById?.(message.entityId as import("@elizaos/core").UUID))?.names?.[0] ??
+              "User";
+            await ensureOne(message.entityId as string, userName);
+            await ensureOne(targetAgentId, targetName);
           }
         }
         const IN_PROCESS_TIMEOUT_MS = 95_000; // Slightly above JOB_TIMEOUT_MS so we prefer in-process
@@ -367,14 +444,23 @@ export const askAgentAction: Action = {
             // not on onComplete — otherwise we'd treat "no reply" and then miss a late callback with the real reply.
             const opts = {
               onResponse: (resp: unknown) => {
-                const c = resp as { text?: string; message?: string; [k: string]: unknown };
-                const text = typeof c?.text === "string" ? c.text : typeof c?.message === "string" ? c.message : "";
+                const c = resp as { text?: string; message?: string; thought?: string; actions?: string[]; actionCallbacks?: unknown[]; [k: string]: unknown };
+                let text = typeof c?.text === "string" ? c.text : typeof c?.message === "string" ? c.message : "";
+                if (!text.trim() && c?.thought && Array.isArray(c?.actions) && c.actions.some((a: string) => a === "REPLY")) {
+                  text = String(c.thought);
+                }
+                if (!text.trim() && Array.isArray(c?.actionCallbacks) && c.actionCallbacks.length > 0) {
+                  const last = c.actionCallbacks[c.actionCallbacks.length - 1] as { text?: string } | undefined;
+                  if (typeof last?.text === "string" && last.text.trim()) text = last.text;
+                }
                 const hasText = text.trim().length > 0;
-                logger.info("[ASK_AGENT] onResponse called", {
-                  hasText,
-                  textLength: text.length,
-                  textPreview: hasText ? text.slice(0, 80) + (text.length > 80 ? "..." : "") : undefined,
-                });
+                const preview = hasText ? text.slice(0, 80) + (text.length > 80 ? "..." : "") : "none";
+                logger.info(`[ASK_AGENT] onResponse called hasText=${hasText} textLength=${text.length} textPreview=${preview}`);
+                if (!hasText) {
+                  const keys = resp && typeof resp === "object" ? Object.keys(resp) : [];
+                  const thoughtPrev = typeof c?.thought === "string" ? c.thought.slice(0, 60) + (c.thought.length > 60 ? "..." : "") : "none";
+                  logger.debug(`[ASK_AGENT] onResponse empty content keys=${JSON.stringify(keys)} actions=${JSON.stringify(c?.actions)} thoughtPreview=${thoughtPrev}`);
+                }
                 if (hasText) settle(text.trim());
               },
               onComplete: () => {
@@ -402,11 +488,11 @@ export const askAgentAction: Action = {
               text: `**${targetName} says:** ${reply}`,
               actions: ["ASK_AGENT"],
             });
-            return true;
+            return { success: true };
           }
-          logger.info("[ASK_AGENT] In-process async did not deliver reply", { reason: settleReason });
+          logger.info(`[ASK_AGENT] In-process async did not deliver reply (reason: ${settleReason})`);
         } catch (asyncErr) {
-          logger.debug("[ASK_AGENT] Async handleMessage failed", asyncErr);
+          logger.debug(`[ASK_AGENT] Async handleMessage failed: ${String(asyncErr)}`);
         }
 
         // Fallback: sync (return value may contain processing.responseContent.actionCallbacks).
@@ -426,10 +512,10 @@ export const askAgentAction: Action = {
                 text: `**${targetName} says:** ${reply}`,
                 actions: ["ASK_AGENT"],
               });
-              return true;
+              return { success: true };
             }
           } catch (syncErr) {
-            logger.debug("[ASK_AGENT] Sync handleMessage threw", syncErr);
+            logger.debug(`[ASK_AGENT] Sync handleMessage threw: ${String(syncErr)}`);
           }
         }
 
@@ -446,7 +532,11 @@ export const askAgentAction: Action = {
                   resolve(null);
                 }, IN_PROCESS_TIMEOUT_MS);
                 const cb = (c: unknown) => {
-                  const text = (c as { text?: string })?.text;
+                  const content = c as { text?: string; message?: string; thought?: string; actions?: string[] };
+                  let text = typeof content?.text === "string" ? content.text : typeof content?.message === "string" ? content.message : "";
+                  if (!text.trim() && content?.thought && Array.isArray(content?.actions) && content.actions.includes("REPLY")) {
+                    text = content.thought;
+                  }
                   if (typeof text === "string" && text.trim() && !settled) {
                     settled = true;
                     clearTimeout(timeoutId);
@@ -472,11 +562,40 @@ export const askAgentAction: Action = {
                   text: `**${targetName} says:** ${reply}`,
                   actions: ["ASK_AGENT"],
                 });
-                return true;
+                return { success: true };
               }
             } catch (directErr) {
-              logger.debug("[ASK_AGENT] Direct messageService fallback failed", directErr);
+              logger.debug(`[ASK_AGENT] Direct messageService fallback failed: ${String(directErr)}`);
             }
+          }
+        }
+
+        // Fallback: poll target room for new assistant message (avoids callback ordering issues).
+        if (!reply) {
+          try {
+            const POLL_TIMEOUT_MS = 30_000; // Allow slow agents (embeddings, RAG) up to 30s
+            const tr = eliza.getAgent?.(targetAgentId) as IAgentRuntime | undefined;
+            logger.info(`[ASK_AGENT] Polling target room for reply roomId=${message.roomId} targetAgentId=${targetAgentId} timeoutMs=${POLL_TIMEOUT_MS} hasTargetRuntime=${!!tr}`);
+            reply = await pollForTargetReply(
+              runtime,
+              message.roomId,
+              targetAgentId,
+              sentAt,
+              POLL_TIMEOUT_MS,
+              500,
+              tr ?? null
+            );
+            if (reply) {
+              logger.info("[ASK_AGENT] Polling found reply");
+              await callback({
+                text: `**${targetName} says:** ${reply}`,
+                actions: ["ASK_AGENT"],
+              });
+              return { success: true };
+            }
+            logger.info("[ASK_AGENT] Polling timed out without reply");
+          } catch (pollErr) {
+            logger.debug(`[ASK_AGENT] Polling fallback failed: ${String(pollErr)}`);
           }
         }
 
@@ -502,12 +621,12 @@ export const askAgentAction: Action = {
 
       if (!createRes.ok) {
         const errBody = await createRes.text();
-        logger.warn("[ASK_AGENT] Job create failed:", createRes.status, errBody);
+        logger.warn(`[ASK_AGENT] Job create failed: ${createRes.status} ${errBody}`);
         await callback({
           text: `${targetName} couldn't be reached right now (server ${createRes.status}). Try again in a moment or ask them directly.`,
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
 
       const createData = (await createRes.json()) as { jobId?: string };
@@ -517,7 +636,7 @@ export const askAgentAction: Action = {
           text: `${targetName} didn't return a job id. Please try again.`,
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
 
       const start = Date.now();
@@ -530,7 +649,7 @@ export const askAgentAction: Action = {
           headers: getAuthHeaders(),
         });
         if (!getRes.ok) {
-          logger.warn("[ASK_AGENT] Job get failed:", getRes.status);
+          logger.warn(`[ASK_AGENT] Job get failed: ${getRes.status}`);
           continue;
         }
         last = (await getRes.json()) as typeof last;
@@ -550,7 +669,7 @@ export const askAgentAction: Action = {
           text: `**${targetName} says:** ${reply}`,
           actions: ["ASK_AGENT"],
         });
-        return true;
+        return { success: true };
       }
 
       if (last.status === "timeout") {
@@ -558,7 +677,7 @@ export const askAgentAction: Action = {
           text: `${targetName} didn't respond in time. You can try asking them directly.`,
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
 
       if (last.status === "failed" && last.error) {
@@ -566,21 +685,21 @@ export const askAgentAction: Action = {
           text: `${targetName} ran into an issue: ${last.error}. You can try asking them directly.`,
           actions: ["ASK_AGENT"],
         });
-        return false;
+        return { success: false };
       }
 
       await callback({
         text: `${targetName} didn't respond in time. You can try asking them directly.`,
         actions: ["ASK_AGENT"],
       });
-      return false;
+      return { success: false };
     } catch (err) {
       logger.error("[ASK_AGENT] Error:", err);
       await callback({
         text: `Something went wrong asking ${targetName}. Check that the server is running at ${baseUrl} and try again, or ask them directly.`,
         actions: ["ASK_AGENT"],
       });
-      return false;
+      return { success: false };
     }
   },
 

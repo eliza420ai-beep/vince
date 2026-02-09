@@ -71,21 +71,21 @@ describe("askAgentAction", () => {
       const runtime = createMockRuntime();
       const msg = createMessage("Ask Vince about Bitcoin");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
     });
 
     it("returns true for what would Solus say about Y", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("What would Solus say about that trade?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
     });
 
     it("returns true for ping Kelly", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("Ping Kelly. What wine for steak?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
     });
 
     it("returns true when state.values.actionResult.text contains ask-intent", async () => {
@@ -97,21 +97,21 @@ describe("askAgentAction", () => {
         text: "",
       };
       const result = await askAgentAction.validate!(runtime, msg, state);
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
     });
 
     it("returns false for empty message", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("   ");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
     });
 
     it("returns false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const msg = createMessage("What is the weather today?");
       const result = await askAgentAction.validate!(runtime, msg);
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
     });
   });
 
@@ -135,7 +135,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls.length).toBeGreaterThanOrEqual(1);
       expect(calls[0].text).toContain("I didn't catch which agent");
     });
@@ -162,7 +162,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls.length).toBeGreaterThanOrEqual(1);
       expect(calls[0].text).toContain("That's me");
     });
@@ -200,7 +200,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls.length).toBeGreaterThanOrEqual(1);
       expect(calls[0].text).toBe("**Vince says:** Vince reply");
     });
@@ -243,7 +243,7 @@ describe("askAgentAction", () => {
       // After onError we try sync (no opts so mock resolves), then job API. We mock job to complete.
       expect(handleMessage).toHaveBeenCalled();
       expect(calls.length).toBeGreaterThanOrEqual(1);
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls[0].text).toContain("**Vince says:** Fallback reply");
     });
 
@@ -277,7 +277,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls[0].text).toBe("**Vince says:** Sync reply");
     });
 
@@ -315,7 +315,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls[0].text).toBe("**Vince says:** Direct reply");
     });
   });
@@ -353,7 +353,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(true);
+      expect(result).toEqual({ success: true });
       expect(calls[0].text).toBe("**Vince says:** Agent reply");
     });
 
@@ -386,7 +386,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("didn't respond in time");
     });
 
@@ -419,7 +419,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("Something broke");
     });
 
@@ -449,7 +449,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("couldn't be reached");
       expect(calls[0].text).toContain("503");
     });
@@ -479,7 +479,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("didn't return a job id");
     });
   });
@@ -499,7 +499,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("Something went wrong");
       expect(calls[0].text).toContain("test-server");
     });
@@ -526,7 +526,7 @@ describe("askAgentAction", () => {
         callback
       );
 
-      expect(result).toBe(false);
+      expect(result).toEqual({ success: false });
       expect(calls[0].text).toContain("couldn't find an agent named");
       expect(calls[0].text).toContain("Vince");
     });
