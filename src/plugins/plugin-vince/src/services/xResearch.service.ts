@@ -4,6 +4,11 @@
  * Read-only X API v2 wrapper for search, profile, and thread.
  * Uses the official X TypeScript XDK (@xdevplatform/xdk) when available; falls back to raw fetch.
  * Requires X_BEARER_TOKEN (X API Basic tier or higher). Rate limit: ~450 req/15min.
+ *
+ * Official X API v2 samples (XDK patterns): https://github.com/xdevplatform/samples/tree/main/javascript
+ * - posts: search_recent, get_posts_by_ids
+ * - lists: get_list_by_id, get_list_posts, get_list_members
+ * - users: get_users_by_usernames; users/timeline: get_posts, get_posts_paginated
  */
 
 import { Service, logger } from "@elizaos/core";
@@ -43,7 +48,7 @@ export interface XTweet {
 
 interface RawResponse {
   data?: any[];
-  includes?: { users?: any[] };
+  includes?: { users?: any[]; tweets?: any[] };
   meta?: { next_token?: string; result_count?: number };
   errors?: any[];
 }
@@ -119,6 +124,7 @@ type XDKClient = {
   };
   users?: {
     getByUsernames?: (usernames: string[], params?: Record<string, unknown>) => Promise<{ data?: any[] }>;
+    getPosts?: (userId: string, params?: Record<string, unknown>) => Promise<{ data?: any[]; includes?: RawResponse["includes"]; meta?: { next_token?: string } }>;
   };
   lists?: {
     getById?: (id: string, params?: Record<string, unknown>) => Promise<{ data?: any }>;
@@ -284,6 +290,7 @@ export class VinceXResearchService extends Service {
     if (searchRecent) {
       try {
         await this.ensureNotRateLimited();
+        // XDK search_recent pattern: https://github.com/xdevplatform/samples/blob/main/javascript/posts/search_recent.js
         const all: XTweet[] = [];
         let nextToken: string | undefined;
         const baseParams: Record<string, unknown> = {
@@ -345,31 +352,71 @@ export class VinceXResearchService extends Service {
 
   /**
    * Get recent tweets from a user (excludes replies by default).
+   * Results cached 15 min (same TTL as search).
    */
   async profile(
     username: string,
     opts: { count?: number; includeReplies?: boolean } = {},
-  ): Promise<{ user: any; tweets: XTweet[] }> {
+  ): Promise<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet }> {
+    const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase() || username.trim();
+    const count = Math.min(opts.count || 20, 100);
+    const cacheKey = this.cacheKey("profile", `${normalizedUsername}|${opts.includeReplies ?? false}|${count}`);
+    const cached = await this.runtime.getCache<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet; ts: number }>(cacheKey);
+    if (cached?.user && cached.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
+      return { user: cached.user, tweets: cached.tweets, pinnedTweet: cached.pinnedTweet };
+    }
+
     const client = await this.getClient();
     const getByUsernames = client?.users?.getByUsernames;
 
     if (getByUsernames) {
       try {
         await this.ensureNotRateLimited();
+        // Align with samples: https://github.com/xdevplatform/samples/blob/main/javascript/users/get_users_by_usernames.js
         const userResponse = await getByUsernames.call(client!.users!, [username], {
           userFields: ["public_metrics", "description", "created_at"],
+          expansions: ["pinned_tweet_id"],
         });
         const users = userResponse?.data;
         const user = Array.isArray(users) ? users[0] : userResponse?.data;
         if (!user) throw new Error(`User @${username} not found`);
         await sleep(RATE_DELAY_MS);
-        const replyFilter = opts.includeReplies ? "" : " -is:reply";
-        const query = `from:${username} -is:retweet${replyFilter}`;
-        const tweets = await this.search(query, {
-          maxResults: Math.min(opts.count || 20, 100),
-          sortOrder: "recency",
-        });
-        return { user, tweets };
+
+        const getPosts = client!.users?.getPosts;
+        let tweets: XTweet[];
+        if (getPosts) {
+          // Use timeline API when available: https://github.com/xdevplatform/samples/tree/main/javascript/users/timeline
+          // X API exclude: https://developer.x.com/en/docs/twitter-api/tweets/timelines/api-reference/get-users-id-tweets
+          const res = await getPosts.call(client!.users!, user.id, {
+            maxResults: count,
+            tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
+            expansions: ["author_id"],
+            userFields: ["username", "name", "public_metrics"],
+            ...(opts.includeReplies ? {} : { exclude: "replies" }),
+          });
+          const raw: RawResponse = { data: res?.data, includes: res?.includes };
+          tweets = parseTweets(raw);
+        } else {
+          const replyFilter = opts.includeReplies ? "" : " -is:reply";
+          const query = `from:${username} -is:retweet${replyFilter}`;
+          tweets = await this.search(query, { maxResults: count, sortOrder: "recency" });
+        }
+        let pinnedTweet: XTweet | undefined;
+        const pinnedId = user?.pinned_tweet_id;
+        const includedTweets = (userResponse as any)?.includes?.tweets;
+        if (pinnedId && Array.isArray(includedTweets)) {
+          const pinnedRaw = includedTweets.find((t: any) => t.id === pinnedId);
+          if (pinnedRaw) {
+            const parsed = parseTweets({
+              data: [pinnedRaw],
+              includes: { users: [user] },
+            });
+            pinnedTweet = parsed[0];
+          }
+        }
+        const result = { user, tweets, pinnedTweet };
+        await this.runtime.setCache(cacheKey, { ...result, ts: Date.now() });
+        return result;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes("429") || msg.toLowerCase().includes("rate limit")) this.handle429(err);
@@ -387,10 +434,12 @@ export class VinceXResearchService extends Service {
     const replyFilter = opts.includeReplies ? "" : " -is:reply";
     const query = `from:${username} -is:retweet${replyFilter}`;
     const tweets = await this.search(query, {
-      maxResults: Math.min(opts.count || 20, 100),
+      maxResults: count,
       sortOrder: "recency",
     });
-    return { user, tweets };
+    const result = { user, tweets };
+    await this.runtime.setCache(cacheKey, { ...result, ts: Date.now() });
+    return result;
   }
 
   /**

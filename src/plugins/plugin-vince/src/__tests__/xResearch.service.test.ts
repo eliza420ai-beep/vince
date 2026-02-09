@@ -1,6 +1,6 @@
 /**
- * VinceXResearchService: 15-min cache and thread().
- * Cache: two identical search() calls return same result and second does not hit API.
+ * VinceXResearchService: 15-min cache, thread(), profile().
+ * Cache: two identical search() or profile() calls return same result and second does not hit API.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
@@ -26,10 +26,10 @@ const mockTweet: XTweet = {
 };
 
 function createMockRuntimeWithCache(): IAgentRuntime {
-  const cache = new Map<string, { tweets: XTweet[]; ts: number }>();
+  const cache = new Map<string, unknown>();
   return {
     getCache: vi.fn(async (key: string) => cache.get(key)),
-    setCache: vi.fn(async (key: string, value: { tweets: XTweet[]; ts: number }) => {
+    setCache: vi.fn(async (key: string, value: unknown) => {
       cache.set(key, value);
       return true;
     }),
@@ -101,6 +101,105 @@ describe("VinceXResearchService", () => {
       );
       expect(getTweetSpy).toHaveBeenCalledWith(threadId);
       expect(Array.isArray(tweets)).toBe(true);
+    });
+  });
+
+  describe("profile", () => {
+    it("returns cached result on second identical profile call (no second API call)", async () => {
+      const runtime = createMockRuntimeWithCache();
+      const getByUsernames = vi.fn().mockResolvedValue({
+        data: [{ id: "u1", username: "someuser", name: "Some User" }],
+      });
+      const getPosts = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "t1",
+            text: "a tweet",
+            author_id: "u1",
+            created_at: new Date().toISOString(),
+            conversation_id: "t1",
+            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            entities: { urls: [], mentions: [], hashtags: [] },
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "someuser", name: "Some User" }] },
+      });
+      const mockClient = {
+        users: {
+          getByUsernames: getByUsernames,
+          getPosts: getPosts,
+        },
+      };
+      const service = new VinceXResearchService(runtime);
+      (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue(mockClient);
+
+      const result1 = await service.profile("someuser", { count: 10 });
+      const result2 = await service.profile("someuser", { count: 10 });
+
+      expect(result1.user).toBeDefined();
+      expect(result1.tweets).toHaveLength(1);
+      expect(result1.tweets[0].id).toBe("t1");
+      expect(result1.tweets[0].text).toBe("a tweet");
+      expect(result2).toEqual(result1);
+      expect(getByUsernames).toHaveBeenCalledTimes(1);
+      expect(getPosts).toHaveBeenCalledTimes(1);
+      expect(runtime.setCache).toHaveBeenCalledWith(
+        expect.stringContaining("profile:"),
+        expect.objectContaining({ user: result1.user, tweets: result1.tweets, ts: expect.any(Number) }),
+      );
+    });
+
+    it("returns user, tweets array, and optional pinnedTweet with correct shape", async () => {
+      const runtime = createMockRuntimeWithCache();
+      const pinnedId = "pinned123";
+      const getByUsernames = vi.fn().mockResolvedValue({
+        data: [{ id: "u1", username: "dev", name: "Dev User", pinned_tweet_id: pinnedId }],
+        includes: {
+          tweets: [
+            {
+              id: pinnedId,
+              text: "pinned tweet",
+              author_id: "u1",
+              created_at: new Date().toISOString(),
+              conversation_id: pinnedId,
+              public_metrics: { like_count: 1, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+              entities: { urls: [], mentions: [], hashtags: [] },
+            },
+          ],
+        },
+      });
+      const getPosts = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: "t2",
+            text: "recent",
+            author_id: "u1",
+            created_at: new Date().toISOString(),
+            conversation_id: "t2",
+            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            entities: { urls: [], mentions: [], hashtags: [] },
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "dev", name: "Dev User" }] },
+      });
+      const service = new VinceXResearchService(runtime);
+      (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue({
+        users: { getByUsernames, getPosts },
+      });
+
+      const result = await service.profile("dev", { count: 10 });
+
+      expect(result.user).toBeDefined();
+      expect(result.user.username).toBe("dev");
+      expect(Array.isArray(result.tweets)).toBe(true);
+      expect(result.tweets[0].id).toBe("t2");
+      expect(result.tweets[0].author_id).toBe("u1");
+      expect(result.tweets[0].username).toBe("dev");
+      expect(result.pinnedTweet).toBeDefined();
+      expect(result.pinnedTweet!.id).toBe(pinnedId);
+      expect(result.pinnedTweet!.text).toBe("pinned tweet");
     });
   });
 

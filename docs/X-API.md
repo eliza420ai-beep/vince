@@ -29,5 +29,5 @@ To support this in code later:
 ## References
 
 - [X API v2 docs](https://developer.x.com/en/docs/twitter-api)
-- [Official X TypeScript XDK / samples](https://github.com/xdevplatform/samples/tree/main/javascript)
+- [Official X TypeScript XDK / samples](https://github.com/xdevplatform/samples/tree/main/javascript): `posts` (search_recent, get_posts_by_ids), `lists` (get_list_by_id, get_list_posts, get_list_members), `users` (get_users_by_usernames, timeline get_posts / get_posts_paginated).
 - Plugin: **VinceXResearchService**, **VinceXSentimentService**; see **SIGNAL_SOURCES.md** in plugin-vince for sentiment and list feed details.
