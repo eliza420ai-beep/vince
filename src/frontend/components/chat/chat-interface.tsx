@@ -128,9 +128,13 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
-  // VINCE (CDO): trading bot first, then daily reports (ALOHA, Options, Perps, News), then HIP-3 (onchain stock market). Memes/NFT available in chat.
+  // VINCE (CDO): X is #1 source of insights/news/alpha/sentiment and feeds the flagship paper bot. Quick actions surface X first, then bot, ALOHA, domains.
   vince: [
     { label: "What can the CDO do?", message: "What can you do?" },
+    { label: "X: BTC", message: "What are people saying about BTC?" },
+    { label: "X: Perps", message: "What's CT saying about perps?" },
+    { label: "X: VIP", message: "What did @RaoulGMI post recently?" },
+    { label: "X → Paper", message: "How does X sentiment affect the paper bot?" },
     { label: "Trading Bot", message: "bot status" },
     { label: "ALOHA", message: "aloha" },
     { label: "Options", message: "options" },
@@ -200,6 +204,12 @@ function getQuickActionsForAgent(agentName: string): { label: string; message: s
   const key = (agentName || "").toLowerCase().trim();
   return QUICK_ACTIONS_BY_AGENT[key] ?? QUICK_ACTIONS_BY_AGENT.vince;
 }
+
+// Limitations for quick actions (shown under the Quick: buttons when present). Keep short and clear.
+const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
+  vince:
+    "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. See X-RESEARCH.md.",
+};
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
 const ALPHA_CATEGORIES: Record<
@@ -1110,25 +1120,32 @@ export function ChatInterface({
               <MarketPulseCard agentId={agent.id} />
               {/* Quick actions: agent-specific prompts (VINCE = markets/trading, Eliza = research/knowledge) */}
               {agent?.id && (
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
-                    Quick:
-                  </span>
-                  {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => handleQuickPrompt(message)}
-                      disabled={isTyping || isCreatingChannel}
-                      className={cn(
-                        "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
-                        (isTyping || isCreatingChannel) &&
-                          "opacity-50 pointer-events-none",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="mb-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
+                      Quick:
+                    </span>
+                    {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => handleQuickPrompt(message)}
+                        disabled={isTyping || isCreatingChannel}
+                        className={cn(
+                          "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
+                          (isTyping || isCreatingChannel) &&
+                            "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {agent.name && QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()] && (
+                    <p className="text-[10px] text-muted-foreground mt-1.5 max-w-2xl">
+                      {QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()]}
+                    </p>
+                  )}
                 </div>
               )}
               {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}

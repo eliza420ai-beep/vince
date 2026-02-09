@@ -16,6 +16,13 @@ import type { VinceXResearchService } from "./xResearch.service";
 import type { XTweet } from "./xResearch.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
+import {
+  BULLISH_WORDS,
+  BEARISH_WORDS,
+  RISK_WORDS,
+  PHRASE_OVERRIDES,
+  NEGATION_WINDOW,
+} from "../constants/sentimentKeywords";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const STAGGER_INTERVAL_MS_DEFAULT = 60 * 60 * 1000; // 1h between single-asset refreshes (e.g. 24 assets = one per hour = full cycle every 24h)
@@ -36,57 +43,155 @@ function isSentimentEnabled(): boolean {
 }
 
 const CACHE_TTL_MS = ONE_DAY_MS; // 24h — refresh is staggered (e.g. one asset per hour); keep using last result until next refresh
-const MIN_TWEETS_FOR_CONFIDENCE = 3;
+const MIN_TWEETS_FOR_CONFIDENCE_DEFAULT = 3;
+function getMinTweetsForConfidence(): number {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_MIN_TWEETS;
+  if (v === undefined || v === "") return MIN_TWEETS_FOR_CONFIDENCE_DEFAULT;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) || n < 1 ? MIN_TWEETS_FOR_CONFIDENCE_DEFAULT : Math.min(20, n);
+}
+const BULL_BEAR_THRESHOLD_DEFAULT = 0.15;
+function getBullBearThreshold(): number {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_BULL_BEAR_THRESHOLD;
+  if (v === undefined || v === "") return BULL_BEAR_THRESHOLD_DEFAULT;
+  const n = parseFloat(v);
+  return Number.isNaN(n) || n <= 0 ? BULL_BEAR_THRESHOLD_DEFAULT : Math.min(0.5, n);
+}
+
+/** Allowed since values for X search (X API start_time). Default 1d. */
+const SINCE_OPTIONS = ["6h", "1d", "2d"] as const;
+type SinceOption = (typeof SINCE_OPTIONS)[number];
+function getSentimentSince(): string {
+  loadEnvOnce();
+  const v = (process.env.X_SENTIMENT_SINCE ?? "1d").trim().toLowerCase();
+  if (SINCE_OPTIONS.includes(v as SinceOption)) return v;
+  return "1d";
+}
+
+/** Sort order for X sentiment search. Default relevancy. */
+function getSentimentSortOrder(): "relevancy" | "recency" {
+  loadEnvOnce();
+  const v = (process.env.X_SENTIMENT_SORT_ORDER ?? "relevancy").trim().toLowerCase();
+  if (v === "recency") return "recency";
+  return "relevancy";
+}
+
+/** Build search query for an asset: expanded for majors ($BTC OR Bitcoin etc). */
+export function buildSentimentQuery(asset: string): string {
+  if (asset === "HYPE") return "HYPE crypto";
+  const expanded: Record<string, string> = {
+    BTC: "$BTC OR Bitcoin",
+    ETH: "$ETH OR Ethereum",
+    SOL: "$SOL OR Solana",
+  };
+  return expanded[asset] ?? `$${asset}`;
+}
 
 /** Parse "Resets in Ns" from X API rate-limit error. Returns seconds or 0. Exported for tests. */
 export function parseRateLimitResetSeconds(message: string): number {
   const match = message.match(/Resets?\s+in\s+(\d+)\s*s/i);
   return match ? Math.max(1, parseInt(match[1], 10)) : 0;
 }
-const BULLISH_WORDS = [
-  "bullish",
-  "moon",
-  "pump",
-  "buy",
-  "long",
-  "great",
-  "love",
-  "bull",
-  "growth",
-  "profit",
-  "accumulate",
-  "bottom",
-];
-const BEARISH_WORDS = [
-  "bearish",
-  "dump",
-  "sell",
-  "short",
-  "bad",
-  "hate",
-  "bear",
-  "crash",
-  "fud",
-  "top",
-];
-const RISK_WORDS = ["rug", "scam", "exploit", "hack", "drain", "stolen"];
-
-function simpleSentiment(text: string): number {
+/** Phrase override: if text matches a phrase, return -1 (bearish), 0 (neutral), or 1 (bullish); else null. */
+function getPhraseOverride(text: string): number | null {
   const lower = text.toLowerCase();
-  let score = 0;
-  for (const w of BULLISH_WORDS) {
-    if (lower.includes(w)) score += 1;
+  for (const { phrase, sentiment } of PHRASE_OVERRIDES) {
+    if (lower.includes(phrase.toLowerCase())) {
+      if (sentiment === "bullish") return 1;
+      if (sentiment === "bearish") return -1;
+      return 0;
+    }
   }
-  for (const w of BEARISH_WORDS) {
-    if (lower.includes(w)) score -= 1;
+  return null;
+}
+
+/** Check if the text preceding position `idx` (within NEGATION_WINDOW words) contains negation. */
+function hasNegationBefore(lower: string, idx: number): boolean {
+  const prefix = lower.slice(Math.max(0, idx - 35), idx);
+  return /\b(not|n't|never|isn't|wasn't|aren't|won't|don't|doesn't|didn't)\s*$/i.test(prefix);
+}
+
+export interface SentimentKeywordLists {
+  bullish: string[];
+  bearish: string[];
+  risk: string[];
+}
+
+/** Load keyword lists from env X_SENTIMENT_KEYWORDS_PATH (JSON: { bullish, bearish, risk }) or built-in. */
+export function getKeywordLists(): SentimentKeywordLists {
+  loadEnvOnce();
+  const fp = process.env.X_SENTIMENT_KEYWORDS_PATH?.trim();
+  if (!fp || !existsSync(fp)) {
+    return { bullish: [...BULLISH_WORDS], bearish: [...BEARISH_WORDS], risk: [...RISK_WORDS] };
+  }
+  try {
+    const data = JSON.parse(readFileSync(fp, "utf-8")) as Record<string, unknown>;
+    const bullish = Array.isArray(data.bullish) ? (data.bullish as string[]) : [...BULLISH_WORDS];
+    const bearish = Array.isArray(data.bearish) ? (data.bearish as string[]) : [...BEARISH_WORDS];
+    const risk = Array.isArray(data.risk) ? (data.risk as string[]) : [...RISK_WORDS];
+    return { bullish, bearish, risk };
+  } catch {
+    return { bullish: [...BULLISH_WORDS], bearish: [...BEARISH_WORDS], risk: [...RISK_WORDS] };
+  }
+}
+
+/**
+ * Per-tweet sentiment in [-1, 1]. Phrase overrides first; else word count with negation; then cap.
+ * Exported for tests. Optional lists use built-in when not provided.
+ */
+export function simpleSentiment(
+  text: string,
+  lists?: { bullish?: string[]; bearish?: string[] },
+): number {
+  const lower = text.toLowerCase();
+  const override = getPhraseOverride(text);
+  if (override !== null) return override;
+
+  const bullishWords = lists?.bullish ?? BULLISH_WORDS;
+  const bearishWords = lists?.bearish ?? BEARISH_WORDS;
+  let score = 0;
+  for (const w of bullishWords) {
+    const i = lower.indexOf(w);
+    if (i === -1) continue;
+    if (hasNegationBefore(lower, i)) score -= 1;
+    else score += 1;
+  }
+  for (const w of bearishWords) {
+    const i = lower.indexOf(w);
+    if (i === -1) continue;
+    if (hasNegationBefore(lower, i)) score += 1;
+    else score -= 1;
   }
   if (score === 0) return 0;
   return Math.max(-1, Math.min(1, score / 5));
 }
 
-function hasRiskKeyword(text: string): boolean {
+export function hasRiskKeyword(text: string, riskWords?: string[]): boolean {
   const lower = text.toLowerCase();
-  return RISK_WORDS.some((w) => lower.includes(w));
+  const words = riskWords ?? RISK_WORDS;
+  return words.some((w) => lower.includes(w));
+}
+
+/** Max engagement weight per tweet so one viral tweet doesn't dominate. Default 3. */
+const ENGAGEMENT_CAP_DEFAULT = 3;
+function getEngagementCap(): number {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_ENGAGEMENT_CAP;
+  if (v === undefined || v === "") return ENGAGEMENT_CAP_DEFAULT;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) || n < 1 ? ENGAGEMENT_CAP_DEFAULT : Math.min(20, n);
+}
+
+/** Min tweets with risk keywords to set hasHighRiskEvent. Default 2 to reduce single-troll false positives. */
+const RISK_MIN_TWEETS_DEFAULT = 2;
+function getRiskMinTweets(): number {
+  loadEnvOnce();
+  const v = process.env.X_SENTIMENT_RISK_MIN_TWEETS;
+  if (v === undefined || v === "") return RISK_MIN_TWEETS_DEFAULT;
+  const n = parseInt(v, 10);
+  return Number.isNaN(n) || n < 1 ? 1 : Math.min(10, n);
 }
 
 interface CachedSentiment {
@@ -133,6 +238,7 @@ export class VinceXSentimentService extends Service {
       ) as VinceXResearchService | null;
     }
     if (!xResearch?.isConfigured()) {
+      service.cache.clear();
       logger.info(
         "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",
       );
@@ -320,15 +426,18 @@ export class VinceXSentimentService extends Service {
     asset: string,
     xResearch: VinceXResearchService,
   ): Promise<void> {
-    const query = asset === "HYPE" ? "HYPE crypto" : `$${asset}`;
+    const query = buildSentimentQuery(asset);
+    const since = getSentimentSince();
+    const sortOrder = getSentimentSortOrder();
     const tweets = await xResearch.search(query, {
       maxResults: 30,
       pages: 1,
-      sortOrder: "relevancy",
-      since: "1d",
+      sortOrder,
+      since,
     });
 
-    if (tweets.length < MIN_TWEETS_FOR_CONFIDENCE) {
+    const minTweets = getMinTweetsForConfidence();
+    if (tweets.length < minTweets) {
       this.cache.set(asset, {
         sentiment: "neutral",
         confidence: 0,
@@ -343,24 +452,40 @@ export class VinceXSentimentService extends Service {
     let totalWeight = 0;
     let hasRisk = false;
 
+    const keywordLists = getKeywordLists();
+    const engagementCap = getEngagementCap();
+    let riskTweetCount = 0;
     for (const t of tweets) {
-      const s = simpleSentiment(t.text);
-      if (hasRiskKeyword(t.text)) hasRisk = true;
-      const weight = 1 + Math.log10(1 + (t.metrics.likes || 0));
+      const s = simpleSentiment(t.text, {
+        bullish: keywordLists.bullish,
+        bearish: keywordLists.bearish,
+      });
+      if (hasRiskKeyword(t.text, keywordLists.risk)) riskTweetCount += 1;
+      const rawWeight = 1 + Math.log10(1 + (t.metrics.likes || 0));
+      const weight = Math.min(rawWeight, engagementCap);
       sumSentiment += s;
       weightedSum += s * weight;
       totalWeight += weight;
     }
+    const minRiskTweets = getRiskMinTweets();
+    hasRisk = riskTweetCount >= minRiskTweets;
 
     const avgRaw = sumSentiment / tweets.length;
     const avgWeighted = totalWeight > 0 ? weightedSum / totalWeight : 0;
     const avgSentiment = avgWeighted !== 0 ? avgWeighted : avgRaw;
 
+    const threshold = getBullBearThreshold();
     let sentiment: "bullish" | "bearish" | "neutral" = "neutral";
-    if (avgSentiment > 0.15) sentiment = "bullish";
-    else if (avgSentiment < -0.15) sentiment = "bearish";
+    if (avgSentiment > threshold) sentiment = "bullish";
+    else if (avgSentiment < -threshold) sentiment = "bearish";
 
-    const strength = Math.min(1, Math.abs(avgSentiment) * 2 + tweets.length / 50);
+    // Tuned so small-but-clear samples reach ~40: e.g. 5 tweets + 0.2 avg -> strength ~0.6 -> confidence 42
+    const strength = Math.min(
+      1,
+      Math.abs(avgSentiment) * 2 +
+        tweets.length / 25 +
+        (tweets.length >= minTweets && Math.abs(avgSentiment) > 0.2 ? 0.08 : 0),
+    );
     const confidence = Math.round(Math.min(100, strength * 70));
 
     this.cache.set(asset, {

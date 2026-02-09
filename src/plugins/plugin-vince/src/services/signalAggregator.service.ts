@@ -917,11 +917,24 @@ export class VinceSignalAggregatorService extends Service {
     ) as VinceXSentimentService | null;
     if (xSentimentService?.isConfigured()) {
       try {
+        const xConfidenceFloor =
+          Math.min(100, Math.max(1, parseInt(process.env.X_SENTIMENT_CONFIDENCE_FLOOR ?? "40", 10) || 40));
+        const xSoftTierEnabled = /^(1|true|yes)$/i.test(
+          (process.env.X_SENTIMENT_SOFT_TIER_ENABLED ?? "").trim(),
+        );
         const { sentiment, confidence, hasHighRiskEvent } =
           xSentimentService.getTradingSentiment(asset);
-        if (confidence >= 40) {
-          const discount = Math.round(confidence * 0.8);
-          const strength = 52 + Math.min(15, confidence / 6);
+        const isPrimaryTier = confidence >= xConfidenceFloor;
+        const isSoftTier =
+          xSoftTierEnabled &&
+          confidence >= 25 &&
+          confidence < xConfidenceFloor &&
+          sentiment !== "neutral";
+        if (isPrimaryTier || isSoftTier) {
+          const discount = Math.round(confidence * (isSoftTier ? 0.5 : 0.8));
+          const baseStrength = 52 + Math.min(15, confidence / 6);
+          const strength = isSoftTier ? Math.round(baseStrength * 0.3) : baseStrength;
+          const lowLabel = isSoftTier ? " (low confidence)" : "";
           if (sentiment === "bullish") {
             if (hasHighRiskEvent) {
               triedNoContribution.push("XSentiment(blocked:risk)");
@@ -932,12 +945,12 @@ export class VinceSignalAggregatorService extends Service {
                 strength,
                 confidence: discount,
                 source: "XSentiment",
-                factors: [`X sentiment bullish (${confidence}% confidence)`],
+                factors: [`X sentiment bullish (${confidence}% confidence)${lowLabel}`],
                 timestamp: Date.now(),
               });
               sources.push("XSentiment");
               allFactors.push(
-                `X sentiment bullish (${confidence}% confidence)`,
+                `X sentiment bullish (${confidence}% confidence)${lowLabel}`,
               );
             }
           } else if (sentiment === "bearish") {
@@ -945,22 +958,23 @@ export class VinceSignalAggregatorService extends Service {
               asset,
               direction: "short",
               strength: hasHighRiskEvent
-                ? Math.min(70, strength + 8)
+                ? Math.min(70, strength + (isSoftTier ? 2 : 8))
                 : strength,
               confidence: discount,
               source: "XSentiment",
-              factors: hasHighRiskEvent
-                ? [`X sentiment bearish (${confidence}%) + risk event active`]
-                : [`X sentiment bearish (${confidence}% confidence)`],
+              factors:
+                hasHighRiskEvent
+                  ? [`X sentiment bearish (${confidence}%) + risk event active${lowLabel}`]
+                  : [`X sentiment bearish (${confidence}% confidence)${lowLabel}`],
               timestamp: Date.now(),
             });
             sources.push("XSentiment");
             allFactors.push(
               hasHighRiskEvent
-                ? `X bearish (${confidence}%) + risk event`
-                : `X sentiment bearish (${confidence}% confidence)`,
+                ? `X bearish (${confidence}%) + risk event${lowLabel}`
+                : `X sentiment bearish (${confidence}% confidence)${lowLabel}`,
             );
-          } else if (sentiment === "neutral" && confidence >= 40) {
+          } else if (sentiment === "neutral" && isPrimaryTier) {
             signals.push({
               asset,
               direction: "neutral",

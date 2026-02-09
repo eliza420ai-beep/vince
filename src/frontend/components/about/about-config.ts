@@ -31,9 +31,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
     headline: "Know why. Trade better.",
     intro:
-      "Chief Data Officer (CDO): data and intel only—no marketing or GTM. A paper bot on Hyperliquid. Every trade tells you why. It learns. It gets better. You don’t redeploy. Onchain options on Hypersurface—covered calls, secured puts. One view. One standard.",
+      "Chief Data Officer (CDO): data and intel only—no marketing or GTM. Our signal from X (Twitter) is our most important source of insights, news, alpha, and sentiment, and that indicator has a big impact on the paper trading bot—our flagship product. Every trade tells you why. It learns. It gets better. You don't redeploy. Onchain options on Hypersurface—covered calls, secured puts. One view. One standard.",
     tags: [
       { label: "CDO", withSparkles: true },
+      { label: "X-first" },
       { label: "Paper perps" },
       { label: "Hypersurface options" },
       { label: "No redeploy" },
@@ -42,7 +43,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Paper bot",
         description:
-          "You see the why. Signal. Size. Exit. Funding, whale flow, X (Twitter) sentiment, regime—one feed. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
+          "Flagship product. X (Twitter) sentiment is our #1 signal source and feeds the algo alongside funding, whale flow, and regime. You see the why—signal, size, exit. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
       },
       {
         title: "ALOHA",
@@ -68,7 +69,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "The paper bot. ALOHA. Perps. Options on Hypersurface. X sentiment feeds the algo. Every decision explained.",
+          "Flagship paper trading bot powered by X sentiment—our #1 source of insights, news, alpha, and sentiment—plus ALOHA, perps, options on Hypersurface. Every decision explained.",
         points: [],
         example: "",
       },
@@ -592,7 +593,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "Machine-learning paper trading for perps on Hyperliquid. WHY THIS TRADE. Options on Hypersurface. HIP-3 onchain stocks. Six domains.",
+          "Flagship paper trading bot. X sentiment is #1 signal source; ALOHA, perps, options on Hypersurface, HIP-3. WHY THIS TRADE.",
         points: ["ALOHA, VINCE_PERPS, VINCE_OPTIONS, Leaderboard."],
         example: '"ALOHA" or "Why does BTC matter?"',
       },

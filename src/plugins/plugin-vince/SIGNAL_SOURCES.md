@@ -63,7 +63,7 @@ The pipeline is wired end-to-end:
 
 1. **VincePaperTradingService** (or the bot tick) calls **`signalAggregator.getSignal(asset)`**.
 2. **getSignal(asset)** returns **`aggregateSignals(asset)`** (see `signalAggregator.service.ts`).
-3. **aggregateSignals()** includes the **XSentiment** block: it calls **`xSentimentService.getTradingSentiment(asset)`** and, when **confidence ≥ 40**, pushes **long/short/neutral** into `signals` with **`source: "XSentiment"`** and appends to **`sources`** and **`allFactors`**.
+3. **aggregateSignals()** includes the **XSentiment** block: it calls **`xSentimentService.getTradingSentiment(asset)`** and, when **confidence ≥ X_SENTIMENT_CONFIDENCE_FLOOR** (default 40), pushes **long/short/neutral** into `signals` with **`source: "XSentiment"`** and appends to **`sources`** and **`allFactors`**. Optional soft tier (confidence 25–39) can contribute with reduced weight when **X_SENTIMENT_SOFT_TIER_ENABLED=true**.
 4. The **aggregated signal** (direction, strength, confidence, **sources**, factors) is what the paper trading service uses to:
    - Decide **direction** (long/short) and **strength/confidence** for the trade.
    - Build **supporting reasons** and **sourceBreakdown** (so **XSentiment** appears in “WHY THIS TRADE” and in the source count).
@@ -84,6 +84,14 @@ So when X sentiment has sufficient confidence, it **votes** in the same way as N
 - **It can.** XSentiment adds another vote (bullish/bearish/neutral) with confidence, same as NewsSentiment. When X and other sources agree, the aggregator gets more confirming factors; when they disagree, the weight bandit and ML can learn over time whether X helps (via `signal_xSentimentScore` in the feature store and improvement report).
 - **Initial weight** is 0.5 (see dynamicConfig). After you retrain and run `run-improvement-weights`, the XSentiment weight can move up or down based on feature importance.
 - **Best way to know:** run the bot with X_BEARER_TOKEN set, collect trades, retrain with the new `signal_xSentimentScore` column, then check the improvement report and holdout metrics.
+
+### X sentiment: query shape, keywords, confidence, risk
+
+- **Query shape:** Per asset the service searches X with: **BTC** → `$BTC OR Bitcoin`, **ETH** → `$ETH OR Ethereum`, **SOL** → `$SOL OR Solana`, **HYPE** → `HYPE crypto`. Time window and sort order are configurable (**X_SENTIMENT_SINCE**, **X_SENTIMENT_SORT_ORDER**).
+- **Keywords:** Bullish/bearish/risk word lists live in **`constants/sentimentKeywords.ts`** (shared lexicon). Phrase overrides (e.g. “bull trap”, “buy the dip”) and simple negation (“not bullish”) are applied before word scoring. Optional custom lists via **X_SENTIMENT_KEYWORDS_PATH** (JSON: `{ "bullish": [], "bearish": [], "risk": [] }`).
+- **Confidence formula:** Strength combines `|avgSentiment|*2`, tweet count term, and a small boost when tweet count ≥ min and |avgSentiment| > 0.2; confidence = min(100, strength*70). Tuned so small-but-clear samples (e.g. 5 tweets, avg 0.2) can reach the confidence floor (default 40).
+- **Risk:** **hasHighRiskEvent** is set when **≥ X_SENTIMENT_RISK_MIN_TWEETS** tweets (default 2) contain risk keywords (rug, scam, exploit, hack, etc.), to reduce single-troll false positives. X risk is lexical only; consider future filters (e.g. follower count) if the API allows.
+- **Env knobs:** See `.env.example`: **X_SENTIMENT_SINCE**, **X_SENTIMENT_SORT_ORDER**, **X_SENTIMENT_CONFIDENCE_FLOOR**, **X_SENTIMENT_MIN_TWEETS**, **X_SENTIMENT_BULL_BEAR_THRESHOLD**, **X_SENTIMENT_RISK_MIN_TWEETS**, **X_SENTIMENT_ENGAGEMENT_CAP**, **X_SENTIMENT_SOFT_TIER_ENABLED**, **X_SENTIMENT_KEYWORDS_PATH**.
 
 ### Data we have that do NOT yet influence the trading bot
 

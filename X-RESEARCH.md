@@ -18,7 +18,7 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 ## Setup
 
 1. **X API Bearer token**  
-   [X Developer Portal](https://developer.x.com/). Requires **Basic tier** (~$200/mo) or higher for search.
+   [X Developer Portal](https://developer.x.com/). Requires **Basic tier** (~$200/mo) or higher for search. X now offers pay-as-you-go and credits; the same Bearer token and v2 endpoints work. Check [X Developer Portal](https://developer.x.com/) for current pricing and quotas.
 
 2. **Environment**  
    One token for both CLI and in-chat:
@@ -96,19 +96,35 @@ Both appear on the **Leaderboard → News** tab when data is available.
 
 **Requires:** `X_BEARER_TOKEN` in `.env` (script loads it from repo root).
 
-**Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`):
+**Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`). **Default: Option D** (4 API calls/day). Use A, B, or C for more frequent updates.
 
-- **Option A — One line, round-robin every hour (script picks asset from hour):**
+- **Option D (default) — One run per asset per day. 4 API calls/day.** Max X API headroom; sentiment rarely shifts intraday.
+  ```cron
+  0 0 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 6 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 12 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  ```
+
+- **Option A — One line, round-robin every hour (script picks asset from hour). 24 API calls/day.**
   ```cron
   0 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
   ```
 
-- **Option B — Four lines, one asset per hour at a different hour (BTC→ETH→SOL→HYPE, full cycle every 4h):**
+- **Option B — One asset per hour total (24/day); full cycle every 4h.** Use hour lists; minute-only crons like `0 * * * *` run every hour and cause 96/day.
   ```cron
-  0 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
-  1 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
-  2 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
-  3 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  0 0,4,8,12,16,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 1,5,9,13,17,21 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 2,6,10,14,18,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 3,7,11,15,19,23 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  ```
+
+- **Option C — Full cycle every 8h. 12 API calls/day.**
+  ```cron
+  0 0,8,16 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 2,10,18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 4,12,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 6,14,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
   ```
 
 A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (copy into `crontab -e` and fix the path).
@@ -119,8 +135,9 @@ A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (c
 |-----|--------|--------|
 | `X_BEARER_TOKEN` | — | Required for X search; same token as CLI and in-chat. |
 | `X_SENTIMENT_STAGGER_INTERVAL_MS` | `3600000` (1h) | Interval between single-asset refreshes in the app. E.g. 24 assets at 1h = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
+| (optional) | `X_SENTIMENT_SINCE`, `X_SENTIMENT_SORT_ORDER`, `X_SENTIMENT_CONFIDENCE_FLOOR`, `X_SENTIMENT_MIN_TWEETS`, `X_SENTIMENT_BULL_BEAR_THRESHOLD`, `X_SENTIMENT_RISK_MIN_TWEETS`, `X_SENTIMENT_ENGAGEMENT_CAP`, `X_SENTIMENT_SOFT_TIER_ENABLED`, `X_SENTIMENT_KEYWORDS_PATH` | Query window, sort order, confidence/thresholds, risk tweet count, engagement cap, soft tier, custom keyword JSON path. See [.env.example](.env.example). |
 
-See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (XSentiment row).
+See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (X sentiment: query shape, keywords, confidence, risk).
 
 ### Where it’s implemented
 
@@ -201,6 +218,22 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 
 ---
 
+## Testing live data
+
+To confirm the X API returns real tweets (e.g. after adding credits or when the rate-limit window has reset):
+
+- **Live demo (prints real tweets):**  
+  `bun run scripts/x-research-live-demo.ts`  
+  Runs one search for "BTC OR bitcoin", prints up to 5 tweets with author, text snippet, and link. If you see "Rate limited. Resets in Ns", wait until after the reset and run again.
+
+- **Smoke test (search + getTweet):**  
+  `bun run scripts/x-research-live-smoke.ts`  
+  Exits 0 only if both search and a single-tweet fetch succeed. Use in CI or to verify token and quota.
+
+Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
+
+---
+
 ## Limits and cost
 
 **Note:** X revamped their API and launched **pay-per-use pricing**, so pricing and tiers may have changed from the previous high-cost reality. See the announcement: [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476). For current plans and usage, check the [X Developer Portal](https://developer.x.com/).
@@ -220,6 +253,8 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 | CLI and skill | [skills/x-research/README.md](skills/x-research/README.md) |
 | Skill instructions (agentic loop) | [skills/x-research/SKILL.md](skills/x-research/SKILL.md) |
 | X API reference | [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md) |
+| Live demo (real tweets) | `bun run scripts/x-research-live-demo.ts` |
+| Smoke test (search + getTweet) | `bun run scripts/x-research-live-smoke.ts` |
 | In-chat action | plugin-vince: `VINCE_X_RESEARCH` ([actions/xResearch.action.ts](src/plugins/plugin-vince/src/actions/xResearch.action.ts)) |
 | Service (search, profile, thread, tweet, cache) | [services/xResearch.service.ts](src/plugins/plugin-vince/src/services/xResearch.service.ts) |
 | X vibe check service (staggered refresh, cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |
