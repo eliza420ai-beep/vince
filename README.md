@@ -175,6 +175,8 @@ We **search X (Twitter) for sentiment** and use it in **three** places:
 
 Same **X API Bearer token** (Basic tier or higher); read-only, no posting. See [skills/x-research/README.md](skills/x-research/README.md) for setup and [skills/x-research/SKILL.md](skills/x-research/SKILL.md) for the research loop.
 
+**Recent (Feb 2026):** Research and sentiment now use the **official XDK** (`client.posts.searchRecent`, `getByIds`, `users.getByUsernames`) when installed; list feed is a first-class source—set **X_LIST_ID** to your curated list and get **list sentiment** in CT Vibe and the leaderboard X vibe card. Tuning: **X_SENTIMENT_ASSETS** (comma-separated tickers to refresh), **X_SENTIMENT_STAGGER_INTERVAL_MS**, **X_SENTIMENT_LIST_ENABLED**. Quota and tiers: [docs/X-API.md](docs/X-API.md).
+
 ---
 
 ## 🚀 Milestone: Full ML Loop
@@ -558,6 +560,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | [HYPERLIQUID_ENDPOINTS](src/plugins/plugin-vince/HYPERLIQUID_ENDPOINTS.md) | HL endpoints |
 | [progress.txt](src/plugins/plugin-vince/progress.txt) | Tracker, backlog |
 | [skills/x-research](skills/x-research/README.md) | X (Twitter) research · sentiment · Cursor skill + VINCE in-chat · `bun test skills/x-research/sentiment.test.ts` |
+| [docs/X-API.md](docs/X-API.md) | X API tiers (Basic/Pro), quota usage, optional second token |
 | [Frontend docs](src/frontend/docs/README.md) · [progress.txt](src/frontend/progress.txt) | Chat UI, Market Pulse, quick start, reference docs, status |
 
 ---

@@ -1,11 +1,18 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-08 (Kelly uses plugin-kelly only)
+# Last updated: 2026-02-09 (X All-In: XDK, list feed, list sentiment, tuning)
 # Update this file after every feature completion or session end.
 # Note: Kelly no longer uses plugin-vince; she uses plugin-kelly and KELLY_DAILY_BRIEFING.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.34 - X All-In: Alpha, Insights, and Sentiment (2026-02-09) ✅
+- **Phase 1 – XDK alignment:** VinceXResearchService now uses official @xdevplatform/xdk API when installed: client.posts.searchRecent, client.posts.getByIds, client.users.getByUsernames. Response shapes mapped to existing parseTweets() so XTweet[] and cache behavior unchanged. Raw fetch fallback when XDK missing. 429 handling and shared cooldown unchanged.
+- **Phase 2 – List feed:** X_LIST_ID (env, default example 2016259263073771659). xResearch: getListById(), getListPosts(), getListMembers() with XDK + fetch fallback; same rate-limit and 15-min cache (vince_x_research:list_posts:${id}). VinceXSentimentService.getListSentiment(): same keyword/phrase/risk scoring as per-asset; 15-min in-memory cache; gated by X_SENTIMENT_LIST_ENABLED (default on when list set). List sentiment exposed in **CT Vibe** ("List (curated): …") and **leaderboard** News section (X vibe card "List (curated)" row). Not in aggregator; additional alpha/vibe only.
+- **Phase 3 – Quota and docs:** SIGNAL_SOURCES.md documents list feed, cache TTL, where list is used. .env.example: X_LIST_ID, X_SENTIMENT_STAGGER_INTERVAL_MS (1h = full cycle every 4h for 4 assets), X_SENTIMENT_LIST_ENABLED, optional X_BEARER_TOKEN_SENTIMENT (second token; doc-only for now). docs/X-API.md: X API tiers (Basic vs Pro), quota usage, optional second token.
+- **Phase 4 – Tuning:** getSentimentAssets() in xSentiment: reads X_SENTIMENT_ASSETS (comma-separated); default CORE_ASSETS (BTC,ETH,SOL,HYPE). Stagger and refreshOneAsset use getSentimentAssets() so you can add more tickers when you have quota. .env.example and SIGNAL_SOURCES.md document X_SENTIMENT_ASSETS and list toggles.
+- **Files:** xResearch.service.ts (XDK + list API), xSentiment.service.ts (getListSentiment, getSentimentAssets), ctVibe.action.ts (list line), dashboardLeaderboards.ts + leaderboard page (list row), leaderboardsApi.ts (listSentiment type), SIGNAL_SOURCES.md, .env.example, docs/X-API.md.
 
 ## V4.33 - Kelly agent + plugin-kelly (2026-02-07) ✅
 - **Kelly agent:** Dedicated lifestyle-only concierge agent (five-star hotels, fine dining, wine, health, fitness). No trading actions; uses plugin-kelly instead of plugin-vince so her action list is clean (REPLY + KELLY_DAILY_BRIEFING).
