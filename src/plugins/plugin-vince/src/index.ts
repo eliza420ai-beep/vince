@@ -188,7 +188,7 @@ export const vincePlugin: Plugin = {
     VinceMarketRegimeService,
     VinceHIP3Service,
     VinceXResearchService, // X (Twitter) read-only research when X_BEARER_TOKEN set
-    VinceXSentimentService, // X sentiment for paper algo (cached, 15-min refresh)
+    VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
     // Early Detection System
     VinceWatchlistService,
     VinceNotificationService,

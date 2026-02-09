@@ -14,8 +14,8 @@ import {
 } from "../services/xSentiment.service";
 import { createMockRuntime } from "./test-utils";
 
-/** Must exceed service CACHE_TTL_MS (30 min) to trigger stale behavior. */
-const STALE_CACHE_AGE_MS = 31 * 60 * 1000;
+/** Must exceed service CACHE_TTL_MS (24h) to trigger stale behavior. */
+const STALE_CACHE_AGE_MS = 25 * 60 * 60 * 1000;
 
 const mockTweets = (texts: string[]) =>
   texts.map((text, i) => ({

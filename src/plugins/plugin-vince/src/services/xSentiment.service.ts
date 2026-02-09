@@ -2,8 +2,8 @@
  * VINCE X (Twitter) Sentiment Service
  *
  * Produces trading sentiment (bullish/bearish/neutral + confidence) from X search
- * results for use by the signal aggregator. Staggered refresh: one asset every 15 min
- * (BTC→SOL→ETH→HYPE) by default to keep X API headroom for in-chat VINCE_X_RESEARCH.
+ * results for use by the signal aggregator. Staggered refresh: one asset per interval
+ * (default 1 hour) so we never burst—e.g. 4 assets = each refreshed every 4h; 24 assets = full cycle every 24h.
  * Set X_SENTIMENT_ENABLED=false to disable background refresh (in-chat only).
  * Persistent cache file for restarts and optional cron. Depends on VinceXResearchService.
  */
@@ -18,13 +18,14 @@ import { CORE_ASSETS } from "../constants/targetAssets";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
-const STAGGER_INTERVAL_MS_DEFAULT = 15 * 60 * 1000; // 15 min between single-asset refreshes (keeps X API headroom for in-chat VINCE_X_RESEARCH)
+const STAGGER_INTERVAL_MS_DEFAULT = 60 * 60 * 1000; // 1h between single-asset refreshes (e.g. 24 assets = one per hour = full cycle every 24h)
 const CACHE_FILENAME = "x-sentiment-cache.json";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 function getStaggerIntervalMs(): number {
   loadEnvOnce();
   const ms = parseInt(process.env.X_SENTIMENT_STAGGER_INTERVAL_MS ?? String(STAGGER_INTERVAL_MS_DEFAULT), 10);
-  return Math.max(10 * 60_000, Math.min(30 * 60_000, ms)); // 10 min to 30 min (min 10 to avoid exhausting X API)
+  return Math.max(10 * 60_000, Math.min(ONE_DAY_MS, ms)); // 10 min to 24h
 }
 
 function isSentimentEnabled(): boolean {
@@ -34,7 +35,7 @@ function isSentimentEnabled(): boolean {
   return /^(1|true|yes)$/i.test(v.trim());
 }
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min (match default refresh)
+const CACHE_TTL_MS = ONE_DAY_MS; // 24h — refresh is staggered (e.g. one asset per hour); keep using last result until next refresh
 const MIN_TWEETS_FOR_CONFIDENCE = 3;
 
 /** Parse "Resets in Ns" from X API rate-limit error. Returns seconds or 0. Exported for tests. */
@@ -146,10 +147,15 @@ export class VinceXSentimentService extends Service {
     const staggerMs = getStaggerIntervalMs();
     const staggerMin = Math.round(staggerMs / 60_000);
     const cachePath = getCacheFilePath();
+    const cycleHours = (staggerMs * CORE_ASSETS.length) / (60 * 60 * 1000);
     logger.info(
-      "[VinceXSentimentService] Started (staggered refresh every " +
-        staggerMin +
-        " min, BTC→SOL→ETH→HYPE, cache: " +
+      "[VinceXSentimentService] Started (one asset every " +
+        (staggerMin >= 60 ? `${Math.round(staggerMin / 60)}h` : `${staggerMin} min`) +
+        ", " +
+        CORE_ASSETS.length +
+        " assets = full cycle every " +
+        (cycleHours >= 1 ? `${cycleHours.toFixed(1)}h` : `${Math.round(cycleHours * 60)} min`) +
+        ", cache: " +
         cachePath +
         ")",
     );

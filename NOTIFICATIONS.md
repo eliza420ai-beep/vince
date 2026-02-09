@@ -97,7 +97,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 ```
 #daily (or #vince-daily-reports)   ← VINCE daily report at 08:00 UTC
-#vince-news            ← VINCE news at 07:00 UTC (MandoMinutes)
+#vince-news            ← VINCE news at 16:00 UTC (MandoMinutes updates ~4:20 PM Paris)
 #vince-lifestyle       ← VINCE lifestyle briefing at 08:00 UTC (set VINCE_LIFESTYLE_DAILY_ENABLED=false if using Kelly for this)
 #kelly or #lifestyle    ← Kelly concierge briefing at 08:00 UTC (channel name must contain "kelly" or "lifestyle")
 #sentinel_ops or #ops   ← Sentinel weekly suggestions (and optional daily); channel name must contain "sentinel" or "ops"

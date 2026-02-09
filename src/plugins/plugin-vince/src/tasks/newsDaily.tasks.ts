@@ -4,14 +4,17 @@
  * Scheduled daily news briefing pushed to Discord/Slack/Telegram.
  * Uses MandoMinutes data - only pushes when we can confirm Mando has updated.
  *
+ * MandoMinutes updates daily around 4:20 PM Paris time (~15:20 UTC winter / 14:20 UTC summer).
+ * Default run is 16:00 UTC so we refresh the cache and push after the update is live.
+ *
  * Freshness gate: Skips push if we can't infer Mando's publish date from the page,
  * or if the inferred date is older than yesterday. Mando doesn't update every day.
  * Set VINCE_NEWS_PUSH_REQUIRE_FRESH=false to push anyway (e.g. for testing).
  *
- * - Runs at configured hour (default 7:00 UTC, before lifestyle at 8).
+ * - Runs at configured hour (default 16:00 UTC, after ~4:20 PM Paris update).
  * - Pushes to channels whose name contains "news" (e.g. #vince-news).
  *
- * Set VINCE_NEWS_HOUR=7 (UTC) to customize. Disable with VINCE_NEWS_DAILY_ENABLED=false.
+ * Set VINCE_NEWS_HOUR=16 (UTC) to customize. Disable with VINCE_NEWS_DAILY_ENABLED=false.
  */
 
 import { type IAgentRuntime, type UUID, logger } from "@elizaos/core";
@@ -22,7 +25,8 @@ import {
   type NewsDataContext,
 } from "../actions/news.action";
 
-const DEFAULT_NEWS_HOUR_UTC = 7;
+/** Default 16:00 UTC = after MandoMinutes update (~4:20 PM Paris) */
+const DEFAULT_NEWS_HOUR_UTC = 16;
 const TASK_INTERVAL_MS = 60 * 60 * 1000; // Check every hour
 
 export async function registerNewsDailyTask(

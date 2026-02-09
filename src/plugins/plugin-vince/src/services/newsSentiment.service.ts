@@ -384,7 +384,8 @@ export class VinceNewsSentimentService extends Service {
   /** Inferred Mando publish date (ISO) - used for freshness gate on daily push */
   private lastInferredMandoDate: string | null = null;
   private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-  private readonly MANDO_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes (match plugin-web-search)
+  /** 15 min (match plugin-web-search). Daily push runs at 16:00 UTC, after MandoMinutes update (~4:20 PM Paris). */
+  private readonly MANDO_CACHE_TTL_MS = 15 * 60 * 1000;
   private readonly MANDO_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 min - avoid repetitive MandoMinutes warn spam
 
   constructor(protected runtime: IAgentRuntime) {

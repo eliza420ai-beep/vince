@@ -1,11 +1,11 @@
 /**
  * Optional cron script: run one X vibe check for a single asset and write result
  * to the same cache file used by VinceXSentimentService. Use to stagger X API
- * calls via crontab and avoid rate limits (e.g. every 16 min with round-robin).
+ * calls via crontab—one asset per run, never burst (e.g. one per hour = 24 assets in 24h).
  *
  * Usage:
  *   bun run scripts/x-vibe-check.ts [BTC|ETH|SOL|HYPE]
- *   (no arg: derive asset from timestamp; crontab every 16 min gives round-robin)
+ *   (no arg: derive asset from timestamp; crontab every 1h gives round-robin over 4 assets = full cycle every 4h)
  *
  * Requires X_BEARER_TOKEN in .env. Cache: .elizadb/vince-paper-bot/x-sentiment-cache.json
  */
@@ -15,7 +15,7 @@ import path from "node:path";
 import { search as xSearch, type Tweet } from "../skills/x-research/lib/api";
 
 const CORE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
-const STAGGER_WINDOW_MS = 15 * 60 * 1000; // align with VinceXSentimentService default
+const STAGGER_WINDOW_MS = 60 * 60 * 1000; // 1h — align with VinceXSentimentService default (one asset per hour)
 const CACHE_DIR = ".elizadb/vince-paper-bot";
 const CACHE_FILENAME = "x-sentiment-cache.json";
 const MIN_TWEETS_FOR_CONFIDENCE = 3;

@@ -910,7 +910,7 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
-    // 5b. X (Twitter) Sentiment — cached, 15-min refresh
+    // 5b. X (Twitter) Sentiment — cached, staggered one asset per hour (full cycle 4h–24h by asset count)
     // =========================================
     const xSentimentService = this.runtime.getService(
       "VINCE_X_SENTIMENT_SERVICE",

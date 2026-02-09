@@ -58,7 +58,7 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 | Channel name contains | Receives |
 |-----------------------|----------|
 | `daily` | VINCE market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
-| `news` | VINCE MandoMinutes (07:00 UTC) |
+| `news` | VINCE MandoMinutes (16:00 UTC; Mando updates ~4:20 PM Paris) |
 | `lifestyle` | VINCE and/or Kelly briefing (08:00 UTC) |
 | `alerts` | VINCE alerts, paper trades (real-time) |
 | `kelly` or `lifestyle` | Kelly daily concierge briefing (08:00 UTC) |
@@ -112,7 +112,7 @@ VINCE sends scheduled and event-driven pushes. **Channel names must contain thes
 | Keyword | What gets pushed | Schedule |
 |---------|------------------|----------|
 | `daily` | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | **08:00 UTC** (morning) |
-| `news` | MandoMinutes briefing | 07:00 UTC (only when Mando has updated) |
+| `news` | MandoMinutes briefing | 16:00 UTC (Mando updates ~4:20 PM Paris) |
 | `lifestyle` | Dining, hotel, health, fitness (curated) | 08:00 UTC |
 | `alerts` | Alerts, paper trades, watchlist events | Real-time |
 
@@ -131,7 +131,7 @@ All VINCE automated feeds in one place. Invite VINCE to these channels.
 | Channel | Purpose | Contains | Receives |
 |---------|---------|----------|----------|
 | `#vince-daily-reports` | Market pulse | "daily" | Daily report 18:00 UTC |
-| `#vince-news` | News briefing | "news" | MandoMinutes 07:00 UTC |
+| `#vince-news` | News briefing | "news" | MandoMinutes 16:00 UTC |
 | `#vince-lifestyle` | Lifestyle suggestions | "lifestyle" | Dining, hotel, health 08:00 UTC |
 | `#vince-alerts` | High-signal events | "alerts" | Alerts, paper trades |
 | `#vince-upload-youtube` | Curated YouTube → knowledge | — | You paste YouTube links; VINCE ingests (transcript + summary). No watching. |
@@ -234,7 +234,7 @@ Use the same naming so VINCE’s filters work.
 | Channel | Purpose |
 |---------|---------|
 | `#vince-daily-reports` | Market report 18:00 UTC |
-| `#vince-news` | News 07:00 UTC |
+| `#vince-news` | News 16:00 UTC |
 | `#vince-lifestyle` | Lifestyle 08:00 UTC |
 | `#vince-alerts` | Alerts, paper trades |
 | `#general` | General chat |
@@ -292,7 +292,7 @@ Copy into channel descriptions.
 ALOHA + OPTIONS + PERPS + HIP-3 at 18:00 UTC. Ask: ALOHA, OPTIONS, PERPS, BOT, HIP3
 
 📰 vince-news
-MandoMinutes at 07:00 UTC (when Mando updates). Ask: NEWS, MANDO
+MandoMinutes at 16:00 UTC (Mando updates ~4:20 PM Paris). Ask: NEWS, MANDO
 
 🌿 vince-lifestyle
 Dining, hotels, health, fitness at 08:00 UTC. Ask: LIFESTYLE

@@ -742,7 +742,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             )}
           </TabsContent>
 
-          {/* News tab: MandoMinutes headlines + TLDR + deep dive */}
+          {/* News tab: X vibe check (top) + MandoMinutes TLDR + headlines */}
           <TabsContent value="news" className="mt-6 flex-1 min-h-0 overflow-auto">
             {(leaderboardsLoading || leaderboardsFetching) && !leaderboardsData?.news ? (
               <div className="space-y-4">
@@ -750,54 +750,18 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <div className="h-64 bg-muted/50 rounded-xl animate-pulse" />
               </div>
             ) : leaderboardsData?.news ? (
-              <div className="space-y-6">
-                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">TLDR</p>
-                  <p className="text-sm font-medium text-foreground/90">{leaderboardsData.news.oneLiner}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Sentiment: {leaderboardsData.news.sentiment} · {leaderboardsData.news.headlines.length} headlines
-                  </p>
-                </div>
-                <DashboardCard title={leaderboardsData.news.title}>
-                  <ul className="space-y-2 text-sm max-h-[60vh] overflow-y-auto pr-1">
-                    {(leaderboardsData.news.headlines ?? []).map((h, i) => (
-                      <li key={i} className="flex gap-2 items-start">
-                        {h.sentiment && (
-                          <span
-                            className={cn(
-                              "shrink-0 w-6 pt-0.5",
-                              h.sentiment === "bullish" && "text-green-600 dark:text-green-400",
-                              h.sentiment === "bearish" && "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            {h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪"}
-                          </span>
-                        )}
-                        <span className="flex-1 line-clamp-2">{h.text}</span>
-                        <a
-                          href={h.url || MANDO_MINUTES_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          Deep dive
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                  {(leaderboardsData.news.headlines ?? []).length === 0 && (
-                    <p className="text-muted-foreground py-4">No headlines yet. Run MANDO_MINUTES or ask VINCE for news.</p>
-                  )}
-                </DashboardCard>
+              <div className="flex flex-col gap-6">
+                {/* X (Twitter) first: our #1 news source and #1 sentiment signal */}
                 {leaderboardsData.news.xSentiment && (
-                  <DashboardCard title="X (Twitter) vibe check">
-                    <p className="text-xs text-muted-foreground mb-3">Cached sentiment from staggered refresh (BTC→SOL→ETH→HYPE every 15 min). Same data feeds the trading algo.</p>
+                  <DashboardCard title="X (Twitter) vibe check" className="shrink-0">
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Our #1 news source and #1 sentiment signal. Staggered refresh: one asset per hour (no burst)—e.g. 4 assets = full cycle every 4h; 24 assets = one per hour, full cycle every 24h. Same data feeds the trading algo. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics.
+                    </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {leaderboardsData.news.xSentiment.assets.map((row) => {
                         const updatedAt = row.updatedAt;
                         const ageMin = updatedAt != null ? Math.floor((Date.now() - updatedAt) / 60_000) : null;
-                        const isStale = ageMin != null && ageMin > 45;
+                        const isStale = ageMin != null && ageMin > 120; // 2h — stagger is one per hour, so per-asset refresh can be 1–24h depending on asset count
                         return (
                           <div
                             key={row.asset}
@@ -839,6 +803,49 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </div>
                   </DashboardCard>
                 )}
+
+                {/* TLDR strip (MandoMinutes) */}
+                <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3 shrink-0">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">TLDR</p>
+                  <p className="text-sm font-medium text-foreground/90">{leaderboardsData.news.oneLiner}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Sentiment: {leaderboardsData.news.sentiment} · {leaderboardsData.news.headlines.length} headlines
+                  </p>
+                </div>
+
+                {/* MandoMinutes headlines + deep dive */}
+                <DashboardCard title={leaderboardsData.news.title} className="min-h-0 flex-1 flex flex-col">
+                  <ul className="space-y-2 text-sm max-h-[60vh] overflow-y-auto pr-1">
+                    {(leaderboardsData.news.headlines ?? []).map((h, i) => (
+                      <li key={i} className="flex gap-2 items-start">
+                        {h.sentiment && (
+                          <span
+                            className={cn(
+                              "shrink-0 w-6 pt-0.5",
+                              h.sentiment === "bullish" && "text-green-600 dark:text-green-400",
+                              h.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                            )}
+                          >
+                            {h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪"}
+                          </span>
+                        )}
+                        <span className="flex-1 line-clamp-2">{h.text}</span>
+                        <a
+                          href={h.url || MANDO_MINUTES_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Deep dive
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  {(leaderboardsData.news.headlines ?? []).length === 0 && (
+                    <p className="text-muted-foreground py-4">No headlines yet. Run MANDO_MINUTES or ask VINCE for news.</p>
+                  )}
+                </DashboardCard>
               </div>
             ) : (
               <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
