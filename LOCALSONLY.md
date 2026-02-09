@@ -2,7 +2,7 @@
 
 **TL;DR:** The EXO Inference Cluster runs inference locally: prefill on a DGX Spark, decode on Mac Studio and MacBook Pro, with models on NAS, all orchestrated by a Mac Mini M4 running OpenCLAW. You get low-latency, private, controllable inference with no third-party API rate limits; cost is front-loaded (hardware) instead of ongoing cloud API spend.
 
-**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Relation to VINCE](#relation-to-vince) · [Links](#links)
+**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Caveats: mistakes in local vs API comparisons](#caveats-mistakes-in-local-vs-api-comparisons) · [Relation to VINCE](#relation-to-vince) · [Links](#links)
 
 ---
 
@@ -142,6 +142,22 @@ At any volume (e.g. X tokens/month or Y requests/day), compare estimated cloud i
 
 ---
 
+## Caveats: mistakes in local vs API comparisons
+
+Many “local vs API” analyses understate the benefit of local (e.g. M3 Ultra Mac Studio) by making one or more of these mistakes. Correcting them can shift monthly savings into the **$150–$3k+** range depending on volume and provider.
+
+| Mistake | What’s wrong | Correction |
+|--------|---------------|------------|
+| **1. $/tok from single-request TPS** | Cost per token is often computed from single-request throughput. LLM inference can be **batched**; you move along a pareto frontier of throughput vs single-request latency. The right point depends on SLOs and workload, not “min throughput.” | Use throughput-appropriate batching. Savings vs naive single-request math can be **2×–20×** (e.g. $156–$1,560/mo at $1.50/M, or $312–$3,120/mo at $3/M official API). |
+| **2. Device obsolete in 12 months** | Treating Mac Studio (or similar) as worthless after a year. | Macs retain value well; resale typically depreciates **~15%/year**, and the machine is useful for far more than AI (dev, media, etc.). |
+| **3. Cherry-picked / cheap API provider** | Basing comparison on a discount provider (e.g. OpenRouter) with e.g. 98.4% uptime (~11.5 h/month down). | Compare to **official** API pricing (e.g. Kimi K2.5 at **$3/M output** tokens) for a fair like-for-like. |
+| **4. Ignoring input tokens and context** | Only counting output token cost. Official APIs charge for **input** too (e.g. $0.60/M input; $0.10/M cache hit). Your context is unique—providers can’t scale it like shared weights, so they charge. | Large context (e.g. 200K-token codebase) = **$0.12** per full load, **$0.02** per cached query. Tool-augmented flows (Claude Code, OpenCode, etc.) add many requests; input + cache cost adds up fast. Local keeps context hot at no per-request cost. |
+| **5. Only comparing cost** | Framing local vs API as purely $/token. | Other reasons to run local (often **more important**): **privacy**, **compliance**, **sovereignty** (your weights, your brain), **uptime guarantees**, **air gapping**, **no internet**. Latency can favor cloud unless you need one of these (e.g. air gap). |
+
+*Context: critique of analyses that called $20k/mo API spend “aggressive” but then lowballed local savings; open benchmarks/evals for 1,000+ local setups are in the works.*
+
+---
+
 ## Relation to VINCE
 
 - **TREASURY:** Running inference locally is a form of cost optimization—it reduces or eliminates inference API burn for heavy workloads. See [TREASURY.md](TREASURY.md).
@@ -163,4 +179,4 @@ At any volume (e.g. X tokens/month or Y requests/day), compare estimated cloud i
 
 ---
 
-*Last updated: 2026-02-08. Cost model added for ~2B tokens/month.*
+*Last updated: 2026-02-09. Cost model for ~2B tokens/month; added caveats (five common mistakes in local vs API comparisons).*
