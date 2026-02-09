@@ -170,12 +170,12 @@ We **search X (Twitter) for sentiment** and use it in **three** places:
 |:---:|---|:---|
 | 🤖 | **Paper trading algo** | **XSentiment** is a signal source in the aggregator (weight 0.5). Staggered one asset per hour (no burst); rate-limit aware. When confidence ≥ 40%, it votes long/short/neutral and appears in **WHY THIS TRADE**. Feature store records `signal_xSentimentScore` for ML. → [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
 | 🔍 | **Cursor / Claude skill** | **skills/x-research/** — CLI (`bun run x-search.ts search "BNKR"`), watchlist, thread/profile, 15min cache. Use from the IDE for deep dives; paste results into VINCE or knowledge. |
-| 💬 | **VINCE in-chat** | When `X_BEARER_TOKEN` is set, ask *"what are people saying about BNKR?"* or *"search X for …"* → **VINCE_X_RESEARCH** returns sourced tweets (read-only). |
+| 💬 | **VINCE in-chat** | When `X_BEARER_TOKEN` is set, ask *"what are people saying about BNKR?"* or *"search X for …"* → **VINCE_X_RESEARCH** returns an **ALOHA-style narrative** (vibe, themes, standout take) then sample posts (read-only). |
 | ✅ | **Tests** | `bun test skills/x-research/sentiment.test.ts` (skill) and `bun test src/plugins/plugin-vince/src/__tests__/xSentiment.service.test.ts` (paper algo: cache, rate limit, sentiment). |
 
 Same **X API Bearer token** (Basic tier or higher); read-only, no posting. See [skills/x-research/README.md](skills/x-research/README.md) for setup and [skills/x-research/SKILL.md](skills/x-research/SKILL.md) for the research loop.
 
-**Recent (Feb 2026):** Research and sentiment now use the **official XDK** (`client.posts.searchRecent`, `getByIds`, `users.getByUsernames`) when installed; list feed is a first-class source—set **X_LIST_ID** to your curated list and get **list sentiment** in CT Vibe and the leaderboard X vibe card. Tuning: **X_SENTIMENT_ASSETS** (comma-separated tickers to refresh), **X_SENTIMENT_STAGGER_INTERVAL_MS**, **X_SENTIMENT_LIST_ENABLED**. Quota and tiers: [docs/X-API.md](docs/X-API.md).
+**Recent (Feb 2026):** X research search now returns an **ALOHA-style briefing** (TEXT_LARGE): one narrative block (vibe, themes, standout/viral take, clear opinion) in VINCE's voice, then sample posts — no dry "Conclusion:" label. **Quality accounts:** set **X_RESEARCH_QUALITY_LIST_ID** to a curated X List ID (from x.com/i/lists/…) so we rank tweets from that list first (list members fetched and cached 24h); **SOLUS_X_VIP_HANDLES** can add one-offs. Same X API; list feed and **official XDK** when installed; **X_LIST_ID** for list sentiment in CT Vibe and leaderboard. Tuning: **X_SENTIMENT_ASSETS**, **X_SENTIMENT_STAGGER_INTERVAL_MS**, **X_SENTIMENT_LIST_ENABLED**. Quota and tiers: [docs/X-API.md](docs/X-API.md).
 
 ---
 

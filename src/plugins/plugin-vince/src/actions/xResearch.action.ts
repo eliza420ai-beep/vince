@@ -15,7 +15,7 @@ import type {
   State,
   HandlerCallback,
 } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
 import type { VinceXResearchService } from "../services/xResearch.service";
 import type { XTweet } from "../services/xResearch.service";
 import { buildSentimentQuery } from "../services/xSentiment.service";
@@ -152,6 +152,66 @@ function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
     lines.push(`- **@${t.username}**: "${t.text.slice(0, 120)}${t.text.length > 120 ? "…" : ""}" (${eng}) [Tweet](${t.tweet_url})`);
   }
   return lines.join("\n");
+}
+
+/** Build a short sample of tweet texts for LLM conclusion (truncated to avoid token overflow). Includes (L R) engagement. */
+function tweetSampleForLLM(tweets: XTweet[], maxTweets = 20, maxCharsPerTweet = 200): string {
+  const lines: string[] = [];
+  for (let i = 0; i < Math.min(tweets.length, maxTweets); i++) {
+    const t = tweets[i];
+    const text = t.text.length > maxCharsPerTweet ? t.text.slice(0, maxCharsPerTweet) + "…" : t.text;
+    const eng = `(L${t.metrics.likes} R${t.metrics.retweets})`;
+    lines.push(`@${t.username}: ${text} ${eng}`);
+  }
+  return lines.join("\n\n");
+}
+
+/** Ask the LLM for an ALOHA-style narrative from the tweet sample. Returns null if model unavailable. */
+async function getLLMConclusion(
+  runtime: IAgentRuntime,
+  query: string,
+  tweetSample: string,
+  postCount: number,
+): Promise<string | null> {
+  if (!tweetSample.trim()) return null;
+  const prompt = `You are VINCE. Someone asked what people are saying on X about "${query}". You've got a batch of recent posts below. Write your take like you're texting a friend who cares about the space.
+
+Query: ${query}. Sample: ${postCount} posts (last 7 days). Numbers in parentheses are likes and retweets (L R).
+
+Posts:
+
+${tweetSample}
+
+Write a briefing that covers:
+1. The overall vibe — what's the mood? Start with your gut take.
+2. Main themes — connect the dots; don't list mechanically. If everyone's saying the same thing, say that. If there's a contrarian take, highlight it.
+3. Standout or viral takes if any — use the (L R) numbers when something got real traction.
+4. One clear takeaway or opinion — what would you do with this?
+
+STYLE RULES:
+- Write like you're explaining this to a smart friend over coffee, not presenting to a board.
+- Vary your sentence length. Mix short punchy takes with longer explanations when you need to unpack something.
+- Weave in specifics (e.g. "the post that blew up was…").
+- Don't bullet point anything. Flow naturally between thoughts.
+- Skip the formal structure. No headers, no "In conclusion", no "Overall".
+- Have a personality. If the feed is boring, say it. If something seems off, say it.
+- Don't be sycophantic or hedge everything. Take positions.
+- Around 150–250 words. Don't pad it.
+
+AVOID:
+- "Interestingly", "notably", "it's worth noting"
+- Generic observations that could apply to any topic
+- Repeating the same sentence structure over and over
+
+Write the briefing:`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const conclusion = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    return conclusion?.trim() || null;
+  } catch (e) {
+    logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] LLM conclusion skipped");
+    return null;
+  }
 }
 
 function formatProfileBriefing(user: any, tweets: XTweet[], limit = 8): string {
@@ -297,8 +357,15 @@ export const vinceXResearchAction: Action = {
         since: opts.since ?? "7d",
       });
       const sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
-      const formatted = formatTweetsForBriefing(sorted, opts.limit);
-      const reply = `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
+      const qualityHandles = await svc.getQualityAccountHandles();
+      const ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
+      const formatted = formatTweetsForBriefing(ordered, opts.limit);
+      const sampleForLLM = tweetSampleForLLM(ordered, 20, 200);
+      const conclusion = await getLLMConclusion(runtime, rawQuery, sampleForLLM, ordered.length);
+      const samplePosts = formatTweetsForBriefing(ordered, 5);
+      const reply = conclusion
+        ? `**X research: ${rawQuery}**\n\n${conclusion}\n\n---\n\n**Sample posts:**\n${samplePosts}\n\n_Source: X API (read-only, last 7 days)._`
+        : `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
       await callback({
         text: reply,
         actions: ["VINCE_X_RESEARCH"],
@@ -320,7 +387,7 @@ export const vinceXResearchAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**X research: BNKR**\n\n- **@user**: \"…\" (L42 R3) [Tweet](https://x.com/…)\n\n_Source: X API (read-only)._",
+          text: "**X research: BNKR**\n\nSentiment is mixed. Key themes are … The post that got the most traction was … One clear take: …\n\n---\n\n**Sample posts:**\n- **@user**: \"…\" (L42 R3) [Tweet](https://x.com/…)\n\n_Source: X API (read-only, last 7 days)._",
           actions: ["VINCE_X_RESEARCH"],
         },
       },
@@ -330,7 +397,7 @@ export const vinceXResearchAction: Action = {
       {
         name: "VINCE",
         content: {
-          text: "**X research: Opus 4.6 trading**\n\n- **@dev**: \"…\" (L12 R1) [Tweet](https://x.com/…)\n\n_Source: X API (read-only)._",
+          text: "**X research: Opus 4.6 trading**\n\nDiscussion focuses on … Connect the dots. Standout take … My read: …\n\n---\n\n**Sample posts:**\n- **@dev**: \"…\" (L12 R1) [Tweet](https://x.com/…)\n\n_Source: X API (read-only, last 7 days)._",
           actions: ["VINCE_X_RESEARCH"],
         },
       },

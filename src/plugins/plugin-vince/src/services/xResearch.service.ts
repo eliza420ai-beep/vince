@@ -795,8 +795,22 @@ export class VinceXResearchService extends Service {
   /** Default list ID from env (X_LIST_ID). Optional; used by getListById/getListPosts/getListMembers. */
   getListId(): string | null {
     loadEnvOnce();
-    const v = process.env.X_LIST_ID?.trim();
-    return v || null;
+    const fromEnv = process.env.X_LIST_ID?.trim();
+    const fromRuntime = this.runtime.getSetting?.("X_LIST_ID");
+    const v = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
+    return fromEnv || v || null;
+  }
+
+  /**
+   * List ID used for "quality accounts" in X research (rank tweets from these accounts first).
+   * Prefer X_RESEARCH_QUALITY_LIST_ID; fall back to X_LIST_ID so one curated list can serve both.
+   */
+  getResearchQualityListId(): string | null {
+    loadEnvOnce();
+    const fromEnv = process.env.X_RESEARCH_QUALITY_LIST_ID?.trim();
+    const fromRuntime = this.runtime.getSetting?.("X_RESEARCH_QUALITY_LIST_ID");
+    const v = typeof fromRuntime === "string" ? fromRuntime.trim() : "";
+    return fromEnv || v || this.getListId();
   }
 
   /**
@@ -912,6 +926,84 @@ export class VinceXResearchService extends Service {
   }
 
   /** Sort tweets by engagement. */
+  /**
+   * Parse SOLUS_X_VIP_HANDLES from runtime (comma-separated usernames). Used to rank tweets from
+   * "good accounts" first in search results and sample posts. Returns lowercased handles.
+   */
+  getVipHandles(): string[] {
+    loadEnvOnce();
+    const fromEnv = process.env.SOLUS_X_VIP_HANDLES?.trim();
+    const fromRuntime = this.runtime.getSetting?.("SOLUS_X_VIP_HANDLES");
+    const raw = typeof fromRuntime === "string" ? fromRuntime.trim() : fromEnv ?? "";
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((h) => h.trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  /** Cache TTL for quality-account list (24h so we don't burn list-members API). */
+  private static QUALITY_HANDLES_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+  /**
+   * Quality accounts for X research: list members from X_RESEARCH_QUALITY_LIST_ID (or X_LIST_ID)
+   * plus SOLUS_X_VIP_HANDLES. Cached 24h. Use this so the full curated list is used, not just a short VIP list.
+   */
+  async getQualityAccountHandles(): Promise<string[]> {
+    const listId = this.getResearchQualityListId();
+    const cacheKey = listId ? `${CACHE_PREFIX}quality_handles:${listId}` : null;
+    if (cacheKey) {
+      const cached = await this.runtime.getCache<{ handles: string[]; ts: number }>(cacheKey);
+      if (cached?.handles && Date.now() - cached.ts < VinceXResearchService.QUALITY_HANDLES_CACHE_TTL_MS) {
+        return cached.handles;
+      }
+    }
+    const manual = this.getVipHandles();
+    if (!listId) return manual;
+    const usernames: string[] = [];
+    let nextToken: string | undefined;
+    try {
+      do {
+        const { users, nextToken: next } = await this.getListMembers(listId, {
+          maxResults: 100,
+          nextToken,
+        });
+        for (const u of users) {
+          const username = (u as any)?.username;
+          if (typeof username === "string" && username.trim()) usernames.push(username.trim().toLowerCase());
+        }
+        nextToken = next;
+        if (nextToken) await sleep(RATE_DELAY_MS);
+      } while (nextToken);
+    } catch (err) {
+      logger.warn({ err: String(err), listId }, "[VinceXResearchService] getQualityAccountHandles list fetch failed, using manual VIP only");
+      return manual;
+    }
+    const set = new Set<string>(manual);
+    for (const u of usernames) set.add(u);
+    const handles = Array.from(set);
+    if (cacheKey && handles.length > 0) {
+      await this.runtime.setCache(cacheKey, { handles, ts: Date.now() });
+    }
+    return handles;
+  }
+
+  /**
+   * Reorder tweets so those from quality/VIP handles come first, preserving
+   * relative order within VIP and within non-VIP. If vipHandles is empty, returns tweets unchanged.
+   */
+  reorderTweetsWithVipFirst(tweets: XTweet[], vipHandles: string[]): XTweet[] {
+    if (vipHandles.length === 0) return tweets;
+    const set = new Set(vipHandles);
+    const vip: XTweet[] = [];
+    const rest: XTweet[] = [];
+    for (const t of tweets) {
+      if (set.has((t.username || "").toLowerCase())) vip.push(t);
+      else rest.push(t);
+    }
+    return [...vip, ...rest];
+  }
+
   sortBy(
     tweets: XTweet[],
     metric: "likes" | "impressions" | "retweets" | "replies" = "likes",

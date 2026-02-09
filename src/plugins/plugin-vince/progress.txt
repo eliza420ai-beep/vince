@@ -1,11 +1,19 @@
 # VINCE Plugin Progress Tracker
-# Last updated: 2026-02-09 (X All-In: XDK, list feed, list sentiment, tuning)
+# Last updated: 2026-02-09 (X research ALOHA-style conclusion)
 # Update this file after every feature completion or session end.
 # Note: Kelly no longer uses plugin-vince; she uses plugin-kelly and KELLY_DAILY_BRIEFING.
 
 ================================================================================
 COMPLETED
 ================================================================================
+
+## V4.35 - X research ALOHA-style conclusion (2026-02-09) ✅
+- **Goal:** Make "What are people saying about BTC?" (and other X research search queries) read like ALOHA: one narrative block in VINCE's voice, then sample posts — no dry "Conclusion:" label or 2–4 sentence summary.
+- **Model:** X research search path now uses **TEXT_LARGE** (was TEXT_SMALL) for the LLM conclusion so the prose can be 150–250 words, friend-over-coffee style.
+- **Prompt:** Full ALOHA-style prompt in getLLMConclusion: persona ("You are VINCE… texting a friend who cares about the space"), coverage (vibe → themes → standout/viral → takeaway), STYLE RULES (vary sentence length, no bullets/headers, take positions), and AVOID list (Interestingly, notably, generic filler). Context line: query, sample size, and "Numbers in parentheses are likes and retweets (L R)".
+- **Tweet sample for LLM:** tweetSampleForLLM now appends (L R) per tweet so the model can reference traction (e.g. "the post that blew up was…").
+- **Reply format:** When conclusion is present: **X research: Q** → blank line → narrative only (no "Conclusion:" prefix) → --- → **Sample posts:** (5 items) → footer. Fallback when LLM fails: full list as before.
+- **Files:** xResearch.action.ts (tweetSampleForLLM, getLLMConclusion, handler reply build). Examples updated for narrative-first format.
 
 ## V4.34 - X All-In: Alpha, Insights, and Sentiment (2026-02-09) ✅
 - **Phase 1 – XDK alignment:** VinceXResearchService now uses official @xdevplatform/xdk API when installed: client.posts.searchRecent, client.posts.getByIds, client.users.getByUsernames. Response shapes mapped to existing parseTweets() so XTweet[] and cache behavior unchanged. Raw fetch fallback when XDK missing. 429 handling and shared cooldown unchanged.
