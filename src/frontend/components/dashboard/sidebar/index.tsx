@@ -227,7 +227,7 @@ export function DashboardSidebar({
                       <span className="truncate">{a.name ?? a.id}</span>
                       {(a.name ?? "").toLowerCase() === "kelly" && (
                         <span className="text-xs text-muted-foreground">
-                          Start here — one team, one conversation
+                          one team, one dream
                         </span>
                       )}
                     </span>
