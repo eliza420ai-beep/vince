@@ -33,6 +33,27 @@
 
 ---
 
+## One team, one dream
+
+<div align="center">
+
+**We assembled a dream team.** Clear lanes, no overlap—data → plan → call → lifestyle → infra.
+
+</div>
+
+| Agent | Lane |
+|:---|:---|
+| **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
+| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. |
+| **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
+| **Otaku** | DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP wallet. When you need DeFi edge. |
+| **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
+| **Sentinel** | Keeps the ElizaOS project running smooth, profitable, and well coded. Ops, cost steward, ONNX, ART, clawdbot, task briefs for Claude. |
+
+One team, one dream.
+
+---
+
 ## TL;DR
 
 **VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent: travel advisor, private sommelier, Michelin guide for fine dining, health guru, and fitness coach—and the one who motivates you to touch grass and rebalance. She uses **plugin-kelly** only (no vincePlugin) and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. She knows your context (paper perps, options income) but never gives trading advice. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
@@ -62,6 +83,7 @@
 
 | Section | |
 |:---|:---|
+| [One team, one dream](#one-team-one-dream) | The dream team: Eliza, VINCE, Solus, Otaku, Kelly, Sentinel |
 | [North Star](#-north-star) | Proactive agent, push not pull |
 | [Current Focus](#-current-focus-feb-2026) | ALOHA, ML paper trading |
 | [X research & sentiment](#-x-research--sentiment-on-x) | Paper algo signal + Cursor skill + VINCE in-chat |

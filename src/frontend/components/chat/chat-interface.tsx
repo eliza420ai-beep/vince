@@ -160,13 +160,24 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Entertainment", message: "Recommend a book for the weekend" },
     { label: "What can you do?", message: "What can you do?" },
   ],
-  // Solus: wealth architect first (strike ritual, $100K plan, yield, Echo DD). X research de-prioritized while X API is rate-limited.
+  // Solus: execution architect only — plan, process, call. Data (yield, options chains, bot, X) = VINCE.
   solus: [
-    { label: "Strike Ritual", message: "options" },
     { label: "$100K Plan", message: "full $100K plan" },
-    { label: "Yield Rates", message: "best yield USDC USDT0" },
+    { label: "This Week's Targets", message: "this week's targets" },
+    { label: "Size or Skip?", message: "Give me size, skip, or watch and invalidation — I'll paste context" },
     { label: "Echo DD", message: "Echo seed due diligence" },
-    { label: "Paper Bot", message: "bot status" },
+    { label: "Rebalance", message: "how should I rebalance my stack?" },
+    { label: "What's Your Call?", message: "what's your call?" },
+  ],
+  // Sentinel: core dev only — task brief, cost, ONNX, ART, clawdbot, suggestions, docs. No trading.
+  sentinel: [
+    { label: "Task Brief", message: "task brief for Claude 4.6" },
+    { label: "Cost Status", message: "cost status" },
+    { label: "ONNX Status", message: "ONNX status" },
+    { label: "ART Gems", message: "art gems" },
+    { label: "Clawdbot Guide", message: "clawdbot setup" },
+    { label: "What's Next?", message: "what should we do next" },
+    { label: "Improve Docs", message: "improve docs" },
   ],
   // Otaku: DeFi analyst — flows, Morpho, yield, discovery (QUICK START below has: CDP Wallet, Price, Web, DeFi TVL, Bridge, Tx Checker — so we avoid those)
   otaku: [
@@ -235,52 +246,95 @@ const ELIZA_CATEGORIES: Record<
   },
 };
 
-// Solus: wealth architect first (strike ritual, stack, yield). X research available in chat when X API permits.
+// Solus: execution architect — plan, process, call only. Data (yield, options chains, bot, X) = VINCE.
 const SOLUS_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
 > = {
-  strikeRitual: {
-    title: "Strike Ritual",
-    icon: TrendingUp,
-    promptToAsk: "options",
-    description: "Weekly targets, yield math, roll cadence — $3K/week minimum",
-  },
   stack: {
     title: "$100K Stack Plan",
     icon: Target,
     promptToAsk: "full $100K plan",
-    description: "Sats, yield, Echo DD, options — the full seven pillars",
+    description: "Seven pillars: sats, yield, Echo DD, options, paper perps, HIP-3, airdrops",
   },
-  xResearch: {
-    title: "Research on X",
-    icon: Search,
-    promptToAsk: "What's CT saying about HYPERSURFACE?",
-    description: "X sentiment and threads (when X API available). Ask in chat for CT take.",
+  targets: {
+    title: "This Week's Targets",
+    icon: TrendingUp,
+    promptToAsk: "this week's targets",
+    description: "Strike ritual output — size, expiry, invalidation (get options data from VINCE first)",
   },
-  yield: {
-    title: "Yield Rates",
-    icon: Database,
-    promptToAsk: "best yield USDC USDT0",
-    description: "USDC, USDT0 — Pendle, Aave, Morpho (risk-adjusted)",
-  },
-  sats: {
-    title: "Stack Sats",
-    icon: Wallet,
-    promptToAsk: "stack sats DCA Bitcoin",
-    description: "BTC accumulation, DCA sizing, custody",
+  sizeSkip: {
+    title: "Size or Skip?",
+    icon: Target,
+    promptToAsk: "Give me size, skip, or watch and invalidation — I'll paste context",
+    description: "Paste VINCE's (or any) context; Solus gives the call",
   },
   echo: {
     title: "Echo DD",
     icon: BookOpen,
     promptToAsk: "Echo seed due diligence",
-    description: "Seed-stage DD via Echo (Coinbase, Cobie) — not FOMO",
+    description: "Seed-stage DD via Echo (Coinbase, Cobie) — process, not FOMO",
   },
-  paper: {
-    title: "Paper Perps Bot",
+  rebalance: {
+    title: "Rebalance",
+    icon: Wallet,
+    promptToAsk: "how should I rebalance my stack?",
+    description: "Allocation across pillars and risk",
+  },
+  call: {
+    title: "What's Your Call?",
+    icon: TrendingUp,
+    promptToAsk: "what's your call?",
+    description: "Clear buy/sell/watch with invalidation — architect's decision",
+  },
+};
+
+// Sentinel: core dev — task brief, cost, ONNX, ART, clawdbot, suggestions, docs. No trading.
+const SENTINEL_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+> = {
+  taskBrief: {
+    title: "Task Brief",
+    icon: FileCode,
+    promptToAsk: "task brief for Claude 4.6",
+    description: "Pasteable block for Claude Code / Cursor — task + architecture rules",
+  },
+  costStatus: {
+    title: "Cost Status",
     icon: BarChart2,
-    promptToAsk: "bot status",
-    description: "Hyperliquid paper bot with ML self-improvement",
+    promptToAsk: "cost status",
+    description: "Burn rate, breakeven, 100K target — TREASURY + Usage tab",
+  },
+  onnxStatus: {
+    title: "ONNX Status",
+    icon: Zap,
+    promptToAsk: "ONNX status",
+    description: "Feature-store, training readiness, next step (train_models, Supabase)",
+  },
+  artGems: {
+    title: "ART Gems",
+    icon: Palette,
+    promptToAsk: "art gems",
+    description: "3–5 reusable patterns from elizaOS examples/art",
+  },
+  clawdbot: {
+    title: "Clawdbot Guide",
+    icon: BookOpen,
+    promptToAsk: "clawdbot setup",
+    description: "Knowledge research without X API — curated X + Birdy → pipeline",
+  },
+  whatsNext: {
+    title: "What's Next?",
+    icon: Target,
+    promptToAsk: "what should we do next",
+    description: "Prioritized suggestions: architecture, ops, ONNX, plugins",
+  },
+  improveDocs: {
+    title: "Improve Docs",
+    icon: FileCode,
+    promptToAsk: "improve docs",
+    description: "Suggest doc improvements and consolidate progress.txt",
   },
 };
 
@@ -1560,6 +1614,45 @@ export function ChatInterface({
                           >
                         ).map((key) => {
                           const item = KELLY_CATEGORIES[key];
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePromptClick(item.promptToAsk)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {item.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+                    {/* Core Dev & Ops - Sentinel only: task brief, cost, ONNX, ART, clawdbot, docs */}
+                    {(agent.name || "").toLowerCase().trim() === "sentinel" && (
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        Core Dev & Ops
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(SENTINEL_CATEGORIES) as Array<
+                            keyof typeof SENTINEL_CATEGORIES
+                          >
+                        ).map((key) => {
+                          const item = SENTINEL_CATEGORIES[key];
                           const Icon = item.icon;
                           return (
                             <button

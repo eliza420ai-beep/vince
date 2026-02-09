@@ -355,96 +355,193 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Solus: {
-    headline: "$100K/year. One clear move.",
+    headline: "Plan and call. Data is VINCE.",
     intro:
-      "Wealth architect who lives on the timeline. Benefit-led: you get one clear move, execution, outcome—not feature lists. Craft-focused (Porsche OG): assured, precise, no bluster. Direct, no fluff; no AI-slop. On X since 2007 (founder, VC, full-time crypto since 2016). CT-fluent, thread-native. Alpha from X; signal over noise. Thinks in angles (structure, ecosystem, trenches, alpha, risk, contrarian); recommendations are size/skip/watch with invalidation. Options on Hypersurface, paper perps, HIP-3. Web is last resort.",
+      "Solus is the execution architect for a $100K/year stack. He does not pull live data—VINCE does. You get the plan, the process, and the call: $100K breakdown, how to run strike ritual, size/skip/watch when you paste context, Echo DD process, rebalance. Get options or CT from VINCE; paste here; Solus gives one clear move and invalidation. Benefit-led, craft-focused, no fluff. Architect in the room—calm, decisive, three steps ahead.",
     tags: [
-      { label: "All alpha on X", withSparkles: true },
-      { label: "Benefit-led" },
-      { label: "Craft-focused" },
-      { label: "On X since 2007" },
+      { label: "Execution Architect", withSparkles: true },
+      { label: "Plan & Call Only" },
       { label: "Size / Skip / Watch" },
-      { label: "Options-Focused" },
+      { label: "VINCE's Partner" },
+      { label: "$100K Stack" },
+      { label: "No Data Duplication" },
     ],
     capabilities: [
       {
-        title: "X (Twitter) Research",
+        title: "$100K Plan",
         description:
-          "Timeline-first. Search, threads, @user, vibe check, ratio. CT sentiment → strike ritual, Echo DD, airdrop. Ask for a briefing: X vibe, flows, risk line, recommendation. On X since 2007.",
+          "Full seven-pillar stack: HYPERSURFACE options ($3K/week min), yield, sats, Echo DD, paper perps, HIP-3, airdrops. Allocations, weekly targets, execution system. You get the plan—not the live chain.",
       },
       {
-        title: "Options on HYPERSURFACE",
+        title: "This Week's Targets",
         description:
-          "Covered calls, secured puts; strike selection, roll cadence, $3K/week minimum. You get size or skip—and what would invalidate the call.",
+          "Strike ritual output: size, expiry, invalidation. You bring VINCE's options view (or Grok daily from internal-docs); Solus gives the call. 'Strike ritual:' or 'This week's targets:'—never 'My call.'",
       },
       {
-        title: "Perps & HIP-3",
+        title: "Size or Skip?",
         description:
-          "Paper perps bot with ML; HIP-3 spot (gold, SPX, NVDA); same data as VINCE. Cross-reference X and flows when both exist.",
+          "Paste any context (VINCE's aloha, options, CT take, or your own). Solus returns size, skip, or watch—and one short invalidation (what would change his mind). One clear move.",
       },
       {
-        title: "Airdrop Farming",
+        title: "Echo DD",
         description:
-          "TreadFi, MM bots, airdrop strategies. Curated, not spray. Priority tickers in focus set.",
+          "Process for seed-stage due diligence via Echo (Coinbase, Cobie). How to run it, what to check—not FOMO. Craft-focused.",
       },
       {
-        title: "DeFi Metrics",
+        title: "Rebalance",
         description:
-          "TVL, protocol evaluation, yield. defi-metrics.",
+          "How to rebalance across the seven pillars. Allocation, risk, next step. From internal-docs and what you paste.",
       },
       {
-        title: "Venture & Bitcoin",
+        title: "What's Your Call?",
         description:
-          "Echo seed DD. Cobie/Echo chatter from X first. Bitcoin-maxi, altcoins, stables.",
+          "Explicit ask for the architect's decision. Clear buy/sell/watch with invalidation. EV-style in prose when context is enough (e.g. bull/base/bear % and outcome).",
+      },
+      {
+        title: "Handoff to VINCE",
+        description:
+          "For live data—aloha, options chains, perps, memes, news, X/CT research, bot status, yield—Solus says: 'That's VINCE. Get his take, paste it here, I'll give you the call.' No duplicate lanes.",
       },
     ],
     plugins: [
       {
-        name: "Plugin-Vince",
-        category: "Trading",
+        name: "Plugin-Vince (knowledge only)",
+        category: "Context",
         summary:
-          "ML paper perps on Hyperliquid. Options on Hypersurface. HIP-3 onchain stocks. Same data as VINCE. Wealth focus—you get the strike and the number.",
+          "Solus uses internal-docs (Grok daily, treasury) and whatever you paste. He does not call VINCE's data APIs—you get options/CT from VINCE and bring it here for the call.",
         points: [
-          "Options, perps, paper bot, market data.",
-          "Knowledge: options, perps-trading, airdrops, defi-metrics.",
+          "Knowledge: internal-docs. Strike ritual process, seven pillars.",
+          "Plan and call from pasted context or internal-docs.",
         ],
-        example: '"What\'s my strike for this week\'s covered call?"',
+        example: '"full $100K plan" or paste VINCE output and ask "size or skip?"',
       },
       {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
-          "Weekly yield targets. Strike ritual. Size/skip/watch with invalidation. Benefit-led, craft-focused.",
+          "One clear call. Size/skip/watch + invalidation. Benefit-led (you get the move), craft-focused (Porsche OG), no AI-slop.",
         points: [
-          "Yield targets. Strike ritual. Risk frameworks.",
+          "Recommendation style: size, skip, or watch; invalidation in one phrase.",
+          "EV lens in prose when context allows.",
         ],
-        example: '"Plan my allocation for the quarter."',
-      },
-      {
-        name: "X (Twitter) Research",
-        category: "Research",
-        summary:
-          "Lives on the timeline. Benefit-led: you get CT vibe, then one clear move. Angles (structure, ecosystem, trenches, alpha, risk, contrarian); EV-style size/skip/watch. No AI-slop.",
-        points: [
-          "Search X for ticker or project. Briefing format on request.",
-          "CT sentiment, threads, vibe check, ratio. VIP list (on notif).",
-          "Web: last resort only.",
-        ],
-        example: '"What\'s CT saying about BNKR?" or "Give me a briefing." or "Vibe check BTC on X."',
+        example: '"what\'s your call?" or "rebalance my stack"',
       },
       {
         name: "Bootstrap",
         category: "Memory",
         summary:
-          "Remembers goals. Past allocations.",
+          "Remembers goals and past context. Progress toward $100K/year.",
         points: [
-          "Goals. Past allocations.",
+          "Goals. Past allocations. What was recommended.",
         ],
-        example: "Progress toward $100K/year.",
+        example: "Consistent handoff and call style across sessions.",
       },
     ],
     proTip:
-      "Benefit-led: ask for the move. 'What\'s the move?', 'Give me a briefing.', 'What\'s CT saying about [ticker]?', 'Vibe check [ticker] on X', 'What\'s the ratio on NVDA?' You get size/skip/watch and invalidation—no fluff.",
+      "Plan and call only. Say 'full $100K plan', 'this week\'s targets', 'size or skip?' (then paste VINCE's output), 'Echo DD', 'rebalance', 'what\'s your call?' For live data—options, yield, CT—ask VINCE first, then paste here for the call.",
+  },
+
+  Sentinel: {
+    headline: "Core dev. Ops. Architecture. 24/7.",
+    intro:
+      "Sentinel is the project's core dev agent: ops and runbook, architecture steward, cost steward (TREASURY, burn rate, breakeven), and proactive partner for Claude Code / Cursor. North star: coding 24/7, self-improving, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings. No trading—VINCE and Solus own that lane.",
+    tags: [
+      { label: "Core Dev", withSparkles: true },
+      { label: "Cost Steward" },
+      { label: "Architecture" },
+      { label: "ONNX / Feature Store" },
+      { label: "ART & Examples" },
+      { label: "No Trading" },
+    ],
+    capabilities: [
+      {
+        title: "Task Brief for Claude 4.6",
+        description:
+          "Pasteable block for Claude Code or Cursor: task + architecture rules + 'keep the architecture as good as it gets.' Work never stalls.",
+      },
+      {
+        title: "Cost Status",
+        description:
+          "Burn rate, breakeven, 100K target. TREASURY + Usage tab. LLM choice, Cursor Max, data API tiers. Cost steward for every suggestion.",
+      },
+      {
+        title: "ONNX & Feature Store",
+        description:
+          "Feature-store state, training readiness (90+ rows), next step (train_models, Supabase). ML pipeline health.",
+      },
+      {
+        title: "ART Gems",
+        description:
+          "3–5 concrete patterns from elizaOS/examples, especially art. Meridian, QQL, Ringers, Fidenza. Reuse here.",
+      },
+      {
+        title: "Clawdbot Guide",
+        description:
+          "Knowledge research without X API cost: curated X follows + Birdy → threads/URLs → knowledge pipeline.",
+      },
+      {
+        title: "What's Next?",
+        description:
+          "Prioritized suggestions: architecture, ops, ONNX, clawdbot, ART, settings, benchmarks, plugins. Numbered, with refs.",
+      },
+      {
+        title: "Improve Docs",
+        description:
+          "Suggest improvements to internal-docs, sentinel-docs, teammate. Consolidate progress.txt (plugin-vince, plugin-kelly, frontend).",
+      },
+      {
+        title: "VC / Angel Pitch",
+        description:
+          "No slides—demos that blow them away. Elevator pitch and TLDR of the big vision. 90% core dev; 10% gen art.",
+      },
+    ],
+    plugins: [
+      {
+        name: "Plugin-Sentinel",
+        category: "Core Dev",
+        summary:
+          "Task brief, cost status, ONNX status, ART gems, clawdbot guide, doc improve, settings suggest. Weekly/daily tasks to sentinel/ops channels.",
+        points: [
+          "SENTINEL_SUGGEST, SENTINEL_COST_STATUS, SENTINEL_ONNX_STATUS.",
+          "SENTINEL_ART_GEMS, SENTINEL_CLAWDBOT_GUIDE, SENTINEL_DOC_IMPROVE.",
+          "Knowledge: internal-docs, sentinel-docs, teammate.",
+        ],
+        example: '"task brief for Claude 4.6" or "cost status" or "what should we do next"',
+      },
+      {
+        name: "Powered by ElizaOS",
+        category: "AI Engine",
+        summary:
+          "Architecture steward. Keeps plugin boundaries, agents thin, no duplicate lanes. Benefit-led, no AI-slop.",
+        points: [
+          "Pasteable briefs for Claude Code.",
+          "Cost-aware suggestions.",
+        ],
+        example: '"Give me a task brief for Cursor"',
+      },
+      {
+        name: "SQL",
+        category: "Database",
+        summary:
+          "Memories and state. Progress, logs.",
+        points: [
+          "Persistent state for suggestions and outcomes.",
+        ],
+        example: "Remembers what was suggested and accepted.",
+      },
+      {
+        name: "Bootstrap",
+        category: "Memory",
+        summary:
+          "Remembers. Learns from suggestion outcomes.",
+        points: [
+          "High-accept categories. Avoid repeating rejected ideas.",
+        ],
+        example: "Refines next suggestions from feedback.",
+      },
+    ],
+    proTip:
+      "Core dev only. Say 'task brief for Claude 4.6', 'cost status', 'ONNX status', 'art gems', 'clawdbot setup', 'what should we do next', 'improve docs'. For trading or wealth plan, use VINCE or Solus.",
   },
 
   Eliza: {
