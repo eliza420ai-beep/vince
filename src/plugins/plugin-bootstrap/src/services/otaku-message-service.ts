@@ -893,9 +893,12 @@ export class OtakuMessageService implements IMessageService {
               },
             ],
             accumulatedState,
-            async () => {
-              return [];
-            }
+            callback
+              ? async (content) => {
+                  await callback(content);
+                  return [];
+                }
+              : undefined
           );
 
           // Safely access action results from cache

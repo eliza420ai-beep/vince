@@ -415,6 +415,16 @@ export const askAgentAction: Action = {
               "User";
             await ensureOne(message.entityId as string, userName);
             await ensureOne(targetAgentId, targetName);
+            // Ensure all other in-process agents so messages from them in this room resolve (avoids "No entity found for message").
+            const agentsInProcess = getAgentsInProcess(runtime);
+            if (agentsInProcess) {
+              for (const a of agentsInProcess) {
+                const aid = getAgentId(a);
+                if (aid && aid !== message.entityId && aid !== runtime.agentId && aid !== targetAgentId) {
+                  await ensureOne(aid, getAgentDisplayName(a) || aid);
+                }
+              }
+            }
           }
         }
         const IN_PROCESS_TIMEOUT_MS = 95_000; // Slightly above JOB_TIMEOUT_MS so we prefer in-process
