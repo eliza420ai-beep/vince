@@ -31,12 +31,18 @@ function walkUpForEnv(startDir: string): string | null {
   return null;
 }
 
+function findEnvPath(): string | null {
+  const cwdPath = resolve(process.cwd(), ".env");
+  if (existsSync(cwdPath)) return cwdPath;
+  const root = findProjectRoot();
+  return root ? resolve(root, ".env") : null;
+}
+
 export function loadEnvOnce(): void {
   if (_done) return;
   _done = true;
-  const root = findProjectRoot();
-  if (!root) return;
-  const envPath = resolve(root, ".env");
+  const envPath = findEnvPath();
+  if (!envPath || !existsSync(envPath)) return;
   try {
     const content = readFileSync(envPath, "utf8");
     for (const line of content.split("\n")) {
@@ -48,7 +54,7 @@ export function loadEnvOnce(): void {
           let val = trimmed.slice(eq + 1).trim();
           if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
             val = val.slice(1, -1);
-          if (!process.env[key]) process.env[key] = val;
+          if (!process.env[key] || key === "X_BEARER_TOKEN") process.env[key] = val;
         }
       }
     }

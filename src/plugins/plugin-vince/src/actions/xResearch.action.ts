@@ -20,8 +20,9 @@ import type { VinceXResearchService } from "../services/xResearch.service";
 import type { XTweet } from "../services/xResearch.service";
 
 const SEARCH_TRIGGER_PATTERNS = [
-  /\b(?:x\s*research|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|what(?:'s| is)\s+twitter\s+saying|check\s+x\s+for|x\s+search)\b/i,
+  /\b(?:x\s*research|research\s+(?:on\s+)?x\b|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|what(?:'s| is)\s+twitter\s+saying|check\s+x\s+for|x\s+search)\b/i,
   /\b(?:what(?:'s| is)\s+ct\s+saying|crypto\s*twitter\s+(?:saying|on)|ct\s+sentiment\s+on)\b/i,
+  /\b(?:sentiment\s+on\s+x|x\s+sentiment|sentiment\s+on\s+twitter|twitter\s+sentiment)\b/i,
   /\b(?:from:\w+|@\w+\s+recent)\b/i,
 ];
 
