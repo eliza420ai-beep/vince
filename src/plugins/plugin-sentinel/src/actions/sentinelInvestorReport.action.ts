@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -16,7 +17,6 @@ const INVESTOR_TRIGGERS = [
   "investor report",
   "weekly report",
   "burn and priorities",
-  "investor report",
 ];
 
 function wantsInvestorReport(text: string): boolean {
@@ -41,18 +41,22 @@ export const sentinelInvestorReportAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<ActionResult> => {
     logger.debug("[SENTINEL_INVESTOR_REPORT] Action fired");
     try {
       const block = await generateInvestorBlock(runtime, message);
       await callback({ text: block });
-      return true;
+      return { success: true, text: block };
     } catch (error) {
       logger.error("[SENTINEL_INVESTOR_REPORT] Failed:", error);
-      await callback({
-        text: "Investor update couldn't be generated. Check TREASURY and Usage tab for burn and cost; Leaderboard → Trading Bot for paper bot. Ask for cost status or how did we do for details.",
-      });
-      return false;
+      const fallback =
+        "Investor update couldn't be generated. Check TREASURY and Usage tab for burn and cost; Leaderboard → Trading Bot for paper bot. Ask for cost status or how did we do for details.";
+      await callback({ text: fallback });
+      return {
+        success: false,
+        text: fallback,
+        error: error instanceof Error ? error : new Error(String(error)),
+      };
     }
   },
 

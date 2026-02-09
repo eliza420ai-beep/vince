@@ -354,7 +354,6 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(hasCdp ? [cdpPlugin] : []),
-    ...(otakuHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
   ] as Plugin[];
 
 const initOtaku = async (_runtime: IAgentRuntime) => {

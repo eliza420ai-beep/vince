@@ -410,10 +410,17 @@ export const askAgentAction: Action = {
         }
 
         // Fallback: sync (return value may contain processing.responseContent.actionCallbacks).
+        // Wrap in timeout so a stuck target cannot block the handler indefinitely.
         if (!reply) {
           try {
-            const syncResult = await eliza.handleMessage(targetAgentId, userMsg);
-            reply = extractReplyFromHandleMessageResult(syncResult);
+            const timeoutPromise = new Promise<null>((resolve) =>
+              setTimeout(() => resolve(null), IN_PROCESS_TIMEOUT_MS)
+            );
+            const syncResult = await Promise.race([
+              eliza.handleMessage(targetAgentId, userMsg),
+              timeoutPromise,
+            ]);
+            reply = syncResult != null ? extractReplyFromHandleMessageResult(syncResult) : null;
             if (reply) {
               await callback({
                 text: `**${targetName} says:** ${reply}`,
@@ -536,6 +543,7 @@ export const askAgentAction: Action = {
         }
       }
 
+      // Intentionally treat completed with missing/empty content as no reply (fall through to "didn't respond in time").
       if (last.status === "completed" && last.result?.message?.content) {
         const reply = last.result.message.content;
         await callback({
