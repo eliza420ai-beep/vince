@@ -223,7 +223,14 @@ export function DashboardSidebar({
                       a.id === selectedAgentId && "bg-accent font-medium",
                     )}
                   >
-                    <span className="truncate">{a.name ?? a.id}</span>
+                    <span className="flex flex-col items-start gap-0.5">
+                      <span className="truncate">{a.name ?? a.id}</span>
+                      {(a.name ?? "").toLowerCase() === "kelly" && (
+                        <span className="text-xs text-muted-foreground">
+                          Start here — one team, one conversation
+                        </span>
+                      )}
+                    </span>
                   </button>
                 ))}
               </div>

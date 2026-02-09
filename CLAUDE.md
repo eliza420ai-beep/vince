@@ -18,6 +18,8 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Project overview** | [README.md](README.md) |
 | **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 
+Users can focus on chatting with **Kelly**; she orchestrates Vince (data), Solus (insights), Eliza (knowledge), and Otaku (DeFi execution) via ASK_AGENT so the user gets **one team, one dream** in a single conversation.
+
 Use the sections below for **generic ElizaOS** patterns (character, plugins, env, testing). For VINCE-specific implementation (signal sources, paper bot, ML pipeline), prefer the plugin docs above.
 
 ---
