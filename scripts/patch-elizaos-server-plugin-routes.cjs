@@ -28,16 +28,12 @@ const unpatched =
 const patched =
   'reqPath.replace(/(?:\\/api)?\\/agents\\/[^\\/]+\\/plugins/, "")';
 
-if (alreadyPatched) {
-  console.log("patch-elizaos-server-plugin-routes: already patched");
-  process.exit(0);
+if (!alreadyPatched && s.includes(unpatched)) {
+  s = s.replace(unpatched, patched);
+  console.log("patch-elizaos-server-plugin-routes: plugin route fix applied");
+} else if (alreadyPatched) {
+  // plugin route already applied, continue to other patches
 }
-if (!s.includes(unpatched)) {
-  console.warn("patch-elizaos-server-plugin-routes: pattern not found, skipping");
-  process.exit(0);
-}
-
-s = s.replace(unpatched, patched);
 
 // Include all running runtimes in GET /api/agents (e.g. Kelly) even if not yet in DB
 const agentsListUnpatched =
@@ -61,6 +57,48 @@ if (s.includes(startAgentsPatched)) {
 } else if (s.includes(startAgentsUnpatched)) {
   s = s.replace(startAgentsUnpatched, startAgentsPatched);
   console.log("patch-elizaos-server-plugin-routes: startAgents pre-create applied");
+}
+
+// Submit fallback: when central_messages insert fails, broadcast via socket and return 201 so reply reaches UI
+const submitCatchUnpatched =
+  '} catch (error) {\n      logger11.error({\n        src: "http",\n        path: "/submit",\n        channelId: channel_id,\n        error: error instanceof Error ? error.message : String(error)\n      }, "Error submitting agent message");\n      res.status(500).json({ success: false, error: "Failed to submit agent message" });\n    }';
+const submitCatchPatched = `} catch (error) {
+      const fallbackId = messageId || crypto.randomUUID();
+      if (serverInstance.socketIO) {
+        serverInstance.socketIO.to(channel_id).emit("messageBroadcast", {
+          senderId: author_id,
+          senderName: metadata?.agentName || "Agent",
+          text: content,
+          roomId: channel_id,
+          serverId: message_server_id,
+          createdAt: Date.now(),
+          source: source_type || "agent_response",
+          id: fallbackId,
+          thought: raw_message?.thought,
+          actions: raw_message?.actions,
+          attachments: transformedAttachments
+        });
+      }
+      res.status(201).json({ success: true, data: { id: fallbackId, createdAt: new Date().toISOString(), sourceType: source_type || "agent_response" } });
+      logger11.error({
+        src: "http",
+        path: "/submit",
+        channelId: channel_id,
+        error: error instanceof Error ? error.message : String(error)
+      }, "Error submitting agent message");
+    }`;
+if (s.includes("submit central_messages fallback") || s.includes("const fallbackId = messageId || crypto.randomUUID()")) {
+  // already applied
+} else if (s.includes('res.status(500).json({ success: false, error: "Failed to submit agent message" });')) {
+  s = s.replace(submitCatchUnpatched, submitCatchPatched);
+  const attBeforeTry = 'return res.status(400).json({ success: false, error: "Invalid messageId format" });\n    }\n    try {';
+  const attMoved = 'return res.status(400).json({ success: false, error: "Invalid messageId format" });\n    }\n    const transformedAttachments = attachmentsToApiUrls(metadata?.attachments ?? raw_message?.attachments);\n    try {';
+  const attRemove = "const createdMessage = await serverInstance.createMessage(newRootMessageData);\n      const transformedAttachments = attachmentsToApiUrls(metadata?.attachments ?? raw_message?.attachments);";
+  const attKeep = "const createdMessage = await serverInstance.createMessage(newRootMessageData);";
+  if (s.includes(attRemove)) {
+    s = s.replace(attBeforeTry, attMoved).replace(attRemove, attKeep);
+  }
+  console.log("patch-elizaos-server-plugin-routes: submit central_messages fallback applied");
 }
 
 fs.writeFileSync(file, s);

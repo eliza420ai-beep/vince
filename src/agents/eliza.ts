@@ -30,7 +30,7 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
-import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
+import { vincePluginNoX } from "../plugins/plugin-vince/src/index.ts";
 
 // Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
 const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -44,7 +44,7 @@ const buildPlugins = (): Plugin[] => [
   ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
   // plugin-browser disabled: requires @elizaos/core "next" (ModelClass, ServiceType); ADD_MICHELIN falls back to fetch
   ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
-  vincePlugin, // UPLOAD + knowledge actions so Eliza can expand the corpus; execution/live data → VINCE
+  vincePluginNoX, // UPLOAD + knowledge (no X API — only VINCE loads X to avoid rate-limit conflict)
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
