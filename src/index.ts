@@ -132,5 +132,5 @@ export { solusAgent } from "./agents/solus.ts";
 export { otakuAgent } from "./agents/otaku.ts";
 export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
-export { character } from "./character.ts";
+export { character } from "./agents/eliza.ts";
 export default project;
