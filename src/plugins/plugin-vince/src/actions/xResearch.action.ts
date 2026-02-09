@@ -18,6 +18,7 @@ import type {
 import { logger } from "@elizaos/core";
 import type { VinceXResearchService } from "../services/xResearch.service";
 import type { XTweet } from "../services/xResearch.service";
+import { buildSentimentQuery } from "../services/xSentiment.service";
 
 const SEARCH_TRIGGER_PATTERNS = [
   /\b(?:x\s*research|research\s+(?:on\s+)?x\b|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|what(?:'s| is)\s+twitter\s+saying|check\s+x\s+for|x\s+search)\b/i,
@@ -101,6 +102,15 @@ function extractQuery(text: string): string {
     .trim();
   if (withoutTrigger.length > 2) return withoutTrigger;
   return text.trim() || "crypto";
+}
+
+/** Known tickers we expand to X search query (e.g. BTC → $BTC OR Bitcoin) so results are about the asset, not random tweets that mention the ticker. */
+const KNOWN_TICKERS = new Set(["BTC", "ETH", "SOL", "HYPE"]);
+
+function expandQueryForSearch(rawQuery: string): string {
+  const upper = rawQuery.trim().toUpperCase();
+  if (KNOWN_TICKERS.has(upper)) return buildSentimentQuery(upper);
+  return rawQuery.trim();
 }
 
 /** Parse optional search options from natural language (last 24h, by likes, top 5, more pages). */
@@ -273,10 +283,11 @@ export const vinceXResearchAction: Action = {
       }
 
       // search (default)
-      const query = extractQuery(text);
+      const rawQuery = extractQuery(text);
+      const query = expandQueryForSearch(rawQuery);
       const opts = parseSearchOptions(text);
       await callback({
-        text: `Searching X for: **${query}**…`,
+        text: `Searching X for: **${rawQuery}**…`,
         actions: ["VINCE_X_RESEARCH"],
       });
       const tweets = await svc.search(query, {
@@ -287,7 +298,7 @@ export const vinceXResearchAction: Action = {
       });
       const sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
       const formatted = formatTweetsForBriefing(sorted, opts.limit);
-      const reply = `**X research: ${query}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
+      const reply = `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
       await callback({
         text: reply,
         actions: ["VINCE_X_RESEARCH"],
