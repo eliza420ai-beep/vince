@@ -36,6 +36,15 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 
 **One token:** Set only `X_BEARER_TOKEN`. In-chat, CLI, and vibe check all share it. When vibe check hits rate limit (429), the shared cooldown blocks in-chat until reset—you may see “X API rate limited. Resets in Ns” in chat.
 
+**One token and you've hit the max number of X apps?** You can't add a second token. To give in-chat headroom, use one of these (add to `.env` and **restart the app**):
+
+| Option | What to set in `.env` | Result |
+|--------|----------------------|--------|
+| **A — Prioritize in-chat** | `X_SENTIMENT_ENABLED=false` | In-chat (“What are people saying about BTC?”) and CLI keep working. Leaderboard News tab no longer shows X vibe tiles until you re-enable sentiment or add another token. |
+| **B — Keep one vibe tile, less load** | `X_SENTIMENT_ASSETS=BTC` and `X_SENTIMENT_STAGGER_INTERVAL_MS=7200000` | One asset (BTC) and 2h stagger; sentiment uses the token much less so in-chat is less likely to hit 429. You still get the BTC vibe tile on the News tab. |
+
+After changing `.env`, restart so the new values are picked up. An active 429 clears when the reset window (e.g. “Resets in 89s”) ends.
+
 **Two tokens (recommended if you hit 429s):** Set `X_BEARER_TOKEN` (in-chat + CLI) and **either** `X_BEARER_TOKEN_SENTIMENT` **or** `X_BEARER_TOKEN_BACKGROUND` (vibe/sentiment/list). Cooldowns are separate: in-chat keeps working when the sentiment token is rate limited.
 
 **Three keys:** You can set all three. In that case only `X_BEARER_TOKEN` and `X_BEARER_TOKEN_SENTIMENT` are used; `X_BEARER_TOKEN_BACKGROUND` is a fallback when SENTIMENT is unset.
