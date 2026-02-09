@@ -18,7 +18,7 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 ## Setup
 
 1. **X API Bearer token**  
-   [X Developer Portal](https://developer.x.com/). Requires **Basic tier** (~$200/mo) or higher for search.
+   [X Developer Portal](https://developer.x.com/). Requires **Basic tier** (~$200/mo) or higher for search. X now offers pay-as-you-go and credits; the same Bearer token and v2 endpoints work. Check [X Developer Portal](https://developer.x.com/) for current pricing and quotas.
 
 2. **Environment**  
    One token for both CLI and in-chat:
@@ -60,22 +60,30 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 | Layer | What it does |
 |-------|----------------|
 | **Cache file** | `.elizadb/vince-paper-bot/x-sentiment-cache.json` — one JSON object keyed by asset (BTC, ETH, SOL, HYPE). Each entry: `sentiment` (bullish/bearish/neutral), `confidence` (0–100), `hasHighRiskEvent`, `updatedAt`. |
-| **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset every 15 minutes** in round-robin (BTC → SOL → ETH → HYPE). Keeps X API headroom for in-chat VINCE_X_RESEARCH. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
+| **In-app (when running)** | **VinceXSentimentService** (plugin-vince) loads the cache file on startup, then refreshes **one asset per interval** (default **1 hour**)—no burst. With 4 assets that’s a full cycle every 4h; with 24 assets, one per hour = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
 | **Optional cron** | If the app isn’t always on, or you want all X usage in cron: run `scripts/x-vibe-check.ts` once per asset (at different minutes). Each run does one X search, computes sentiment, and merges that asset into the same cache file. No ElizaOS runtime needed. |
 | **Consumers** | **Signal aggregator** (paper trading algo) calls `getTradingSentiment(asset)` — reads from in-memory cache (backed by the file). **Leaderboard News tab** shows the same data in an “X (Twitter) vibe check” card next to MandoMinutes. |
 
 So: **one cache file**; filled by either the in-app timer or the cron script (or both); read by the app for trading and for the News tab.
 
+### Cost and rate limits: why this is a gamechanger (and where it hurts)
+
+**No more $60K/year.** We no longer have to pay enterprise-tier pricing (~$60K/year) for X API access. The **Basic tier** (~$200/mo) gives us search and enough quota to run: (1) in-chat **VINCE_X_RESEARCH** for single-shot queries, (2) **X vibe check** for BTC, ETH, SOL, HYPE (staggered one asset per hour by default), and (3) the **CLI** (`skills/x-research`) for multi-query research and watchlist—all on **one token**. That’s a massive cost cut for the same “what’s CT saying?” signal we use as our **#1 news source** and **#1 sentiment signal** in the dashboard and paper algo.
+
+**Current rate limit challenges and limitations.** We share one Bearer token across in-chat, vibe check, and CLI. Basic tier has strict rate limits (e.g. tweet caps per 15 min, search request limits). When we hit a 429, the vibe-check service backs off and logs “X API rate limited. Skipping refresh for N min”; we keep serving cached (or neutral) sentiment until the reset window. So: **in-app** we stagger to one asset per hour (default) so we never burst—e.g. 24 assets = full cycle every 24h; **in-chat** we cache search results 15 min so repeat queries don’t burn quota; **cron** can run one asset per hour (or per interval) to match. Limitations in practice: we can’t run high-frequency vibe checks for many assets at once; adding HIP-3 stocks, airdrop alpha, and left-curve memetics to vibe check will require either more sophisticated prompt design (fewer, smarter queries) or accepting longer refresh cycles / prioritising which buckets get refreshed when. We’re working on richer prompt design to get more signal per request.
+
 **Used by Grok Expert and daily report:** When Grok Expert or the daily report task is enabled, cached X sentiment is included in their data context so the pulse and daily report can reference CT sentiment (e.g. "X bullish on BTC, neutral ETH"). When `GROK_SUB_AGENTS_ENABLED` is set, each of the six sub-agent prompts receives the same cached X vibe summary in its context. Grok Expert requires `XAI_API_KEY` in `.env` (see [.env.example](.env.example)); the daily report uses the default model. No extra X API usage.
 
-### MandoMinutes vs X vibe check (both on News tab)
+### MandoMinutes vs X vibe check (News tab)
+
+X is our **#1 news source** and **#1 sentiment signal**; on the **Leaderboard → News** tab the **X (Twitter) vibe check** card is at the **top** (flex layout), then MandoMinutes TLDR and headlines below. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics (more sophisticated prompt design to maximise signal per request under rate limits).
 
 | | MandoMinutes | X vibe check |
 |--|--------------|---------------|
 | **Source** | MandoMinutes site / shared runtime cache | X search API, keyword sentiment |
 | **Cached where** | Runtime/DB cache (e.g. `mando_minutes:latest:v9`) | File: `.elizadb/vince-paper-bot/x-sentiment-cache.json` |
-| **Filled by** | App (or MANDO_MINUTES action) | In-app 15 min timer and/or cron script |
-| **Leaderboard** | “MandoMinutes” card (headlines, TLDR, sentiment) | “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
+| **Filled by** | App (or MANDO_MINUTES action) | In-app 1h stagger (one asset per interval) and/or cron script |
+| **Leaderboard** | TLDR strip + “MandoMinutes” card (headlines, deep dive) | **First:** “X (Twitter) vibe check” card (BTC, ETH, SOL, HYPE tiles) |
 
 Both appear on the **Leaderboard → News** tab when data is available.
 
@@ -84,23 +92,39 @@ Both appear on the **Leaderboard → News** tab when data is available.
 **Script:** `scripts/x-vibe-check.ts`
 
 - **With arg:** `bun run scripts/x-vibe-check.ts BTC` (or ETH, SOL, HYPE) — refreshes that asset only and merges it into the cache file.
-- **No arg:** `bun run scripts/x-vibe-check.ts` — derives asset from current time (round-robin every 15 min). One cron line every 16 min gives automatic rotation.
+- **No arg:** `bun run scripts/x-vibe-check.ts` — derives asset from current time (round-robin by hour). One cron line every 1h gives automatic rotation (4 assets = full cycle every 4h).
 
 **Requires:** `X_BEARER_TOKEN` in `.env` (script loads it from repo root).
 
-**Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`):
+**Crontab examples** (replace `/path/to/vince` with your repo root, e.g. `/Users/macbookpro16/vince`). **Default: Option D** (4 API calls/day). Use A, B, or C for more frequent updates.
 
-- **Option A — One line, round-robin (script picks asset from time):**
+- **Option D (default) — One run per asset per day. 4 API calls/day.** Max X API headroom; sentiment rarely shifts intraday.
   ```cron
-  */8 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+  0 0 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 6 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 12 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
   ```
 
-- **Option B — Four lines, one asset per 30 min at different minutes (BTC → ETH → SOL → HYPE):**
+- **Option A — One line, round-robin every hour (script picks asset from hour). 24 API calls/day.**
   ```cron
-  0,30 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
-  8,38 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
-  16,46 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
-  24,54 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  0 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+  ```
+
+- **Option B — One asset per hour total (24/day); full cycle every 4h.** Use hour lists; minute-only crons like `0 * * * *` run every hour and cause 96/day.
+  ```cron
+  0 0,4,8,12,16,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 1,5,9,13,17,21 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 2,6,10,14,18,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 3,7,11,15,19,23 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+  ```
+
+- **Option C — Full cycle every 8h. 12 API calls/day.**
+  ```cron
+  0 0,8,16 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+  0 2,10,18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+  0 4,12,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+  0 6,14,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
   ```
 
 A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (copy into `crontab -e` and fix the path).
@@ -110,9 +134,10 @@ A ready-to-edit example file is at **`scripts/x-vibe-check-crontab.example`** (c
 | Env | Default | Meaning |
 |-----|--------|--------|
 | `X_BEARER_TOKEN` | — | Required for X search; same token as CLI and in-chat. |
-| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `900000` (15 min) | Interval between single-asset refreshes in the app. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
+| `X_SENTIMENT_STAGGER_INTERVAL_MS` | `3600000` (1h) | Interval between single-asset refreshes in the app. E.g. 24 assets at 1h = full cycle every 24h. Set X_SENTIMENT_ENABLED=false to disable background refresh. |
+| (optional) | `X_SENTIMENT_SINCE`, `X_SENTIMENT_SORT_ORDER`, `X_SENTIMENT_CONFIDENCE_FLOOR`, `X_SENTIMENT_MIN_TWEETS`, `X_SENTIMENT_BULL_BEAR_THRESHOLD`, `X_SENTIMENT_RISK_MIN_TWEETS`, `X_SENTIMENT_ENGAGEMENT_CAP`, `X_SENTIMENT_SOFT_TIER_ENABLED`, `X_SENTIMENT_KEYWORDS_PATH` | Query window, sort order, confidence/thresholds, risk tweet count, engagement cap, soft tier, custom keyword JSON path. See [.env.example](.env.example). |
 
-See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (XSentiment row).
+See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) (X sentiment: query shape, keywords, confidence, risk).
 
 ### Where it’s implemented
 
@@ -128,7 +153,7 @@ See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vinc
 
 | Symptom | Likely cause | What to do |
 |--------|----------------|------------|
-| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (~15 min). |
+| **No “X vibe check” card on News tab** | `X_BEARER_TOKEN` not set, or service not configured | Set `X_BEARER_TOKEN` in `.env` and restart. First data can take up to one stagger cycle (default 1h). |
 | **Card shows “Neutral” (0%) for all assets** | Cache empty or first refresh not done yet | Wait for first refresh, or run cron once per asset. Check logs for `[VinceXSentimentService] Started`. |
 | **One or more assets never update** | X API rate limit (429) | Logs show “X API rate limited. Skipping refresh for N min”. Service serves cached (or neutral) until reset. Reduce cron frequency or rely on in-app stagger only. |
 | **Cron runs but cache file unchanged** | Wrong cwd, missing `.env`, or script error | Run from repo root: `cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC`. Ensure `X_BEARER_TOKEN` is in `.env`. Check script exit code (0 = success). |
@@ -193,6 +218,22 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 
 ---
 
+## Testing live data
+
+To confirm the X API returns real tweets (e.g. after adding credits or when the rate-limit window has reset):
+
+- **Live demo (prints real tweets):**  
+  `bun run scripts/x-research-live-demo.ts`  
+  Runs one search for "BTC OR bitcoin", prints up to 5 tweets with author, text snippet, and link. If you see "Rate limited. Resets in Ns", wait until after the reset and run again.
+
+- **Smoke test (search + getTweet):**  
+  `bun run scripts/x-research-live-smoke.ts`  
+  Exits 0 only if both search and a single-tweet fetch succeed. Use in CI or to verify token and quota.
+
+Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
+
+---
+
 ## Limits and cost
 
 **Note:** X revamped their API and launched **pay-per-use pricing**, so pricing and tiers may have changed from the previous high-cost reality. See the announcement: [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476). For current plans and usage, check the [X Developer Portal](https://developer.x.com/).
@@ -212,6 +253,8 @@ Use the CLI when you need to keep a research artifact or run multiple searches a
 | CLI and skill | [skills/x-research/README.md](skills/x-research/README.md) |
 | Skill instructions (agentic loop) | [skills/x-research/SKILL.md](skills/x-research/SKILL.md) |
 | X API reference | [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md) |
+| Live demo (real tweets) | `bun run scripts/x-research-live-demo.ts` |
+| Smoke test (search + getTweet) | `bun run scripts/x-research-live-smoke.ts` |
 | In-chat action | plugin-vince: `VINCE_X_RESEARCH` ([actions/xResearch.action.ts](src/plugins/plugin-vince/src/actions/xResearch.action.ts)) |
 | Service (search, profile, thread, tweet, cache) | [services/xResearch.service.ts](src/plugins/plugin-vince/src/services/xResearch.service.ts) |
 | X vibe check service (staggered refresh, cache file) | [xSentiment.service.ts](src/plugins/plugin-vince/src/services/xSentiment.service.ts) |

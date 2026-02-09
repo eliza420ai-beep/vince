@@ -7,15 +7,19 @@
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   VinceXSentimentService,
   parseRateLimitResetSeconds,
+  simpleSentiment,
+  hasRiskKeyword,
+  buildSentimentQuery,
+  getKeywordLists,
 } from "../services/xSentiment.service";
 import { createMockRuntime } from "./test-utils";
 
-/** Must exceed service CACHE_TTL_MS (30 min) to trigger stale behavior. */
-const STALE_CACHE_AGE_MS = 31 * 60 * 1000;
+/** Must exceed service CACHE_TTL_MS (24h) to trigger stale behavior. */
+const STALE_CACHE_AGE_MS = 25 * 60 * 60 * 1000;
 
 const mockTweets = (texts: string[]) =>
   texts.map((text, i) => ({
@@ -41,7 +45,17 @@ const mockTweets = (texts: string[]) =>
   }));
 
 describe("VinceXSentimentService", () => {
+  const envRestore: Record<string, string | undefined> = {};
+  beforeEach(() => {
+    envRestore.X_SENTIMENT_ENABLED = process.env.X_SENTIMENT_ENABLED;
+    process.env.X_SENTIMENT_ENABLED = "true";
+  });
   afterEach(() => {
+    if (envRestore.X_SENTIMENT_ENABLED !== undefined) {
+      process.env.X_SENTIMENT_ENABLED = envRestore.X_SENTIMENT_ENABLED;
+    } else {
+      delete process.env.X_SENTIMENT_ENABLED;
+    }
     vi.restoreAllMocks();
   });
 
@@ -54,7 +68,7 @@ describe("VinceXSentimentService", () => {
       });
       const service = await VinceXSentimentService.start(runtime);
       const out = service.getTradingSentiment("BTC");
-      expect(out).toEqual({
+      expect(out).toMatchObject({
         sentiment: "neutral",
         confidence: 0,
         hasHighRiskEvent: false,
@@ -88,7 +102,7 @@ describe("VinceXSentimentService", () => {
       });
       const service = new VinceXSentimentService(runtime);
       const out = service.getTradingSentiment("BTC");
-      expect(out).toEqual({
+      expect(out).toMatchObject({
         sentiment: "neutral",
         confidence: 0,
         hasHighRiskEvent: false,
@@ -114,7 +128,7 @@ describe("VinceXSentimentService", () => {
       expect(entry).toBeDefined();
       entry!.updatedAt = Date.now() - STALE_CACHE_AGE_MS;
       const out = service.getTradingSentiment("BTC");
-      expect(out).toEqual({
+      expect(out).toMatchObject({
         sentiment: "neutral",
         confidence: 0,
         hasHighRiskEvent: false,
@@ -136,7 +150,7 @@ describe("VinceXSentimentService", () => {
       const service = await VinceXSentimentService.start(runtime);
       expect(service.getTradingSentiment("BTC").sentiment).toBe("bullish");
       await service.stop();
-      expect(service.getTradingSentiment("BTC")).toEqual({
+      expect(service.getTradingSentiment("BTC")).toMatchObject({
         sentiment: "neutral",
         confidence: 0,
         hasHighRiskEvent: false,
@@ -234,7 +248,7 @@ describe("VinceXSentimentService", () => {
       });
       const service = await VinceXSentimentService.start(runtime);
       const out = service.getTradingSentiment("BTC");
-      expect(out).toEqual({
+      expect(out).toMatchObject({
         sentiment: "neutral",
         confidence: 0,
         hasHighRiskEvent: false,
@@ -350,7 +364,7 @@ describe("VinceXSentimentService", () => {
   });
 
   describe("query shape", () => {
-    it("calls search with $BTC for BTC, $ETH for ETH, $SOL for SOL, HYPE crypto for HYPE", async () => {
+    it("calls search with expanded query for BTC/ETH/SOL and HYPE crypto for HYPE", async () => {
       const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
       const runtime = createMockRuntime({
         services: {
@@ -362,13 +376,83 @@ describe("VinceXSentimentService", () => {
       });
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(0);
-      expect(search).toHaveBeenLastCalledWith("$BTC", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$BTC OR Bitcoin", expect.any(Object));
       await service.refreshOneAsset(1);
-      expect(search).toHaveBeenLastCalledWith("$ETH", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$ETH OR Ethereum", expect.any(Object));
       await service.refreshOneAsset(2);
-      expect(search).toHaveBeenLastCalledWith("$SOL", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$SOL OR Solana", expect.any(Object));
       await service.refreshOneAsset(3);
       expect(search).toHaveBeenLastCalledWith("HYPE crypto", expect.any(Object));
+    });
+  });
+
+  describe("buildSentimentQuery", () => {
+    it("returns expanded query for BTC, ETH, SOL and HYPE crypto for HYPE", () => {
+      expect(buildSentimentQuery("BTC")).toBe("$BTC OR Bitcoin");
+      expect(buildSentimentQuery("ETH")).toBe("$ETH OR Ethereum");
+      expect(buildSentimentQuery("SOL")).toBe("$SOL OR Solana");
+      expect(buildSentimentQuery("HYPE")).toBe("HYPE crypto");
+      expect(buildSentimentQuery("XYZ")).toBe("$XYZ");
+    });
+  });
+
+  describe("simpleSentiment phrase overrides and negation", () => {
+    it("returns neutral (0) for phrase overrides: bull trap, bear trap", () => {
+      expect(simpleSentiment("this is a bull trap")).toBe(0);
+      expect(simpleSentiment("classic bear trap")).toBe(0);
+    });
+    it("returns bullish (1) for buy the dip", () => {
+      expect(simpleSentiment("buy the dip")).toBe(1);
+    });
+    it("returns bearish (-1) for sell the rip", () => {
+      expect(simpleSentiment("sell the rip")).toBe(-1);
+    });
+    it("returns neutral for not bullish / not bearish phrases", () => {
+      expect(simpleSentiment("not bullish at all")).toBe(0);
+      expect(simpleSentiment("isn't bearish")).toBe(0);
+    });
+    it("negation flips word: not bullish counts as bearish", () => {
+      expect(simpleSentiment("I am not bullish on BTC")).toBeLessThanOrEqual(0);
+    });
+  });
+
+  describe("confidence formula", () => {
+    it("reaches at least 40 confidence for 5+ tweets with clear signal (avgSentiment ~0.2)", async () => {
+      const search = vi.fn().mockResolvedValue(
+        mockTweets([
+          "bullish moon pump",
+          "buy long growth",
+          "accumulate bottom",
+          "rally surge",
+          "bull run",
+        ]),
+      );
+      const runtime = createMockRuntime({
+        services: {
+          VINCE_X_RESEARCH_SERVICE: {
+            isConfigured: () => true,
+            search,
+          },
+        } as any,
+      });
+      const service = await VinceXSentimentService.start(runtime);
+      const out = service.getTradingSentiment("BTC");
+      expect(out.sentiment).toBe("bullish");
+      expect(out.confidence).toBeGreaterThanOrEqual(40);
+    });
+  });
+
+  describe("hasRiskKeyword and getKeywordLists", () => {
+    it("hasRiskKeyword returns true for rug, scam, hack", () => {
+      expect(hasRiskKeyword("rug pull")).toBe(true);
+      expect(hasRiskKeyword("scam token")).toBe(true);
+      expect(hasRiskKeyword("hacked")).toBe(true);
+    });
+    it("getKeywordLists returns built-in lists when env path not set", () => {
+      const lists = getKeywordLists();
+      expect(lists.bullish.length).toBeGreaterThan(10);
+      expect(lists.bearish.length).toBeGreaterThan(10);
+      expect(lists.risk.length).toBeGreaterThan(5);
     });
   });
 
@@ -386,7 +470,7 @@ describe("VinceXSentimentService", () => {
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(1);
       expect(search).toHaveBeenCalledTimes(1);
-      expect(search).toHaveBeenCalledWith("$ETH", expect.any(Object));
+      expect(search).toHaveBeenCalledWith("$ETH OR Ethereum", expect.any(Object));
     });
 
     it("loads cache from file on start so getTradingSentiment returns file data for other assets", async () => {

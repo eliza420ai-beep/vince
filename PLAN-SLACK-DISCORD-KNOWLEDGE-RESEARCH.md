@@ -8,7 +8,7 @@
 
 | Goal | What we do | Success = |
 |------|------------|-----------|
-| **Slack & Discord** | Configure bots, create channels, set env; use existing push routing for research. | Daily report (18:00 UTC), news (07:00), lifestyle (08:00) land in correct channels; research digests can go to `#vince-research`. |
+| **Slack & Discord** | Configure bots, create channels, set env; use existing push routing for research. | Daily report (18:00 UTC), news (16:00), lifestyle (08:00) land in correct channels; research digests can go to `#vince-research`. |
 | **Step one: Knowledge tests & improvement** | Extensive tests for current knowledge (structure, coverage, methodology); script to automate health report and safe improvements. | CI passes; health report clean or review-queue defined; new content meets same bar. |
 | **Knowledge quality** | Enforce methodology-over-data; frontmatter; clawdbot as playbooks; prompt templates for research/X. | Every ingested doc has source/category; agents cite frameworks, not stale numbers. |
 | **Deep research** | Re-enable Grok Expert; add research-daily task; optional research-queue processor. | One research brief or Grok pulse per day → channel and/or `knowledge/`. |
@@ -111,7 +111,7 @@ Agent loads Discord/Slack only when the corresponding token is set (`src/agents/
 
 - [ ] Bot appears online in Discord and/or Slack.
 - [ ] At 18:00 UTC a daily report appears in channels whose name contains `daily`.
-- [ ] At 07:00 UTC a news briefing appears in channels whose name contains `news` (when Mando fresh).
+- [ ] At 16:00 UTC a news briefing appears in channels whose name contains `news` (Mando updates ~4:20 PM Paris).
 - [ ] At 08:00 UTC a lifestyle briefing appears in channels whose name contains `lifestyle`.
 - [ ] Creating a channel named `#vince-research` and calling `push(text, { roomNameContains: "research" })` from a task delivers to that channel.
 
@@ -351,7 +351,7 @@ flowchart LR
 - [ ] Create channels per DISCORD.md; invite bot; set `DISCORD_APPLICATION_ID`, `DISCORD_API_TOKEN`.
 - [ ] Create Slack app; Socket Mode + app token; bot token; scopes; invite to channels.
 - [ ] Set `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN`.
-- [ ] Restart VINCE; verify daily report (18:00 UTC) → `#vince-daily-reports`, news (07:00) → `#vince-news`, lifestyle (08:00) → `#vince-lifestyle`.
+- [ ] Restart VINCE; verify daily report (18:00 UTC) → `#vince-daily-reports`, news (16:00) → `#vince-news`, lifestyle (08:00) → `#vince-lifestyle`.
 - [ ] (Optional) Add `#vince-research` and document in DISCORD.md / NOTIFICATIONS.md for future research pushes.
 - [ ] Add **`#vince-upload-youtube`** (or `#youtube-knowledge`): paste curated YouTube links; VINCE ingests to knowledge so we don’t have to watch. Document in DISCORD.md (done).
 

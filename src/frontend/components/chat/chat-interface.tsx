@@ -128,8 +128,13 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
-  // VINCE: trading bot first, then daily reports (ALOHA, Options, Perps, News), then HIP-3 (onchain stock market). Memes/NFT available in chat.
+  // VINCE (CDO): X is #1 source of insights/news/alpha/sentiment and feeds the flagship paper bot. Quick actions surface X first, then bot, ALOHA, domains.
   vince: [
+    { label: "What can the CDO do?", message: "What can you do?" },
+    { label: "X: BTC", message: "What are people saying about BTC?" },
+    { label: "X: Perps", message: "What's CT saying about perps?" },
+    { label: "X: VIP", message: "What did @RaoulGMI post recently?" },
+    { label: "X → Paper", message: "How does X sentiment affect the paper bot?" },
     { label: "Trading Bot", message: "bot status" },
     { label: "ALOHA", message: "aloha" },
     { label: "Options", message: "options" },
@@ -137,16 +142,18 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "News", message: "news" },
     { label: "HIP3", message: "hip3" },
   ],
-  // Eliza: flex knowledge, invite brainstorm, above all UPLOAD (ingest → right knowledge folder)
+  // Eliza (CEO): vision, knowledge, research, GTM, Substack.
   eliza: [
+    { label: "What can the CEO do?", message: "What can you do?" },
     { label: "Upload", message: "upload" },
     { label: "Ingest video", message: "ingest this video" },
     { label: "Our research", message: "what does our research say" },
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
-  // Kelly: lifestyle concierge — daily briefing, dining, wine, itinerary, surf, workout, week ahead, tea, rebalance, entertainment, discovery (no trading)
+  // Kelly (CHRO): people and balance, lifestyle, touch grass.
   kelly: [
+    { label: "What can the CHRO do?", message: "What can you do?" },
     { label: "Daily Briefing", message: "What should I do today?" },
     { label: "Restaurant & Hotel", message: "Recommend a restaurant in Biarritz" },
     { label: "Wine", message: "Recommend a wine for tonight" },
@@ -160,8 +167,9 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Entertainment", message: "Recommend a book for the weekend" },
     { label: "What can you do?", message: "What can you do?" },
   ],
-  // Solus: execution architect only — plan, process, call. Data (yield, options chains, bot, X) = VINCE.
+  // Solus (CFO): execution architect, plan and call.
   solus: [
+    { label: "What can the CFO do?", message: "What can you do?" },
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "This Week's Targets", message: "this week's targets" },
     { label: "Size or Skip?", message: "Give me size, skip, or watch and invalidation — I'll paste context" },
@@ -169,8 +177,9 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Rebalance", message: "how should I rebalance my stack?" },
     { label: "What's Your Call?", message: "what's your call?" },
   ],
-  // Sentinel: core dev only — task brief, cost, ONNX, ART, clawdbot, suggestions, docs. No trading.
+  // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot.
   sentinel: [
+    { label: "What can the CTO do?", message: "What can you do?" },
     { label: "Task Brief", message: "task brief for Claude 4.6" },
     { label: "Cost Status", message: "cost status" },
     { label: "ONNX Status", message: "ONNX status" },
@@ -179,8 +188,9 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "What's Next?", message: "what should we do next" },
     { label: "Improve Docs", message: "improve docs" },
   ],
-  // Otaku: DeFi analyst — flows, Morpho, yield, discovery (QUICK START below has: CDP Wallet, Price, Web, DeFi TVL, Bridge, Tx Checker — so we avoid those)
+  // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield.
   otaku: [
+    { label: "What can the COO do?", message: "What can you do?" },
     { label: "Smart Money", message: "smart money flows" },
     { label: "Token Discovery", message: "token discovery screener" },
     { label: "Morpho", message: "Morpho vault APY" },
@@ -194,6 +204,12 @@ function getQuickActionsForAgent(agentName: string): { label: string; message: s
   const key = (agentName || "").toLowerCase().trim();
   return QUICK_ACTIONS_BY_AGENT[key] ?? QUICK_ACTIONS_BY_AGENT.vince;
 }
+
+// Limitations for quick actions (shown under the Quick: buttons when present). Keep short and clear.
+const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
+  vince:
+    "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. See X-RESEARCH.md.",
+};
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
 const ALPHA_CATEGORIES: Record<
@@ -532,12 +548,10 @@ export function ChatInterface({
   const [lastAlphaByCategory, setLastAlphaByCategory] = useState<
     Record<string, { summary: string; updatedAt: number }>
   >({});
-  const [showReplyHint, setShowReplyHint] = useState(false); // Shown when stuck on "Analyzing..." (reply not reaching UI)
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false); // Track if user is actively scrolling
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const replyHintTimerRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const MAX_TEXTAREA_HEIGHT = 160;
@@ -614,30 +628,6 @@ export function ChatInterface({
   useEffect(() => {
     resizeTextarea();
   }, [inputValue, resizeTextarea]);
-
-  // When stuck on "Analyzing..." for 45s, show hint (agent reply not reaching UI — usually message-bus / local messaging).
-  // Use 45s so normal slow (non-streaming) replies don't show the hint while waiting.
-  useEffect(() => {
-    if (isTyping) {
-      setShowReplyHint(false);
-      replyHintTimerRef.current = setTimeout(
-        () => setShowReplyHint(true),
-        45000,
-      );
-    } else {
-      if (replyHintTimerRef.current) {
-        clearTimeout(replyHintTimerRef.current);
-        replyHintTimerRef.current = null;
-      }
-      setShowReplyHint(false);
-    }
-    return () => {
-      if (replyHintTimerRef.current) {
-        clearTimeout(replyHintTimerRef.current);
-        replyHintTimerRef.current = null;
-      }
-    };
-  }, [isTyping]);
 
   // Clear messages when entering new chat mode
   useEffect(() => {
@@ -1130,25 +1120,32 @@ export function ChatInterface({
               <MarketPulseCard agentId={agent.id} />
               {/* Quick actions: agent-specific prompts (VINCE = markets/trading, Eliza = research/knowledge) */}
               {agent?.id && (
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
-                    Quick:
-                  </span>
-                  {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
-                    <button
-                      key={label}
-                      type="button"
-                      onClick={() => handleQuickPrompt(message)}
-                      disabled={isTyping || isCreatingChannel}
-                      className={cn(
-                        "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
-                        (isTyping || isCreatingChannel) &&
-                          "opacity-50 pointer-events-none",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="mb-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
+                      Quick:
+                    </span>
+                    {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => handleQuickPrompt(message)}
+                        disabled={isTyping || isCreatingChannel}
+                        className={cn(
+                          "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
+                          (isTyping || isCreatingChannel) &&
+                            "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {agent.name && QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()] && (
+                    <p className="text-[10px] text-muted-foreground mt-1.5 max-w-2xl">
+                      {QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()]}
+                    </p>
+                  )}
                 </div>
               )}
               {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}
@@ -1346,28 +1343,6 @@ export function ChatInterface({
                         </div>
                       </ToolGroup>
                     </div>
-                    {showReplyHint && isTyping && (
-                      <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-                        <p className="font-medium">Reply not showing?</p>
-                        <p className="mt-1 text-muted-foreground dark:text-amber-200/80">
-                          In <code className="rounded bg-muted px-1">.env</code>{" "}
-                          set{" "}
-                          <code className="rounded bg-muted px-1">
-                            ELIZAOS_USE_LOCAL_MESSAGING=true
-                          </code>{" "}
-                          and leave{" "}
-                          <code className="rounded bg-muted px-1">
-                            ELIZAOS_API_KEY
-                          </code>{" "}
-                          unset. Restart the server (
-                          <code className="rounded bg-muted px-1">
-                            bun start
-                          </code>
-                          ). See DEPLOY.md § &quot;Bot status / agent replies
-                          not reaching the UI&quot;.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 )}
 

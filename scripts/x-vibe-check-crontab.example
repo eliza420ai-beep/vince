@@ -1,11 +1,23 @@
 # X vibe check: one asset per run, staggered to avoid rate limits.
 # Copy these lines into your crontab (crontab -e). Replace /path/to/vince with your repo root.
 #
-# Option A – One line, round-robin (script picks asset from time):
-#   */8 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+# Default: Option D – One run per asset per day. 4 API calls/day. Max X API headroom.
+0 0 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+0 6 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+0 12 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+0 18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
 #
-# Option B – Four lines, one asset per 30 min at different minutes (uncomment to use):
-# 0,30 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
-# 8,38 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
-# 16,46 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
-# 24,54 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+# Option A – One line, round-robin every hour (script picks asset from hour). 24 API calls/day.
+#   0 * * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts
+#
+# Option B – One asset per hour total; full cycle every 4h. 24 API calls/day.
+# 0 0,4,8,12,16,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+# 0 1,5,9,13,17,21 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+# 0 2,6,10,14,18,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+# 0 3,7,11,15,19,23 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE
+#
+# Option C – Full cycle every 8h. 12 API calls/day.
+# 0 0,8,16 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts BTC
+# 0 2,10,18 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts ETH
+# 0 4,12,20 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts SOL
+# 0 6,14,22 * * * cd /path/to/vince && bun run scripts/x-vibe-check.ts HYPE

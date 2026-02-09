@@ -424,7 +424,7 @@ function App() {
   }, [isInitialized, isSignedIn, userEmail, userName, currentUser]); // Re-run when CDP state changes
 
   // Display order for agent switcher (so Kelly and others are easy to find)
-  const AGENT_DISPLAY_ORDER = ["VINCE", "Eliza", "Kelly", "Solus", "Otaku"];
+  const AGENT_DISPLAY_ORDER = ["Kelly", "VINCE", "Eliza", "Solus", "Otaku", "Sentinel"];
 
   // Fetch the agent list first to get the ID (retry when empty so we wait for backend to register agents)
   const {

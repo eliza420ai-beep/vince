@@ -44,11 +44,22 @@
 | Agent | Lane |
 |:---|:---|
 | **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
-| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. |
+| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
 | **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **Otaku** | DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP wallet. When you need DeFi edge. |
 | **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
 | **Sentinel** | Keeps the ElizaOS project running smooth, profitable, and well coded. Ops, cost steward, ONNX, ART, clawdbot, task briefs for Claude. |
+
+**Startup analogy** — who’s CEO, CDO, CFO, COO, CHRO, CTO?
+
+| Role | Agent | Why |
+|:---|:---|:---|
+| **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
+| **CDO** | VINCE | Data powerhouse: options, perps, memes, news, X/CT, paper bot. Push intel only—no marketing or external promo. |
+| **CFO** | Solus | Capital and risk: size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
+| **COO** | Otaku | DeFi ops executor: token discovery, Morpho, yield, CDP. On-chain execution; keeps daily operations seamless. |
+| **CHRO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |
+| **CTO** | Sentinel | Systems, cost, code: ops, ONNX, clawdbot, task briefs. Keeps the stack running and profitable. |
 
 One team, one dream.
 
@@ -157,7 +168,7 @@ We **search X (Twitter) for sentiment** and use it in **three** places:
 
 | | What | Where |
 |:---:|---|:---|
-| 🤖 | **Paper trading algo** | **XSentiment** is a signal source in the aggregator (weight 0.5). Cached every 15 min; rate-limit aware. When confidence ≥ 40%, it votes long/short/neutral and appears in **WHY THIS TRADE**. Feature store records `signal_xSentimentScore` for ML. → [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
+| 🤖 | **Paper trading algo** | **XSentiment** is a signal source in the aggregator (weight 0.5). Staggered one asset per hour (no burst); rate-limit aware. When confidence ≥ 40%, it votes long/short/neutral and appears in **WHY THIS TRADE**. Feature store records `signal_xSentimentScore` for ML. → [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
 | 🔍 | **Cursor / Claude skill** | **skills/x-research/** — CLI (`bun run x-search.ts search "BNKR"`), watchlist, thread/profile, 15min cache. Use from the IDE for deep dives; paste results into VINCE or knowledge. |
 | 💬 | **VINCE in-chat** | When `X_BEARER_TOKEN` is set, ask *"what are people saying about BNKR?"* or *"search X for …"* → **VINCE_X_RESEARCH** returns sourced tweets (read-only). |
 | ✅ | **Tests** | `bun test skills/x-research/sentiment.test.ts` (skill) and `bun test src/plugins/plugin-vince/src/__tests__/xSentiment.service.test.ts` (paper algo: cache, rate limit, sentiment). |
@@ -338,7 +349,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 | 📚 | **Knowledge ingestion** | `VINCE_UPLOAD` + `scripts/ingest-urls.ts` → summarize → `knowledge/` (URLs, YouTube, PDF, podcast). See [scripts/README.md](scripts/README.md) |
 | 💬 | **Chat mode** | `chat: <question>` → pulls from `knowledge/` and trench frameworks |
 | 📦 | **Other actions** | NEWS, MEMES, TREADFI, LIFESTYLE, NFT, INTEL, BOT, UPLOAD — heritage, lightly maintained |
-| 🐦 | **X research & sentiment** | **Paper algo:** X sentiment is a signal source (weight 0.5, 15-min cache, rate-limit aware). **skills/x-research** (Cursor skill) + **VINCE_X_RESEARCH** in-chat when `X_BEARER_TOKEN` set. → [skills/x-research](skills/x-research/README.md) · [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
+| 🐦 | **X research & sentiment** | **Paper algo:** X sentiment is a signal source (weight 0.5, staggered one per hour, rate-limit aware). **skills/x-research** (Cursor skill) + **VINCE_X_RESEARCH** in-chat when `X_BEARER_TOKEN` set. → [skills/x-research](skills/x-research/README.md) · [SIGNAL_SOURCES](src/plugins/plugin-vince/SIGNAL_SOURCES.md) |
 
 ### Action Status
 
@@ -497,7 +508,7 @@ elizaos test e2e          # E2E only
 | Daily report (VINCE) | 18:00 | `daily` (e.g. `#vince-daily-reports`) |
 | Lifestyle (VINCE) | 08:00 | `lifestyle` (e.g. `#vince-lifestyle`) |
 | **Lifestyle (Kelly)** | 08:00 | `kelly` or `lifestyle` (e.g. `#kelly`, `#lifestyle`) — concierge-only, no trading |
-| News (MandoMinutes) | 07:00 | `news` (e.g. `#vince-news`) |
+| News (MandoMinutes) | 16:00 | `news` (e.g. `#vince-news`) |
 
 Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. For a single lifestyle channel, use Kelly's push and set `VINCE_LIFESTYLE_DAILY_ENABLED=false`. Kelly: `KELLY_LIFESTYLE_DAILY_ENABLED` (default on), `KELLY_LIFESTYLE_HOUR=8`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](DISCORD.md) · [NOTIFICATIONS.md](NOTIFICATIONS.md)
 

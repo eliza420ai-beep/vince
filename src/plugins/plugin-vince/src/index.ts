@@ -90,6 +90,10 @@ import { VinceMLInferenceService } from "./services/mlInference.service";
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
 import { vinceAlohaAction } from "./actions/aloha.action";
+import { vinceCtVibeAction } from "./actions/ctVibe.action";
+import { vinceFundingPulseAction } from "./actions/fundingPulse.action";
+import { vinceRegimeAction } from "./actions/regime.action";
+import { vinceBotVerdictAction } from "./actions/botVerdict.action";
 import { vinceOptionsAction } from "./actions/options.action";
 import { vincePerpsAction } from "./actions/perps.action";
 import { vinceMemesAction } from "./actions/memes.action";
@@ -188,7 +192,7 @@ export const vincePlugin: Plugin = {
     VinceMarketRegimeService,
     VinceHIP3Service,
     VinceXResearchService, // X (Twitter) read-only research when X_BEARER_TOKEN set
-    VinceXSentimentService, // X sentiment for paper algo (cached, 15-min refresh)
+    VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
     // Early Detection System
     VinceWatchlistService,
     VinceNotificationService,
@@ -213,6 +217,10 @@ export const vincePlugin: Plugin = {
   actions: [
     vinceGmAction,
     vinceAlohaAction,
+    vinceCtVibeAction,
+    vinceFundingPulseAction,
+    vinceRegimeAction,
+    vinceBotVerdictAction,
     vinceOptionsAction,
     vincePerpsAction,
     vinceMemesAction,
@@ -1049,6 +1057,10 @@ export * from "./constants/targetAssets";
 
 export { vinceGmAction } from "./actions/gm.action";
 export { vinceAlohaAction } from "./actions/aloha.action";
+export { vinceCtVibeAction } from "./actions/ctVibe.action";
+export { vinceFundingPulseAction } from "./actions/fundingPulse.action";
+export { vinceRegimeAction } from "./actions/regime.action";
+export { vinceBotVerdictAction } from "./actions/botVerdict.action";
 export { vinceOptionsAction } from "./actions/options.action";
 export { vincePerpsAction } from "./actions/perps.action";
 export { vinceMemesAction } from "./actions/memes.action";

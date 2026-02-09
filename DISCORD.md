@@ -1,33 +1,28 @@
-# Discord & Slack Structure — VINCE + Eliza
+# Discord & Slack Structure — C-suite agents (Option C)
 
-Recommended channel structure for IKIGAI LABS, LiveTheLifeTV, and Slack. Designed to fit VINCE (trading, lifestyle, news) and Eliza (research, knowledge, UPLOAD) agents.
-
----
-
-## How we’re set up (two agents, two Discord apps)
-
-- **Two agents:** VINCE and Eliza.
-- **Two Discord applications:** Each has its own Application ID and Bot token (no sharing).
-- **Both active on the same Discord server** (or split across servers — same two-app setup).
-
-**VINCE — proactive, data-focused**
-
-- Pushes updates to Discord; you don’t have to chat with him to get value.
-- **Daily report (ALOHA-style)** is pushed automatically to channels whose name contains `daily` (e.g. **#daily** or #vince-daily-reports) each morning (default **08:00 UTC**).
-- Core actions: ALOHA, OPTIONS, PERPS, NEWS, MEMES, HIP3, BOT, LIFESTYLE, etc. On-demand in chat when you want, but the daily report is automatic.
-- In a perfect world you read the #daily channel every morning without typing ALOHA.
-
-**Eliza — chat and knowledge**
-
-- Fully focused on **chat** and **expanding knowledge**, especially the **UPLOAD** action (ingest URLs/YouTube into knowledge).
-- No scheduled pushes; reactive only. You talk, she responds and ingests.
+Recommended channel structure for LiveTheLifeTV and other servers. **Option C:** six Discord applications (one per agent), one category per bot, sub-channels by each agent's core focus.
 
 ---
 
-## Multi-Agent Discord (Same Server, No Conflict)
+## Option C: Six bots, one category per agent
+
+- **Six agents:** Eliza (CEO), VINCE (CDO), Solus (CFO), Otaku (COO), Kelly (CHRO), Sentinel (CTO).
+- **Six Discord applications:** Each agent has its own Application ID and Bot token. No sharing — startup errors if any two share an ID.
+- **One category per bot:** Each bot has its own top-level category with sub-channels for that agent's skills (see [LiveTheLifeTV C-suite layout](#livethelifetv-c-suite-layout) below).
+
+**Who pushes (scheduled):**
+
+- **VINCE (CDO):** Daily report, news, lifestyle briefing, alerts — to channels whose name contains `daily`, `news`, `lifestyle`, `alerts`.
+- **Kelly (CHRO):** Daily concierge briefing — to channels whose name contains `kelly` or `lifestyle`.
+- **Sentinel (CTO):** Weekly suggestions (and optional daily) — to channels whose name contains `sentinel` or `ops`.
+- **Eliza, Solus, Otaku:** No scheduled pushes; chat only.
+
+---
+
+## Multi-Agent Discord (Option C: six apps, no shared IDs)
 
 **Why Eliza checks both `ELIZA_DISCORD_*` and `DISCORD_*`:**  
-`DISCORD_*` is a **fallback** for single-bot setups (Eliza only). For **two agents in the same server** you need **two Discord applications** (two bots). One token = one WebSocket; if both agents use the same token, only one connection can exist. Use `ELIZA_DISCORD_*` for Eliza and `VINCE_DISCORD_*` for VINCE (different app IDs). When running both, avoid setting generic `DISCORD_*` for Eliza so there’s no accidental token sharing.
+`DISCORD_*` is a **fallback** for single-bot setups (Eliza only). For **two agents in the same server** you need **two Discord applications** (two bots). (Option C: one app per agent; startup errors if two share an ID.) Use `ELIZA_DISCORD_*` for Eliza and `VINCE_DISCORD_*` for VINCE (different app IDs). When running both, avoid setting generic `DISCORD_*` for Eliza so there’s no accidental token sharing.
 
 **If you see `Send handler not found (handlerSource=discord)`:** VINCE and Eliza are using the **same** Discord Application ID. Create a **second** Discord app for VINCE at [Discord Developer Portal](https://discord.com/developers/applications), then set `VINCE_DISCORD_APPLICATION_ID` and `VINCE_DISCORD_API_TOKEN` to the new app’s values (different from Eliza’s). Restart the app.
 
@@ -62,10 +57,12 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 
 | Channel name contains | Receives |
 |-----------------------|----------|
-| `daily` | Market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
-| `news` | MandoMinutes (07:00 UTC) |
-| `lifestyle` | Dining, hotel, health (08:00 UTC) |
-| `alerts` | Alerts, paper trades (real-time) |
+| `daily` | VINCE market report — **morning** (08:00 UTC). Use e.g. **#daily** or #vince-daily-reports |
+| `news` | VINCE MandoMinutes (16:00 UTC; Mando updates ~4:20 PM Paris) |
+| `lifestyle` | VINCE and/or Kelly briefing (08:00 UTC) |
+| `alerts` | VINCE alerts, paper trades (real-time) |
+| `kelly` or `lifestyle` | Kelly daily concierge briefing (08:00 UTC) |
+| `sentinel` or `ops` | Sentinel weekly suggestions (and optional daily) |
 
 **Knowledge ingestion (you post, bot ingests):**
 
@@ -78,14 +75,33 @@ The Leaderboard **"Newly added knowledge"** list (Knowledge tab) reflects the lo
 
 ---
 
+## LiveTheLifeTV C-suite layout
+
+One category per bot; sub-channels match each agent's core focus. Channel names must contain the keywords above to receive scheduled pushes.
+
+| Category | Sub-channels | Push? |
+|----------|-------------|-------|
+| **CEO — Eliza** | meet_eliza, knowledge, research, gtm_substack | — |
+| **CDO — VINCE** | meet_vince, daily, news, lifestyle, alerts, upload_youtube | daily, news, lifestyle, alerts |
+| **CFO — Solus** | meet_solus, plan_100k, strike_ritual, size_skip_watch, echo_dd, rebalance | — |
+| **COO — Otaku** | meet_otaku, token_discovery, morpho_yield, wallet_ops, defi_intel | — |
+| **CHRO — Kelly** | meet_kelly, kelly, dining_hotels, wine_tea, surf_workout, touch_grass | kelly |
+| **CTO — Sentinel** | meet_sentinel, sentinel_ops, task_brief, cost_onnx, art_clawdbot | sentinel_ops |
+
+Create six Discord applications (one per agent), invite each bot to the server, and create the categories and channels above. Set each agent's `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` in `.env` (see `.env.example`).
+
+---
+
 ## Agent Capabilities
 
 | Agent | Role | Key Commands / Actions |
 |-------|------|------------------------|
-| **VINCE** | Unified data intelligence — trading, markets, lifestyle | GM, ALOHA, OPTIONS, PERPS, HIP3, NEWS, LIFESTYLE, INTEL, MEMES, AIRDROPS, NFT, BOT, UPLOAD |
-| **Eliza** | 24/7 research & knowledge expansion | UPLOAD (same as VINCE), web search, brainstorm, ingest URLs/YouTube |
-
-VINCE handles live data and execution. Eliza expands the knowledge corpus. Both can UPLOAD; VINCE also runs the paper bot and scheduled pushes.
+| **Eliza** | CEO — vision, knowledge, GTM, Substack | Chat, research, UPLOAD, brainstorm, ingest URLs/YouTube |
+| **VINCE** | CDO — data and intel | GM, ALOHA, OPTIONS, PERPS, HIP3, NEWS, LIFESTYLE, INTEL, MEMES, BOT, UPLOAD; pushes to daily, news, lifestyle, alerts |
+| **Solus** | CFO — plan and call | $100K plan, strike ritual, size/skip/watch, Echo DD, rebalance |
+| **Otaku** | COO — DeFi ops | Token discovery, Morpho, wallet, smart money, PnL, yield |
+| **Kelly** | CHRO — lifestyle, balance | Daily briefing, dining, hotels, wine, tea, surf, workout, touch grass; pushes to kelly/lifestyle |
+| **Sentinel** | CTO — core dev, ops, cost | Task brief, cost status, ONNX, ART gems, clawdbot; pushes to sentinel/ops |
 
 ---
 
@@ -96,7 +112,7 @@ VINCE sends scheduled and event-driven pushes. **Channel names must contain thes
 | Keyword | What gets pushed | Schedule |
 |---------|------------------|----------|
 | `daily` | Market report (ALOHA, OPTIONS, PERPS, HIP-3) | **08:00 UTC** (morning) |
-| `news` | MandoMinutes briefing | 07:00 UTC (only when Mando has updated) |
+| `news` | MandoMinutes briefing | 16:00 UTC (Mando updates ~4:20 PM Paris) |
 | `lifestyle` | Dining, hotel, health, fitness (curated) | 08:00 UTC |
 | `alerts` | Alerts, paper trades, watchlist events | Real-time |
 
@@ -115,7 +131,7 @@ All VINCE automated feeds in one place. Invite VINCE to these channels.
 | Channel | Purpose | Contains | Receives |
 |---------|---------|----------|----------|
 | `#vince-daily-reports` | Market pulse | "daily" | Daily report 18:00 UTC |
-| `#vince-news` | News briefing | "news" | MandoMinutes 07:00 UTC |
+| `#vince-news` | News briefing | "news" | MandoMinutes 16:00 UTC |
 | `#vince-lifestyle` | Lifestyle suggestions | "lifestyle" | Dining, hotel, health 08:00 UTC |
 | `#vince-alerts` | High-signal events | "alerts" | Alerts, paper trades |
 | `#vince-upload-youtube` | Curated YouTube → knowledge | — | You paste YouTube links; VINCE ingests (transcript + summary). No watching. |
@@ -218,7 +234,7 @@ Use the same naming so VINCE’s filters work.
 | Channel | Purpose |
 |---------|---------|
 | `#vince-daily-reports` | Market report 18:00 UTC |
-| `#vince-news` | News 07:00 UTC |
+| `#vince-news` | News 16:00 UTC |
 | `#vince-lifestyle` | Lifestyle 08:00 UTC |
 | `#vince-alerts` | Alerts, paper trades |
 | `#general` | General chat |
@@ -276,7 +292,7 @@ Copy into channel descriptions.
 ALOHA + OPTIONS + PERPS + HIP-3 at 18:00 UTC. Ask: ALOHA, OPTIONS, PERPS, BOT, HIP3
 
 📰 vince-news
-MandoMinutes at 07:00 UTC (when Mando updates). Ask: NEWS, MANDO
+MandoMinutes at 16:00 UTC (Mando updates ~4:20 PM Paris). Ask: NEWS, MANDO
 
 🌿 vince-lifestyle
 Dining, hotels, health, fitness at 08:00 UTC. Ask: LIFESTYLE

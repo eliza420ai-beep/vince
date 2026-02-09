@@ -31,9 +31,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   VINCE: {
     headline: "Know why. Trade better.",
     intro:
-      "A paper bot on Hyperliquid. Every trade tells you why. It learns. It gets better. You don’t redeploy. Onchain options on Hypersurface—covered calls, secured puts. One view. One standard.",
+      "Chief Data Officer (CDO): data and intel only—no marketing or GTM. Our signal from X (Twitter) is our most important source of insights, news, alpha, and sentiment, and that indicator has a big impact on the paper trading bot—our flagship product. Every trade tells you why. It learns. It gets better. You don't redeploy. Onchain options on Hypersurface—covered calls, secured puts. One view. One standard.",
     tags: [
-      { label: "Paper perps", withSparkles: true },
+      { label: "CDO", withSparkles: true },
+      { label: "X-first" },
+      { label: "Paper perps" },
       { label: "Hypersurface options" },
       { label: "No redeploy" },
     ],
@@ -41,7 +43,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Paper bot",
         description:
-          "You see the why. Signal. Size. Exit. Funding, whale flow, X (Twitter) sentiment, regime—one feed. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
+          "Flagship product. X (Twitter) sentiment is our #1 signal source and feeds the algo alongside funding, whale flow, and regime. You see the why—signal, size, exit. Risk capped. The more it trades, the sharper it gets. New models load when ready.",
       },
       {
         title: "ALOHA",
@@ -67,7 +69,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "The paper bot. ALOHA. Perps. Options on Hypersurface. X sentiment feeds the algo. Every decision explained.",
+          "Flagship paper trading bot powered by X sentiment—our #1 source of insights, news, alpha, and sentiment—plus ALOHA, perps, options on Hypersurface. Every decision explained.",
         points: [],
         example: "",
       },
@@ -103,9 +105,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Otaku: {
     headline: "DeFi in one conversation.",
     intro:
-      "On-chain data (Nansen, DexScreener). CDP wallet and Relay. Research, plan, act—one conversation.",
+      "Chief Operating Officer (COO): DeFi ops executor. On-chain data (Nansen, DexScreener). CDP wallet and Relay. Research, plan, act—one conversation.",
     tags: [
-      { label: "Self-Directed", withSparkles: true },
+      { label: "COO", withSparkles: true },
+      { label: "Self-Directed" },
       { label: "DeFi stack" },
       { label: "Just ask" },
     ],
@@ -242,9 +245,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Kelly: {
     headline: "Live the life.",
     intro:
-      "Kelly picks hotels and restaurants from the-good-life: MICHELIN, James Edition, France palaces. Wine, health, fitness. Occasion, season, budget—she adjusts.",
+      "Chief Human Resources Officer (CHRO): people and balance guardian. Kelly picks hotels and restaurants from the-good-life: MICHELIN, James Edition, France palaces. Wine, health, fitness. Occasion, season, budget—she adjusts. Touch grass; no burnout.",
     tags: [
-      { label: "Lifestyle Only", withSparkles: true },
+      { label: "CHRO", withSparkles: true },
+      { label: "Lifestyle Only" },
       { label: "No Trading" },
       { label: "Picks for the moment" },
     ],
@@ -357,9 +361,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Solus: {
     headline: "Plan and call. Data is VINCE.",
     intro:
-      "Solus is the execution architect for a $100K/year stack. He does not pull live data—VINCE does. You get the plan, the process, and the call: $100K breakdown, how to run strike ritual, size/skip/watch when you paste context, Echo DD process, rebalance. Get options or CT from VINCE; paste here; Solus gives one clear move and invalidation. Benefit-led, craft-focused, no fluff. Architect in the room—calm, decisive, three steps ahead.",
+      "Chief Financial Officer (CFO): fiscal strategist. Solus is the execution architect for a $100K/year stack. He does not pull live data—VINCE does. You get the plan, the process, and the call: $100K breakdown, how to run strike ritual, size/skip/watch when you paste context, Echo DD process, rebalance. Get options or CT from VINCE; paste here; Solus gives one clear move and invalidation. Benefit-led, craft-focused, no fluff. Architect in the room—calm, decisive, three steps ahead.",
     tags: [
-      { label: "Execution Architect", withSparkles: true },
+      { label: "CFO", withSparkles: true },
+      { label: "Execution Architect" },
       { label: "Plan & Call Only" },
       { label: "Size / Skip / Watch" },
       { label: "VINCE's Partner" },
@@ -444,9 +449,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Sentinel: {
     headline: "Core dev. Ops. Architecture. 24/7.",
     intro:
-      "Sentinel is the project's core dev agent: ops and runbook, architecture steward, cost steward (TREASURY, burn rate, breakeven), and proactive partner for Claude Code / Cursor. North star: coding 24/7, self-improving, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings. No trading—VINCE and Solus own that lane.",
+      "Chief Technology Officer (CTO): tech infra, ops, cost, ONNX, clawdbot. Sentinel is the project's core dev agent: ops and runbook, architecture steward, cost steward (TREASURY, burn rate, breakeven), and proactive partner for Claude Code / Cursor. North star: coding 24/7, self-improving, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings. No trading—VINCE and Solus own that lane.",
     tags: [
-      { label: "Core Dev", withSparkles: true },
+      { label: "CTO", withSparkles: true },
+      { label: "Core Dev" },
       { label: "Cost Steward" },
       { label: "Architecture" },
       { label: "ONNX / Feature Store" },
@@ -545,13 +551,15 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Eliza: {
-    headline: "Ask anything.",
+    headline: "Vision. Knowledge. GTM.",
     intro:
-      "Chat when you ask. Eliza connects to VINCE's stack—machine-learning paper perps on Hyperliquid, onchain options on Hypersurface, HIP-3 onchain stocks. Options, perps, macro, why BTC. No push. You ask.",
+      "Chief Executive Officer (CEO): vision, foundational knowledge, research, brainstorming, GTM/PR, community (#knowledge), positioning, Substack. Eliza runs the corpus—upload, ingest, frameworks. She does not provide live data; that's VINCE. You ask; she synthesizes from knowledge and pushes Substack gold.",
     tags: [
-      { label: "ML Paper Perps", withSparkles: true },
-      { label: "HIP-3 Onchain" },
-      { label: "On-demand" },
+      { label: "CEO", withSparkles: true },
+      { label: "Knowledge" },
+      { label: "Research" },
+      { label: "GTM" },
+      { label: "Substack" },
     ],
     capabilities: [
       {
@@ -585,7 +593,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Plugin-Vince",
         category: "Trading",
         summary:
-          "Machine-learning paper trading for perps on Hyperliquid. WHY THIS TRADE. Options on Hypersurface. HIP-3 onchain stocks. Six domains.",
+          "Flagship paper trading bot. X sentiment is #1 signal source; ALOHA, perps, options on Hypersurface, HIP-3. WHY THIS TRADE.",
         points: ["ALOHA, VINCE_PERPS, VINCE_OPTIONS, Leaderboard."],
         example: '"ALOHA" or "Why does BTC matter?"',
       },

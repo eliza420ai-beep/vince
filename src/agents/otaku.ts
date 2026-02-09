@@ -19,11 +19,31 @@ const hasCdp =
     process.env.CDP_WALLET_SECRET?.trim()
   );
 
+const otakuHasDiscord =
+  !!(process.env.OTAKU_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+
 export const otakuCharacter: Character = {
   name: "Otaku",
-  plugins: [],
+  plugins: [
+    ...(otakuHasDiscord ? ["@elizaos/plugin-discord"] : []),
+  ],
   settings: {
-    secrets: {},
+    secrets: {
+      ...(process.env.OTAKU_DISCORD_APPLICATION_ID?.trim() && {
+        DISCORD_APPLICATION_ID: process.env.OTAKU_DISCORD_APPLICATION_ID,
+      }),
+      ...(process.env.OTAKU_DISCORD_API_TOKEN?.trim() && {
+        DISCORD_API_TOKEN: process.env.OTAKU_DISCORD_API_TOKEN,
+      }),
+      ...(process.env.DISCORD_APPLICATION_ID?.trim() &&
+        !process.env.OTAKU_DISCORD_APPLICATION_ID?.trim() && {
+          DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+        }),
+      ...(process.env.DISCORD_API_TOKEN?.trim() &&
+        !process.env.OTAKU_DISCORD_API_TOKEN?.trim() && {
+          DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
+        }),
+    },
     avatar: "/avatars/otaku.png",
     mcp: {
       servers: {
@@ -116,8 +136,15 @@ CRITICAL - Transaction Execution Protocol:
 - token_dex_trades/transfers/exchange_transactions: trace flows
 - address_portfolio/historical_balances: holdings over time
 - address_counterparties: related wallets
-Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.`,
+Combine tools + tighten filters (liquidity/timeframe/smart money) for clarity.
+
+## ASKING OTHER AGENTS
+
+When the user asks you to ask another agent (e.g. Vince, Solus, Kelly), use ASK_AGENT with that agent's name and the question, then report their answer back.
+
+When another agent (e.g. Kelly) asks on behalf of the user, answer as if the user asked you directly. Be concise so your reply can be quoted in one message. If the request is an execution (swap, bridge, transfer), run your normal verification and confirmation flow. If you need user confirmation, state it clearly so Kelly can relay it (e.g. "Please confirm: …").`,
   bio: [
+    "COO: DeFi ops executor; token discovery, Morpho, yield, CDP.",
     "DeFi market and protocol analyst",
     "Portfolio triage and optimization",
     "Risk work anchored in TVL, audits, and liquidity depth",

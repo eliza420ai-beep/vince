@@ -101,7 +101,7 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
 
   // Noisy / lagging signals (0.6x)
   NewsSentiment: 0.6,
-  XSentiment: 0.5, // X (Twitter) sentiment, 15-min cache
+  XSentiment: 0.5, // X (Twitter) sentiment, staggered one per hour, cache 24h
 };
 
 const CONFIG_FILE_NAME = "tuned-config.json";

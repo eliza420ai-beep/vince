@@ -1,28 +1,34 @@
 /**
  * Sentinel weekly suggestions task.
- * Runs on an interval (default 7 days); composes state, generates suggestions, optionally pushes to Discord channels named "sentinel" or "ops".
+ * Runs on an interval (default 7 days); composes state, generates suggestions and investor update, optionally pushes to Discord channels named "sentinel" or "ops".
  */
 
 import {
   type IAgentRuntime,
+  type Memory,
   type UUID,
   logger,
   ModelType,
 } from "@elizaos/core";
+import { generateInvestorBlock } from "../actions/sentinelInvestorReport.action";
 
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
 
+function syntheticMessage(text: string, runtime: IAgentRuntime): Memory {
+  return {
+    id: "" as UUID,
+    content: { text },
+    roomId: ZERO_UUID,
+    entityId: runtime.agentId,
+    agentId: runtime.agentId,
+    createdAt: Date.now(),
+  };
+}
+
 async function generateWeeklySuggestions(runtime: IAgentRuntime): Promise<string> {
   const state = await runtime.composeState(
-    {
-      id: "" as UUID,
-      content: { text: "Weekly suggestions" },
-      roomId: ZERO_UUID,
-      entityId: runtime.agentId,
-      agentId: runtime.agentId,
-      createdAt: Date.now(),
-    },
+    syntheticMessage("Weekly suggestions", runtime),
     null,
   );
   const contextBlock = typeof state.text === "string" ? state.text : "";
@@ -125,10 +131,10 @@ export async function registerSentinelWeeklyTask(
     validate: async () => true,
     execute: async (rt: IAgentRuntime) => {
       if (process.env.SENTINEL_WEEKLY_ENABLED === "false") return;
-      logger.info("[SentinelWeekly] Building suggestions...");
+      logger.info("[SentinelWeekly] Building suggestions and investor update...");
       try {
         const list = await generateWeeklySuggestions(rt);
-        const message = [
+        const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
           "",
           list.trim(),
@@ -136,7 +142,19 @@ export async function registerSentinelWeeklyTask(
           "---",
           "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, clawdbot guide, best settings, art gems._",
         ].join("\n");
-        const sent = await pushToSentinelChannels(rt, message);
+        let sent = await pushToSentinelChannels(rt, suggestionsMessage);
+
+        const investorBlock = await generateInvestorBlock(
+          rt,
+          syntheticMessage("Investor update", rt),
+        );
+        const investorMessage = [
+          "**Investor update**",
+          "",
+          investorBlock.trim(),
+        ].join("\n");
+        sent += await pushToSentinelChannels(rt, investorMessage);
+
         if (sent > 0) {
           logger.info(`[SentinelWeekly] Pushed to ${sent} channel(s)`);
         } else {
