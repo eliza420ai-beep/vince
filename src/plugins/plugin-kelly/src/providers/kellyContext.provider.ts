@@ -151,7 +151,11 @@ export const kellyContextProvider: Provider = {
       if (season === "gym") {
         const datesLine = service.getPalacePoolStatusLine();
         textParts.push(
-          `**Swimming:** Backyard pool heating off until end Feb; consider 5/3 wetsuit or indoor swim. Palace pools: ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.`,
+          `**Swimming:** Backyard pool heating off until end Feb; consider 5/3 wetsuit or indoor swim. Palace pools: ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed. When suggesting swim or pool, use the **Local** weather from context (if present) to tailor backyard vs indoor—e.g. cold or rain favors indoor; clear and mild can suit wetsuit in the backyard.`,
+        );
+      } else {
+        textParts.push(
+          "**Swimming:** Pool season. When suggesting a swim or pool, use the **Local** weather from context (if present) to tailor your suggestion—e.g. mention if it's good for the backyard or if they should wait for a warmer/clearer moment.",
         );
       }
 

@@ -59,22 +59,29 @@ export const kellySwimmingTipsAction: Action = {
           ? (service?.getPalacePoolStatusLine?.() ?? "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6")
           : "—";
       const contextBlock = typeof state.text === "string" ? state.text : "";
+      const weatherHome = state.values?.weatherHome as
+        | { condition: string; temp: number; code?: number }
+        | undefined;
+      const weatherHomeLine = weatherHome
+        ? `Local: ${weatherHome.condition}, ${weatherHome.temp}°C`
+        : "";
 
       const prompt = `You are Kelly. The user wants swimming tips—e.g. for a daily 1000m or lap swim.
 
 Context:
 - Season: ${season === "pool" ? "Pool (Apr–Nov)" : "Gym (Dec–Mar)"}
-- Palace indoor pools (winter): ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.
+- Palace indoor pools (winter): ${datesLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.${weatherHomeLine ? `\n- **Local weather (use this for backyard vs indoor):** ${weatherHomeLine}. Use it to tailor your suggestion—e.g. cold or rain favors indoor; clear and mild can suit wetsuit in the backyard.` : ""}
 
 Knowledge to use (from the-good-life):
 ${contextBlock.slice(0, 2500)}
 
 Instructions:
 1. Give a short, concrete summary: warm-up, build, winter vs pool season.
-2. In winter, reference indoor palace pools (swimming-daily-winter-pools) and their reopen dates so they can plan.
-3. Add one line on swimmer yoga (yoga-vinyasa-surfers-swimmers) for shoulders and hips.
-4. End with: "See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail."
-5. One short paragraph + that line. Benefit-led, no jargon. No bullet list unless very short.`;
+2. If local weather is provided, use it: mention whether backyard (wetsuit) or indoor is better (e.g. "Local 14°C and clear—wetsuit in the backyard is doable" or "Local 4°C and rain—indoor at Caudalie is the better call"). Never name the town.
+3. In winter, reference indoor palace pools (swimming-daily-winter-pools) and their reopen dates so they can plan.
+4. Add one line on swimmer yoga (yoga-vinyasa-surfers-swimmers) for shoulders and hips.
+5. End with: "See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail."
+6. One short paragraph + that line. Benefit-led, no jargon. No bullet list unless very short.`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();

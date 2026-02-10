@@ -59,12 +59,18 @@ export const kellyRecommendWorkoutAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const palacePoolLine =
         season === "gym" ? service?.getPalacePoolStatusLine?.() ?? "" : "";
+      const weatherHome = state.values?.weatherHome as
+        | { condition: string; temp: number }
+        | undefined;
+      const weatherHomeLine = weatherHome
+        ? `Local: ${weatherHome.condition}, ${weatherHome.temp}°C`
+        : "";
 
       const prompt = `You are Kelly, a concierge for health and fitness. Recommend exactly ONE concrete workout for today.
 
 Context:
 - Day: ${dayCap}
-- Season: ${season === "pool" ? "Pool (Apr–Nov) — outdoor swim, rooftops" : "Gym (Dec–Mar) — indoor training, palace pools for lap swim when open"}${palacePoolLine ? `\n- Palace pools: ${palacePoolLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.` : ""}
+- Season: ${season === "pool" ? "Pool (Apr–Nov) — outdoor swim, rooftops" : "Gym (Dec–Mar) — indoor training, palace pools for lap swim when open"}${palacePoolLine ? `\n- Palace pools: ${palacePoolLine}. When a pool has reopened, say it's back open—don't say "reopens [date]" if that date has passed.` : ""}${weatherHomeLine ? `\n- **Local weather (use for pool/swim suggestions):** ${weatherHomeLine}. E.g. cold or rain favors indoor/gym; clear and mild can suit backyard or pool. Never name the town.` : ""}
 - Today's wellness tip: ${wellnessTip || "—"}
 
 Additional context from the-good-life:
@@ -73,6 +79,7 @@ ${contextBlock.slice(0, 1500)}
 Rules:
 - One clear suggestion only: e.g. "Pool session this morning", "Gym + mobility", "Surfer yoga then a short swim", "Lap swim at Palais (reopens Feb 12) if you're there."
 - In pool season you can suggest pool or outdoor swim; in gym season suggest gym, mobility, or indoor palace pool if reopen dates allow.
+- If you suggest pool or swim and local weather is provided, briefly use it (e.g. "Local 14°C and clear—good for the pool" or "Chilly and wet—indoor at Caudalie is the move"). Never name the town.
 - When suggesting gym or general fitness, favour functional fitness and mobility/stretching over heavy lifting or bulk.
 - Reference yoga (yoga-vinyasa-surfers-swimmers, daily-yoga-surfers-vinyasa) only if it fits (e.g. surfer yoga pre-surf, swimmer yoga pre-pool).
 - No trading, no markets. One short paragraph, benefit-led, no jargon.
