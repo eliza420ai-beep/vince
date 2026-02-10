@@ -143,6 +143,37 @@ The current setup (ElizaOS, ASK_AGENT, in-process `elizaOS.handleMessage`, stand
 - **Single process, shared persistence:** All runtimes run in one process with a shared database (memories, rooms, entities, relationships). In-process ASK_AGENT has no network hop; we avoid distributed coordination and multi-service ops for the main A2A path.
 - **ElizaOS plugin ecosystem:** We compose plugin-vince, plugin-kelly, plugin-sentinel, plugin-inter-agent, and other ElizaOS plugins in one codebase. Patterns (actions, providers, routes) are consistent and we can reuse or extend community plugins.
 
+### Strategy: OpenClaw as dev worker?
+
+A different way to get “where we need to be” is to **run [OpenClaw](https://github.com/openclaw/openclaw) with access to this repo and instructions to keep working on it**—i.e. use OpenClaw as the *executor* that turns our deliverables into code and knowledge, rather than (or in addition to) humans and Cursor.
+
+**Two interpretations:**
+
+1. **OpenClaw as dev worker (hybrid):** VINCE stays on ElizaOS. We run OpenClaw separately with a session that has repo access (clone, read/write/edit, bash) and standing instructions: e.g. “Implement PRDs in `standup-deliverables/prds/` and Eliza tasks in `standup-deliverables/eliza-tasks/`; open PRs, run tests, keep the codebase consistent with our docs.” Standup and feedback flow keep producing deliverables; OpenClaw’s agent applies them. That can be **more efficient** if the bottleneck is human implementation: no paste-PRD-into-Cursor step; one agent reads the deliverable and edits the repo (with PRs for review).
+2. **Full migration to OpenClaw:** Rebuild VINCE (Vince, Kelly, Sentinel, standup, deliverables) on OpenClaw’s Gateway/sessions/skills. As argued above, that’s a large reimplementation and likely **less** efficient for “getting there fast”—we’d spend time recreating what we have.
+
+**Why the dev-worker idea can be more efficient:**
+
+- **Fewer handoffs:** Today: Sentinel (or feedback flow) writes PRD → human copies to Cursor → human (or Cursor) implements. With OpenClaw as worker: deliverable is written to disk → OpenClaw session (triggered by cron, skill, or manual “implement latest PRD”) reads it and applies changes → human reviews PR. Throughput of “idea → code” can go up.
+- **One agent with long context and tools:** OpenClaw’s Pi agent has bash, read, write, edit, and (with skills) can follow structured instructions. Giving it the repo + AGENTS.md/CLAUDE.md/MULTI_AGENT.md and “implement PRDs; prefer opening PRs over direct push” fits its model. Session tools (`sessions_send`, reply-back) could let another session (or you) send “implement the feedback flow” and get a reply when done.
+- **Sandboxing:** Non-main sessions can run in Docker with an allowlist; a “dev” session could have only repo-related tools, reducing blast radius.
+
+**Caveats:**
+
+- **Two systems:** VINCE (ElizaOS) for product and standup; OpenClaw for the coding agent. You run and secure both; OpenClaw needs repo credentials (e.g. token with PR scope).
+- **Quality and review:** Autonomous code changes can introduce bugs. Prefer “open PR, human merges” over “push to main.” Set clear instructions (run tests, lint, follow MULTI_AGENT and CLAUDE).
+- **Triggering:** OpenClaw isn’t built for “watch this folder and run when a new file appears.” You’d implement that via a skill that polls `standup-deliverables/`, or a cron job that sends a message to the dev session (“implement any new PRDs”), or manual “implement the latest PRD” in chat.
+
+**Conclusion:** Using OpenClaw as a dev worker with this repo and instructions to implement our deliverables is a **viable strategy** to evaluate. Efficiency gain is real if the main bottleneck is human implementation of PRDs and the agent is reliable enough that review is lighter than doing the work yourself. If the bottleneck is design or product decisions, our current path (Sentinel PRDs + Cursor/human) or strengthening the Milaidy Gateway may be enough. Documenting this here so the team can decide and, if desired, prototype (e.g. one OpenClaw session, repo clone, “implement this PRD” as a test).
+
+**Milaidy as an alternative:** [Milaidy](https://github.com/milady-ai/milaidy) is built on ElizaOS by the ElizaOS team and could achieve the same dev-worker goal with **better stack alignment**. We already integrate with Milaidy for standup build actions: when `MILAIDY_GATEWAY_URL` is set, the standup worker POSTs to `POST {MILAIDY_GATEWAY_URL}/api/standup-action` with `{ description, assigneeAgentName?, source: "vince-standup" }` (see [Standup deliverables (code/features)](#standup-deliverables-codefeatures) and [docs/STANDUP_DELIVERABLES.md](docs/STANDUP_DELIVERABLES.md)). Milaidy has a Gateway (port 18789), workspace, skills (AGENTS.md, TOOLS.md), and tools; if it implements or extends the standup-action contract to accept “implement this PRD in repo X” (or we add a separate endpoint/skill), we could use Milaidy as the executor instead of OpenClaw. Benefits: same ElizaOS paradigm (actions, tools, skills), one ecosystem, and we already have the integration point—so “send build/PRD to Milaidy” is a contract extension rather than standing up a second stack. Tradeoff: OpenClaw has more adoption and documented session A2A tools; Milaidy is smaller but aligned with our stack. For “dev worker with repo access and instructions to implement deliverables,” both are viable; Milaidy may be the more natural fit if we want to stay within the ElizaOS family and leverage the existing Gateway hook.
+
+### Recommendation
+
+- **First:** Implement the [Feedback from agent testing](#feedback-from-agent-testing-planned) flow in VINCE (trigger, tested agent asks Sentinel, triage, write to `standup-deliverables/prds/` and `eliza-tasks/`). Keep implementation in Cursor/human: Sentinel (and feedback) produce PRDs and Eliza tasks; humans or Cursor apply them. No second system yet.
+- **Then:** If the bottleneck becomes “too many good PRDs, not enough implementation capacity,” add a dev worker. Prefer **Milaidy** (extend the standup-action contract or add a PRD endpoint; same ElizaOS stack, existing Gateway hook) over OpenClaw (second stack, more ops). Only add OpenClaw if there is a clear reason to prefer its session/tool model.
+- **Rationale:** Shipping the feedback flow is a bounded, in-repo task. Autonomous “read PRD → edit repo → open PR” is non-trivial; add it only when the need is clear. Milaidy is the more coherent choice when we do.
+
 ## Troubleshooting
 
 ### Discord: "Could not find guild for channel (not in cache and fetch failed)"
