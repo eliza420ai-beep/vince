@@ -81,6 +81,8 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 
 **VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent: travel advisor, private sommelier, Michelin guide for fine dining, health guru, and fitness coach—and the one who motivates you to touch grass and rebalance. She uses **plugin-kelly** only (no vincePlugin) and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. She knows your context (paper perps, options income) but never gives trading advice. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
 
+**Multi-agent strategy (priority):** (1) **First:** Implement feedback-from-testing → Sentinel triages → PRD or Eliza task to `standup-deliverables/`; keep implementation in Cursor/human. (2) **If bottleneck:** Add a dev worker to apply PRDs; prefer **Milaidy** (ElizaOS, existing Gateway hook) over OpenClaw. (3) Full rationale, limitations, and options → [MULTI_AGENT.md](MULTI_AGENT.md).
+
 ---
 
 ## 📑 Quick Links
