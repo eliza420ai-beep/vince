@@ -56,6 +56,25 @@ function isLandesOrSWFranceQuery(placeQuery: string): boolean {
   );
 }
 
+/** True when we have dedicated the-good-life content (Biarritz, Bordeaux, Basque, Landes, etc.). Never early-exit for these. */
+function isDefaultRegionPlace(placeQuery: string): boolean {
+  const lower = placeQuery.toLowerCase();
+  return (
+    lower.includes("biarritz") ||
+    lower.includes("bordeaux") ||
+    lower.includes("landes") ||
+    lower.includes("basque") ||
+    lower.includes("saint-émilion") ||
+    lower.includes("saint emilion") ||
+    lower.includes("arcachon") ||
+    lower.includes("guéthary") ||
+    lower.includes("guethary") ||
+    lower.includes("saint-jean-de-luz") ||
+    lower.includes("pays basque") ||
+    isLandesOrSWFranceQuery(placeQuery)
+  );
+}
+
 export const kellyRecommendPlaceAction: Action = {
   name: "KELLY_RECOMMEND_PLACE",
   similes: [
@@ -105,7 +124,9 @@ export const kellyRecommendPlaceAction: Action = {
           : [state.text].filter(Boolean).join("\n");
       const knowledgeSnippet = contextBlock.slice(0, 12000);
 
+      const inDefaultRegion = isDefaultRegionPlace(placeQuery);
       if (
+        !inDefaultRegion &&
         knowledgeSnippet.length < 200 &&
         !knowledgeSnippet.toLowerCase().includes(placeQuery.toLowerCase().slice(0, 15))
       ) {
@@ -178,9 +199,13 @@ export const kellyRecommendPlaceAction: Action = {
         (typeLabel === "restaurant" && isGenericPlace
           ? " For restaurant when no city is given, prefer Michelin Guide (Stars, Bib Gourmand) from the-good-life for Bordeaux, Biarritz, Basque coast, Landes, Saint-Émilion, Arcachon."
           : "");
+      const defaultRegionHint =
+        inDefaultRegion
+          ? `\n**We have the-good-life content for ${placeQuery}** (michelin-restaurants, luxury-hotels, landes-locals). Use the context below; recommend one best pick and one alternative. Only say "I don't have a curated pick" if the context truly contains no ${typeLabel} names for this place.\n\n`
+          : "";
       const prompt = `You are Kelly, a concierge. The user wants a ${typeLabel} recommendation in or near: **${placeQuery}**.
 
-${openTodayBlock}${regionHint ? regionHint + "\n\n" : ""}
+${openTodayBlock}${regionHint ? regionHint + "\n\n" : ""}${defaultRegionHint}
 
 Use ONLY the following context (from the-good-life knowledge and preferences). Do not invent any names.
 
@@ -192,7 +217,7 @@ Output exactly:
 1. **Best pick:** [Name] — one short sentence why (from context). Add one benefit-led sentence why this fits them (e.g. "You get a quiet table and the classic three-star experience").
 2. **Alternative:** [Name] — one short sentence why (from context).
 
-Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend Le Relais de la Poste or Côté Quillier for Monday or Tuesday**—they are closed (Wed–Sun only). If the user asked for a specific day (e.g. Monday), only suggest from the curated list for that day. If they asked for "open now" or "open today", only suggest from the curated list for today. If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home; do not suggest venues that are closed that day. If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition."
+Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend Le Relais de la Poste or Côté Quillier for Monday or Tuesday**—they are closed (Wed–Sun only). If the user asked for a specific day (e.g. Monday), only suggest from the curated list for that day. If they asked for "open now" or "open today", only suggest from the curated list for today. If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home; do not suggest venues that are closed that day. If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition." For Biarritz, Bordeaux, Basque coast, Landes, Saint-Émilion, Arcachon we have dedicated the-good-life content—prefer giving one best pick and one alternative from the context; only say you don't have a curated pick if there are truly no ${typeLabel} names in the context above.
 
 Output only the recommendation text, no XML or extra commentary. No jargon (no leverage, utilize, streamline, robust, etc.).`;
 
