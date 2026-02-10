@@ -905,12 +905,7 @@ export class OtakuMessageService implements IMessageService {
       if (!action) {
         if (isFinish === 'true' || isFinish === true) {
           runtime.logger.info(`[MultiStep] Task marked as complete at iteration ${iterationCount}`);
-          if (callback) {
-            await callback({
-              text: '',
-              thought: thought ?? '',
-            });
-          }
+          // Do not call callback with empty text — let summary phase produce the real response.
           break;
         } else {
           runtime.logger.warn(
@@ -1031,12 +1026,9 @@ export class OtakuMessageService implements IMessageService {
         runtime.logger.info(
           `[MultiStep] Task marked as complete at iteration ${iterationCount} after action`
         );
-        if (callback) {
-          await callback({
-            text: '',
-            thought: thought ?? '',
-          });
-        }
+        // Do not call callback with empty text here — ASK_AGENT (and other callers) would
+        // treat it as "reply done with no content" and timeout. Let the summary phase
+        // produce the real response; the caller will send it in 'simple' mode.
         break;
       }
     }
