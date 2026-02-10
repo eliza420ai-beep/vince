@@ -18,7 +18,7 @@ Read-only X/Twitter research in the VINCE repo: **CLI** for multi-query research
 ## Setup
 
 1. **X API Bearer token**  
-   [X Developer Portal](https://developer.x.com/). Requires **Basic tier** (~$200/mo) or higher for search. X now offers pay-as-you-go and credits; the same Bearer token and v2 endpoints work. Check [X Developer Portal](https://developer.x.com/) for current pricing and quotas.
+   [X Developer Portal](https://developer.x.com/). X API uses **pay-per-use pricing** (Feb 2026+): prepaid credits and spending limits in the [Developer Console](https://console.x.com). No Basic/Pro/Enterprise tiers or monthly subscriptions. Same Bearer token and v2 endpoints; check [X API pricing](https://docs.x.com/x-api/getting-started/pricing) for current usage and limits.
 
 2. **Environment**  
    Add bearer token(s) to `.env` (repo root). Load before running the CLI: `set -a && source .env && set +a` (or run CLI from a shell that already has it). Same `.env` is used by the app so VINCE and Solus can run **VINCE_X_RESEARCH** in-chat. See **Bearer tokens** below for one-token vs two-token setup.
@@ -55,7 +55,7 @@ After changing `.env`, restart so the new values are picked up. An active 429 cl
 
 Cooldowns are per-token; in-chat still uses `X_BEARER_TOKEN` only.
 
-See [docs/X-API.md](docs/X-API.md) for tiers, quotas, and the optional second token.
+See [docs/X-API.md](docs/X-API.md) for quotas, spending limits, and the optional second token.
 
 ---
 
@@ -97,9 +97,9 @@ So: **one cache file**; filled by either the in-app timer or the cron script (or
 
 ### Cost and rate limits: why this is a gamechanger (and where it hurts)
 
-**No more $60K/year.** We no longer have to pay enterprise-tier pricing (~$60K/year) for X API access. The **Basic tier** (~$200/mo) gives us search and enough quota to run: (1) in-chat **VINCE_X_RESEARCH** for single-shot queries, (2) **X vibe check** for BTC, ETH, SOL, HYPE (staggered one asset per hour by default), and (3) the **CLI** (`skills/x-research`) for multi-query research and watchlist—all on **one token**. That’s a massive cost cut for the same “what’s CT saying?” signal we use as our **#1 news source** and **#1 sentiment signal** in the dashboard and paper algo.
+**Pay-per-use (Feb 2026+).** X API moved to pay-per-use pricing: no Basic/Pro/Enterprise tiers or monthly subscriptions. You use prepaid credits and set spending limits in the [Developer Console](https://console.x.com). One token can run: (1) in-chat **VINCE_X_RESEARCH** for single-shot queries, (2) **X vibe check** for BTC, ETH, SOL, HYPE (staggered one asset per hour by default), and (3) the **CLI** (`skills/x-research`) for multi-query research and watchlist. Same “what’s CT saying?” signal we use as our **#1 news source** and **#1 sentiment signal** in the dashboard and paper algo.
 
-**Current rate limit challenges and limitations.** We share one Bearer token across in-chat, vibe check, and CLI. Basic tier has strict rate limits (e.g. tweet caps per 15 min, search request limits). When we hit a 429, the vibe-check service backs off and logs “X API rate limited. Skipping refresh for N min”; we keep serving cached (or neutral) sentiment until the reset window. So: **in-app** we stagger to one asset per hour (default) so we never burst—e.g. 24 assets = full cycle every 24h; **in-chat** we cache search results 15 min so repeat queries don’t burn quota; **cron** can run one asset per hour (or per interval) to match. **If you still hit 429s with one or two tokens**, use **four separate sentiment tokens** (one per asset): set `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4` or `X_BEARER_TOKEN_SENTIMENT_1` … `_4` in `.env` so each asset uses its own token and cooldowns are per-token (see **Bearer tokens** above). Limitations in practice: we can’t run high-frequency vibe checks for many assets at once; adding HIP-3 stocks, airdrop alpha, and left-curve memetics to vibe check will require either more sophisticated prompt design (fewer, smarter queries) or accepting longer refresh cycles / prioritising which buckets get refreshed when. We’re working on richer prompt design to get more signal per request.
+**Rate limits and 429s.** We share one Bearer token across in-chat, vibe check, and CLI. With pay-per-use, limits are primarily controlled by your spending limits in the Developer Console (the old 450/300 requests-per-15-min caps from the subscription model may no longer apply). When we hit a 429, the vibe-check service backs off and logs “X API rate limited. Skipping refresh for N min”; we keep serving cached (or neutral) sentiment until the reset window (check `x-rate-limit-reset` header when debugging). So: **in-app** we stagger to one asset per hour (default) so we never burst—e.g. 24 assets = full cycle every 24h; **in-chat** we cache search results 15 min so repeat queries don’t burn quota; **cron** can run one asset per hour (or per interval) to match. **If you still hit 429s with one or two tokens**, use **four separate sentiment tokens** (one per asset): set `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4` or `X_BEARER_TOKEN_SENTIMENT_1` … `_4` in `.env` so each asset uses its own token and cooldowns are per-token (see **Bearer tokens** above). Limitations in practice: we can’t run high-frequency vibe checks for many assets at once; adding HIP-3 stocks, airdrop alpha, and left-curve memetics to vibe check will require either more sophisticated prompt design (fewer, smarter queries) or accepting longer refresh cycles / prioritising which buckets get refreshed when. We’re working on richer prompt design to get more signal per request.
 
 **Used by Grok Expert and daily report:** When Grok Expert or the daily report task is enabled, cached X sentiment is included in their data context so the pulse and daily report can reference CT sentiment (e.g. "X bullish on BTC, neutral ETH"). When `GROK_SUB_AGENTS_ENABLED` is set, each of the six sub-agent prompts receives the same cached X vibe summary in its context. Grok Expert requires `XAI_API_KEY` in `.env` (see [.env.example](.env.example)); the daily report uses the default model. No extra X API usage.
 
@@ -271,12 +271,12 @@ Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
 
 ## Limits and cost
 
-**Note:** X revamped their API and launched **pay-per-use pricing**, so pricing and tiers may have changed from the previous high-cost reality. See the announcement: [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476). For current plans and usage, check the [X Developer Portal](https://developer.x.com/).
+**Note:** X API uses **pay-per-use pricing** (Feb 2026+): prepaid credits and spending limits in the [Developer Console](https://console.x.com). No Basic/Pro/Enterprise tiers. See [X API pricing](https://docs.x.com/x-api/getting-started/pricing) and [Announcing the launch of X API pay-per-use pricing](https://devcommunity.x.com/t/announcing-the-launch-of-x-api-pay-per-use-pricing/256476).
 
-- **Search window:** Last **7 days** (X API).
+- **Search window:** Last **7 days** — we use the recent-search endpoint (`/2/tweets/search/recent`). Full-archive search (`/2/tweets/search/all`, all time) is available on the same pay-per-use plan but not yet implemented in this repo; see [X API search docs](https://docs.x.com/x-api/posts/search/introduction).
 - **Read-only:** No posting or account actions.
-- **X API** — pay-per-use or tiered plans; historical ballpark ~$0.005/tweet read. **15-minute cache** (CLI file cache, in-chat runtime cache) reduces repeat cost.
-- **Rate limit:** ~450 req/15 min (legacy tier); pay-per-use may differ. Cache and single-shot in-chat keep usage reasonable.
+- **X API** — pay-per-use; usage is billed per request. **15-minute cache** (CLI file cache, in-chat runtime cache) reduces repeat cost.
+- **Rate limits:** Controlled by spending limits in the Developer Console. If you get 429, the `x-rate-limit-reset` header indicates when to retry. Cache and single-shot in-chat keep usage reasonable.
 
 ---
 
@@ -299,5 +299,5 @@ Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
 | Grok Expert (uses X vibe check in context; requires XAI_API_KEY) | [grokExpert.action.ts](src/plugins/plugin-vince/src/actions/grokExpert.action.ts), [grokExpert.tasks.ts](src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts) |
 | Daily report (uses X vibe check in context) | [dailyReport.tasks.ts](src/plugins/plugin-vince/src/tasks/dailyReport.tasks.ts) |
 | **Crypto intel daily report (sub-agents)** | When `GROK_SUB_AGENTS_ENABLED=true`, Grok Expert produces a 10-section report. Memory dir: `.elizadb/vince-paper-bot/crypto-intel/` (`intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`). Report path: `knowledge/internal-docs/grok-daily-<date>.md` or `grok-auto-<date>.md`. Close recommendations in-chat: "close recommendation TOKEN". |
-| X API tiers, second token, XDK | [docs/X-API.md](docs/X-API.md) |
+| X API (pay-per-use, second token, XDK) | [docs/X-API.md](docs/X-API.md) |
 | Project dev guide | [CLAUDE.md](CLAUDE.md) (X Research skill section) |
