@@ -55,6 +55,7 @@ describe("WEATHER Provider", () => {
     expect(result?.values).toBeDefined();
     expect((result?.values as Record<string, unknown>)?.weatherBordeaux).toBeDefined();
     expect((result?.values as Record<string, unknown>)?.weatherBiarritz).toBeDefined();
+    expect((result?.values as Record<string, unknown>)?.weatherHome).toBeDefined();
     expect(result?.text).toBeDefined();
   });
 

@@ -174,7 +174,7 @@ export const kellyRecommendPlaceAction: Action = {
       }
 
       const regionHint =
-        "Default region: Southwest France (Bordeaux / Biarritz area). Prefer the-good-life knowledge for this region when the query is generic or does not specify a city." +
+        "Default region: Southwest France, Landes (Bordeaux–Biarritz corridor). Prefer the-good-life knowledge for this region when the query is generic or does not specify a city." +
         (typeLabel === "restaurant" && isGenericPlace
           ? " For restaurant when no city is given, prefer Michelin Guide (Stars, Bib Gourmand) from the-good-life for Bordeaux, Biarritz, Basque coast, Landes, Saint-Émilion, Arcachon."
           : "");

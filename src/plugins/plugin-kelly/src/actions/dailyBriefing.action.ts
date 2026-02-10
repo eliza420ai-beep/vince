@@ -31,6 +31,12 @@ interface LifestyleDataContext {
   touchGrassNote: string;
   wineOfTheDay: string;
   travelIdeaOfTheWeek: string;
+  /** Biarritz surf forecast line for the daily briefing (always include when present). */
+  surfBiarritzLine?: string;
+  /** Bordeaux & Biarritz weather line (always include when present for outdoor activities). */
+  weatherBordeauxBiarritzLine?: string;
+  /** Local (home) weather for daily swimming ritual; never name the town in output. */
+  weatherHomeLine?: string;
   currentTimeParis?: string;
   pastLunch?: boolean;
 }
@@ -90,7 +96,7 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
 
   if (ctx.travelIdeaOfTheWeek) {
     lines.push(
-      "DAY TRIP IDEA (we live in SW France — suggest only day trips: Bordeaux–Biarritz, max 1h north of Bordeaux, max 1h south of Biarritz):",
+      "DAY TRIP IDEA (we are based in the Landes, between Bordeaux and Biarritz; suggest only day trips within about 1h drive from home):",
     );
     lines.push(ctx.travelIdeaOfTheWeek);
     lines.push("");
@@ -99,6 +105,28 @@ function buildLifestyleDataContext(ctx: LifestyleDataContext): string {
   if (ctx.touchGrassNote) {
     lines.push("REBALANCE NOTE:");
     lines.push(ctx.touchGrassNote);
+    lines.push("");
+  }
+
+  if (ctx.weatherBordeauxBiarritzLine) {
+    lines.push(
+      "BORDEAUX & BIARRITZ (weather) — include in the daily briefing so outdoor activities (terrace lunch, walk, pool, surf) match conditions:",
+    );
+    lines.push(ctx.weatherBordeauxBiarritzLine);
+    lines.push("");
+  }
+
+  if (ctx.weatherHomeLine) {
+    lines.push(
+      "LOCAL (where we live — use for daily swimming ritual; never name the town in your reply):",
+    );
+    lines.push(ctx.weatherHomeLine);
+    lines.push("");
+  }
+
+  if (ctx.surfBiarritzLine) {
+    lines.push("SURF (Biarritz) — always include this in the daily briefing:");
+    lines.push(ctx.surfBiarritzLine);
     lines.push("");
   }
 
@@ -176,11 +204,14 @@ Write a lifestyle briefing that:
 3. CRITICAL: For DINING and HOTELS, prefer the curated lists when provided. If those lists are empty or very short, suggest one or two specific places from the-good-life knowledge—only real places, never invent names.
 4. Give specific recommendations — name the restaurant, the hotel, or the activity. No generic "consider a spa" without naming a place.
 5. If a WELLNESS/FITNESS TIP is provided, include one short line weaving it in.
-6. If WINE OF THE DAY and DAY TRIP IDEA are provided, mention them in one sentence each (e.g. "Wine to try: Margaux." "Day trip idea: Saint-Émilion for château + lunch."). We live in SW France—do not suggest "travel to Southwest France"; suggest a concrete day trip within the geography (Bordeaux–Biarritz, max 1h north of Bordeaux, max 1h south of Biarritz).
-7. If a REBALANCE NOTE is provided (Friday or weekend), add one sentence encouraging rebalance—dinner at home, pool, or a walk—without mentioning work or markets.
-8. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
-9. End with a specific suggestion for the day (dining = lunch, hotel, or activity).
-10. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
+6. If WINE OF THE DAY and DAY TRIP IDEA are provided, mention them in one sentence each (e.g. "Wine to try: Margaux." "Day trip idea: Saint-Émilion for château + lunch."). We are based in the Landes (between Bordeaux and Biarritz); suggest a concrete day trip within about 1h drive from home—do not suggest "travel to Southwest France".
+7. If SURF (Biarritz) is provided, always include the Biarritz surf forecast in the briefing (one sentence, e.g. "Surf Biarritz: 1.2 m, 8 s, SW, sea 14 °C—fun size, most levels.").
+8. If BORDEAUX & BIARRITZ (weather) is provided, include it in the briefing (one sentence) so suggestions for outdoor activities (terrace lunch, walk, pool, surf) match conditions.
+9. If LOCAL weather is provided, include it in one sentence for the daily swimming ritual (e.g. "Local: clear, 14°C—good for a swim."). Never name the town or location in your reply.
+10. If a REBALANCE NOTE is provided (Friday or weekend), add one sentence encouraging rebalance—dinner at home, pool, or a walk—without mentioning work or markets.
+11. Season matters - pool season is for swimming and rooftops, gym season is for indoor workouts and wellness.
+12. End with a specific suggestion for the day (dining = lunch, hotel, or activity).
+13. Do NOT mention trading, strikes, options, perps, or markets. You are purely lifestyle: hotels, dining, wine, health, fitness.
 
 STYLE RULES:
 - Write like a discerning friend helping plan the day
@@ -292,6 +323,25 @@ export const kellyDailyBriefingAction: Action = {
 
       logger.info("[KELLY_DAILY_BRIEFING] Building lifestyle briefing...");
 
+      const state = await runtime.composeState(_message);
+      const surfSummary = state.values?.surfBiarritzSummary as string | undefined;
+      const surfBiarritzLine = surfSummary
+        ? surfSummary.replace(/\.\s*When the user asks.*$/i, ".").trim()
+        : undefined;
+
+      const wBdx = state.values?.weatherBordeaux as { condition: string; temp: number } | undefined;
+      const wBiarritz = state.values?.weatherBiarritz as { condition: string; temp: number } | undefined;
+      const weatherParts: string[] = [];
+      if (wBdx) weatherParts.push(`Bordeaux: ${wBdx.condition}, ${wBdx.temp}°C`);
+      if (wBiarritz) weatherParts.push(`Biarritz: ${wBiarritz.condition}, ${wBiarritz.temp}°C`);
+      const weatherBordeauxBiarritzLine =
+        weatherParts.length > 0 ? weatherParts.join(". ") + "." : undefined;
+
+      const wHome = state.values?.weatherHome as { condition: string; temp: number } | undefined;
+      const weatherHomeLine = wHome
+        ? `Local: ${wHome.condition}, ${wHome.temp}°C`
+        : undefined;
+
       const briefing = lifestyleService.getDailyBriefing();
       const season = lifestyleService.getCurrentSeason();
       const curated = lifestyleService.getCuratedOpenContext?.() ?? null;
@@ -334,6 +384,9 @@ export const kellyDailyBriefingAction: Action = {
             : "",
         wineOfTheDay: lifestyleService.getWineOfTheDay?.() ?? "",
         travelIdeaOfTheWeek: lifestyleService.getDayTripIdeaOfTheWeek?.() ?? lifestyleService.getTravelIdeaOfTheWeek?.() ?? "",
+        surfBiarritzLine,
+        weatherBordeauxBiarritzLine,
+        weatherHomeLine,
       };
 
       const dataContext = buildLifestyleDataContext(ctx);

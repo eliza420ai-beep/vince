@@ -14,6 +14,7 @@ import type {
 
 const BORDEAUX = { lat: 44.84, lon: -0.58 };
 const BIARRITZ = { lat: 43.48, lon: -1.56 };
+const HOME = { lat: 43.93, lon: -0.92 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const MARINE_OPEN_METEO = "https://marine-api.open-meteo.com/v1/marine";
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
@@ -170,9 +171,10 @@ export const weatherProvider: Provider = {
       return weatherCache.result;
     }
 
-    const [bdx, biarritz, marine] = await Promise.all([
+    const [bdx, biarritz, home, marine] = await Promise.all([
       fetchCurrent(BORDEAUX.lat, BORDEAUX.lon),
       fetchCurrent(BIARRITZ.lat, BIARRITZ.lon),
+      fetchCurrent(HOME.lat, HOME.lon),
       fetchBiarritzMarine(),
     ]);
 
@@ -200,17 +202,28 @@ export const weatherProvider: Provider = {
       parts.push(`Biarritz: ${cond}, ${temp}°C`);
       values.weatherBiarritz = { condition: cond, temp: temp, code: biarritz.weather_code };
     }
+    if (home) {
+      const cond = labelFromCode(home.weather_code);
+      const temp = Math.round(home.temperature_2m);
+      parts.push(`Local: ${cond}, ${temp}°C`);
+      values.weatherHome = { condition: cond, temp: temp, code: home.weather_code };
+    }
 
     const rainOrStorm =
       (bdx && isRainOrStorm(bdx.weather_code)) ||
-      (biarritz && isRainOrStorm(biarritz.weather_code));
+      (biarritz && isRainOrStorm(biarritz.weather_code)) ||
+      (home && isRainOrStorm(home.weather_code));
     const windBdx = bdx?.wind_speed_10m ?? 0;
     const windBiarritz = biarritz?.wind_speed_10m ?? 0;
-    const strongWind = windBdx >= STRONG_WIND_KMH || windBiarritz >= STRONG_WIND_KMH;
+    const windHome = home?.wind_speed_10m ?? 0;
+    const strongWind =
+      windBdx >= STRONG_WIND_KMH ||
+      windBiarritz >= STRONG_WIND_KMH ||
+      windHome >= STRONG_WIND_KMH;
 
     if (rainOrStorm) {
       parts.push(
-        "Do not recommend beach walks, surf, or outdoor activities; suggest indoor alternatives (yoga, wine bar, Michelin lunch, museum).",
+        "Do not recommend beach walks, surf, outdoor swimming, or outdoor activities; suggest indoor alternatives (yoga, wine bar, Michelin lunch, museum).",
       );
     }
     if (strongWind && !rainOrStorm) {

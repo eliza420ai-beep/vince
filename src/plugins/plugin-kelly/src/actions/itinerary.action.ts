@@ -67,7 +67,7 @@ export const kellyItineraryAction: Action = {
 Use ONLY the following context (the-good-life knowledge, experience-prioritization-framework, lifestyle-roi-framework, within-2h-bordeaux-biarritz). Do not invent any names. Apply:
 - **When to do what:** midweek vs weekend, peak vs routine, energy level (experience-prioritization-framework).
 - **ROI of experiences:** time/energy/memory (lifestyle-roi-framework).
-- **Road trips / day trips:** Only suggest places within 2h drive of Bordeaux or Biarritz (see within-2h-bordeaux-biarritz). Default region: Southwest France.
+- **Road trips / day trips:** We are based in the Landes (between Bordeaux and Biarritz). Only suggest places within 2h drive from home (see within-2h-bordeaux-biarritz). Default region: Southwest France.
 - Prefer Wednesday for midweek escape; avoid inventing places.
 
 <context>

@@ -488,7 +488,7 @@ export class KellyLifestyleService extends Service {
     return wines[dayOfWeek] ?? wines[0];
   }
 
-  /** Day trip idea of the week. We live in SW France: only suggest day trips within Bordeaux–Biarritz, max 1h north of Bordeaux, or max 1h south of Biarritz. */
+  /** Day trip idea of the week. We are based in the Landes (Bordeaux–Biarritz corridor); only suggest day trips within ~1h drive from home. */
   getDayTripIdeaOfTheWeek(): string {
     const ideas = [
       "Saint-Émilion: château visit + Michelin lunch (within 1h Bordeaux).",

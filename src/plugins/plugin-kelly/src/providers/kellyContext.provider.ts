@@ -201,9 +201,9 @@ export const kellyContextProvider: Provider = {
     }
 
     textParts.push(
-      "**Location context:** Southwest France (Bordeaux / Biarritz area). Default to this region for wine, dining, road trips, and daily suggestions unless the user specifies elsewhere.",
+      "**Location context:** Southwest France, Landes (between Bordeaux and Biarritz). We are based here; default to this region for wine, dining, road trips, and daily suggestions unless the user specifies elsewhere.",
     );
-    values.kellyLocationContext = "Southwest France (Bordeaux / Biarritz area)";
+    values.kellyLocationContext = "Southwest France, Landes (between Bordeaux and Biarritz)";
     textParts.push(
       "**Yoga:** Daily vinyasa (wife); surfer yoga pre/post surf; swimmer yoga pre/post pool in pool season. Use yoga-practice, daily-yoga-surfers-vinyasa, and yoga-vinyasa-surfers-swimmers for vinyasa, surfer, and swimmer recommendations.",
     );
