@@ -17,11 +17,17 @@ export interface UsageResponse {
   byDay: UsageByDay[];
   totalTokens: number;
   period: { from: string; to: string };
-  estimatedCostUsd?: number;
+  estimatedCostUsd: number;
+  /** True when cost used default average; false when VINCE_USAGE_COST_PER_1K_TOKENS was set */
+  estimatedCostFromDefault?: boolean;
+  /** True when tokens were estimated from run count (run_event logs lacked usage/estimatedTokens) */
+  estimatedFromRuns?: boolean;
 }
 
 const DEFAULT_DAYS = 30;
 const MAX_LOGS = 500;
+/** Default USD per 1K tokens when VINCE_USAGE_COST_PER_1K_TOKENS is not set. Blended average for typical LLM mix (TEXT_SMALL + TEXT_LARGE). Override with VINCE_USAGE_COST_PER_1K_TOKENS for accuracy. */
+const DEFAULT_COST_PER_1K_TOKENS = 0.006;
 
 function toDateKey(ts: number): string {
   const d = new Date(ts);
@@ -101,18 +107,35 @@ export async function buildUsageResponse(
     .map(([date, { tokens, runs }]) => ({ date, tokens, runs }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  const totalRuns = byDay.reduce((s, d) => s + d.runs, 0);
+  const tokensFromLogs = totalTokens;
+  const tokensEffective =
+    tokensFromLogs > 0
+      ? tokensFromLogs
+      : totalRuns > 0
+        ? totalRuns * 500
+        : 0;
+  const estimatedFromRuns = tokensFromLogs === 0 && totalRuns > 0;
+
   const costPer1k = runtime.getSetting("VINCE_USAGE_COST_PER_1K_TOKENS");
   const costPer1kNum =
     typeof costPer1k === "string" ? parseFloat(costPer1k) : typeof costPer1k === "number" ? costPer1k : NaN;
-  const estimatedCostUsd =
-    Number.isFinite(costPer1kNum) && costPer1kNum >= 0
-      ? (totalTokens / 1000) * costPer1kNum
-      : undefined;
+  const usedCostPer1k = Number.isFinite(costPer1kNum) && costPer1kNum >= 0 ? costPer1kNum : DEFAULT_COST_PER_1K_TOKENS;
+  const estimatedCostUsd = (tokensEffective / 1000) * usedCostPer1k;
+  const usedDefaultCost = !(Number.isFinite(costPer1kNum) && costPer1kNum >= 0);
+
+  const byDayWithTokens = estimatedFromRuns
+    ? byDay.map((d) => ({ ...d, tokens: d.runs * 500 }))
+    : byDay;
 
   return {
-    byDay,
-    totalTokens,
+    byDay: byDayWithTokens,
+    totalTokens: tokensEffective,
     period: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
-    ...(estimatedCostUsd !== undefined && { estimatedCostUsd }),
+    estimatedCostUsd,
+    /** True when cost was computed using default average; false when VINCE_USAGE_COST_PER_1K_TOKENS was set */
+    estimatedCostFromDefault: usedDefaultCost,
+    /** True when tokens were estimated from run count (run_event logs lacked usage/estimatedTokens) */
+    estimatedFromRuns,
   };
 }

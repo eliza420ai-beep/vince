@@ -410,7 +410,11 @@ export interface UsageResponse {
   byDay: UsageByDay[];
   totalTokens: number;
   period: { from: string; to: string };
-  estimatedCostUsd?: number;
+  estimatedCostUsd: number;
+  /** True when cost used default average; false when VINCE_USAGE_COST_PER_1K_TOKENS was set */
+  estimatedCostFromDefault?: boolean;
+  /** True when tokens were estimated from run count (run_event logs lacked usage/estimatedTokens) */
+  estimatedFromRuns?: boolean;
 }
 
 export async function fetchUsageWithError(

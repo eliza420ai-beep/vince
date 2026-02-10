@@ -6,6 +6,7 @@ import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
+import { Input } from "@/frontend/components/ui/input";
 import {
   Tabs,
   TabsContent,
@@ -33,6 +34,26 @@ import { UUID } from "@elizaos/core";
 import { cn } from "@/frontend/lib/utils";
 
 const MANDO_MINUTES_URL = "https://www.mandominutes.com/Latest";
+
+/** Data API cost estimates (monthly/yearly). From TREASURY.md; update when tiers change. */
+const DATA_SOURCES_COSTS: { name: string; monthly: number; yearly: number; notes: string }[] = [
+  { name: "Nansen", monthly: 0, yearly: 0, notes: "100 credits/mo free; API Standard ~$999/mo" },
+  { name: "Sanbase (Santiment)", monthly: 0, yearly: 0, notes: "1K calls/mo free; Pro ~$99+/mo" },
+  { name: "CoinGlass", monthly: 29, yearly: 350, notes: "Hobbyist $29/mo; $350/yr" },
+  { name: "Birdeye", monthly: 0, yearly: 0, notes: "Free tier; Pro/API per tier" },
+  { name: "Glassnode", monthly: 29, yearly: 0, notes: "Starter ~$29/mo; Advanced ~$799/mo" },
+  { name: "X (Twitter) API", monthly: 100, yearly: 1200, notes: "Basic tier; Pro $5K/mo" },
+  { name: "Helius", monthly: 0, yearly: 0, notes: "Free tier; Developer $49/mo" },
+  { name: "OpenSea", monthly: 0, yearly: 0, notes: "Free tier; NFT floors" },
+  { name: "Firecrawl", monthly: 0, yearly: 0, notes: "Optional; free tier" },
+  { name: "Supabase", monthly: 25, yearly: 300, notes: "Pro ~$25/mo; feature store" },
+  { name: "Binance, Deribit, Hyperliquid, CoinGecko, DexScreener", monthly: 0, yearly: 0, notes: "Public/free APIs" },
+];
+
+/** Hardware: 2x Mac Studio @ $5K each. LOCALSONLY.md cost model. */
+const HARDWARE_2X_MAC_STUDIO = { unitCost: 5000, units: 2, totalCapEx: 10000 };
+const CLOUD_INFERENCE_EQUIV_MONTHLY = 932; // ~2B tokens/mo ≈ $932 (LOCALSONLY)
+const HARDWARE_POWER_MONTHLY = 40; // ~2 Mac Studios under load, $0.12/kWh
 
 /** Display names for signal sources on the Trading Bot tab */
 const SIGNAL_SOURCE_DISPLAY_NAMES: Record<string, string> = {
@@ -71,6 +92,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   const [youtubeStatus, setYoutubeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [youtubeMessage, setYoutubeMessage] = useState("");
   const [testQualityCopied, setTestQualityCopied] = useState(false);
+  const [cursorActualCost, setCursorActualCost] = useState<string>("");
 
   const KNOWLEDGE_QUALITY_COMMAND =
     "RUN_NETWORK_TESTS=1 bun test src/plugins/plugin-vince/src/__tests__/knowledgeQuality.e2e.test.ts";
@@ -1446,24 +1468,29 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
 
           {/* Usage / TREASURY tab: session token usage and estimated cost */}
           <TabsContent value="usage" className="mt-6 flex-1 min-h-0 overflow-auto">
+            <div className="space-y-6">
             {(usageLoading || usageFetching) && !usageResult?.data ? (
               <div className="space-y-4">
                 <div className="h-32 bg-muted/50 rounded-xl animate-pulse" />
                 <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
               </div>
             ) : usageResult?.error ? (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
                 <p className="font-medium text-foreground">Could not load usage data</p>
                 <p className="text-sm text-muted-foreground">{usageResult.error}</p>
               </div>
             ) : usageResult?.data ? (
-              <div className="space-y-6">
+              <>
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">
                     Session token usage for cost visibility (TREASURY)
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Estimated tokens per chat run; set <code className="rounded bg-muted px-1">VINCE_USAGE_COST_PER_1K_TOKENS</code> for cost.
+                    {usageResult.data?.estimatedCostFromDefault ? (
+                      <>Cost uses avg ~$0.006/1K tokens. Set <code className="rounded bg-muted px-1">VINCE_USAGE_COST_PER_1K_TOKENS</code> for accuracy.</>
+                    ) : (
+                      <>Cost from <code className="rounded bg-muted px-1">VINCE_USAGE_COST_PER_1K_TOKENS</code>.</>
+                    )}
                   </p>
                   <a
                     href="/TREASURY.md"
@@ -1477,25 +1504,27 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <DashboardCard title="Totals">
                   <div className="flex flex-wrap gap-6 items-baseline">
                     <div>
-                      <p className="text-2xl font-semibold font-mono">{usageResult.data.totalTokens.toLocaleString()}</p>
-                      <p className="text-xs text-muted-foreground">Total tokens</p>
+                      <p className="text-2xl font-semibold font-mono">{(usageResult.data?.totalTokens ?? 0).toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Total tokens{usageResult.data?.estimatedFromRuns ? " (est. from runs)" : ""}
+                      </p>
                     </div>
-                    {usageResult.data.estimatedCostUsd != null && (
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="w-5 h-5 text-muted-foreground" />
-                        <div>
-                          <p className="text-2xl font-semibold font-mono">${usageResult.data.estimatedCostUsd.toFixed(2)}</p>
-                          <p className="text-xs text-muted-foreground">Est. cost (period)</p>
-                        </div>
+                    <div className="flex items-center gap-1 text-right ml-auto">
+                      <DollarSign className="w-5 h-5 text-muted-foreground shrink-0" />
+                      <div className="text-right">
+                        <p className="text-2xl font-semibold font-mono">${(usageResult.data?.estimatedCostUsd ?? 0).toFixed(2)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Est. cost (period){usageResult.data?.estimatedCostFromDefault ? " · approx. avg" : ""}
+                        </p>
                       </div>
-                    )}
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Period: {usageResult.data.period.from.slice(0, 10)} → {usageResult.data.period.to.slice(0, 10)}
+                    Period: {usageResult.data?.period?.from?.slice(0, 10) ?? "—"} → {usageResult.data?.period?.to?.slice(0, 10) ?? "—"}
                   </p>
                 </DashboardCard>
                 <DashboardCard title="By day">
-                  {usageResult.data.byDay.length === 0 ? (
+                  {(usageResult.data?.byDay?.length ?? 0) === 0 ? (
                     <p className="text-sm text-muted-foreground py-4">No run events in this period.</p>
                   ) : (
                     <div className="overflow-x-auto">
@@ -1505,28 +1534,161 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             <th className="text-left py-2 font-medium">Date</th>
                             <th className="text-right py-2 font-medium">Tokens</th>
                             <th className="text-right py-2 font-medium">Runs</th>
+                            <th className="text-right py-2 font-medium">Est. cost</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {usageResult.data.byDay.map((row) => (
-                            <tr key={row.date} className="border-b border-border/50">
-                              <td className="py-2">{row.date}</td>
-                              <td className="text-right font-mono">{row.tokens.toLocaleString()}</td>
-                              <td className="text-right font-mono">{row.runs}</td>
-                            </tr>
-                          ))}
+                          {(usageResult.data?.byDay ?? []).map((row) => {
+                            const data = usageResult.data;
+                            const total = data?.totalTokens ?? 0;
+                            const costUsd = data?.estimatedCostUsd ?? 0;
+                            const dayCost = total > 0 ? (row.tokens / total) * costUsd : 0;
+                            return (
+                              <tr key={row.date} className="border-b border-border/50">
+                                <td className="py-2">{row.date}</td>
+                                <td className="text-right font-mono">{row.tokens.toLocaleString()}</td>
+                                <td className="text-right font-mono">{row.runs}</td>
+                                <td className="text-right font-mono">${(Number(dayCost) || 0).toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   )}
                 </DashboardCard>
-              </div>
-            ) : (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[200px] flex flex-col justify-center">
-                <p className="font-medium text-foreground">No usage data</p>
+              </>
+            ) : !usageResult?.error ? (
+              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
+                <p className="font-medium text-foreground">No agent usage data</p>
                 <p className="text-sm text-muted-foreground">Make sure VINCE is running and chat runs have completed, then click Refresh.</p>
               </div>
-            )}
+            ) : null}
+
+            {/* Cursor usage — always shown; often highest cost */}
+            <DashboardCard title="Cursor usage">
+              <p className="text-xs text-muted-foreground mb-3">
+                Cursor is often the highest cost. Enter the total from Cursor&apos;s &quot;Included Usage&quot; report (from{" "}
+                <a
+                  href="https://cursor.com/settings"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Cursor settings
+                  <ExternalLink className="w-3 h-3" />
+                </a>{" "}
+                → Usage tab).
+              </p>
+              <div className="space-y-2">
+                <label htmlFor="cursor-actual-cost" className="text-xs font-medium text-foreground">
+                  Actual cost from Cursor dashboard (Included Usage total)
+                </label>
+                <Input
+                  id="cursor-actual-cost"
+                  type="text"
+                  placeholder="e.g. 1064.30"
+                  value={cursorActualCost}
+                  onChange={(e) => setCursorActualCost(e.target.value)}
+                  className="max-w-[180px] font-mono"
+                />
+              </div>
+              {cursorActualCost.trim() ? (
+                (() => {
+                  const actualNum = parseFloat(cursorActualCost.replace(/[^0-9.-]/g, ""));
+                  const hasValid = Number.isFinite(actualNum) && actualNum >= 0;
+                  if (!hasValid) return null;
+                  return (
+                    <div className="mt-4 flex flex-wrap gap-6 items-baseline">
+                      <div className="flex items-center gap-1 text-right ml-auto">
+                        <DollarSign className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <div className="text-right">
+                          <p className="text-xl font-semibold font-mono">${actualNum.toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground">Actual cost (from Cursor dashboard)</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : null}
+            </DashboardCard>
+
+            {/* Data sources — monthly/yearly cost estimates (TREASURY) */}
+            <DashboardCard title="Data sources (monthly / yearly)">
+              <p className="text-xs text-muted-foreground mb-3">
+                Estimated costs for data APIs. Many have free tiers. See{" "}
+                <a href="/TREASURY.md" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                  TREASURY.md
+                  <ExternalLink className="w-3 h-3" />
+                </a>{" "}
+                for tiers.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 font-medium">API</th>
+                      <th className="text-right py-2 font-medium">Monthly</th>
+                      <th className="text-right py-2 font-medium">Yearly</th>
+                      <th className="text-right py-2 font-medium">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {DATA_SOURCES_COSTS.map((row) => (
+                      <tr key={row.name} className="border-b border-border/50">
+                        <td className="py-2 font-medium">{row.name}</td>
+                        <td className="text-right font-mono">{row.monthly === 0 ? "—" : `$${row.monthly}`}</td>
+                        <td className="text-right font-mono">{row.yearly === 0 ? "—" : `$${row.yearly}`}</td>
+                        <td className="py-2 text-right text-muted-foreground text-xs">{row.notes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Total paid: ~${DATA_SOURCES_COSTS.reduce((s, r) => s + r.monthly, 0)}/mo or ~$
+                {DATA_SOURCES_COSTS.reduce((s, r) => s + r.yearly, 0)}/yr (excludes free tiers).
+              </p>
+            </DashboardCard>
+
+            {/* Hardware — 2x Mac Studio, potential savings (LOCALSONLY) */}
+            <DashboardCard title="Hardware & local inference savings">
+              <p className="text-xs text-muted-foreground mb-3">
+                <strong>2× Mac Studio</strong> @ ${HARDWARE_2X_MAC_STUDIO.unitCost.toLocaleString()} each = ${HARDWARE_2X_MAC_STUDIO.totalCapEx.toLocaleString()} CapEx. See{" "}
+                <a href="/LOCALSONLY.md" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                  LOCALSONLY.md
+                  <ExternalLink className="w-3 h-3" />
+                </a>{" "}
+                for cost model.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm mb-4">
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">CapEx</p>
+                  <p className="font-mono font-semibold">${HARDWARE_2X_MAC_STUDIO.totalCapEx.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Amortized (36 mo)</p>
+                  <p className="font-mono font-semibold">${Math.round(HARDWARE_2X_MAC_STUDIO.totalCapEx / 36)}/mo</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Amortized (48 mo)</p>
+                  <p className="font-mono font-semibold">${Math.round(HARDWARE_2X_MAC_STUDIO.totalCapEx / 48)}/mo</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Est. power</p>
+                  <p className="font-mono font-semibold">~${HARDWARE_POWER_MONTHLY}/mo</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3">
+                <p className="text-xs font-medium text-foreground/90">Potential savings (vs cloud inference)</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  At ~2B tokens/month, cloud equiv ≈ <strong>${CLOUD_INFERENCE_EQUIV_MONTHLY}/mo</strong> (Claude/Opus). Local: CapEx amortized (36 mo) + power ≈ $
+                  {Math.round(HARDWARE_2X_MAC_STUDIO.totalCapEx / 36 + HARDWARE_POWER_MONTHLY)}/mo →{" "}
+                  <strong>~${CLOUD_INFERENCE_EQUIV_MONTHLY - Math.round(HARDWARE_2X_MAC_STUDIO.totalCapEx / 36 + HARDWARE_POWER_MONTHLY)}/mo savings</strong>. At 48‑month amortization, savings increase. See LOCALSONLY.md for caveats (batching, resale value, input tokens).
+                </p>
+              </div>
+            </DashboardCard>
+            </div>
           </TabsContent>
 
           {/* Trading Bot tab: open positions + portfolio — scrollable area so all content is reachable */}

@@ -96,7 +96,9 @@ Keep this section updated as strategies are tried:
 
 ## Optional: Cost estimation
 
-Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in environment or agent settings to enable estimated cost in the Usage tab. The value is applied as USD per 1,000 tokens (e.g. `0.01` = $0.01/1K tokens).
+**Cost in Usage tab:** Cost is always shown. When `VINCE_USAGE_COST_PER_1K_TOKENS` is not set, a default average (~$0.006/1K tokens) is used. Set **`VINCE_USAGE_COST_PER_1K_TOKENS`** (number or string, e.g. `0.01`) in environment or agent settings for accurate cost. The value is applied as USD per 1,000 tokens (e.g. `0.01` = $0.01/1K tokens).
+
+**Cursor usage:** The Usage tab includes a Cursor usage section. Export usage CSV from [Cursor settings](https://cursor.com/settings) (Usage tab → export), paste into the textarea, and see total tokens plus estimated cost (~$0.00056/1K based on Cursor Max billing).
 
 **Code tasks (claude-code-controller):** Code tasks delegated via [claude-code-controller](https://github.com/IkigaiLabsETH/claude-code-controller) use your Claude Code subscription separately; they are not included in the VINCE Usage tab.
 
