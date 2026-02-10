@@ -8,9 +8,10 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 
 | What | Where |
 |------|--------|
-| **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins |
+| **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins. Perps on Hyperliquid; can make money in 1h/1d/2d when paper bot works. |
 | **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** (KELLY_DAILY_BRIEFING), **@elizaos/plugin-discovery**, and **@elizaos/plugin-todo** (todo/reminders); the-good-life; knows user's trading context but never gives trading advice |
-| **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence |
+| **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence. Weekly options (Hypersurface); makes money only with good strike + good weekly bull/bear sentiment. |
+| **Three curves** | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). See [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md). |
 | **Sentinel (core dev)** | `src/agents/sentinel.ts` — ops, architecture steward, 24/7 coding north star, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings; deep collab with Claude 4.6; plugin-sentinel (actions + weekly/daily tasks) |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
@@ -766,6 +767,7 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 
 - [README.md](README.md) — Project overview, getting started, configuration
 - [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — Solus north star and roadmap (X-native crypto intelligence)
+- [src/plugins/plugin-solus/](src/plugins/plugin-solus/) — Hypersurface expertise for Solus (provider + strike ritual, explain, position assess, optimal strike)
 - [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage and ML training
 - [DEPLOY.md](DEPLOY.md) — Deploy to Eliza Cloud
 - [TREASURY.md](TREASURY.md) — Cost coverage and profitability mandate

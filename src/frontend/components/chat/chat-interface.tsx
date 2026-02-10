@@ -172,14 +172,16 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Entertainment", message: "Recommend a book or something to watch" },
     { label: "Creative", message: "Tips to get started with oil painting" },
   ],
-  // Solus (CFO): execution architect, plan and call.
+  // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
     { label: "What can the CFO do?", message: "What can you do?" },
-    { label: "$100K Plan", message: "full $100K plan" },
-    { label: "This Week's Targets", message: "this week's targets" },
+    { label: "How Hypersurface works", message: "How does Hypersurface work?" },
+    { label: "Optimal strike this week", message: "What's the optimal strike for BTC this week? I'll paste VINCE's options view." },
+    { label: "Strike ritual", message: "Walk me through strike ritual for Friday — covered calls vs secured puts" },
+    { label: "Secured puts vs calls", message: "When do I sell secured puts vs covered calls on Hypersurface?" },
+    { label: "Assess my position", message: "I have a Hypersurface position — here are the details: [paste strike, notional, premium, expiry]" },
     { label: "Size or Skip?", message: "Give me size, skip, or watch and invalidation — I'll paste context" },
-    { label: "Echo DD", message: "Echo seed due diligence" },
-    { label: "Rebalance", message: "how should I rebalance my stack?" },
+    { label: "$100K Plan", message: "full $100K plan" },
     { label: "What's Your Call?", message: "what's your call?" },
   ],
   // Sentinel (CTO): core dev, ops, cost, ONNX, clawdbot.

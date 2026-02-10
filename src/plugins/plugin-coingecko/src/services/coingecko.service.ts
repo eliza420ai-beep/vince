@@ -88,6 +88,55 @@ export class CoinGeckoService extends Service {
   async stop(): Promise<void> {}
 
   /**
+   * Get current spot prices in USD for a list of CoinGecko coin ids (e.g. bitcoin, ethereum, solana, hyperliquid).
+   * Uses the /simple/price endpoint. Returns a map of id -> price; missing or failed ids are omitted.
+   */
+  async getSimplePrices(ids: string[]): Promise<Record<string, number>> {
+    if (ids.length === 0) return {};
+    const isPro = Boolean(this.proApiKey);
+    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const params = new URLSearchParams({
+      ids: ids.join(","),
+      vs_currencies: "usd",
+    });
+    const url = `${baseUrl}/simple/price?${params.toString()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          ...(isPro && this.proApiKey ? { "x-cg-pro-api-key": this.proApiKey } : {}),
+          "User-Agent": "ElizaOS-CoinGecko-Plugin/1.0",
+        },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!res.ok) {
+        const body = await safeReadJson(res);
+        logger.debug(
+          { status: res.status, statusText: res.statusText, body, ids },
+          "[CoinGecko] simple/price request failed",
+        );
+        return {};
+      }
+      const data = (await res.json()) as Record<string, { usd?: number }>;
+      const out: Record<string, number> = {};
+      for (const id of ids) {
+        const usd = data[id]?.usd;
+        if (typeof usd === "number" && Number.isFinite(usd)) out[id] = usd;
+      }
+      return out;
+    } catch (error) {
+      clearTimeout(timeout);
+      const message = error instanceof Error ? error.message : String(error);
+      logger.debug({ ids, message }, "[CoinGecko] getSimplePrices error");
+      return {};
+    }
+  }
+
+  /**
    * Get token metadata for one or more identifiers (CoinGecko ids, symbols, names, or contract addresses).
    * Uses Pro API when COINGECKO_API_KEY is set; otherwise public API.
    * Never throws for per-id failures; returns an entry with error message instead.
