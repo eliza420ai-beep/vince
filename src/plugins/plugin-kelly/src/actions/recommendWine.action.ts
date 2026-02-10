@@ -71,9 +71,23 @@ export const kellyRecommendWineAction: Action = {
           ? " If the weather context in the context block indicates rain or storm, do not suggest outdoor terrace or picnic; prefer at-home or wine bar."
           : "";
 
+      let varietyNote = "";
+      if (message.roomId && typeof runtime.getCache === "function") {
+        const lastRec = await runtime.getCache<{ type: string; pick?: string }>(
+          `kelly:lastRecommend:${message.roomId}`
+        );
+        if (lastRec?.type === "wine" && lastRec.pick) {
+          varietyNote = ` You recently recommended **${lastRec.pick}** to this user; choose a **different** wine from the context this time so they get variety.`;
+        }
+      }
+      if (!varietyNote) {
+        varietyNote =
+          " Vary your picks: the context lists many options (e.g. Carbonnieux, Malartic-Lagravière, Smith Haut Lafitte, Chantegrive, Latour-Martillac, Fieuzal, Pavillon blanc, Haut-Brion blanc); do not always choose the same two—rotate through different options when the request is generic (e.g. \"wine for tonight\").";
+      }
+
       const prompt = `You are Kelly, the private sommelier. The user asks: "${userAsk}"
 
-Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). ${NEVER_INVENT_LINE} Default to **Southwest France and Bordeaux** (Margaux, Pauillac, Saint-Émilion, Sauternes, Pessac-Léognan, Bergerac, Buzet) when the user does not specify a region. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${weatherNote}
+Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). ${NEVER_INVENT_LINE} Default to **Southwest France and Bordeaux** (Margaux, Pauillac, Saint-Émilion, Sauternes, Pessac-Léognan, Bergerac, Buzet) when the user does not specify a region. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${varietyNote}${weatherNote}
 
 <context>
 ${knowledgeSnippet}
