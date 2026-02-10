@@ -94,6 +94,36 @@ Action items parsed as **build** (e.g. "build feature X", "write a script for Y"
 - **Agent suggestions:** If the standup transcript includes agent-proposed improvements (new topics, tools, or process changes), they are appended to `standup-deliverables/agent-suggestions.md` for human review.
 - **North-star deliverables:** Action items can also be parsed as **essay** (Substack), **tweets** (banger suggestions), **x_article** (long-form for X), **trades** (perps Hyperliquid + options HypeSurface for BTC/SOL/ETH/HYPE), **good_life** (Kelly-style founder lifestyle suggestions), **prd** (Sentinel: PRD for Cursor), or **integration_instructions** (Sentinel: Milaidy/OpenClaw setup and integration). These are generated in-VINCE and written to subdirs under `STANDUP_DELIVERABLES_DIR`. See [docs/NORTH_STAR_DELIVERABLES.md](docs/NORTH_STAR_DELIVERABLES.md).
 
+## Feedback from agent testing (planned)
+
+When testing an agent (e.g. Kelly) in Discord, we want the user to be able to provide **FEEDBACK** and get a concrete deliverable to improve the desired output. This is **not yet implemented**; the intended design is documented here for Sentinel and the team to read and implement later.
+
+### Intended flow
+
+1. **Trigger:** User sends a message that is clearly feedback from testing, e.g. `FEEDBACK: Kelly should recommend Biarritz restaurants when I ask for Biarritz` (or similar prefix/keyword).
+2. **Tested agent (e.g. Kelly):** Uses a dedicated action (e.g. FEEDBACK or FEEDBACK_TO_IMPROVEMENT) that **asks Sentinel** via ASK_AGENT (or in-process `elizaOS.handleMessage`) with a structured request: agent tested, feedback text, and optional recent conversation context.
+3. **Sentinel:** Receives the request and **triages**:
+   - **Code/behavior fix** (prompts, actions, plugin logic) → produce a **PRD for Cursor** and write to `standup-deliverables/prds/` (existing pattern).
+   - **Knowledge gap** (missing or outdated content in `knowledge/`) → produce an **Eliza task**: what to add or update and where (e.g. `knowledge/the-good-life/michelin-restaurants/biarritz-region.md`), and write to `standup-deliverables/eliza-tasks/`. This is a task for **Eliza** (or a human) to execute later—expand the corpus, run UPLOAD, ADD_MICHELIN_RESTAURANT, etc.
+4. **Reply:** Sentinel returns a one-line confirmation (e.g. "PRD written to …" or "Eliza task written to …"); the tested agent relays it back to the user in Discord.
+
+### Why triage
+
+Not every feedback is a code change. Sometimes the gap is **knowledge** (e.g. "Kelly doesn't recommend Biarritz" because the-good-life content was thin or not retrieved). In that case the right fix is a **task for Eliza** (add/update knowledge), not a PRD for Cursor. Sentinel decides which deliverable to produce so the team gets either a pasteable PRD or a clear spec for knowledge updates.
+
+### Deliverables (when implemented)
+
+| Type        | Owner   | Path                               | Purpose |
+|------------|---------|------------------------------------|---------|
+| PRD        | Sentinel| `standup-deliverables/prds/`       | Code/behavior change; paste into Cursor. |
+| Eliza task | Sentinel| `standup-deliverables/eliza-tasks/`| Knowledge gap; what to add/update where for Eliza or human. |
+
+### Implementation notes (for later)
+
+- **Tested-agent side:** New action (e.g. in plugin-inter-agent) that validates on a FEEDBACK trigger, optionally fetches last N messages in the room for context, builds the structured request, and calls Sentinel (same in-process path as ASK_AGENT); then callbacks with Sentinel's reply.
+- **Sentinel side:** New action (e.g. SENTINEL_FEEDBACK_DELIVERABLE) that validates on the structured "Generate a deliverable from agent feedback" request, runs a triage LLM (prd vs eliza_task), then generates and writes the appropriate deliverable; returns the file path to the caller.
+- **Docs:** Add `eliza-tasks/` and this flow to [docs/NORTH_STAR_DELIVERABLES.md](docs/NORTH_STAR_DELIVERABLES.md) when implemented. Full plan is in `.cursor/plans/` (feedback to PRD or Eliza task).
+
 ## Troubleshooting
 
 ### Discord: "Could not find guild for channel (not in cache and fetch failed)"
