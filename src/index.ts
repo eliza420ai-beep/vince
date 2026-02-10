@@ -14,7 +14,9 @@ import { type Project, logger } from "@elizaos/core";
       /AI SDK Warning System.*turn off warning logging/i.test(s) ||
       /\[PLUGIN:SQL\].*Database operation failed, retrying/i.test(s) ||
       /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*No ownership data found/i.test(s) ||
-      /\[PLUGIN:BOOTSTRAP:PROVIDER:SETTINGS\].*No settings state found/i.test(s)
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:SETTINGS\].*No settings state found/i.test(s) ||
+      /\[CORE:UTILS\].*No entity found for message/i.test(s) ||
+      /\[PLUGIN:BOOTSTRAP:PROVIDER:ROLES\].*User has no name or username, skipping/i.test(s)
     );
   };
   for (const stream of ["stderr", "stdout"] as const) {

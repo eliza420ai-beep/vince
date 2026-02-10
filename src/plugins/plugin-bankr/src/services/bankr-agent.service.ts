@@ -22,6 +22,9 @@ export class BankrAgentService extends Service {
     super(runtime);
     this.apiUrl = (runtime.getSetting("BANKR_AGENT_URL") as string) || process.env.BANKR_AGENT_URL || DEFAULT_AGENT_URL;
     this.apiKey = (runtime.getSetting("BANKR_API_KEY") as string)?.trim() || (process.env.BANKR_API_KEY as string)?.trim() || "";
+    if (this.apiKey) {
+      logger.info("[BANKR AGENT] API key configured (from runtime or env)");
+    }
   }
 
   get capabilityDescription(): string {

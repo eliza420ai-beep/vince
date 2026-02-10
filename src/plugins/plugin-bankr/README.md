@@ -5,6 +5,7 @@ Bankr Agent API and External Orders API integration for ElizaOS. **Used only by 
 ## Requirements
 
 - `BANKR_API_KEY` — get one at [bankr.bot/api](https://bankr.bot/api) (wallet access enabled for execution).
+- After changing `BANKR_API_KEY` or Bankr plugin code, restart the app (and run `bun run build` if you run from `dist/`) so the Bankr service picks up the key.
 
 ## Env (optional)
 
