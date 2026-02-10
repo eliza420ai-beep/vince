@@ -152,20 +152,20 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
-  // Kelly (CVO): lifestyle concierge — daily briefing, dining, wine, hotels, itinerary, surf, wellness, touch grass, entertainment.
+  // Kelly (CVO): lifestyle concierge — benefit-led labels; messages are the actual prompts sent.
   kelly: [
-    { label: "What can the CVO do?", message: "What can you do?" },
-    { label: "Daily Briefing", message: "What should I do today?" },
-    { label: "Restaurant & Hotel", message: "Where should I eat or stay? Somewhere within 2 hours of home." },
-    { label: "Wine", message: "Recommend a wine for tonight" },
-    { label: "Experience", message: "Recommend something special—wine tasting, spa, or cooking class" },
+    { label: "What can you do?", message: "What can you do?" },
+    { label: "Today's picks", message: "What should I do today?" },
+    { label: "Eat or stay", message: "Where should I eat or stay? Somewhere within 2 hours of home." },
+    { label: "Wine tonight", message: "Recommend a wine for tonight" },
+    { label: "Something special", message: "Recommend something special—wine tasting, spa, or cooking class" },
     { label: "Itinerary", message: "Plan me 2 days in Bordeaux" },
-    { label: "Week Ahead", message: "What's the week ahead? This week's picks" },
+    { label: "Week ahead", message: "What's the week ahead? This week's picks" },
     { label: "Surf", message: "How's the surf in Biarritz?" },
     { label: "Workout", message: "Recommend a workout for today" },
-    { label: "Swimming Tips", message: "Tips for my daily 1000m" },
+    { label: "Swim tips", message: "Tips for my daily 1000m" },
     { label: "Tea", message: "What tea for this evening?" },
-    { label: "Touch Grass", message: "I've been grinding—need to rebalance" },
+    { label: "Touch grass", message: "I've been grinding—need to rebalance" },
     { label: "Entertainment", message: "Recommend a book or something to watch" },
     { label: "Creative", message: "Tips to get started with oil painting" },
   ],
@@ -361,7 +361,7 @@ const SENTINEL_CATEGORIES: Record<
   },
 };
 
-// Kelly: lifestyle concierge — MICHELIN, James Edition, the-good-life, discovery
+// Kelly: lifestyle concierge — benefit-led titles and descriptions (Apple-style; no AI-slop)
 const KELLY_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
@@ -370,85 +370,85 @@ const KELLY_CATEGORIES: Record<
     title: "Daily Briefing",
     icon: Sun,
     promptToAsk: "What should I do today?",
-    description: "Day-aware picks: health, dining, hotels, wellness",
+    description: "One thing for health, one for dining or stay, one for wellness—today.",
   },
   place: {
     title: "Restaurant & Hotel",
     icon: UtensilsCrossed,
     promptToAsk: "Where should I eat or stay? Somewhere within 2 hours of home.",
-    description: "One best pick + alternative — Landes, Hossegor, Magescq, Basque coast, Saint-Émilion (≤2h from home)",
+    description: "One spot plus a backup. Landes, Hossegor, Basque coast, Saint-Émilion.",
   },
   wine: {
     title: "Wine",
     icon: Wine,
     promptToAsk: "Recommend a wine for tonight",
-    description: "One pick + alternative, French wine & Champagne default",
+    description: "One bottle for tonight plus a backup. French and Champagne by default.",
   },
   experience: {
     title: "Something Special",
     icon: Sparkles,
     promptToAsk: "Recommend something special—wine tasting, spa, or cooking class",
-    description: "Wine tasting, spa day, cooking class, guided tour — one pick + alternative",
+    description: "One experience—tasting, spa, cooking class, or tour—plus a backup.",
   },
   itinerary: {
     title: "Itinerary",
     icon: MapPin,
     promptToAsk: "Plan me 2 days in Bordeaux",
-    description: "Multi-day plan: hotel, lunch, dinner, activities",
+    description: "Hotel, lunch, dinner, activities—laid out day by day.",
   },
   weekAhead: {
     title: "Week Ahead",
     icon: CalendarDays,
     promptToAsk: "What's the week ahead? This week's picks",
-    description: "3–5 picks across dining, hotels, wellness",
+    description: "Three to five picks for the week: dining, stay, wellness.",
   },
   surf: {
     title: "Surf",
     icon: Waves,
     promptToAsk: "How's the surf in Biarritz?",
-    description: "Wave height, period, direction, sea temp",
+    description: "Wave height, period, direction, water temp.",
   },
   workout: {
     title: "Workout",
     icon: Dumbbell,
     promptToAsk: "Recommend a workout for today",
-    description: "Pool, gym, surfer yoga, or swim suggestion",
+    description: "One suggestion: pool, gym, surfer yoga, or swim.",
   },
   swimming: {
     title: "Swimming Tips",
     icon: Activity,
     promptToAsk: "Tips for my daily 1000m",
-    description: "Pool season, winter pools, yoga for swimmers",
+    description: "When and where to swim; yoga and pool tips for your 1000m.",
   },
   tea: {
     title: "Tea",
     icon: CupSoda,
     promptToAsk: "What tea for this evening?",
-    description: "Dammann Frères — morning or evening, by occasion",
+    description: "One tea for now—morning or evening, by occasion. Dammann Frères.",
   },
   rebalance: {
     title: "Touch Grass",
     icon: TreePine,
     promptToAsk: "I've been grinding—need to rebalance",
-    description: "One concrete move: escape, pool, dinner, yoga",
+    description: "One concrete move: escape, pool, dinner, or yoga.",
   },
   entertainment: {
     title: "Entertainment",
     icon: BookOpen,
     promptToAsk: "Recommend a book or something to watch",
-    description: "Books, music, Netflix, Apple TV — by your taste",
+    description: "One book, show, or album—by your taste.",
   },
   creative: {
     title: "Creative Tips",
     icon: Palette,
     promptToAsk: "Tips to get started with oil painting",
-    description: "Painting, photography, Ableton, cinema, Blender",
+    description: "Getting started: painting, photography, Ableton, film, Blender.",
   },
   discovery: {
     title: "What can you do?",
     icon: HelpCircle,
     promptToAsk: "What can you do?",
-    description: "Capability summary and detailed manifest",
+    description: "What I can do—summary and full list.",
   },
 };
 
