@@ -130,6 +130,40 @@ const getRecentInteractions = async (
  * @param {Memory} message - The message to retrieve data from.
  * @returns {object} An object containing data, values, and text sections.
  */
+/** Ensure every message sender exists in the room so formatMessages/formatPosts can resolve names (avoids "[CORE:UTILS] No entity found for message"). */
+async function ensureMessageSendersInRoom(
+  runtime: IAgentRuntime,
+  roomId: UUID,
+  messages: Memory[]
+): Promise<void> {
+  if (typeof (runtime as unknown as { ensureConnection?: (opts: unknown) => Promise<unknown> }).ensureConnection !== 'function') return;
+  const entityIds = new Set<string>();
+  for (const m of messages) {
+    if (m.entityId) entityIds.add(String(m.entityId));
+  }
+  if (entityIds.size === 0) return;
+  const room = await runtime.getRoom(roomId);
+  const worldId = (room?.worldId ?? roomId) as UUID;
+  const source = 'direct';
+  for (const entityId of entityIds) {
+    try {
+      const entity = await runtime.getEntityById(entityId as UUID);
+      const name = entity?.names?.[0] ?? entityId.slice(0, 8);
+      await (runtime as unknown as { ensureConnection: (opts: unknown) => Promise<unknown> }).ensureConnection({
+        entityId: entityId as UUID,
+        roomId,
+        worldId,
+        source,
+        channelId: roomId,
+        name,
+        userName: name,
+      });
+    } catch (err) {
+      logger.debug({ entityId, roomId, err }, '[RECENT_MESSAGES] ensureMessageSendersInRoom: ensureConnection skip');
+    }
+  }
+}
+
 export const recentMessagesProvider: Provider = {
   name: 'RECENT_MESSAGES',
   description: 'Recent messages, interactions and other memories',
@@ -139,9 +173,8 @@ export const recentMessagesProvider: Provider = {
       const { roomId } = message;
       const conversationLength = runtime.getConversationLength();
 
-      // Parallelize initial data fetching operations including recentInteractions
-      const [entitiesData, room, recentMessagesData, recentInteractionsData] = await Promise.all([
-        getEntityDetails({ runtime, roomId }),
+      // Fetch room and messages first so we can ensure all message senders exist before getEntityDetails
+      const [room, recentMessagesData, recentInteractionsData] = await Promise.all([
         runtime.getRoom(roomId),
         runtime.getMemories({
           tableName: 'messages',
@@ -153,6 +186,11 @@ export const recentMessagesProvider: Provider = {
           ? getRecentInteractions(runtime, message.entityId, runtime.agentId, roomId)
           : Promise.resolve([]),
       ]);
+
+      // Ensure every entity that sent a message is in the room (avoids "No entity found for message")
+      await ensureMessageSendersInRoom(runtime, roomId, recentMessagesData);
+
+      const entitiesData = await getEntityDetails({ runtime, roomId });
 
       // Separate action results from regular messages
       const actionResultMessages = recentMessagesData.filter(
