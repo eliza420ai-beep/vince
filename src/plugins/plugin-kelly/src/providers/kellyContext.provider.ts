@@ -205,9 +205,9 @@ export const kellyContextProvider: Provider = {
     }
 
     textParts.push(
-      "**Location context:** Southwest France, Landes (between Bordeaux and Biarritz). We are based here; default to this region for wine, dining, road trips, and daily suggestions unless the user specifies elsewhere.",
+      "**Location context:** We are based in the Landes (between Bordeaux and Biarritz). Default for dining and hotels: within 2h drive from home — Landes (Hossegor, Magescq), Basque coast (Biarritz and up to ~1h south, e.g. Akelarre), Saint-Émilion, Arcachon. Do not default to Bordeaux city unless the user asks for Bordeaux.",
     );
-    values.kellyLocationContext = "Southwest France, Landes (between Bordeaux and Biarritz)";
+    values.kellyLocationContext = "Landes (Hossegor, Magescq), Basque coast, Saint-Émilion, Arcachon — within 2h of home";
     textParts.push(
       "**Yoga:** Daily vinyasa (wife); surfer yoga pre/post surf; swimmer yoga pre/post pool in pool season. Use yoga-practice, daily-yoga-surfers-vinyasa, and yoga-vinyasa-surfers-swimmers for vinyasa, surfer, and swimmer recommendations.",
     );

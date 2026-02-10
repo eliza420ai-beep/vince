@@ -261,17 +261,22 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Five-Star Hotels & Fine Dining",
         description:
-          "Palaces, MICHELIN, Bib Gourmand. James Edition. One pick + alternative.",
+          "Palaces, MICHELIN, Bib Gourmand. James Edition. One pick + alternative. Default: within 2h of home (Landes, Hossegor, Magescq, Basque coast, Saint-Émilion).",
       },
       {
         title: "Wine & Spirits",
         description:
-          "Bordeaux, Burgundy, Champagne. Sommelier playbook. South African, whiskey, Armagnac.",
+          "French wine & Champagne (Bordeaux, Burgundy, Rhône, Loire, Alsace, etc.). Sommelier playbook. South African, whiskey, Armagnac.",
       },
       {
         title: "Itinerary & Week Ahead",
         description:
           "Multi-day plans (dining, hotels, activities). Week-ahead picks.",
+      },
+      {
+        title: "Something Special",
+        description:
+          "Wine tasting, spa day, cooking class, guided tour. One pick + alternative.",
       },
       {
         title: "Surf & Workout",

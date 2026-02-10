@@ -32,6 +32,15 @@ function detectPlaceType(text: string): PlaceType {
 }
 
 function extractPlaceQuery(text: string): string {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("near me") ||
+    lower.includes("within 2h") ||
+    lower.includes("within 2 hours") ||
+    lower.includes("within two hours")
+  ) {
+    return "the area";
+  }
   const patterns = [
     /(?:in|at|for)\s+([A-Za-z\s]+?)(?:\s+\d|$|\?|\.|,)/,
     /(?:best|recommend|where to (?:eat|stay)|great)\s+(?:hotel|restaurant)?\s*(?:in|at)?\s*([A-Za-z\s]+?)(?:\s*\?|$|\.|,)/i,
@@ -48,25 +57,32 @@ function isLandesOrSWFranceQuery(placeQuery: string): boolean {
   const lower = placeQuery.toLowerCase();
   return (
     lower.includes("landes") ||
+    lower.includes("hossegor") ||
+    lower.includes("magescq") ||
     lower.includes("sw france") ||
     lower.includes("southwest france") ||
     lower.includes("south west france") ||
     lower.includes("the area") ||
     lower.includes("here") ||
     lower.includes("nearby") ||
+    lower.includes("near me") ||
     lower.includes("around") ||
+    lower.includes("within 2h") ||
+    lower.includes("within 2 hours") ||
     placeQuery.length < 4
   );
 }
 
-/** True when we have dedicated the-good-life content (Biarritz, Bordeaux, Basque, Landes, etc.). Never early-exit for these. */
+/** True when we have dedicated the-good-life content (Landes, Biarritz, Basque, Saint-Émilion, etc.). Never early-exit for these. */
 function isDefaultRegionPlace(placeQuery: string): boolean {
   const lower = placeQuery.toLowerCase();
   return (
-    lower.includes("biarritz") ||
-    lower.includes("bordeaux") ||
     lower.includes("landes") ||
+    lower.includes("hossegor") ||
+    lower.includes("magescq") ||
+    lower.includes("biarritz") ||
     lower.includes("basque") ||
+    lower.includes("akelarre") ||
     lower.includes("saint-émilion") ||
     lower.includes("saint emilion") ||
     lower.includes("arcachon") ||
@@ -74,6 +90,7 @@ function isDefaultRegionPlace(placeQuery: string): boolean {
     lower.includes("guethary") ||
     lower.includes("saint-jean-de-luz") ||
     lower.includes("pays basque") ||
+    lower.includes("bordeaux") ||
     isLandesOrSWFranceQuery(placeQuery)
   );
 }
@@ -198,9 +215,9 @@ export const kellyRecommendPlaceAction: Action = {
       }
 
       const regionHint =
-        "Default region: Southwest France, Landes (Bordeaux–Biarritz corridor). Prefer the-good-life knowledge for this region when the query is generic or does not specify a city." +
+        "Default: within 2h drive from home. Prefer the-good-life for: Landes (Hossegor, Magescq, landes-locals), Basque coast (Biarritz and up to ~1h south, e.g. Akelarre), Saint-Émilion, Arcachon. Do not default to Bordeaux city unless the user asks for Bordeaux." +
         (typeLabel === "restaurant" && isGenericPlace
-          ? " For restaurant when no city is given, prefer Michelin Guide (Stars, Bib Gourmand) from the-good-life for Bordeaux, Biarritz, Basque coast, Landes, Saint-Émilion, Arcachon."
+          ? " For restaurant when no city is given, use landes-locals and curated-open-schedule (restaurants open today); prefer Landes and Basque coast. Only suggest places within 2h of home."
           : "");
       const defaultRegionHint =
         inDefaultRegion
@@ -220,7 +237,7 @@ Output exactly:
 1. **Best pick:** [Name] — one short sentence why (from context). Add one benefit-led sentence why this fits them (e.g. "You get a quiet table and the classic three-star experience").
 2. **Alternative:** [Name] — one short sentence why (from context).
 
-${openTodayBlock ? `Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE} If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home.` : `The user asked for a **specific place (${placeQuery})**, not "open today" or "the area". Recommend one best pick and one alternative **from the context above** for ${placeQuery}. Do NOT restrict to a "restaurants open today" list—we do not have that list for ${placeQuery}. Use the michelin-restaurants and the-good-life content in the context. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE}`} If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition." For Biarritz, Bordeaux, Basque coast, Landes, Saint-Émilion, Arcachon we have dedicated the-good-life content—prefer giving one best pick and one alternative from the context; only say you don't have a curated pick if there are truly no ${typeLabel} names in the context above.
+${openTodayBlock ? `Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE} If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home.` : `The user asked for a **specific place (${placeQuery})**, not "open today" or "the area". Recommend one best pick and one alternative **from the context above** for ${placeQuery}. Do NOT restrict to a "restaurants open today" list—we do not have that list for ${placeQuery}. Use the michelin-restaurants and the-good-life content in the context. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE}`} If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition." For Landes (Hossegor, Magescq), Basque coast (Biarritz, Akelarre), Saint-Émilion, Arcachon, Bordeaux we have the-good-life content—prefer one best pick and one alternative from the context; only say you don't have a curated pick if there are truly no ${typeLabel} names in the context above.
 
 Output only the recommendation text, no XML or extra commentary.
 Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock ? `\n\n${PAST_LUNCH_INSTRUCTION}` : ""}`;

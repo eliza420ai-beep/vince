@@ -66,32 +66,28 @@ export const kellyItineraryAction: Action = {
 
 "${userAsk}"
 
-Use ONLY the following context (the-good-life knowledge, experience-prioritization-framework, lifestyle-roi-framework, within-2h-bordeaux-biarritz). ${NEVER_INVENT_LINE} Apply:
-- **When to do what:** midweek vs weekend, peak vs routine, energy level (experience-prioritization-framework).
-- **ROI of experiences:** time/energy/memory (lifestyle-roi-framework).
-- **Road trips / day trips:** We are based in the Landes (between Bordeaux and Biarritz). Only suggest places within 2h drive from home (see within-2h-bordeaux-biarritz). Default region: Southwest France.
-- Prefer Wednesday for midweek escape; avoid inventing places.
+Use ONLY the following context (the-good-life knowledge: luxury-hotels, michelin-restaurants, experience-prioritization-framework, lifestyle-roi-framework, within-2h-bordeaux-biarritz). ${NEVER_INVENT_LINE}
+
+**Convention:** Assume a **1-night stay**. We usually have **lunch before check-in** and **lunch after check-out**. Structure every 2-day / weekend / road-trip plan like this:
+
+**Day 1**
+- Lunch: [Name from context] — before check-in
+- Hotel: [Name from context] — check-in after lunch
+- Dinner: [Name from context]
+
+**Day 2**
+- Check out. (Optional: breakfast at hotel or one activity/tasting from context.)
+- Lunch: [Name from context] — after check-out
+
+We have strong the-good-life content for **Bordeaux** (city and region), **Saint-Émilion**, **Landes**, **Basque coast**, **Biarritz**, **Paris**: luxury-hotels (e.g. Le Grand Hôtel Bordeaux, InterContinental, Les Sources de Caudalie, Yndo, La Grande Maison, Grand Barrail, Château Cordeillan-Bages) and michelin-restaurants (e.g. Le Pressoir d'Argent, La Grand'Vigne, Lafaurie-Peyraguey, Le Saint-James). **Always produce a concrete itinerary** with real hotel and restaurant names from the context for these places. Do not say "I don't have enough" for Bordeaux, Saint-Émilion, Biarritz, or Paris—use the names in the context. Only if the user asks for a city or region with no hotels or restaurants in the context, say so once and suggest MICHELIN Guide; then still give one hotel + one lunch or dinner from the context if any appear.
 
 <context>
 ${knowledgeSnippet}
 </context>
 
-Output a short markdown itinerary with this structure (only real places from the context).${formatInstruction}
+Output a short markdown itinerary with the structure above (only real places from the context).${formatInstruction}
 
-**Day 1**
-- Hotel: [Name from context]
-- Lunch: [Name from context]
-- Dinner: [Name from context]
-(optional: one activity or note)
-
-**Day 2**
-- (e.g. Tasting at [Name] or activity)
-- Lunch: [Name from context]
-- (optional dinner or departure note)
-
-If the context has little for this place, say: "I don't have enough in the-good-life for a full itinerary there; check MICHELIN Guide and James Edition, and I can still suggest one hotel + one dinner from my knowledge."
-
-Output only the itinerary (or the fallback sentence), no XML or preamble. Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
+Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
       const text = String(response).trim();

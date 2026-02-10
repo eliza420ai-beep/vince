@@ -52,6 +52,7 @@ import {
   TreePine,
   HelpCircle,
   Palette,
+  Sparkles,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -151,21 +152,22 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
-  // Kelly (CVO): people and balance, lifestyle, touch grass.
+  // Kelly (CVO): lifestyle concierge — daily briefing, dining, wine, hotels, itinerary, surf, wellness, touch grass, entertainment.
   kelly: [
     { label: "What can the CVO do?", message: "What can you do?" },
     { label: "Daily Briefing", message: "What should I do today?" },
-    { label: "Restaurant & Hotel", message: "Recommend a restaurant in Biarritz" },
+    { label: "Restaurant & Hotel", message: "Where should I eat or stay? Somewhere within 2 hours of home." },
     { label: "Wine", message: "Recommend a wine for tonight" },
+    { label: "Experience", message: "Recommend something special—wine tasting, spa, or cooking class" },
     { label: "Itinerary", message: "Plan me 2 days in Bordeaux" },
+    { label: "Week Ahead", message: "What's the week ahead? This week's picks" },
     { label: "Surf", message: "How's the surf in Biarritz?" },
     { label: "Workout", message: "Recommend a workout for today" },
-    { label: "Week Ahead", message: "What's the week ahead? This week's picks" },
     { label: "Swimming Tips", message: "Tips for my daily 1000m" },
     { label: "Tea", message: "What tea for this evening?" },
     { label: "Touch Grass", message: "I've been grinding—need to rebalance" },
-    { label: "Entertainment", message: "Recommend a book for the weekend" },
-    { label: "What can you do?", message: "What can you do?" },
+    { label: "Entertainment", message: "Recommend a book or something to watch" },
+    { label: "Creative", message: "Tips to get started with oil painting" },
   ],
   // Solus (CFO): execution architect, plan and call.
   solus: [
@@ -354,7 +356,7 @@ const SENTINEL_CATEGORIES: Record<
   },
 };
 
-// Kelly: lifestyle concierge — all knowledge and skills (MICHELIN, James Edition, the-good-life, discovery)
+// Kelly: lifestyle concierge — MICHELIN, James Edition, the-good-life, discovery
 const KELLY_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
@@ -363,25 +365,37 @@ const KELLY_CATEGORIES: Record<
     title: "Daily Briefing",
     icon: Sun,
     promptToAsk: "What should I do today?",
-    description: "Day-aware health, dining, hotels, wellness",
+    description: "Day-aware picks: health, dining, hotels, wellness",
   },
   place: {
     title: "Restaurant & Hotel",
     icon: UtensilsCrossed,
-    promptToAsk: "Recommend a restaurant in Biarritz",
-    description: "One best pick + alternative from MICHELIN & the-good-life",
+    promptToAsk: "Where should I eat or stay? Somewhere within 2 hours of home.",
+    description: "One best pick + alternative — Landes, Hossegor, Magescq, Basque coast, Saint-Émilion (≤2h from home)",
   },
   wine: {
     title: "Wine",
     icon: Wine,
     promptToAsk: "Recommend a wine for tonight",
-    description: "One pick + alternative, default SW France / Bordeaux",
+    description: "One pick + alternative, French wine & Champagne default",
+  },
+  experience: {
+    title: "Something Special",
+    icon: Sparkles,
+    promptToAsk: "Recommend something special—wine tasting, spa, or cooking class",
+    description: "Wine tasting, spa day, cooking class, guided tour — one pick + alternative",
   },
   itinerary: {
     title: "Itinerary",
     icon: MapPin,
     promptToAsk: "Plan me 2 days in Bordeaux",
-    description: "Multi-day plan: dining, hotels, activities",
+    description: "Multi-day plan: hotel, lunch, dinner, activities",
+  },
+  weekAhead: {
+    title: "Week Ahead",
+    icon: CalendarDays,
+    promptToAsk: "What's the week ahead? This week's picks",
+    description: "3–5 picks across dining, hotels, wellness",
   },
   surf: {
     title: "Surf",
@@ -394,12 +408,6 @@ const KELLY_CATEGORIES: Record<
     icon: Dumbbell,
     promptToAsk: "Recommend a workout for today",
     description: "Pool, gym, surfer yoga, or swim suggestion",
-  },
-  weekAhead: {
-    title: "Week Ahead",
-    icon: CalendarDays,
-    promptToAsk: "What's the week ahead? This week's picks",
-    description: "3–5 picks across dining, hotels, wellness",
   },
   swimming: {
     title: "Swimming Tips",
@@ -417,12 +425,12 @@ const KELLY_CATEGORIES: Record<
     title: "Touch Grass",
     icon: TreePine,
     promptToAsk: "I've been grinding—need to rebalance",
-    description: "One concrete lifestyle move: escape, pool, dinner, yoga",
+    description: "One concrete move: escape, pool, dinner, yoga",
   },
   entertainment: {
     title: "Entertainment",
     icon: BookOpen,
-    promptToAsk: "Recommend a book for the weekend",
+    promptToAsk: "Recommend a book or something to watch",
     description: "Books, music, Netflix, Apple TV — by your taste",
   },
   creative: {
