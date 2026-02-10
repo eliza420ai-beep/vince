@@ -8,7 +8,7 @@ Lifestyle-only concierge for the Kelly agent: daily briefing, health, dining, ho
 |--------|----------|--------------|
 | **KELLY_DAILY_BRIEFING** | "what should I do today", "daily suggestions", "lifestyle", "health", "dining", "hotel", "swim", "gym", "lunch", "wellness" | Day-aware picks: restaurants open today, hotels this season, fitness/health line from the-good-life and curated-open-schedule. |
 | **KELLY_RECOMMEND_PLACE** | "recommend a hotel in X", "where to stay in X", "where to eat in X", "best restaurant in X" | One best pick + one alternative from the-good-life. For SW France/Landes, only suggests places open today and prefers landes-locals. |
-| **KELLY_RECOMMEND_WINE** | "recommend a wine", "what wine with X", "bottle for tonight", "pairing for dinner" | One pick + one alternative, SW France/Bordeaux default, tasting note and service. |
+| **KELLY_RECOMMEND_WINE** | "recommend a wine", "what wine with X", "bottle for tonight", "pairing for dinner" | One pick + one alternative, French wine (and Champagne) default, tasting note and service. |
 | **KELLY_SURF_FORECAST** | "surf forecast", "how's the surf in Biarritz", "waves Biarritz", "surf conditions", "can I surf today" | Wave height, period, direction, sea temp for Biarritz; interpretation in surf-ocean voice; suggests indoor/surfer yoga in rain or storm. |
 | **KELLY_ITINERARY** | "plan me 2 days in Bordeaux", "weekend in Paris with great food" | Multi-day itinerary (Day 1 — hotel, lunch, dinner; Day 2 — …) from the-good-life only. |
 | **KELLY_RECOMMEND_WORKOUT** | "recommend a workout", "today's workout", "workout of the day" | One concrete workout (pool, gym, surfer yoga, swim) from pool/gym season and swimming context. |

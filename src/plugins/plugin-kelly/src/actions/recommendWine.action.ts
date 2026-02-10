@@ -39,7 +39,7 @@ export const kellyRecommendWineAction: Action = {
   name: "KELLY_RECOMMEND_WINE",
   similes: ["RECOMMEND_WINE", "WINE_RECOMMENDATION", "WINE_PAIRING"],
   description:
-    "Recommend one main wine and one alternative with tasting note and pairing; default to Southwest France/Bordeaux when region unspecified. Uses sommelier-playbook and wine-tasting knowledge.",
+    "Recommend one main wine and one alternative with tasting note and pairing; default to French wine (and Champagne) when region unspecified. Uses sommelier-playbook and wine-tasting knowledge.",
 
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
@@ -82,12 +82,12 @@ export const kellyRecommendWineAction: Action = {
       }
       if (!varietyNote) {
         varietyNote =
-          " Vary your picks: the context lists many options (e.g. Carbonnieux, Malartic-Lagravière, Smith Haut Lafitte, Chantegrive, Latour-Martillac, Fieuzal, Pavillon blanc, Haut-Brion blanc); do not always choose the same two—rotate through different options when the request is generic (e.g. \"wine for tonight\").";
+          " Vary your picks across regions and producers in the context (e.g. Burgundy, Rhône, Loire, Champagne, Alsace, Bordeaux); do not always choose the same two or the same region—rotate when the request is generic (e.g. \"wine for tonight\").";
       }
 
       const prompt = `You are Kelly, the private sommelier. The user asks: "${userAsk}"
 
-Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). ${NEVER_INVENT_LINE} Default to **Southwest France and Bordeaux** (Margaux, Pauillac, Saint-Émilion, Sauternes, Pessac-Léognan, Bergerac, Buzet) when the user does not specify a region. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${varietyNote}${weatherNote}
+Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). ${NEVER_INVENT_LINE} Default to **French wine** (Bordeaux, Burgundy, Rhône, Loire, Champagne, Alsace, Beaujolais, etc.) when the user does not specify a region—do not default to Bordeaux only; rotate across regions. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${varietyNote}${weatherNote}
 
 <context>
 ${knowledgeSnippet}
@@ -138,7 +138,7 @@ Output only the recommendation text, no XML or extra commentary. Voice: avoid ja
       {
         name: "Kelly",
         content: {
-          text: "Use KELLY_RECOMMEND_WINE for one pick and one alternative, default SW France/Bordeaux.",
+          text: "Use KELLY_RECOMMEND_WINE for one pick and one alternative, default French wine (and Champagne).",
           actions: ["KELLY_RECOMMEND_WINE"],
         },
       },
