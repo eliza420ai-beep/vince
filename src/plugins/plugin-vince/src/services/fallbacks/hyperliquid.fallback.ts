@@ -846,8 +846,8 @@ export class HyperliquidFallbackService implements IHyperliquidService {
           arbCount <= 10
             ? arbitrageOpportunities.join(", ")
             : `${arbCount} assets`;
-        logger.info(
-          `[HyperliquidFallback] 💱 CROSS-VENUE ARB | ${assets.length} assets | ${arbSummary}`,
+        logger.debug(
+          `[HyperliquidFallback] CROSS-VENUE ARB | ${assets.length} assets | ${arbSummary}`,
         );
       }
 

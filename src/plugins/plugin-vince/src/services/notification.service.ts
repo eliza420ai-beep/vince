@@ -44,7 +44,7 @@ export class VinceNotificationService extends Service {
   }
 
   async stop(): Promise<void> {
-    logger.info("[VinceNotification] Service stopped");
+    logger.debug("[VinceNotification] Service stopped");
   }
 
   /**
@@ -89,7 +89,7 @@ export class VinceNotificationService extends Service {
     }
 
     if (sent > 0) {
-      logger.info(
+      logger.debug(
         `[VinceNotification] Pushed to ${sent} channel(s): ${text.slice(0, 60)}…`,
       );
     }

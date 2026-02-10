@@ -43,12 +43,12 @@ export class VinceTradeJournalService extends Service {
     runtime: IAgentRuntime,
   ): Promise<VinceTradeJournalService> {
     const service = new VinceTradeJournalService(runtime);
-    logger.info("[VinceTradeJournal] ✅ Service started");
+    logger.debug("[VinceTradeJournal] Service started");
     return service;
   }
 
   async stop(): Promise<void> {
-    logger.info("[VinceTradeJournal] Service stopped");
+    logger.debug("[VinceTradeJournal] Service stopped");
   }
 
   // ==========================================
@@ -81,7 +81,7 @@ export class VinceTradeJournalService extends Service {
     this.entries.push(entry);
     this.trimEntries();
 
-    logger.info(
+    logger.debug(
       `[VinceTradeJournal] Entry recorded: ${position.direction.toUpperCase()} ${position.asset} @ $${position.entryPrice}`,
     );
   }
@@ -441,6 +441,6 @@ export class VinceTradeJournalService extends Service {
   clear(): void {
     this.entries = [];
     this.signalPerformance.clear();
-    logger.info("[VinceTradeJournal] Journal cleared");
+    logger.debug("[VinceTradeJournal] Journal cleared");
   }
 }

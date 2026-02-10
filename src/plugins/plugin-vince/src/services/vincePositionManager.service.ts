@@ -46,12 +46,12 @@ export class VincePositionManagerService extends Service {
     runtime: IAgentRuntime,
   ): Promise<VincePositionManagerService> {
     const service = new VincePositionManagerService(runtime);
-    logger.info("[VincePositionManager] ✅ Service started");
+    logger.debug("[VincePositionManager] Service started");
     return service;
   }
 
   async stop(): Promise<void> {
-    logger.info("[VincePositionManager] Service stopped");
+    logger.debug("[VincePositionManager] Service stopped");
   }
 
   private createInitialPortfolio(): Portfolio {
@@ -283,9 +283,8 @@ export class VincePositionManagerService extends Service {
     const sizing = this.calculateGoalAwareSize(signal);
 
     // Log sizing decision
-    logger.info(
-      `[VincePositionManager] 📊 Goal-aware sizing for ${asset}: $${sizing.sizeUsd} (${sizing.sizePct}%) @ ${sizing.leverage}x ` +
-        `| Risk: $${sizing.riskUsd} (${sizing.riskPct}%) | Factors: ${sizing.factors.join(", ")}`,
+    logger.debug(
+      `[VincePositionManager] Goal-aware sizing ${asset}: $${sizing.sizeUsd} (${sizing.sizePct}%) @ ${sizing.leverage}x | risk $${sizing.riskUsd}`,
     );
 
     // Open the position with calculated size
@@ -411,7 +410,7 @@ export class VincePositionManagerService extends Service {
     this.portfolio.balance -= margin;
     this.portfolio.tradeCount++;
 
-    logger.info(
+    logger.debug(
       `[VincePositionManager] Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice} (size: $${sizeUsd}, ${leverage}x)`,
     );
 
@@ -850,7 +849,7 @@ export class VincePositionManagerService extends Service {
         this.positions.set(position.id, position);
       }
     }
-    logger.info(
+    logger.debug(
       `[VincePositionManager] Restored ${this.positions.size} positions`,
     );
   }
@@ -858,6 +857,6 @@ export class VincePositionManagerService extends Service {
   reset(): void {
     this.positions.clear();
     this.portfolio = this.createInitialPortfolio();
-    logger.info("[VincePositionManager] Reset to initial state");
+    logger.debug("[VincePositionManager] Reset to initial state");
   }
 }

@@ -442,33 +442,8 @@ export class VincePaperTradingService extends Service {
     );
     const suggLabel = usedReportSuggestion ? " (ML)" : "";
 
-    console.log("");
-    console.log(
-      `  ┌─────────────────────────────────────────────────────────────────┐`,
-    );
-    console.log(
-      `  │  ⏸️  SIGNAL EVALUATED - NO TRADE: ${asset.padEnd(6)}                        │`,
-    );
-    console.log(
-      `  ├─────────────────────────────────────────────────────────────────┤`,
-    );
-    console.log(
-      `  │  Bias: ${dirIcon} ${signal.direction.toUpperCase().padEnd(6)} │ Reason: ${reason.substring(0, 30).padEnd(30)} │`,
-    );
-    console.log(
-      `  ├─────────────────────────────────────────────────────────────────┤`,
-    );
-    console.log(
-      `  │  Strength:   ${strengthBar} ${signal.strength.toFixed(0).padStart(3)}% (need ${minStrength}%${suggLabel})   │`,
-    );
-    console.log(
-      `  │  Confidence: ${confidenceBar} ${signal.confidence.toFixed(0).padStart(3)}% (need ${minConfidence}%${suggLabel})   │`,
-    );
-    console.log(
-      `  │  Confirming: ${signal.confirmingCount} signals (need ${minConfirming})                            │`,
-    );
-    console.log(
-      `  └─────────────────────────────────────────────────────────────────┘`,
+    logger.debug(
+      `[VincePaperTrading] Signal evaluated – no trade: ${asset} ${signal.direction} | str ${signal.strength.toFixed(0)}% conf ${signal.confidence.toFixed(0)}% | ${reason.substring(0, 50)}`,
     );
   }
 
@@ -482,22 +457,8 @@ export class VincePaperTradingService extends Service {
   ): void {
     const dirIcon = direction === "long" ? "🟢" : "🔴";
 
-    console.log("");
-    console.log(
-      `  ┌─────────────────────────────────────────────────────────────────┐`,
-    );
-    console.log(
-      `  │  🚫 TRADE BLOCKED BY RISK MANAGER: ${asset.padEnd(6)}                      │`,
-    );
-    console.log(
-      `  ├─────────────────────────────────────────────────────────────────┤`,
-    );
-    console.log(
-      `  │  Direction: ${dirIcon} ${direction.toUpperCase().padEnd(6)}                                        │`,
-    );
-    console.log(`  │  Reason: ${reason.substring(0, 53).padEnd(53)} │`);
-    console.log(
-      `  └─────────────────────────────────────────────────────────────────┘`,
+    logger.debug(
+      `[VincePaperTrading] Trade blocked: ${asset} ${direction} | ${reason.substring(0, 60)}`,
     );
   }
 
@@ -1136,41 +1097,8 @@ export class VincePaperTradingService extends Service {
     const dirIcon = direction === "long" ? "🟢" : "🔴";
     const pullbackDirection = direction === "long" ? "drop" : "rise";
 
-    console.log("");
-    console.log(
-      `  ┌─────────────────────────────────────────────────────────────────┐`,
-    );
-    console.log(
-      `  │  📝 PENDING ENTRY: ${dirIcon} ${direction.toUpperCase()} ${asset.padEnd(6)}                             │`,
-    );
-    console.log(
-      `  ├─────────────────────────────────────────────────────────────────┤`,
-    );
-    console.log(
-      `  │  Waiting for ${PULLBACK_CONFIG.pullbackPct}% ${pullbackDirection} before entry                        │`,
-    );
-    console.log(
-      `  │  Current: $${currentPrice.toFixed(2).padEnd(12)} Target: $${targetPrice.toFixed(2).padEnd(12)}       │`,
-    );
-    console.log(
-      `  │  Size: ${formatUsd(sizeUsd).padEnd(10)} Leverage: ${leverage}x                          │`,
-    );
-    console.log(
-      `  ├─────────────────────────────────────────────────────────────────┤`,
-    );
-    console.log(
-      `  │  Signals: Str ${signal.strength.toFixed(0)}% | Conf ${signal.confidence.toFixed(0)}% | ${signal.confirmingCount} confirming              │`,
-    );
-    console.log(
-      `  │  Expires in 5 minutes                                          │`,
-    );
-    console.log(
-      `  └─────────────────────────────────────────────────────────────────┘`,
-    );
-
-    logger.info(
-      `[VincePaperTrading] 📝 Pending ${direction.toUpperCase()} ${asset}: waiting for pullback to $${targetPrice.toFixed(2)} ` +
-        `(current: $${currentPrice.toFixed(2)}, expires in 5m)`,
+    logger.debug(
+      `[VincePaperTrading] Pending ${direction} ${asset}: pullback to $${targetPrice.toFixed(2)} (current $${currentPrice.toFixed(2)}, 5m expiry)`,
     );
   }
 
@@ -1627,186 +1555,8 @@ export class VincePaperTradingService extends Service {
     const sourcesStr = sourcesList.length > 0 ? sourcesList.join(", ") : "—";
     const supporting = supportingReasons;
     const conflicting = conflictingReasons;
-    const mlQualityScore = (signal as AggregatedTradeSignal & { mlQualityScore?: number }).mlQualityScore;
-    const openWindowBoost = (signal as AggregatedTradeSignal & { openWindowBoost?: number }).openWindowBoost;
-    const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
-    const W = 76;
-    const line = (s: string) => `  ║ ${pad(s, W)} ║`;
-    const wrapToWidth = (text: string, width: number): string[] => {
-      if (text.length <= width) return [text];
-      const out: string[] = [];
-      let rest = text;
-      while (rest.length > 0) {
-        if (rest.length <= width) {
-          out.push(rest);
-          break;
-        }
-        const chunk = rest.slice(0, width + 1);
-        const lastSpace = chunk.lastIndexOf(" ");
-        const breakAt = lastSpace > width / 2 ? lastSpace : width;
-        out.push(rest.slice(0, breakAt).trim());
-        rest = rest.slice(breakAt).trim();
-      }
-      return out;
-    };
-    const sep = "  ╟" + "─".repeat(W + 2) + "╢";
-    const empty = line("");
-
-    console.log("");
-    console.log("  ╔" + "═".repeat(W + 2) + "╗");
-    console.log(empty);
-    console.log(line("     📈  P A P E R   T R A D E   O P E N E D"));
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    console.log(line("  POSITION"));
-    console.log(empty);
-    const entryStr = entryPrice.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    console.log(
-      line(
-        `  ${direction === "long" ? "🟢 LONG" : "🔴 SHORT"}  ${asset}  @  $${entryStr}`,
-      ),
-    );
-    console.log(line(`  Entry    ${entryTimeUtc}`));
-    console.log(line(`  Notional ${formatUsd(sizeUsd)}`));
-    console.log(line(`  Margin   ${formatUsd(marginUsd)}`));
-    console.log(
-      line(`  Leverage ${leverage}x  (~$${pnlPer1Pct.toFixed(0)}/1%)`),
-    );
-    console.log(line(`  Strategy VinceSignalFollowing`));
-    if (position?.liquidationPrice != null) {
-      const liqStr = position.liquidationPrice.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      console.log(line(`  Liq      $${liqStr}  (~${liqPct.toFixed(1)}%)`));
-    }
-    if (entryATRPct != null) {
-      console.log(
-        line(`  ATR(14)  ${entryATRPct.toFixed(2)}%  (volatility → SL floor)`),
-      );
-      const slNote = isSingleTpAggressive
-        ? `${TARGET_RR_AGGRESSIVE}:1 R:R target`
-        : "1.5× ATR";
-      console.log(line(`  SL       ${stopLossPct.toFixed(2)}% (${slNote})`));
-    }
-    if (sessionLabel) {
-      console.log(line(`  Session  ${sessionLabel}`));
-    }
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    console.log(line("  WHY THIS TRADE"));
-    console.log(empty);
-    const decisionStr =
-      totalSourceCount > 0
-        ? `${direction.toUpperCase()} — ${sourceCount} of ${totalSourceCount} sources agreed` +
-          (conflictingCount > 0 ? ` (${conflictingCount} disagreed).` : ".")
-        : `${direction.toUpperCase()} — ${factorCount} factors from ${sourceCount} sources.`;
-    const decisionWrapped = wrapToWidth(decisionStr, W - 2);
-    for (const chunk of decisionWrapped) {
-      console.log(line(`  ${chunk}`));
-    }
-    const netStr =
-      `Net: Strength ${signal.strength}% / confidence ${signal.confidence}% met threshold. ` +
-      `${supporting.length} supporting, ${conflicting.length} conflicting (full text below).`;
-    for (const chunk of wrapToWidth(netStr, W - 2)) {
-      console.log(line(`  ${chunk}`));
-    }
-    console.log(empty);
-    if (supporting.length > 0) {
-      console.log(line(`  Supporting (${supporting.length}):`));
-      for (const f of supporting) {
-        for (const w of wrapToWidth(f, W - 6)) {
-          console.log(line(`    • ${w}`));
-        }
-      }
-      console.log(empty);
-    }
-    if (conflicting.length > 0) {
-      console.log(line(`  Conflicting (${conflicting.length}):`));
-      for (const f of conflicting) {
-        for (const w of wrapToWidth(f, W - 6)) {
-          console.log(line(`    • ${w}`));
-        }
-      }
-      console.log(empty);
-    }
-    console.log(line("  Sources:"));
-    const sourcesWrapped = wrapToWidth(sourcesStr, W - 4);
-    for (const chunk of sourcesWrapped) {
-      console.log(line(`  ${chunk}`));
-    }
-    if (typeof mlQualityScore === "number") {
-      const mlPct = (mlQualityScore * 100).toFixed(0);
-      console.log(line(`  ML Quality  ${mlPct}%`));
-    }
-    if (typeof openWindowBoost === "number" && openWindowBoost > 0) {
-      console.log(line(`  Open window  +${openWindowBoost.toFixed(0)}% boost`));
-    }
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    console.log(line("  SIGNAL"));
-    console.log(empty);
-    console.log(
-      line(
-        `  Strength ${signal.strength}%  ·  Confidence ${signal.confidence}%  ·  Confirming ${sourceCount}`,
-      ),
-    );
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    console.log(line("  RISK MANAGEMENT"));
-    console.log(empty);
-    const slStr = stopLossPrice.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    console.log(
-      line(
-        `  SL   $${slStr}  (${slPctNum.toFixed(1)}%)  If hit -$${slLossUsd.toFixed(0)}`,
-      ),
-    );
-    if (takeProfitPrices.length > 0) {
-      const tp1Str = takeProfitPrices[0].toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-      const tp1Suffix = isSingleTpAggressive
-        ? `  [target $${TAKE_PROFIT_USD_AGGRESSIVE}]`
-        : "";
-      console.log(
-        line(
-          `  TP   $${tp1Str}  (${tp1PctNum.toFixed(1)}%)  If hit +$${tp1ProfitUsd.toFixed(0)}${tp1Suffix}`,
-        ),
-      );
-      if (takeProfitPrices.length > 1) {
-        const tp2Pct = Math.abs(
-          ((takeProfitPrices[1] - entryPrice) / entryPrice) * 100,
-        );
-        const tp2Profit = sizeUsd * (tp2Pct / 100);
-        const tp2Str = takeProfitPrices[1].toLocaleString("en-US", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-        console.log(
-          line(
-            `  TP2  $${tp2Str}  (${tp2Pct.toFixed(1)}%)  If hit +$${tp2Profit.toFixed(0)}`,
-          ),
-        );
-      }
-    }
-    console.log(line(`  R:R (TP1 vs SL)  ${rrNum > 0 ? rrNum.toFixed(1) : "—"}:1  ${rrLabel}`));
-    console.log(empty);
-    console.log("  ╚" + "═".repeat(W + 2) + "╝");
-    console.log("");
-
-    logger.info(
-      `[VincePaperTrading] ✅ Opened ${direction.toUpperCase()} ${asset} @ $${entryPrice.toFixed(2)} (size: $${sizeUsd.toFixed(0)}, ${leverage}x)`,
+    logger.debug(
+      `[VincePaperTrading] Paper trade opened: ${direction} ${asset} @ $${entryPrice.toFixed(2)} size $${sizeUsd.toFixed(0)} ${leverage}x (dashboard has full details)`,
     );
 
     // Push to Discord/Slack/Telegram when connected
@@ -1912,92 +1662,11 @@ export class VincePaperTradingService extends Service {
     const lev = closedPosition.leverage ?? 1;
 
     const feesUsdLog = closedPosition.feesUsd != null && closedPosition.feesUsd > 0 ? ` fees -$${closedPosition.feesUsd.toFixed(2)}` : "";
-    logger.info(
-      `[VincePaperTrading] ${pnlIcon} PAPER TRADE CLOSED – ${resultText}  ` +
-        `${dirIcon} ${closedPosition.direction.toUpperCase()} ${closedPosition.asset}  ` +
-        `Entry: $${closedPosition.entryPrice.toFixed(2)}  Exit: $${closedPosition.markPrice.toFixed(2)}  ` +
-        `Net P&L: ${isWin ? "+" : ""}$${pnl.toFixed(2)}${feesUsdLog} (price: ${isWin ? "+" : ""}${priceMovePct.toFixed(2)}%, margin: ${isWin ? "+" : ""}${pnlPct.toFixed(2)}% @ ${lev}x)  ` +
-        `Close Reason: ${closeReason}`,
+    logger.debug(
+      `[VincePaperTrading] Paper trade closed – ${resultText} ${closedPosition.asset} P&L ${isWin ? "+" : ""}$${pnl.toFixed(2)} (${closeReason})`,
     );
 
-    // Box banner (same style as PAPER TRADE OPENED)
-    const W = 63;
-    const pad = (s: string, n: number) => s.padEnd(n).slice(0, n);
-    const line = (s: string) => `  ║ ${pad(s, W)} ║`;
-    const empty = line("");
-    const sep = "  ╟" + "─".repeat(W + 2) + "╢";
-    const entryStr = closedPosition.entryPrice.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    const exitStr = closedPosition.markPrice.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
     const pnlStr = (isWin ? "+" : "") + "$" + pnl.toFixed(2);
-    const priceMoveStr = (isWin ? "+" : "") + priceMovePct.toFixed(2) + "%";
-    const marginPnlStr = (isWin ? "+" : "") + pnlPct.toFixed(2) + "%";
-
-    console.log("");
-    console.log("  ╔" + "═".repeat(W + 2) + "╗");
-    console.log(empty);
-    console.log(
-      line(`     💰  P A P E R   T R A D E   C L O S E D  –  ${resultText}`),
-    );
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    console.log(line("  POSITION"));
-    console.log(empty);
-    console.log(
-      line(
-        `  ${dirIcon} ${closedPosition.direction.toUpperCase()}  ${closedPosition.asset}  @  $${entryStr}`,
-      ),
-    );
-    console.log(line(`  Entry    $${entryStr}`));
-    console.log(line(`  Exit     $${exitStr}`));
-    console.log(empty);
-    console.log(sep);
-    console.log(empty);
-    const feesUsd = closedPosition.feesUsd ?? 0;
-    const feesStr = feesUsd > 0 ? `  |  Fees -$${feesUsd.toFixed(2)}` : "";
-    console.log(line("  P&L  (net of fees; % vs margin)"));
-    console.log(empty);
-    console.log(line(`  ${pnlIcon}  Net P&L: ${pnlStr}${feesStr}`));
-    console.log(line(`  Price move: ${priceMoveStr}  |  Margin P&L: ${marginPnlStr} (${lev}x)`));
-    if (closeReason === "stop_loss") {
-      console.log(
-        line(
-          `  ✓ Stop loss limited loss to ${Math.abs(priceMovePct).toFixed(2)}% price move.`,
-        ),
-      );
-      // Learning block: signals that led to the trade, sources, and what went against us
-      const signals = (closedPosition.triggerSignals ?? []).slice(0, 10);
-      const sources =
-        (closedPosition.metadata?.contributingSources as
-          | string[]
-          | undefined) ?? [];
-      const maxContent = W - 12; // leave room for "  Label: "
-      const signalsStr = signals.length
-        ? signals.join(", ").slice(0, maxContent)
-        : "—";
-      const sourcesStr = sources.length
-        ? sources.join(", ").slice(0, maxContent)
-        : "—";
-      const againstUs = `Price moved ${Math.abs(priceMovePct).toFixed(2)}% against our ${closedPosition.direction.toUpperCase()}.`;
-      console.log(empty);
-      console.log(sep);
-      console.log(empty);
-      console.log(line("  LEARNING (stop loss)"));
-      console.log(empty);
-      console.log(line(`  Signals: ${signalsStr}`));
-      console.log(line(`  Sources: ${sourcesStr}`));
-      console.log(line(`  Against us: ${againstUs}`));
-    }
-    console.log(line(`  Close Reason: ${closeReason}`));
-    console.log(empty);
-    console.log("  ╚" + "═".repeat(W + 2) + "╝");
-    console.log("");
 
     // Push to Discord/Slack/Telegram when connected
     const notif = this.runtime.getService("VINCE_NOTIFICATION_SERVICE") as {

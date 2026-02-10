@@ -150,7 +150,7 @@ export class VinceHIP3Service extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<VinceHIP3Service> {
     const service = new VinceHIP3Service(runtime);
-    logger.info("[VinceHIP3] Service initialized");
+    logger.debug("[VinceHIP3] Service initialized");
     if (isVinceAgent(runtime)) {
       service.runStartupVerification().catch(() => {});
     }
@@ -540,7 +540,7 @@ export class VinceHIP3Service extends Service {
   }
 
   async stop(): Promise<void> {
-    logger.info("[VinceHIP3] Service stopped");
+      logger.debug("[VinceHIP3] Service stopped");
   }
 
   /**
@@ -549,7 +549,7 @@ export class VinceHIP3Service extends Service {
   private isCircuitOpen(): boolean {
     if (!this.circuitOpen) return false;
     if (Date.now() - this.circuitOpenedAt > this.CIRCUIT_RESET_MS) {
-      logger.info("[VinceHIP3] Circuit breaker half-open, attempting request");
+      logger.debug("[VinceHIP3] Circuit breaker half-open, attempting request");
       return false;
     }
     return true;
@@ -557,7 +557,7 @@ export class VinceHIP3Service extends Service {
 
   private recordSuccess(): void {
     if (this.circuitOpen) {
-      logger.info(
+      logger.debug(
         "[VinceHIP3] Circuit breaker closed after successful request",
       );
     }
@@ -1213,7 +1213,7 @@ export class VinceHIP3Service extends Service {
     }
 
     // Fetch fresh data
-    logger.info("[VinceHIP3] Fetching fresh HIP-3 data from Hyperliquid...");
+    logger.debug("[VinceHIP3] Fetching fresh HIP-3 data from Hyperliquid...");
 
     // Strategy 1: Try allPerpMetas (should include all DEXes in one call)
     logger.debug("[VinceHIP3] Strategy 1: Trying allPerpMetas endpoint...");
@@ -1264,7 +1264,7 @@ export class VinceHIP3Service extends Service {
       );
 
       if (this.cache.data) {
-        logger.info("[VinceHIP3] Returning stale cached data");
+        logger.debug("[VinceHIP3] Returning stale cached data");
         return this.cache.data;
       }
 
@@ -1296,8 +1296,8 @@ export class VinceHIP3Service extends Service {
       .filter(Boolean)
       .join(" | ");
 
-    logger.info(
-      `[VinceHIP3] 📊 PULSE | ${hip3Count} assets | ` +
+    logger.debug(
+      `[VinceHIP3] PULSE | ${hip3Count} assets | ` +
         `Commodities: ${pulse!.commodities.length} | Indices: ${pulse!.indices.length} | ` +
         `Stocks: ${pulse!.stocks.length} | AI: ${pulse!.aiPlays.length}` +
         (pricesSummary ? ` | ${pricesSummary}` : ""),

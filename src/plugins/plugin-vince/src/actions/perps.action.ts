@@ -353,12 +353,12 @@ export const vincePerpsAction: Action = {
     callback: HandlerCallback,
   ): Promise<void> => {
     try {
-      logger.info("[VINCE_PERPS] Building data context...");
+      logger.debug("[VINCE_PERPS] Building data context...");
 
       // Build data context from all services
       const context = await buildPerpsDataContext(runtime);
 
-      logger.info("[VINCE_PERPS] Generating narrative...");
+      logger.debug("[VINCE_PERPS] Generating narrative...");
 
       // Generate LLM narrative
       const narrative = await generatePerpsNarrative(runtime, context);
@@ -405,7 +405,7 @@ export const vincePerpsAction: Action = {
         actions: ["VINCE_PERPS"],
       });
 
-      logger.info("[VINCE_PERPS] Briefing complete");
+      logger.debug("[VINCE_PERPS] Briefing complete");
     } catch (error) {
       logger.error(`[VINCE_PERPS] Error: ${error}`);
       await callback({
