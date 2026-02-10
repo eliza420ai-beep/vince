@@ -194,6 +194,43 @@ function cleanupRaceTracking(agentId: string, roomId: string): void {
 }
 
 /**
+ * Ensure all in-process agents exist in the room so formatMessages/getEntityDetails
+ * can resolve every message's entityId (avoids "[CORE:UTILS] No entity found for message").
+ */
+async function ensureAllAgentsInRoom(runtime: IAgentRuntime, roomId: UUID): Promise<void> {
+  const eliza = (runtime as unknown as { elizaOS?: { getAgents?(): { agentId: string; character?: { name?: string } }[] } }).elizaOS;
+  if (!eliza?.getAgents || typeof runtime.ensureConnection !== 'function') return;
+  let agents: { agentId: string; character?: { name?: string } }[] = [];
+  try {
+    agents = eliza.getAgents();
+  } catch {
+    return;
+  }
+  if (!Array.isArray(agents) || agents.length === 0) return;
+  const room = await runtime.getRoom(roomId);
+  const worldId = (room?.worldId ?? roomId) as UUID;
+  const source = 'direct';
+  for (const a of agents) {
+    const agentId = a?.agentId;
+    if (!agentId) continue;
+    const name = a?.character?.name ?? agentId.slice(0, 8);
+    try {
+      await runtime.ensureConnection({
+        entityId: agentId as UUID,
+        roomId,
+        worldId,
+        source,
+        channelId: roomId,
+        name,
+        userName: name,
+      });
+    } catch (err) {
+      logger.debug({ agentId, roomId, err }, '[OtakuMessageService] ensureAllAgentsInRoom: ensureConnection skip');
+    }
+  }
+}
+
+/**
  * OtakuMessageService implements the IMessageService interface with custom
  * multi-step workflow execution and x402 job request handling.
  */
@@ -392,6 +429,9 @@ export class OtakuMessageService implements IMessageService {
           mode: 'none',
         };
       }
+
+      // Ensure all in-process agents are in this room so RECENT_MESSAGES/formatMessages resolve every entityId
+      await ensureAllAgentsInRoom(runtime, message.roomId);
 
       // Process attachments if any (images, documents)
       if (message.content.attachments && message.content.attachments.length > 0) {
