@@ -130,8 +130,8 @@ const getRecentInteractions = async (
  * @param {Memory} message - The message to retrieve data from.
  * @returns {object} An object containing data, values, and text sections.
  */
-/** Ensure every message sender exists in the room so formatMessages/formatPosts can resolve names (avoids "[CORE:UTILS] No entity found for message"). */
-async function ensureMessageSendersInRoom(
+/** Ensure every message sender exists in the room so formatMessages/formatPosts can resolve names (avoids "[CORE:UTILS] No entity found for message"). Exported for tests. */
+export async function ensureMessageSendersInRoom(
   runtime: IAgentRuntime,
   roomId: UUID,
   messages: Memory[]

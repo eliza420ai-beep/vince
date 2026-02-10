@@ -205,6 +205,50 @@ describe("askAgentAction", () => {
       expect(calls[0].text).toBe("**Vince says:** Vince reply");
     });
 
+    it("multi-step: onResponse first empty then with text yields **X says:** reply (no empty reply)", async () => {
+      const targetAgentId = "vince-id";
+      let capturedOpts: { onResponse?: (c: unknown) => void } = {};
+      const handleMessage = vi.fn().mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
+        capturedOpts = (opts as typeof capturedOpts) ?? {};
+        queueMicrotask(() => {
+          const onResponse = (capturedOpts as { onResponse?: (c: unknown) => void }).onResponse;
+          if (onResponse) {
+            onResponse({ text: "" });
+          }
+        });
+        queueMicrotask(() => {
+          const onResponse = (capturedOpts as { onResponse?: (c: unknown) => void }).onResponse;
+          if (onResponse) {
+            onResponse({ text: "Vince reply after multi-step" });
+          }
+        });
+        return Promise.resolve();
+      });
+      const runtime = createMockRuntime({
+        character: { name: "Kelly" },
+        elizaOS: {
+          handleMessage,
+          getAgentByName: (name: string) =>
+            name.toLowerCase() === "vince" ? { agentId: targetAgentId } : undefined,
+          getAgents: () => [{ agentId: targetAgentId, character: { name: "Vince" } }],
+        },
+      });
+      const msg = createMessage("Ask Vince about Bitcoin");
+      const { callback, calls } = createMockCallback();
+
+      const result = await askAgentAction.handler!(
+        runtime,
+        msg,
+        {} as State,
+        undefined,
+        callback
+      );
+
+      expect(result).toEqual({ success: true });
+      expect(calls.length).toBeGreaterThanOrEqual(1);
+      expect(calls[0].text).toBe("**Vince says:** Vince reply after multi-step");
+    });
+
     it("async onError causes fall through to next path", async () => {
       const targetAgentId = "vince-id";
       const handleMessage = vi.fn().mockImplementation((_id: string, _msg: unknown, opts?: unknown) => {
