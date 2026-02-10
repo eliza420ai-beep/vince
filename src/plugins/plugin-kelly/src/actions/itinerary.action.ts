@@ -11,6 +11,8 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NEVER_INVENT_LINE } from "../constants/safety";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
 
 export const kellyItineraryAction: Action = {
   name: "KELLY_ITINERARY",
@@ -64,7 +66,7 @@ export const kellyItineraryAction: Action = {
 
 "${userAsk}"
 
-Use ONLY the following context (the-good-life knowledge, experience-prioritization-framework, lifestyle-roi-framework, within-2h-bordeaux-biarritz). Do not invent any names. Apply:
+Use ONLY the following context (the-good-life knowledge, experience-prioritization-framework, lifestyle-roi-framework, within-2h-bordeaux-biarritz). ${NEVER_INVENT_LINE} Apply:
 - **When to do what:** midweek vs weekend, peak vs routine, energy level (experience-prioritization-framework).
 - **ROI of experiences:** time/energy/memory (lifestyle-roi-framework).
 - **Road trips / day trips:** We are based in the Landes (between Bordeaux and Biarritz). Only suggest places within 2h drive from home (see within-2h-bordeaux-biarritz). Default region: Southwest France.
@@ -89,7 +91,7 @@ Output a short markdown itinerary with this structure (only real places from the
 
 If the context has little for this place, say: "I don't have enough in the-good-life for a full itinerary there; check MICHELIN Guide and James Edition, and I can still suggest one hotel + one dinner from my knowledge."
 
-Output only the itinerary (or the fallback sentence), no XML or preamble.`;
+Output only the itinerary (or the fallback sentence), no XML or preamble. Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
       const text = String(response).trim();

@@ -80,7 +80,11 @@ export class KellyLifestyleService extends Service {
         logger.warn("[KellyLifestyle] Curated schedule file is empty: " + CURATED_SCHEDULE_PATH);
         return null;
       }
-      // Expected structure: ## Restaurants by Day, ### Monday … ### Sunday; ## Hotels by Season, ### Winter / ### March–November; ## Fitness / Health.
+      // Curated schedule structure (see README Dependency):
+      // - ## Restaurants by Day — then ### Monday … ### Sunday with lines like "- **Name** | Location | Hours"
+      // - ## Hotels by Season — then ### Winter (January–February) and ### March–November with hotel lines
+      // - ## Fitness / Health — pool/gym season note
+      // - Optional: **Palace indoor pools (winter swim)** subsection with "reopens Feb 12" etc. (see parsePalacePoolReopenDates)
       const dayCapitalized = d.charAt(0).toUpperCase() + d.slice(1);
       const daySection = this.extractSection(content, `### ${dayCapitalized}`);
       const hotelSection = isWinter

@@ -11,6 +11,9 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NEVER_INVENT_LINE } from "../constants/safety";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
+import { extractRecommendationNames } from "../utils/recommendationGuards";
 
 const WINE_TRIGGERS = [
   "recommend wine",
@@ -70,7 +73,7 @@ export const kellyRecommendWineAction: Action = {
 
       const prompt = `You are Kelly, the private sommelier. The user asks: "${userAsk}"
 
-Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). Default to **Southwest France and Bordeaux** (Margaux, Pauillac, Saint-Émilion, Sauternes, Pessac-Léognan, Bergerac, Buzet) when the user does not specify a region. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${weatherNote}
+Use ONLY the following context (the-good-life: wine-tasting, sommelier-playbook, and any preferences). ${NEVER_INVENT_LINE} Default to **Southwest France and Bordeaux** (Margaux, Pauillac, Saint-Émilion, Sauternes, Pessac-Léognan, Bergerac, Buzet) when the user does not specify a region. Use precise tasting language (structure, acidity, finish, minerality) and one-sentence pairing or occasion. Add service (temperature, decanting) when relevant.${weatherNote}
 
 <context>
 ${knowledgeSnippet}
@@ -80,15 +83,30 @@ Output exactly:
 1. **Pick:** [Wine/producer] — one sentence tasting + one sentence pairing/occasion. Add one short benefit-led sentence why this fits them (e.g. "You get a clear, confident pick that works with the dish.").
 2. **Alternative:** [Wine/producer] — one sentence tasting + one sentence pairing/occasion.
 
-Output only the recommendation text, no XML or extra commentary. No jargon (no leverage, utilize, streamline, robust, etc.).`;
+Output only the recommendation text, no XML or extra commentary. Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
+      const usedFallback = !text;
+      if (usedFallback) {
+        logger.debug("[KELLY_RECOMMEND_WINE] Used fallback (empty response)");
+      }
 
       await callback({
         text: text || "I don't have a specific wine pick for that in my knowledge—tell me the dish or occasion and I'll try again.",
         actions: ["KELLY_RECOMMEND_WINE"],
       });
+
+      if (message.roomId && text && typeof runtime.setCache === "function") {
+        const names = extractRecommendationNames(text);
+        if (names.length > 0) {
+          await runtime.setCache(`kelly:lastRecommend:${message.roomId}`, {
+            type: "wine",
+            query: userAsk.slice(0, 80),
+            pick: names[0],
+          });
+        }
+      }
 
       logger.info("[KELLY_RECOMMEND_WINE] Recommendation sent");
     } catch (error) {

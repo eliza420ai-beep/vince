@@ -11,6 +11,7 @@ import type {
   Provider,
   ProviderResult,
 } from "@elizaos/core";
+import { RAIN_STORM_SAFETY_LINE, STRONG_WIND_SAFETY_LINE } from "../constants/safety";
 
 const BORDEAUX = { lat: 44.84, lon: -0.58 };
 const BIARRITZ = { lat: 43.48, lon: -1.56 };
@@ -222,14 +223,10 @@ export const weatherProvider: Provider = {
       windHome >= STRONG_WIND_KMH;
 
     if (rainOrStorm) {
-      parts.push(
-        "Do not recommend beach walks, surf, outdoor swimming, or outdoor activities; suggest indoor alternatives (yoga, wine bar, Michelin lunch, museum).",
-      );
+      parts.push(RAIN_STORM_SAFETY_LINE);
     }
     if (strongWind && !rainOrStorm) {
-      parts.push(
-        "Strong wind: avoid surf or exposed beach; suggest sheltered spots or indoor alternatives.",
-      );
+      parts.push(STRONG_WIND_SAFETY_LINE);
     }
 
     if (marine) {

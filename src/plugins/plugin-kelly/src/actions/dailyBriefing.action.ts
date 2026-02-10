@@ -14,6 +14,7 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
 
 interface LifestyleDataContext {
   day: string;
@@ -226,7 +227,7 @@ AVOID:
 - Generic wellness advice
 - Making it feel like work
 - Any reference to trading or markets
-- Jargon: leverage, utilize, streamline, robust, cutting-edge, synergy, holistic, seamless, optimize, actionable, etc.
+${getVoiceAvoidPromptFragment()}
 
 Write the briefing:`;
 

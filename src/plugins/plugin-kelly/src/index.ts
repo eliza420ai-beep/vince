@@ -15,6 +15,7 @@ import { kellySurfForecastAction } from "./actions/surfForecast.action";
 import { kellyRecommendWorkoutAction } from "./actions/recommendWorkout.action";
 import { kellyWeekAheadAction } from "./actions/weekAhead.action";
 import { kellySwimmingTipsAction } from "./actions/swimmingTips.action";
+import { kellyRecommendExperienceAction } from "./actions/recommendExperience.action";
 import { lifestyleFeedbackEvaluator } from "./evaluators/lifestyleFeedback.evaluator";
 import { kellyContextProvider } from "./providers/kellyContext.provider";
 import { weatherProvider } from "./providers/weather.provider";
@@ -22,6 +23,8 @@ import { KellyLifestyleService } from "./services/lifestyle.service";
 import {
   registerKellyLifestyleDailyTask,
   registerKellyNudgeTask,
+  registerKellyWeeklyDigestTask,
+  registerKellyWinterSwimReminderTask,
 } from "./tasks/lifestyleDaily.tasks";
 
 export const kellyPlugin: Plugin = {
@@ -39,6 +42,7 @@ export const kellyPlugin: Plugin = {
     kellyRecommendWorkoutAction,
     kellyWeekAheadAction,
     kellySwimmingTipsAction,
+    kellyRecommendExperienceAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],
   providers: [kellyContextProvider, weatherProvider],
@@ -71,6 +75,16 @@ export const kellyPlugin: Plugin = {
       } catch (e) {
         logger.warn("[Kelly] Failed to register nudge task:", e);
       }
+      try {
+        await registerKellyWeeklyDigestTask(runtime);
+      } catch (e) {
+        logger.warn("[Kelly] Failed to register weekly digest task:", e);
+      }
+      try {
+        await registerKellyWinterSwimReminderTask(runtime);
+      } catch (e) {
+        logger.warn("[Kelly] Failed to register winter swim reminder task:", e);
+      }
     });
   },
 };
@@ -79,6 +93,8 @@ export { KellyLifestyleService } from "./services/lifestyle.service";
 export {
   registerKellyLifestyleDailyTask,
   registerKellyNudgeTask,
+  registerKellyWeeklyDigestTask,
+  registerKellyWinterSwimReminderTask,
 } from "./tasks/lifestyleDaily.tasks";
 export { getKellyHealth } from "./health";
 export type { KellyHealthResult } from "./health";

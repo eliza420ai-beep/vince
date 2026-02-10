@@ -144,4 +144,127 @@ describe("Knowledge-grounded and never invent", () => {
       expect(desc.length).toBeGreaterThan(0);
     });
   });
+
+  describe("when knowledge is missing or thin (lacks knowledge)", () => {
+    it("recommendPlace: early exit when place is outside default region and context is thin", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: { kellyDay: "Wednesday" },
+        data: {},
+        text: "General wellness note.", // short (<200) and must NOT contain placeQuery so early exit triggers
+      });
+      const message = createMockMessage("best restaurant in Tokyo");
+      const callback = createMockCallback();
+      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = (callback.calls[0]?.text ?? "").toLowerCase();
+      expect(text).toMatch(/don't have|don’t have|not enough|curated/);
+      expect(text).toMatch(/michelin|james edition/);
+      expect(text).toContain("tokyo");
+      const names = extractRecommendationNames(callback.calls[0]?.text ?? "");
+      const recommendedVenues = names.filter((n) =>
+        placesAllowlist.some((p) => p.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(p.toLowerCase())),
+      );
+      expect(recommendedVenues.length).toBe(0);
+    });
+
+    it("recommendPlace: when useModel returns empty, callback uses fallback (no invented name)", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: { kellyDay: "Wednesday", kellyRestaurantsOpenToday: "Wed: Maison Devaux" },
+        data: {},
+        text: "Bordeaux: some general text about the region. No specific restaurant names in this snippet.",
+      });
+      (runtime as any).useModel = async () => "";
+      const message = createMockMessage("recommend a restaurant in Bordeaux");
+      const callback = createMockCallback();
+      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = (callback.calls[0]?.text ?? "").toLowerCase();
+      expect(text).toMatch(/don't have|don’t have|not enough|michelin|james edition/);
+    });
+
+    it("recommendWine: when useModel returns empty, callback uses fallback", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: {},
+        data: {},
+        text: "Wine-tasting: Bordeaux.",
+      });
+      (runtime as any).useModel = async () => "";
+      const message = createMockMessage("wine for steak");
+      const callback = createMockCallback();
+      await kellyRecommendWineAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = (callback.calls[0]?.text ?? "").toLowerCase();
+      expect(text).toMatch(/don't have|don’t have|specific wine|knowledge|dish or occasion/);
+    });
+
+    it("itinerary: when useModel returns empty, callback uses fallback", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: {},
+        data: {},
+        text: "the-good-life: Bordeaux region.",
+      });
+      (runtime as any).useModel = async () => "";
+      const message = createMockMessage("2 days in Lyon");
+      const callback = createMockCallback();
+      await kellyItineraryAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = (callback.calls[0]?.text ?? "").toLowerCase();
+      expect(text).toMatch(/couldn't|could not|don't have|itinerary|knowledge|michelin|james edition/);
+    });
+
+    it("recommendPlace: when useModel returns 'no curated pick' style reply, no invented place name", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: { kellyDay: "Wednesday" },
+        data: {},
+        text: "Context for Marseille: no specific restaurant names in the-good-life for this city.",
+      });
+      (runtime as any).useModel = async () =>
+        "I don't have a curated pick for Marseille in my knowledge; check MICHELIN Guide or James Edition.";
+      const message = createMockMessage("best restaurant in Marseille");
+      const callback = createMockCallback();
+      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = callback.calls[0]?.text ?? "";
+      const names = extractRecommendationNames(text);
+      const hasSafeFallback =
+        /don't have|don’t have|curated pick|michelin|james edition/i.test(text);
+      expect(hasSafeFallback).toBe(true);
+      expect(names.length).toBe(0);
+    });
+
+    it("recommendPlace: response guard replaces callback when useModel returns off-allowlist name", async () => {
+      const runtime = createMockRuntimeWithService();
+      (runtime as any).composeState = async () => ({
+        values: { kellyDay: "Wednesday" },
+        data: {},
+        text: "Bordeaux: some general text.",
+      });
+      (runtime as any).useModel = async () =>
+        "**Fake Bistro** — great food. Alternative: **Made Up Hotel**.";
+      const message = createMockMessage("best restaurant in Bordeaux");
+      const callback = createMockCallback();
+      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
+
+      expect(callback.calls.length).toBe(1);
+      const text = (callback.calls[0]?.text ?? "").toLowerCase();
+      expect(text).toMatch(/don't have|not enough|curated/);
+      expect(text).toMatch(/michelin|james edition/);
+      expect(text).toContain("bordeaux");
+      const names = extractRecommendationNames(callback.calls[0]?.text ?? "");
+      const recommendedVenues = names.filter((n) =>
+        placesAllowlist.some((p) => p.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(p.toLowerCase())),
+      );
+      expect(recommendedVenues.length).toBe(0);
+    });
+  });
 });

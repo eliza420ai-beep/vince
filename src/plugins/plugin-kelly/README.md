@@ -14,6 +14,7 @@ Lifestyle-only concierge for the Kelly agent: daily briefing, health, dining, ho
 | **KELLY_RECOMMEND_WORKOUT** | "recommend a workout", "today's workout", "workout of the day" | One concrete workout (pool, gym, surfer yoga, swim) from pool/gym season and swimming context. |
 | **KELLY_WEEK_AHEAD** | "week ahead", "this week's picks", "plan for the week" | 3–5 suggestions for the week (dining, hotels, wellness) from the-good-life and curated schedule. |
 | **KELLY_SWIMMING_TIPS** | "tips for my daily 1000m", "swimming tips", "winter swimming" | Tips for lap swim, winter indoor pools, swimmer yoga from swimming-daily-winter-pools and yoga docs. |
+| **KELLY_RECOMMEND_EXPERIENCE** | "wine tasting experience", "spa day", "cooking class", "guided tour", "something special to do" | One best pick + one alternative for one-off experiences from the-good-life (wine-tasting, luxury spas, experience-prioritization-framework). |
 
 ## Providers
 
@@ -39,6 +40,10 @@ Add or edit markdown under `knowledge/the-good-life/` (and `lifestyle/`, `creati
 - **KELLY_NUDGE_ENABLED** — Set to `true` or `1` to enable the midweek nudge task. Nudge is sent only to channels whose name contains **lifestyle** (not just "kelly"). Default: disabled.
 - **KELLY_NUDGE_DAY** — Day of week for nudge (default `wednesday`).
 - **KELLY_NUDGE_HOUR** — Hour (UTC) for nudge (default `9`).
+- **KELLY_WEEKLY_DIGEST_ENABLED** — Set to `true` to enable the optional weekly digest task (Sunday, week-ahead summary). Default: `false`.
+- **KELLY_WEEKLY_DIGEST_HOUR** — Hour (UTC) for weekly digest (default `8`).
+- **KELLY_WINTER_SWIM_REMINDER_ENABLED** — Set to `true` to enable a one-off winter swim reminder (Jan/Feb) with Palais/Caudalie reopen dates. Default: `false`.
+- **KELLY_WINTER_SWIM_REMINDER_WEEK** — Week of year to send (e.g. `5` = first week of February). Default: `5`.
 
 ## Dependency: curated-open-schedule structure
 
@@ -86,6 +91,19 @@ bun test src/plugins/plugin-kelly --timeout 30000
 
 The suite locks in: **voice and quality** on every output (no jargon/filler), **knowledge-grounded** recommendations (allowlist/curated only), **safety and defaults** (lunch not dinner, rain/storm no beach, Mon/Tue closed, local weather no town name, winter pool dates), **full action/provider/evaluator** coverage, **conversation flows**, and **messageExamples regression** so character examples stay on-brand. Every change is validated; regressions are caught before deploy.
 
+### What the 10x suite improved in Kelly (not just tests)
+
+- **Voice in prompts:** `getVoiceAvoidPromptFragment()` in `constants/voice.ts` builds the exact AVOID list (BANNED_JARGON + FILLER_PHRASES) for action prompts. The **daily briefing**, **recommendPlace**, **recommendWine**, and **itinerary** prompts all inject this so the model sees the same list the tests enforce; no more duplicated jargon list in prompts.
+- **Safety constants:** `constants/safety.ts` defines `RAIN_STORM_SAFETY_LINE`, `STRONG_WIND_SAFETY_LINE`, `MON_TUE_CLOSED_LINE`, `PAST_LUNCH_INSTRUCTION`, and `NEVER_INVENT_LINE`. The weather provider and recommendPlace action use these; recommendPlace also injects `PAST_LUNCH_INSTRUCTION` when suggesting “open today” restaurants so the model avoids lunch/dinner past 14:30. One change in `safety.ts` updates prompts and provider text together.
+- **Never-invent line:** `NEVER_INVENT_LINE` is used in recommendPlace, recommendWine, and itinerary so “only from context; if nothing, say so and point to MICHELIN/James Edition” is consistent and single-sourced.
+- **Single source of truth:** Adding a new banned word or filler phrase only requires updating `voice.ts`; the prompt fragment and all voice-quality tests stay in sync. Adding or tweaking a safety rule only requires updating `safety.ts`.
+- **Response guard (recommendPlace):** After the model returns, the action checks that any recommended place names are on the allowlist (`knowledge/the-good-life/allowlist-places.txt`). If the model returns an off-allowlist name, the callback text is replaced with the safe fallback so Kelly never surfaces an invented venue. See `utils/recommendationGuards.ts` and the test "response guard replaces callback when useModel returns off-allowlist name".
+- **Personalization:** When recommendPlace or recommendWine sends a recommendation, the action stores a short cache entry keyed by room (`kelly:lastRecommend:${roomId}`) with type, query, and pick. The kellyContext provider reads this and injects a line like "Last time you asked for X, I suggested Y" so Kelly can reference the last recommendation in follow-up replies.
+
+### Improvement roadmap
+
+Phases are tracked in [progress.txt](progress.txt) (Progress vs Recommendations). Implemented: Phase 1 (voice fragment + response guard), Phase 2 (last-recommendation cache + messageExamples), Phase 3 (KELLY_RECOMMEND_EXPERIENCE), Phase 4 (daily retry, optional weekly digest and winter swim reminder, observability logging), Phase 5 (plugin-todo and KELLY_DISPATCH docs below), Phase 6 (progress.txt, README roadmap, service comments).
+
 ### CI
 
 If the project uses GitHub Actions (or similar), ensure a job runs:
@@ -96,6 +114,7 @@ bun test src/plugins/plugin-kelly
 
 so the suite runs on every PR. No new workflow is required if a generic “test” job already exists; include `src/plugins/plugin-kelly` in the test path.
 
-## Future: KELLY_DISPATCH (optional router)
+## Optional: plugin-todo and KELLY_DISPATCH
 
-If many more actions are added, consider a single **KELLY_DISPATCH** (or router) action that picks the right sub-action from the message, to reduce prompt complexity. Document here when implemented.
+- **plugin-todo:** Kelly’s character does not include plugin-todo by default. If you want in-app reminders (e.g. “remind me to book Palais for Feb 12”), add plugin-todo to Kelly’s plugins and configure it; otherwise discovery + actions are enough for “what can you do?” and recommendations.
+- **KELLY_DISPATCH (when to add):** If the action count grows further (e.g. after adding several more specialized actions), consider a single **KELLY_DISPATCH** action that (a) validates on generic lifestyle/daily/recommend triggers and (b) uses a small LLM or rule-based pick to select one of the existing actions, then invokes it. This keeps the character’s “YOUR ACTIONS” list from getting too long. Defer until you have 12+ actions or notice the model struggling to choose; document here when implemented.

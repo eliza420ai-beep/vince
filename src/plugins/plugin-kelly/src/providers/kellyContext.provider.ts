@@ -258,6 +258,18 @@ export const kellyContextProvider: Provider = {
           values.kellyLastLoved = short;
           textParts.push(`Last time you loved: ${short}`);
         }
+
+        const lastRecommend = await runtime.getCache<{ type: string; query: string; pick: string }>(
+          `kelly:lastRecommend:${message.roomId}`,
+        );
+        if (lastRecommend?.pick) {
+          const line =
+            lastRecommend.type === "wine"
+              ? `Last time you asked for wine (${lastRecommend.query.slice(0, 50)}…), I suggested ${lastRecommend.pick}.`
+              : `Last time you asked for ${lastRecommend.query}, I suggested ${lastRecommend.pick}.`;
+          values.kellyLastRecommend = lastRecommend;
+          textParts.push(line);
+        }
       } catch {
         // ignore
       }

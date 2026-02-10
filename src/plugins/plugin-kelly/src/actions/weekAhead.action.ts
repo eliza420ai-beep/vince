@@ -11,6 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
 
 const WEEK_AHEAD_TRIGGERS = [
@@ -110,7 +111,8 @@ Rules:
 - Never suggest today's lunch if it's already past lunch hours. "Week ahead" = upcoming days, not things that are over.
 - Weather: Use the current weather line above. Do NOT mention rain, "watch the rain", or assume bad weather unless the weather explicitly says rain/storm. If it says clear, partly cloudy, overcast, etc.—describe the actual conditions or skip weather in your suggestions.
 - One short paragraph per pick or a tight list. Benefit-led, no jargon.
-- No trading or markets.`;
+- No trading or markets.
+Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();

@@ -11,6 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
 
 const WORKOUT_TRIGGERS = [
@@ -83,7 +84,8 @@ Rules:
 - When suggesting gym or general fitness, favour functional fitness and mobility/stretching over heavy lifting or bulk.
 - Reference yoga (yoga-vinyasa-surfers-swimmers, daily-yoga-surfers-vinyasa) only if it fits (e.g. surfer yoga pre-surf, swimmer yoga pre-pool).
 - No trading, no markets. One short paragraph, benefit-led, no jargon.
-- No bullet points. One concrete pick.`;
+- No bullet points. One concrete pick.
+Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();

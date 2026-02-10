@@ -11,6 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
 
 const SWIMMING_TIPS_TRIGGERS = [
@@ -81,7 +82,8 @@ Instructions:
 3. In winter, reference indoor palace pools (swimming-daily-winter-pools) and their reopen dates so they can plan.
 4. Add one line on swimmer yoga (yoga-vinyasa-surfers-swimmers) for shoulders and hips.
 5. End with: "See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail."
-6. One short paragraph + that line. Benefit-led, no jargon. No bullet list unless very short.`;
+6. One short paragraph + that line. Benefit-led, no jargon. No bullet list unless very short.
+Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();

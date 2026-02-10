@@ -12,6 +12,9 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
+import { MON_TUE_CLOSED_LINE, PAST_LUNCH_INSTRUCTION, NEVER_INVENT_LINE } from "../constants/safety";
+import { getVoiceAvoidPromptFragment } from "../constants/voice";
+import { loadPlacesAllowlist, allNamesOnAllowlist, extractRecommendationNames } from "../utils/recommendationGuards";
 
 type PlaceType = "hotel" | "restaurant";
 
@@ -176,13 +179,13 @@ export const kellyRecommendPlaceAction: Action = {
               (requestedDay
                 ? `**User asked for ${requestedDay}.** `
                 : `**Today is ${day}.** `) +
-              `No curated restaurants open ${dayLabel}; say so and suggest checking MICHELIN Guide or cooking at home. Do not suggest Le Relais de la Poste or Côté Quillier for Monday or Tuesday—they are closed (Wed–Sun only).\n\n`;
+              `No curated restaurants open ${dayLabel}; say so and suggest checking MICHELIN Guide or cooking at home. ${MON_TUE_CLOSED_LINE}\n\n`;
           } else {
             const openList =
               (state.values?.kellyRestaurantsOpenToday as string) ??
               curated.rawSection;
             const favoritesOrClosedLine = isMonOrTue
-              ? "\n\nLe Relais de la Poste and Côté Quillier are closed Monday and Tuesday (Wed–Sun only). Do not suggest them for Mon or Tue.\n\n"
+              ? `\n\n${MON_TUE_CLOSED_LINE}\n\n`
               : "\n\nOur favorites in the Landes are in landes-locals (Maison Devaux, Auberge du Lavoir, Le Relais de la Poste, Côté Quillier, La Table du Marensin, etc.); prefer them when they're open.\n\n";
             openTodayBlock =
               (requestedDay
@@ -207,7 +210,7 @@ export const kellyRecommendPlaceAction: Action = {
 
 ${openTodayBlock}${regionHint ? regionHint + "\n\n" : ""}${defaultRegionHint}
 
-Use ONLY the following context (from the-good-life knowledge and preferences). Do not invent any names.
+Use ONLY the following context (from the-good-life knowledge and preferences). ${NEVER_INVENT_LINE}
 
 <context>
 ${knowledgeSnippet}
@@ -217,12 +220,16 @@ Output exactly:
 1. **Best pick:** [Name] — one short sentence why (from context). Add one benefit-led sentence why this fits them (e.g. "You get a quiet table and the classic three-star experience").
 2. **Alternative:** [Name] — one short sentence why (from context).
 
-${openTodayBlock ? `Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend Le Relais de la Poste or Côté Quillier for Monday or Tuesday**—they are closed (Wed–Sun only). If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home.` : `The user asked for a **specific place (${placeQuery})**, not "open today" or "the area". Recommend one best pick and one alternative **from the context above** for ${placeQuery}. Do NOT restrict to a "restaurants open today" list—we do not have that list for ${placeQuery}. Use the michelin-restaurants and the-good-life content in the context. **Never recommend Le Relais de la Poste or Côté Quillier for Monday or Tuesday** (Wed–Sun only).`} If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition." For Biarritz, Bordeaux, Basque coast, Landes, Saint-Émilion, Arcachon we have dedicated the-good-life content—prefer giving one best pick and one alternative from the context; only say you don't have a curated pick if there are truly no ${typeLabel} names in the context above.
+${openTodayBlock ? `Only recommend restaurants that appear in the "Restaurants open [Day]" list above. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE} If the list for that day is empty, say so and suggest MICHELIN Guide or cooking at home.` : `The user asked for a **specific place (${placeQuery})**, not "open today" or "the area". Recommend one best pick and one alternative **from the context above** for ${placeQuery}. Do NOT restrict to a "restaurants open today" list—we do not have that list for ${placeQuery}. Use the michelin-restaurants and the-good-life content in the context. **Never recommend for Monday or Tuesday:** ${MON_TUE_CLOSED_LINE}`} If the context has no specific ${typeLabel}s for this place, say: "I don't have a curated pick for ${placeQuery} in my knowledge; check MICHELIN Guide or James Edition." For Biarritz, Bordeaux, Basque coast, Landes, Saint-Émilion, Arcachon we have dedicated the-good-life content—prefer giving one best pick and one alternative from the context; only say you don't have a curated pick if there are truly no ${typeLabel} names in the context above.
 
-Output only the recommendation text, no XML or extra commentary. No jargon (no leverage, utilize, streamline, robust, etc.).`;
+Output only the recommendation text, no XML or extra commentary.
+Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock ? `\n\n${PAST_LUNCH_INSTRUCTION}` : ""}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       let text = String(response).trim();
+      if (!text) {
+        logger.debug("[KELLY_RECOMMEND_PLACE] Used fallback (empty response)");
+      }
       const reqDay = (requestedDay ?? state.values?.kellyRequestedDay) as string | undefined;
       if (reqDay) {
         const reqDayLower = reqDay.toString().toLowerCase();
@@ -236,10 +243,33 @@ Output only the recommendation text, no XML or extra commentary. No jargon (no l
         }
       }
 
+      const allowlist = loadPlacesAllowlist();
+      if (text && allowlist.length > 0 && !allNamesOnAllowlist(text, allowlist)) {
+        logger.debug("[KELLY_RECOMMEND_PLACE] Response guard: replacing off-allowlist names with fallback");
+        text = `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`;
+      }
+
       await callback({
         text: text || `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`,
         actions: ["KELLY_RECOMMEND_PLACE"],
       });
+
+      if (
+        message.roomId &&
+        text &&
+        allowlist.length > 0 &&
+        allNamesOnAllowlist(text, allowlist) &&
+        typeof runtime.setCache === "function"
+      ) {
+        const names = extractRecommendationNames(text);
+        if (names.length > 0) {
+          await runtime.setCache(`kelly:lastRecommend:${message.roomId}`, {
+            type: "place",
+            query: placeQuery,
+            pick: names[0],
+          });
+        }
+      }
 
       logger.info("[KELLY_RECOMMEND_PLACE] Recommendation sent");
     } catch (error) {

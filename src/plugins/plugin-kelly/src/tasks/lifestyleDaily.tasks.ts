@@ -432,7 +432,16 @@ export async function registerKellyLifestyleDailyTask(
 
         const briefing = lifestyleService.getDailyBriefing();
         const season = lifestyleService.getCurrentSeason();
-        const curated = lifestyleService.getCuratedOpenContext?.() ?? null;
+        const contextRetries = [2000, 4000];
+        let curated: ReturnType<KellyLifestyleService["getCuratedOpenContext"]> = null;
+        for (let c = 0; c <= contextRetries.length; c++) {
+          curated = lifestyleService.getCuratedOpenContext?.() ?? null;
+          if (curated !== null || c === contextRetries.length) break;
+          logger.warn(
+            `[KellyLifestyleDaily] getCuratedOpenContext returned null, retry ${c + 1}/${contextRetries.length} in ${contextRetries[c]}ms`,
+          );
+          await new Promise((r) => setTimeout(r, contextRetries[c]));
+        }
 
         const dayLower = briefing.day.toLowerCase();
         const isFriday = dayLower === "friday";
@@ -511,7 +520,9 @@ export async function registerKellyLifestyleDailyTask(
 
         const sent = await pushToKellyChannels(rt, message);
         if (sent > 0) {
-          logger.info(`[KellyLifestyleDaily] Pushed to ${sent} channel(s)`);
+          logger.info(
+            `[KellyLifestyleDaily] Pushed to ${sent} channel(s) (roomCount=${sent})`,
+          );
         } else {
           logger.debug(
             "[KellyLifestyleDaily] No channels matched (room name contains 'kelly' or 'lifestyle'). Create e.g. #kelly or #lifestyle.",
@@ -620,5 +631,205 @@ export async function registerKellyNudgeTask(
 
   logger.info(
     `[KellyNudge] Task registered (${nudgeDay} at ${nudgeHour}:00 UTC, KELLY_NUDGE_ENABLED=true)`,
+  );
+}
+
+const WEEKLY_DIGEST_INTERVAL_MS = 60 * 60 * 1000;
+const DEFAULT_WEEKLY_DIGEST_HOUR_UTC = 8;
+
+/**
+ * Register optional weekly digest task: Sunday at configured hour, push a short
+ * week-ahead summary to kelly/lifestyle channels. Set KELLY_WEEKLY_DIGEST_ENABLED=true.
+ */
+export async function registerKellyWeeklyDigestTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const enabled =
+    process.env.KELLY_WEEKLY_DIGEST_ENABLED === "true" ||
+    process.env.KELLY_WEEKLY_DIGEST_ENABLED === "1";
+  if (!enabled) {
+    logger.debug("[KellyWeeklyDigest] Disabled (KELLY_WEEKLY_DIGEST_ENABLED not true)");
+    return;
+  }
+
+  const digestHour =
+    parseInt(
+      process.env.KELLY_WEEKLY_DIGEST_HOUR ?? String(DEFAULT_WEEKLY_DIGEST_HOUR_UTC),
+      10,
+    ) || DEFAULT_WEEKLY_DIGEST_HOUR_UTC;
+  const taskWorldId = runtime.agentId as UUID;
+
+  runtime.registerTaskWorker({
+    name: "KELLY_WEEKLY_DIGEST",
+    validate: async () => true,
+    execute: async (rt) => {
+      if (
+        process.env.KELLY_WEEKLY_DIGEST_ENABLED !== "true" &&
+        process.env.KELLY_WEEKLY_DIGEST_ENABLED !== "1"
+      )
+        return;
+
+      const now = new Date();
+      if (now.getUTCDay() !== 0 || now.getUTCHours() !== digestHour) {
+        logger.debug(
+          `[KellyWeeklyDigest] Skip: day ${now.getUTCDay()} hour ${now.getUTCHours()} UTC (target: Sunday ${digestHour}:00)`,
+        );
+        return;
+      }
+
+      const service = rt.getService(
+        "KELLY_LIFESTYLE_SERVICE",
+      ) as KellyLifestyleService | null;
+      if (!service) {
+        logger.warn("[KellyWeeklyDigest] KellyLifestyleService not available");
+        return;
+      }
+
+      const curated = service.getCuratedOpenContext?.() ?? null;
+      const restLine =
+        (curated?.restaurants?.length ?? 0) > 0
+          ? (curated!.restaurants as string[]).slice(0, 6).join(", ")
+          : "See curated schedule by day.";
+      const hotelLine =
+        (curated?.hotels?.length ?? 0) > 0
+          ? (curated!.hotels as string[]).slice(0, 4).join(", ")
+          : "See curated schedule.";
+      const season = service.getCurrentSeason?.() ?? "pool";
+      const palaceLine =
+        season === "gym" ? service.getPalacePoolStatusLine?.() ?? "" : "";
+
+      const prompt = `You are Kelly, a concierge. In one short paragraph (3–5 sentences), suggest the week ahead: dining (lunch only), one hotel idea, and wellness. We are in Southwest France (Landes, Bordeaux–Biarritz). Dining options this week: ${restLine}. Hotels: ${hotelLine}.${palaceLine ? ` Palace pools: ${palaceLine}.` : ""} Be specific; no jargon. Output only the paragraph.`;
+
+      try {
+        const summary = await rt.useModel(ModelType.TEXT_SMALL, { prompt });
+        const text = String(summary).trim();
+        const message = [
+          "**Week ahead**",
+          "",
+          text,
+          "",
+          "---",
+          KELLY_FOOTER,
+        ].join("\n");
+        const sent = await pushToKellyChannels(rt, message);
+        if (sent > 0) {
+          logger.info(`[KellyWeeklyDigest] Pushed to ${sent} channel(s)`);
+        }
+      } catch (err) {
+        logger.error(`[KellyWeeklyDigest] Failed: ${err}`);
+      }
+    },
+  });
+
+  await runtime.createTask({
+    name: "KELLY_WEEKLY_DIGEST",
+    description: "Optional weekly digest (Sunday) to kelly/lifestyle channels",
+    roomId: taskWorldId,
+    worldId: taskWorldId,
+    tags: ["kelly", "weekly", "repeat"],
+    metadata: {
+      updatedAt: Date.now(),
+      updateInterval: WEEKLY_DIGEST_INTERVAL_MS,
+    },
+  });
+
+  logger.info(
+    `[KellyWeeklyDigest] Task registered (Sunday ${digestHour}:00 UTC, KELLY_WEEKLY_DIGEST_ENABLED=true)`,
+  );
+}
+
+/** Get week of year (1–53). */
+function getWeekOfYear(d: Date): number {
+  const start = new Date(d.getFullYear(), 0, 1);
+  const diff = d.getTime() - start.getTime();
+  return Math.ceil((diff + start.getDay() * 86400000) / (7 * 86400000));
+}
+
+const DEFAULT_WINTER_SWIM_WEEK = 5; // First week of February
+
+/**
+ * Register optional winter swim reminder: once in Jan/Feb (configurable week),
+ * push Palais/Caudalie reopen dates to kelly/lifestyle channels.
+ * Set KELLY_WINTER_SWIM_REMINDER_ENABLED=true.
+ */
+export async function registerKellyWinterSwimReminderTask(
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const enabled =
+    process.env.KELLY_WINTER_SWIM_REMINDER_ENABLED === "true" ||
+    process.env.KELLY_WINTER_SWIM_REMINDER_ENABLED === "1";
+  if (!enabled) {
+    logger.debug(
+      "[KellyWinterSwim] Disabled (KELLY_WINTER_SWIM_REMINDER_ENABLED not true)",
+    );
+    return;
+  }
+
+  const reminderWeek =
+    parseInt(
+      process.env.KELLY_WINTER_SWIM_REMINDER_WEEK ?? String(DEFAULT_WINTER_SWIM_WEEK),
+      10,
+    ) || DEFAULT_WINTER_SWIM_WEEK;
+  const taskWorldId = runtime.agentId as UUID;
+
+  runtime.registerTaskWorker({
+    name: "KELLY_WINTER_SWIM_REMINDER",
+    validate: async () => true,
+    execute: async (rt) => {
+      if (
+        process.env.KELLY_WINTER_SWIM_REMINDER_ENABLED !== "true" &&
+        process.env.KELLY_WINTER_SWIM_REMINDER_ENABLED !== "1"
+      )
+        return;
+
+      const now = new Date();
+      const month = now.getUTCMonth();
+      const week = getWeekOfYear(now);
+      if ((month !== 0 && month !== 1) || week !== reminderWeek) {
+        logger.debug(
+          `[KellyWinterSwim] Skip: month ${month + 1} week ${week} (target week ${reminderWeek})`,
+        );
+        return;
+      }
+
+      const service = rt.getService(
+        "KELLY_LIFESTYLE_SERVICE",
+      ) as KellyLifestyleService | null;
+      if (!service) {
+        logger.warn("[KellyWinterSwim] KellyLifestyleService not available");
+        return;
+      }
+
+      const statusLine = service.getPalacePoolStatusLine?.() ?? "Palais reopens Feb 12, Caudalie Feb 5, Eugenie Mar 6.";
+      const message = [
+        "**Winter swim reminder**",
+        "",
+        statusLine,
+        "",
+        "---",
+        KELLY_FOOTER,
+      ].join("\n");
+
+      const sent = await pushToKellyChannels(rt, message);
+      if (sent > 0) {
+        logger.info(`[KellyWinterSwim] Pushed reminder to ${sent} channel(s)`);
+      }
+    },
+  });
+
+  await runtime.createTask({
+    name: "KELLY_WINTER_SWIM_REMINDER",
+    description: "Optional winter swim reminder (Jan/Feb) with palace pool reopen dates",
+    roomId: taskWorldId,
+    worldId: taskWorldId,
+    tags: ["kelly", "winter-swim", "repeat"],
+    metadata: {
+      updatedAt: Date.now(),
+      updateInterval: 7 * 24 * 60 * 60 * 1000,
+    },
+  });
+
+  logger.info(
+    `[KellyWinterSwim] Task registered (week ${reminderWeek}, KELLY_WINTER_SWIM_REMINDER_ENABLED=true)`,
   );
 }

@@ -56,3 +56,13 @@ export function findFillerPhrases(text: string): string[] {
   const lower = text.toLowerCase();
   return FILLER_PHRASES.filter((phrase) => lower.includes(phrase));
 }
+
+/**
+ * Prompt fragment for "AVOID" / style rules so the model sees the exact list tests enforce.
+ * Use in action prompts (dailyBriefing, recommendPlace, etc.) to keep voice consistent.
+ */
+export function getVoiceAvoidPromptFragment(): string {
+  const jargonList = BANNED_JARGON.slice(0, 12).join(", ") + ", etc.";
+  const fillerList = FILLER_PHRASES.join(", ");
+  return `- Jargon: ${jargonList}\n- Filler phrases: ${fillerList}`;
+}

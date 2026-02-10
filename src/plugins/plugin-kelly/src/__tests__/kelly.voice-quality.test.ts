@@ -13,6 +13,7 @@ import { kellyItineraryAction } from "../actions/itinerary.action";
 import { kellyRecommendWorkoutAction } from "../actions/recommendWorkout.action";
 import { kellyWeekAheadAction } from "../actions/weekAhead.action";
 import { kellySwimmingTipsAction } from "../actions/swimmingTips.action";
+import { kellyRecommendExperienceAction } from "../actions/recommendExperience.action";
 import { kellyContextProvider } from "../providers/kellyContext.provider";
 import {
   weatherProvider,
@@ -186,6 +187,25 @@ describe("Voice and quality", () => {
       const message = createMockMessage("tips for my daily 1000m");
       const callback = createMockCallback();
       await kellySwimmingTipsAction.handler(runtime, message, createMockState(), {}, callback);
+      expect(callback.calls.length).toBeGreaterThan(0);
+      const text = callback.calls[0]?.text ?? "";
+      assertNoBannedJargon(text);
+      assertNoFillerPhrases(text);
+    });
+
+    it("KELLY_RECOMMEND_EXPERIENCE callback text passes voice checks", async () => {
+      const runtime = createMockRuntimeWithService();
+      const r = runtime as any;
+      r.composeState = async () => ({
+        values: {},
+        data: {},
+        text: "Wine-tasting: Château Margaux. Spa: Caudalie.",
+      });
+      r.useModel = async () =>
+        "**Best pick:** Château Margaux tasting — structure, red fruit. **Alternative:** Caudalie spa day.";
+      const message = createMockMessage("wine tasting experience");
+      const callback = createMockCallback();
+      await kellyRecommendExperienceAction.handler(runtime, message, createMockState(), {}, callback);
       expect(callback.calls.length).toBeGreaterThan(0);
       const text = callback.calls[0]?.text ?? "";
       assertNoBannedJargon(text);
