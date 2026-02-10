@@ -6,7 +6,7 @@ X/Twitter read-only research for Cursor and Claude: agentic search, thread follo
 
 1. **X API Bearer token**  
    Get one from the [X Developer Portal](https://developer.x.com/).  
-   Requires X API **Basic tier** (~$200/mo) or higher for search.
+   Requires X API access with prepaid credits ([Console](https://console.x.com)); pay-per-use pricing (Feb 2026+), no subscription tiers.
 
 2. **Environment**  
    Set the token so the CLI and Cursor can see it:
@@ -76,6 +76,6 @@ See `SKILL.md` for the full research loop and refinement tips.
 
 ## Limits
 
-- Search covers the **last 7 days** (X API).
+- Search covers the **last 7 days** (this skill uses `/2/tweets/search/recent`). Full-archive (`/2/tweets/search/all`) is available on the same pay-per-use plan but not yet implemented here.
 - **Read-only** — no posting.
-- **X API Basic** or higher required; ~\$0.005/tweet read. Cache (15 min TTL) reduces repeat cost.
+- X API pay-per-use (prepaid credits); cost per tweet read applies. Cache (15 min TTL) reduces repeat cost.

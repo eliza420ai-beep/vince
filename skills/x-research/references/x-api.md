@@ -65,7 +65,7 @@ Paginate with `next_token` from response `meta.next_token`.
 
 **Not available as search operators:** `min_likes`, `min_retweets`, `min_replies`. Filter engagement post-hoc from `public_metrics`.
 
-**Limits:** Max query length 512 chars for recent search, 1,024 for full-archive. Max ~10 operators per query.
+**Limits:** Max query length 512 chars for recent search, 1,024 for full-archive (4,096 for Enterprise). Max ~10 operators per query.
 
 ### Response Structure
 
