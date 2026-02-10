@@ -41,7 +41,6 @@ const CHAIN_ID_MAP: Record<SupportedNetwork, number> = {
   'ethereum': 1,
   'ethereum-sepolia': 11155111,
   'arbitrum': 42161,
-  'scroll': 534352,
 };
 
 export class MorphoService extends Service {

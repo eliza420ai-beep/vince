@@ -41,7 +41,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 - **Current behavior**: Alerts and trades are pushed to every room the bot is connected to. The daily report is restricted to rooms with "daily" in the name.
 
-- **Kelly**: Daily concierge briefing (08:00 UTC) is sent to channels whose name contains `kelly` or `lifestyle`. Set `KELLY_LIFESTYLE_DAILY_ENABLED` and `KELLY_LIFESTYLE_HOUR` (see Configuration).
+- **Kelly**: Daily concierge briefing (08:00 UTC) is sent to channels whose name contains `kelly` or `lifestyle`. Set `KELLY_LIFESTYLE_DAILY_ENABLED` and `KELLY_LIFESTYLE_HOUR` (see Configuration). **Standup (2×/day):** Kelly runs the agent standup and pushes a summary to channels whose name contains `daily-standup` or `standup`. Create **#daily-standup**, invite Kelly’s bot, and keep all agents in that channel (one team, one dream). Set `STANDUP_ENABLED=true` and `STANDUP_COORDINATOR_AGENT=Kelly` (see [MULTI_AGENT.md](MULTI_AGENT.md)).
 
 - **Sentinel**: Weekly suggestions (and optional daily digest) are sent to channels whose name contains `sentinel` or `ops`. Set `SENTINEL_WEEKLY_ENABLED` and optionally `SENTINEL_DAILY_ENABLED` (see [DISCORD.md](DISCORD.md)).
 
@@ -90,6 +90,8 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 | `SENTINEL_WEEKLY_ENABLED` | `true` | Set to `false` to disable Sentinel weekly suggestions. Channels whose name contains "sentinel" or "ops" receive the push. |
 | `SENTINEL_DAILY_ENABLED` | `false` | Set to `true` to enable Sentinel daily digest (ONNX, clawdbot, ART, task brief) to sentinel/ops channels. |
 | `SENTINEL_DAILY_HOUR_UTC` | `8` | Hour (UTC) for daily digest reference. |
+| `STANDUP_ENABLED` | — | Set to `true` to enable 2×/day agent standups. Coordinator (default Kelly) pushes summary to channels with "daily-standup" or "standup" in the name. See [MULTI_AGENT.md](MULTI_AGENT.md#standups-autonomous-agent-meetings). |
+| `STANDUP_COORDINATOR_AGENT` | `Kelly` | Agent that runs the standup task and pushes to #daily-standup. |
 
 ---
 
@@ -100,6 +102,7 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 #vince-news            ← VINCE news at 16:00 UTC (MandoMinutes updates ~4:20 PM Paris)
 #vince-lifestyle       ← VINCE lifestyle briefing at 08:00 UTC (set VINCE_LIFESTYLE_DAILY_ENABLED=false if using Kelly for this)
 #kelly or #lifestyle    ← Kelly concierge briefing at 08:00 UTC (channel name must contain "kelly" or "lifestyle")
+#daily-standup         ← Kelly standup summary 2×/day (one team, one dream); channel name must contain "standup" or "daily-standup"
 #sentinel_ops or #ops   ← Sentinel weekly suggestions (and optional daily); channel name must contain "sentinel" or "ops"
 #vince-alerts          ← Alerts and paper trades
 #vince-general         ← Optional: general chat with VINCE
@@ -107,4 +110,4 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 
 ## C-suite layout (Option C — six bots, one category per agent)
 
-For the full LiveTheLifeTV layout (one category per agent, sub-channels by focus), see [DISCORD.md](DISCORD.md#livethelifetv-c-suite-layout). Each agent has its own Discord app; channel names for pushes: **VINCE** → `daily`, `news`, `lifestyle`, `alerts`; **Kelly** → `kelly` or `lifestyle`; **Sentinel** → `sentinel` or `ops`.
+For the full LiveTheLifeTV layout (one category per agent, sub-channels by focus), see [DISCORD.md](DISCORD.md#livethelifetv-c-suite-layout). Each agent has its own Discord app; channel names for pushes: **VINCE** → `daily`, `news`, `lifestyle`, `alerts`; **Kelly** → `kelly`, `lifestyle`, `daily-standup` (standup 2×/day); **Sentinel** → `sentinel` or `ops`.

@@ -19,7 +19,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Project overview** | [README.md](README.md) |
 | **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 
-Users can focus on chatting with **Kelly**; she orchestrates Vince (data), Solus (insights), Eliza (knowledge), and Otaku (DeFi execution) via ASK_AGENT so the user gets **one team, one dream** in a single conversation.
+Users can focus on chatting with **Kelly**; she orchestrates Vince (data), Solus (insights), Eliza (knowledge), and Otaku (DeFi execution) via ASK_AGENT so the user gets **one team, one dream** in a single conversation. **Otaku** is the only agent with a wallet that holds funds (DeFi experiments, NFT minting when Sentinel creates gen art, full onchain). **Eliza** should focus heavily on improving and expanding the knowledge base when needed.
 
 Use the sections below for **generic ElizaOS** patterns (character, plugins, env, testing). For VINCE-specific implementation (signal sources, paper bot, ML pipeline), prefer the plugin docs above.
 
@@ -756,6 +756,8 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 - **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to channels named sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`): daily digest (ONNX status, clawdbot reminder, ART gem, Claude 4.6 task-brief suggestion) + optional ONNX nudge; push to sentinel/ops channels.
 - **Env:** `SENTINEL_WEEKLY_ENABLED` (default true; set false to disable weekly). `SENTINEL_DAILY_ENABLED` (default false; set true for daily digest). `SENTINEL_DAILY_HOUR_UTC` (optional; default 8). `SENTINEL_DISCORD_*` for dedicated Discord app.
 - **Claude 4.6 collaboration:** Ask Sentinel for "task brief for Claude 4.6" or "instructions for Claude Code" to get a pasteable block (task + architecture rules + "keep the architecture as good as it gets" + 24/7 coding mindset). Use in Cursor or the Claude Code controller.
+- **PRDs for Cursor:** Sentinel delivers **Product Requirements Documents** for Cursor: full specs (goal, acceptance criteria, architecture rules) the team can paste or save and use when implementing. Standup can assign type **prd** → output in `standup-deliverables/prds/`.
+- **Milaidy / OpenClaw instructions:** Sentinel produces **integration and setup instructions** for [Milaidy](https://github.com/milady-ai/milaidy) and [OpenClaw](https://github.com/openclaw/openclaw): how to run them, how VINCE connects (e.g. standup → Milaidy Gateway at `MILAIDY_GATEWAY_URL`; openclaw-adapter for Eliza↔OpenClaw). Standup can assign type **integration_instructions** → output in `standup-deliverables/integration-instructions/`. See `knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md`.
 - **Cost questions:** Ask "what's our burn?", "breakeven?", "cost status" → **SENTINEL_COST_STATUS** summarizes from TREASURY (Usage tab, LLM choice, Cursor, data API tiers, 100K target, burn rate). See [TREASURY.md](TREASURY.md) § Cost breakdown (Sentinel).
 
 ---

@@ -13,7 +13,7 @@ Recommended channel structure for LiveTheLifeTV and other servers. **Option C:**
 **Who pushes (scheduled):**
 
 - **VINCE (CDO):** Daily report, news, lifestyle briefing, alerts — to channels whose name contains `daily`, `news`, `lifestyle`, `alerts`.
-- **Kelly (CHRO):** Daily concierge briefing — to channels whose name contains `kelly` or `lifestyle`.
+- **Kelly (CHRO):** Daily concierge briefing — to channels whose name contains `kelly` or `lifestyle`. **Standup coordinator:** 2×/day standup summary to channels whose name contains `daily-standup` or `standup` (create **#daily-standup**, one team one dream).
 - **Sentinel (CTO):** Weekly suggestions (and optional daily) — to channels whose name contains `sentinel` or `ops`.
 - **Eliza, Solus, Otaku:** No scheduled pushes; chat only.
 
@@ -62,6 +62,7 @@ To run **both VINCE and Eliza in the same Discord server** without errors (like 
 | `lifestyle` | VINCE and/or Kelly briefing (08:00 UTC) |
 | `alerts` | VINCE alerts, paper trades (real-time) |
 | `kelly` or `lifestyle` | Kelly daily concierge briefing (08:00 UTC) |
+| `daily-standup` or `standup` | Kelly standup summary (2×/day) — create **#daily-standup**, all agents ON |
 | `sentinel` or `ops` | Sentinel weekly suggestions (and optional daily) |
 
 **Knowledge ingestion (you post, bot ingests):**
@@ -85,7 +86,7 @@ One category per bot; sub-channels match each agent's core focus. Channel names 
 | **CDO — VINCE** | meet_vince, daily, news, lifestyle, alerts, upload_youtube | daily, news, lifestyle, alerts |
 | **CFO — Solus** | meet_solus, plan_100k, strike_ritual, size_skip_watch, echo_dd, rebalance | — |
 | **COO — Otaku** | meet_otaku, token_discovery, morpho_yield, wallet_ops, defi_intel | — |
-| **CHRO — Kelly** | meet_kelly, kelly, dining_hotels, wine_tea, surf_workout, touch_grass | kelly |
+| **CHRO — Kelly** | meet_kelly, kelly, daily_standup, dining_hotels, wine_tea, surf_workout, touch_grass | kelly, daily-standup |
 | **CTO — Sentinel** | meet_sentinel, sentinel_ops, task_brief, cost_onnx, art_clawdbot | sentinel_ops |
 
 Create six Discord applications (one per agent), invite each bot to the server, and create the categories and channels above. Set each agent's `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` in `.env` (see `.env.example`).

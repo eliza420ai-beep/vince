@@ -1,6 +1,11 @@
 # plugin-inter-agent
 
-Lets agents ask other agents a question and report the answer back (ASK_AGENT). Used for "One Team, One Dream" flows (e.g. Kelly asking Vince, Solus, etc.).
+Lets agents ask other agents a question and report the answer back (ASK_AGENT). Used for "One Team, One Dream" flows (e.g. Kelly asking Vince, Solus, etc.). Also provides **standups**: Kelly-coordinated 2×/day round-robin meetings with lessons, action items, and relationship opinion.
+
+## When to use plugin-inter-agent vs plugin-agent-orchestrator
+
+- **plugin-inter-agent** (this plugin): **Multi-runtime** A2A—ask another **agent** by name (ASK_AGENT) and standups. Each agent (Vince, Kelly, Sentinel, etc.) has its own runtime; `elizaOS.getAgents()` / `handleMessage(agentId, msg)` route to the correct one. Use for "Kelly asks Vince" and autonomous standups.
+- **plugin-agent-orchestrator** ([next/typescript](https://github.com/elizaos-plugins/plugin-agent-orchestrator/tree/next/typescript)): Task lifecycle (CREATE_TASK, PAUSE, RESUME, CANCEL), **same-agent** subagent (new room, background run, announce), session-based SEND_TO_SESSION, MessagingService (cross-platform send). Orchestrator A2A is single-runtime (session/room within one process) and does **not** replace inter-agent for "Kelly asks Vince." Use orchestrator for "spawn a background task for this agent" or unified messaging APIs.
 
 ## Room ID and multi-agent communication (ElizaOS docs)
 

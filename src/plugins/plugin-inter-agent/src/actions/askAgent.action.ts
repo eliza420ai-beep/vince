@@ -12,6 +12,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { getElizaOS } from "../types";
 
 const DEFAULT_ALLOWED_AGENT_NAMES = [
   "Vince",
@@ -31,6 +32,36 @@ function getAllowedTargets(runtime: IAgentRuntime): readonly string[] {
     return fromSettings.map((s) => String(s).trim()).filter(Boolean);
   }
   return DEFAULT_ALLOWED_AGENT_NAMES;
+}
+
+/** Normalize agent name for policy matching (trim, lowercase). */
+function normName(name: string): string {
+  return (name ?? "").trim().toLowerCase();
+}
+
+/**
+ * Check if source is allowed to ask target by optional policy (settings.interAgent.allow).
+ * If allow is missing or empty, returns true (no policy = allow). Otherwise matches rules with * = any.
+ */
+function isAllowedByPolicy(
+  runtime: IAgentRuntime,
+  sourceName: string,
+  targetName: string,
+): boolean {
+  const settings = runtime.character?.settings as Record<string, unknown> | undefined;
+  const interAgent = settings?.interAgent as { allow?: Array<{ source?: string; target?: string }> } | undefined;
+  const allow = interAgent?.allow;
+  if (!Array.isArray(allow) || allow.length === 0) return true;
+  const sourceNorm = normName(sourceName);
+  const targetNorm = normName(targetName);
+  for (const rule of allow) {
+    const s = (rule?.source ?? "*").trim().toLowerCase();
+    const t = (rule?.target ?? "*").trim().toLowerCase();
+    const sourceMatch = s === "*" || normName(s) === sourceNorm;
+    const targetMatch = t === "*" || normName(t) === targetNorm;
+    if (sourceMatch && targetMatch) return true;
+  }
+  return false;
 }
 
 const POLL_INTERVAL_MS = 1800;
@@ -68,8 +99,8 @@ interface AgentListItem {
 
 /** Get agents list in-process when elizaOS is available (avoids HTTP /api/agents). */
 function getAgentsInProcess(runtime: IAgentRuntime): AgentListItem[] | null {
-  const eliza = (runtime as { elizaOS?: { getAgents(): { agentId: string; character?: { name?: string } }[] } }).elizaOS;
-  if (!eliza || typeof eliza.getAgents !== "function") return null;
+  const eliza = getElizaOS(runtime);
+  if (!eliza?.getAgents) return null;
   const runtimes = eliza.getAgents();
   return runtimes.map((r) => ({
     id: r.agentId,
@@ -83,8 +114,8 @@ function resolveTargetInProcess(
   runtime: IAgentRuntime,
   targetName: string
 ): { id: string } | null {
-  const eliza = (runtime as { elizaOS?: { getAgentByName?(name: string): { agentId: string } | undefined } }).elizaOS;
-  if (!eliza || typeof eliza.getAgentByName !== "function") return null;
+  const eliza = getElizaOS(runtime);
+  if (!eliza?.getAgentByName) return null;
   const target = eliza.getAgentByName(targetName);
   if (!target?.agentId) return null;
   return { id: target.agentId };
@@ -329,6 +360,16 @@ export const askAgentAction: Action = {
       });
       return { success: false };
     }
+    const settings = runtime.character?.settings as Record<string, unknown> | undefined;
+    const interAgent = settings?.interAgent as { allow?: Array<{ source?: string; target?: string }> } | undefined;
+    const hasAllowPolicy = Array.isArray(interAgent?.allow) && interAgent.allow.length > 0;
+    if (hasAllowPolicy && !isAllowedByPolicy(runtime, fromName, targetName)) {
+      await callback({
+        text: `I'm not allowed to ask ${targetName} (policy).`,
+        actions: ["ASK_AGENT"],
+      });
+      return { success: false };
+    }
 
     const baseUrl = getBaseUrl();
     const headers = getAuthHeaders();
@@ -339,7 +380,7 @@ export const askAgentAction: Action = {
       const agentsInProcess = getAgentsInProcess(runtime);
       const agentsList = agentsInProcess ?? (await fetchAgents(baseUrl));
       if (!target) {
-        if (typeof (runtime as { elizaOS?: unknown }).elizaOS === "undefined") {
+        if (!getElizaOS(runtime)) {
           logger.debug("[ASK_AGENT] runtime.elizaOS not set; in-process resolution skipped");
         }
         if (agentsList.length === 0 && !agentsInProcess) {
@@ -367,16 +408,7 @@ export const askAgentAction: Action = {
       const content = `[To ${targetName} — you are being asked. Answer directly as yourself.][From ${fromName}, on behalf of the user]: ${question}`;
 
       // When elizaOS is available, try in-process: sync first, then async, then optional direct messageService.
-      const eliza = (runtime as {
-        elizaOS?: {
-          handleMessage(
-            agentId: string,
-            msg: unknown,
-            options?: { onResponse?: (content: unknown) => void | Promise<void>; onComplete?: () => void | Promise<void>; onError?: (err: Error) => void }
-          ): Promise<unknown>;
-          getAgent?(agentId: string): IAgentRuntime | undefined;
-        };
-      }).elizaOS;
+      const eliza = getElizaOS(runtime);
       if (eliza?.handleMessage) {
         logger.debug("[ASK_AGENT] Using in-process path for " + targetName);
         const sentAt = Date.now();

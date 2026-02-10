@@ -43,10 +43,10 @@
 
 | Agent | Lane |
 |:---|:---|
-| **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
+| **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. **Heavy focus: improve and expand the knowledge base** (quality, gaps, new categories). Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
 | **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
 | **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
-| **Otaku** | DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP wallet. When you need DeFi edge. |
+| **Otaku** | **Only agent with a funded wallet.** DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP. Mints NFTs when Sentinel creates gen art; full onchain exploration. When you need DeFi edge. |
 | **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
 | **Sentinel** | Keeps the ElizaOS project running smooth, profitable, and well coded. Ops, cost steward, ONNX, ART, clawdbot, task briefs for Claude. |
 
@@ -54,14 +54,26 @@
 
 | Role | Agent | Why |
 |:---|:---|:---|
-| **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
+| **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. **Improve and expand knowledge** (quality, gaps, categories). Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
 | **CDO** | VINCE | Data powerhouse: options, perps, memes, news, X/CT, paper bot. Push intel only—no marketing or external promo. |
 | **CFO** | Solus | Capital and risk: size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
-| **COO** | Otaku | DeFi ops executor: token discovery, Morpho, yield, CDP. On-chain execution; keeps daily operations seamless. |
-| **CHRO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |
+| **COO** | Otaku | **Only agent with funded wallet.** DeFi ops: token discovery, Morpho, yield, CDP; mints NFTs (e.g. Sentinel gen art); full onchain. Keeps daily operations seamless. |
+| **CVO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |
 | **CTO** | Sentinel | Systems, cost, code: ops, ONNX, clawdbot, task briefs. Keeps the stack running and profitable. |
 
 One team, one dream.
+
+---
+
+## Multi-agent: one conversation, full team
+
+You talk to one agent. That agent asks any teammate by name and brings the answer back—in the same thread. No app-switching, no copy-paste. Ask Kelly for a wine pick; she can ask Vince for the market vibe and Solus for size in one flow. You get one reply that’s already wired through the right specialist.
+
+**Standups run without you.** Twice a day (configurable), the team meets in a dedicated standup: crypto pulse, recent code, ideas. The run produces lessons (stored per agent), action items (reminders to the right agent), and relationship signals (e.g. disagreement tracked). When it’s done, a short summary lands in **#daily-standup**. Invite the coordinator bot (default: Kelly) and the agents you want in the channel.
+
+**You control who can ask whom.** An allowlist limits which agents are askable; optional rules (e.g. only Kelly can ask anyone) give fine-grained policy without code. Each agent keeps its own runtime; routing is by name.
+
+→ [MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT resolution, Discord Option C, policy, plugin-inter-agent vs orchestrator.
 
 ---
 
@@ -76,6 +88,7 @@ One team, one dream.
 | | |
 |:---|:---|
 | [**FEATURE-STORE**](FEATURE-STORE.md) | ML & paper bot · feature store |
+| [**MULTI_AGENT**](MULTI_AGENT.md) | ASK_AGENT · standups · one conversation, full team |
 | [**SUPABASE_MIGRATION**](SUPABASE_MIGRATION.md) | Production persistence checklist |
 | [**DEPLOY**](DEPLOY.md) | Eliza Cloud · env · troubleshooting |
 | [**DISCORD**](DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
@@ -95,6 +108,7 @@ One team, one dream.
 | Section | |
 |:---|:---|
 | [One team, one dream](#one-team-one-dream) | The dream team: Eliza, VINCE, Solus, Otaku, Kelly, Sentinel |
+| [Multi-agent: one conversation, full team](#multi-agent-one-conversation-full-team) | ASK_AGENT, standups, policy—one thread, full team |
 | [North Star](#-north-star) | Proactive agent, push not pull |
 | [Current Focus](#-current-focus-feb-2026) | ALOHA, ML paper trading |
 | [X research & sentiment](#-x-research--sentiment-on-x) | Paper algo signal + Cursor skill + VINCE in-chat |
@@ -343,6 +357,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 
 | | Feature | |
 |:---:|---|:---|
+| 👥 | **Multi-agent (ASK_AGENT & standups)** | One conversation: ask any teammate by name, get the answer in-thread. Standups 2×/day (lessons, action items, #daily-standup). Policy: allowlist + who-can-ask-whom. → [MULTI_AGENT.md](MULTI_AGENT.md) |
 | ☀️ | **ALOHA** | Single command → vibe check + PERPS pulse + OPTIONS posture + "should we trade today?" |
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
 | 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
