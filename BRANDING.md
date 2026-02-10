@@ -224,6 +224,28 @@ The project’s **`.env.example`** implies **developer/API accounts** you’ll n
 
 ---
 
+### Ideas from sentinel-docs (knowledge/sentinel-docs)
+
+The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, and **DISCORD.md** (repo root) are the main references for Sentinel, multi-agent behavior, Discord layout, and integration ideas. Below are concepts that can inform **accounts**, **tools**, and **roadmap**—not a duplicate of the rest of BRANDING, but a pointer to where to look.
+
+| Area | Doc(s) | Idea for BRANDING / setup |
+|------|--------|----------------------------|
+| **Security** | SECURITY-HYGIENE.md | No API keys in repo; `.env` (gitignored) or agent secrets; rotate keys; one key per service per env (e.g. per-agent Discord). Document who can deploy, who has DB/API access. Run `scripts/sync-sentinel-docs.sh` to refresh sentinel-docs. |
+| **Standup & build** | STANDUP_DELIVERABLES.md, NORTH_STAR_DELIVERABLES.md | Standup writes to `standup-deliverables/` (essays, tweets, trades, good-life, PRDs, integration instructions). Optional **Milaidy Gateway** (`MILAIDY_GATEWAY_URL`, e.g. `http://localhost:18789`) receives build items; fallback is in-VINCE code gen. |
+| **Milaidy / OpenClaw** | PRD_AND_MILAIDY_OPENCLAW.md, OPENCLAW_ADAPTER.md | **Milaidy:** ElizaOS-based personal AI; Gateway port 18789; standup can POST build items. **OpenClaw:** Multi-channel agent; **openclaw-adapter** runs Eliza plugins (EVM, Solana) as OpenClaw tools—useful if you ever run an OpenClaw agent (same wallet/tool logic). Consider accounts or installs only if you add these runtimes. |
+| **Plugins to consider** | PLUGIN_MCP.md, PLUGIN_XAI.md, PLUGIN_ELEVENLABS.md | **plugin-mcp:** GitHub, Puppeteer, custom MCP servers—agent tools and context. **plugin-xai:** Grok/xAI (we underuse it); model diversity, X-native agents. **plugin-elevenlabs:** Voice/TTS and transcription for Kelly or announcements; needs ELEVENLABS_API_KEY. |
+| **Cost & revenue** | TREASURY.md | Mandate: cover costs, then profitability. Strategies: prediction markets (Polymarket, small size), token/fee revenue (e.g. Bankr), micro-tasks, **cost optimization** (cache, model choice, Usage tab). Leaderboard → Usage for token tracking; set `VINCE_USAGE_COST_PER_1K_TOKENS` for estimated cost. |
+| **Bankr / token** | BANKR.md | Bankr ($BNKR): agent that pays for itself (swap, limit, DCA, copy trade, launchpad). **Idea:** token for gated access, dev/contributor rewards, better data APIs. Bankr Agent API (API key at bankr.bot/api); openclaw-skills repo; tokenized-agents registry. Relevant if you explore Otaku revenue or premium data. |
+| **Claude Code** | CLAUDE_CODE_CONTROLLER.md | Optional **Claude Code Controller** (e.g. port 3456): delegates code tasks (review, refactor) to real Claude Code CLI. Cost on Claude Code subscription, not Usage tab. `bun run scripts/claude-code-task.ts "task"`; optional webhook for results. |
+| **ElizaOS examples** | ELIZAOS_EXAMPLES_PRIORITIES.md, TRADER_SAFETY_ALIGNMENT.md, POLYMARKET_CLI.md | **Trader example:** safety patterns (honeypot, RugCheck, min liquidity) if we add spot/meme or live path. **Polymarket:** `bun run polymarket:once` for discovery tick; exit codes 0/1 for cron/monitoring. **LP Manager:** Otaku lane (yield, rebalancing). Use as reference when extending paper bot or Otaku. |
+| **X research** | X-RESEARCH.md, SENTINEL_X_RESEARCH_PRIORITY.md | Single doc of record: X-RESEARCH.md (design, tokens, in-chat, vibe, CLI). Upstream x-research-skill: consider --quick, --from, --quality, cost transparency, security (token in logs; env var, rotation). |
+| **Multi-agent** | [MULTI_AGENT.md](https://github.com/IkigaiLabsETH/vince/blob/main/MULTI_AGENT.md) (repo root) | **ASK_AGENT:** one agent asks another (e.g. Kelly → Vince); needs `runtime.elizaOS` (standard `elizaos start`). **Discord Option C:** one Discord Application ID per agent (Vince, Kelly, Solus, Eliza, Otaku, Sentinel)—no sharing. **A2A policy:** `settings.interAgent.allowedTargets` and optional `allow` (source→target). **Standups:** 2×/day, Kelly coordinator; `STANDUP_ENABLED=true`; deliverables to `standup-deliverables/`; optional Milaidy Gateway (18789). **Feedback→PRD/Eliza** (planned). **Dev worker:** prefer Milaidy over OpenClaw (same ElizaOS stack). |
+| **Discord** | [DISCORD.md](https://github.com/IkigaiLabsETH/vince/blob/main/DISCORD.md) (repo root) | **Option C:** six Discord apps (one per agent), one category per bot. **Channel-name keywords** (push routing): `daily`, `news`, `lifestyle`, `alerts` → VINCE; `kelly`/`lifestyle` → Kelly briefing; `daily-standup`/`standup` → standup summary; `sentinel`/`ops` → Sentinel. **Layouts:** LiveTheLifeTV C-suite (CEO–CTO categories), IKIGAI LABS (VINCE Command Center, Find Your Ikigai). **Env:** `*_DISCORD_APPLICATION_ID` + `*_DISCORD_API_TOKEN` per agent; use **Without Voice** invite for text-only. See NOTIFICATIONS.md for push config. |
+
+**Where to read more:** Sentinel-docs: [knowledge/sentinel-docs/](https://github.com/IkigaiLabsETH/vince/tree/main/knowledge/sentinel-docs) (sync with `scripts/sync-sentinel-docs.sh`). Repo root: [MULTI_AGENT.md](https://github.com/IkigaiLabsETH/vince/blob/main/MULTI_AGENT.md) (multi-agent, standups), [DISCORD.md](https://github.com/IkigaiLabsETH/vince/blob/main/DISCORD.md) (channel layout, push routing, setup).
+
+---
+
 ## ◆ Visual Identity (Aligned with Frontend)
 
 Product UI (VINCE frontend) defines the in-app system. Marketing and social can layer **ETH blue and gold** or a restrained, editorial palette for Substack and X.
