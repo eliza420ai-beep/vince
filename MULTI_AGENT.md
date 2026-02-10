@@ -123,6 +123,25 @@ Not every feedback is a code change. Sometimes the gap is **knowledge** (e.g. "K
 - **Tested-agent side:** New action (e.g. in plugin-inter-agent) that validates on a FEEDBACK trigger, optionally fetches last N messages in the room for context, builds the structured request, and calls Sentinel (same in-process path as ASK_AGENT); then callbacks with Sentinel's reply.
 - **Sentinel side:** New action (e.g. SENTINEL_FEEDBACK_DELIVERABLE) that validates on the structured "Generate a deliverable from agent feedback" request, runs a triage LLM (prd vs eliza_task), then generates and writes the appropriate deliverable; returns the file path to the caller.
 - **Docs:** Add `eliza-tasks/` and this flow to [docs/NORTH_STAR_DELIVERABLES.md](docs/NORTH_STAR_DELIVERABLES.md) when implemented. Full plan is in `.cursor/plans/` (feedback to PRD or Eliza task).
+- **Reference:** The [ElizaOS autonomous examples (TypeScript)](https://github.com/elizaOS/examples/tree/main/autonomous/typescript) may be useful to achieve this (autonomous flows, agent coordination, structured requests).
+
+### Limitations vs OpenClaw (evaluation note)
+
+The current setup (ElizaOS, ASK_AGENT, in-process `elizaOS.handleMessage`, standup + deliverables) has inherent limits compared to a stack built around session-based, tool-native agent-to-agent coordination:
+
+- **Synchronous ask:** ASK_AGENT blocks the requester for up to ~90s. There is no first-class “send to another agent and get a callback when done” or “announce step” pattern. OpenClaw exposes [Agent-to-Agent session tools](https://github.com/openclaw/openclaw) (`sessions_list`, `sessions_send`, `sessions_history`) with optional reply-back and announce, so an agent can message another session and either wait for a reply or be notified later—better fit for feedback→deliverable flows that may take time.
+- **A2A is layered, not native:** We add A2A on top of ElizaOS (plugin-inter-agent, allowlists, handleMessage). OpenClaw’s Gateway is a single control plane with multi-session routing and first-class session tools; agent-to-agent is a core use case rather than a plugin.
+- **One process, many runtimes vs one Gateway, many sessions:** Both are “single deployment,” but OpenClaw’s model (workspaces, sessions, skills) is designed for “route channel/peer to session” and “session talks to session via tools.” Our standup and feedback flows are custom logic on top of runtime composition.
+- **Tradeoff, not a defect:** The current setup keeps the full ElizaOS character/action/provider/evaluator model, the existing standup implementation (Kelly, transcript parsing, Milaidy, north-star deliverables), and Option C Discord (separate bot identity per agent). Moving to [OpenClaw](https://github.com/openclaw/openclaw) would mean reimplementing standup, PRD/Eliza-task generation, and possibly multi-Discord identity using OpenClaw’s session/skill/tool model—a large migration. For feedback→PRD/Eliza task, both stacks can achieve it; the difference is how much is built-in (session tools, reply-back) vs custom (actions + ASK_AGENT). When designing or scaling multi-agent and feedback flows, it’s useful to keep OpenClaw in mind as an alternative architecture rather than assuming we must only extend the current one.
+
+### Advantages of our setup
+
+- **Distinct agent identities (Option C):** Each agent has its own Discord Application ID, so in Discord users see separate bots (Vince, Kelly, Sentinel, etc.) with clear branding and presence. We’re not multiplexing one bot by session; each agent is a first-class identity in the channel.
+- **ElizaOS agent model:** Character, actions, providers, evaluators, knowledge/RAG, and tasks are all first-class. We get rich semantics (e.g. “Kelly runs this action when this provider says X”) and built-in learning (evaluators, memory, facts). OpenClaw is centered on tools and skills; we have a full agent abstraction with prompts, validation, and response flow.
+- **Standup and deliverables already built:** Kelly-coordinated 2×/day standup, transcript parsing, action-item types (remind vs build), Milaidy Gateway hook, north-star deliverable types (prd, essay, tweets, trades, good_life, integration_instructions), and writing to `standup-deliverables/` are implemented. Recreating this on another stack would be a large project.
+- **A2A policy:** `allowedTargets` and optional `allow` rules (source → target) give per-character control over who can ask whom. We can express “only Kelly can ask Sentinel” or “Eliza can ask anyone in the list” without extra infrastructure.
+- **Single process, shared persistence:** All runtimes run in one process with a shared database (memories, rooms, entities, relationships). In-process ASK_AGENT has no network hop; we avoid distributed coordination and multi-service ops for the main A2A path.
+- **ElizaOS plugin ecosystem:** We compose plugin-vince, plugin-kelly, plugin-sentinel, plugin-inter-agent, and other ElizaOS plugins in one codebase. Patterns (actions, providers, routes) are consistent and we can reuse or extend community plugins.
 
 ## Troubleshooting
 
