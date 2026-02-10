@@ -5,8 +5,8 @@
        const world = await this.runtime.getWorld(agentWorldId);
 -      const channelId = room?.channelId;
 -      const messageServerId = world?.messageServerId;
-+      const channelId = room?.channelId ?? originalMessage?.channel_id;
-+      const messageServerId = world?.messageServerId ?? originalMessage?.message_server_id;
++      const channelId = room?.channelId ?? originalMessage?.channel_id ?? originalMessage?.channelId;
++      const messageServerId = world?.messageServerId ?? originalMessage?.message_server_id ?? originalMessage?.messageServerId;
        if (!channelId || !messageServerId) {
          logger32.error({
            src: "service:message-bus",

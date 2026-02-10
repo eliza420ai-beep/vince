@@ -233,6 +233,34 @@ The `build` script compiles the backend to `dist/index.js`, emits type declarati
 
 Note: The server serves the built frontend from `dist/frontend`. To see UI changes, rebuild the frontend (`bun run build:frontend`).
 
+## Testing
+
+### Testing / Replying (manual checklist)
+
+Use this to verify Otaku response flow and UI delivery, and to debug "replies never appear" (stuck on "Analyzing your request").
+
+**Env**
+
+- Set **`ELIZAOS_USE_LOCAL_MESSAGING=true`** and leave **`ELIZAOS_API_KEY`** unset for local messaging.
+- The app must use the **default message server** (e.g. `GET /api/messaging/message-server/current` or `DEFAULT_MESSAGE_SERVER_ID`). If the bus logs "Agent not subscribed to server, ignoring message", the UI was using a different server ID—see [tasks/FRONTEND-ALPHA-QUICKSTART.md](tasks/FRONTEND-ALPHA-QUICKSTART.md) and any server patch for `channel_id` / `message_server_id`.
+
+**Steps**
+
+1. Start: `bun start`; open the UI (e.g. http://localhost:3000 or the Vite URL printed, e.g. http://localhost:5173).
+2. Select the **Otaku** agent; send "What can you do?" (and optionally "hi" or a Bankr-style query).
+3. **Terminal:** Within ~15–30s, confirm in order: `[SERVICE:MESSAGE] Message received` → `Raw LLM response received` → `Parsed XML content` → `Agent generated response, sending to bus` → `Sending response to central server` (exact strings may live in `@elizaos/server`; see FRONTEND-ALPHA-QUICKSTART for current wording).
+4. **UI:** The reply appears and "Analyzing your request" (or equivalent) is gone. If not, see **DEPLOY.md** § MESSAGING and **.env.example** § MESSAGING, and [tasks/FRONTEND-ALPHA-QUICKSTART.md](tasks/FRONTEND-ALPHA-QUICKSTART.md).
+
+**Bankr unavailable**
+
+With Bankr disabled or failing, send "What can you do?" and confirm Otaku still replies with capabilities (no Bankr required).
+
+**Automated tests**
+
+- Unit (OtakuMessageService response path): `bun test src/plugins/plugin-bootstrap/src/__tests__/otaku-message-service.response.test.ts`
+- Integration (Otaku handleMessage with mocked runtime): `bun test ./src/__tests__/e2e/otaku-response.e2e.ts`
+- Cypress E2E (Otaku chat reply in UI): run app with `bun start`, then `bun run cypress:e2e`; the Otaku chat spec requires a running server and local messaging so replies reach the UI.
+
 ## Plugins
 
 Plugins needed for full Otaku behavior come from the [elizaOS/otaku](https://github.com/elizaOS/otaku/) repo. Register them in the Otaku agent config (e.g. `src/index.ts` or wherever the Otaku character is loaded).

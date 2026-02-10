@@ -305,6 +305,23 @@ export class OtakuMessageService implements IMessageService {
         `[OtakuMessageService] Message received from ${message.entityId} in room ${message.roomId}`
       );
 
+      // Ensure Memory carries central IDs for message-bus routing (fallback if server uses Memory as originalMessage)
+      const meta = message.content?.metadata as Record<string, unknown> | undefined;
+      const raw = meta?.raw as Record<string, unknown> | undefined;
+      const src = raw ?? meta;
+      if (src) {
+        const channelIdVal = (message as { channel_id?: string }).channel_id ?? src.channel_id ?? src.channelId;
+        const messageServerIdVal =
+          (message as { message_server_id?: string }).message_server_id ??
+          src.message_server_id ??
+          src.messageServerId;
+        if (channelIdVal !== undefined)
+          (message as { channel_id?: string }).channel_id = typeof channelIdVal === 'string' ? channelIdVal : undefined;
+        if (messageServerIdVal !== undefined)
+          (message as { message_server_id?: string }).message_server_id =
+            typeof messageServerIdVal === 'string' ? messageServerIdVal : undefined;
+      }
+
       // Generate a new response ID
       const responseId = v4();
 

@@ -278,6 +278,7 @@ describe("Otaku agent", () => {
     it("resolves without throwing when called with mock runtime", async () => {
       const mockRuntime = {
         agentId: "test-otaku-id",
+        getService: () => null,
         logger: {
           info: () => {},
           warn: () => {},
@@ -291,6 +292,7 @@ describe("Otaku agent", () => {
     it("can be called multiple times without throwing", async () => {
       const mockRuntime = {
         agentId: "test-otaku-id-2",
+        getService: () => null,
         logger: {
           info: () => {},
           warn: () => {},
