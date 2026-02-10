@@ -13,6 +13,7 @@ import {
   type IAgentRuntime,
   type Memory,
   type Content,
+  type Entity,
   type UUID,
   type State,
   type HandlerCallback,
@@ -242,6 +243,7 @@ async function ensureMessageSendersInRoom(
   const r = runtime as unknown as {
     ensureConnection?: (opts: unknown) => Promise<unknown>;
     addParticipant?: (entityId: UUID, roomId: UUID) => Promise<boolean>;
+    createEntity?: (entity: Entity) => Promise<boolean>;
   };
   if (typeof r.ensureConnection !== 'function') return;
   const entityIds = new Set<string>();
@@ -256,6 +258,13 @@ async function ensureMessageSendersInRoom(
     try {
       const entity = await runtime.getEntityById(entityId as UUID);
       const name = entity?.names?.[0] ?? entityId.slice(0, 8);
+      if (!entity && typeof r.createEntity === 'function') {
+        await r.createEntity({
+          id: entityId as UUID,
+          names: [name],
+          agentId: runtime.agentId,
+        });
+      }
       await r.ensureConnection({
         entityId: entityId as UUID,
         roomId,

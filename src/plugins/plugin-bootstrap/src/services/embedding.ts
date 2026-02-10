@@ -17,6 +17,27 @@ interface EmbeddingQueueItem {
   runId?: string;
 }
 
+/** Max chars to send to embedding API to avoid token-limit 400s (e.g. text-embedding-3-small ~8k tokens). */
+const EMBEDDING_MAX_TEXT_LENGTH = 8000;
+
+/**
+ * Sanitize text for embedding API: strip control characters (except \n, \r, \t)
+ * and truncate to a safe length. Avoids OpenAI 400 for empty/invalid input.
+ */
+function sanitizeTextForEmbedding(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return '';
+  const noControl = trimmed.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
+  return noControl.length > EMBEDDING_MAX_TEXT_LENGTH
+    ? noControl.slice(0, EMBEDDING_MAX_TEXT_LENGTH)
+    : noControl;
+}
+
+function isBadRequestError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes('400') || msg.includes('Bad Request');
+}
+
 /**
  * Service responsible for generating embeddings asynchronously
  * This service listens for EMBEDDING_GENERATION_REQUESTED events
@@ -204,21 +225,24 @@ export class EmbeddingGenerationService extends Service {
         try {
           await this.generateEmbedding(item);
         } catch (error) {
-          logger.error(
-            { error, memoryId: item.memory.id },
-            '[EmbeddingService] Error processing item:'
-          );
+          const is400 = isBadRequestError(error);
+          // Do not retry 400 Bad Request (invalid/empty content) to avoid log spam
+          const shouldRetry =
+            !is400 && item.retryCount < item.maxRetries;
 
-          // Retry if under max retries
-          if (item.retryCount < item.maxRetries) {
+          if (shouldRetry) {
             item.retryCount++;
-            // Re-add to queue with same priority using proper insertion
             this.insertItemByPriority(item);
             logger.debug(
               `[EmbeddingService] Re-queued item for retry (${item.retryCount}/${item.maxRetries})`
             );
           } else {
-            // Log embedding failure
+            if (!is400) {
+              logger.error(
+                { error, memoryId: item.memory.id },
+                '[EmbeddingService] Error processing item:'
+              );
+            }
             await this.runtime.log({
               entityId: this.runtime.agentId,
               roomId: item.memory.roomId || this.runtime.agentId,
@@ -231,8 +255,6 @@ export class EmbeddingGenerationService extends Service {
                 source: 'embeddingService',
               },
             });
-
-            // Emit failure event
             await this.runtime.emitEvent(EventType.EMBEDDING_GENERATION_FAILED, {
               runtime: this.runtime,
               memory: item.memory,
@@ -257,12 +279,21 @@ export class EmbeddingGenerationService extends Service {
       return;
     }
 
+    const sanitized = sanitizeTextForEmbedding(memory.content.text);
+    if (sanitized.length === 0) {
+      logger.warn(
+        { memoryId: memory.id },
+        '[EmbeddingService] Memory text empty after sanitization, skipping'
+      );
+      return;
+    }
+
     try {
       const startTime = Date.now();
 
-      // Generate embedding
+      // Generate embedding with sanitized/truncated text to avoid 400 (control chars, token limit)
       const embedding = await this.runtime.useModel(ModelType.TEXT_EMBEDDING, {
-        text: memory.content.text,
+        text: sanitized,
       });
 
       const duration = Date.now() - startTime;
@@ -299,11 +330,20 @@ export class EmbeddingGenerationService extends Service {
         });
       }
     } catch (error) {
-      logger.error(
-        { error, memoryId: memory.id },
-        '[EmbeddingService] Failed to generate embedding:'
-      );
-      throw error; // Re-throw to trigger retry logic
+      const is400 = isBadRequestError(error);
+      const preview = sanitized.slice(0, 80).replace(/\s+/g, ' ');
+      if (is400) {
+        logger.warn(
+          { memoryId: memory.id, preview },
+          '[EmbeddingService] Embedding rejected (400), skipping retries'
+        );
+      } else {
+        logger.error(
+          { error, memoryId: memory.id },
+          '[EmbeddingService] Failed to generate embedding:'
+        );
+      }
+      throw error; // Re-throw so processQueue can decide retry vs drop
     }
   }
 

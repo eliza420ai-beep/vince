@@ -6,6 +6,7 @@
 import type {
   Action,
   ActionResult,
+  Entity,
   IAgentRuntime,
   Memory,
   State,
@@ -428,6 +429,16 @@ export const askAgentAction: Action = {
             const source = message.content?.source ?? "ask_agent";
             const ensureOne = async (entityId: string, name: string, userName?: string) => {
               try {
+                const tr = targetRuntime as unknown as { getEntityById?: (id: import("@elizaos/core").UUID) => Promise<Entity | null>; createEntity?: (e: Entity) => Promise<boolean> };
+                const existing = tr.getEntityById ? await tr.getEntityById(entityId as import("@elizaos/core").UUID) : null;
+                if (!existing && typeof tr.createEntity === "function") {
+                  await tr.createEntity({
+                    id: entityId as import("@elizaos/core").UUID,
+                    names: [name],
+                    agentId: targetRuntime.agentId,
+                    metadata: {},
+                  });
+                }
                 await targetRuntime!.ensureConnection!({
                   entityId: entityId as import("@elizaos/core").UUID,
                   roomId: message.roomId,

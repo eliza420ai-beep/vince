@@ -93,3 +93,9 @@ Action items parsed as **build** (e.g. "build feature X", "write a script for Y"
 - **Safety:** Generated code is written to disk only; it is not executed automatically. Review and run at your discretion.
 - **Agent suggestions:** If the standup transcript includes agent-proposed improvements (new topics, tools, or process changes), they are appended to `standup-deliverables/agent-suggestions.md` for human review.
 - **North-star deliverables:** Action items can also be parsed as **essay** (Substack), **tweets** (banger suggestions), **x_article** (long-form for X), **trades** (perps Hyperliquid + options HypeSurface for BTC/SOL/ETH/HYPE), **good_life** (Kelly-style founder lifestyle suggestions), **prd** (Sentinel: PRD for Cursor), or **integration_instructions** (Sentinel: Milaidy/OpenClaw setup and integration). These are generated in-VINCE and written to subdirs under `STANDUP_DELIVERABLES_DIR`. See [docs/NORTH_STAR_DELIVERABLES.md](docs/NORTH_STAR_DELIVERABLES.md).
+
+## Troubleshooting
+
+### Discord: "Could not find guild for channel (not in cache and fetch failed)"
+
+This warning comes from the Discord plugin’s VOICESTATE provider when it tries to resolve the guild for a channel and the guild isn’t in the client cache (e.g. channel from another server, or right after the bot joins). It is usually **benign** and does not affect normal text messaging or ASK_AGENT. If you need voice-state behavior in that channel, ensure the bot is in the same server as the channel and the guild is loaded; otherwise you can ignore the warning.
