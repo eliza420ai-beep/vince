@@ -795,7 +795,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 
     // Never run generic upload for Michelin Guide links — ADD_MICHELIN_RESTAURANT (Eliza in #knowledge) handles them; avoids worthless meta-only extraction
     if (fullMessageText.includes("guide.michelin.com")) {
-      logger.info("[VINCE_UPLOAD] Skipping: Michelin link → use #knowledge + ADD_MICHELIN_RESTAURANT");
+      logger.debug("[VINCE_UPLOAD] Skipping: Michelin link → use #knowledge + ADD_MICHELIN_RESTAURANT");
       return false;
     }
 
