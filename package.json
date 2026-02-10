@@ -27,6 +27,7 @@
     "dist"
   ],
   "dependencies": {
+    "@bankr/sdk": "^0.1.0-alpha.8",
     "@coinbase/cdp-hooks": "^0.0.70",
     "@coinbase/cdp-react": "^0.0.70",
     "@coinbase/cdp-sdk": "^1.44.0",
@@ -38,8 +39,8 @@
     "@elizaos/plugin-anthropic": "^1.5.12",
     "@elizaos/plugin-bootstrap": "1.7.2",
     "@elizaos/plugin-browser": "github:elizaos-plugins/plugin-browser",
-    "@elizaos/plugin-discovery": "file:./packages/plugin-discovery",
     "@elizaos/plugin-discord": "^1.3.8",
+    "@elizaos/plugin-discovery": "file:./packages/plugin-discovery",
     "@elizaos/plugin-elizacloud": "^1.7.5",
     "@elizaos/plugin-openrouter": "^1.5.17",
     "@elizaos/plugin-personality": "github:elizaos-plugins/plugin-personality#next",
@@ -67,6 +68,7 @@
     "@supabase/supabase-js": "^2.49.1",
     "@tailwindcss/vite": "^4.1.10",
     "@tanstack/react-query": "^5.67.2",
+    "@xdevplatform/xdk": "^0.1.0",
     "axios": "^1.7.9",
     "clanker-sdk": "^4.2.10",
     "class-variance-authority": "^0.7.1",
@@ -85,7 +87,6 @@
     "streamdown": "^2.1.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
-    "@xdevplatform/xdk": "^0.1.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {
