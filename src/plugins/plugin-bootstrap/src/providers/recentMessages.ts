@@ -136,7 +136,11 @@ async function ensureMessageSendersInRoom(
   roomId: UUID,
   messages: Memory[]
 ): Promise<void> {
-  if (typeof (runtime as unknown as { ensureConnection?: (opts: unknown) => Promise<unknown> }).ensureConnection !== 'function') return;
+  const r = runtime as unknown as {
+    ensureConnection?: (opts: unknown) => Promise<unknown>;
+    addParticipant?: (entityId: UUID, roomId: UUID) => Promise<boolean>;
+  };
+  if (typeof r.ensureConnection !== 'function') return;
   const entityIds = new Set<string>();
   for (const m of messages) {
     if (m.entityId) entityIds.add(String(m.entityId));
@@ -149,7 +153,7 @@ async function ensureMessageSendersInRoom(
     try {
       const entity = await runtime.getEntityById(entityId as UUID);
       const name = entity?.names?.[0] ?? entityId.slice(0, 8);
-      await (runtime as unknown as { ensureConnection: (opts: unknown) => Promise<unknown> }).ensureConnection({
+      await r.ensureConnection({
         entityId: entityId as UUID,
         roomId,
         worldId,
@@ -158,6 +162,9 @@ async function ensureMessageSendersInRoom(
         name,
         userName: name,
       });
+      if (typeof r.addParticipant === 'function') {
+        await r.addParticipant(entityId as UUID, roomId);
+      }
     } catch (err) {
       logger.debug({ entityId, roomId, err }, '[RECENT_MESSAGES] ensureMessageSendersInRoom: ensureConnection skip');
     }

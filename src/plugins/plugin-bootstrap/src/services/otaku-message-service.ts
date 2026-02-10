@@ -231,6 +231,50 @@ async function ensureAllAgentsInRoom(runtime: IAgentRuntime, roomId: UUID): Prom
 }
 
 /**
+ * Ensure every message sender is in the room so getEntitiesForRoom / formatPosts resolve every entityId.
+ * Call before any composeState to avoid "[CORE:UTILS] No entity found for message".
+ */
+async function ensureMessageSendersInRoom(
+  runtime: IAgentRuntime,
+  roomId: UUID,
+  messages: Memory[]
+): Promise<void> {
+  const r = runtime as unknown as {
+    ensureConnection?: (opts: unknown) => Promise<unknown>;
+    addParticipant?: (entityId: UUID, roomId: UUID) => Promise<boolean>;
+  };
+  if (typeof r.ensureConnection !== 'function') return;
+  const entityIds = new Set<string>();
+  for (const m of messages) {
+    if (m.entityId) entityIds.add(String(m.entityId));
+  }
+  if (entityIds.size === 0) return;
+  const room = await runtime.getRoom(roomId);
+  const worldId = (room?.worldId ?? roomId) as UUID;
+  const source = 'direct';
+  for (const entityId of entityIds) {
+    try {
+      const entity = await runtime.getEntityById(entityId as UUID);
+      const name = entity?.names?.[0] ?? entityId.slice(0, 8);
+      await r.ensureConnection({
+        entityId: entityId as UUID,
+        roomId,
+        worldId,
+        source,
+        channelId: roomId,
+        name,
+        userName: name,
+      });
+      if (typeof r.addParticipant === 'function') {
+        await r.addParticipant(entityId as UUID, roomId);
+      }
+    } catch (err) {
+      logger.debug({ entityId, roomId, err }, '[OtakuMessageService] ensureMessageSendersInRoom skip');
+    }
+  }
+}
+
+/**
  * OtakuMessageService implements the IMessageService interface with custom
  * multi-step workflow execution and x402 job request handling.
  */
@@ -432,6 +476,16 @@ export class OtakuMessageService implements IMessageService {
 
       // Ensure all in-process agents are in this room so RECENT_MESSAGES/formatMessages resolve every entityId
       await ensureAllAgentsInRoom(runtime, message.roomId);
+
+      // Ensure every message sender is in the room before any composeState (e.g. shouldRespond) so formatPosts never sees unknown entityIds
+      const conversationLength = runtime.getConversationLength();
+      const recentForEnsure = await runtime.getMemories({
+        tableName: 'messages',
+        roomId: message.roomId,
+        count: conversationLength,
+        unique: false,
+      });
+      await ensureMessageSendersInRoom(runtime, message.roomId, recentForEnsure);
 
       // Process attachments if any (images, documents)
       if (message.content.attachments && message.content.attachments.length > 0) {
