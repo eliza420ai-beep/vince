@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/frontend/components/ui/button";
 import { Badge } from "@/frontend/components/ui/badge";
 import { SidebarTrigger } from "@/frontend/components/ui/sidebar";
@@ -20,6 +21,7 @@ interface MobileHeaderProps {
 }
 
 export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
+  const navigate = useNavigate();
   const { currentUser } = useCDPWallet();
   const userId = currentUser?.userId || "";
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -86,6 +88,10 @@ export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
                   <CDPWalletCard
                     userId={userId}
                     onActionClick={() => setIsSheetOpen(false)}
+                    onOpenChat={() => {
+                      setIsSheetOpen(false);
+                      navigate("/chat");
+                    }}
                   />
                 )}
               </div>

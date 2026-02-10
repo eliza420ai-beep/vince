@@ -190,7 +190,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "What's Next?", message: "what should we do next" },
     { label: "Improve Docs", message: "improve docs" },
   ],
-  // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield.
+  // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/token launch/orders).
   otaku: [
     { label: "What can the COO do?", message: "What can you do?" },
     { label: "Smart Money", message: "smart money flows" },
@@ -199,6 +199,11 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "PnL Leaderboard", message: "PnL leaderboard" },
     { label: "Yield Rates", message: "best DeFi yield rates" },
     { label: "Token Flows", message: "token flows" },
+    { label: "Portfolio", message: "Show my portfolio" },
+    { label: "Bankr: Balance", message: "Ask Bankr: what is my ETH balance on Base?" },
+    { label: "Bankr: Swap", message: "Ask Bankr to swap 10 USDC for ETH on Base" },
+    { label: "Launch Token", message: "Ask Bankr to deploy a token called MyAgent with symbol AGENT on base" },
+    { label: "Limit Order Quote", message: "Get a limit buy quote for ETH on Base via Bankr" },
   ],
 };
 

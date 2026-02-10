@@ -22,6 +22,7 @@ import {
   getChainWalletIcon,
 } from "@/frontend/constants/chains";
 import { useModal } from "@/frontend/contexts/ModalContext";
+import { useNavigate } from "react-router-dom";
 
 interface Token {
   symbol: string;
@@ -73,6 +74,7 @@ interface CDPWalletCardProps {
   walletAddress?: string;
   onBalanceChange?: (balance: number) => void;
   onActionClick?: () => void; // Optional callback to close parent container (Sheet/Sidebar)
+  onOpenChat?: () => void; // Optional: navigate to chat (e.g. set Otaku); if not set, card uses navigate("/chat")
 }
 
 // Expose refresh methods via ref
@@ -83,8 +85,9 @@ export interface CDPWalletCardRef {
 }
 
 export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
-  ({ userId, walletAddress, onBalanceChange, onActionClick }, ref) => {
+  ({ userId, walletAddress, onBalanceChange, onActionClick, onOpenChat }, ref) => {
     const { showModal } = useModal();
+    const navigate = useNavigate();
 
     // Format address for display (shortened)
     const shortAddress = walletAddress
@@ -96,7 +99,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
     const [hidePopupTimeout, setHidePopupTimeout] =
       useState<NodeJS.Timeout | null>(null);
     const [activeTab, setActiveTab] = useState<
-      "tokens" | "collections" | "history"
+      "tokens" | "collections" | "history" | "orders"
     >("tokens");
     const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -819,6 +822,16 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                 >
                   History
                 </button>
+                <button
+                  onClick={() => setActiveTab("orders")}
+                  className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                    activeTab === "orders"
+                      ? "text-foreground border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Orders
+                </button>
               </div>
 
               {/* Tab Content - Fixed height with smooth scrolling */}
@@ -972,6 +985,23 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       </button>
                     ))
                   )
+                ) : activeTab === "orders" ? (
+                  <div className="flex flex-col items-center justify-center gap-4 py-6 px-3 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Limit, stop, DCA, and TWAP orders are available in chat with Otaku. Create orders, view open and filled orders, and cancel from there.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        onActionClick?.();
+                        if (onOpenChat) onOpenChat();
+                        else navigate("/chat");
+                      }}
+                      variant="default"
+                      size="sm"
+                    >
+                      Open chat
+                    </Button>
+                  </div>
                 ) : // Transaction History
                 isLoadingHistory ? (
                   <div className="flex items-center justify-center py-8">

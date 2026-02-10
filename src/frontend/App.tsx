@@ -1223,6 +1223,7 @@ function AppContent({
                 userId={userId}
                 walletAddress={userProfile?.walletAddress}
                 onBalanceChange={handleBalanceChange}
+                onOpenChat={() => navigate("/chat")}
               />
             )}
             <CollapsibleNotifications />
