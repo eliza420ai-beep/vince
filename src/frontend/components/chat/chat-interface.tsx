@@ -129,12 +129,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
-  // VINCE (CDO): X is #1 source of insights/news/alpha/sentiment and feeds the flagship paper bot. Quick actions surface X first, then bot, ALOHA, domains.
+  // VINCE (CDO): X is #1 source of insights/news/alpha/sentiment and feeds the flagship paper bot. Quick actions surface X first (search, profile, Spaces, lists, mentions), then bot, ALOHA, domains.
   vince: [
     { label: "What can the CDO do?", message: "What can you do?" },
     { label: "X: BTC", message: "What are people saying about BTC?" },
     { label: "X: Perps", message: "What's CT saying about perps?" },
     { label: "X: VIP", message: "What did @RaoulGMI post recently?" },
+    { label: "X: Spaces", message: "Spaces about BTC" },
+    { label: "X: Lists", message: "What lists does @RaoulGMI have?" },
+    { label: "X: Mentions", message: "What are people saying to @RaoulGMI?" },
     { label: "X → Paper", message: "How does X sentiment affect the paper bot?" },
     { label: "Trading Bot", message: "bot status" },
     { label: "ALOHA", message: "aloha" },

@@ -469,6 +469,18 @@ export class VinceXSentimentService extends Service {
     const query = buildSentimentQuery(asset);
     const since = getSentimentSince();
     const sortOrder = getSentimentSortOrder();
+    if ("getPostCountsRecent" in xResearch && typeof xResearch.getPostCountsRecent === "function") {
+      try {
+        const counts = await xResearch.getPostCountsRecent(query, { granularity: "day" });
+        const total = counts.reduce((s, b) => s + (b.tweet_count ?? 0), 0);
+        if (total === 0) {
+          logger.debug({ asset, query }, "[VinceXSentimentService] tweet volume 0, skipping full search");
+          return; // keep previous cache
+        }
+      } catch {
+        // proceed with full search
+      }
+    }
     const tweets =
       "searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function"
         ? await xResearch.searchForSentiment(query, { pages: 2, since, sortOrder, tokenIndex: assetIndex })

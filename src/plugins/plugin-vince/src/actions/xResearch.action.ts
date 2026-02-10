@@ -16,8 +16,12 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import type { VinceXResearchService } from "../services/xResearch.service";
-import type { XTweet } from "../services/xResearch.service";
+import type {
+  VinceXResearchService,
+  XTweet,
+  SpaceSummary,
+  ListSummary,
+} from "../services/xResearch.service";
 import { buildSentimentQuery } from "../services/xSentiment.service";
 import { simpleSentiment } from "../utils/xSentimentLogic";
 
@@ -46,10 +50,24 @@ const TWEET_TRIGGER_PATTERNS = [
   /^\d{15,}$/, // bare tweet ID
 ];
 
-type Intent = "search" | "profile" | "thread" | "tweet";
+type Intent = "search" | "profile" | "thread" | "tweet" | "spaces" | "lists_owned" | "lists_memberships" | "mentions";
+
+const SPACES_TRIGGER_PATTERNS = [
+  /spaces\s+about\s+/i,
+  /upcoming\s+spaces\s+(?:about\s+)?/i,
+  /(?:find\s+)?spaces\s+(?:about|on)\s+/i,
+];
+
+const LISTS_OWNED_PATTERNS = [/what\s+lists?\s+does\s+@?(\w+)\s+(?:have|own)/i, /(?:list|lists)\s+(?:that\s+)?@?(\w+)\s+owns?/i];
+const LISTS_MEMBERSHIPS_PATTERNS = [/what\s+lists?\s+(?:is|are)\s+@?(\w+)\s+in/i, /what\s+lists?\s+include\s+@?(\w+)/i, /lists?\s+@?(\w+)\s+is\s+in/i];
+const MENTIONS_PATTERNS = [/what\s+(?:are\s+people\s+saying\s+to|do\s+people\s+say\s+to)\s+@?(\w+)/i, /mentions?\s+(?:for\s+)?@?(\w+)/i];
 
 function detectIntent(text: string): Intent {
   const t = text.trim();
+  if (LISTS_OWNED_PATTERNS.some((re) => re.test(t))) return "lists_owned";
+  if (LISTS_MEMBERSHIPS_PATTERNS.some((re) => re.test(t))) return "lists_memberships";
+  if (MENTIONS_PATTERNS.some((re) => re.test(t))) return "mentions";
+  if (SPACES_TRIGGER_PATTERNS.some((re) => re.test(t))) return "spaces";
   // Thread: URL or "thread for tweet X" / "get thread X"
   if (THREAD_TRIGGER_PATTERNS.some((re) => re.test(t))) return "thread";
   // Tweet: "get tweet 123" or bare long numeric
@@ -59,6 +77,39 @@ function detectIntent(text: string): Intent {
   // Search: existing patterns
   if (SEARCH_TRIGGER_PATTERNS.some((re) => re.test(t))) return "search";
   return "search";
+}
+
+function extractSpacesQuery(text: string): string {
+  const m = text.match(/spaces\s+about\s+["']?([^"'\n.?]+)/i);
+  if (m?.[1]) return m[1].trim();
+  const m2 = text.match(/upcoming\s+spaces\s+(?:about\s+)?["']?([^"'\n.?]*)/i);
+  if (m2?.[1]) return m2[1].trim() || "crypto";
+  const m3 = text.match(/spaces\s+(?:about|on)\s+["']?([^"'\n.?]+)/i);
+  if (m3?.[1]) return m3[1].trim();
+  return "crypto";
+}
+
+function extractUsernameForListsOrMentions(text: string, intent: "lists_owned" | "lists_memberships" | "mentions"): string | null {
+  const t = text.trim();
+  if (intent === "lists_owned") {
+    for (const re of LISTS_OWNED_PATTERNS) {
+      const m = t.match(re);
+      if (m?.[1]) return m[1].trim();
+    }
+  }
+  if (intent === "lists_memberships") {
+    for (const re of LISTS_MEMBERSHIPS_PATTERNS) {
+      const m = t.match(re);
+      if (m?.[1]) return m[1].trim();
+    }
+  }
+  if (intent === "mentions") {
+    for (const re of MENTIONS_PATTERNS) {
+      const m = t.match(re);
+      if (m?.[1]) return m[1].trim();
+    }
+  }
+  return extractUsername(text);
 }
 
 function extractTweetId(text: string): string | null {
@@ -297,9 +348,12 @@ async function getLLMConclusion(
     qualityUsedFallback?: boolean;
     usingLowEngagementSample?: boolean;
     sentimentSummary?: string;
+    /** One-line tweet volume context (e.g. "Tweet volume last 24h: ~12K posts"). */
+    volumeSummary?: string;
   } = {},
 ): Promise<string | null> {
   if (!tweetSample.trim()) return null;
+  const volumeNote = opts.volumeSummary ? `Tweet volume: ${opts.volumeSummary}\n\n` : "";
   const lowEngagementNote =
     opts.usingLowEngagementSample
       ? " This sample passed the quality bar but has low engagement (few likes/impressions). Say so in one short line and give an indicative read, not \"no signal.\"\n\n"
@@ -332,7 +386,7 @@ CRITICAL — OUTPUT SHAPE:
 - Voice: concrete, no filler ("leverage", "notably", "it's worth noting"). Take positions.
 
 Query: ${query}. Sample: ${postCount} posts. (L R) = likes, retweets. [curated] = from quality list.
-${sourceNote}${fallbackBarNote}${lowEngagementNote}${qualityNote}${engagementNote}${opts.sentimentSummary ?? ""}${opts.sentimentSummary ? "\n\n" : ""}Posts:
+${volumeNote}${sourceNote}${fallbackBarNote}${lowEngagementNote}${qualityNote}${engagementNote}${opts.sentimentSummary ?? ""}${opts.sentimentSummary ? "\n\n" : ""}Posts:
 
 ${tweetSample}
 
@@ -407,6 +461,96 @@ Write the briefing:`;
   }
 }
 
+/** ALOHA-style short narrative for Spaces results. Returns null on error. */
+async function getSpacesBriefing(
+  runtime: IAgentRuntime,
+  query: string,
+  spaces: SpaceSummary[],
+): Promise<string | null> {
+  const lines = spaces.slice(0, 10).map((s) => {
+    const when = s.scheduled_start ?? s.started_at ?? "";
+    const title = s.title?.trim() || "Untitled";
+    return `${title} — ${s.state ?? "?"}${when ? ` (${when.slice(0, 16)})` : ""}`;
+  });
+  const data = lines.join("\n");
+  const prompt = `You are VINCE. Someone asked about Spaces for "${query}". Here are the Spaces:
+
+${data}
+
+Write 2–4 sentences: what's on offer, what's live vs scheduled, and whether it's worth tuning in. Coffee-chat voice, no bullets, no filler. Same style as ALOHA—flow naturally, take a position.`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    return text.trim() || null;
+  } catch (e) {
+    logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] getSpacesBriefing skipped");
+    return null;
+  }
+}
+
+/** ALOHA-style short narrative for list discovery. Returns null on error. */
+async function getListDiscoveryBriefing(
+  runtime: IAgentRuntime,
+  username: string,
+  lists: ListSummary[],
+  intent: "lists_owned" | "lists_memberships",
+): Promise<string | null> {
+  const verb = intent === "lists_owned" ? "owns" : "is in";
+  const lines = lists.slice(0, 15).map((l) => `${l.name ?? l.id} — ${l.member_count ?? 0} members`);
+  const data = lines.join("\n");
+  const prompt = `You are VINCE. Someone asked what lists @${username} ${verb}. Here are the lists:
+
+${data}
+
+Write 2–4 sentences: what these lists suggest about their interests or curation, and why it might matter for research. Coffee-chat voice, no bullets. Same style as ALOHA—flow naturally, take a position.`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    return text.trim() || null;
+  } catch (e) {
+    logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] getListDiscoveryBriefing skipped");
+    return null;
+  }
+}
+
+/** ALOHA-style briefing for mentions timeline. Returns null on error. */
+async function getMentionsBriefing(
+  runtime: IAgentRuntime,
+  username: string,
+  mentions: XTweet[],
+): Promise<string | null> {
+  if (mentions.length === 0) return null;
+  const maxTweets = 8;
+  const maxChars = 180;
+  const sample = mentions
+    .slice(0, maxTweets)
+    .map((t) => {
+      const text = t.text.length <= maxChars ? t.text : t.text.slice(0, maxChars) + "…";
+      return `@${t.username}: ${text}`;
+    })
+    .join("\n\n");
+  const prompt = `You are VINCE. Someone asked what people are saying to @${username}. Here are recent mentions:
+
+${sample}
+
+Write a briefing: themes, tone (supportive, critical, questions), and one or two standout replies. Same voice as profile briefing—coffee-chat, no bullets, 150–250 words.
+
+STYLE RULES (same as ALOHA):
+- Write like you're explaining to a smart friend over coffee.
+- Don't bullet point anything. Flow naturally.
+- No "Interestingly", "notably", "it's worth noting". Take positions.
+
+Write the briefing:`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    return text.trim() || null;
+  } catch (e) {
+    logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] getMentionsBriefing skipped");
+    return null;
+  }
+}
+
 /** Profile view: longer tweet snippets (260 chars) so posts are readable, not cut off. */
 function formatProfileBriefing(user: any, tweets: XTweet[], limit = 8): string {
   const name = user?.name ?? user?.username ?? "?";
@@ -431,7 +575,7 @@ export const vinceXResearchAction: Action = {
     "WHAT_PEOPLE_SAYING",
   ],
   description:
-    "Search X, get a user's recent tweets, fetch a thread, or a single tweet. Use when the user asks what people are saying on X, search X for something, 'what did @user post?', 'get thread for tweet X', or 'get tweet 123'. Read-only; never posts.",
+    "Search X, get a user's recent tweets, fetch a thread, a single tweet, or X Spaces. Use when the user asks what people are saying on X, search X for something, 'what did @user post?', 'get thread for tweet X', 'get tweet 123', or 'Spaces about BTC'. Read-only; never posts.",
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const svc = runtime.getService("VINCE_X_RESEARCH_SERVICE") as VinceXResearchService | null;
@@ -544,10 +688,129 @@ export const vinceXResearchAction: Action = {
           });
           return { success: false };
         }
+        let reply = formatSingleTweet(tweet);
+        try {
+          const quoted = await svc.getQuotedPosts(tweetId, { maxResults: 10 });
+          if (quoted.length > 0) {
+            const n = quoted.length;
+            const sample = quoted.slice(0, 3);
+            const lines = sample.map((q) => {
+              const snippet = q.text.length > 120 ? q.text.slice(0, 120) + "…" : q.text;
+              return `• **@${q.username}**: ${snippet}`;
+            });
+            reply += `\n\n---\n\n**Quoted by ${n}**\n${lines.join("\n")}`;
+          }
+        } catch {
+          // ignore
+        }
         await callback({
-          text: formatSingleTweet(tweet),
+          text: reply,
           actions: ["VINCE_X_RESEARCH"],
         });
+        return { success: true };
+      }
+
+      if (intent === "spaces") {
+        const spacesQuery = extractSpacesQuery(text);
+        await callback({
+          text: `Searching Spaces for: **${spacesQuery}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const spaces = await svc.searchSpaces(spacesQuery, { state: "all" });
+        if (spaces.length === 0) {
+          await callback({
+            text: `**X Spaces: ${spacesQuery}**\n\nNo Spaces found for that query. (Spaces API may require a specific X API tier.)`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const lines = spaces.slice(0, 5).map((s) => {
+          const when = s.scheduled_start ?? s.started_at ?? "";
+          const title = s.title?.trim() || "Untitled";
+          return `• **${title}** — ${s.state ?? "?"}${when ? ` (${when.slice(0, 16)})` : ""}`;
+        });
+        const spacesNarrative = await getSpacesBriefing(runtime, spacesQuery, spaces);
+        const reply =
+          spacesNarrative?.trim()
+            ? `**Spaces: ${spacesQuery}**\n\n${spacesNarrative}\n\n---\n\n**Spaces**\n${lines.join("\n")}\n\n_X API Spaces (read-only)._`
+            : `**Upcoming / recent Spaces: ${spacesQuery}**\n\n${lines.join("\n")}\n\n_X API Spaces (read-only)._`;
+        await callback({ text: reply, actions: ["VINCE_X_RESEARCH"] });
+        return { success: true };
+      }
+
+      if (intent === "lists_owned" || intent === "lists_memberships") {
+        const username = extractUsernameForListsOrMentions(text, intent);
+        if (!username) {
+          await sendError("Specify a username, e.g. “what lists does @user have” or “what lists is @user in”.");
+          return { success: false };
+        }
+        await callback({
+          text: `Looking up lists for **@${username}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const userId = await svc.getUserIdByUsername(username);
+        if (!userId) {
+          await callback({
+            text: `User **@${username}** not found or not accessible.`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const lists =
+          intent === "lists_owned"
+            ? await svc.getOwnedLists(userId)
+            : await svc.getListMemberships(userId);
+        const label = intent === "lists_owned" ? `Lists **@${username}** owns` : `Lists **@${username}** is in`;
+        if (lists.length === 0) {
+          await callback({
+            text: `${label}\n\nNo lists found. (Some list endpoints may require a specific X API tier.)`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const lines = lists.slice(0, 15).map((l) => `• **${l.name ?? l.id}** — ${l.member_count ?? 0} members`);
+        const listNarrative = await getListDiscoveryBriefing(runtime, username, lists, intent);
+        const reply =
+          listNarrative?.trim()
+            ? `**${label}**\n\n${listNarrative}\n\n---\n\n**Lists**\n${lines.join("\n")}\n\n_X API list discovery (read-only)._`
+            : `${label}\n\n${lines.join("\n")}\n\n_X API list discovery (read-only)._`;
+        await callback({ text: reply, actions: ["VINCE_X_RESEARCH"] });
+        return { success: true };
+      }
+
+      if (intent === "mentions") {
+        const username = extractUsernameForListsOrMentions(text, "mentions");
+        if (!username) {
+          await sendError("Specify a username, e.g. “what are people saying to @user”.");
+          return { success: false };
+        }
+        await callback({
+          text: `Fetching mentions for **@${username}**…`,
+          actions: ["VINCE_X_RESEARCH"],
+        });
+        const userId = await svc.getUserIdByUsername(username);
+        if (!userId) {
+          await callback({
+            text: `User **@${username}** not found or not accessible.`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const mentions = await svc.getMentions(userId, { maxResults: 15 });
+        if (mentions.length === 0) {
+          await callback({
+            text: `**Mentions for @${username}**\n\nNo recent mentions found. (Mentions timeline may require OAuth or a specific X API tier.)`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const mentionsNarrative = await getMentionsBriefing(runtime, username, mentions);
+        const sampleMentions = formatTweetsForBriefing(mentions, 5, 160);
+        const reply =
+          mentionsNarrative?.trim()
+            ? `**What people are saying to @${username}**\n\n${mentionsNarrative}\n\n---\n\n**Sample mentions**\n${sampleMentions}\n\n_X API mentions (read-only)._`
+            : `**What people are saying to @${username}**\n\n${sampleMentions}\n\n_X API mentions (read-only)._`;
+        await callback({ text: reply, actions: ["VINCE_X_RESEARCH"] });
         return { success: true };
       }
 
@@ -709,6 +972,14 @@ export const vinceXResearchAction: Action = {
         if (used24h) sourceParts.push("last 24h used for better signal");
         if (usedListFeed) sourceParts.push("curated list feed included");
         sourceParts.push("no tweets met quality bar or had 5+ likes / 100+ impressions");
+        try {
+          const usage = await svc.getUsage();
+          if (usage?.summary && usage.used != null && usage.cap != null && usage.cap > 0 && usage.used / usage.cap >= 0.75) {
+            sourceParts.push(usage.summary);
+          }
+        } catch {
+          // ignore
+        }
         const sourceLine = sourceParts.join("; ") + ".";
         const tickerHint = KNOWN_TICKERS.has(rawQuery.trim().toUpperCase())
           ? " Use on-chain data, funding rates, or wait for a clear catalyst."
@@ -724,6 +995,16 @@ export const vinceXResearchAction: Action = {
       const formatted = formatTweetsForBriefing(ordered, opts.limit);
       const sampleForLLM = tweetSampleForLLM(ordered, 20, 200, curatedSet);
       const sentimentResult = isTickerVibe ? quickSentimentFromTweets(ordered) : null;
+      let volumeSummary: string | undefined;
+      try {
+        if (isTickerVibe || KNOWN_TICKERS.has(rawQuery.trim().toUpperCase())) {
+          const counts = await svc.getPostCountsRecent(rawQuery, { granularity: "day" });
+          const total = counts.reduce((s, b) => s + (b.tweet_count ?? 0), 0);
+          if (total > 0) volumeSummary = total >= 1000 ? `last 24h: ~${(total / 1000).toFixed(1)}K posts` : `last 24h: ${total} posts`;
+        }
+      } catch {
+        // ignore
+      }
       const conclusion = await getLLMConclusion(runtime, rawQuery, sampleForLLM, ordered.length, {
         hasQualityList: qualityHandles.length > 0,
         engagementSummary: engSummary,
@@ -732,6 +1013,7 @@ export const vinceXResearchAction: Action = {
         qualityUsedFallback: qualityUsedFallback,
         usingLowEngagementSample: usingLowEngagementSample,
         sentimentSummary: sentimentResult?.summary,
+        volumeSummary,
       });
       const samplePosts = formatTweetsForBriefing(ordered, 5);
       const sourceParts: string[] = ["X API (read-only)"];
@@ -742,6 +1024,14 @@ export const vinceXResearchAction: Action = {
       else sourceParts.push("5K+ followers or 50+ likes");
       if (usingLowEngagementSample) sourceParts.push("low engagement sample (quality bar met; treat as indicative)");
       else sourceParts.push("5+ likes or 100+ impressions for sample");
+      try {
+        const usage = await svc.getUsage();
+        if (usage?.summary && usage.used != null && usage.cap != null && usage.cap > 0 && usage.used / usage.cap >= 0.75) {
+          sourceParts.push(usage.summary);
+        }
+      } catch {
+        // ignore
+      }
       const sourceLine = sourceParts.join("; ") + ".";
       const lowSignalTip =
         !used24h && !usedListFeed && (engSummary.includes("0 likes") || engSummary.includes("No posts"))

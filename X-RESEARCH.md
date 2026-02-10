@@ -63,20 +63,25 @@ See [docs/X-API.md](docs/X-API.md) for quotas, spending limits, and the optional
 
 **Agents:** VINCE, Solus (and any agent using plugin-vince with `X_BEARER_TOKEN` set).
 
-**Action:** **VINCE_X_RESEARCH** — one action, four intents:
+**Action:** **VINCE_X_RESEARCH** — one action, multiple intents (search, profile, thread, tweet, Spaces, list discovery, mentions):
 
 | Intent | Example prompts | What runs |
 |--------|------------------|-----------|
 | **Search** | “What are people saying about BNKR?”, “Search X for HYPERSURFACE options”, “What’s CT saying about Echo?” | Search API → top tweets by likes (or recency if “last 24h” etc.) → sourced briefing in chat. |
 | **Profile** | “What did @user post recently?”, “Profile @user”, “Recent tweets from @foo” | User lookup + recent tweets (excl. replies) → short summary in chat. |
 | **Thread** | “Get thread for tweet 123…”, “Thread https://x.com/…/status/123…” | Conversation by ID → thread tweets in chat. |
-| **Tweet** | “Get tweet 123…”, single tweet ID | Single tweet by ID. |
+| **Tweet** | “Get tweet 123…”, single tweet ID | Single tweet by ID; optional "Quoted by N" and sample quotes. |
+| **Spaces** | "Spaces about BTC", "Upcoming Spaces about crypto" | Spaces search; tier-dependent. |
+| **List discovery** | "What lists does @user have?", "What lists is @user in?" | Owned lists or list memberships. |
+| **Mentions** | "What are people saying to @user?", "Mentions for @user" | Mentions timeline. |
 
 **Optional NL in search:** “Last 24h”, “past 7d”, “most recent”, “top 5” / “first 10” are parsed and applied when possible.
 
 **Caching:** Search results are cached 15 minutes (runtime cache) so repeat identical queries in chat don’t hit the API again.
 
 **Not in-chat:** Watchlist (add/remove/check) and saving research to a file. Use the CLI for those.
+
+**X API features used (plugin-vince):** Search, posts by IDs, user/timeline, lists (by ID, posts, members) — Bearer. Usage (`getUsage`), post counts (`getPostCountsRecent`), quoted posts (`getQuotedPosts`), list discovery (`getOwnedLists`, `getListMemberships`), mentions (`getMentions`) — Bearer when XDK exposes. Filtered stream (`streamFilteredStream`, `getStreamRules`, `updateStreamRules`) and Spaces (`searchSpaces`, `getSpacesByIds`) require Pro or tier that includes them.
 
 ---
 
@@ -100,6 +105,8 @@ So: **one cache file**; filled by either the in-app timer or the cron script (or
 **Pay-per-use (Feb 2026+).** X API moved to pay-per-use pricing: no Basic/Pro/Enterprise tiers or monthly subscriptions. You use prepaid credits and set spending limits in the [Developer Console](https://console.x.com). One token can run: (1) in-chat **VINCE_X_RESEARCH** for single-shot queries, (2) **X vibe check** for BTC, ETH, SOL, HYPE (staggered one asset per hour by default), and (3) the **CLI** (`skills/x-research`) for multi-query research and watchlist. Same “what’s CT saying?” signal we use as our **#1 news source** and **#1 sentiment signal** in the dashboard and paper algo.
 
 **Rate limits and 429s.** We share one Bearer token across in-chat, vibe check, and CLI. With pay-per-use, limits are primarily controlled by your spending limits in the Developer Console (the old 450/300 requests-per-15-min caps from the subscription model may no longer apply). When we hit a 429, the vibe-check service backs off and logs “X API rate limited. Skipping refresh for N min”; we keep serving cached (or neutral) sentiment until the reset window (check `x-rate-limit-reset` header when debugging). So: **in-app** we stagger to one asset per hour (default) so we never burst—e.g. 24 assets = full cycle every 24h; **in-chat** we cache search results 15 min so repeat queries don’t burn quota; **cron** can run one asset per hour (or per interval) to match. **If you still hit 429s with one or two tokens**, use **four separate sentiment tokens** (one per asset): set `X_BEARER_TOKEN_SENTIMENT=token1,token2,token3,token4` or `X_BEARER_TOKEN_SENTIMENT_1` … `_4` in `.env` so each asset uses its own token and cooldowns are per-token (see **Bearer tokens** above). Limitations in practice: we can’t run high-frequency vibe checks for many assets at once; adding HIP-3 stocks, airdrop alpha, and left-curve memetics to vibe check will require either more sophisticated prompt design (fewer, smarter queries) or accepting longer refresh cycles / prioritising which buckets get refreshed when. We’re working on richer prompt design to get more signal per request.
+
+**Usage visibility.** When the XDK exposes the usage API (`client.usage.get()`), the in-chat search reply can show a one-line usage summary (e.g. "X API: 380/450 this window") when usage is high (≥75% of cap). The service method `VinceXResearchService.getUsage()` returns `{ cap, used, reset, summary }` or `null` and is available for Sentinel or cost dashboards to report X API usage.
 
 **Used by Grok Expert and daily report:** When Grok Expert or the daily report task is enabled, cached X sentiment is included in their data context so the pulse and daily report can reference CT sentiment (e.g. "X bullish on BTC, neutral ETH"). When `GROK_SUB_AGENTS_ENABLED` is set, each of the six sub-agent prompts receives the same cached X vibe summary in its context. Grok Expert requires `XAI_API_KEY` in `.env` (see [.env.example](.env.example)); the daily report uses the default model. No extra X API usage.
 
