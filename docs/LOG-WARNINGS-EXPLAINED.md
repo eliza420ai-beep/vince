@@ -25,3 +25,15 @@
 **Impact:** The plugin retries (e.g. up to 3 times). Often a retry succeeds or the operation is skipped; sometimes you see a short burst of these warnings. No data corruption.
 
 **If you want to reduce noise:** The log-filter plugin is configured to suppress these (they’re in `SUPPRESS_ERROR_PATTERNS`). If they still appear, the SQL plugin may be using a child logger that isn’t patched; you can leave them as-is or tighten suppression. They’re safe to ignore when they’re rare and retries succeed.
+
+---
+
+## 3. `[CORE:UTILS] No entity found for message (entityId=...)`
+
+**What it is:** When formatting recent messages for the LLM, core's `formatPosts` looks up each message's `entityId` in the list of entities for the room. If the sender isn't in that list, it logs this warning once per message (so you can see many in a row).
+
+**Why it happens:** `getEntityDetails({ runtime, roomId })` returns room participants. For Direct / web chat, the user's entity may not be in that list yet when the provider runs.
+
+**Impact:** The message is still formatted (core uses "Unknown User"). No functional failure; the reply is sent correctly. The spam is log noise.
+
+**Mitigation (in this repo):** In RECENT_MESSAGES we now add any message sender missing from the entity list (by fetching with `getEntityById` or a minimal stub) before calling `formatPosts`, so the warning no longer fires.

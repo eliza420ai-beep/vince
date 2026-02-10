@@ -205,7 +205,28 @@ export const recentMessagesProvider: Provider = {
       // Ensure every entity that sent a message is in the room (avoids "No entity found for message")
       await ensureMessageSendersInRoom(runtime, roomId, recentMessagesData);
 
-      const entitiesData = await getEntityDetails({ runtime, roomId });
+      let entitiesData = await getEntityDetails({ runtime, roomId });
+
+      // Ensure every message sender is in entitiesData so core formatPosts doesn't warn "No entity found for message"
+      const senderIds = new Set(
+        recentMessagesData.map((m) => m.entityId).filter(Boolean) as UUID[]
+      );
+      const existingIds = new Set(entitiesData.map((e: Entity) => e.id));
+      for (const eid of senderIds) {
+        if (!existingIds.has(eid)) {
+          const entity = await runtime.getEntityById(eid);
+          if (entity) {
+            entitiesData = [...entitiesData, entity];
+            existingIds.add(eid);
+          } else {
+            entitiesData = [
+              ...entitiesData,
+              { id: eid, names: [eid.slice(0, 8)], agentId: runtime.agentId },
+            ];
+            existingIds.add(eid);
+          }
+        }
+      }
 
       // Separate action results from regular messages
       const actionResultMessages = recentMessagesData.filter(
