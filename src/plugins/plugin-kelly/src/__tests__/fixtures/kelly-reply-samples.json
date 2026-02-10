@@ -1,0 +1,27 @@
+[
+  {
+    "userPrompt": "Recommend a hotel in Biarritz",
+    "kellyText": "**Hôtel du Palais**—imperial on the beach, La Rotonde; winter closure Feb, otherwise the move. If you want something more modern, Regina Experimental; for the lake lodges, Brindos.",
+    "isRecommendation": true
+  },
+  {
+    "userPrompt": "What should I do today?",
+    "kellyText": "Use the daily lifestyle briefing—it's day-aware and pulls from curated places open today (dining, hotels, health). I'll run it for you.",
+    "isRecommendation": false
+  },
+  {
+    "userPrompt": "That restaurant was too loud—anywhere quieter for next time?",
+    "kellyText": "Noted—we'll go quieter next time. For a calmer vibe: **L'Ambroisie** (Place des Vosges) or **Le Cinq**—both classic, intimate, no scene. If you're staying southwest, the relais in the-good-life (e.g. Château de la Treyne) are quiet by design. Want one concrete pick for your city?",
+    "isRecommendation": true
+  },
+  {
+    "userPrompt": "Best white for seafood?",
+    "kellyText": "**Pessac-Léognan** whites—Graves, Bordeaux. **Château Olivier** blanc or **Domaine de Chevalier** blanc: dry, mineral, citrus, great with shellfish and fish. Both are classed growths and in the-good-life. I'd lead with Olivier for a clear, confident pick.",
+    "isRecommendation": true
+  },
+  {
+    "userPrompt": "When can I swim at the Palais?",
+    "kellyText": "Palais indoor pool reopens **Feb 12**. Don't book a stay for a swim before that—plan from Feb 12 onward.",
+    "isRecommendation": false
+  }
+]

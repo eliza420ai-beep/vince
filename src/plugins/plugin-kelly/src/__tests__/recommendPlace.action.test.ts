@@ -42,6 +42,20 @@ describe("KELLY_RECOMMEND_PLACE Action", () => {
       expect(result).toBe(true);
     });
 
+    it("returns true for best restaurant in X", async () => {
+      const runtime = createMockRuntime();
+      const message = createMockMessage("best restaurant in Bordeaux");
+      const result = await kellyRecommendPlaceAction.validate(runtime, message);
+      expect(result).toBe(true);
+    });
+
+    it("returns true for where to stay in X", async () => {
+      const runtime = createMockRuntime();
+      const message = createMockMessage("where to stay in Biarritz");
+      const result = await kellyRecommendPlaceAction.validate(runtime, message);
+      expect(result).toBe(true);
+    });
+
     it("returns false for unrelated message", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("what is the capital of France");
@@ -82,6 +96,33 @@ describe("KELLY_RECOMMEND_PLACE Action", () => {
         callback,
       );
 
+      expect(callback.calls.length).toBeGreaterThan(0);
+      expect(callback.calls[0]?.text).toBeDefined();
+    });
+
+    it("graceful when getCuratedOpenContext returns empty restaurants for the day", async () => {
+      const mockService = {
+        getCuratedOpenContext: () => ({
+          restaurants: [],
+          hotels: ["Relais de la Poste | Magescq"],
+          fitnessNote: "Pool",
+          rawSection: "Wed: no lunch options.",
+        }),
+      };
+      const runtime = createMockRuntime({
+        getService: (name: string) =>
+          name === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
+        composeState: async () => ({
+          values: { kellyDay: "Wednesday" },
+          data: {},
+          text: "No curated restaurants today.",
+        }),
+        useModel: async () =>
+          "No lunch open today in curated list. Check MICHELIN Guide or cook at home. **Relais de la Poste** for a stay.",
+      });
+      const message = createMockMessage("where to eat in Landes");
+      const callback = createMockCallback();
+      await kellyRecommendPlaceAction.handler(runtime, message, createMockState(), {}, callback);
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0]?.text).toBeDefined();
     });

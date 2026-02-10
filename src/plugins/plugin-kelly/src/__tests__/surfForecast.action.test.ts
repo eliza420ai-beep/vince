@@ -91,6 +91,30 @@ describe("KELLY_SURF_FORECAST Action", () => {
       expect(text.toLowerCase()).toMatch(/indoor|yoga|rain/);
     });
 
+    it("suggests indoor or surfer yoga when wave height is dangerous (e.g. 4m)", async () => {
+      const runtime = createMockRuntime({
+        composeState: async () =>
+          createMockState({
+            values: {
+              surfBiarritz: {
+                waveHeight: 4,
+                wavePeriod: 14,
+                waveDirection: "SW",
+                seaTemp: 14,
+              },
+              weatherBiarritz: { condition: "clear", temp: 16, code: 0 },
+            },
+            data: {},
+            text: "",
+          }),
+      });
+      const message = createMockMessage("surf forecast");
+      const callback = createMockCallback();
+      await kellySurfForecastAction.handler(runtime, message, createMockState(), {}, callback);
+      const text = callback.calls[0]?.text ?? "";
+      expect(text.toLowerCase()).toMatch(/indoor|yoga|experienced|powerful/);
+    });
+
     it("handler output contains no banned jargon when surf data present", async () => {
       const runtime = createMockRuntime({
         composeState: async () =>

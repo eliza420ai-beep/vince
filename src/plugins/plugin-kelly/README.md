@@ -52,20 +52,49 @@ If the file is missing or empty, the service logs a warning and returns null for
 
 ## Testing
 
-Run tests from the repo root:
+Run the full Kelly test suite from the repo root:
 
 ```bash
 bun test src/plugins/plugin-kelly
 ```
 
-Coverage includes:
+For slower integration tests, use a longer timeout:
 
-- **Actions:** dailyBriefing, recommendPlace, recommendWine, itinerary, recommendWorkout, weekAhead, swimmingTips, surfForecast (validate + handler with mocks).
-- **Providers:** kellyContext (winter swimming line), weather (mocked fetch).
-- **Service:** KellyLifestyleService (briefing shape, season).
-- **Evaluator:** lifestyleFeedback (validate for Kelly, feedback signals).
-- **Voice/jargon:** BANNED_JARGON and formatInterpretation-style strings; surf handler output checked for no banned jargon.
-- **Integration:** one flow (kellyContext + one action with mocked useModel) to assert callback and content.
+```bash
+bun test src/plugins/plugin-kelly --timeout 30000
+```
+
+### Test files and what they cover
+
+| File | Coverage |
+|------|----------|
+| **test-utils.ts** | Mock runtime with service/composeState, allowlist loading from fixtures. |
+| **kelly.voice-quality.test.ts** | No BANNED_JARGON or filler phrases on every action and provider output; benefit-led/concrete assertions. |
+| **kelly.knowledge-grounded.test.ts** | Recommendations only from allowlist/curated; never-invent places; “open today” for Landes. |
+| **kelly.defaults-and-safety.test.ts** | Lunch default (no dinner out past lunch); Mon/Tue closed; rain/storm = no beach/surf; local weather never names town; winter pool reopen dates. |
+| **kelly.ask-agent-routing.test.ts** | ASK_AGENT examples use reporting pattern (“says”); no “go ask X yourself” deflect phrasing. |
+| **kelly.integration.test.ts** | Flows: “what should I do today” → dailyBriefing (no jargon); “where to eat Landes” → recommendPlace from curated; “that place was too loud” → lifestyleFeedback validate; surf + bad weather → indoor/caution. |
+| **kelly.messageExamples-regression.test.ts** | Fixture-based regression: no jargon/filler on example replies; recommendation examples have concrete picks; ASK_AGENT replies contain “says”. |
+| **lifestyleDaily.tasks.test.ts** | Task registration: KELLY_LIFESTYLE_DAILY and KELLY_NUDGE_WEDNESDAY createTask name/metadata; disabled when env says so. |
+| **health.test.ts** | getKellyHealth: ok when curated schedule present; ok false and message mentions schedule when missing or service absent. |
+| **dailyBriefing.action.test.ts** … **weekAhead.action.test.ts** | Per-action validate + handler; callback shape; edge cases (empty curated, dangerous surf, pool vs gym season, etc.). |
+| **kellyContext.provider.test.ts**, **weather.provider.test.ts** | Provider values and text; Wednesday/January branches; storm and marine API failure. |
+| **lifestyleFeedback.evaluator.test.ts** | Validate (feedback signals); handler createMemory with fact-like payload when useModel returns structured feedback. |
+| **lifestyle.service.test.ts**, **jargon.test.ts** | Service methods; voice/jargon list. |
+
+### 10x definition
+
+The suite locks in: **voice and quality** on every output (no jargon/filler), **knowledge-grounded** recommendations (allowlist/curated only), **safety and defaults** (lunch not dinner, rain/storm no beach, Mon/Tue closed, local weather no town name, winter pool dates), **full action/provider/evaluator** coverage, **conversation flows**, and **messageExamples regression** so character examples stay on-brand. Every change is validated; regressions are caught before deploy.
+
+### CI
+
+If the project uses GitHub Actions (or similar), ensure a job runs:
+
+```bash
+bun test src/plugins/plugin-kelly
+```
+
+so the suite runs on every PR. No new workflow is required if a generic “test” job already exists; include `src/plugins/plugin-kelly` in the test path.
 
 ## Future: KELLY_DISPATCH (optional router)
 

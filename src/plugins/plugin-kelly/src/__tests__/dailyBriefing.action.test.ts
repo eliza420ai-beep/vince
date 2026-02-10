@@ -137,5 +137,21 @@ describe("KELLY_DAILY_BRIEFING Action", () => {
       expect(callback.calls.length).toBe(1);
       expect(callback.calls[0].text).toContain("Lifestyle service is down");
     });
+
+    it("callback has actions array including KELLY_DAILY_BRIEFING when service present", async () => {
+      const lifestyleService = await KellyLifestyleService.start(
+        createMockRuntime() as any,
+      );
+      const runtime = createMockRuntime({
+        getService: (name: string) =>
+          name === "KELLY_LIFESTYLE_SERVICE" ? lifestyleService : null,
+        useModel: async () => "Wednesday. Lunch at Maison Devaux. Pool.",
+      });
+      const message = createMockMessage("what should I do today");
+      const callback = createMockCallback();
+      await kellyDailyBriefingAction.handler(runtime, message, createMockState(), {}, callback);
+      expect(callback.calls.length).toBeGreaterThan(0);
+      expect(callback.calls[0].actions).toEqual(["KELLY_DAILY_BRIEFING"]);
+    });
   });
 });

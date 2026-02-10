@@ -63,5 +63,48 @@ describe("KELLY_RECOMMEND_WORKOUT Action", () => {
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0]?.text).toBeDefined();
     });
+
+    it("pool season returns pool-oriented suggestion, gym season returns gym/yoga", async () => {
+      const mockServicePool = {
+        getCurrentSeason: () => "pool",
+        getWellnessTipOfTheDay: () => "Stretch.",
+        getDailyBriefing: () => ({ day: "wednesday", date: "2025-06-04", suggestions: [], specialNotes: [] }),
+      } as unknown as KellyLifestyleService;
+      const runtimePool = createMockRuntime({
+        getService: (n: string) => (n === "KELLY_LIFESTYLE_SERVICE" ? mockServicePool : null),
+        composeState: async () => ({ values: {}, data: {}, text: "Pool." }),
+        useModel: async () => "1000m in the backyard pool. Then 10 min surfer yoga.",
+      });
+      const callbackPool = createMockCallback();
+      await kellyRecommendWorkoutAction.handler(
+        runtimePool,
+        createMockMessage("workout of the day"),
+        createMockState(),
+        {},
+        callbackPool,
+      );
+      expect(callbackPool.calls[0]?.text?.toLowerCase()).toMatch(/pool|swim|yoga/);
+
+      const mockServiceGym = {
+        getCurrentSeason: () => "gym",
+        getWellnessTipOfTheDay: () => "Stretch.",
+        getDailyBriefing: () => ({ day: "wednesday", date: "2025-02-05", suggestions: [], specialNotes: [] }),
+        getPalacePoolStatusLine: () => "Palais reopens Feb 12.",
+      } as unknown as KellyLifestyleService;
+      const runtimeGym = createMockRuntime({
+        getService: (n: string) => (n === "KELLY_LIFESTYLE_SERVICE" ? mockServiceGym : null),
+        composeState: async () => ({ values: {}, data: {}, text: "Gym season." }),
+        useModel: async () => "Gym or indoor pool at Palais. Surfer yoga 15 min.",
+      });
+      const callbackGym = createMockCallback();
+      await kellyRecommendWorkoutAction.handler(
+        runtimeGym,
+        createMockMessage("today's workout"),
+        createMockState(),
+        {},
+        callbackGym,
+      );
+      expect(callbackGym.calls[0]?.text?.toLowerCase()).toMatch(/gym|yoga|pool|indoor|palais/);
+    });
   });
 });

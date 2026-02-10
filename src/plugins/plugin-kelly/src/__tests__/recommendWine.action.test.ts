@@ -68,5 +68,22 @@ describe("KELLY_RECOMMEND_WINE Action", () => {
       expect(callback.calls[0]?.text).toBeDefined();
       expect(typeof callback.calls[0]?.text).toBe("string");
     });
+
+    it("callback includes at least one concrete name and optional service note", async () => {
+      const runtime = createMockRuntime({
+        composeState: async () => ({
+          values: {},
+          data: {},
+          text: "Bordeaux, Margaux.",
+        }),
+        useModel: async () =>
+          "**Château Olivier** blanc. Serve 8–10 °C. Alternative: **Domaine de Chevalier**.",
+      });
+      const message = createMockMessage("recommend a wine");
+      const callback = createMockCallback();
+      await kellyRecommendWineAction.handler(runtime, message, createMockState(), {}, callback);
+      const text = callback.calls[0]?.text ?? "";
+      expect(text).toMatch(/\*\*[^*]+\*\*|Château|Domaine/);
+    });
   });
 });

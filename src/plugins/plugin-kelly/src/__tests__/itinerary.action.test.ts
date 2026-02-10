@@ -69,5 +69,19 @@ describe("KELLY_ITINERARY Action", () => {
       expect(text).toBeDefined();
       expect(text).toMatch(/Day|day/);
     });
+
+    it("callback or model response includes Day 1 and Day 2 structure", async () => {
+      const runtime = createMockRuntime({
+        composeState: async () => ({ values: {}, data: {}, text: "Bordeaux." }),
+        useModel: async () =>
+          "Day 1 — **Hôtel du Palais**. Lunch **Le Relais**. Day 2 — Lunch **Maison Devaux**, then check out.",
+      });
+      const message = createMockMessage("plan me 2 days in Bordeaux");
+      const callback = createMockCallback();
+      await kellyItineraryAction.handler(runtime, message, createMockState(), {}, callback);
+      const text = callback.calls[0]?.text ?? "";
+      expect(text).toMatch(/Day\s*1|day\s*1/);
+      expect(text).toMatch(/Day\s*2|day\s*2/);
+    });
   });
 });

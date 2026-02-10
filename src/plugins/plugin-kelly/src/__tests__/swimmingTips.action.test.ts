@@ -109,5 +109,30 @@ describe("KELLY_SWIMMING_TIPS Action", () => {
       const text = callback.calls[0]?.text ?? "";
       expect(text).toMatch(/Palais|reopen|Feb/i);
     });
+
+    it("callback references pool, yoga, or winter indoor pools when season is gym", async () => {
+      const mockService = {
+        getCurrentSeason: () => "gym" as const,
+        getPalacePoolReopenDates: () => ({ Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" }),
+        getPalacePoolStatusLine: () => "Palais reopens Feb 12, Caudalie Feb 5.",
+      } as unknown as KellyLifestyleService;
+      const runtime = createMockRuntime({
+        getService: (name: string) =>
+          name === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
+        composeState: async () => ({ values: {}, data: {}, text: "Winter pools, yoga." }),
+        useModel: async () =>
+          "Winter: indoor pool at Palais (reopens Feb 12) or Caudalie. Add swimmer yoga for shoulders and hips.",
+      });
+      const callback = createMockCallback();
+      await kellySwimmingTipsAction.handler(
+        runtime,
+        createMockMessage("tips for my daily 1000m"),
+        createMockState(),
+        {},
+        callback,
+      );
+      const text = callback.calls[0]?.text ?? "";
+      expect(text.toLowerCase()).toMatch(/pool|yoga|indoor|winter|palais|caudalie/);
+    });
   });
 });

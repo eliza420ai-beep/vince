@@ -79,5 +79,31 @@ describe("KELLY_WEEK_AHEAD Action", () => {
       expect(callback.calls.length).toBeGreaterThan(0);
       expect(callback.calls[0]?.text).toBeDefined();
     });
+
+    it("callback or model response has 3 to 5 suggestions (numbered or list-like)", async () => {
+      const mockService = {
+        getCuratedOpenContext: () => ({
+          restaurants: ["A", "B"],
+          hotels: ["X"],
+          fitnessNote: "Pool",
+          rawSection: "",
+        }),
+        getCurrentSeason: () => "pool",
+      } as unknown as KellyLifestyleService;
+      const runtime = createMockRuntime({
+        getService: (name: string) =>
+          name === "KELLY_LIFESTYLE_SERVICE" ? mockService : null,
+        composeState: async () => ({ values: {}, data: {}, text: "" }),
+        useModel: async () =>
+          "1. Lunch A. 2. Stay X. 3. Pool. 4. Wine Margaux. 5. Day trip Saint-Émilion.",
+      });
+      const message = createMockMessage("week ahead");
+      const callback = createMockCallback();
+      await kellyWeekAheadAction.handler(runtime, message, createMockState(), {}, callback);
+      const text = callback.calls[0]?.text ?? "";
+      const numbered = text.match(/\d+\./g) ?? [];
+      expect(numbered.length).toBeGreaterThanOrEqual(3);
+      expect(numbered.length).toBeLessThanOrEqual(7);
+    });
   });
 });

@@ -88,4 +88,32 @@ describe("WEATHER Provider", () => {
     const text = result?.text ?? "";
     expect(text.toLowerCase()).toMatch(/indoor|rain|do not recommend|beach|surf/);
   });
+
+  it("storm (code 95+) yields do not recommend or indoor in text", async () => {
+    globalThis.fetch = async (url: string) => {
+      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      return Response.json(openMeteoCurrent(95));
+    };
+
+    const runtime = createMockRuntime();
+    const message = createMockMessage("what should I do today");
+    const result = await weatherProvider.get(runtime, message);
+
+    const text = (result?.text ?? "").toLowerCase();
+    expect(text).toMatch(/indoor|do not recommend|storm|thunder|beach|surf/);
+  });
+
+  it("marine API failure or empty response does not crash, returns result or check conditions", async () => {
+    globalThis.fetch = async (url: string) => {
+      if ((url as string).includes("marine-api")) return Response.json({});
+      return Response.json(openMeteoCurrent(0));
+    };
+
+    const runtime = createMockRuntime();
+    const message = createMockMessage("surf forecast");
+    const result = await weatherProvider.get(runtime, message);
+
+    expect(result).toBeDefined();
+    expect(() => result).not.toThrow();
+  });
 });

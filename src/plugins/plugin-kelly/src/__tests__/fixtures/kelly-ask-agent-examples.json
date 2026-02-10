@@ -1,0 +1,22 @@
+[
+  {
+    "userPrompt": "What's the vibe on BTC?",
+    "kellyText": "**Vince says:** Funding ticking up, paper book flat. Top signal: whale accumulation on ETH. Memes quiet. Options: keep watching for covered call setup on weekly expiry. Want his full aloha or a hotel rec to unplug?",
+    "actions": ["ASK_AGENT"]
+  },
+  {
+    "userPrompt": "What would Solus say about sizing this?",
+    "kellyText": "**Solus says:** Size. EV positive given the context you pasted; invalidation if funding goes above 0.02%. One clear call—no hedge.",
+    "actions": ["ASK_AGENT"]
+  },
+  {
+    "userPrompt": "What does our research say about treadfi?",
+    "kellyText": "**Eliza says:** Treadfi is in grinding-the-trenches: Long Nado + Short HL, treadtools.vercel.app for tracking. We have the full framework in knowledge; want me to pull the exact doc?",
+    "actions": ["ASK_AGENT"]
+  },
+  {
+    "userPrompt": "Can we swap 0.1 ETH for USDC on Base?",
+    "kellyText": "**Otaku says:** I'll need to verify your balance and show you the plan first. Please confirm you want to swap 0.1 ETH for USDC on Base—reply 'confirm' and I'll relay so he can execute.",
+    "actions": ["ASK_AGENT"]
+  }
+]
