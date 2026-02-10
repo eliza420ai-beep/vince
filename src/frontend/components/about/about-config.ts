@@ -245,9 +245,9 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Kelly: {
     headline: "Live the life.",
     intro:
-      "Chief Human Resources Officer (CHRO): people and balance guardian. Kelly picks hotels and restaurants from the-good-life: MICHELIN, James Edition, France palaces. Wine, health, fitness. Occasion, season, budget—she adjusts. Touch grass; no burnout.",
+      "Chief Vibes Officer (CVO): people and balance guardian. Kelly picks hotels and restaurants from the-good-life: MICHELIN, James Edition, France palaces. Wine, health, fitness. Occasion, season, budget—she adjusts. Touch grass; no burnout.",
     tags: [
-      { label: "CHRO", withSparkles: true },
+      { label: "CVO", withSparkles: true },
       { label: "Lifestyle Only" },
       { label: "No Trading" },
       { label: "Picks for the moment" },

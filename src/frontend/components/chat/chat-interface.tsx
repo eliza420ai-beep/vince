@@ -151,9 +151,9 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
   ],
-  // Kelly (CHRO): people and balance, lifestyle, touch grass.
+  // Kelly (CVO): people and balance, lifestyle, touch grass.
   kelly: [
-    { label: "What can the CHRO do?", message: "What can you do?" },
+    { label: "What can the CVO do?", message: "What can you do?" },
     { label: "Daily Briefing", message: "What should I do today?" },
     { label: "Restaurant & Hotel", message: "Recommend a restaurant in Biarritz" },
     { label: "Wine", message: "Recommend a wine for tonight" },
