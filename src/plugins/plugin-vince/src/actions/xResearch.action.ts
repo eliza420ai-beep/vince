@@ -107,10 +107,20 @@ function extractQuery(text: string): string {
 /** Known tickers we expand to X search query (e.g. BTC → $BTC OR Bitcoin) so results are about the asset, not random tweets that mention the ticker. */
 const KNOWN_TICKERS = new Set(["BTC", "ETH", "SOL", "HYPE", "DOGE", "PEPE"]);
 
+/** Crypto noise exclusions from SKILL.md: reduce giveaway/spam so the sample has more signal. */
+const CRYPTO_NOISE_EXCLUSIONS = " -airdrop -giveaway -whitelist -presale";
+
 function expandQueryForSearch(rawQuery: string): string {
   const upper = rawQuery.trim().toUpperCase();
   if (KNOWN_TICKERS.has(upper)) return buildSentimentQuery(upper);
   return rawQuery.trim();
+}
+
+/** Append noise exclusions for crypto/ticker queries so we get more real discussion and less spam. */
+function appendNoiseExclusions(query: string, rawQuery: string): string {
+  const upper = rawQuery.trim().toUpperCase();
+  if (KNOWN_TICKERS.has(upper)) return `${query.trim()}${CRYPTO_NOISE_EXCLUSIONS}`;
+  return query.trim();
 }
 
 /** Parse optional search options from natural language (last 24h, by likes, top 5, more pages). */
@@ -154,16 +164,37 @@ function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
   return lines.join("\n");
 }
 
-/** Build a short sample of tweet texts for LLM conclusion (truncated to avoid token overflow). Includes (L R) engagement. */
-function tweetSampleForLLM(tweets: XTweet[], maxTweets = 20, maxCharsPerTweet = 200): string {
+/** Build a short sample of tweet texts for LLM conclusion (truncated to avoid token overflow). Includes (L R) engagement. Optionally marks curated handles so the LLM can weight signal. */
+function tweetSampleForLLM(
+  tweets: XTweet[],
+  maxTweets = 20,
+  maxCharsPerTweet = 200,
+  curatedHandles?: Set<string>,
+): string {
   const lines: string[] = [];
   for (let i = 0; i < Math.min(tweets.length, maxTweets); i++) {
     const t = tweets[i];
     const text = t.text.length > maxCharsPerTweet ? t.text.slice(0, maxCharsPerTweet) + "…" : t.text;
     const eng = `(L${t.metrics.likes} R${t.metrics.retweets})`;
-    lines.push(`@${t.username}: ${text} ${eng}`);
+    const curated =
+      curatedHandles && curatedHandles.has((t.username || "").toLowerCase()) ? "[curated] " : "";
+    lines.push(`${curated}@${t.username}: ${text} ${eng}`);
   }
   return lines.join("\n\n");
+}
+
+/** One-line engagement summary so the LLM knows signal vs noise without inferring from every (L R). */
+function engagementSummary(tweets: XTweet[], maxSample = 20): string {
+  const slice = tweets.slice(0, maxSample);
+  if (slice.length === 0) return "No posts.";
+  const likes = slice.map((t) => t.metrics.likes);
+  const zeroLike = likes.filter((l) => l === 0).length;
+  const lowLike = likes.filter((l) => l > 0 && l < 10).length;
+  const highLike = likes.filter((l) => l >= 50).length;
+  if (highLike > 0) return `${highLike} post(s) with 50+ likes; ${zeroLike} with 0 likes.`;
+  if (zeroLike === slice.length) return "All posts have 0 likes (no engagement).";
+  if (zeroLike >= slice.length * 0.7) return `Most posts (${zeroLike}/${slice.length}) have 0 likes; low engagement.`;
+  return `${lowLike} low-engagement, ${zeroLike} zero-like.`;
 }
 
 /** Ask the LLM for an ALOHA-style narrative from the tweet sample. Returns null if model unavailable. */
@@ -172,36 +203,34 @@ async function getLLMConclusion(
   query: string,
   tweetSample: string,
   postCount: number,
+  opts: { hasQualityList?: boolean; engagementSummary?: string } = {},
 ): Promise<string | null> {
   if (!tweetSample.trim()) return null;
-  const prompt = `You are VINCE. Someone asked what people are saying on X about "${query}". You've got a batch of recent posts below. Write your take like you're texting a friend who cares about the space.
+  const qualityNote = opts.hasQualityList
+    ? " Results are reordered so tweets from a curated quality list appear first; use that to weight signal vs general noise.\n\n"
+    : "";
+  const engagementNote =
+    opts.engagementSummary && opts.engagementSummary !== "No posts."
+      ? `Engagement in this sample: ${opts.engagementSummary}\n\n`
+      : "";
 
-Query: ${query}. Sample: ${postCount} posts (last 7 days). Numbers in parentheses are likes and retweets (L R).
+  const prompt = `You are VINCE. Someone asked what people are saying on X about "${query}". Your job: give a short, actionable vibe read. Lead with the take (what to do or expect), then support.
 
-Posts:
+CRITICAL — OUTPUT SHAPE:
+- First 1–2 sentences: the read. What's the vibe and what would you do? (e.g. "Dead zone—no edge from this feed. I'd sit or wait for a clearer catalyst.")
+- If the sample is mostly spam or zero engagement: say so in one short line, then still give your best read from context (price level, regime, "quiet before a move") and one concrete way to get a sharper signal (e.g. "Try 'last 24h' or a curated list"). Do NOT write multiple paragraphs about how bad the data is.
+- If there is real signal: 2–4 more sentences on themes, standout takes (use L R when something got traction), and one clear takeaway.
+- Voice: concrete, no filler ("leverage", "notably", "it's worth noting"). Take positions.
+
+Query: ${query}. Sample: ${postCount} posts (last 7 days). (L R) = likes, retweets. [curated] = from a quality list; weight those.
+${qualityNote}${engagementNote}Posts:
 
 ${tweetSample}
 
-Write a briefing that covers:
-1. The overall vibe — what's the mood? Start with your gut take.
-2. Main themes — connect the dots; don't list mechanically. If everyone's saying the same thing, say that. If there's a contrarian take, highlight it.
-3. Standout or viral takes if any — use the (L R) numbers when something got real traction.
-4. One clear takeaway or opinion — what would you do with this?
-
-STYLE RULES:
-- Write like you're explaining this to a smart friend over coffee, not presenting to a board.
-- Vary your sentence length. Mix short punchy takes with longer explanations when you need to unpack something.
-- Weave in specifics (e.g. "the post that blew up was…").
-- Don't bullet point anything. Flow naturally between thoughts.
-- Skip the formal structure. No headers, no "In conclusion", no "Overall".
-- Have a personality. If the feed is boring, say it. If something seems off, say it.
-- Don't be sycophantic or hedge everything. Take positions.
-- Around 150–250 words. Don't pad it.
-
-AVOID:
-- "Interestingly", "notably", "it's worth noting"
-- Generic observations that could apply to any topic
-- Repeating the same sentence structure over and over
+RULES:
+- Lead with the take. Support after. When data is thin, be brief and still useful (read + one next step).
+- Don't over-explain that the sample is useless. One line max, then pivot to read and suggestion.
+- No headers, no "In conclusion". Flow. 80–180 words; shorter when the feed is noise.
 
 Write the briefing:`;
   try {
@@ -344,7 +373,7 @@ export const vinceXResearchAction: Action = {
 
       // search (default)
       const rawQuery = extractQuery(text);
-      const query = expandQueryForSearch(rawQuery);
+      const query = appendNoiseExclusions(expandQueryForSearch(rawQuery), rawQuery);
       const opts = parseSearchOptions(text);
       await callback({
         text: `Searching X for: **${rawQuery}**…`,
@@ -356,16 +385,40 @@ export const vinceXResearchAction: Action = {
         sortOrder: opts.since ? "recency" : "relevancy",
         since: opts.since ?? "7d",
       });
-      const sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
+      let sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
       const qualityHandles = await svc.getQualityAccountHandles();
-      const ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
+      let ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
+      let engSummary = engagementSummary(ordered);
+      // Recency fallback: when first run is all zeros, try recency sort for fresher discussion (SKILL: refinement).
+      if (engSummary === "All posts have 0 likes (no engagement)." && !opts.since) {
+        const recencyTweets = await svc.search(query, {
+          maxResults: Math.min(100, Math.max(opts.limit, 20)),
+          pages: opts.pages ?? 1,
+          sortOrder: "recency",
+          since: "7d",
+        });
+        const byId = new Map(ordered.map((t) => [t.id, t]));
+        for (const t of recencyTweets) if (!byId.has(t.id)) byId.set(t.id, t);
+        const merged = Array.from(byId.values());
+        sorted = svc.sortBy(merged, "likes");
+        ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
+        engSummary = engagementSummary(ordered);
+      }
+      const curatedSet = qualityHandles.length > 0 ? new Set(qualityHandles.map((h) => h.toLowerCase())) : undefined;
       const formatted = formatTweetsForBriefing(ordered, opts.limit);
-      const sampleForLLM = tweetSampleForLLM(ordered, 20, 200);
-      const conclusion = await getLLMConclusion(runtime, rawQuery, sampleForLLM, ordered.length);
+      const sampleForLLM = tweetSampleForLLM(ordered, 20, 200, curatedSet);
+      const conclusion = await getLLMConclusion(runtime, rawQuery, sampleForLLM, ordered.length, {
+        hasQualityList: qualityHandles.length > 0,
+        engagementSummary: engSummary,
+      });
       const samplePosts = formatTweetsForBriefing(ordered, 5);
+      const lowSignalTip =
+        engSummary.includes("0 likes") || engSummary.includes("No posts")
+          ? " Tip: try \"last 24h\" or \"most recent\" for recency; set X_RESEARCH_QUALITY_LIST_ID for a curated feed."
+          : "";
       const reply = conclusion
-        ? `**X research: ${rawQuery}**\n\n${conclusion}\n\n---\n\n**Sample posts:**\n${samplePosts}\n\n_Source: X API (read-only, last 7 days)._`
-        : `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days)._`;
+        ? `**X research: ${rawQuery}**\n\n${conclusion}\n\n---\n\n**Sample posts:**\n${samplePosts}\n\n_Source: X API (read-only, last 7 days).${lowSignalTip}_`
+        : `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days).${lowSignalTip}_`;
       await callback({
         text: reply,
         actions: ["VINCE_X_RESEARCH"],

@@ -68,6 +68,13 @@ bun run x-search.ts search "query" --save --markdown
 Search options: `--sort likes|impressions|retweets|recent`, `--since 1h|3h|12h|1d|7d`, `--min-likes N`, `--pages N`, `--limit N`, `--no-replies`, `--save`, `--json`, `--markdown`.  
 See `SKILL.md` for the full research loop and refinement tips.
 
+## Getting better insights
+
+When the feed is **noisy or low-engagement** (e.g. "What are people saying about BTC?" returns mostly spam or 0 likes):
+
+- **In-chat:** The reply will suggest trying "last 24h" or "most recent", or setting **X_RESEARCH_QUALITY_LIST_ID** (curated X List ID) so results are reordered with quality accounts first. Add that env var in `.env` and restart; create the list at x.com/i/lists/… and paste the list ID.
+- **CLI:** Use a narrower time window or minimum engagement: `--since 24h`, `--since 12h`, or `--min-likes 5` to cut noise. For deep dives, run multiple queries and save: `bun run x-search.ts search "query" --save --markdown`.
+
 ## Relation to VINCE / Solus
 
 - **This skill (CLI):** Use for deep X research in the IDE, **watchlist** (add/remove/check), and **saving to file** (`--save --markdown`). Paste results into VINCE or knowledge as needed.
