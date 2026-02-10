@@ -16,7 +16,7 @@ import type { IAgentRuntime } from "@elizaos/core";
 import { loadEnvOnce } from "../utils/loadEnvOnce";
 
 const BASE = "https://api.x.com/2";
-const RATE_DELAY_MS = 350;
+const RATE_DELAY_MS = 500;
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes, match x-research-skill
 
 const CACHE_PREFIX = "vince_x_research:";
@@ -34,6 +34,8 @@ export interface XTweet {
   name: string;
   created_at: string;
   conversation_id: string;
+  /** Follower count of the author (from user.public_metrics). Used for quality filter (e.g. 5K+). */
+  author_followers?: number;
   metrics: {
     likes: number;
     retweets: number;
@@ -57,13 +59,20 @@ interface RawResponse {
 
 function parseTweets(raw: RawResponse): XTweet[] {
   if (!raw.data) return [];
-  const users: Record<string, { username?: string; name?: string }> = {};
+  const users: Record<string, { username?: string; name?: string; public_metrics?: { followers_count?: number } }> = {};
   for (const u of raw.includes?.users || []) {
     users[u.id] = u;
   }
   return raw.data.map((t: any) => {
     const u = users[t.author_id] || {};
     const m = t.public_metrics || {};
+    const rawFollowers = u.public_metrics?.followers_count;
+    let author_followers: number | undefined;
+    if (typeof rawFollowers === "number" && Number.isFinite(rawFollowers)) author_followers = rawFollowers;
+    else if (typeof rawFollowers === "string") {
+      const n = parseInt(rawFollowers, 10);
+      if (!Number.isNaN(n)) author_followers = n;
+    }
     return {
       id: t.id,
       text: t.text,
@@ -72,6 +81,7 @@ function parseTweets(raw: RawResponse): XTweet[] {
       name: u.name || "?",
       created_at: t.created_at,
       conversation_id: t.conversation_id,
+      author_followers,
       metrics: {
         likes: m.like_count || 0,
         retweets: m.retweet_count || 0,
@@ -191,7 +201,11 @@ export class VinceXResearchService extends Service {
     }
     if (numbered.length) return numbered;
     const bg = process.env.X_BEARER_TOKEN_BACKGROUND?.trim();
-    return bg ? [bg] : [];
+    const list = bg ? [bg] : [];
+    if (list.length === 0) {
+      logger.warn("No background X tokens configured for sentiment.");
+    }
+    return list;
   }
 
   /** Number of background tokens (for per-token cooldown and round-robin). Exported for sentiment service. */
@@ -296,8 +310,9 @@ export class VinceXResearchService extends Service {
     const until = await this.runtime.getCache<number>(key);
     if (!until) return;
     const now = Date.now();
-    if (now < until) {
-      const waitSec = Math.ceil((until - now) / 1000);
+    const untilWithBuffer = until + 1000;
+    if (now < untilWithBuffer) {
+      const waitSec = Math.ceil((untilWithBuffer - now) / 1000);
       throw new Error(`X API rate limited. Resets in ${waitSec}s`);
     }
   }
@@ -331,11 +346,21 @@ export class VinceXResearchService extends Service {
       await this.runtime.setCache(key, untilMs);
       throw new Error(`X API rate limited. Resets in ${waitSec}s`);
     }
+    const body = await res.text();
     if (!res.ok) {
-      const body = await res.text();
       throw new Error(`X API ${res.status}: ${body.slice(0, 200)}`);
     }
-    return res.json();
+    let raw: RawResponse;
+    try {
+      raw = JSON.parse(body) as RawResponse;
+    } catch {
+      throw new Error(`X API non-JSON response: ${body.slice(0, 200)}`);
+    }
+    const errs = raw?.errors;
+    if (errs && errs.length > 0) {
+      throw new Error(`X API error: ${JSON.stringify(errs)}`);
+    }
+    return raw;
   }
 
   private cacheKey(prefix: string, parts: string): string {
@@ -356,14 +381,17 @@ export class VinceXResearchService extends Service {
       since?: string;
       useBackgroundToken?: boolean;
       tokenIndex?: number;
+      /** Override cache TTL (e.g. 3 min for ticker vibe so we get fresh engagement metrics). */
+      cacheTtlMs?: number;
     } = {},
   ): Promise<XTweet[]> {
     const useBg = !!opts.useBackgroundToken;
     const tokenIdx = opts.tokenIndex;
     const parts = `${query}|${opts.sortOrder ?? "relevancy"}|${opts.since ?? ""}|${opts.pages ?? 1}|${useBg}`;
     const key = this.cacheKey("search", parts);
-    const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number }>(key);
-    if (cached?.tweets && Date.now() - cached.ts < CACHE_TTL_MS) {
+    const cached = await this.runtime.getCache<{ tweets: XTweet[]; ts: number; ttlMs?: number }>(key);
+    const ttl = cached?.ttlMs ?? CACHE_TTL_MS;
+    if (cached?.tweets && Date.now() - cached.ts < ttl) {
       return cached.tweets;
     }
 
@@ -397,7 +425,11 @@ export class VinceXResearchService extends Service {
         }
         for (let page = 0; page < pages; page++) {
           const params = { ...baseParams, ...(nextToken && { nextToken }) };
-          const raw = await searchRecent.call(client.posts, q, params);
+          const raw = await searchRecent.call(client.posts, q, params) as RawResponse;
+          const errs = raw?.errors;
+          if (errs?.length && errs.length > 0) {
+            throw new Error(`X API error: ${JSON.stringify(errs)}`);
+          }
           const asRaw: RawResponse = {
             data: raw?.data,
             includes: raw?.includes,
@@ -409,7 +441,8 @@ export class VinceXResearchService extends Service {
           if (!nextToken) break;
           if (page < pages - 1) await sleep(RATE_DELAY_MS);
         }
-        await this.runtime.setCache(key, { tweets: all, ts: Date.now() });
+        const ttlMs = opts.cacheTtlMs ?? CACHE_TTL_MS;
+        await this.runtime.setCache(key, { tweets: all, ts: Date.now(), ttlMs });
         return all;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -437,8 +470,69 @@ export class VinceXResearchService extends Service {
       if (!nextToken) break;
       if (page < pages - 1) await sleep(RATE_DELAY_MS);
     }
-    await this.runtime.setCache(key, { tweets: all, ts: Date.now() });
+    const ttlMs = opts.cacheTtlMs ?? CACHE_TTL_MS;
+    await this.runtime.setCache(key, { tweets: all, ts: Date.now(), ttlMs });
     return all;
+  }
+
+  /**
+   * Stable hash of query string for deterministic token index selection.
+   * Distributes load across sentiment tokens when tokenIndex is not explicitly provided.
+   */
+  private hashForTokenIndex(query: string): number {
+    let hash = 0;
+    for (let i = 0; i < query.length; i++) {
+      hash = (hash << 5) - hash + query.charCodeAt(i);
+      hash |= 0;
+    }
+    const n = this.getSentimentTokenCount();
+    return n > 0 ? Math.abs(hash) % n : 0;
+  }
+
+  /** Public: token index for a query (for use by action when passing tokenIndex to search). */
+  getTokenIndexForQuery(query: string): number {
+    return this.hashForTokenIndex(query);
+  }
+
+  /**
+   * Search for tweets optimized for sentiment analysis (e.g. BTC).
+   * Defaults: lang:en, -is:reply, uses background token, 5 min cache. Min engagement is applied
+   * post-hoc (X API does not support min_faves/min_likes in the query; see skills/x-research/references/x-api.md).
+   * Optional minFollowers post-filter prioritizes credible sources (author_followers).
+   * For opinionated BTC/crypto sentiment, queries can optionally add opinion keywords, e.g.
+   * "(BTC OR Bitcoin OR $BTC) (bullish OR bearish OR price OR buy OR sell)".
+   */
+  async searchForSentiment(
+    query: string,
+    opts: {
+      minEngagement?: number;
+      minFollowers?: number;
+      lang?: string;
+      pages?: number;
+      since?: string;
+      maxResultsPerPage?: number;
+      sortOrder?: "relevancy" | "recency";
+      tokenIndex?: number;
+      cacheTtlMs?: number;
+    } = {},
+  ): Promise<XTweet[]> {
+    const minEng = opts.minEngagement ?? 50;
+    const minFoll = opts.minFollowers ?? 0;
+    const lang = opts.lang ?? "en";
+    const tokenIdx = opts.tokenIndex ?? this.hashForTokenIndex(query);
+    let q = query.trim();
+    if (!q.toLowerCase().includes("lang:")) q += ` lang:${lang}`;
+    if (!q.toLowerCase().includes("-is:reply")) q += " -is:reply";
+    const tweets = await this.search(q, {
+      maxResults: opts.maxResultsPerPage ?? 100,
+      pages: opts.pages ?? 2,
+      sortOrder: opts.sortOrder ?? "recency",
+      since: opts.since ?? "24h",
+      useBackgroundToken: true,
+      tokenIndex: tokenIdx,
+      cacheTtlMs: opts.cacheTtlMs ?? 5 * 60 * 1000,
+    });
+    return tweets.filter((t) => t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll);
   }
 
   /**
@@ -636,7 +730,7 @@ export class VinceXResearchService extends Service {
     username: string,
     opts: { count?: number; includeReplies?: boolean } = {},
   ): Promise<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet }> {
-    const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase() || username.trim();
+    const normalizedUsername = username.trim().replace(/^@/, "").toLowerCase();
     const count = Math.min(opts.count || 20, 100);
     const cacheKey = this.cacheKey("profile", `${normalizedUsername}|${opts.includeReplies ?? false}|${count}`);
     const cached = await this.runtime.getCache<{ user: any; tweets: XTweet[]; pinnedTweet?: XTweet; ts: number }>(cacheKey);
@@ -665,12 +759,13 @@ export class VinceXResearchService extends Service {
         if (getPosts) {
           // Use timeline API when available: https://github.com/xdevplatform/samples/tree/main/javascript/users/timeline
           // X API exclude: https://developer.x.com/en/docs/twitter-api/tweets/timelines/api-reference/get-users-id-tweets
+          // XDK expects exclude as array (it calls .join() to build the query string).
           const res = await getPosts.call(client!.users!, user.id, {
             maxResults: count,
             tweetFields: ["created_at", "public_metrics", "author_id", "conversation_id", "entities"],
             expansions: ["author_id"],
             userFields: ["username", "name", "public_metrics"],
-            ...(opts.includeReplies ? {} : { exclude: "replies" }),
+            ...(opts.includeReplies ? {} : { exclude: ["replies"] }),
           });
           const raw: RawResponse = { data: res?.data, includes: res?.includes };
           tweets = parseTweets(raw);
@@ -927,19 +1022,28 @@ export class VinceXResearchService extends Service {
 
   /** Sort tweets by engagement. */
   /**
-   * Parse SOLUS_X_VIP_HANDLES from runtime (comma-separated usernames). Used to rank tweets from
-   * "good accounts" first in search results and sample posts. Returns lowercased handles.
+   * Parse VIP handles from runtime/env: SOLUS_X_VIP_HANDLES plus CRYPTO_VIP_HANDLES (or X_RESEARCH_CRYPTO_VIP_HANDLES).
+   * Used to rank tweets from "good accounts" first in search results and sample posts. Returns lowercased, deduped handles.
    */
   getVipHandles(): string[] {
     loadEnvOnce();
-    const fromEnv = process.env.SOLUS_X_VIP_HANDLES?.trim();
-    const fromRuntime = this.runtime.getSetting?.("SOLUS_X_VIP_HANDLES");
-    const raw = typeof fromRuntime === "string" ? fromRuntime.trim() : fromEnv ?? "";
-    if (!raw) return [];
-    return raw
-      .split(",")
-      .map((h) => h.trim().toLowerCase())
-      .filter(Boolean);
+    const solusEnv = process.env.SOLUS_X_VIP_HANDLES?.trim();
+    const solusRuntime = this.runtime.getSetting?.("SOLUS_X_VIP_HANDLES");
+    const solusRaw = typeof solusRuntime === "string" ? solusRuntime.trim() : solusEnv ?? "";
+    const cryptoEnv = process.env.CRYPTO_VIP_HANDLES?.trim() || process.env.X_RESEARCH_CRYPTO_VIP_HANDLES?.trim();
+    const cryptoRuntime = this.runtime.getSetting?.("CRYPTO_VIP_HANDLES") ?? this.runtime.getSetting?.("X_RESEARCH_CRYPTO_VIP_HANDLES");
+    const cryptoRaw = typeof cryptoRuntime === "string" ? cryptoRuntime.trim() : cryptoEnv ?? "";
+    const parse = (raw: string) =>
+      raw
+        .split(",")
+        .map((h) => h.trim().toLowerCase())
+        .filter(Boolean);
+    const combined = [...parse(solusRaw), ...parse(cryptoRaw)];
+    const handles = [...new Set(combined)];
+    if (handles.length === 0) {
+      logger.debug("[VinceXResearchService] No VIP handles configured — tweets won't be reordered by quality.");
+    }
+    return handles;
   }
 
   /** Cache TTL for quality-account list (24h so we don't burn list-members API). */
@@ -1009,5 +1113,17 @@ export class VinceXResearchService extends Service {
     metric: "likes" | "impressions" | "retweets" | "replies" = "likes",
   ): XTweet[] {
     return [...tweets].sort((a, b) => b.metrics[metric] - a.metrics[metric]);
+  }
+
+  /**
+   * Dedupe by tweet id (first occurrence wins). Use after merging multiple result sets (x-research-skill pattern).
+   */
+  dedupeById(tweets: XTweet[]): XTweet[] {
+    const seen = new Set<string>();
+    return tweets.filter((t) => {
+      if (seen.has(t.id)) return false;
+      seen.add(t.id);
+      return true;
+    });
   }
 }

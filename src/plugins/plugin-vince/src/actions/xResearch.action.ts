@@ -19,6 +19,7 @@ import { logger, ModelType } from "@elizaos/core";
 import type { VinceXResearchService } from "../services/xResearch.service";
 import type { XTweet } from "../services/xResearch.service";
 import { buildSentimentQuery } from "../services/xSentiment.service";
+import { simpleSentiment } from "../utils/xSentimentLogic";
 
 const SEARCH_TRIGGER_PATTERNS = [
   /\b(?:x\s*research|research\s+(?:on\s+)?x\b|search\s+x\s+for|search\s+twitter\s+for|what(?:'s| are)\s+people\s+saying\s+about|what(?:'s| is)\s+twitter\s+saying|check\s+x\s+for|x\s+search)\b/i,
@@ -30,6 +31,7 @@ const SEARCH_TRIGGER_PATTERNS = [
 const PROFILE_TRIGGER_PATTERNS = [
   /\b(?:what\s+did\s+@\w+|recent\s+tweets?\s+from\s+@\w+|profile\s+@\w+|check\s+@\w+)\b/i,
   /\b(?:@\w+\s+recent|@\w+\s+post|tweets?\s+from\s+@\w+)\b/i,
+  /\b(?:what\s+is\s+account\s+@?\w+|what'?s\s+@?\w+\s+thinking|what\s+is\s+@\w+\s+thinking)\b/i,
   /^from:(\w+)$/i,
 ];
 
@@ -77,6 +79,12 @@ function extractUsername(text: string): string | null {
   if (m2?.[1]) return m2[1];
   const m3 = text.match(/(?:recent\s+tweets?\s+from|profile|check)\s+@?(\w+)/i);
   if (m3?.[1]) return m3[1];
+  const m4 = text.match(/what\s+is\s+account\s+@?(\w+)\s+thinking/i);
+  if (m4?.[1]) return m4[1];
+  const m5 = text.match(/what'?s\s+@?(\w+)\s+thinking/i);
+  if (m5?.[1]) return m5[1];
+  const m6 = text.match(/what\s+is\s+@(\w+)\s+thinking/i);
+  if (m6?.[1]) return m6[1];
   return null;
 }
 
@@ -123,17 +131,92 @@ function appendNoiseExclusions(query: string, rawQuery: string): string {
   return query.trim();
 }
 
-/** Parse optional search options from natural language (last 24h, by likes, top 5, more pages). */
+/** Topic keywords for filtering list tweets to the query (e.g. BTC → btc, bitcoin). */
+function topicKeywordsForFilter(rawQuery: string): string[] {
+  const upper = rawQuery.trim().toUpperCase();
+  if (upper === "BTC") return ["btc", "bitcoin"];
+  if (upper === "ETH") return ["eth", "ethereum"];
+  if (upper === "SOL") return ["sol", "solana"];
+  if (upper === "HYPE") return ["hype"];
+  if (upper === "DOGE") return ["doge", "dogecoin"];
+  if (upper === "PEPE") return ["pepe"];
+  return [rawQuery.trim().toLowerCase()].filter(Boolean);
+}
+
+function tweetMatchesTopic(tweet: XTweet, keywords: string[]): boolean {
+  const text = (tweet.text || "").toLowerCase();
+  return keywords.some((k) => text.includes(k));
+}
+
+/** Keyword-based sentiment from tweet sample (uses shared BULLISH_WORDS/BEARISH_WORDS and phrase overrides). */
+function quickSentimentFromTweets(tweets: XTweet[]): {
+  average: number;
+  breakdown: { pos: number; neu: number; neg: number };
+  summary: string;
+} {
+  if (tweets.length === 0) {
+    return { average: 0, breakdown: { pos: 0, neu: 0, neg: 0 }, summary: "Quick sentiment: No posts." };
+  }
+  let pos = 0;
+  let neu = 0;
+  let neg = 0;
+  for (const t of tweets) {
+    const score = simpleSentiment(t.text);
+    if (score > 0) pos++;
+    else if (score < 0) neg++;
+    else neu++;
+  }
+  const average = (pos - neg) / tweets.length;
+  const summary = `Quick sentiment: Avg ${average.toFixed(2)} (${pos} bullish, ${neg} bearish, ${neu} neutral).`;
+  return { average, breakdown: { pos, neu, neg }, summary };
+}
+
+/** Minimum author followers (respected accounts) and minimum likes for quality filter. X API has no min_likes operator—filter post-hoc per references/x-api.md. */
+const MIN_FOLLOWERS_QUALITY = 5000;
+const MIN_LIKES_QUALITY = 50;
+/** Fallback bar when primary yields zero: still deliver a vibe check (SKILL: --quality is ≥10 likes). */
+const MIN_FOLLOWERS_FALLBACK = 1000;
+const MIN_LIKES_FALLBACK = 10;
+/** Pages for ticker vibe check: larger pool so post-hoc filter finds 5K/50+ tweets (max 100 per request). */
+const TICKER_VIBE_PAGES = 3;
+/** Shorter cache for ticker so we get fresh engagement (likes/impressions); viral tweets can gain 1K+ likes in minutes. */
+const TICKER_CACHE_TTL_MS = 3 * 60 * 1000;
+/** We never show or send to the LLM tweets with zero engagement (noise). */
+const MIN_LIKES_FOR_DISPLAY = 5;
+/** Optional impressions floor (x-research-skill: min-impressions). Tweets with reach count as having engagement. */
+const MIN_IMPRESSIONS_FOR_DISPLAY = 100;
+/** Tweets with high reach count as quality (signal). */
+const MIN_IMPRESSIONS_QUALITY = 5000;
+
+/** Keep only tweets that pass the given bar (5K+ followers or >50 likes or 5K+ impressions, or fallback 1K+/10+). */
+function filterQualityTweets(
+  tweets: XTweet[],
+  useFallbackBar = false,
+): { filtered: XTweet[]; usedFallback: boolean } {
+  const minFol = useFallbackBar ? MIN_FOLLOWERS_FALLBACK : MIN_FOLLOWERS_QUALITY;
+  const minLikes = useFallbackBar ? MIN_LIKES_FALLBACK : MIN_LIKES_QUALITY;
+  const filtered = tweets.filter(
+    (t) =>
+      (typeof t.author_followers === "number" && t.author_followers >= minFol) ||
+      t.metrics.likes > minLikes ||
+      (t.metrics.impressions ?? 0) >= MIN_IMPRESSIONS_QUALITY,
+  );
+  return { filtered, usedFallback: useFallbackBar };
+}
+
+/** Parse optional search options from natural language (last 24h, by likes, top 5, more pages, min likes). */
 function parseSearchOptions(text: string): {
   since?: string;
   sortByLikes: boolean;
   limit: number;
   pages?: number;
+  minLikes?: number;
 } {
   let since: string | undefined;
   let sortByLikes = true;
   let limit = 12;
   let pages: number | undefined;
+  let minLikes: number | undefined;
   const t = text.toLowerCase();
   const hm = t.match(/\b(?:last|past)\s+(\d+)\s*(?:h|hr|hours?)\b/);
   if (hm?.[1]) since = `${hm[1]}h`;
@@ -144,22 +227,25 @@ function parseSearchOptions(text: string): {
   if (/\b(?:most\s+recent|recent\s+first)\b/.test(t)) sortByLikes = false;
   const lm = t.match(/\b(?:top|first)\s+(\d{1,2})\b/);
   if (lm?.[1]) limit = Math.min(20, Math.max(5, parseInt(lm[1], 10)));
+  const minLikesM = t.match(/min\s+likes\s+(\d+)/i);
+  if (minLikesM?.[1]) minLikes = Math.max(1, parseInt(minLikesM[1], 10));
   if (/\bmore\s+(?:results?|pages?)\b/.test(t)) pages = 2;
   else {
     const pm = t.match(/(?:(\d+)\s+pages?|pages?\s+of\s+(\d+))/);
     const n = pm?.[1] ?? pm?.[2];
     if (n) pages = Math.min(5, Math.max(2, parseInt(n, 10)));
   }
-  return { since, sortByLikes, limit, pages };
+  return { since, sortByLikes, limit, pages, minLikes };
 }
 
-function formatTweetsForBriefing(tweets: XTweet[], limit = 10): string {
+function formatTweetsForBriefing(tweets: XTweet[], limit = 10, maxCharsPerTweet = 120): string {
   if (tweets.length === 0) return "_No recent tweets found._";
   const lines: string[] = [];
   for (let i = 0; i < Math.min(tweets.length, limit); i++) {
     const t = tweets[i];
     const eng = `L${t.metrics.likes} R${t.metrics.retweets}`;
-    lines.push(`- **@${t.username}**: "${t.text.slice(0, 120)}${t.text.length > 120 ? "…" : ""}" (${eng}) [Tweet](${t.tweet_url})`);
+    const snippet = t.text.length <= maxCharsPerTweet ? t.text : t.text.slice(0, maxCharsPerTweet) + "…";
+    lines.push(`- **@${t.username}**: "${snippet}" (${eng}) [Tweet](${t.tweet_url})`);
   }
   return lines.join("\n");
 }
@@ -203,9 +289,21 @@ async function getLLMConclusion(
   query: string,
   tweetSample: string,
   postCount: number,
-  opts: { hasQualityList?: boolean; engagementSummary?: string } = {},
+  opts: {
+    hasQualityList?: boolean;
+    engagementSummary?: string;
+    used24h?: boolean;
+    usedListFeed?: boolean;
+    qualityUsedFallback?: boolean;
+    usingLowEngagementSample?: boolean;
+    sentimentSummary?: string;
+  } = {},
 ): Promise<string | null> {
   if (!tweetSample.trim()) return null;
+  const lowEngagementNote =
+    opts.usingLowEngagementSample
+      ? " This sample passed the quality bar but has low engagement (few likes/impressions). Say so in one short line and give an indicative read, not \"no signal.\"\n\n"
+      : "";
   const qualityNote = opts.hasQualityList
     ? " Results are reordered so tweets from a curated quality list appear first; use that to weight signal vs general noise.\n\n"
     : "";
@@ -213,17 +311,28 @@ async function getLLMConclusion(
     opts.engagementSummary && opts.engagementSummary !== "No posts."
       ? `Engagement in this sample: ${opts.engagementSummary}\n\n`
       : "";
+  const sourceNote =
+    opts.used24h || opts.usedListFeed
+      ? `We already used ${[opts.used24h && "last 24h", opts.usedListFeed && "curated list feed"].filter(Boolean).join(" + ")} for better signal. Mention it briefly if relevant, then give the read.\n\n`
+      : "";
+  const fallbackBarNote =
+    opts.qualityUsedFallback
+      ? " We used a lower bar (10+ likes or 1K+ followers) because no tweets met 5K followers / 50+ likes. Mention that only if it affects how much to trust the sample; otherwise give the read.\n\n"
+      : "";
 
   const prompt = `You are VINCE. Someone asked what people are saying on X about "${query}". Your job: give a short, actionable vibe read. Lead with the take (what to do or expect), then support.
 
 CRITICAL — OUTPUT SHAPE:
+- First: Vibe/sentiment lean (bullish/mixed/bearish from sample/keywords).
 - First 1–2 sentences: the read. What's the vibe and what would you do? (e.g. "Dead zone—no edge from this feed. I'd sit or wait for a clearer catalyst.")
-- If the sample is mostly spam or zero engagement: say so in one short line, then still give your best read from context (price level, regime, "quiet before a move") and one concrete way to get a sharper signal (e.g. "Try 'last 24h' or a curated list"). Do NOT write multiple paragraphs about how bad the data is.
+- For BTC/crypto: Link to action (e.g. "Bullish lean—consider long if funding positive").
+- If the sample is mostly spam or zero engagement: say so in one short line, then still give your best read from context (price level, regime, "quiet before a move"). Do NOT write multiple paragraphs about how bad the data is.
+- If we used last 24h or curated list: you can say "Pulled from last 24h / curated list—" then the read. Still lead with the take.
 - If there is real signal: 2–4 more sentences on themes, standout takes (use L R when something got traction), and one clear takeaway.
 - Voice: concrete, no filler ("leverage", "notably", "it's worth noting"). Take positions.
 
-Query: ${query}. Sample: ${postCount} posts (last 7 days). (L R) = likes, retweets. [curated] = from a quality list; weight those.
-${qualityNote}${engagementNote}Posts:
+Query: ${query}. Sample: ${postCount} posts. (L R) = likes, retweets. [curated] = from quality list.
+${sourceNote}${fallbackBarNote}${lowEngagementNote}${qualityNote}${engagementNote}${opts.sentimentSummary ?? ""}${opts.sentimentSummary ? "\n\n" : ""}Posts:
 
 ${tweetSample}
 
@@ -243,12 +352,68 @@ Write the briefing:`;
   }
 }
 
+/** Generate an ALOHA-style briefing: one flowing narrative about what this account is thinking. Same voice as daily market briefing. */
+async function getProfileBriefing(
+  runtime: IAgentRuntime,
+  username: string,
+  displayName: string,
+  tweets: XTweet[],
+  maxTweets = 12,
+  maxCharsPerTweet = 280,
+): Promise<string | null> {
+  if (tweets.length === 0) return null;
+  const sample = tweets
+    .slice(0, maxTweets)
+    .map((t) => {
+      const text = t.text.length <= maxCharsPerTweet ? t.text : t.text.slice(0, maxCharsPerTweet) + "…";
+      return text;
+    })
+    .join("\n\n");
+  const prompt = `You are VINCE. Someone asked what @${username} (${displayName}) is thinking—or what they've been posting lately. You're answering like you're texting a friend who wants the read on this account. Be real, be specific, have opinions.
+
+Here are their latest posts:
+
+${sample}
+
+Write a briefing that:
+1. Leads with the gut take—what's this account's vibe right now? What are they actually thinking?
+2. Walk through the themes. Don't list tweets mechanically. Connect the dots. If they're bullish on one thing and skeptical on another, say that and why it matters.
+3. Call out one or two standout takes or threads if they land. Use specifics from the posts.
+4. End with your read—why this account is worth watching (or not) right now.
+
+STYLE RULES (same as ALOHA):
+- Write like you're explaining to a smart friend over coffee, not presenting to a board.
+- Vary your sentence length. Mix short punchy takes with longer explanations when you need to unpack something.
+- Don't bullet point anything. Flow naturally between thoughts.
+- Skip the formal structure. No headers, no "In conclusion", no "Overall".
+- Have a personality. If the account is boring this week, say it. If something seems off or notable, say it.
+- Don't be sycophantic or hedge everything. Take positions.
+- Around 200–300 words. Don't pad it.
+
+AVOID:
+- "Interestingly", "notably", "it's worth noting"
+- Generic observations that could apply to any account
+- Starting every sentence with their name or "They..."
+- Repeating the same sentence structure over and over
+
+Write the briefing:`;
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const briefing = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
+    return briefing?.trim() || null;
+  } catch (e) {
+    logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] profile briefing skipped");
+    return null;
+  }
+}
+
+/** Profile view: longer tweet snippets (260 chars) so posts are readable, not cut off. */
 function formatProfileBriefing(user: any, tweets: XTweet[], limit = 8): string {
   const name = user?.name ?? user?.username ?? "?";
   const handle = user?.username ? `@${user.username}` : "";
   const header = `**${name}** ${handle}`.trim();
   if (tweets.length === 0) return `${header}\n\n_No recent tweets (excl. replies)._`;
-  return `${header}\n\n${formatTweetsForBriefing(tweets, limit)}`;
+  return `${header}\n\n${formatTweetsForBriefing(tweets, limit, 260)}`;
 }
 
 function formatSingleTweet(t: XTweet): string {
@@ -319,9 +484,24 @@ export const vinceXResearchAction: Action = {
           actions: ["VINCE_X_RESEARCH"],
         });
         const { user, tweets } = await svc.profile(username, { count: 20 });
-        const formatted = formatProfileBriefing(user, tweets, 8);
+        const displayName = user?.name ?? user?.username ?? username;
+        const briefing = await getProfileBriefing(runtime, username, displayName, tweets, 12, 280);
+        const name = user?.name ?? user?.username ?? "?";
+        const handle = user?.username ? `@${user.username}` : "";
+        const header = `**${name}** ${handle}`.trim();
+        if (tweets.length === 0) {
+          await callback({
+            text: `${header}\n\n_No recent tweets (excl. replies)._\n\n_Source: X API (read-only)._`,
+            actions: ["VINCE_X_RESEARCH"],
+          });
+          return { success: true };
+        }
+        const recentPostsBlock = formatTweetsForBriefing(tweets, 5, 260);
+        const replyBody = briefing
+          ? `${header}\n\n${briefing}\n\n---\n\n**Recent posts**\n\n${recentPostsBlock}`
+          : `${header}\n\n${recentPostsBlock}`;
         await callback({
-          text: `${formatted}\n\n_Source: X API (read-only)._`,
+          text: `${replyBody}\n\n_Source: X API (read-only)._`,
           actions: ["VINCE_X_RESEARCH"],
         });
         return { success: true };
@@ -372,53 +552,205 @@ export const vinceXResearchAction: Action = {
       }
 
       // search (default)
-      const rawQuery = extractQuery(text);
-      const query = appendNoiseExclusions(expandQueryForSearch(rawQuery), rawQuery);
+      let rawQuery = extractQuery(text);
+      if (rawQuery.length < 3) {
+        logger.warn("[VINCE_X_RESEARCH] query too short, using 'crypto'");
+        rawQuery = "crypto";
+      }
+      const isTickerVibe = KNOWN_TICKERS.has(rawQuery.trim().toUpperCase());
+      let query = appendNoiseExclusions(expandQueryForSearch(rawQuery), rawQuery);
+      // x-research-skill: quick mode adds -is:reply to cut reply noise; for ticker vibe prefer original posts
+      if (isTickerVibe && !query.toLowerCase().includes("-is:reply")) {
+        query = `${query.trim()} -is:reply`;
+      }
       const opts = parseSearchOptions(text);
+      const pages = opts.pages ?? (isTickerVibe ? TICKER_VIBE_PAGES : 1);
+      const useBackgroundToken = svc.getSentimentTokenCount() > 0;
+      const tokenIndex = useBackgroundToken ? svc.getTokenIndexForQuery(query) : undefined;
+      const bgOpts = useBackgroundToken && tokenIndex !== undefined ? { useBackgroundToken: true, tokenIndex } : {};
       await callback({
         text: `Searching X for: **${rawQuery}**…`,
         actions: ["VINCE_X_RESEARCH"],
       });
-      const tweets = await svc.search(query, {
-        maxResults: Math.min(100, Math.max(opts.limit, 20)),
-        pages: opts.pages ?? 1,
-        sortOrder: opts.since ? "recency" : "relevancy",
-        since: opts.since ?? "7d",
-      });
-      let sorted = opts.sortByLikes ? svc.sortBy(tweets, "likes") : tweets;
+      // Ticker vibe: use sentiment-optimized path (lang, -is:reply, background token). Option B: relevancy + recency over 7d then merge.
+      let tweets: XTweet[];
+      if (isTickerVibe && !opts.since) {
+        const recencyPages = 4;
+        const [relevancyTweets, recencyTweets] = await Promise.all([
+          svc.searchForSentiment(query, {
+            minEngagement: 50,
+            minFollowers: 1000,
+            pages: TICKER_VIBE_PAGES,
+            since: "7d",
+            sortOrder: "relevancy",
+            cacheTtlMs: TICKER_CACHE_TTL_MS,
+          }),
+          svc.searchForSentiment(query, {
+            minEngagement: 50,
+            minFollowers: 1000,
+            pages: recencyPages,
+            since: "7d",
+            sortOrder: "recency",
+            cacheTtlMs: TICKER_CACHE_TTL_MS,
+          }),
+        ]);
+        const byId = new Map(relevancyTweets.map((t) => [t.id, t]));
+        for (const t of recencyTweets) if (!byId.has(t.id)) byId.set(t.id, t);
+        tweets = Array.from(byId.values());
+      } else {
+        tweets = await svc.search(query, {
+          maxResults: 100,
+          pages,
+          sortOrder: opts.since ? "recency" : "relevancy",
+          since: opts.since ?? "7d",
+          ...(isTickerVibe && { cacheTtlMs: TICKER_CACHE_TTL_MS }),
+          ...bgOpts,
+        });
+      }
+      let sorted = svc.sortBy(tweets, "likes");
       const qualityHandles = await svc.getQualityAccountHandles();
       let ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
       let engSummary = engagementSummary(ordered);
-      // Recency fallback: when first run is all zeros, try recency sort for fresher discussion (SKILL: refinement).
+      let used24h = false;
+      let usedListFeed = false;
+
+      // Low-signal fallbacks: recency, then 24h, then curated list feed (do it, don't just suggest).
       if (engSummary === "All posts have 0 likes (no engagement)." && !opts.since) {
         const recencyTweets = await svc.search(query, {
-          maxResults: Math.min(100, Math.max(opts.limit, 20)),
-          pages: opts.pages ?? 1,
+          maxResults: 100,
+          pages: isTickerVibe ? 4 : (opts.pages ?? 1),
           sortOrder: "recency",
           since: "7d",
+          ...(isTickerVibe && { cacheTtlMs: TICKER_CACHE_TTL_MS }),
+          ...bgOpts,
         });
         const byId = new Map(ordered.map((t) => [t.id, t]));
         for (const t of recencyTweets) if (!byId.has(t.id)) byId.set(t.id, t);
-        const merged = Array.from(byId.values());
-        sorted = svc.sortBy(merged, "likes");
+        sorted = svc.sortBy(Array.from(byId.values()), "likes");
         ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
         engSummary = engagementSummary(ordered);
       }
+      if (
+        (engSummary === "All posts have 0 likes (no engagement)." ||
+          (engSummary.includes("Most posts") && engSummary.includes("0 likes"))) &&
+        !opts.since
+      ) {
+        const tweets24h = await svc.search(query, {
+          maxResults: 100,
+          pages: isTickerVibe ? 4 : 1,
+          sortOrder: "recency",
+          since: "24h",
+          ...(isTickerVibe && { cacheTtlMs: TICKER_CACHE_TTL_MS }),
+          ...bgOpts,
+        });
+        if (tweets24h.length > 0) {
+          used24h = true;
+          const byId = new Map(ordered.map((t) => [t.id, t]));
+          for (const t of tweets24h) if (!byId.has(t.id)) byId.set(t.id, t);
+          sorted = svc.sortBy(Array.from(byId.values()), "likes");
+          ordered = qualityHandles.length > 0 ? svc.reorderTweetsWithVipFirst(sorted, qualityHandles) : sorted;
+          engSummary = engagementSummary(ordered);
+        }
+      }
+      const listId = "getResearchQualityListId" in svc ? (svc as { getResearchQualityListId(): string | null }).getResearchQualityListId() : null;
+      if (listId && (used24h || engSummary.includes("0 likes") || engSummary.includes("No posts"))) {
+        try {
+          const { tweets: listTweets } = await svc.getListPosts(listId, { maxResults: 50 });
+          const keywords = topicKeywordsForFilter(rawQuery);
+          const onTopic = listTweets.filter((t) => tweetMatchesTopic(t, keywords));
+          const toPrepend = onTopic.length > 0 ? onTopic : listTweets.slice(0, 15);
+          if (toPrepend.length > 0) {
+            usedListFeed = true;
+            const listIds = new Set(toPrepend.map((t) => t.id));
+            const rest = ordered.filter((t) => !listIds.has(t.id));
+            ordered = [...toPrepend, ...rest];
+            engSummary = engagementSummary(ordered);
+          }
+        } catch (e) {
+          logger.debug({ err: String(e) }, "[VINCE_X_RESEARCH] list feed skipped");
+        }
+      }
+
+      // Quality bar: 5K+ followers or >50 likes (X API has no min_likes—filter post-hoc). Fallback 1K+/10+ so we still deliver a vibe check.
+      const poolBeforeQuality = ordered.length;
+      let { filtered: qualityFiltered, usedFallback: qualityUsedFallback } = filterQualityTweets(ordered, false);
+      if (qualityFiltered.length === 0 && ordered.length > 0) {
+        const fallback = filterQualityTweets(ordered, true);
+        if (fallback.filtered.length > 0) {
+          qualityFiltered = fallback.filtered;
+          qualityUsedFallback = true;
+        }
+      }
+      ordered = qualityFiltered;
+      const qualityFilterNoMatch = qualityFiltered.length === 0;
+      if (used24h || usedListFeed || qualityUsedFallback) {
+        logger.info({ used24h, usedListFeed, qualityUsedFallback }, "[VINCE_X_RESEARCH] fallbacks applied");
+      }
+
+      // Explicit dedupe after merges (x-research-skill: api.dedupe). First occurrence per id wins.
+      ordered = svc.dedupeById(ordered);
+
+      // Never show or send to LLM zero-engagement tweets (L0 R0 = noise). Keep tweets with min likes or impressions (user can say "min likes 100").
+      const minLikesDisplay = opts.minLikes ?? MIN_LIKES_FOR_DISPLAY;
+      const withEngagement = ordered.filter(
+        (t) =>
+          t.metrics.likes >= minLikesDisplay ||
+          (t.metrics.impressions ?? 0) >= MIN_IMPRESSIONS_FOR_DISPLAY,
+      );
+      const noUsableSignal = ordered.length === 0;
+      const usingLowEngagementSample = withEngagement.length === 0 && ordered.length > 0;
+
+      if (noUsableSignal) {
+        logger.info(
+          { rawQuery, poolBeforeQuality, afterQuality: qualityFiltered.length, withEngagement: withEngagement.length, used24h, usedListFeed },
+          "[VINCE_X_RESEARCH] no usable signal: pool sizes (diagnostic)",
+        );
+        const sourceParts: string[] = ["X API (read-only)"];
+        if (used24h) sourceParts.push("last 24h used for better signal");
+        if (usedListFeed) sourceParts.push("curated list feed included");
+        sourceParts.push("no tweets met quality bar or had 5+ likes / 100+ impressions");
+        const sourceLine = sourceParts.join("; ") + ".";
+        const tickerHint = KNOWN_TICKERS.has(rawQuery.trim().toUpperCase())
+          ? " Use on-chain data, funding rates, or wait for a clear catalyst."
+          : "";
+        const reply = `**X research: ${rawQuery}**\n\nNo usable signal from X right now—recent posts didn’t meet the quality bar or had no engagement.${tickerHint}\n\n_${sourceLine}_`;
+        await callback({ text: reply, actions: ["VINCE_X_RESEARCH"] });
+        return { success: true };
+      }
+
+      ordered = withEngagement.length > 0 ? withEngagement : ordered;
+      ordered = ordered.slice(0, 50);
       const curatedSet = qualityHandles.length > 0 ? new Set(qualityHandles.map((h) => h.toLowerCase())) : undefined;
       const formatted = formatTweetsForBriefing(ordered, opts.limit);
       const sampleForLLM = tweetSampleForLLM(ordered, 20, 200, curatedSet);
+      const sentimentResult = isTickerVibe ? quickSentimentFromTweets(ordered) : null;
       const conclusion = await getLLMConclusion(runtime, rawQuery, sampleForLLM, ordered.length, {
         hasQualityList: qualityHandles.length > 0,
         engagementSummary: engSummary,
+        used24h,
+        usedListFeed,
+        qualityUsedFallback: qualityUsedFallback,
+        usingLowEngagementSample: usingLowEngagementSample,
+        sentimentSummary: sentimentResult?.summary,
       });
       const samplePosts = formatTweetsForBriefing(ordered, 5);
+      const sourceParts: string[] = ["X API (read-only)"];
+      if (used24h) sourceParts.push("last 24h used for better signal");
+      if (usedListFeed) sourceParts.push("curated list feed included");
+      if (qualityFilterNoMatch) sourceParts.push("no tweets met 5K+ followers or 50+ likes");
+      else if (qualityUsedFallback) sourceParts.push("10+ likes or 1K+ followers (no tweets met 5K/50+)");
+      else sourceParts.push("5K+ followers or 50+ likes");
+      if (usingLowEngagementSample) sourceParts.push("low engagement sample (quality bar met; treat as indicative)");
+      else sourceParts.push("5+ likes or 100+ impressions for sample");
+      const sourceLine = sourceParts.join("; ") + ".";
       const lowSignalTip =
-        engSummary.includes("0 likes") || engSummary.includes("No posts")
-          ? " Tip: try \"last 24h\" or \"most recent\" for recency; set X_RESEARCH_QUALITY_LIST_ID for a curated feed."
+        !used24h && !usedListFeed && (engSummary.includes("0 likes") || engSummary.includes("No posts"))
+          ? " Tip: ask for \"last 24h\" or set X_RESEARCH_QUALITY_LIST_ID for a curated feed."
           : "";
+      const sentimentLine = sentimentResult?.summary ? `\n\n${sentimentResult.summary}` : "";
       const reply = conclusion
-        ? `**X research: ${rawQuery}**\n\n${conclusion}\n\n---\n\n**Sample posts:**\n${samplePosts}\n\n_Source: X API (read-only, last 7 days).${lowSignalTip}_`
-        : `**X research: ${rawQuery}**\n\n${formatted}\n\n_Source: X API (read-only, last 7 days).${lowSignalTip}_`;
+        ? `**X research: ${rawQuery}**\n\n${conclusion}${sentimentLine}\n\n---\n\n**Sample posts:**\n${samplePosts}\n\n_${sourceLine}${lowSignalTip}_`
+        : `**X research: ${rawQuery}**\n\n${formatted}${sentimentLine}\n\n_${sourceLine}${lowSignalTip}_`;
       await callback({
         text: reply,
         actions: ["VINCE_X_RESEARCH"],
@@ -429,7 +761,8 @@ export const vinceXResearchAction: Action = {
       const hint =
         /rate limit|429/i.test(msg) &&
         " Add X_BEARER_TOKEN_SENTIMENT in .env for vibe check so in-chat keeps working; see docs/X-API.md. If you can't add another app, set X_SENTIMENT_ENABLED=false or X_SENTIMENT_ASSETS=BTC so in-chat has headroom (X-RESEARCH.md).";
-      await sendError(`X research failed: ${msg}${hint ?? ""}`);
+      const toolsHint = " You can also try the X keyword search from the CLI: see skills/x-research/README.md.";
+      await sendError(`X research failed: ${msg}${hint ?? ""}${toolsHint}`);
       return { success: false };
     }
   },

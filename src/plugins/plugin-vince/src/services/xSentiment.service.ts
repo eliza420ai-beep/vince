@@ -26,6 +26,8 @@ import { loadEnvOnce } from "../utils/loadEnvOnce";
 import {
   computeSentimentFromTweets,
   type SentimentKeywordLists,
+  type SentimentCacheEntry,
+  type ComputeSentimentOptions,
   simpleSentiment,
   hasRiskKeyword,
 } from "../utils/xSentimentLogic";
@@ -467,14 +469,17 @@ export class VinceXSentimentService extends Service {
     const query = buildSentimentQuery(asset);
     const since = getSentimentSince();
     const sortOrder = getSentimentSortOrder();
-    const tweets = await xResearch.search(query, {
-      maxResults: 30,
-      pages: 1,
-      sortOrder,
-      since,
-      useBackgroundToken: useBackgroundToken(),
-      tokenIndex: assetIndex,
-    });
+    const tweets =
+      "searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function"
+        ? await xResearch.searchForSentiment(query, { pages: 2, since, sortOrder, tokenIndex: assetIndex })
+        : await xResearch.search(query, {
+            maxResults: 30,
+            pages: 1,
+            sortOrder,
+            since,
+            useBackgroundToken: useBackgroundToken(),
+            tokenIndex: assetIndex,
+          });
 
     const entry = computeSentimentFromTweets(tweets, {
       keywordLists: getKeywordLists(),
@@ -484,5 +489,69 @@ export class VinceXSentimentService extends Service {
       riskMinTweets: getRiskMinTweets(),
     });
     this.cache.set(asset, entry);
+  }
+
+  /**
+   * Thin wrapper: fetch tweets via searchForSentiment (or search fallback) then compute keyword-based sentiment.
+   * Optionally prioritizes VIP/quality handles and sorts by engagement. For opinionated BTC/crypto queries
+   * add terms like (bullish OR bearish OR price OR buy OR sell).
+   */
+  async getTopicSentiment(
+    query: string,
+    opts: {
+      pages?: number;
+      since?: string;
+      sortOrder?: "relevancy" | "recency";
+      tokenIndex?: number;
+      minEngagement?: number;
+      minFollowers?: number;
+      prioritizeVips?: boolean;
+      sortByMetric?: "likes" | "impressions" | "retweets" | "replies";
+    } & Partial<ComputeSentimentOptions> = {},
+  ): Promise<{ tweets: XTweet[]; sentiment: SentimentCacheEntry }> {
+    const xResearch = this.runtime.getService("VINCE_X_RESEARCH_SERVICE") as VinceXResearchService | null;
+    if (!xResearch) throw new Error("VinceXResearchService not available");
+    let tweets: XTweet[];
+    if ("searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function") {
+      tweets = await xResearch.searchForSentiment(query, {
+        pages: opts.pages ?? 2,
+        since: opts.since ?? getSentimentSince(),
+        sortOrder: opts.sortOrder ?? getSentimentSortOrder(),
+        tokenIndex: opts.tokenIndex,
+        minEngagement: opts.minEngagement,
+        minFollowers: opts.minFollowers,
+      });
+    } else {
+      const raw = await xResearch.search(query, {
+        maxResults: 100,
+        pages: opts.pages ?? 2,
+        sortOrder: opts.sortOrder ?? getSentimentSortOrder(),
+        since: opts.since ?? getSentimentSince(),
+        useBackgroundToken: useBackgroundToken(),
+        tokenIndex: opts.tokenIndex,
+      });
+      const minEng = opts.minEngagement ?? 0;
+      const minFoll = opts.minFollowers ?? 0;
+      tweets = raw.filter(
+        (t) => t.metrics.likes >= minEng && (t.author_followers ?? 0) >= minFoll,
+      );
+    }
+    if (opts.prioritizeVips ?? true) {
+      const vips = await xResearch.getQualityAccountHandles();
+      tweets = xResearch.reorderTweetsWithVipFirst(tweets, vips);
+    }
+    if (opts.sortByMetric) {
+      tweets = xResearch.sortBy(tweets, opts.sortByMetric);
+    }
+    tweets = xResearch.dedupeById(tweets);
+    const { keywordLists, minTweets, bullBearThreshold, engagementCap, riskMinTweets } = opts;
+    const entry = computeSentimentFromTweets(tweets, {
+      keywordLists: keywordLists ?? getKeywordLists(),
+      minTweets: minTweets ?? getMinTweetsForConfidence(),
+      bullBearThreshold: bullBearThreshold ?? getBullBearThreshold(),
+      engagementCap: engagementCap ?? getEngagementCap(),
+      riskMinTweets: riskMinTweets ?? getRiskMinTweets(),
+    });
+    return { tweets, sentiment: entry };
   }
 }

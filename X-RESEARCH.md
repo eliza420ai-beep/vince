@@ -183,6 +183,10 @@ See [.env.example](.env.example) and [SIGNAL_SOURCES.md](src/plugins/plugin-vinc
 | Leaderboards API (news + xSentiment) | [dashboardLeaderboards.ts](src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts) (`buildNewsSection`) |
 | Leaderboard News tab UI | [leaderboard/page.tsx](src/frontend/components/dashboard/leaderboard/page.tsx) (News tab, “X (Twitter) vibe check” card) |
 
+### Sentiment search (searchForSentiment)
+
+The vibe-check pipeline uses **searchForSentiment** when available: English-only (`lang:en`), excludes replies (`-is:reply`), background token, 5 min cache. **Min engagement (e.g. 50+ likes) is applied after the API returns** — the X API does not support `min_faves`/`min_likes` in the query; see [skills/x-research/references/x-api.md](skills/x-research/references/x-api.md). For opinionated BTC/crypto sentiment, queries can optionally add opinion keywords, e.g. `(BTC OR Bitcoin OR $BTC) (bullish OR bearish OR price OR buy OR sell)`.
+
 ### Troubleshooting (X vibe check)
 
 | Symptom | Likely cause | What to do |
