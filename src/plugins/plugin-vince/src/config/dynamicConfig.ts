@@ -102,6 +102,9 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   // Noisy / lagging signals (0.6x)
   NewsSentiment: 0.6,
   XSentiment: 0.5, // X (Twitter) sentiment, staggered one per hour, cache 24h
+
+  // Narrative / daily pulse (0.5x) — grok-auto-*.md Top 3 Research Ideas nudge
+  GrokExpert: 0.5,
 };
 
 const CONFIG_FILE_NAME = "tuned-config.json";

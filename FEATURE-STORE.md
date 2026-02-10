@@ -75,7 +75,7 @@ SUPABASE_URL=https://abcdefgh.supabase.co
 
 ### 4. Verify
 
-After some paper trades, open **Supabase Dashboard → Table Editor → `vince_paper_bot_features`**. You should see rows with `id`, `created_at`, and `payload` (full feature record). Use this table for ML training (e.g. 500+ rows) or future reads.
+After some paper trades, open **Supabase Dashboard → Table Editor → `vince_paper_bot_features`**. You should see rows with `id`, `created_at`, and `payload` (full feature record). The payload may include an optional `grokPulse` object (`fearGreed`, `topTradersLongPct`) from the daily Grok auto-pulse when available. Use this table for ML training (e.g. 500+ rows) or future reads.
 
 ### 5. ML models on Cloud (training without redeploy)
 

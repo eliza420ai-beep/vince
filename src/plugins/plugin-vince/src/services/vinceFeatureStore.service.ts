@@ -37,6 +37,7 @@ import {
   type TradingSession,
 } from "../utils/sessionFilters";
 import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
+import { loadLatestGrokPulse } from "../utils/grokPulseParser";
 
 // ==========================================
 // Feature Record Types
@@ -293,6 +294,8 @@ export interface FeatureRecord {
    * Training can use these for avoid-classification or counterfactual analysis later.
    */
   avoided?: { reason: string; timestamp: number };
+  /** Grok daily pulse at decision time (F&G and Top Traders % from grok-auto-*.md). */
+  grokPulse?: { fearGreed?: number; topTradersLongPct?: number };
 }
 
 // ==========================================
@@ -505,6 +508,7 @@ export class VinceFeatureStoreService extends Service {
     const recordId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     try {
+      const grokPulse = loadLatestGrokPulse(process.cwd());
       // Collect all features
       const market = await this.collectMarketFeatures(params.asset);
       const session = this.collectSessionFeatures();
@@ -514,6 +518,16 @@ export class VinceFeatureStoreService extends Service {
       );
       const regime = await this.collectRegimeFeatures(params.asset);
       const news = await this.collectNewsFeatures();
+
+      if (
+        grokPulse?.fearGreed != null &&
+        market.fearGreedIndex != null &&
+        Math.abs(grokPulse.fearGreed - market.fearGreedIndex) > 15
+      ) {
+        logger.debug(
+          `[VinceFeatureStore] Grok F&G (${grokPulse.fearGreed}) vs CoinGlass (${market.fearGreedIndex}) - large divergence`,
+        );
+      }
 
       const record: FeatureRecord = {
         id: recordId,
@@ -528,6 +542,15 @@ export class VinceFeatureStoreService extends Service {
           ? params.signal.factors.slice(0, 15)
           : undefined,
         execution: params.execution as TradeExecutionFeatures | undefined,
+        ...(grokPulse &&
+          (grokPulse.fearGreed != null || grokPulse.topTradersLongPct != null) && {
+            grokPulse: {
+              ...(grokPulse.fearGreed != null && { fearGreed: grokPulse.fearGreed }),
+              ...(grokPulse.topTradersLongPct != null && {
+                topTradersLongPct: grokPulse.topTradersLongPct,
+              }),
+            },
+          }),
       };
 
       this.records.push(record);
@@ -563,6 +586,7 @@ export class VinceFeatureStoreService extends Service {
     const recordId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
     try {
+      const grokPulse = loadLatestGrokPulse(process.cwd());
       const market = await this.collectMarketFeatures(params.asset);
       const session = this.collectSessionFeatures();
       const signalFeatures = this.collectSignalFeatures(
@@ -571,6 +595,16 @@ export class VinceFeatureStoreService extends Service {
       );
       const regime = await this.collectRegimeFeatures(params.asset);
       const news = await this.collectNewsFeatures();
+
+      if (
+        grokPulse?.fearGreed != null &&
+        market.fearGreedIndex != null &&
+        Math.abs(grokPulse.fearGreed - market.fearGreedIndex) > 15
+      ) {
+        logger.debug(
+          `[VinceFeatureStore] Grok F&G (${grokPulse.fearGreed}) vs CoinGlass (${market.fearGreedIndex}) - large divergence`,
+        );
+      }
 
       const record: FeatureRecord = {
         id: recordId,
@@ -583,6 +617,15 @@ export class VinceFeatureStoreService extends Service {
         news,
         decisionDrivers: params.signal.factors?.length ? params.signal.factors.slice(0, 15) : undefined,
         avoided: { reason: params.reason, timestamp: Date.now() },
+        ...(grokPulse &&
+          (grokPulse.fearGreed != null || grokPulse.topTradersLongPct != null) && {
+            grokPulse: {
+              ...(grokPulse.fearGreed != null && { fearGreed: grokPulse.fearGreed }),
+              ...(grokPulse.topTradersLongPct != null && {
+                topTradersLongPct: grokPulse.topTradersLongPct,
+              }),
+            },
+          }),
       };
 
       this.records.push(record);

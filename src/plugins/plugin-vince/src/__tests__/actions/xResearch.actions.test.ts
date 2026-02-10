@@ -32,17 +32,38 @@ function createRuntimeWithXResearchService(mockImpl: {
   thread?: (id: string, opts?: any) => Promise<XTweet[]>;
   getTweet?: (id: string) => Promise<XTweet | null>;
   sortBy?: (tweets: XTweet[], metric: string) => XTweet[];
+  getUserIdByUsername?: (username: string) => Promise<string | null>;
+  getMentions?: (userId: string, opts?: { maxResults?: number }) => Promise<XTweet[]>;
+  getSentimentTokenCount?: () => number;
+  getTokenIndexForQuery?: (query: string) => number;
+  searchForSentiment?: (query: string, opts?: any) => Promise<XTweet[]>;
+  getQualityAccountHandles?: () => Promise<string[]>;
+  reorderTweetsWithVipFirst?: (tweets: XTweet[], handles: string[]) => XTweet[];
+  dedupeById?: (tweets: XTweet[]) => XTweet[];
+  getUsage?: () => Promise<any>;
+  getPostCountsRecent?: (query: string, opts?: any) => Promise<any>;
   isConfigured?: () => boolean;
 }) {
+  const defaultSearch = mockImpl.search ?? (async () => [mockTweet]);
   return createMockRuntime({
     services: {
       VINCE_X_RESEARCH_SERVICE: {
         isConfigured: () => mockImpl.isConfigured ?? true,
-        search: vi.fn().mockImplementation(mockImpl.search ?? (async () => [mockTweet])),
+        getSentimentTokenCount: vi.fn().mockImplementation(mockImpl.getSentimentTokenCount ?? (() => 0)),
+        getTokenIndexForQuery: vi.fn().mockImplementation(mockImpl.getTokenIndexForQuery ?? (() => 0)),
+        search: vi.fn().mockImplementation(defaultSearch),
+        searchForSentiment: vi.fn().mockImplementation(mockImpl.searchForSentiment ?? defaultSearch),
+        getQualityAccountHandles: vi.fn().mockImplementation(mockImpl.getQualityAccountHandles ?? (async () => [])),
+        reorderTweetsWithVipFirst: vi.fn().mockImplementation(mockImpl.reorderTweetsWithVipFirst ?? ((t: XTweet[]) => t)),
+        dedupeById: vi.fn().mockImplementation(mockImpl.dedupeById ?? ((t: XTweet[]) => t)),
+        getUsage: vi.fn().mockImplementation(mockImpl.getUsage ?? (async () => ({}))),
+        getPostCountsRecent: vi.fn().mockImplementation(mockImpl.getPostCountsRecent ?? (async () => ({}))),
         profile: vi.fn().mockImplementation(mockImpl.profile ?? (async () => ({ user: {}, tweets: [mockTweet] }))),
         thread: vi.fn().mockImplementation(mockImpl.thread ?? (async () => [mockTweet])),
         getTweet: vi.fn().mockImplementation(mockImpl.getTweet ?? (async () => mockTweet)),
         sortBy: vi.fn().mockImplementation((t: XTweet[], _m: string) => [...(mockImpl.sortBy?.(t, "likes") ?? t)]),
+        getUserIdByUsername: vi.fn().mockImplementation(mockImpl.getUserIdByUsername ?? (async () => "user123")),
+        getMentions: vi.fn().mockImplementation(mockImpl.getMentions ?? (async () => [mockTweet])),
       },
     } as any,
   });
@@ -162,71 +183,119 @@ describe("vinceXResearchAction", () => {
       expect(errorCall!.text).toMatch(/X_BEARER_TOKEN|X API tier/);
     });
 
+    it("when service throws HTTP 400, error message never contains literal 'false'", async () => {
+      const runtime = createRuntimeWithXResearchService({
+        search: () => Promise.reject(new Error("HTTP 400: Bad Request")),
+      });
+      const msg = createMockMessage("What are people saying about BTC?");
+      const callback = createMockCallback();
+
+      const result = await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+      expect(result.success).toBe(false);
+      const errorCall = callback.calls.find((c) => c.text?.includes("X research failed"));
+      expect(errorCall).toBeDefined();
+      expect(errorCall!.text).toContain("HTTP 400: Bad Request");
+      expect(errorCall!.text).not.toContain("false");
+    });
+
+    it("mentions intent: when getUserIdByUsername returns null, reports user not found", async () => {
+      const getUserIdByUsername = vi.fn().mockResolvedValue(null);
+      const getMentions = vi.fn().mockResolvedValue([]);
+      const runtime = createRuntimeWithXResearchService({ getUserIdByUsername, getMentions });
+      const msg = createMockMessage("What are people saying to @RaoulGMI?");
+      const callback = createMockCallback();
+
+      const result = await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+      expect(result.success).toBe(true);
+      expect(getUserIdByUsername).toHaveBeenCalledWith("RaoulGMI");
+      expect(getMentions).not.toHaveBeenCalled();
+      const userNotFound = callback.calls.find((c) => c.text?.includes("not found") || c.text?.includes("not accessible"));
+      expect(userNotFound).toBeDefined();
+    });
+
+    it("mentions intent: when getMentions returns empty, reports no recent mentions", async () => {
+      const getUserIdByUsername = vi.fn().mockResolvedValue("user123");
+      const getMentions = vi.fn().mockResolvedValue([]);
+      const runtime = createRuntimeWithXResearchService({ getUserIdByUsername, getMentions });
+      const msg = createMockMessage("What are people saying to @RaoulGMI?");
+      const callback = createMockCallback();
+
+      const result = await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
+
+      expect(result.success).toBe(true);
+      expect(getUserIdByUsername).toHaveBeenCalledWith("RaoulGMI");
+      expect(getMentions).toHaveBeenCalledWith("user123", expect.objectContaining({ maxResults: 15 }));
+      const noMentions = callback.calls.find((c) => c.text?.includes("No recent mentions") || c.text?.includes("Mentions for @RaoulGMI"));
+      expect(noMentions).toBeDefined();
+    });
+
     describe("query expansion for known tickers", () => {
       it("expands BTC to $BTC OR Bitcoin when user asks what people are saying about BTC", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about BTC?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("$BTC OR Bitcoin", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("$BTC OR Bitcoin"), expect.any(Object));
       });
 
       it("expands ETH to $ETH OR Ethereum", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about ETH?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("$ETH OR Ethereum", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("$ETH OR Ethereum"), expect.any(Object));
       });
 
       it("expands SOL to $SOL OR Solana", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about SOL?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("$SOL OR Solana", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("$SOL OR Solana"), expect.any(Object));
       });
 
       it("expands HYPE to HYPE crypto", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about HYPE?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("HYPE crypto", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("HYPE crypto"), expect.any(Object));
       });
 
       it("expands DOGE to $DOGE OR Dogecoin", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about DOGE?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("$DOGE OR Dogecoin", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("$DOGE OR Dogecoin"), expect.any(Object));
       });
 
       it("expands PEPE to $PEPE OR Pepe", async () => {
         const searchFn = vi.fn().mockResolvedValue([mockTweet]);
-        const runtime = createRuntimeWithXResearchService({ search: searchFn });
+        const runtime = createRuntimeWithXResearchService({ search: searchFn, searchForSentiment: searchFn });
         const msg = createMockMessage("What are people saying about PEPE?");
         const callback = createMockCallback();
 
         await vinceXResearchAction.handler!(runtime, msg, createMockState(), {}, callback);
 
-        expect(searchFn).toHaveBeenCalledWith("$PEPE OR Pepe", expect.any(Object));
+        expect(searchFn).toHaveBeenCalledWith(expect.stringContaining("$PEPE OR Pepe"), expect.any(Object));
       });
 
       it("leaves unknown ticker BNKR unchanged", async () => {

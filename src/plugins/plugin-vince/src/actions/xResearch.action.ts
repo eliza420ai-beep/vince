@@ -1048,11 +1048,11 @@ export const vinceXResearchAction: Action = {
       return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      const hint =
-        /rate limit|429/i.test(msg) &&
-        " Add X_BEARER_TOKEN_SENTIMENT in .env for vibe check so in-chat keeps working; see docs/X-API.md. If you can't add another app, set X_SENTIMENT_ENABLED=false or X_SENTIMENT_ASSETS=BTC so in-chat has headroom (X-RESEARCH.md).";
+      const hint = /rate limit|429/i.test(msg)
+        ? " Add X_BEARER_TOKEN_SENTIMENT in .env for vibe check so in-chat keeps working; see docs/X-API.md. If you can't add another app, set X_SENTIMENT_ENABLED=false or X_SENTIMENT_ASSETS=BTC so in-chat has headroom (X-RESEARCH.md)."
+        : "";
       const toolsHint = " You can also try the X keyword search from the CLI: see skills/x-research/README.md.";
-      await sendError(`X research failed: ${msg}${hint ?? ""}${toolsHint}`);
+      await sendError(`X research failed: ${msg}${hint}${toolsHint}`);
       return { success: false };
     }
   },

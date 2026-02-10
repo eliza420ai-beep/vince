@@ -76,6 +76,9 @@ import type {
   SignalQualityInput,
 } from "./mlInference.service";
 
+// Grok Auto-Pulse (daily narrative → paper algo nudge)
+import { loadLatestGrokPulse } from "../utils/grokPulseParser";
+
 // ==========================================
 // ML-Enhanced Configuration
 // ==========================================
@@ -1000,6 +1003,43 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
+    // 5c. Grok Expert Auto-Pulse (daily narrative from knowledge/internal-docs/grok-auto-*.md)
+    // =========================================
+    try {
+      const grokPulse = loadLatestGrokPulse(process.cwd());
+      if (grokPulse?.researchIdeas?.length) {
+        const ideaForAsset = grokPulse.researchIdeas.find(
+          (i) => i.asset.toUpperCase() === asset.toUpperCase(),
+        );
+        if (ideaForAsset) {
+          const strength = 48;
+          const confidence = 45;
+          const label =
+            ideaForAsset.direction === "long"
+              ? "Grok daily pulse: research idea long"
+              : "Grok daily pulse: research idea short";
+          signals.push({
+            asset,
+            direction: ideaForAsset.direction,
+            strength,
+            confidence,
+            source: "GrokExpert",
+            factors: [label],
+            timestamp: Date.now(),
+          });
+          sources.push("GrokExpert");
+          allFactors.push(label);
+        }
+        if (!sources.includes("GrokExpert")) {
+          triedNoContribution.push("GrokExpert");
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] GrokExpert pulse error: ${e}`);
+      triedNoContribution.push("GrokExpert");
+    }
+
+    // =========================================
     // 6. Deribit Options IV Skew (for BTC/ETH/SOL) - use pre-fetched result
     // =========================================
     if (deribitIVSurface?.skewInterpretation) {
@@ -1850,6 +1890,34 @@ export class VinceSignalAggregatorService extends Service {
     // =========================================
     if (direction !== "neutral") {
       aggregated = await this.applyMLEnhancement(aggregated, currentSession);
+    }
+
+    // =========================================
+    // Grok regime filter: cap confidence when daily regime disagrees with direction
+    // =========================================
+    const grokRegimeFilterEnabled =
+      this.runtime.getSetting("GROK_REGIME_FILTER_ENABLED") === true ||
+      this.runtime.getSetting("GROK_REGIME_FILTER_ENABLED") === "true" ||
+      process.env.GROK_REGIME_FILTER_ENABLED === "true";
+    if (grokRegimeFilterEnabled && aggregated.direction !== "neutral") {
+      const pulse = loadLatestGrokPulse(process.cwd());
+      if (pulse) {
+        const disagreeLong =
+          pulse.regime === "bearish" && aggregated.direction === "long";
+        const disagreeShort =
+          pulse.regime === "bullish" && aggregated.direction === "short";
+        if (disagreeLong || disagreeShort) {
+          const regimeLabel = pulse.regime;
+          aggregated = {
+            ...aggregated,
+            confidence: Math.min(aggregated.confidence, 50),
+            factors: [
+              ...aggregated.factors,
+              `Grok regime disagrees (${regimeLabel}) - confidence capped`,
+            ],
+          };
+        }
+      }
     }
 
     // Log which sources contributed (DEBUG to reduce Eliza Cloud noise; set LOG_LEVEL=debug to see)

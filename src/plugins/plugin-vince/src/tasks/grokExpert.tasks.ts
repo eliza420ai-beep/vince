@@ -36,6 +36,7 @@ import { getOrCreateXAIService } from "../services/fallbacks";
 import { getMemoryDir } from "../memory/intelligenceLog";
 import { runCryptoIntelPostReport } from "../memory/cryptoIntelPrePost";
 import { runSubAgentOrchestration } from "./runSubAgentOrchestration";
+import { parseKnowledgeGap } from "../utils/grokPulseParser";
 
 // ==========================================
 // Data Context Builder (simplified for task)
@@ -237,6 +238,29 @@ ${content}
   }
 }
 
+const KNOWLEDGE_GAPS_LOG = "knowledge/internal-docs/knowledge-gaps-log.md";
+
+function appendKnowledgeGapToLog(knowledgeGap: string, dateStr: string): void {
+  try {
+    const cwd = process.cwd();
+    const logPath = path.join(cwd, KNOWLEDGE_GAPS_LOG);
+    const dir = path.dirname(logPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const dateLabel = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const line = `- **${dateLabel}**: ${knowledgeGap.trim()}\n`;
+    if (!fs.existsSync(logPath)) {
+      fs.writeFileSync(logPath, "## Knowledge gaps\n\n" + line, "utf-8");
+    } else {
+      fs.appendFileSync(logPath, line, "utf-8");
+    }
+    logger.info(`[GROK_TASK] Appended knowledge gap to ${KNOWLEDGE_GAPS_LOG}`);
+  } catch (e) {
+    logger.warn(`[GROK_TASK] Failed to append knowledge gap log: ${e}`);
+  }
+}
+
 // ==========================================
 // Register Grok Expert Task
 // ==========================================
@@ -285,6 +309,8 @@ export const registerGrokExpertTask = async (
           runtime.getSetting("GROK_SUB_AGENTS_ENABLED") === "true" ||
           process.env.GROK_SUB_AGENTS_ENABLED === "true";
 
+        let reportContent: string | null = null;
+
         if (subAgentsEnabled) {
           const memoryDir = getMemoryDir(runtime);
           const dataContextText = formatTaskContext(ctx);
@@ -298,6 +324,7 @@ export const registerGrokExpertTask = async (
             xVibeSummary,
             { date: ctx.date, runWebSearch: true, memoryDir },
           );
+          reportContent = report;
           await saveTaskResult(report, ctx.date);
           try {
             await runCryptoIntelPostReport(runtime, memoryDir, report);
@@ -319,7 +346,28 @@ export const registerGrokExpertTask = async (
             logger.error(`[GROK_TASK] Grok API failed: ${result.error}`);
             return;
           }
+          reportContent = result.text;
           await saveTaskResult(result.text, ctx.date);
+        }
+
+        if (reportContent) {
+          const knowledgeGap = parseKnowledgeGap(reportContent);
+          if (knowledgeGap) {
+            appendKnowledgeGapToLog(knowledgeGap, ctx.date);
+            try {
+              const taskWorldId = (runtime.agentId as UUID) ?? undefined;
+              await runtime.createTask({
+                name: "KNOWLEDGE_GAP_FOLLOW_UP",
+                description: knowledgeGap.slice(0, 200),
+                roomId: taskWorldId,
+                worldId: taskWorldId,
+                tags: ["knowledge-gap", "grok"],
+                metadata: { knowledgeGap, date: ctx.date },
+              });
+            } catch (e) {
+              logger.debug(`[GROK_TASK] Knowledge gap task create skipped: ${e}`);
+            }
+          }
         }
 
         logger.info(

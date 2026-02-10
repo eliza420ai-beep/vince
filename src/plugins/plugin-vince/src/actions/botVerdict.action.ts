@@ -17,6 +17,7 @@ import { logger, ModelType } from "@elizaos/core";
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import { CORE_ASSETS } from "../constants/targetAssets";
+import { getGrokMarketReadSection } from "../utils/grokPulseParser";
 
 // ==========================================
 // Build data context for LLM
@@ -179,7 +180,8 @@ export const vinceBotVerdictAction: Action = {
         }
       }
 
-      const dataContext = buildDataContext(positionLines, signalLines);
+      let dataContext = buildDataContext(positionLines, signalLines);
+      dataContext += getGrokMarketReadSection();
       const briefing = await generateHumanBriefing(
         runtime,
         dataContext,

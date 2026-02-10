@@ -22,6 +22,7 @@ import type { VincePositionManagerService } from "../services/vincePositionManag
 import type { VinceSignalAggregatorService } from "../services/signalAggregator.service";
 import type { Position } from "../types/paperTrading";
 import { BOT_FOOTER } from "../constants/botFormat";
+import { getGrokMarketReadSection } from "../utils/grokPulseParser";
 
 // ==========================================
 // Data Context Types
@@ -350,7 +351,8 @@ export const vinceWhyTradeAction: Action = {
       };
 
       // Generate briefing
-      const dataContext = buildWhyTradeDataContext(ctx);
+      let dataContext = buildWhyTradeDataContext(ctx);
+      dataContext += getGrokMarketReadSection();
       logger.info("[VINCE_WHY_TRADE] Generating briefing...");
       const briefing = await generateWhyTradeHumanBriefing(
         runtime,

@@ -800,18 +800,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         X API rate limited. Retry in {xRateLimitCountdownSec}s
                       </p>
                     )}
-                    {leaderboardsData.news.xSentiment.assets.every(
-                      (a) => a.confidence === 0 && (a.updatedAt == null || a.updatedAt === 0),
-                    ) ? (
-                      <p className="text-sm text-muted-foreground py-4 text-center rounded-lg border border-dashed border-border bg-muted/20">
-                        X vibe check: first refresh in ~1 hour (one asset per interval). Same data feeds the trading algo.
-                      </p>
-                    ) : (
-                    <>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {leaderboardsData.news.xSentiment.assets.map((row) => {
                         const updatedAt = row.updatedAt;
-                        const ageMin = updatedAt != null ? Math.floor((Date.now() - updatedAt) / 60_000) : null;
+                        const hasData = updatedAt != null && updatedAt !== 0;
+                        const ageMin = hasData ? Math.floor((Date.now() - updatedAt) / 60_000) : null;
                         const isStale = ageMin != null && ageMin > 120; // 2h — stagger is one per hour, so per-asset refresh can be 1–24h depending on asset count
                         return (
                           <div
@@ -840,18 +833,27 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             {row.hasHighRiskEvent && (
                               <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block">Risk event</span>
                             )}
-                            {updatedAt != null && (
+                            {hasData ? (
                               <span className={cn(
                                 "text-[10px] block mt-1",
                                 isStale ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
                               )}>
                                 {isStale ? "Stale" : ageMin === 0 ? "Updated just now" : `Updated ${ageMin}m ago`}
                               </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground block mt-1">Pending refresh</span>
                             )}
                           </div>
                         );
                       })}
                     </div>
+                    {leaderboardsData.news.xSentiment.assets.every(
+                      (a) => a.confidence === 0 && (a.updatedAt == null || a.updatedAt === 0),
+                    ) && (
+                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                        First refresh in ~1 hour (one asset per interval). Same data feeds the trading algo.
+                      </p>
+                    )}
                     {leaderboardsData.news.listSentiment && leaderboardsData.news.listSentiment.confidence > 0 && (
                       <div className="mt-3 pt-3 border-t border-border/50">
                         <p className="text-xs text-muted-foreground mb-1">List (curated)</p>
@@ -878,8 +880,6 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           )}
                         </div>
                       </div>
-                    )}
-                    </>
                     )}
                   </DashboardCard>
                 )}
