@@ -446,7 +446,7 @@ const initVince = async ({ runtime }: { runtime: IAgentRuntime }) => {
         "Create a second app at discord.com/developers/applications and set VINCE_* to the new app's ID and token."
     );
   }
-  logger.info("[VINCE] ✅ Agent initialized - services starting in background");
+  logger.debug("[VINCE] ✅ Agent initialized - services starting in background");
 };
 
 // ==========================================

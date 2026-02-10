@@ -255,12 +255,12 @@ export class VinceXResearchService extends Service {
     const service = new VinceXResearchService(runtime);
     const token = service.getToken();
     if (!token) {
-      logger.info(
+      logger.debug(
         "[VinceXResearchService] X_BEARER_TOKEN not set — X research disabled. Set in .env or agent secrets.",
       );
     } else {
       const client = await service.getClient();
-      logger.info(
+      logger.debug(
         client
           ? "[VinceXResearchService] Started (X API read-only, using XDK)"
           : "[VinceXResearchService] Started (X API read-only, using fetch)",
@@ -270,7 +270,7 @@ export class VinceXResearchService extends Service {
   }
 
   async stop(): Promise<void> {
-    logger.info("[VinceXResearchService] Stopped");
+    logger.debug("[VinceXResearchService] Stopped");
   }
 
   isConfigured(): boolean {

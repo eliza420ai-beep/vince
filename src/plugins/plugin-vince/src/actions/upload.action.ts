@@ -646,7 +646,7 @@ async function simpleFallbackStorage(
 ): Promise<IKnowledgeGenerationResult> {
   try {
     if (looksLikeMichelinEmbedDump(content)) {
-      logger.info("[VINCE_UPLOAD] simpleFallbackStorage: refused Michelin embed dump");
+      logger.debug("[VINCE_UPLOAD] simpleFallbackStorage: refused Michelin embed dump");
       return { success: false, error: "Michelin link preview content: post link in #knowledge for ADD_MICHELIN_RESTAURANT" };
     }
     const sourceUrl = opts?.sourceUrl ?? `chat://vince-upload/${timestamp}`;
@@ -702,7 +702,7 @@ ${content}
     // Write file
     fs.writeFileSync(filepath, markdownContent, "utf-8");
 
-    logger.info(
+    logger.debug(
       { filepath, category, wordCount },
       "[VINCE_UPLOAD] Fallback storage: File saved",
     );
@@ -801,7 +801,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 
     // Priority 1: Standalone or prominent YouTube URL (allow even if short)
     if (containsYouTubeUrl(text)) {
-      logger.info("[VINCE_UPLOAD] YouTube URL detected");
+      logger.debug("[VINCE_UPLOAD] YouTube URL detected");
       return true;
     }
 
@@ -812,7 +812,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
 
     // Priority 2: Explicit upload intent keywords
     if (hasUploadIntent(text)) {
-      logger.info("[VINCE_UPLOAD] Upload intent detected");
+      logger.debug("[VINCE_UPLOAD] Upload intent detected");
       return true;
     }
 
@@ -821,7 +821,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
       text.length >= AUTO_INGEST_LENGTH &&
       looksPastedNotConversational(text)
     ) {
-      logger.info("[VINCE_UPLOAD] Long pasted content detected");
+      logger.debug("[VINCE_UPLOAD] Long pasted content detected");
       return true;
     }
 
@@ -839,7 +839,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         p.test(firstLine.trim()),
       );
       if (!isConversational) {
-        logger.info("[VINCE_UPLOAD] Long dump detected");
+        logger.debug("[VINCE_UPLOAD] Long dump detected");
         return true;
       }
     }
@@ -1047,7 +1047,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         );
         if (combinedContent) {
           content = combinedContent;
-          logger.info(
+          logger.debug(
             { contentLength: content.length },
             "[VINCE_UPLOAD] Using combined recent user messages (upload that)",
           );
@@ -1070,7 +1070,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           const combined = `${previousBlock}\n\n${content}`.trim();
           if (combined.length > content.length) {
             content = combined;
-            logger.info(
+            logger.debug(
               { contentLength: content.length },
               "[VINCE_UPLOAD] Prepended recent user messages to capture full dump",
             );
@@ -1086,7 +1086,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
             actions: ["VINCE_UPLOAD"],
           });
         }
-        logger.info("[VINCE_UPLOAD] Rejected: content is Michelin embed dump → use #knowledge");
+        logger.debug("[VINCE_UPLOAD] Rejected: content is Michelin embed dump → use #knowledge");
         return;
       }
 
@@ -1101,7 +1101,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         return;
       }
 
-      logger.info(
+      logger.debug(
         { contentLength: content.length },
         "[VINCE_UPLOAD] Processing content...",
       );
@@ -1123,12 +1123,12 @@ Use this action whenever you want to add long-form research to knowledge/.`,
           .slice(0, 50);
         const suggestedFilename = `vince-upload-${slugTitle}-${timestamp}.md`;
 
-        logger.info("[VINCE_UPLOAD] Categorizing content with LLM...");
+        logger.debug("[VINCE_UPLOAD] Categorizing content with LLM...");
         const category = await knowledgeService.categorizeContent(
           content,
           "article",
         );
-        logger.info({ category }, "[VINCE_UPLOAD] Content categorized");
+        logger.debug({ category }, "[VINCE_UPLOAD] Content categorized");
 
         const tags = ["vince-upload", "user-submitted", "chat"];
 
@@ -1153,7 +1153,7 @@ Use this action whenever you want to add long-form research to knowledge/.`,
         );
       }
 
-      logger.info(
+      logger.debug(
         {
           success: fileResult.success,
           file: fileResult.file?.filename,

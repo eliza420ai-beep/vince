@@ -131,7 +131,7 @@ export async function registerSentinelWeeklyTask(
     validate: async () => true,
     execute: async (rt: IAgentRuntime) => {
       if (process.env.SENTINEL_WEEKLY_ENABLED === "false") return;
-      logger.info("[SentinelWeekly] Building suggestions and investor update...");
+      logger.debug("[SentinelWeekly] Building suggestions and investor update...");
       try {
         const list = await generateWeeklySuggestions(rt);
         const suggestionsMessage = [
@@ -156,7 +156,7 @@ export async function registerSentinelWeeklyTask(
         sent += await pushToSentinelChannels(rt, investorMessage);
 
         if (sent > 0) {
-          logger.info(`[SentinelWeekly] Pushed to ${sent} channel(s)`);
+          logger.debug(`[SentinelWeekly] Pushed to ${sent} channel(s)`);
         } else {
           logger.debug(
             "[SentinelWeekly] No channels matched (name contains 'sentinel' or 'ops').",
@@ -181,7 +181,7 @@ export async function registerSentinelWeeklyTask(
     },
   });
 
-  logger.info(
+  logger.debug(
     "[SentinelWeekly] Task registered (weekly; push to channels with 'sentinel' or 'ops' in name). Set SENTINEL_WEEKLY_ENABLED=false to disable.",
   );
 }

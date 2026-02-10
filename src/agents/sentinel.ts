@@ -343,7 +343,7 @@ const buildPlugins = (): Plugin[] =>
   ] as Plugin[];
 
 const initSentinel = async (_runtime: IAgentRuntime) => {
-  logger.info(
+  logger.debug(
     "[Sentinel] Core dev ready — ops, architecture, cost steward (SENTINEL_COST_STATUS), benchmarks, examples, elizaos-plugins; SENTINEL_SUGGEST + weekly task",
   );
 };

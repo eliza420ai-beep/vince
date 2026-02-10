@@ -810,7 +810,7 @@ export const vincePlugin: Plugin = {
       });
     }
 
-    logger.info("[VINCE] Plugin initialized successfully");
+    logger.debug("[VINCE] Plugin initialized successfully");
 
     // DeribitServiceAlias / HyperliquidServiceAlias are in services array (not registered here) to
     // avoid blocking initPromise and causing 30s registration timeouts.
@@ -944,7 +944,7 @@ export const vincePlugin: Plugin = {
             ]);
             if (pulse?.assets?.length) {
               const dashboard = printHlCryptoDashboard(pulse);
-              dashboard.split("\n").forEach((line) => console.log(line));
+              dashboard.split("\n").forEach((line) => logger.debug(line));
             }
           }
         } catch {

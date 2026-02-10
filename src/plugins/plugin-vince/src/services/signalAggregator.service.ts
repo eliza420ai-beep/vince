@@ -267,7 +267,7 @@ export class VinceSignalAggregatorService extends Service {
     const service = new VinceSignalAggregatorService(runtime);
     const session = getCurrentSession();
     const sessionChars = getCurrentSessionCharacteristics();
-    logger.info(
+    logger.debug(
       `[VinceSignalAggregator] ✅ Service initialized with MULTI-SOURCE aggregation + Session Awareness | ` +
         `Current: ${session} (${sessionChars.description})`,
     );
@@ -275,7 +275,7 @@ export class VinceSignalAggregatorService extends Service {
   }
 
   async stop(): Promise<void> {
-    logger.info("[VinceSignalAggregator] Service stopped");
+    logger.debug("[VinceSignalAggregator] Service stopped");
   }
 
   /**
@@ -283,7 +283,7 @@ export class VinceSignalAggregatorService extends Service {
    */
   configureSessionFilter(config: Partial<SessionFilterConfig>): void {
     this.sessionFilterConfig = { ...this.sessionFilterConfig, ...config };
-    logger.info(`[VinceSignalAggregator] Session filter configured`);
+    logger.debug(`[VinceSignalAggregator] Session filter configured`);
   }
 
   /**
@@ -291,7 +291,7 @@ export class VinceSignalAggregatorService extends Service {
    */
   configureOpenWindow(config: Partial<OpenWindowConfig>): void {
     this.openWindowConfig = { ...this.openWindowConfig, ...config };
-    logger.info(`[VinceSignalAggregator] Open window configured`);
+    logger.debug(`[VinceSignalAggregator] Open window configured`);
   }
 
   /**

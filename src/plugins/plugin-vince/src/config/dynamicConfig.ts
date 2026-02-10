@@ -148,13 +148,13 @@ class DynamicConfigManager {
       if (fs.existsSync(this.configPath)) {
         const data = JSON.parse(fs.readFileSync(this.configPath, "utf-8"));
         this.config = this.mergeWithDefaults(data);
-        logger.info(
+        logger.debug(
           `[DynamicConfig] Loaded tuned config (${this.config.adjustmentHistory.length} adjustments)`,
         );
       } else {
         // Save default config
         await this.save();
-        logger.info("[DynamicConfig] Created new config with defaults");
+        logger.debug("[DynamicConfig] Created new config with defaults");
       }
 
       this.initialized = true;
@@ -263,7 +263,7 @@ class DynamicConfigManager {
 
     this.config.thresholds[key] = newValue;
 
-    logger.info(
+    logger.debug(
       `[DynamicConfig] Threshold ${key}: ${oldValue} → ${newValue} | ${reason}`,
     );
 
@@ -298,7 +298,7 @@ class DynamicConfigManager {
 
     this.config.sourceWeights[source] = newWeight;
 
-    logger.info(
+    logger.debug(
       `[DynamicConfig] Source ${source}: ${oldWeight.toFixed(2)} → ${newWeight.toFixed(2)} | ${reason}`,
     );
 

@@ -378,7 +378,7 @@ export const askAgentAction: Action = {
         };
       }).elizaOS;
       if (eliza?.handleMessage) {
-        logger.info("[ASK_AGENT] Using in-process path for " + targetName);
+        logger.debug("[ASK_AGENT] Using in-process path for " + targetName);
         const sentAt = Date.now();
         const userMsg = {
           id: message.id ?? crypto.randomUUID(),
@@ -465,7 +465,7 @@ export const askAgentAction: Action = {
                 }
                 const hasText = text.trim().length > 0;
                 const preview = hasText ? text.slice(0, 80) + (text.length > 80 ? "..." : "") : "none";
-                logger.info(`[ASK_AGENT] onResponse called hasText=${hasText} textLength=${text.length} textPreview=${preview}`);
+                logger.debug(`[ASK_AGENT] onResponse called hasText=${hasText} textLength=${text.length} textPreview=${preview}`);
                 if (!hasText) {
                   const keys = resp && typeof resp === "object" ? Object.keys(resp) : [];
                   const thoughtPrev = typeof c?.thought === "string" ? c.thought.slice(0, 60) + (c.thought.length > 60 ? "..." : "") : "none";
@@ -474,7 +474,7 @@ export const askAgentAction: Action = {
                 if (hasText) settle(text.trim());
               },
               onComplete: () => {
-                logger.info("[ASK_AGENT] onComplete called (not settling — wait for onResponse with text or timeout)");
+                logger.debug("[ASK_AGENT] onComplete called (not settling — wait for onResponse with text or timeout)");
               },
               onError: (err: Error) => {
                 if (settled) return;
@@ -500,7 +500,7 @@ export const askAgentAction: Action = {
             });
             return { success: true };
           }
-          logger.info(`[ASK_AGENT] In-process async did not deliver reply (reason: ${settleReason})`);
+          logger.debug(`[ASK_AGENT] In-process async did not deliver reply (reason: ${settleReason})`);
         } catch (asyncErr) {
           logger.debug(`[ASK_AGENT] Async handleMessage failed: ${String(asyncErr)}`);
         }
@@ -585,7 +585,7 @@ export const askAgentAction: Action = {
           try {
             const POLL_TIMEOUT_MS = 30_000; // Allow slow agents (embeddings, RAG) up to 30s
             const tr = eliza.getAgent?.(targetAgentId) as IAgentRuntime | undefined;
-            logger.info(`[ASK_AGENT] Polling target room for reply roomId=${message.roomId} targetAgentId=${targetAgentId} timeoutMs=${POLL_TIMEOUT_MS} hasTargetRuntime=${!!tr}`);
+            logger.debug(`[ASK_AGENT] Polling target room for reply roomId=${message.roomId} targetAgentId=${targetAgentId} timeoutMs=${POLL_TIMEOUT_MS} hasTargetRuntime=${!!tr}`);
             reply = await pollForTargetReply(
               runtime,
               message.roomId,
@@ -596,24 +596,24 @@ export const askAgentAction: Action = {
               tr ?? null
             );
             if (reply) {
-              logger.info("[ASK_AGENT] Polling found reply");
+              logger.debug("[ASK_AGENT] Polling found reply");
               await callback({
                 text: `**${targetName} says:** ${reply}`,
                 actions: ["ASK_AGENT"],
               });
               return { success: true };
             }
-            logger.info("[ASK_AGENT] Polling timed out without reply");
+            logger.debug("[ASK_AGENT] Polling timed out without reply");
           } catch (pollErr) {
             logger.debug(`[ASK_AGENT] Polling fallback failed: ${String(pollErr)}`);
           }
         }
 
         if (!reply) {
-          logger.info("[ASK_AGENT] In-process path did not deliver reply, falling back to job API");
+          logger.debug("[ASK_AGENT] In-process path did not deliver reply, falling back to job API");
         }
       } else {
-        logger.info("[ASK_AGENT] Using job API (no elizaOS)");
+        logger.debug("[ASK_AGENT] Using job API (no elizaOS)");
       }
 
       // Job API: server must emit new_message with channel_id = job channel and author_id = agent id when the agent replies (see plugin README).

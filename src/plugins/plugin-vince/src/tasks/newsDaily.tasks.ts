@@ -34,7 +34,7 @@ export async function registerNewsDailyTask(
 ): Promise<void> {
   const enabled = process.env.VINCE_NEWS_DAILY_ENABLED !== "false";
   if (!enabled) {
-    logger.info("[NewsDaily] Task disabled (VINCE_NEWS_DAILY_ENABLED=false)");
+    logger.debug("[NewsDaily] Task disabled (VINCE_NEWS_DAILY_ENABLED=false)");
     return;
   }
 
@@ -77,7 +77,7 @@ export async function registerNewsDailyTask(
         return;
       }
 
-      logger.info(
+      logger.debug(
         "[NewsDaily] Fetching news (MandoMinutes, direct fetch for freshness check)...",
       );
       await newsService.refreshData(true);
@@ -85,22 +85,22 @@ export async function registerNewsDailyTask(
       const freshness = newsService.getMandoFreshnessInfo();
       if (!freshness.isLikelyFresh) {
         if (!freshness.hasData) {
-          logger.info(
+          logger.debug(
             "[NewsDaily] Skipping: no news data (run MANDO_MINUTES or ensure cache is populated)",
           );
         } else if (!freshness.inferredPublishDate) {
-          logger.info(
+          logger.debug(
             "[NewsDaily] Skipping: could not infer Mando publish date - may be stale. Set VINCE_NEWS_PUSH_REQUIRE_FRESH=false to push anyway.",
           );
         } else {
-          logger.info(
+          logger.debug(
             `[NewsDaily] Skipping: Mando data from ${freshness.inferredPublishDate} (not today/yesterday). He may not have updated yet.`,
           );
         }
         return;
       }
 
-      logger.info("[NewsDaily] Building news briefing...");
+      logger.debug("[NewsDaily] Building news briefing...");
       try {
         const sentiment = newsService.getOverallSentiment();
         const riskEvents = newsService.getCriticalRiskEvents();
@@ -164,7 +164,7 @@ export async function registerNewsDailyTask(
 
         const sent = await notif.push(text, { roomNameContains: "news" });
         if (sent > 0) {
-          logger.info(
+          logger.debug(
             `[NewsDaily] Pushed to ${sent} channel(s) (Mando date: ${freshness.inferredPublishDate})`,
           );
         } else {
@@ -191,7 +191,7 @@ export async function registerNewsDailyTask(
     },
   });
 
-  logger.info(
+  logger.debug(
     `[NewsDaily] Task registered (runs at ${newsHour}:00 UTC, push to channels with "news" in name, freshness gate: ${process.env.VINCE_NEWS_PUSH_REQUIRE_FRESH !== "false" ? "on" : "off"})`,
   );
 }

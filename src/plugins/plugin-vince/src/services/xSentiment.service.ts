@@ -203,13 +203,13 @@ export class VinceXSentimentService extends Service {
     }
     if (!xResearch?.isConfigured()) {
       service.cache.clear();
-      logger.info(
+      logger.debug(
         "[VinceXSentimentService] X research not configured — X sentiment disabled. Set X_BEARER_TOKEN in .env to enable.",
       );
       return service;
     }
     if (!isSentimentEnabled()) {
-      logger.info(
+      logger.debug(
         "[VinceXSentimentService] Background refresh disabled (X_SENTIMENT_ENABLED=false). Serving from cache; in-chat VINCE_X_RESEARCH uses X API.",
       );
       return service;
@@ -219,7 +219,7 @@ export class VinceXSentimentService extends Service {
     const cachePath = getCacheFilePath();
     const sentimentAssets = getSentimentAssets();
     const cycleHours = (staggerMs * sentimentAssets.length) / (60 * 60 * 1000);
-    logger.info(
+    logger.debug(
       "[VinceXSentimentService] Started (one asset every " +
         (staggerMin >= 60 ? `${Math.round(staggerMin / 60)}h` : `${staggerMin} min`) +
         ", " +
@@ -262,7 +262,7 @@ export class VinceXSentimentService extends Service {
     }
     this.cache.clear();
     this.rateLimitedUntilMs = 0;
-    logger.info("[VinceXSentimentService] Stopped");
+    logger.debug("[VinceXSentimentService] Stopped");
   }
 
   isConfigured(): boolean {
