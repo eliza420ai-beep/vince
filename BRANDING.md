@@ -30,7 +30,7 @@
 
 </div>
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Origin & Context
 
@@ -42,41 +42,87 @@ The same instinct led to pitching strangers-renting-homes in Palo Alto before Ai
 
 Everything built now runs on conviction alone. No VCs. No permission. No exit. IKIGAI STUDIO is where we cut through the DeFi noise: no shilling, no hopium, no timing the market. Just battle-tested signal from someone who’s been early, wrong, hurt, and still standing.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Executive Summary
 
-**IKIGAI STUDIO** is the brand under which we publish thesis, market insights, and lifestyle content—originating on [ikigaistudio.substack.com](https://ikigaistudio.substack.com/). It extends into a unified system of AI agents (Eliza, VINCE, Solus, Otaku, Kelly, Sentinel) and digital presence. Our principle—**One Team One Dream**—ties narrative, intel, finance, DeFi, wellness, and tech into a single coherent identity.
+══════════════════════════════════════════════════════════════════════════════
+
+The **core of the project** is the trading and data stack: a self-improving **paper perp trading bot** on **Hyperliquid**; **onchain options** on **Hypersurface** with a weekly decision—**covered calls vs secured puts**, and **which asset** (BTC, ETH, SOL, HYPE). That decision is data-heavy; we need a unified data and intelligence layer. **ClawTerm** is that layer: the AI-powered Crypto Bloomberg Terminal (conversational intelligence, unified dashboard, autonomous agents, DeFi superpowers) built on OpenClaw. So: **core = terminal + paper bot + options ritual**; everything else supports or orbits that.
+
+**IKIGAI STUDIO** is the brand for thesis and content (Substack); **IKIGAI Labs** is where we ship the product (ClawTerm, agents, terminal). Kelly is essential to inspire living the good life; the core of the project is the trading and data stack. Our principle—**One Team One Dream**—ties narrative, intel, finance, DeFi, wellness, and tech into a single coherent identity.
 
 This brief defines the brand, voice, visual direction, and a **complete list of accounts to create** for the project (GitHub, Gmail, X, Google Calendar, and the rest) so every touchpoint speaks with one voice.
 
----
+### Product core (at a glance)
+
+┌─ Product core (at a glance) ──────────────────────────────────────────────┐
+│ • **Paper perp bot** on Hyperliquid (self-improving, ML loop).             │
+│ • **Onchain options** on Hypersurface: weekly strike ritual—covered calls │
+│   vs secured puts, asset choice (BTC, ETH, SOL, HYPE).                    │
+│ • **ClawTerm:** the AI-powered Crypto Bloomberg Terminal on OpenClaw—     │
+│   unified data, conversational intelligence, autonomous agents. See      │
+│   [ClawTerm: product vision](#clawterm-product-vision) below.              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Brand Positioning
 
 | Element | Definition |
 |--------|-------------|
-| **Brand Name** | **IKIGAI STUDIO** (primary). Extensions: Ikigai Cinema Agents for media; Ikigai Labs for builder/ETH context. |
-| **Tagline** | *"No hype. No shilling. No timing the market."* — Battle-tested signal from the crypto trenches. |
-| **Mission** | Underwrite and share a clear thesis: Bitcoin as operating system, sovereignty, lifestyle, and disciplined market insight—through Substack, agents, and every channel we own. |
-| **Vision** | Be the place where code, culture, and conviction converge: one brand, one narrative, from Substack to onchain. |
-| **Unique Value Proposition** | We don’t sell hope or alpha. We share what we’ve lived: early bets, forced sales, survived winters. IKIGAI STUDIO is front-row, unfiltered—Bitcoin, curated alts, macro, lifestyle—with no second best. |
+| **Brand Name** | **IKIGAI STUDIO** (content, Substack). **IKIGAI Labs** (product, ClawTerm, agents, terminal). Studio = content; Labs = product (ClawTerm, ikigailabs.eth). Extensions: Ikigai Cinema Agents for media. |
+| **Tagline** | *"No hype. No shilling. No timing the market."* — Battle-tested signal from the crypto trenches. Product: *"The AI-Powered Crypto Bloomberg Terminal – Built for the Onchain Era."* |
+| **Mission** | Unified onchain intelligence: paper perp bot (Hyperliquid), weekly options ritual (Hypersurface—covered calls vs secured puts, BTC/ETH/SOL/HYPE), and ClawTerm as the terminal. Underwrite and share thesis: Bitcoin as operating system, sovereignty, lifestyle, disciplined market insight—through Substack, agents, and every channel we own. |
+| **Product Core** | Paper perp bot (Hyperliquid); onchain options (Hypersurface) with weekly strike ritual; ClawTerm as the definitive onchain intelligence layer. |
+| **Vision** | Be the place where code, culture, and conviction converge: one brand, one narrative, from Substack to onchain. The definitive onchain intelligence layer—the Bloomberg Terminal crypto always deserved. |
+| **Unique Value Proposition** | We don’t sell hope or alpha. We share what we’ve lived: early bets, forced sales, survived winters. IKIGAI STUDIO is front-row, unfiltered—Bitcoin, curated alts, macro, lifestyle—with no second best. ClawTerm puts Bloomberg-level power in every trader's hands—open-source, natural language, autonomous. |
 | **Tone of Voice** | Direct, grounded, no AI-slop. Benefit-led (Apple-style). Confident craft (Porsche OG). Zero jargon: no “leverage,” “paradigm,” “circle back.” Concrete, human, scar tissue turned into signal. |
 
----
+<div align="center">
+
+```
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                    ▶ C L A W   T E R M                                  ║
+║                                                                          ║
+║     The AI-Powered Crypto Bloomberg Terminal · Built on OpenClaw        ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+```
+
+</div>
+
+### ClawTerm: product vision
+
+**Tagline:** *The AI-Powered Crypto Bloomberg Terminal – Built for the Onchain Era*
+
+Imagine a world where institutional-grade crypto intelligence isn't locked behind a $25,000 annual Bloomberg subscription or scattered across 20 fragmented tools (Dune, Nansen, Glassnode, DexScreener, Twitter). Where you don't need to be a SQL wizard or 24/7 alpha hunter to stay ahead. That's **ClawTerm**—the open-source, AI-native Crypto Terminal we're building on OpenClaw.
+
+- **The problem:** Fragmentation (dashboards for onchain, charts, portfolios, trading, sentiment). Accessibility gap: pro tools expensive or complex; retail misses edges. Reactivity over autonomy—you react to alerts instead of your terminal proactively hunting opportunities.
+- **The solution:** ClawTerm on OpenClaw. **Conversational intelligence** ("Give me a full market digest on Solana," "Is this token legit? Scan 0x... on Base," "DCA $500 into ETH over the next week on Hyperliquid"). **Unified dashboard:** real-time onchain metrics, portfolio tracking, live charts, news/sentiment, prediction markets. **Autonomous agents:** sub-agents that run 24/7—alpha scanning, whale monitoring, trading signals, token launches (Bankr/Clanker), bridging. **DeFi superpowers:** one-click swaps, yield, leverage, onchain identity; extensible (3,000+ community skills), self-hosted, vetted (ClawdStrike, VirusTotal).
+- **Why now:** Agents are the killer app of 2026. Crypto needs intelligence that's proactive, not reactive. Democratization: open-source, free to run, Bloomberg-level power in every trader's hands. Edge: natural language + autonomy = faster decisions.
+
+We're not just building another dashboard. We're creating the definitive onchain intelligence layer—the Bloomberg Terminal crypto always deserved.
+
+**The terminal is open. What's your first query?** · **ikigailabs.eth** · **Built on OpenClaw** · 2026 and beyond.
+
+*Where to read more:* [plugin-vince README](src/plugins/plugin-vince/README.md) (paper bot), [SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) (strike ritual, options), [NORTH_STAR_DELIVERABLES.md](knowledge/sentinel-docs/NORTH_STAR_DELIVERABLES.md) (perps + options deliverables).
+
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Target Audience
 
-- **Primary:** Bitcoin- and ETH-aligned builders, DeFi operators, macro-minded readers who want thesis and insight without hype.
+- **Primary:** Traders and builders who need unified crypto data, paper perp context, and the weekly options ritual (covered calls vs secured puts, asset choice). They want a Bloomberg-like terminal, not 20 fragmented tools.
 - **Secondary:** Lifestyle and wellness (Kelly), capital pathways (Solus), coders and ops (Sentinel), media/cinema (LiveTheLife heritage).
-- **Pain Points:** Noise, shilling, FOMO. We provide clarity, thesis, and agent-backed execution.
+- **Pain Points:** Noise, shilling, FOMO; fragmented data, no single terminal. We provide clarity, thesis, agent-backed execution, and unified intelligence.
 - **Channels:** [Substack](https://ikigaistudio.substack.com/) for long-form; X for real-time; Discord/Telegram for community and agents.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Accounts to Create (Master List)
 
-Use **IKIGAI STUDIO** (or approved variants below) consistently when naming accounts. Create and secure in this order where possible.
+Use **IKIGAI STUDIO** (or approved variants below) consistently when naming accounts. For product-facing assets (ClawTerm, OpenClaw, terminal), use **IKIGAI Labs** or **ikigailabs.eth** where appropriate. Create and secure in this order where possible.
 
 ### Core identity & communication
 
@@ -116,7 +162,7 @@ Use **IKIGAI STUDIO** (or approved variants below) consistently when naming acco
 | # | Account / Asset | Suggested name / handle | Purpose |
 |---|-----------------|-------------------------|--------|
 | 19 | **Domain (web)** | ikigaistudio.com | Primary site, link-in-bio, redirects. |
-| 20 | **ENS / .eth** | ikigaistudio.eth | Onchain identity, wallet display, sovereignty. |
+| 20 | **ENS / .eth** | ikigaistudio.eth or ikigailabs.eth | Onchain identity, wallet display, sovereignty. Use ikigailabs.eth for product/ClawTerm. |
 | 21 | **Linktree / Beacons** | ikigaistudio | Single hub for Substack, X, Discord, calendar, etc. |
 
 ### Storage, analytics & misc
@@ -244,7 +290,7 @@ The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, an
 
 **Where to read more:** Sentinel-docs: [knowledge/sentinel-docs/](https://github.com/IkigaiLabsETH/vince/tree/main/knowledge/sentinel-docs) (sync with `scripts/sync-sentinel-docs.sh`). Repo root: [MULTI_AGENT.md](https://github.com/IkigaiLabsETH/vince/blob/main/MULTI_AGENT.md) (multi-agent, standups), [DISCORD.md](https://github.com/IkigaiLabsETH/vince/blob/main/DISCORD.md) (channel layout, push routing, setup).
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Visual Identity (Aligned with Frontend)
 
@@ -278,7 +324,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 - Directed, crafted visuals—no stock slop. Agent avatars, blockchain data as framed visuals, lifestyle (surf, focus, real food).
 - Logo: Venn refined to film-reel or node network; Eliza as illumination, Sentinel as defense. “IKIGAI STUDIO” wordmark for Substack and social.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Digital Presence (Handles & Copy)
 
@@ -286,7 +332,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 - **Handle:** @IkigaiStudio (or @ikigaistudio if available).
 - **Bio:** *“Thesis, market insights, lifestyle. No hype, no shilling. From [ikigaistudio.substack.com](https://ikigaistudio.substack.com/) · One Team One Dream.”*
-- **Pin:** Substack link or latest thesis thread.
+- **Pin:** Substack link or latest thesis thread. Optional product pin: *"ClawTerm: the crypto Bloomberg. Built on OpenClaw. ikigailabs.eth"*
 
 ### Email
 
@@ -302,7 +348,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 *“IKIGAI STUDIO — Thesis & market insights from the trenches. Bitcoin, macro, lifestyle. No VCs, no permission. [Substack](https://ikigaistudio.substack.com/) · One Team One Dream.”*
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Key Messaging & Content
 
@@ -311,14 +357,16 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 - **“No hype. No shilling. No timing the market.”** — Default stance in every channel.
 - **“Battle-tested signal from someone who’s been early, wrong, hurt, and still standing.”** — Origin story in one line.
 - **“Thesis first. Underwritten on Substack. Executed by agents.”** — Flow from idea to system.
+- **ClawTerm:** "The AI-Powered Crypto Bloomberg Terminal. Built for the onchain era. The terminal is open."
+- **Core vs inspiration:** The core is the terminal and the trading ritual—paper perps on Hyperliquid, options on Hypersurface, every Friday. Kelly and the team inspire the life around it.
 
 ### Content Strategy
 
 - **Substack:** Long-form thesis, market insights, lifestyle; anchor of the brand.
 - **X:** Short takes, threads, agent teasers, replies; drive to Substack and Discord.
-- **Agents:** VINCE (intel), Solus (finance), Kelly (lifestyle), Sentinel (tech)—all under IKIGAI STUDIO.
+- **Agents:** VINCE (intel), Solus (finance), Kelly (lifestyle), Sentinel (tech)—all under IKIGAI STUDIO / IKIGAI Labs (product).
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Next Steps & Budget
 
@@ -330,7 +378,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 | **Metrics** | Substack subs; X followers and engagement; Discord/Telegram growth. |
 | **Budget** | ~$2K (domain, design, tools); expand with onchain revenue (e.g. Otaku/morpho_yield). |
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Hardware & mobility
 
@@ -343,7 +391,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 Keep the iPad mini signed into the same Apple ID used for the project (or a dedicated one), with auth apps (e.g. Google Authenticator, Authy, or 1Password) and any “trusted device” prompts for IKIGAI STUDIO accounts. Store nothing else on it so it stays a clean, project-only 2FA and lightweight control surface.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Software with strong free tiers
 
@@ -484,7 +532,7 @@ Smart Home & IoT is one of the strongest OpenClaw categories (56+ skills on Claw
 
 **Suggested sign-up order (after core accounts):** Notion or Obsidian → Linear → Figma → Vercel (if not yet) → Plausible or Clarity → Cal.com → Zapier or n8n if you need automation. Add **Gmail**, **Todoist**, **1Password** (or Bitwarden) from the Clawdbot list if you want inbox, task list, and secret management. Add the rest as the team grows.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Free accounts for the agents (by lane)
 
@@ -516,6 +564,8 @@ Each agent is good at something specific and produces outputs that deserve a **h
 
 ### Kelly — Lifestyle, good life, touch grass
 
+Essential for inspiration; the product core is data and the trading ritual. Kelly inspires living the life—hotels, dining, wine, touch grass—while the brand face is the terminal and the Friday options ritual.
+
 | She’s good at | She produces | Free accounts to create for her |
 |---------------|--------------|----------------------------------|
 | Hotels, fine dining, wine, health, fitness; KELLY_DAILY_BRIEFING; allowlist places, the-good-life knowledge | Daily briefing to Discord; good-life suggestions (`standup-deliverables/good-life/`); picks from `knowledge/the-good-life` and `allowlist-places.txt` | **Notion board or Airtable**: “Kelly’s picks” / “Allowlist places” — one row per place (name, city, type, notes, tried Y/N); she suggests, human checks off; can sync or mirror `allowlist-places.txt`. **Google Calendar**: “Kelly” — wine tastings, restaurant reservations, “touch grass” blocks. **Substack** (IKIGAI STUDIO): optional “Kelly’s picks” section or occasional lifestyle post. **OpenTable / Resy** (if free API or affiliate): account for booking links in briefings (optional). |
@@ -536,12 +586,12 @@ Each agent is good at something specific and produces outputs that deserve a **h
 | **VINCE** | Notion DB or Airtable (report archive), Zapier/n8n (forward ALOHA), optional Metabase/Retool (dashboards) |
 | **Solus** | Notion DB or Airtable (call log), Google Calendar (rebalance/invalidation) |
 | **Otaku** | Notion DB or Airtable (mint log), OpenSea/Zora (gallery), Google Calendar (harvest/rebalance) |
-| **Kelly** | Notion or Airtable (Kelly’s picks / allowlist), Google Calendar (dining, wine, touch grass) |
+| **Kelly** | Notion or Airtable (Kelly’s picks / allowlist), Google Calendar (dining, wine, touch grass). Essential for inspiration; product core = data + ritual. |
 | **Sentinel** | Linear or Jira (issues from PRDs), Notion (PRD index, cost, runbook), optional GitHub repo (PRDs), optional Obsidian (clawdbot) |
 
 Shared for all: **Google Calendar** (one workspace, multiple calendars: Solus, Otaku, Kelly, Sentinel), **Notion** (one workspace, areas or DBs per agent), **Discord** (already). Creating these gives each agent a clear “lane” in the same free-tier stack.
 
----
+══════════════════════════════════════════════════════════════════════════════
 
 <div align="center">
 
@@ -552,10 +602,11 @@ Shared for all: **Google Calendar** (one workspace, multiple calendars: Solus, O
 ║   and where it goes: thesis, agents, one team, one dream.                ║
 ║                                                                          ║
 ║            No hype. No permission. No exit.                             ║
+║            The terminal is open.                                         ║
 ║                                                                          ║
 ╚══════════════════════════════════════════════════════════════════════════╝
 ```
 
-*[ikigaistudio.substack.com](https://ikigaistudio.substack.com/) · One Team One Dream*
+*[ikigaistudio.substack.com](https://ikigaistudio.substack.com/) · One Team One Dream · ikigailabs.eth*
 
 </div>
