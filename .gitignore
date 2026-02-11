@@ -14,6 +14,9 @@ dist/
 .eliza/
 .elizadb/
 
+# OpenClaw research cache (ephemeral, runtime-generated)
+.openclaw-cache/
+
 # IDE / OS
 .DS_Store
 *.log

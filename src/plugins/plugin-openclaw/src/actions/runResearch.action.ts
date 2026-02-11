@@ -7,7 +7,7 @@ import {
   State,
   logger,
 } from "@elizaos/core";
-import { shouldOpenclawPluginBeInContext } from "../matcher";
+import { shouldOpenclawPluginBeInContext } from "../../matcher";
 import {
   initCache,
   getCachedResult,
@@ -201,9 +201,13 @@ ${cached.result}
       let cost: { inputTokens: number; outputTokens: number; estimatedCost: number; timestamp: number };
 
       if (agent === "all") {
-        const { results, totalCost } = await executeAllAgentsWithStreaming(tokens, (update) => {
-          streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
-        });
+        const { results, totalCost } = await executeAllAgentsWithStreaming(
+          tokens,
+          (update) => {
+            streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
+          },
+          runtime,
+        );
         
         result = `
 🐦 **Alpha Research**
@@ -220,9 +224,14 @@ ${results.news || "N/A"}
 `;
         cost = totalCost;
       } else {
-        const agentResult = await executeAgentWithStreaming(agent, tokens, (update) => {
-          streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
-        });
+        const agentResult = await executeAgentWithStreaming(
+          agent,
+          tokens,
+          (update) => {
+            streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
+          },
+          runtime,
+        );
         result = agentResult.result;
         cost = agentResult.cost;
       }

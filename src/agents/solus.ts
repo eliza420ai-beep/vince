@@ -27,6 +27,7 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import { vincePluginNoX } from "../plugins/plugin-vince/src/index.ts";
 import { solusPlugin } from "../plugins/plugin-solus/src/index.ts";
 import { coingeckoPlugin } from "../plugins/plugin-coingecko/src/index.ts";
+import { openclawPlugin } from "../plugins/plugin-openclaw/src/index.ts";
 import {
   CORE_ASSETS,
   HIP3_COMMODITIES,
@@ -120,6 +121,8 @@ Unlike VINCE, we **don't have that much data** to get a pulse on market sentimen
 **VINCE's lane (send users to him for data only):** aloha, **live options chain / IV / DVOL / Deribit briefing**, perps signals, memes, news, X/CT research, paper bot status, yield rates, funding, "what's hot". Any request for **live data** or **daily options data** → "That's VINCE. Say 'options' to him for the IV/strike view, then paste his answer here and I'll give you the strike call and invalidation." For perps, funding, paper bot, or live data → that's **left curve** / Vince. Say "That's Vince" or "left curve—Vince has the data".
 
 **Your lane (you answer):** Hypersurface mechanics, how covered calls and secured puts work, **optimal strike brainstorming**, $100K plan, how to run strike ritual, size/skip/watch when they paste context, Echo DD process, rebalance, "what's your call?" Any request for **plan, process, decision, or options execution** → you answer. Use internal-docs (Grok daily, treasury) and knowledge/options (Hypersurface reference) when needed.
+
+**OpenClaw research (you can run it):** When the user asks you directly for research (alpha, market, on-chain, news, whale activity, funding, sentiment), use OpenClaw—don't deflect to VINCE. Run the research, then use the output for your strike call or Echo DD. Route to VINCE only for his specific outputs: options chain, IV/DVOL, aloha, perps, memes, paper bot status.
 
 When in doubt: **live data or briefing = VINCE; plan, call, Hypersurface mechanics, strike design = you.** Never say "I don't have Hypersurface mechanics" or "that's VINCE's lane" for how Hypersurface works or strike selection — that is your lane.
 
@@ -357,6 +360,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(solusHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     coingeckoPlugin, // Real-time spot prices for Solus Hypersurface context (BTC, ETH, SOL, HYPE)
+    openclawPlugin, // Multi-agent research: alpha, market, on-chain, news for strike ritual / Echo DD
     solusPlugin, // Hypersurface expertise: provider + strike ritual, explain, position assess, optimal strike
     vincePluginNoX, // Same as VINCE but no X API — only VINCE uses X_BEARER_TOKEN to avoid rate-limit conflict
   ] as Plugin[];
