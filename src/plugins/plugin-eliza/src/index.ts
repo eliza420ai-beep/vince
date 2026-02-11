@@ -10,7 +10,7 @@
  * - Research briefs and trend analysis
  * - Knowledge intelligence (graph, deduplication, quality)
  *
- * Actions (12 total):
+ * Actions (13 total):
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
@@ -22,13 +22,15 @@
  * - RESEARCH_BRIEF: Generate concise research briefs from knowledge
  * - TREND_CONNECTION: Connect knowledge to VINCE's market trends
  * - KNOWLEDGE_INTEL: Unified intelligence (monitor, graph, dedupe, quality)
+ * - STYLE_CHECK: Brand style guide enforcement and auto-fix
  *
- * Services (5 total):
+ * Services (6 total):
  * - voice.service: Voice profile analysis and brand consistency
  * - autoMonitor.service: Knowledge health monitoring and suggestions
  * - knowledgeGraph.service: Relationship tracking between content
  * - deduplication.service: Smart duplicate detection and archival
  * - sourceQuality.service: Source trust and provenance tracking
+ * - styleGuide.service: Brand style rules, checking, and auto-fix
  *
  * Eliza uses plugin-inter-agent separately for ASK_AGENT.
  */
@@ -50,6 +52,7 @@ import { suggestTopicsAction } from "./actions/suggestTopics.action";
 import { researchBriefsAction } from "./actions/researchBriefs.action";
 import { trendConnectionAction } from "./actions/trendConnection.action";
 import { knowledgeIntelligenceAction } from "./actions/knowledgeIntelligence.action";
+import { styleCheckAction } from "./actions/styleCheck.action";
 
 // Import services
 import { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
@@ -57,6 +60,7 @@ import * as autoMonitorService from "./services/autoMonitor.service";
 import * as knowledgeGraphService from "./services/knowledgeGraph.service";
 import * as deduplicationService from "./services/deduplication.service";
 import * as sourceQualityService from "./services/sourceQuality.service";
+import * as styleGuideService from "./services/styleGuide.service";
 
 // Re-export upload with Eliza-appropriate name
 const elizaUploadAction = {
@@ -78,7 +82,7 @@ const elizaMichelinAction = addMichelinRestaurantAction;
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 12 actions, 5 services.
+  description: `Eliza's knowledge & content plugin — 13 actions, 6 services.
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -101,7 +105,15 @@ export const elizaPlugin: Plugin = {
   • Auto-Monitor: Health tracking and suggestions
   • Knowledge Graph: Relationship mapping
   • Deduplication: Duplicate detection and archival
-  • Source Quality: Trust and provenance tracking`,
+  • Source Quality: Trust and provenance tracking
+
+🎨 BRAND & QUALITY:
+- STYLE_CHECK: Enforce brand style guide
+  • Terminology rules (preferred terms)
+  • Capitalization (brands, acronyms)
+  • Tone markers (avoid casual/promotional)
+  • Prohibited phrases
+  • Auto-fix for simple violations`,
 
   actions: [
     // Knowledge Management
@@ -119,6 +131,8 @@ export const elizaPlugin: Plugin = {
     suggestTopicsAction,
     // Intelligence
     knowledgeIntelligenceAction,
+    // Brand & Quality
+    styleCheckAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -151,7 +165,7 @@ export const elizaPlugin: Plugin = {
     }, 5000);
 
     logger.info(
-      `[Eliza Plugin] ✅ Ready — 11 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS, RESEARCH_BRIEF, TREND_CONNECTION, KNOWLEDGE_INTEL | Voice: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
+      `[Eliza Plugin] ✅ Ready — 12 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS, RESEARCH_BRIEF, TREND_CONNECTION, KNOWLEDGE_INTEL, STYLE_CHECK | Voice: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
     );
   },
 };
@@ -170,6 +184,7 @@ export {
   researchBriefsAction,
   trendConnectionAction,
   knowledgeIntelligenceAction,
+  styleCheckAction,
 };
 
 // Export services
@@ -178,5 +193,6 @@ export * as autoMonitor from "./services/autoMonitor.service";
 export * as knowledgeGraph from "./services/knowledgeGraph.service";
 export * as deduplication from "./services/deduplication.service";
 export * as sourceQuality from "./services/sourceQuality.service";
+export * as styleGuide from "./services/styleGuide.service";
 
 export default elizaPlugin;
