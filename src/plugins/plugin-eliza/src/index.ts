@@ -1,12 +1,18 @@
 /**
- * Plugin Eliza — Knowledge Expansion & Research
+ * Plugin Eliza — Knowledge Expansion, Research & Content Production
  *
- * Eliza's dedicated plugin for 24/7 research and knowledge base expansion.
- * No trading, no live data — just knowledge ingestion and management.
+ * Eliza's dedicated plugin for:
+ * - 24/7 knowledge base management and expansion
+ * - Content ingestion (articles, YouTube, PDFs)
+ * - Long-form essay production (Substack)
+ * - Tweet drafting (X/Twitter)
  *
  * Actions:
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
+ * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
+ * - WRITE_ESSAY: Generate Substack essays from knowledge
+ * - DRAFT_TWEETS: Create tweet suggestions for @ikigaistudioxyz
  *
  * Eliza uses plugin-inter-agent separately for ASK_AGENT.
  */
@@ -14,11 +20,16 @@
 import type { Plugin, IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 
-// Import actions from plugin-vince (knowledge ingestion only)
+// Import actions from plugin-vince (knowledge ingestion)
 import { vinceUploadAction } from "../../plugin-vince/src/actions/upload.action";
 import { addMichelinRestaurantAction } from "../../plugin-vince/src/actions/addMichelin.action";
 
-// Re-export with Eliza-appropriate names
+// Import Eliza's own actions
+import { knowledgeStatusAction } from "./actions/knowledgeStatus.action";
+import { writeEssayAction } from "./actions/writeEssay.action";
+import { draftTweetsAction } from "./actions/draftTweets.action";
+
+// Re-export upload with Eliza-appropriate name
 const elizaUploadAction = {
   ...vinceUploadAction,
   name: "UPLOAD",
@@ -38,22 +49,46 @@ const elizaMichelinAction = addMichelinRestaurantAction;
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge expansion plugin. UPLOAD content (text, URLs, YouTube) to knowledge/. ADD_MICHELIN_RESTAURANT for Michelin Guide links in #knowledge channel.`,
+  description: `Eliza's knowledge & content plugin.
 
-  actions: [elizaUploadAction, elizaMichelinAction],
+📚 KNOWLEDGE MANAGEMENT:
+- UPLOAD: Ingest text, URLs, YouTube → knowledge/
+- ADD_MICHELIN_RESTAURANT: Michelin Guide links → knowledge/
+- KNOWLEDGE_STATUS: Health check on knowledge base
+
+✍️ CONTENT PRODUCTION:
+- WRITE_ESSAY: Substack essays (https://ikigaistudio.substack.com/)
+- DRAFT_TWEETS: Tweet suggestions for @ikigaistudioxyz`,
+
+  actions: [
+    elizaUploadAction,
+    elizaMichelinAction,
+    knowledgeStatusAction,
+    writeEssayAction,
+    draftTweetsAction,
+  ],
 
   init: async (_config, runtime: IAgentRuntime) => {
-    const hasTavily = !!process.env.TAVILY_API_KEY?.trim();
     const hasSummarize =
       !!process.env.OPENAI_API_KEY?.trim() ||
       !!process.env.ANTHROPIC_API_KEY?.trim() ||
       !!process.env.GEMINI_API_KEY?.trim();
+    const hasTavily = !!process.env.TAVILY_API_KEY?.trim();
 
     logger.info(
-      `[Eliza Plugin] ✅ Knowledge expansion ready — UPLOAD (summarize: ${hasSummarize ? "available" : "needs API key"}), ADD_MICHELIN_RESTAURANT, web search: ${hasTavily ? "available" : "needs TAVILY_API_KEY"}`,
+      `[Eliza Plugin] ✅ Ready — UPLOAD (summarize: ${hasSummarize ? "✓" : "needs key"}), KNOWLEDGE_STATUS, WRITE_ESSAY (Substack), DRAFT_TWEETS (@ikigaistudioxyz), web search: ${hasTavily ? "✓" : "needs TAVILY"}`,
     );
   },
 };
 
-export { elizaUploadAction, elizaMichelinAction, addMichelinRestaurantAction };
+// Export all actions
+export {
+  elizaUploadAction,
+  elizaMichelinAction,
+  addMichelinRestaurantAction,
+  knowledgeStatusAction,
+  writeEssayAction,
+  draftTweetsAction,
+};
+
 export default elizaPlugin;
