@@ -393,17 +393,17 @@ export async function executeAgentWithStreaming(
   onUpdate({ type: "progress", agent, message: "Connecting to data sources...", progress: 20 });
 
   if (runtime) {
+    // Return disclaimer for alpha/onchain/news before any API calls. We only have Hyperliquid price + 24h change.
+    if (SECTIONS_WITHOUT_DATA.includes(agent as (typeof SECTIONS_WITHOUT_DATA)[number])) {
+      const disclaimer = noDataDisclaimer(agent, tokens);
+      const cost = calculateCost(0, 0);
+      onUpdate({ type: "complete", agent, message: "Research complete!", progress: 100, result: disclaimer });
+      return { result: disclaimer, cost };
+    }
+
     try {
       onUpdate({ type: "progress", agent, message: "Gathering market data...", progress: 40 });
       const { dataContext, dataPoints } = await fetchRealMarketData(runtime, tokens);
-
-      // We only have Hyperliquid price + 24h change. Do not ask LLM to write alpha/onchain/news—it would fabricate.
-      if (SECTIONS_WITHOUT_DATA.includes(agent as (typeof SECTIONS_WITHOUT_DATA)[number])) {
-        const disclaimer = noDataDisclaimer(agent, tokens);
-        const cost = calculateCost(0, 0);
-        onUpdate({ type: "complete", agent, message: "Research complete!", progress: 100, result: disclaimer });
-        return { result: disclaimer, cost };
-      }
 
       if (dataPoints.length === 0) {
         const noData = `No price data available for ${tokens}. Check symbols (Hyperliquid perps only).`;
