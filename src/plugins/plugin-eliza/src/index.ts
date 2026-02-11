@@ -10,7 +10,7 @@
  * - Research briefs and trend analysis
  * - Knowledge intelligence (graph, deduplication, quality)
  *
- * Actions (13 total):
+ * Actions (14 total):
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
@@ -23,6 +23,7 @@
  * - TREND_CONNECTION: Connect knowledge to VINCE's market trends
  * - KNOWLEDGE_INTEL: Unified intelligence (monitor, graph, dedupe, quality)
  * - STYLE_CHECK: Brand style guide enforcement and auto-fix
+ * - POLISH: Transform generic copy into premium, brand-elevating content
  *
  * Services (6 total):
  * - voice.service: Voice profile analysis and brand consistency
@@ -53,6 +54,7 @@ import { researchBriefsAction } from "./actions/researchBriefs.action";
 import { trendConnectionAction } from "./actions/trendConnection.action";
 import { knowledgeIntelligenceAction } from "./actions/knowledgeIntelligence.action";
 import { styleCheckAction } from "./actions/styleCheck.action";
+import { polishContentAction } from "./actions/polishContent.action";
 
 // Import services
 import { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
@@ -82,7 +84,7 @@ const elizaMichelinAction = addMichelinRestaurantAction;
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 13 actions, 6 services.
+  description: `Eliza's knowledge & content plugin — 14 actions, 6 services.
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -111,9 +113,14 @@ export const elizaPlugin: Plugin = {
 - STYLE_CHECK: Enforce brand style guide
   • Terminology rules (preferred terms)
   • Capitalization (brands, acronyms)
-  • Tone markers (avoid casual/promotional)
+  • Tone markers (avoid casual/promotional/AI-slop)
   • Prohibited phrases
-  • Auto-fix for simple violations`,
+  • Auto-fix for simple violations
+- POLISH: Transform copy into premium content
+  • Apple principles (benefit-led, simple)
+  • Porsche principles (confident, crafted)
+  • AI-slop detection and rewrite guidance
+  • Before/after transformation examples`,
 
   actions: [
     // Knowledge Management
@@ -133,6 +140,7 @@ export const elizaPlugin: Plugin = {
     knowledgeIntelligenceAction,
     // Brand & Quality
     styleCheckAction,
+    polishContentAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -165,7 +173,7 @@ export const elizaPlugin: Plugin = {
     }, 5000);
 
     logger.info(
-      `[Eliza Plugin] ✅ Ready — 12 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS, RESEARCH_BRIEF, TREND_CONNECTION, KNOWLEDGE_INTEL, STYLE_CHECK | Voice: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
+      `[Eliza Plugin] ✅ Ready — 13 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS, RESEARCH_BRIEF, TREND_CONNECTION, KNOWLEDGE_INTEL, STYLE_CHECK, POLISH | Voice: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
     );
   },
 };
@@ -185,6 +193,7 @@ export {
   trendConnectionAction,
   knowledgeIntelligenceAction,
   styleCheckAction,
+  polishContentAction,
 };
 
 // Export services
