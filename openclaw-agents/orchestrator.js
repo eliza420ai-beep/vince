@@ -1,7 +1,7 @@
 /**
  * OpenClaw Orchestrator for VINCE
  *
- * Spawns isolated sub-agents for specialized tasks:
+ * Spawns isolated sub-agents for specialized tasks via CLI:
  * - Alpha research (X/Twitter sentiment)
  * - Market data (prices, volume, OI)
  * - On-chain (whale flows, smart money)
@@ -11,12 +11,11 @@
  *   node openclaw-agents/orchestrator.js alpha SOL BTC
  *   node openclaw-agents/orchestrator.js market ETH
  *   node openclaw-agents/orchestrator.js onchain BONK
- *   node openclaw-agents/orchestrator.js news
  *   node openclaw-agents/orchestrator.js all SOL BTC ETH
  */
 
-import { sessions_spawn, sessions_send, sessions_history } from 'openclaw';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { execSync } from 'child_process';
+import { readFileSync, writeFileSync } from 'fs';
 
 const AGENTS_DIR = './openclaw-agents';
 const DEFAULT_MODEL = 'minimax-portal/MiniMax-M2.1';
@@ -28,6 +27,20 @@ const AGENT_SPECS = {
   'onchain': readFileSync(`${AGENTS_DIR}/onchain.md`, 'utf-8'),
   'news': readFileSync(`${AGENTS_DIR}/news.md`, 'utf-8')
 };
+
+/**
+ * Run OpenClaw CLI command
+ */
+function runCli(args) {
+  const cmd = `openclaw ${args}`;
+  try {
+    const result = execSync(cmd, { encoding: 'utf-8', timeout: 60000 });
+    return result;
+  } catch (e) {
+    console.error(`CLI Error: ${cmd}`);
+    throw e;
+  }
+}
 
 /**
  * Spawn a single OpenClaw agent
@@ -48,12 +61,10 @@ Provide your findings in the format specified above.`;
 
   console.log(`🚀 Spawning ${name} agent for: ${query}`);
 
-  const result = await sessions_spawn({
-    task: prompt,
-    label: `vince-${name}`,
-    model: options.model || DEFAULT_MODEL,
-    timeoutSeconds: options.timeout || 120
-  });
+  const model = options.model || DEFAULT_MODEL;
+  const timeout = options.timeout || 120;
+
+  const result = JSON.parse(runCli(`sessions spawn --task "${prompt}" --label "vince-${name}" --model "${model}" --timeout ${timeout}`));
 
   console.log(`✅ Agent spawned: ${result.sessionKey}`);
   return result.sessionKey;
@@ -63,17 +74,25 @@ Provide your findings in the format specified above.`;
  * Wait for agent completion and fetch results
  */
 async function getAgentResult(sessionKey, maxWaitMs = 180000) {
-  // Simple polling - wait then fetch
-  await new Promise(resolve => setTimeout(resolve, 15000));
+  console.log(`📡 Waiting for ${sessionKey}...`);
 
-  const history = await sessions_history({
-    sessionKey,
-    includeTools: false,
-    limit: 50
-  });
+  // Poll for completion
+  const startTime = Date.now();
+  while (Date.now() - startTime < maxWaitMs) {
+    const status = JSON.parse(runCli(`sessions status --sessionKey ${sessionKey}`));
+    if (status.activeMinutes !== undefined) {
+      // Still running, wait
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    } else if (status.state === 'done') {
+      // Fetch history
+      const history = runCli(`sessions history ${sessionKey} --limit 50`);
+      const messages = JSON.parse(history).messages;
+      const lastMsg = messages[messages.length - 1];
+      return lastMsg?.content || 'No response';
+    }
+  }
 
-  const lastMsg = history.messages[history.messages.length - 1];
-  return lastMsg?.content || 'No response';
+  throw new Error('Timeout waiting for agent');
 }
 
 /**
