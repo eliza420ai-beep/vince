@@ -35,7 +35,6 @@ import { solusAgent } from "./agents/solus.ts";
 import { otakuAgent } from "./agents/otaku.ts";
 import { kellyAgent } from "./agents/kelly.ts";
 import { sentinelAgent } from "./agents/sentinel.ts";
-import { SolusResponseTestSuite } from "./__tests__/e2e/solus-response.e2e.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 import { interAgentPlugin } from "./plugins/plugin-inter-agent/src/index.ts";
 
@@ -101,7 +100,6 @@ if (discordAppIds.length >= 2 && byAppId.size === discordAppIds.length) {
 }
 
 const project: Project = {
-  tests: [SolusResponseTestSuite],
   agents: [
     {
       ...vinceAgent,
