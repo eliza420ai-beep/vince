@@ -1,125 +1,182 @@
 # plugin-openclaw
 
-OpenClaw integration plugin for VINCE — multi-agent crypto research with **real-time streaming**, **budget alerts**, **cost tracking**, and **smart caching**.
+**OpenClaw V2** — Enterprise-grade multi-agent crypto research plugin for VINCE.
 
-## ✨ V2 Features
+## ✨ Features
 
 | Feature | Description |
 |---------|-------------|
-| **🔄 Real-Time Streaming** | Live progress updates during research |
-| **💰 Cost Tracking** | Per-query and daily cost summaries |
-| **🚨 Budget Alerts** | Warnings at $5/day, hard limit at $10/day |
-| **💾 Smart Caching** | 1-hour cache for repeated queries |
-| **⏱️ Rate Limiting** | 5 requests per minute per user |
-| **🎨 Rich Output** | Icons, progress bars, formatted results |
+| 🔬 **Multi-Agent Research** | Alpha, Market, On-Chain, News agents |
+| 🔄 **Real-Time Streaming** | Live progress updates |
+| 💰 **Cost Tracking** | Per-query and daily summaries |
+| 🚨 **Budget Alerts** | Warnings and hard limits |
+| 💾 **Smart Caching** | 1-hour result cache |
+| ⏱️ **Rate Limiting** | 5 requests per minute |
+| 📋 **Watchlist** | Track tokens with alerts |
+| ⚖️ **Comparison** | Side-by-side token analysis |
+| 📜 **History** | View and export past research |
+| ⏰ **Scheduler** | Automatic periodic research |
+| 📤 **Export** | Markdown and JSON export |
+
+## 🚀 Commands
+
+### Research
+```
+@VINCE research SOL BTC ETH     # All agents
+@VINCE alpha SOL                 # Sentiment only
+@VINCE market ETH                # Market data only
+@VINCE onchain BONK              # On-chain only
+@VINCE news crypto               # News only
+```
+
+### Watchlist
+```
+@VINCE watch SOL                 # Add to watchlist
+@VINCE unwatch SOL               # Remove from watchlist
+@VINCE watchlist                 # View watchlist
+```
+
+### Comparison
+```
+@VINCE compare SOL ETH           # Compare 2 tokens
+@VINCE compare SOL ETH BTC       # Compare 3+ tokens
+@VINCE SOL vs BTC                # Alternative syntax
+```
+
+### History
+```
+@VINCE history                   # View recent research
+@VINCE history 20                # View last 20
+@VINCE export history            # Export to markdown
+```
+
+### Scheduler
+```
+@VINCE schedule SOL BTC daily    # Daily research
+@VINCE schedule ETH hourly       # Hourly research
+@VINCE schedule BTC weekly       # Weekly research
+@VINCE schedules                 # View all schedules
+@VINCE unschedule <id>           # Delete schedule
+@VINCE toggle <id>               # Enable/disable
+```
+
+## 🎯 Agent Types
+
+| Agent | Icon | Description |
+|-------|------|-------------|
+| **alpha** | 🐦 | X/Twitter sentiment, KOL tracking, narratives |
+| **market** | 📊 | Prices, volume, funding rates, open interest |
+| **onchain** | ⛓️ | Whale flows, smart money, DEX liquidity |
+| **news** | 📰 | News aggregation and sentiment |
+| **all** | 🔬 | All agents in parallel |
+
+## 💰 Cost & Budget
+
+**Pricing (MiniMax-M2.1):**
+- Input: $0.10 per 1M tokens
+- Output: $0.40 per 1M tokens
+
+**Budget Alerts:**
+| Level | Threshold | Action |
+|-------|-----------|--------|
+| Per-query | $0.10 | ⚠️ Warning |
+| Daily | $5.00 | ⚠️ Warning |
+| Daily Hard | $10.00 | 🚫 Paused |
+
+## 📊 Response Examples
+
+### Research
+```
+🐦 **Alpha Research: SOL** ✅
+
+📊 **Sentiment:** Bullish
+• Score: 7.2/10
+• KOL activity: High
+
+📈 **Alpha Score:** 6.5/10
+
+---
+✅ Complete • 💰 $0.0012 • 4/5 req/min
+📊 Daily Usage: $0.05
+```
+
+### Comparison
+```
+⚖️ **Token Comparison**
+
+| Token | Sentiment | Alpha | Whales | Momentum |
+|-------|-----------|-------|--------|----------|
+| SOL 🏆 | Bullish | 8/10 | High | Strong Up |
+| ETH | Mixed | 7/10 | Moderate | Sideways |
+
+🏆 Winner: SOL
+```
+
+### Watchlist
+```
+📋 **Watchlist** (3 tokens)
+
+1. **SOL**
+   • Alerts: sentiment, whale, news
+   • Last checked: 2 hours ago
+
+2. **BTC**
+   • Alerts: sentiment, whale
+   • Last checked: 1 hour ago
+```
+
+### Schedules
+```
+⏰ **Scheduled Research** (2)
+
+1. ✅ **all**: SOL, BTC
+   • Frequency: daily
+   • Next run: Tomorrow 9:00 AM
+
+2. ⏸️ **alpha**: ETH
+   • Frequency: hourly
+   • Paused
+```
 
 ## 🏗️ Architecture
 
 ```
 VINCE Chat
     │
-    ▼
-RUN_OPENCLAW_RESEARCH
+    ├── RUN_OPENCLAW_RESEARCH ──► Multi-agent execution
+    │       ├── Rate limit
+    │       ├── Budget check
+    │       ├── Cache lookup
+    │       └── Streaming results
     │
-    ├── Rate Limit Check ──► ⏰ "Try again in Xs"
+    ├── MANAGE_WATCHLIST ──────► Token tracking
     │
-    ├── Budget Check ──────► 🚨 "Daily limit reached"
+    ├── COMPARE_TOKENS ────────► Side-by-side analysis
     │
-    ├── Cache Check ───────► ♻️ Return cached result
+    ├── VIEW_HISTORY ──────────► Past research
     │
-    └── Execute Agents
-         │
-         ├── 🔄 Stream: "Starting..."
-         ├── 🔄 Stream: "Gathering data..." (20%)
-         ├── 🔄 Stream: "Analyzing..." (60%)
-         └── ✅ Complete with results
+    └── MANAGE_SCHEDULE ───────► Auto-research
 ```
 
-## 🚀 Usage
+## 📁 Files
 
 ```
-@VINCE research SOL BTC
-@VINCE alpha SOL
-@VINCE market ETH
-@VINCE onchain BONK
-@VINCE news crypto
-@VINCE all SOL BTC ETH
-```
-
-## 🎯 Agents
-
-| Agent | Icon | Description | Output |
-|-------|------|-------------|--------|
-| **alpha** | 🐦 | X/Twitter sentiment, KOL tracking | Sentiment score, narratives, signals |
-| **market** | 📊 | Prices, volume, funding, OI | Price action, derivatives data |
-| **onchain** | ⛓️ | Whale flows, smart money, DEX | Whale activity, address analytics |
-| **news** | 📰 | News aggregation, sentiment | Headlines, sentiment score |
-| **all** | 🔬 | All agents in parallel | Combined briefing |
-
-## 💰 Cost Tracking
-
-**Pricing (MiniMax-M2.1):**
-- Input: $0.10 per 1M tokens
-- Output: $0.40 per 1M tokens
-
-**Display:**
-```
-💰 $0.0012 (2.5K in / 0.8K out)
-📊 Daily Usage: $0.05 total today
-```
-
-## 🚨 Budget Alerts
-
-| Level | Threshold | Action |
-|-------|-----------|--------|
-| **Per-query warning** | $0.10 | ⚠️ "This query is expensive" |
-| **Daily warning** | $5.00 | ⚠️ "Approaching daily limit" |
-| **Daily hard limit** | $10.00 | 🚫 Research paused |
-
-## 🔄 Real-Time Streaming
-
-```
-⏳ Starting research...
-🔄 20% - Connecting to data sources...
-🔄 40% - Gathering market data...
-🔄 60% - Analyzing sentiment...
-🔄 80% - Compiling results...
-✅ Complete!
-```
-
-## 💾 Caching
-
-- **TTL:** 1 hour
-- **Key:** MD5 of `agent:tokens`
-- **Storage:** Memory + disk (`.openclaw-cache/`)
-- **Indicator:** ♻️ *Cached result*
-
-## ⏱️ Rate Limiting
-
-- **Limit:** 5 requests per minute per user
-- **Response:** ⏰ "Try again in Xs"
-- **Remaining:** Shown in every response
-
-## 📊 Response Format
-
-```
-🐦 **Alpha Research: SOL** ✅
-
-📊 **Sentiment:** Mixed to Bullish
-• Twitter/X sentiment score: 7.2/10
-• KOL activity: High (12 mentions in 24h)
-• Narrative strength: Moderate
-
-🎯 **Key Signals:**
-• @frankdegods: Bullish on ecosystem growth
-• @pentosh1: Watching for breakout
-
-📈 **Alpha Score:** 6.5/10
-
----
-✅ *Complete* • 💰 $0.0012 • 4/5 req/min
-
-📊 **Daily Usage:** $0.05 total today
+src/plugins/plugin-openclaw/
+├── matcher.ts                      # Intent detection
+├── README.md                       # This file
+└── src/
+    ├── index.ts                    # Plugin export
+    ├── actions/
+    │   ├── runResearch.action.ts   # Main research
+    │   ├── watchlist.action.ts     # Watchlist management
+    │   ├── compare.action.ts       # Token comparison
+    │   ├── history.action.ts       # Research history
+    │   └── scheduler.action.ts     # Scheduled research
+    └── services/
+        ├── index.ts                # Service exports
+        ├── openclaw.service.ts     # Core: cost, cache, rate-limit
+        ├── watchlist.service.ts    # Watchlist, history, export
+        └── scheduler.service.ts    # Scheduled research
 ```
 
 ## ⚙️ Setup
@@ -128,51 +185,29 @@ RUN_OPENCLAW_RESEARCH
 # Install OpenClaw
 npm install -g openclaw
 
-# Start gateway (required)
+# Start gateway
 openclaw gateway start
 
 # Verify
 openclaw health
 
-# Optional: Set API keys
+# Optional: API keys
 export X_BEARER_TOKEN="..."
-```
-
-## 📁 Files
-
-```
-src/plugins/plugin-openclaw/
-├── matcher.ts                    # Intent detection
-├── README.md                    # This file
-└── src/
-    ├── index.ts                 # Plugin export
-    ├── actions/
-    │   └── runResearch.action.ts # V2 action with streaming
-    └── services/
-        ├── index.ts             # Service exports
-        └── openclaw.service.ts  # Cost, cache, rate-limit, streaming
 ```
 
 ## 📝 Changelog
 
 ### v2.0.0 (Current)
-- ✅ Real-time streaming progress
-- ✅ Budget alerts ($5 warning, $10 limit)
-- ✅ Actual agent execution (simulated)
-- ✅ Cost tracking per query
-- ✅ 1-hour caching
-- ✅ Rate limiting (5 req/min)
-- ✅ Rich output with icons
+- ✅ Real-time streaming
+- ✅ Budget alerts
+- ✅ Watchlist with alerts
+- ✅ Token comparison
+- ✅ Research history & export
+- ✅ Scheduled auto-research
+- ✅ Cost tracking
+- ✅ Smart caching
+- ✅ Rate limiting
 
 ### v1.0.0
 - Basic plugin structure
 - Intent detection
-- Research action skeleton
-
-## 🚧 Roadmap
-
-- [ ] Connect to actual OpenClaw SDK when available
-- [ ] Historical cost charts
-- [ ] Watchlist with auto-refresh
-- [ ] Multi-language support
-- [ ] Custom budget limits
