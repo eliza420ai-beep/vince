@@ -1,5 +1,5 @@
 /**
- * Plugin-Sentinel — Core Dev: PRDs, Project Radar, Multi-Agent Vision, OpenClaw Expert
+ * Plugin-Sentinel — Core Dev: PRDs, Project Radar, Multi-Agent Vision, Trading Intelligence, OpenClaw Expert
  *
  * The 10x upgrade: Sentinel is now a world-class core dev that:
  * - Produces enterprise-grade PRDs for Cursor/Claude Code
@@ -7,12 +7,15 @@
  * - Scores suggestions by impact (RICE + strategic alignment)
  * - Knows OpenClaw (formerly ClawdBot/MoltBot) inside and out
  * - Deeply understands the MULTI-AGENT VISION ("feels genuinely alive")
+ * - Expert in PAPER TRADING BOT (signal sources, feature store, ML, ONNX)
+ * - Expert in OPTIONS STRATEGY (Hypersurface, strike ritual, EV framework)
  * - Tracks 24/7 market research as TOP PRIORITY
  *
- * Actions (14):
+ * Actions (15):
  * - SENTINEL_SUGGEST: Impact-scored suggestions with project awareness
  * - SENTINEL_PRD: World-class PRD generation
  * - SENTINEL_MULTI_AGENT: Multi-agent architecture expert (ASK_AGENT, standups, Option C)
+ * - SENTINEL_TRADING_INTEL: Paper trading bot + options strategy expert
  * - SENTINEL_SHIP: What to ship for maximum impact
  * - SENTINEL_CLAWDBOT_GUIDE: Knowledge research setup
  * - SENTINEL_SETTINGS_SUGGEST: Settings recommendations
@@ -25,12 +28,13 @@
  * - SENTINEL_HOW_DID_WE_DO: Outcome review
  * - SENTINEL_SECURITY_CHECKLIST: Security hygiene
  *
- * Services (5):
+ * Services (6):
  * - projectRadar.service: Deep project state scanning (plugins, progress, knowledge, docs, todos)
  * - impactScorer.service: RICE + strategic scoring, learns from outcomes
  * - prdGenerator.service: World-class PRD templates with architecture rules
  * - openclawKnowledge.service: Deep OpenClaw/Milaidy/Clawdbot expertise
  * - multiAgentVision.service: Dream team, ASK_AGENT, standups, deliverables, feedback flow
+ * - tradingIntelligence.service: Signal sources, feature store, ML pipeline, Hypersurface, EV framework
  *
  * Weekly + optional daily tasks. Sentinel only.
  */
@@ -42,6 +46,7 @@ import { logger } from "@elizaos/core";
 import { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 import { sentinelPrdAction } from "./actions/sentinelPrd.action";
 import { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
+import { sentinelTradingIntelAction } from "./actions/sentinelTradingIntel.action";
 import { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
 import { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 import { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
@@ -64,6 +69,7 @@ import * as impactScorerService from "./services/impactScorer.service";
 import * as prdGeneratorService from "./services/prdGenerator.service";
 import * as openclawKnowledgeService from "./services/openclawKnowledge.service";
 import * as multiAgentVisionService from "./services/multiAgentVision.service";
+import * as tradingIntelligenceService from "./services/tradingIntelligence.service";
 
 export const sentinelPlugin: Plugin = {
   name: "plugin-sentinel",
@@ -74,6 +80,7 @@ export const sentinelPlugin: Plugin = {
     sentinelSuggestAction,      // Impact-scored suggestions
     sentinelPrdAction,          // World-class PRD generation
     sentinelMultiAgentAction,   // Multi-agent architecture expert
+    sentinelTradingIntelAction, // Paper trading + options strategy expert
     sentinelShipAction,         // What to ship for max impact
     sentinelClawdbotGuideAction,
     sentinelSettingsSuggestAction,
@@ -111,6 +118,7 @@ export const sentinelPlugin: Plugin = {
 export { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 export { sentinelPrdAction } from "./actions/sentinelPrd.action";
 export { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
+export { sentinelTradingIntelAction } from "./actions/sentinelTradingIntel.action";
 export { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
 export { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 export { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
@@ -133,3 +141,4 @@ export * as impactScorer from "./services/impactScorer.service";
 export * as prdGenerator from "./services/prdGenerator.service";
 export * as openclawKnowledge from "./services/openclawKnowledge.service";
 export * as multiAgentVision from "./services/multiAgentVision.service";
+export * as tradingIntelligence from "./services/tradingIntelligence.service";
