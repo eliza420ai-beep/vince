@@ -77,7 +77,38 @@ This brief defines the brand, voice, visual direction, and a **complete list of 
 | **Product Core** | Paper perp bot (Hyperliquid); onchain options (Hypersurface) with weekly strike ritual; ClawTerm as the definitive onchain intelligence layer. |
 | **Vision** | Be the place where code, culture, and conviction converge: one brand, one narrative, from Substack to onchain. The definitive onchain intelligence layer—the Bloomberg Terminal crypto always deserved. |
 | **Unique Value Proposition** | We don’t sell hope or alpha. We share what we’ve lived: early bets, forced sales, survived winters. IKIGAI STUDIO is front-row, unfiltered—Bitcoin, curated alts, macro, lifestyle—with no second best. ClawTerm puts Bloomberg-level power in every trader's hands—open-source, natural language, autonomous. |
-| **Tone of Voice** | Direct, grounded, no AI-slop. Benefit-led (Apple-style). Confident craft (Porsche OG). Zero jargon: no “leverage,” “paradigm,” “circle back.” Concrete, human, scar tissue turned into signal. |
+| **Tone of Voice** | Direct, grounded, no AI-slop. Benefit-led (Apple-style). Confident craft (Porsche OG). Zero jargon: no “leverage,” “paradigm,” “circle back.” Concrete, human, scar tissue turned into signal. See [Voice & copy principles](#voice--copy-principles) below. |
+
+### Voice & copy principles
+
+When revising About pages, product descriptions, company bios, or any marketing copy, apply these principles so the result is polished, high-end, and on-brand.
+
+**1. Benefit-led (Apple-style)**
+
+Lead with what the user gets—the outcome, the experience, the move—not with features or specs. User-centric and aspirational. The goal is to make the copy emotionally resonant and value-first, so the reader thinks "this is for me."
+
+- Avoid: *"Our app has advanced algorithms."*
+- Prefer: *"Experience seamless productivity that lets you focus on what matters."*
+
+**2. Confident and craft-focused (Porsche OG)**
+
+Confident means a bold, assured tone: direct, unapologetic, authoritative. No hedging or filler ("we believe," "possibly"). Craft-focused means quality, precision, heritage, and meticulous attention to detail—like a master artisan's work. Porsche OG evokes the classic Porsche ethos: engineering excellence, timeless design, performance as a result of superior craftsmanship; premium, heritage-driven, self-assured.
+
+- Example: *"Engineered with unrelenting precision for those who demand perfection."*
+
+**3. Free of AI-slop jargon**
+
+Strip generic, overused, or low-quality language often produced by AI tools. No buzzwords, hype without substance, or robotic filler. Keep copy fresh, human, and concise. No clichés or mass-produced feel.
+
+Avoid (among others): leverage, utilize (use "use"), streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day. Prefer concrete, human language only.
+
+**Overall intent**
+
+The result should be polished, high-end copy that's persuasive and brand-elevating—inspired by Apple (simplicity, user focus) and Porsche (craft, exclusivity)—and should never read like generic AI output. Ideal for About pages, product descriptions, and marketing materials where standing out matters.
+
+Extended examples and the full banned list: [knowledge/brand/style-guide.md](knowledge/brand/style-guide.md) and agent prompts in [CLAUDE.md](CLAUDE.md).
+
+══════════════════════════════════════════════════════════════════════════════
 
 <div align="center">
 
