@@ -609,6 +609,12 @@ Eliza gives us memories, embeddings, evaluators, entities. The paper bot uses th
 
 **The big difference:** ElizaOS is heavy on **MCP and tool calling from plugins**. Pi leans into "CLI everything"—simpler, less ceremony. Both are valid.
 
+**OpenClaw Integration →** We now support hybrid mode: VINCE (ElizaOS) for conversation/coordination + OpenClaw sub-agents for parallel deep-dive research. See [`openclaw-agents/`](openclaw-agents/README.md) for:
+- Alpha research agent (X sentiment, KOL tracking)
+- Market data agent (prices, volume, OI)
+- On-chain agent (whale flows, smart money)
+- Orchestrator that spawns agents in parallel
+
 If you're looking for more coding-agent simplicity, the target is **Eliza + Pi patterns**, not Eliza with OpenClaw. The ElizaOS maintainers are working on an Eliza code orchestrator in that direction. OpenClaw-on-ElizaOS (swapping Pi for Eliza) exists and may be published—no huge advantages or disadvantages either way.
 
 ---
