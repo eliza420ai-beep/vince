@@ -18,6 +18,21 @@ import { logger } from "@elizaos/core";
 const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
 const AGENDA_PATH = path.join(process.cwd(), ".openclaw-cache", "research-agenda.json");
 
+/**
+ * Map coverage framework category names to actual knowledge folder names.
+ * This aligns the audit with the same directories Eliza's character.knowledge uses.
+ */
+const FRAMEWORK_CATEGORY_TO_FOLDERS: Record<string, string[]> = {
+  "crypto-fundamentals": ["bitcoin-maxi", "macro-economy", "altcoins", "solana", "privacy", "security", "commodities"],
+  defi: ["defi-metrics", "stablecoins", "rwa", "airdrops", "bankr"],
+  trading: ["options", "perps-trading", "grinding-the-trenches", "trading", "stocks"],
+  layer2: ["substack-essays"],
+  nft: ["art-collections"],
+  governance: ["regulation", "legal-compliance", "teammate"],
+  "ai-agents": ["prompt-templates", "internal-docs", "substack-essays", "setup-guides", "clawdbot", "sentinel-docs"],
+  emerging: ["substack-essays", "venture-capital", "altcoins", "marketing-gtm", "the-good-life", "brand", "kelly-btc", "uncategorized"],
+};
+
 export interface ResearchTopic {
   id: string;
   topic: string;
@@ -196,6 +211,32 @@ const DEFAULT_COVERAGE_FRAMEWORK: ResearchAgenda["coverageFramework"] = {
 };
 
 /**
+ * Get all .md file paths under dir (recursive). Returns full paths.
+ */
+function getMdFilesRecursive(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  const out: string[] = [];
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory() && !e.name.startsWith(".")) {
+      out.push(...getMdFilesRecursive(full));
+    } else if (e.isFile() && e.name.endsWith(".md")) {
+      out.push(full);
+    }
+  }
+  return out;
+}
+
+/**
+ * Get the list of knowledge folder names to scan for a framework category.
+ */
+function getFoldersForCategory(categoryName: string): string[] {
+  const mapped = FRAMEWORK_CATEGORY_TO_FOLDERS[categoryName];
+  return mapped ?? [categoryName];
+}
+
+/**
  * Load or initialize research agenda
  */
 export function loadAgenda(): ResearchAgenda {
@@ -239,22 +280,32 @@ export function saveAgenda(agenda: ResearchAgenda): void {
 }
 
 /**
- * Analyze knowledge folder against coverage framework
+ * Analyze knowledge folder against coverage framework.
+ * Uses FRAMEWORK_CATEGORY_TO_FOLDERS to map framework categories to actual
+ * knowledge dirs (same as Eliza's character.knowledge) and counts .md files recursively.
  */
 export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<string, number> } {
   const agenda = loadAgenda();
   const gaps: KnowledgeGap[] = [];
   const coverage: Record<string, number> = {};
-  
+
   for (const category of agenda.coverageFramework.categories) {
-    const categoryPath = path.join(KNOWLEDGE_ROOT, category.name);
-    
-    // Check if category exists
-    if (!fs.existsSync(categoryPath)) {
+    const folderNames = getFoldersForCategory(category.name);
+    const allFilePaths: string[] = [];
+    let hasAnyFolder = false;
+
+    for (const folderName of folderNames) {
+      const categoryPath = path.join(KNOWLEDGE_ROOT, folderName);
+      if (!fs.existsSync(categoryPath)) continue;
+      hasAnyFolder = true;
+      allFilePaths.push(...getMdFilesRecursive(categoryPath));
+    }
+
+    if (!hasAnyFolder) {
       gaps.push({
         category: category.name,
         gapType: "missing",
-        description: `Category "${category.name}" doesn't exist`,
+        description: `No mapped folders exist for "${category.name}" (checked: ${folderNames.join(", ")})`,
         suggestedTopics: category.subtopics,
         priority: category.priority,
         detectedAt: new Date().toISOString(),
@@ -262,75 +313,73 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
       coverage[category.name] = 0;
       continue;
     }
-    
-    // Count files and check coverage
-    const files = fs.readdirSync(categoryPath).filter(f => f.endsWith(".md"));
+
+    const fileCount = allFilePaths.length;
     const expectedFiles = category.subtopics.length * (category.targetDepth === "deep" ? 2 : 1);
-    const coveragePercent = Math.min(100, Math.round((files.length / expectedFiles) * 100));
+    const coveragePercent = Math.min(100, Math.round((fileCount / expectedFiles) * 100));
     coverage[category.name] = coveragePercent;
-    
-    // Check for shallow coverage
-    if (files.length < category.subtopics.length / 2) {
+
+    if (fileCount < category.subtopics.length / 2) {
       gaps.push({
         category: category.name,
         gapType: "shallow",
-        description: `Only ${files.length} files for ${category.subtopics.length} expected subtopics`,
-        suggestedTopics: findMissingSubtopics(categoryPath, category.subtopics),
+        description: `Only ${fileCount} files for ${category.subtopics.length} expected subtopics (folders: ${folderNames.join(", ")})`,
+        suggestedTopics: findMissingSubtopicsFromFiles(allFilePaths, category.subtopics),
         priority: category.priority,
         detectedAt: new Date().toISOString(),
       });
     }
-    
-    // Check for stale content
+
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     let staleCount = 0;
-    for (const file of files) {
-      const stat = fs.statSync(path.join(categoryPath, file));
-      if (stat.mtimeMs < thirtyDaysAgo) staleCount++;
+    for (const filePath of allFilePaths) {
+      try {
+        const stat = fs.statSync(filePath);
+        if (stat.mtimeMs < thirtyDaysAgo) staleCount++;
+      } catch {
+        // skip unreadable
+      }
     }
-    
-    if (staleCount > files.length / 2 && files.length > 0) {
+    if (staleCount > fileCount / 2 && fileCount > 0) {
       gaps.push({
         category: category.name,
         gapType: "stale",
-        description: `${staleCount}/${files.length} files are over 30 days old`,
+        description: `${staleCount}/${fileCount} files are over 30 days old`,
         suggestedTopics: ["Review and update existing content"],
         priority: "medium",
         detectedAt: new Date().toISOString(),
       });
     }
   }
-  
-  // Update agenda with new gaps
+
   agenda.gaps = gaps;
   agenda.lastAudit = new Date().toISOString();
   saveAgenda(agenda);
-  
+
   return { gaps, coverage };
 }
 
 /**
- * Find subtopics not covered in files
+ * Find subtopics not covered in the given files (by content).
  */
-function findMissingSubtopics(categoryPath: string, subtopics: string[]): string[] {
-  const files = fs.readdirSync(categoryPath).filter(f => f.endsWith(".md"));
-  const fileContent = files.map(f => {
+function findMissingSubtopicsFromFiles(filePaths: string[], subtopics: string[]): string[] {
+  let fileContent = "";
+  for (const filePath of filePaths) {
     try {
-      return fs.readFileSync(path.join(categoryPath, f), "utf-8").toLowerCase();
+      fileContent += fs.readFileSync(filePath, "utf-8").toLowerCase() + " ";
     } catch {
-      return "";
+      // skip
     }
-  }).join(" ");
-  
+  }
+
   const missing: string[] = [];
   for (const subtopic of subtopics) {
-    const keywords = subtopic.toLowerCase().split(/\s+/);
-    const covered = keywords.some(kw => fileContent.includes(kw));
+    const keywords = subtopic.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const covered = keywords.length > 0 && keywords.some(kw => fileContent.includes(kw));
     if (!covered) {
       missing.push(subtopic);
     }
   }
-  
   return missing;
 }
 
