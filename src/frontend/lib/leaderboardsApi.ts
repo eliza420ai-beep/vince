@@ -478,12 +478,16 @@ function toDisplayString(raw: unknown): string {
   return String(raw ?? "");
 }
 
+/**
+ * Submit text or YouTube URL to the knowledge base.
+ * Upload is handled only by Eliza (plugin-eliza). Pass Eliza's agentId; if Eliza isn't loaded, upload will 404.
+ */
 export async function submitKnowledgeUpload(
   agentId: string,
   payload: { type: "text" | "youtube"; content: string },
 ): Promise<{ success: boolean; message?: string; error?: string }> {
   const base = window.location.origin;
-  const url = `${base}/api/agents/${agentId}/plugins/plugin-vince/vince/upload?agentId=${encodeURIComponent(agentId)}`;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-eliza/eliza/upload?agentId=${encodeURIComponent(agentId)}`;
   try {
     const res = await fetch(url, {
       method: "POST",

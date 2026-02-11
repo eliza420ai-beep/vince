@@ -32,8 +32,7 @@ import {
   getAgendaSummary,
   type ResearchTopic,
 } from "../services/researchAgenda.service";
-
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
+import { getKnowledgeRoot } from "../config/paths";
 
 // Authoritative sources by category
 const SOURCE_REGISTRY: Record<string, string[]> = {
@@ -236,7 +235,7 @@ async function researchTopic(
   // 4. Save to knowledge folder
   
   // For now, create a placeholder that documents what WOULD happen
-  const categoryPath = path.join(KNOWLEDGE_ROOT, topic.category);
+  const categoryPath = path.join(getKnowledgeRoot(), topic.category);
   if (!fs.existsSync(categoryPath)) {
     fs.mkdirSync(categoryPath, { recursive: true });
   }
@@ -293,12 +292,12 @@ ${sources.map(s => `- ${s}`).join("\n")}
 
 export const autoResearchAction: Action = {
   name: "AUTO_RESEARCH",
-  description: `Autonomous knowledge base expansion.
+  description: `Autonomous knowledge base expansion. Distinct from "knowledge status" (quick file stats): this action does gap analysis against a coverage framework.
 
 TRIGGERS:
-- "audit knowledge" — Deep analysis of coverage gaps
+- "audit knowledge" — Gap analysis: missing subtopics, shallow/stale coverage, coverage % by category. Run this to see what to expand; then "fill gaps" to generate topics.
 - "research agenda" — Show priorities and queue
-- "fill gaps" — Generate topics from detected gaps
+- "fill gaps" — Generate topics from audit gaps
 - "next topics" — Show next research priorities
 - "research <topic>" — Research specific topic
 - "research session" — Start autonomous research

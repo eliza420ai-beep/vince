@@ -17,8 +17,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
-const STYLE_GUIDE_PATH = path.join(KNOWLEDGE_ROOT, "brand", "style-guide.md");
+import { STYLE_GUIDE_PATH } from "../config/paths";
 const STYLE_CACHE_PATH = path.join(process.cwd(), ".openclaw-cache", "style-guide.json");
 
 export interface TerminologyRule {

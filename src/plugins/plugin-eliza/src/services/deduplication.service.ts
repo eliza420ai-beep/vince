@@ -19,9 +19,10 @@ import * as path from "path";
 import * as crypto from "crypto";
 import { logger } from "@elizaos/core";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
+import { getKnowledgeRoot, ARCHIVE_DIR } from "../config/paths";
+
+const KNOWLEDGE_ROOT = getKnowledgeRoot();
 const DEDUPE_STATE_PATH = path.join(process.cwd(), ".openclaw-cache", "dedupe-state.json");
-const ARCHIVE_DIR = path.join(KNOWLEDGE_ROOT, ".archive");
 
 export interface ContentFingerprint {
   id: string; // filepath

@@ -18,8 +18,8 @@ import type {
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { DATA_DIR } from "../config/paths";
 
-const DATA_DIR = "./knowledge/.eliza";
 const QUEUE_FILE = path.join(DATA_DIR, "research-queue.json");
 
 type QueueItemType = "youtube" | "article" | "topic" | "pdf";

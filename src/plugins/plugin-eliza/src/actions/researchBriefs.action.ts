@@ -21,8 +21,9 @@ import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
-const BRIEFS_DIR = path.join(KNOWLEDGE_ROOT, "briefs");
+import { getKnowledgeRoot, BRIEFS_DIR } from "../config/paths";
+
+const KNOWLEDGE_ROOT = getKnowledgeRoot();
 
 interface ResearchBrief {
   id: string;

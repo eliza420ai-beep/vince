@@ -1,14 +1,12 @@
 /**
- * ADD_MICHELIN_RESTAURANT Action
+ * ADD_MICHELIN_RESTAURANT Action (plugin-eliza)
  *
- * When Eliza receives a message in a Discord channel whose name contains "knowledge"
+ * When Eliza receives a message in a channel whose name contains "knowledge"
  * and the message contains a guide.michelin.com URL, this action fetches the page,
- * extracts restaurant fields (name, address, phone, website, price, style, chef,
- * description, notes), and appends a formatted entry to the appropriate file under
- * knowledge/the-good-life/michelin-restaurants/.
+ * extracts restaurant fields, and appends a formatted entry to the appropriate
+ * file under knowledge/the-good-life/michelin-restaurants/.
  *
- * See: knowledge/the-good-life/michelin-restaurants/README.md "How to add new lunch spots"
- * Fallback: docs/todo-michelin-crawlee.md if phone/website are often missing.
+ * Paths use getKnowledgeRoot() from plugin-eliza config (no dependency on plugin-vince).
  */
 
 import type {
@@ -21,13 +19,11 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { getKnowledgeRoot } from "../config/paths";
+
 const MICHELIN_URL_REGEX =
   /https?:\/\/guide\.michelin\.com\/[^\s<>"{}|\\^`[\]]+/i;
 
-/**
- * Collect all URL-containing text from a message so we don't miss link-only Discord posts.
- * Discord often sends link-only messages with the URL in embeds or metadata; content.text can be empty.
- */
 function getMessageTextForMichelin(message: Memory): string {
   const parts: string[] = [];
   const content = message.content as Record<string, unknown> | undefined;
@@ -56,16 +52,12 @@ function getMessageTextForMichelin(message: Memory): string {
   return parts.join(" ");
 }
 
-/** Path segment before /restaurant/ in guide.michelin.com URLs (e.g. biarritz, bayonne) */
 const MICHELIN_PATH_CITY_REGEX =
   /guide\.michelin\.com\/[^/]+\/[^/]+\/nouvelle-aquitaine\/([^/]+)\/restaurant\//i;
 
-const KNOWLEDGE_BASE = "knowledge/the-good-life/michelin-restaurants";
+/** Display path for user messages (actual path uses getKnowledgeRoot()). */
+const MICHELIN_DISPLAY_PATH = "knowledge/the-good-life/michelin-restaurants";
 
-/**
- * Resolve effective room/channel name for "knowledge" detection.
- * Room rows may have empty name (e.g. Discord not syncing channel name); check metadata and env.
- */
 async function getEffectiveRoomName(
   runtime: IAgentRuntime,
   message: Memory,
@@ -88,13 +80,10 @@ async function getEffectiveRoomName(
   if (channelIds && meta.channelId && channelIds.split(",").some((id) => id.trim() === String(meta.channelId))) {
     return "knowledge";
   }
-  // Last resort: Michelin link but no room name (e.g. Discord didn't set room.name). Assume knowledge channel.
   if (getMessageTextForMichelin(message).includes("guide.michelin.com")) return "knowledge";
   return "";
 }
 
-/** City slug from URL path → { file, section } for insertion */
-/** Fallback when city slug from URL is not in the map (e.g. other Nouvelle-Aquitaine towns). */
 const UNKNOWN_CITY_FALLBACK = {
   file: "southwest-france-extended.md",
   section: "### Other (Nouvelle-Aquitaine)",
@@ -127,7 +116,7 @@ function extractMichelinUrl(text: string): string | null {
 function extractCitySlugFromUrl(url: string): string {
   const match = url.match(MICHELIN_PATH_CITY_REGEX);
   if (match) return match[1].toLowerCase().trim();
-  return ""; // unknown; caller uses UNKNOWN_CITY_FALLBACK
+  return "";
 }
 
 function getDisplayCity(citySlug: string, address: string): string {
@@ -209,7 +198,6 @@ function parseJsonFromModelResponse(raw: string): MichelinExtract | null {
   }
 }
 
-/** Simple HTML strip so visible text can be passed to the LLM; preserve href URLs so website can be extracted. */
 function htmlToVisibleText(html: string): string {
   return (
     html
@@ -224,11 +212,6 @@ function htmlToVisibleText(html: string): string {
 
 const MICHELIN_CONTENT_MAX_CHARS = 12_000;
 
-/**
- * Try to get page content via @elizaos/plugin-browser (Playwright) when available.
- * Returns full DOM text (bodyContent) so phone, "Visit Website", description are present.
- * When the plugin is not registered, returns null and caller should use fetchPageContent().
- */
 async function fetchPageContentViaBrowser(
   url: string,
   runtime: IAgentRuntime,
@@ -263,7 +246,6 @@ async function fetchPageContentViaBrowser(
   }
 }
 
-/** Prefer raw fetch so we get full page text (phone, Visit Website, description). Summarize often returns only meta/og. */
 async function fetchPageContent(url: string): Promise<string | null> {
   let content: string | null = null;
   try {
@@ -285,7 +267,6 @@ async function fetchPageContent(url: string): Promise<string | null> {
       "[ADD_MICHELIN] fetch failed, trying summarize",
     );
   }
-  // Do NOT fall back to summarize for Michelin: it returns only og:meta (same boilerplate for every restaurant). Prefer raw HTML or ask user to add manually.
   if (!content || content.length < 100) return content;
   return content.slice(0, MICHELIN_CONTENT_MAX_CHARS);
 }
@@ -349,7 +330,6 @@ export const addMichelinRestaurantAction: Action = {
       return;
     }
 
-    // Prevent duplicate run when both provider and processActions trigger this action
     const lockKey = `add-michelin:${message.roomId}:${url}`;
     const lockedAt = await runtime.getCache<number>(lockKey);
     if (lockedAt != null && Date.now() - lockedAt < 120_000) {
@@ -366,7 +346,7 @@ export const addMichelinRestaurantAction: Action = {
     const urls = text.match(new RegExp(MICHELIN_URL_REGEX.source, "gi"));
     if (urls && urls.length > 1 && callback) {
       await callback({
-        text: "Only one Michelin link per message, please. I’ll use the first one.",
+        text: "Only one Michelin link per message, please. I'll use the first one.",
         actions: ["ADD_MICHELIN_RESTAURANT"],
       });
     }
@@ -378,7 +358,6 @@ export const addMichelinRestaurantAction: Action = {
       });
     }
 
-    // Prefer @elizaos/plugin-browser (Playwright) when present for full DOM text; else raw fetch
     let content = await fetchPageContentViaBrowser(url, runtime);
     if (!content || content.length < 100) {
       content = await fetchPageContent(url);
@@ -386,7 +365,7 @@ export const addMichelinRestaurantAction: Action = {
     if (!content || content.length < 100) {
       if (callback) {
         await callback({
-          text: `Couldn’t fetch that Michelin page (or the content was too short). Add it manually using the steps in \`knowledge/the-good-life/michelin-restaurants/README.md\` (section "How to add new lunch spots").`,
+          text: `Couldn't fetch that Michelin page (or the content was too short). Add it manually using the steps in \`${MICHELIN_DISPLAY_PATH}/README.md\` (section "How to add new lunch spots").`,
           actions: ["ADD_MICHELIN_RESTAURANT"],
         });
       }
@@ -416,7 +395,7 @@ ${content.slice(0, 12000)}
     if (!extract?.name) {
       if (callback) {
         await callback({
-          text: "I couldn’t parse the restaurant details from that page. Add it manually using `knowledge/the-good-life/michelin-restaurants/README.md`.",
+          text: `I couldn't parse the restaurant details from that page. Add it manually using \`${MICHELIN_DISPLAY_PATH}/README.md\`.`,
           actions: ["ADD_MICHELIN_RESTAURANT"],
         });
       }
@@ -430,13 +409,13 @@ ${content.slice(0, 12000)}
     const cityDisplay = getDisplayCity(citySlug, extract.address);
     const newBlock = formatEntry(extract, url, cityDisplay);
 
-    const baseDir = process.cwd();
-    const filePath = path.join(baseDir, KNOWLEDGE_BASE, fileName);
+    const knowledgeRoot = getKnowledgeRoot();
+    const filePath = path.join(knowledgeRoot, "the-good-life", "michelin-restaurants", fileName);
 
     if (!fs.existsSync(filePath)) {
       if (callback) {
         await callback({
-          text: `Regional file \`${KNOWLEDGE_BASE}/${fileName}\` not found. Add the entry manually.`,
+          text: `Regional file \`${MICHELIN_DISPLAY_PATH}/${fileName}\` not found. Add the entry manually.`,
           actions: ["ADD_MICHELIN_RESTAURANT"],
         });
       }
@@ -447,7 +426,7 @@ ${content.slice(0, 12000)}
     if (fileContent.includes(url)) {
       if (callback) {
         await callback({
-          text: `**Already in knowledge.** That Michelin link is already in \`${KNOWLEDGE_BASE}/${fileName}\`.`,
+          text: `**Already in knowledge.** That Michelin link is already in \`${MICHELIN_DISPLAY_PATH}/${fileName}\`.`,
           actions: ["ADD_MICHELIN_RESTAURANT"],
         });
       }
@@ -463,9 +442,11 @@ ${content.slice(0, 12000)}
 
     if (callback) {
       await callback({
-        text: `Added **${extract.name}** (${cityDisplay}) to \`${KNOWLEDGE_BASE}/${fileName}\`.`,
+        text: `Added **${extract.name}** (${cityDisplay}) to \`${MICHELIN_DISPLAY_PATH}/${fileName}\`.`,
         actions: ["ADD_MICHELIN_RESTAURANT"],
       });
     }
   },
 };
+
+export default addMichelinRestaurantAction;

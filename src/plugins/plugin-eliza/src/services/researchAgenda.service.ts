@@ -14,8 +14,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
+import { getKnowledgeRoot } from "../config/paths";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
 const AGENDA_PATH = path.join(process.cwd(), ".openclaw-cache", "research-agenda.json");
 
 /**
@@ -26,11 +26,12 @@ const FRAMEWORK_CATEGORY_TO_FOLDERS: Record<string, string[]> = {
   "crypto-fundamentals": ["bitcoin-maxi", "macro-economy", "altcoins", "solana", "privacy", "security", "commodities"],
   defi: ["defi-metrics", "stablecoins", "rwa", "airdrops", "bankr"],
   trading: ["options", "perps-trading", "grinding-the-trenches", "trading", "stocks"],
-  layer2: ["substack-essays"],
+  layer2: ["substack-essays", "internal-docs"],
   nft: ["art-collections"],
   governance: ["regulation", "legal-compliance", "teammate"],
   "ai-agents": ["prompt-templates", "internal-docs", "substack-essays", "setup-guides", "clawdbot", "sentinel-docs"],
-  emerging: ["substack-essays", "venture-capital", "altcoins", "marketing-gtm", "the-good-life", "brand", "kelly-btc", "uncategorized"],
+  "lifestyle-and-gtm": ["the-good-life", "marketing-gtm"],
+  emerging: ["substack-essays", "venture-capital", "altcoins", "brand", "kelly-btc", "uncategorized"],
 };
 
 export interface ResearchTopic {
@@ -196,6 +197,19 @@ const DEFAULT_COVERAGE_FRAMEWORK: ResearchAgenda["coverageFramework"] = {
       ],
     },
     {
+      name: "lifestyle-and-gtm",
+      description: "Lifestyle, marketing, GTM, and positioning",
+      targetDepth: "intermediate",
+      priority: "high",
+      subtopics: [
+        "The good life",
+        "Michelin and travel",
+        "Marketing and positioning",
+        "GTM and narrative",
+        "Substack and content",
+      ],
+    },
+    {
       name: "emerging",
       description: "Emerging trends and narratives",
       targetDepth: "overview",
@@ -295,7 +309,7 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
     let hasAnyFolder = false;
 
     for (const folderName of folderNames) {
-      const categoryPath = path.join(KNOWLEDGE_ROOT, folderName);
+      const categoryPath = path.join(getKnowledgeRoot(), folderName);
       if (!fs.existsSync(categoryPath)) continue;
       hasAnyFolder = true;
       allFilePaths.push(...getMdFilesRecursive(categoryPath));

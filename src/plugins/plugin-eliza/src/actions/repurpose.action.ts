@@ -18,8 +18,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-
-const DRAFTS_DIR = "./knowledge/drafts";
+import { DRAFTS_DIR } from "../config/paths";
 
 type RepurposeFormat = "thread" | "essay" | "linkedin" | "keypoints" | "hooks";
 

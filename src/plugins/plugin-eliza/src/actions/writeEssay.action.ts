@@ -18,8 +18,8 @@ import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { getVoicePromptAddition } from "../services/voice.service";
+import { DRAFTS_DIR } from "../config/paths";
 
-const DRAFTS_DIR = "./knowledge/drafts";
 const SUBSTACK_URL = "https://ikigaistudio.substack.com/";
 
 // Essay styles/formats

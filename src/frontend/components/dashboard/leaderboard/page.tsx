@@ -81,7 +81,10 @@ interface LeaderboardPageProps {
 export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProps) {
   // Markets (HIP-3, Crypto, Memes, etc.) come from plugin-vince — use VINCE agent so the route exists
   const vinceAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "VINCE");
+  const elizaAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "ELIZA");
   const leaderboardsAgentId = (vinceAgent?.id ?? agents?.[0]?.id ?? agentId) as string;
+  // Upload is Eliza-only: use her agent so the request is handled by plugin-eliza
+  const uploadAgentId = (elizaAgent?.id ?? leaderboardsAgentId) as string;
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
@@ -2364,10 +2367,18 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </tr>
                         </thead>
                         <tbody>
-                          {qualityResult.data.results.map((r, i) => (
+                          {qualityResult.data.results.map((r, i) => {
+                            const displayAgent =
+                              r.agent ??
+                              (["RESEARCH", "BRAINSTORM", "PROMPT_DESIGN"].includes(r.domain)
+                                ? "eliza"
+                                : ["STRIKE_RITUAL", "YIELD_STACK", "SEVEN_PILLARS"].includes(r.domain)
+                                  ? "solus"
+                                  : "vince");
+                            return (
                             <tr key={`${r.domain}-${i}`} className="border-b border-muted/50">
                               <td className="py-1.5">{r.domain}</td>
-                              <td className="py-1.5 text-muted-foreground">{r.agent ?? "vince"}</td>
+                              <td className="py-1.5 text-muted-foreground">{displayAgent}</td>
                               <td className="py-1.5 text-muted-foreground font-mono text-xs">{r.folder}</td>
                               <td className="text-right py-1.5">{r.baselineScore}</td>
                               <td className="text-right py-1.5">{r.enhancedScore}</td>
@@ -2376,7 +2387,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                               </td>
                               <td className="text-right py-1.5">{r.knowledgeIntegration}</td>
                             </tr>
-                          ))}
+                          ); })}
                         </tbody>
                       </table>
                     </div>
@@ -2443,7 +2454,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                   onClick={async () => {
                     setUploadTextStatus("loading");
                     setUploadTextMessage("");
-                    const result = await submitKnowledgeUpload(leaderboardsAgentId, {
+                    const result = await submitKnowledgeUpload(uploadAgentId, {
                       type: "text",
                       content: uploadText.trim(),
                     });
@@ -2516,7 +2527,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 onClick={async () => {
                   setYoutubeStatus("loading");
                   setYoutubeMessage("");
-                  const result = await submitKnowledgeUpload(leaderboardsAgentId, {
+                  const result = await submitKnowledgeUpload(uploadAgentId, {
                     type: "youtube",
                     content: youtubeUrl.trim(),
                   });

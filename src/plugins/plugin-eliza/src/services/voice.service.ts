@@ -8,10 +8,7 @@
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-
-const SUBSTACK_DIR = "./knowledge/substack-essays";
-const MARKETING_DIR = "./knowledge/marketing-gtm";
-const CACHE_FILE = "./knowledge/.eliza/voice-profile.json";
+import { SUBSTACK_DIR, MARKETING_DIR, VOICE_CACHE_FILE as CACHE_FILE } from "../config/paths";
 
 export interface VoiceProfile {
   // Overall characteristics

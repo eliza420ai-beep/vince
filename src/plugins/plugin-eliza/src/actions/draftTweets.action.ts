@@ -18,8 +18,7 @@ import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { getVoicePromptAddition } from "../services/voice.service";
-
-const DRAFTS_DIR = "./knowledge/drafts/tweets";
+import { DRAFTS_TWEETS_DIR as DRAFTS_DIR } from "../config/paths";
 const X_HANDLE = "@ikigaistudioxyz";
 const X_URL = "https://x.com/ikigaistudioxyz";
 

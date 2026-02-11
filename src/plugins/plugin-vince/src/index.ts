@@ -30,7 +30,6 @@ import { buildLeaderboardsResponse, buildDebugXSentimentResponse } from "./route
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
-import { processDashboardUpload } from "./routes/dashboardUpload";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -115,9 +114,7 @@ import { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 import { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 import { vinceBotAction } from "./actions/bot.action";
 
-// Actions - Knowledge
-import { vinceUploadAction } from "./actions/upload.action";
-import { addMichelinRestaurantAction } from "./actions/addMichelin.action";
+// Actions - Knowledge (ingestion moved to plugin-eliza: UPLOAD, ADD_MICHELIN)
 import { vinceCodeTaskAction } from "./actions/codeTask.action";
 
 // Actions - Grok Expert (X vibe check in context; requires XAI_API_KEY)
@@ -136,7 +133,6 @@ import { vinceXResearchAction } from "./actions/xResearch.action";
 import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
-import { michelinKnowledgeProvider } from "./providers/michelinKnowledge.provider";
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
 
 // Tasks
@@ -237,9 +233,6 @@ export const vincePlugin: Plugin = {
     vinceBotPauseAction,
     vinceWhyTradeAction,
     vinceBotAction,
-    // Knowledge Upload
-    vinceUploadAction,
-    addMichelinRestaurantAction,
     vinceCodeTaskAction,
     vinceGrokExpertAction,
     closeRecommendationAction,
@@ -545,54 +538,11 @@ export const vincePlugin: Plugin = {
         }
       },
     },
-    {
-      name: "vince-upload",
-      path: "/vince/upload",
-      type: "POST",
-      handler: async (
-        req: { params?: Record<string, string>; body?: unknown; [k: string]: unknown },
-        res: {
-          status: (n: number) => { json: (o: object) => void };
-          json: (o: object) => void;
-        },
-        runtime?: IAgentRuntime,
-      ) => {
-        const agentRuntime =
-          runtime ??
-          (req as any).runtime ??
-          (req as any).agentRuntime ??
-          (req as any).agent?.runtime;
-        if (!agentRuntime) {
-          res.status(503).json({
-            error: "Upload requires agent context",
-            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/upload",
-          });
-          return;
-        }
-        try {
-          const body = (req.body ?? {}) as { type?: string; content?: string };
-          const type = body.type === "youtube" ? "youtube" : "text";
-          const result = await processDashboardUpload(agentRuntime, { type, content: body.content ?? "" });
-          if (!result.success) {
-            res.status(400).json(result);
-            return;
-          }
-          res.json(result);
-        } catch (err) {
-          logger.warn(`[VINCE] Upload route error: ${err}`);
-          res.status(500).json({
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      },
-    },
   ],
 
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
   providers: [
     teammateContextProvider,
-    michelinKnowledgeProvider,
     protocolWriteupProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
@@ -1110,8 +1060,6 @@ export { vinceBotStatusAction } from "./actions/vinceBotStatus.action";
 export { vinceBotPauseAction } from "./actions/vinceBotPause.action";
 export { vinceWhyTradeAction } from "./actions/vinceWhyTrade.action";
 export { vinceBotAction } from "./actions/bot.action";
-export { vinceUploadAction } from "./actions/upload.action";
-export { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 export { vinceCodeTaskAction } from "./actions/codeTask.action";
 export { vinceGrokExpertAction } from "./actions/grokExpert.action";
 export { closeRecommendationAction } from "./actions/closeRecommendation.action";

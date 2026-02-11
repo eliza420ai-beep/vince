@@ -15,8 +15,7 @@ import type {
 import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-
-const KNOWLEDGE_BASE = "./knowledge";
+import { getKnowledgeRoot } from "../config/paths";
 
 interface CategoryStats {
   name: string;
@@ -58,22 +57,23 @@ function analyzeKnowledgeBase(): KnowledgeReport {
   const categories: CategoryStats[] = [];
   const allFiles: { file: string; category: string; date: Date; words: number }[] = [];
 
-  if (!fs.existsSync(KNOWLEDGE_BASE)) {
+  const knowledgeBase = getKnowledgeRoot();
+  if (!fs.existsSync(knowledgeBase)) {
     return {
       totalFiles: 0,
       totalWords: 0,
       categories: [],
       recentAdditions: [],
       oldestCategory: null,
-      suggestions: ["Knowledge base directory not found. Create ./knowledge/"],
+      suggestions: [`Knowledge base directory not found. Create ${knowledgeBase}/`],
     };
   }
 
-  const topLevelDirs = fs.readdirSync(KNOWLEDGE_BASE, { withFileTypes: true })
+  const topLevelDirs = fs.readdirSync(knowledgeBase, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith("."));
 
   for (const dir of topLevelDirs) {
-    const categoryPath = path.join(KNOWLEDGE_BASE, dir.name);
+    const categoryPath = path.join(knowledgeBase, dir.name);
     const files = getFilesRecursive(categoryPath);
     
     let totalWords = 0;
@@ -221,7 +221,7 @@ export const knowledgeStatusAction: Action = {
     "CHECK_KNOWLEDGE",
     "KNOWLEDGE_REPORT",
   ],
-  description: `Check the health and coverage of the knowledge base. Shows category stats, recent additions, gaps, and suggestions for improvement.
+  description: `Quick stats on the knowledge base: file counts per category, word counts, recent additions, and high-level suggestions (e.g. expand small categories, refresh stale). For gap analysis against the coverage framework (missing subtopics, shallow/stale, research queue), use "audit knowledge" instead.
 
 TRIGGERS:
 - "knowledge status"

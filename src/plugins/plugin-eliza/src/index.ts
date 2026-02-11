@@ -10,7 +10,7 @@
  * - Research briefs and trend analysis
  * - Knowledge intelligence (graph, deduplication, quality)
  *
- * Actions (15 total):
+ * Actions (14 total):
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
@@ -40,12 +40,11 @@
 
 import type { Plugin, IAgentRuntime } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { handleUploadRequest } from "./routes/uploadRoute";
 
-// Import actions from plugin-vince (knowledge ingestion)
-import { vinceUploadAction } from "../../plugin-vince/src/actions/upload.action";
-import { addMichelinRestaurantAction } from "../../plugin-vince/src/actions/addMichelin.action";
-
-// Import Eliza's own actions
+// Eliza owns content ingestion (UPLOAD) and ADD_MICHELIN; no dependency on plugin-vince.
+import { uploadAction } from "./actions/upload.action";
+import { addMichelinRestaurantAction } from "./actions/addMichelin.action";
 import { knowledgeStatusAction } from "./actions/knowledgeStatus.action";
 import { writeEssayAction } from "./actions/writeEssay.action";
 import { draftTweetsAction } from "./actions/draftTweets.action";
@@ -68,27 +67,9 @@ import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
 import * as researchAgendaService from "./services/researchAgenda.service";
 
-// Re-export upload with Eliza-appropriate name
-const elizaUploadAction = {
-  ...vinceUploadAction,
-  name: "UPLOAD",
-  description: `Upload content to the knowledge base. Supports text, URLs, and YouTube videos.
-
-TRIGGERS:
-- "upload:", "save this:", "ingest:", "remember:" — Saves content to knowledge/
-- YouTube URLs — Transcribes video and saves transcript + summary
-- Article/PDF URLs — Fetches and summarizes via summarize CLI
-- Long pasted content (1000+ chars) — Auto-ingests
-
-Use this for expanding the knowledge corpus with research, articles, videos, and frameworks.`,
-};
-
-// Keep original name ADD_MICHELIN_RESTAURANT as referenced in Eliza's system prompt
-const elizaMichelinAction = addMichelinRestaurantAction;
-
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 15 actions, 7 services.
+  description: `Eliza's knowledge & content plugin — 14 actions, 7 services.
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -134,10 +115,52 @@ export const elizaPlugin: Plugin = {
   • research session — Autonomous research cycle
   • Tracks sessions, progress, and files created`,
 
+  routes: [
+    {
+      name: "eliza-upload",
+      path: "/eliza/upload",
+      type: "POST",
+      handler: async (
+        req: { body?: unknown; [k: string]: unknown },
+        res: { status: (n: number) => { json: (o: object) => void }; json: (o: object) => void },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "Upload requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-eliza/eliza/upload with Eliza's agentId",
+          });
+          return;
+        }
+        try {
+          const body = (req.body ?? {}) as { type?: string; content?: string };
+          const type = body.type === "youtube" ? "youtube" : "text";
+          const result = await handleUploadRequest(agentRuntime, { type, content: body.content ?? "" });
+          if (!result.success) {
+            res.status(400).json(result);
+            return;
+          }
+          res.json(result);
+        } catch (err) {
+          logger.warn(`[Eliza Plugin] Upload route error: ${err}`);
+          res.status(500).json({
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+  ],
+
   actions: [
-    // Knowledge Management
-    elizaUploadAction,
-    elizaMichelinAction,
+    // Knowledge Management (Eliza-owned: UPLOAD, ADD_MICHELIN)
+    uploadAction,
+    addMichelinRestaurantAction,
     knowledgeStatusAction,
     researchQueueAction,
     // Content Production
@@ -194,8 +217,7 @@ export const elizaPlugin: Plugin = {
 
 // Export all actions
 export {
-  elizaUploadAction,
-  elizaMichelinAction,
+  uploadAction,
   addMichelinRestaurantAction,
   knowledgeStatusAction,
   writeEssayAction,

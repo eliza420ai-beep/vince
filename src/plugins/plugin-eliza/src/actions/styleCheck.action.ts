@@ -25,8 +25,9 @@ import {
   type StyleViolation,
 } from "../services/styleGuide.service";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
-const DRAFTS_DIR = path.join(KNOWLEDGE_ROOT, "drafts");
+import { getKnowledgeRoot, DRAFTS_DIR } from "../config/paths";
+
+const KNOWLEDGE_ROOT = getKnowledgeRoot();
 
 type SubCommand = "check" | "guide" | "fix" | "rules";
 

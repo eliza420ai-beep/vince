@@ -18,9 +18,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
-
-const KNOWLEDGE_BASE = "./knowledge";
-const SUBSTACK_DIR = "./knowledge/substack-essays";
+import { getKnowledgeRoot, SUBSTACK_DIR } from "../config/paths";
 
 interface CategoryAnalysis {
   name: string;
@@ -41,13 +39,14 @@ interface TopicSuggestion {
 function analyzeKnowledgeGaps(): CategoryAnalysis[] {
   const categories: CategoryAnalysis[] = [];
   
-  if (!fs.existsSync(KNOWLEDGE_BASE)) return categories;
+  const knowledgeBase = getKnowledgeRoot();
+  if (!fs.existsSync(knowledgeBase)) return categories;
 
-  const dirs = fs.readdirSync(KNOWLEDGE_BASE, { withFileTypes: true })
+  const dirs = fs.readdirSync(knowledgeBase, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith("."));
 
   for (const dir of dirs) {
-    const categoryPath = path.join(KNOWLEDGE_BASE, dir.name);
+    const categoryPath = path.join(knowledgeBase, dir.name);
     const files = fs.readdirSync(categoryPath).filter((f) => f.endsWith(".md"));
     
     let lastUpdated: Date | null = null;

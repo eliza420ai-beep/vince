@@ -1,68 +1,75 @@
 {
-  "ranAt": "2026-02-07T22:07:20.437Z",
+  "ranAt": "2026-02-11T21:18:38.038Z",
   "summary": {
-    "avgBaseline": 56,
+    "avgBaseline": 61,
     "avgEnhanced": 86,
-    "avgImprovement": 30,
-    "improvementPercent": "54.4",
-    "avgKIImprovement": 42
+    "avgImprovement": 24,
+    "improvementPercent": "39.9",
+    "avgKIImprovement": 37
   },
   "results": [
     {
       "domain": "OPTIONS",
       "folder": "options",
-      "improvement": 40,
+      "improvement": 33,
       "knowledgeIntegration": 85,
-      "baselineScore": 46,
-      "enhancedScore": 86
+      "baselineScore": 53,
+      "enhancedScore": 86,
+      "agent": "vince"
     },
     {
       "domain": "PERPS",
       "folder": "perps-trading",
-      "improvement": 26,
+      "improvement": 33,
       "knowledgeIntegration": 85,
-      "baselineScore": 60,
-      "enhancedScore": 86
+      "baselineScore": 54,
+      "enhancedScore": 87,
+      "agent": "vince"
     },
     {
       "domain": "MEMES",
       "folder": "grinding-the-trenches",
-      "improvement": 43,
+      "improvement": 31,
       "knowledgeIntegration": 85,
-      "baselineScore": 41,
-      "enhancedScore": 84
+      "baselineScore": 54,
+      "enhancedScore": 85,
+      "agent": "vince"
     },
     {
       "domain": "AIRDROPS",
       "folder": "airdrops",
       "improvement": 45,
       "knowledgeIntegration": 85,
-      "baselineScore": 39,
-      "enhancedScore": 84
+      "baselineScore": 44,
+      "enhancedScore": 89,
+      "agent": "vince"
     },
     {
       "domain": "LIFESTYLE",
       "folder": "the-good-life",
-      "improvement": 24,
+      "improvement": 7,
       "knowledgeIntegration": 85,
-      "baselineScore": 65,
-      "enhancedScore": 89
+      "baselineScore": 82,
+      "enhancedScore": 89,
+      "agent": "vince"
     },
     {
       "domain": "ART",
       "folder": "art-collections",
-      "improvement": 35,
+      "improvement": 29,
       "knowledgeIntegration": 85,
-      "baselineScore": 54,
-      "enhancedScore": 89
+      "baselineScore": 58,
+      "enhancedScore": 87,
+      "agent": "vince"
     },
     {
       "domain": "RESEARCH",
       "folder": "substack-essays",
-      "improvement": 10,
-      "knowledgeIntegration": 75,
-      "baselineScore": 69,
-      "enhancedScore": 79
+      "improvement": 9,
+      "knowledgeIntegration": 80,
+      "baselineScore": 73,
+      "enhancedScore": 82,
+      "agent": "eliza"
     },
     {
       "domain": "BRAINSTORM",
@@ -70,53 +77,58 @@
       "improvement": 36,
       "knowledgeIntegration": 85,
       "baselineScore": 49,
-      "enhancedScore": 85
+      "enhancedScore": 85,
+      "agent": "eliza"
     },
     {
       "domain": "PROMPT_DESIGN",
       "folder": "prompt-templates",
-      "improvement": 23,
+      "improvement": 4,
       "knowledgeIntegration": 85,
-      "baselineScore": 65,
-      "enhancedScore": 88
+      "baselineScore": 80,
+      "enhancedScore": 84,
+      "agent": "eliza"
     },
     {
       "domain": "STRIKE_RITUAL",
       "folder": "options",
-      "improvement": 33,
+      "improvement": 32,
       "knowledgeIntegration": 85,
-      "baselineScore": 56,
-      "enhancedScore": 89
+      "baselineScore": 57,
+      "enhancedScore": 89,
+      "agent": "solus"
     },
     {
       "domain": "YIELD_STACK",
       "folder": "defi-metrics",
-      "improvement": 47,
-      "knowledgeIntegration": 85,
-      "baselineScore": 42,
-      "enhancedScore": 89
+      "improvement": 27,
+      "knowledgeIntegration": 70,
+      "baselineScore": 53,
+      "enhancedScore": 80,
+      "agent": "solus"
     },
     {
       "domain": "SEVEN_PILLARS",
       "folder": "internal-docs",
-      "improvement": 0,
-      "knowledgeIntegration": 70,
-      "baselineScore": 80,
-      "enhancedScore": 80
+      "improvement": 7,
+      "knowledgeIntegration": 80,
+      "baselineScore": 78,
+      "enhancedScore": 85,
+      "agent": "solus"
     }
   ],
   "gaps": [
     {
-      "domain": "SEVEN_PILLARS",
-      "folder": "internal-docs",
-      "improvement": 0,
-      "knowledgeIntegration": 70,
-      "recommendation": "Consider adding more content to knowledge/internal-docs/. Improvement +0 is modest."
+      "domain": "PROMPT_DESIGN",
+      "folder": "prompt-templates",
+      "improvement": 4,
+      "knowledgeIntegration": 85,
+      "recommendation": "Consider adding more content to knowledge/prompt-templates/. Improvement +4 is modest."
     }
   ],
   "recommendations": [
     "EXCELLENT: Knowledge base provides significant value. Keep adding methodology-focused content.",
-    "Focus first on: internal-docs",
+    "Focus first on: prompt-templates",
     "Use KNOWLEDGE-QUALITY-CHECKLIST.md when adding new files."
   ],
   "note": "Eliza (chat, brainstorm), VINCE (execution), Solus (wealth architect). Each agent uses knowledge differently."

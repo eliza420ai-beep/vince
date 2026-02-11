@@ -16,7 +16,9 @@ import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 
-const KNOWLEDGE_ROOT = path.resolve(process.cwd(), "knowledge");
+import { getKnowledgeRoot } from "../config/paths";
+
+const KNOWLEDGE_ROOT = getKnowledgeRoot();
 const TRENDS_CACHE = path.join(process.cwd(), ".openclaw-cache", "trend-connections.json");
 
 interface KnowledgeTopic {
