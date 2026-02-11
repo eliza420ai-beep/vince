@@ -103,3 +103,20 @@ export {
   getFearGreedIndex,
   formatFearGreed,
 } from "./insights.service";
+
+// Advanced (DeFi, NFT, Gas, Social, Flows, Unlocks)
+export {
+  default as advancedService,
+  getDeFiOverview,
+  formatDeFiOverview,
+  getNFTOverview,
+  formatNFTOverview,
+  getGasPrices,
+  formatGasPrices,
+  getSocialMetrics,
+  formatSocialMetrics,
+  getExchangeFlows,
+  formatExchangeFlows,
+  getTokenUnlocks,
+  formatTokenUnlocks,
+} from "./advanced.service";

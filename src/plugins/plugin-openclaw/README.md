@@ -2,43 +2,40 @@
 
 **OpenClaw V2** — Enterprise-grade multi-agent crypto research plugin for VINCE.
 
-## ✨ 22+ Features
+## ✨ 28+ Features
 
 | Category | Features |
 |----------|----------|
-| 🔬 **Research** | Multi-agent, Streaming, Cost tracking, Budget alerts |
+| 🔬 **Research** | Multi-agent, Streaming, Cost, Budget |
 | 📋 **Organization** | Watchlist, Portfolio, History, Export, Scheduler |
 | 📊 **Analytics** | Comparison, Trends, Risk, Stats, Leaderboard |
 | 🔔 **Alerts** | Price, Sentiment, Whale, Volume |
-| 🧠 **Insights** | AI insights, Market overview, Screener, Whales, News, Fear & Greed |
+| 🧠 **Insights** | AI insights, Market, Screener, Whales, News, Fear & Greed |
+| 🏦 **Advanced** | DeFi, NFT, Gas, Social, Exchange Flows, Token Unlocks |
 
-## 🚀 All Commands
+## 🚀 All Commands (40+)
 
 ### Research
 ```
-@VINCE research SOL BTC      # All agents
-@VINCE alpha SOL             # Sentiment
-@VINCE market ETH            # Market data
-@VINCE onchain BONK          # On-chain
-@VINCE news crypto           # News
+@VINCE research SOL BTC
+@VINCE alpha / market / onchain / news
 ```
 
 ### Organization
 ```
-@VINCE watch SOL             # Watchlist
-@VINCE portfolio             # Holdings
-@VINCE add 10 SOL at 80      # Add holding
-@VINCE history               # Past research
-@VINCE schedule SOL daily    # Auto-research
+@VINCE watch / unwatch / watchlist
+@VINCE portfolio / add / remove
+@VINCE history / export
+@VINCE schedule daily / hourly / weekly
 ```
 
 ### Analytics
 ```
-@VINCE compare SOL ETH       # Comparison
-@VINCE trend SOL             # Sentiment trend
-@VINCE risk SOL              # Risk analysis
-@VINCE stats                 # Usage stats
-@VINCE leaderboard           # Top tokens
+@VINCE compare SOL ETH
+@VINCE trend SOL
+@VINCE risk SOL
+@VINCE stats
+@VINCE leaderboard
 ```
 
 ### Alerts
@@ -50,158 +47,144 @@
 
 ### Insights
 ```
-@VINCE insights SOL          # AI trading insights
-@VINCE market                # Market overview
-@VINCE screen minAlpha:7     # Token screener
-@VINCE whales                # Whale tracker
-@VINCE whales SOL            # Whales for token
-@VINCE news                  # News digest
-@VINCE feargreed             # Fear & Greed index
+@VINCE insights SOL      # AI trading signals
+@VINCE market            # Market overview
+@VINCE screen            # Token screener
+@VINCE whales            # Whale tracker
+@VINCE news              # News digest
+@VINCE feargreed         # Fear & Greed
+```
+
+### Advanced
+```
+@VINCE defi              # DeFi overview
+@VINCE nft               # NFT collections
+@VINCE gas               # Gas prices
+@VINCE social SOL        # Social metrics
+@VINCE flows             # Exchange flows
+@VINCE unlocks           # Token unlocks
 ```
 
 ## 📊 Sample Outputs
 
-### AI Insights
+### DeFi Analytics
 ```
-🧠 **AI Insights: SOL**
+🏦 **DeFi Analytics**
 
-🟢 **Signal:** BULLISH
-📊 **Confidence:** 75%
-⏱️ **Timeframe:** 1-7 days
-✅ **Risk:** low
+💰 **Total TVL:** $95.2B 📈 +2.5%
 
-**Reasoning:**
-• Strong accumulation pattern detected
-• KOL sentiment turning positive
-• Whale wallets increasing positions
+**Top Protocols:**
+1. **Lido** (Ethereum) - $28.5B
+   APY: 3.8% • Liquid Staking
 
-**Targets:**
-• Entry: $100
-• Stop Loss: $90
-• Take Profit: $120
+2. **AAVE** (Multi) - $12.1B
+   APY: 4.2% • Lending
+
+**🔥 Top Yields:**
+• Pendle stETH: 35.2% APY
+• Raydium SOL-USDC: 28.5% APY
 ```
 
-### Market Overview
+### NFT Research
 ```
-🌍 **Market Overview**
+🖼️ **NFT Research**
 
-💰 **Market Cap:** $2.1T
-📊 **24h Volume:** $85B
-₿ **BTC Dominance:** 54%
+**Top Collections:**
+1. **CryptoPunks** (ETH)
+   Floor: 45.5 ETH 📈 +2.1%
+   Vol: $1.2M • Holders: 3,542
 
-😨 **Fear & Greed:** 35/100 - Fear
-[███░░░░░░░]
-
-📈 **Top Gainers:**
-• BONK +32%
-• WIF +18%
-
-📉 **Top Losers:**
-• SHIB -12%
-• DOGE -8%
-
-🔥 **Trending:** SOL, BTC, ETH, BONK
+2. **Mad Lads** (SOL)
+   Floor: 85 SOL 📈 +8.5%
+   Vol: $1.8M • Holders: 8,542
 ```
 
-### Token Screener
+### Gas Tracker
 ```
-🔍 **Token Screener**
+⛽ **Gas Tracker**
 
-**Filters:** Alpha ≥ 7 • Risk ≤ 5
-**Results:** 4 tokens
+**Ethereum**
+   🐢 Slow: 15 • 🚗 Std: 22 • 🚀 Fast: 35 gwei
+   💰 Avg tx: ~$2.50
 
-1. **SOL** - Alpha: 9/10, Risk: 4/10 📈
-   Vol: $450M • Match: 100%
-
-2. **JUP** - Alpha: 8/10, Risk: 5/10 📈
-   Vol: $120M • Match: 100%
-```
-
-### Whale Tracker
-```
-🐋 **Whale Tracker**
-
-🟢 **SOL** BUY
-   500000 tokens ($4.5M) • 15m ago
-
-🔴 **BTC** SELL
-   150 tokens ($9.8M) • 28m ago
-
-🔄 **ETH** TRANSFER
-   10000 tokens ($3.2M) • 45m ago
+**Solana**
+   🐢 Slow: 0.000005 SOL
+   💰 Avg tx: ~$0.001
 ```
 
-### Fear & Greed
+### Social Metrics
 ```
-😱 **Fear & Greed Index**
+📱 **Social Metrics: SOL**
 
-😨 **Current:** 35/100 - **Fear**
-[███░░░░░░░]
-   Fear ◄────────► Greed
+**🐦 Twitter/X:**
+• Followers: 2,500,000 (+3,500 24h)
+• Engagement: 7/10
+• Mentions: 8,500 (24h)
 
-**Changes:**
-📉 24h: -5
-📈 7d: +8
+**📱 Telegram:** 150,000 members
+**💬 Discord:** 120,000 members
 
-**7-Day Chart:**
-`▄▂▂▄▆▄▄` (Fear ▂▄▆█ Greed)
+🟢 **Sentiment:** 72/100
 ```
 
-## 🏗️ Architecture
-
+### Exchange Flows
 ```
-VINCE Chat
-    │
-    ├── RESEARCH ────────► Multi-agent
-    ├── WATCHLIST ───────► Token tracking
-    ├── PORTFOLIO ───────► Holdings
-    ├── COMPARE ─────────► Analysis
-    ├── HISTORY ─────────► Past research
-    ├── SCHEDULER ───────► Auto-research
-    ├── ALERTS ──────────► Notifications
-    ├── ANALYTICS ───────► Trends/Risk/Stats
-    └── INSIGHTS ────────► AI/Market/Screener/Whales/News
+🏛️ **Exchange Flows** (24h)
+
+🟢 **BTC** @ Binance
+   📥 In: 1,200 BTC | 📤 Out: 2,800 BTC
+   📤 Net: +1,600 BTC ($104M)
+
+🔴 **ETH** @ Coinbase
+   📥 In: 15,000 ETH | 📤 Out: 8,000 ETH
+   📥 Net: -7,000 ETH ($24.5M)
+```
+
+### Token Unlocks
+```
+🔓 **Token Unlocks**
+
+🔴 **ARB** - 2024-02-14 (3d)
+   📦 92.6M tokens (2.8% supply)
+   💰 ~$85M • Type: investor
+
+🟡 **APT** - 2024-02-16 (5d)
+   📦 11.3M tokens (3.1% supply)
+   💰 ~$95M • Type: cliff
 ```
 
 ## 📁 Files
 
 ```
 src/plugins/plugin-openclaw/
-├── matcher.ts
-├── README.md
-└── src/
-    ├── index.ts (9 actions)
-    ├── actions/ (9)
-    │   ├── runResearch.action.ts
-    │   ├── watchlist.action.ts
-    │   ├── compare.action.ts
-    │   ├── history.action.ts
-    │   ├── scheduler.action.ts
-    │   ├── portfolio.action.ts
-    │   ├── alerts.action.ts
-    │   ├── analytics.action.ts
-    │   └── insights.action.ts
-    └── services/ (7)
-        ├── openclaw.service.ts
-        ├── watchlist.service.ts
-        ├── scheduler.service.ts
-        ├── portfolio.service.ts
-        ├── alerts.service.ts
-        ├── analytics.service.ts
-        └── insights.service.ts
-```
-
-## ⚙️ Setup
-
-```bash
-npm install -g openclaw
-openclaw gateway start
+├── src/
+│   ├── index.ts (10 actions)
+│   ├── actions/ (10)
+│   │   ├── runResearch.action.ts
+│   │   ├── watchlist.action.ts
+│   │   ├── compare.action.ts
+│   │   ├── history.action.ts
+│   │   ├── scheduler.action.ts
+│   │   ├── portfolio.action.ts
+│   │   ├── alerts.action.ts
+│   │   ├── analytics.action.ts
+│   │   ├── insights.action.ts
+│   │   └── advanced.action.ts
+│   └── services/ (8)
+│       ├── openclaw.service.ts
+│       ├── watchlist.service.ts
+│       ├── scheduler.service.ts
+│       ├── portfolio.service.ts
+│       ├── alerts.service.ts
+│       ├── analytics.service.ts
+│       ├── insights.service.ts
+│       └── advanced.service.ts
 ```
 
 ## 📝 Stats
 
-- **22+ features**
-- **9 actions**
-- **7 services**
-- **30+ commands**
-- **5000+ lines of code**
+- **28+ features**
+- **10 actions**
+- **8 services**
+- **40+ commands**
+- **7000+ lines**
