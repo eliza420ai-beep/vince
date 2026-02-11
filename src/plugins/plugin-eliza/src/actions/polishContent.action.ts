@@ -161,7 +161,50 @@ const POLISH_PRINCIPLES = [
   "**Show, don't tell** — Don't say 'revolutionary'. Show what makes it so.",
   "**Confidence without arrogance** — Don't announce quality. Demonstrate it.",
   "**Create rhythm** — Short. Short. Then longer to land the point.",
+  "**Specificity is persuasion** — '400ms' beats 'fast'. Numbers build trust.",
+  "**Earn the next line** — Every sentence must pull its weight.",
 ];
+
+// Emotional architecture check
+const EMOTIONAL_TRIGGERS = ["aspiration", "belonging", "trust", "curiosity", "relief"] as const;
+
+// Structure check patterns
+const STRUCTURE_CHECKS = {
+  hasHook: (content: string) => {
+    const firstLine = content.split("\n").find(l => l.trim() && !l.startsWith("#"))?.trim() || "";
+    // Good hooks are short and provocative
+    return firstLine.length < 100 && !firstLine.toLowerCase().includes("in this");
+  },
+  hasColdOpen: (content: string) => {
+    const firstPara = content.split("\n\n")[0] || "";
+    const warmOpeners = [
+      "in this article", "welcome to", "today we", "let me explain",
+      "i want to", "we're going to", "this guide will"
+    ];
+    return !warmOpeners.some(w => firstPara.toLowerCase().includes(w));
+  },
+  hasSpecifics: (content: string) => {
+    // Look for numbers, percentages, timeframes
+    const specifics = content.match(/\d+(?:\.\d+)?(?:%|ms|s|x|k|m|b|\s*(?:days?|hours?|minutes?|seconds?|years?|users?|traders?))/gi);
+    return (specifics?.length || 0) >= 2;
+  },
+  hasRhythm: (content: string) => {
+    // Check for varied sentence lengths
+    const sentences = content.match(/[^.!?]+[.!?]+/g) || [];
+    if (sentences.length < 3) return true;
+    const lengths = sentences.slice(0, 10).map(s => s.trim().length);
+    const hasShort = lengths.some(l => l < 40);
+    const hasLong = lengths.some(l => l > 80);
+    return hasShort && hasLong;
+  },
+  hasStrongEnding: (content: string) => {
+    const lines = content.trim().split("\n").filter(l => l.trim());
+    const lastLine = lines[lines.length - 1]?.trim() || "";
+    // Strong endings are short and declarative
+    const weakEndings = ["thank you", "let us know", "feel free", "don't hesitate", "happy to help"];
+    return lastLine.length < 80 && !weakEndings.some(w => lastLine.toLowerCase().includes(w));
+  },
+};
 
 interface PolishSuggestion {
   original: string;
@@ -197,19 +240,64 @@ function analyzeForPolishing(content: string): PolishSuggestion[] {
   return suggestions;
 }
 
+function analyzeStructure(content: string): { passed: string[]; failed: string[] } {
+  const passed: string[] = [];
+  const failed: string[] = [];
+  
+  if (STRUCTURE_CHECKS.hasHook(content)) {
+    passed.push("Strong hook");
+  } else {
+    failed.push("Weak opening — first line should hook immediately");
+  }
+  
+  if (STRUCTURE_CHECKS.hasColdOpen(content)) {
+    passed.push("Cold open");
+  } else {
+    failed.push("Warm open detected — skip the preamble, start with substance");
+  }
+  
+  if (STRUCTURE_CHECKS.hasSpecifics(content)) {
+    passed.push("Specific proof points");
+  } else {
+    failed.push("Lacks specificity — add numbers, timeframes, proof points");
+  }
+  
+  if (STRUCTURE_CHECKS.hasRhythm(content)) {
+    passed.push("Good sentence rhythm");
+  } else {
+    failed.push("Monotonous rhythm — vary sentence lengths");
+  }
+  
+  if (STRUCTURE_CHECKS.hasStrongEnding(content)) {
+    passed.push("Strong ending");
+  } else {
+    failed.push("Weak ending — close with weight, not a whimper");
+  }
+  
+  return { passed, failed };
+}
+
 function formatPolishReport(content: string, suggestions: PolishSuggestion[]): string {
   let response = `✨ **Polish Report**\n\n`;
   
-  if (suggestions.length === 0) {
-    response += `🏆 **Premium quality!** No major issues found.\n\n`;
-    response += `**Quick check:**\n`;
+  // Structure analysis
+  const structure = analyzeStructure(content);
+  
+  if (suggestions.length === 0 && structure.failed.length === 0) {
+    response += `🏆 **Premium quality!** This copy passes the luxury test.\n\n`;
+    response += `**Structural wins:**\n`;
+    for (const win of structure.passed) {
+      response += `✓ ${win}\n`;
+    }
+    response += `\n**Final check:**\n`;
     response += `• Does every sentence earn its place?\n`;
-    response += `• Is the benefit clear in the first line?\n`;
-    response += `• Would Apple/Porsche publish this?\n`;
+    response += `• Would you pay to read this?\n`;
+    response += `• Does it *feel* right?\n`;
     return response;
   }
   
-  response += `Found **${suggestions.length} opportunities** to elevate this copy:\n\n`;
+  const totalIssues = suggestions.length + structure.failed.length;
+  response += `Found **${totalIssues} opportunities** to elevate this copy:\n\n`;
   
   // Group by issue type
   const byIssue = new Map<string, PolishSuggestion[]>();
@@ -246,12 +334,31 @@ function formatPolishReport(content: string, suggestions: PolishSuggestion[]): s
     response += `\n`;
   }
   
+  // Structure analysis section
+  if (structure.failed.length > 0) {
+    response += `### Structure Issues\n\n`;
+    for (const issue of structure.failed) {
+      response += `⚠️ ${issue}\n`;
+    }
+    response += `\n`;
+  }
+  
+  if (structure.passed.length > 0) {
+    response += `**Structural wins:** ${structure.passed.join(", ")}\n\n`;
+  }
+  
   // Add principles
   response += `---\n\n`;
   response += `**Luxury Copy Principles:**\n`;
   for (const principle of POLISH_PRINCIPLES.slice(0, 4)) {
     response += `• ${principle}\n`;
   }
+  
+  // The final questions
+  response += `\n**Before publishing, ask:**\n`;
+  response += `1. Would I pay to read this?\n`;
+  response += `2. Does this sound like *us*?\n`;
+  response += `3. How does it *feel*?\n`;
   
   return response;
 }
