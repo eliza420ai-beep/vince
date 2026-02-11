@@ -31,7 +31,8 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
-import { vincePluginNoX } from "../plugins/plugin-vince/src/index.ts";
+import { elizaPlugin } from "../plugins/plugin-eliza/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 // Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
 const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -45,15 +46,16 @@ const buildPlugins = (): Plugin[] => [
   ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
   // plugin-browser disabled: requires @elizaos/core "next" (ModelClass, ServiceType); ADD_MICHELIN falls back to fetch
   ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
-  vincePluginNoX, // UPLOAD + knowledge (no X API — only VINCE loads X to avoid rate-limit conflict)
+  elizaPlugin, // Eliza's own: UPLOAD + ADD_MICHELIN_RESTAURANT (knowledge ingestion only)
+  interAgentPlugin, // ASK_AGENT for asking other agents (VINCE, Kelly, Solus, etc.)
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
   const webSearch = process.env.TAVILY_API_KEY?.trim()
-    ? " web search when corpus is limited;"
+    ? " web search available;"
     : "";
   logger.info(
-    `[Eliza] ✅ 24/7 research & knowledge expansion ready — UPLOAD (same summarize CLI as VINCE);${webSearch} execution → VINCE`,
+    `[Eliza] ✅ 24/7 research & knowledge expansion ready — plugin-eliza (UPLOAD, ADD_MICHELIN); ASK_AGENT for other agents;${webSearch} execution → VINCE`,
   );
 };
 
