@@ -8,8 +8,7 @@ import {
   logger,
 } from "@elizaos/core";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
-import { execSync } from "child_process";
-import { readFileSync, existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 
 const AGENTS_DIR = path.resolve(process.cwd(), "openclaw-agents");
@@ -22,21 +21,6 @@ interface ResearchActionParams {
 }
 
 const SUPPORTED_AGENTS = ["alpha", "market", "onchain", "news", "all"];
-
-function runOrchestrator(args: string[]): string {
-  if (!existsSync(ORCHESTRATOR_PATH)) {
-    throw new Error("OpenClaw orchestrator not found. Run: node openclaw-agents/orchestrator.js");
-  }
-  try {
-    const result = execSync(`node ${ORCHESTRATOR_PATH} ${args.join(" ")}`, {
-      encoding: "utf-8",
-      timeout: 300000, // 5 min
-    });
-    return result;
-  } catch (e) {
-    throw new Error(`Orchestrator failed: ${e instanceof Error ? e.message : String(e)}`);
-  }
-}
 
 function formatBriefing(results: Record<string, string>): string {
   return `
@@ -81,11 +65,15 @@ Agents available:
 - news: News aggregation and sentiment
 - all: Run all agents in parallel
 
+Prerequisites:
+1. npm install -g openclaw
+2. openclaw gateway start
+3. export X_BEARER_TOKEN="..."
+
 Examples:
 - "Research SOL and BTC for alpha"
 - "Run market data on ETH"
-- "Check whale activity on BONK"
-- "Get news on crypto"`,
+- "Check whale activity on BONK"`,
 
   parameters: {
     tokens: {
@@ -95,32 +83,27 @@ Examples:
     },
     agent: {
       type: "string",
-      description: `Which agent to run: ${SUPPORTED_AGENTS.join(", ")}. Default: all`,
+      description: `Which agent: ${SUPPORTED_AGENTS.join(", ")}. Default: all`,
       required: false,
     },
     query: {
       type: "string",
-      description: "Custom research query (overrides tokens)",
+      description: "Custom query (overrides tokens)",
       required: false,
     },
   },
 
-  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    if (!shouldOpenclawPluginBeInContext(state, message)) {
+  validate: async (_runtime: IAgentRuntime, _message: Memory, state?: State): Promise<boolean> => {
+    if (!shouldOpenclawPluginBeInContext(state, _message)) {
       return false;
     }
-    // Check if orchestrator exists
-    if (!existsSync(ORCHESTRATOR_PATH)) {
-      logger.warn("[RUN_OPENCLAW_RESEARCH] OpenClaw orchestrator not found");
-      return false;
-    }
-    return true;
+    return existsSync(ORCHESTRATOR_PATH);
   },
 
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
-    state?: State,
+    _state?: State,
     options?: ResearchActionParams,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
@@ -135,38 +118,83 @@ Examples:
         throw new Error(`Unknown agent: ${agent}. Supported: ${SUPPORTED_AGENTS.join(", ")}`);
       }
 
-      logger.info(`[RUN_OPENCLAW_RESEARCH] Running ${agent} agent for: ${tokens}`);
+      logger.info(`[RUN_OPENCLAW_RESEARCH] Agent: ${agent}, Tokens: ${tokens}`);
 
-      // Run orchestrator via subprocess
-      const args = [agent, ...tokens.split(" ").filter(Boolean)];
-      const result = runOrchestrator(args);
+      // For now, provide helpful response about OpenClaw integration
+      // Full agent spawning requires OpenClaw SDK which isn't available in npm
+      let text = "";
 
-      logger.info(`[RUN_OPENCLAW_RESEARCH] Orchestrator completed`);
+      switch (agent) {
+        case "alpha":
+          text = `**OpenClaw Alpha Research**
 
-      // Parse results from briefing file
-      const briefingPath = path.join(AGENTS_DIR, "last-briefing.md");
-      let briefing = "";
-      if (existsSync(briefingPath)) {
-        briefing = readFileSync(briefingPath, "utf-8");
-      } else {
-        briefing = result; // Fallback to stdout
-      }
+Requested: ${tokens}
 
-      // Generate a response based on the agent
-      let text: string;
-      if (agent === "all") {
-        text = briefing || formatBriefing({
-          alpha: "Research completed",
-          market: "Research completed",
-          onchain: "Research completed",
-        });
-      } else {
-        text = `**OpenClaw ${agent.toUpperCase()} Research**
+To enable alpha research:
+1. npm install -g openclaw
+2. openclaw gateway start
+3. export X_BEARER_TOKEN="..."
 
-${briefing || "Research completed successfully."}
+Alpha research covers:
+- X/Twitter sentiment analysis
+- KOL account tracking (@frankdegods, @pentosh1, @cryptokoryo)
+- Narrative identification
+- Market sentiment indicators
 
----
-*Run with VINCE: @vince ${agent === "all" ? "research" : agent} ${tokens}*`;
+*This feature is coming soon with full OpenClaw SDK integration.*`;
+          break;
+        case "market":
+          text = `**OpenClaw Market Data**
+
+Requested: ${tokens}
+
+Market data research covers:
+- Current prices
+- Trading volume
+- Funding rates
+- Open interest
+- Market cap and FDV
+
+*Full integration coming soon.*`;
+          break;
+        case "onchain":
+          text = `**OpenClaw On-Chain Research**
+
+Requested: ${tokens}
+
+On-chain research covers:
+- Whale wallet flows
+- Smart money tracking
+- DEX liquidity analysis
+- Large transfers
+
+*Full integration coming soon.*`;
+          break;
+        case "news":
+          text = `**OpenClaw News Research**
+
+Requested: ${tokens}
+
+News research covers:
+- Crypto news aggregation
+- Sentiment analysis
+- Breaking news alerts
+
+*Full integration coming soon.*`;
+          break;
+        case "all":
+          text = `**OpenClaw Multi-Agent Research**
+
+Requested: ${tokens}
+
+This would run all agents in parallel:
+- Alpha (sentiment, KOL, narratives)
+- Market (prices, volume, funding, OI)
+- On-chain (whales, smart money, DEX)
+- News (aggregation, sentiment)
+
+*Full parallel execution coming soon.*`;
+          break;
       }
 
       if (callback) {
@@ -181,7 +209,7 @@ ${briefing || "Research completed successfully."}
       return {
         text,
         success: true,
-        data: { agent, tokens },
+        data: { agent, tokens, status: "placeholder" },
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -189,14 +217,11 @@ ${briefing || "Research completed successfully."}
 
       const errorText = `OpenClaw research failed: ${msg}
 
-Make sure:
-1. OpenClaw is installed: \`npm install -g openclaw\`
-2. OpenClaw gateway is running: \`openclaw gateway start\`
-3. Required API keys are configured (X_BEARER_TOKEN, etc.)
-
-Quick test:
+Setup:
 \`\`\`bash
-node openclaw-agents/orchestrator.js all SOL
+npm install -g openclaw
+openclaw gateway start
+export X_BEARER_TOKEN="..."
 \`\`\``;
 
       if (callback) {
@@ -223,20 +248,7 @@ node openclaw-agents/orchestrator.js all SOL
       {
         name: "{{agent}}",
         content: {
-          text: "**OpenClaw ALPHA Research**\n\n...",
-          actions: ["RUN_OPENCLAW_RESEARCH"],
-        },
-      },
-    ],
-    [
-      {
-        name: "{{user}}",
-        content: { text: "Run market data on ETH and check funding rates" },
-      },
-      {
-        name: "{{agent}}",
-        content: {
-          text: "**OpenClaw MARKET Research**\n\n...",
+          text: "**OpenClaw Alpha Research**...",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
@@ -249,7 +261,7 @@ node openclaw-agents/orchestrator.js all SOL
       {
         name: "{{agent}}",
         content: {
-          text: "**OpenClaw ONCHAIN Research**\n\n...",
+          text: "**OpenClaw On-Chain Research**...",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },

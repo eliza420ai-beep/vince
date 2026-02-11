@@ -1,20 +1,22 @@
 # plugin-openclaw
 
-OpenClaw integration plugin for VINCE — spawns isolated sub-agents for crypto research.
+OpenClaw integration plugin for VINCE — framework for spawning isolated sub-agents for crypto research.
 
-## Features
+## ⚠️ Status: Framework Ready - Full SDK Pending
 
-| Agent | Description |
-|-------|-------------|
-| **alpha** | X/Twitter sentiment, KOL tracking, narratives |
-| **market** | Prices, volume, funding rates, open interest |
-| **onchain** | Whale flows, smart money, DEX liquidity |
-| **news** | News aggregation and sentiment |
-| **all** | Run all agents in parallel |
+This plugin provides the foundation for OpenClaw integration. Full agent spawning requires the OpenClaw SDK to be exposed in the npm package.
 
-## Usage
+## Features (Planned)
 
-In chat with VINCE:
+| Agent | Description | Status |
+|-------|-------------|--------|
+| **alpha** | X/Twitter sentiment, KOL tracking | 🚧 Framework |
+| **market** | Prices, volume, funding rates, OI | 🚧 Framework |
+| **onchain** | Whale flows, smart money, DEX | 🚧 Framework |
+| **news** | News aggregation and sentiment | 🚧 Framework |
+| **all** | Parallel execution | 🚧 Framework |
+
+## Usage (When Fully Enabled)
 
 ```
 @VINCE research SOL BTC ETH
@@ -24,7 +26,7 @@ In chat with VINCE:
 @VINCE news crypto
 ```
 
-## Setup
+## Setup Required
 
 ```bash
 # Install OpenClaw
@@ -46,13 +48,10 @@ VINCE Chat
 RUN_OPENCLAW_RESEARCH action
     │
     ▼
-orchestrator.js (exec)
+orchestrator.js (framework)
     │
     ▼
-OpenClaw Gateway API
-    │
-    ▼
-Sub-agents (isolated sessions)
+OpenClaw Gateway API ← Requires SDK exposure
 ```
 
 ## Files
@@ -60,26 +59,56 @@ Sub-agents (isolated sessions)
 ```
 src/plugins/plugin-openclaw/
 ├── matcher.ts                    # Context detection
+├── README.md                     # This file
 └── src/
-    ├── index.ts                  # Plugin export
+    ├── index.ts                 # Plugin export
     └── actions/
         └── runResearch.action.ts # Research action
 ```
 
-## Troubleshooting
+## Current Limitations
 
-**"Agent unavailable"**
-- Run: `openclaw gateway start`
-- Verify: `openclaw health`
+The `sessions_spawn()` and `sessions_history()` functions are not exported in the OpenClaw npm package. These are internal tools.
 
-**"Gateway API failed"**
-- Check gateway is running on port 18789
-- Verify network connectivity
+**Workaround options:**
 
-## Direct CLI Usage
+1. **Use this framework** - Provides action structure, keyword matching, and graceful fallbacks
+
+2. **Direct OpenClaw access** - Spawn agents directly via OpenClaw CLI or tools
+
+3. **SDK exposure** - Request OpenClaw to export agent functions in npm package
+
+## Testing
 
 ```bash
-node openclaw-agents/orchestrator.js all SOL BTC
-node openclaw-agents/orchestrator.js alpha ETH
-node openclaw-agents/orchestrator.js market SOL --timeframe 7d
+# Check orchestrator framework
+node openclaw-agents/orchestrator.js
+
+# Start gateway
+openclaw gateway start
+
+# Check health
+openclaw health
 ```
+
+## For Developers
+
+To enable full functionality, the OpenClaw SDK needs to expose:
+
+```typescript
+import { sessions_spawn, sessions_history } from 'openclaw';
+
+// Spawn agent
+const result = await sessions_spawn({
+  task: "Research SOL",
+  label: "vince-alpha",
+  model: "minimax-portal/MiniMax-M2.1",
+});
+
+// Get results
+const history = await sessions_history({
+  sessionKey: result.sessionKey,
+});
+```
+
+Track progress: https://github.com/openclaw/openclaw
