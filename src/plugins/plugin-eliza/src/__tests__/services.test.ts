@@ -44,6 +44,13 @@ const TEST_TONE_MARKERS = [
   { pattern: "obviously", tone: "casual" },
   { pattern: "🚀", tone: "promotional" },
   { pattern: "WAGMI", tone: "promotional" },
+  // AI-slop markers
+  { pattern: "game-changer", tone: "formal" },
+  { pattern: "in the ever-evolving", tone: "formal" },
+  { pattern: "let's dive in", tone: "formal" },
+  { pattern: "leverage", tone: "formal" },
+  { pattern: "seamless", tone: "formal" },
+  { pattern: "excited to announce", tone: "formal" },
 ];
 
 // Test implementation of style checking
@@ -339,6 +346,63 @@ describe("Style Guide - Tone Markers", () => {
     const violation = result.violations.find(v => v.found === "WAGMI");
     
     expect(violation).toBeDefined();
+  });
+});
+
+describe("Style Guide - AI Slop Detection", () => {
+  it("should detect 'game-changer'", () => {
+    const result = checkStyleTest("This protocol is a game-changer for DeFi");
+    const violation = result.violations.find(v => v.found?.toLowerCase().includes("game-changer"));
+    
+    expect(violation).toBeDefined();
+    expect(violation?.type).toBe("tone");
+  });
+
+  it("should detect 'in the ever-evolving'", () => {
+    const result = checkStyleTest("In the ever-evolving landscape of crypto...");
+    const violation = result.violations.find(v => v.found?.toLowerCase().includes("ever-evolving"));
+    
+    expect(violation).toBeDefined();
+  });
+
+  it("should detect 'let's dive in'", () => {
+    const result = checkStyleTest("Let's dive in and explore this topic!");
+    const violation = result.violations.find(v => v.found?.toLowerCase().includes("dive in"));
+    
+    expect(violation).toBeDefined();
+  });
+
+  it("should detect 'leverage' as AI-slop verb", () => {
+    const result = checkStyleTest("We leverage AI to optimize your portfolio");
+    const violation = result.violations.find(v => v.found?.toLowerCase() === "leverage");
+    
+    expect(violation).toBeDefined();
+  });
+
+  it("should detect 'seamless'", () => {
+    const result = checkStyleTest("Enjoy a seamless trading experience");
+    const violation = result.violations.find(v => v.found?.toLowerCase() === "seamless");
+    
+    expect(violation).toBeDefined();
+  });
+
+  it("should detect 'excited to announce'", () => {
+    const result = checkStyleTest("We're excited to announce our new feature!");
+    const violation = result.violations.find(v => v.found?.toLowerCase().includes("excited to announce"));
+    
+    expect(violation).toBeDefined();
+  });
+
+  it("should flag AI-slop-heavy content", () => {
+    const slopContent = `
+      In the ever-evolving landscape of DeFi, we're excited to announce a game-changer.
+      Let's dive in and leverage our cutting-edge technology for seamless trading.
+    `;
+    const result = checkStyleTest(slopContent);
+    
+    // Should have multiple AI-slop violations
+    const slopViolations = result.violations.filter(v => v.type === "tone");
+    expect(slopViolations.length).toBeGreaterThanOrEqual(4);
   });
 });
 
