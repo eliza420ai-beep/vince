@@ -17,6 +17,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { getVoicePromptAddition } from "../services/voice.service";
 
 const DRAFTS_DIR = "./knowledge/drafts";
 const SUBSTACK_URL = "https://ikigaistudio.substack.com/";
@@ -225,6 +226,9 @@ Target: ${SUBSTACK_URL}`,
         });
       }
 
+      // Get voice profile for brand consistency
+      const voiceAddition = getVoicePromptAddition();
+
       // Build the prompt
       const userPrompt = `Write a ${style} essay about: ${topic}
 
@@ -234,10 +238,10 @@ Target length: 1500-2500 words. Make it publishable on Substack.
 
 Start with the title (# Title) and subtitle, then the essay.`;
 
-      // Generate with LLM
+      // Generate with LLM, including voice profile
       const response = await runtime.useModel(ModelType.TEXT_LARGE, {
         prompt: userPrompt,
-        system: ESSAY_SYSTEM_PROMPT,
+        system: ESSAY_SYSTEM_PROMPT + "\n\n" + voiceAddition,
       });
 
       const essay = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";

@@ -17,6 +17,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
+import { getVoicePromptAddition } from "../services/voice.service";
 
 const DRAFTS_DIR = "./knowledge/drafts/tweets";
 const X_HANDLE = "@ikigaistudioxyz";
@@ -224,10 +225,13 @@ Requirements:
 - No engagement bait`;
       }
 
-      // Generate with LLM
+      // Get voice profile for brand consistency
+      const voiceAddition = getVoicePromptAddition();
+
+      // Generate with LLM, including voice profile
       const response = await runtime.useModel(ModelType.TEXT_LARGE, {
         prompt: userPrompt,
-        system: TWEET_SYSTEM_PROMPT,
+        system: TWEET_SYSTEM_PROMPT + "\n\n" + voiceAddition,
       });
 
       const content = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";

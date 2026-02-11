@@ -6,13 +6,17 @@
  * - Content ingestion (articles, YouTube, PDFs)
  * - Long-form essay production (Substack)
  * - Tweet drafting (X/Twitter)
+ * - Voice learning and brand consistency
  *
  * Actions:
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
- * - WRITE_ESSAY: Generate Substack essays from knowledge
- * - DRAFT_TWEETS: Create tweet suggestions for @ikigaistudioxyz
+ * - WRITE_ESSAY: Generate Substack essays from knowledge (voice-aware)
+ * - DRAFT_TWEETS: Create tweet suggestions for @ikigaistudioxyz (voice-aware)
+ * - REPURPOSE: Transform content between formats (essay↔thread↔linkedin)
+ * - RESEARCH_QUEUE: Batch queue for content ingestion
+ * - SUGGEST_TOPICS: AI-powered topic suggestions based on gaps & trends
  *
  * Eliza uses plugin-inter-agent separately for ASK_AGENT.
  */
@@ -28,6 +32,12 @@ import { addMichelinRestaurantAction } from "../../plugin-vince/src/actions/addM
 import { knowledgeStatusAction } from "./actions/knowledgeStatus.action";
 import { writeEssayAction } from "./actions/writeEssay.action";
 import { draftTweetsAction } from "./actions/draftTweets.action";
+import { repurposeAction } from "./actions/repurpose.action";
+import { researchQueueAction } from "./actions/researchQueue.action";
+import { suggestTopicsAction } from "./actions/suggestTopics.action";
+
+// Import services
+import { analyzeVoice } from "./services/voice.service";
 
 // Re-export upload with Eliza-appropriate name
 const elizaUploadAction = {
@@ -55,10 +65,16 @@ export const elizaPlugin: Plugin = {
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
 - ADD_MICHELIN_RESTAURANT: Michelin Guide links → knowledge/
 - KNOWLEDGE_STATUS: Health check on knowledge base
+- RESEARCH_QUEUE: Batch queue for content ingestion
 
 ✍️ CONTENT PRODUCTION:
-- WRITE_ESSAY: Substack essays (https://ikigaistudio.substack.com/)
-- DRAFT_TWEETS: Tweet suggestions for @ikigaistudioxyz`,
+- WRITE_ESSAY: Substack essays (voice-aware)
+- DRAFT_TWEETS: Tweet suggestions (voice-aware)
+- REPURPOSE: Transform content between formats
+
+💡 INTELLIGENCE:
+- SUGGEST_TOPICS: AI topic suggestions (gaps + trends)
+- Voice learning from existing content`,
 
   actions: [
     elizaUploadAction,
@@ -66,6 +82,9 @@ export const elizaPlugin: Plugin = {
     knowledgeStatusAction,
     writeEssayAction,
     draftTweetsAction,
+    repurposeAction,
+    researchQueueAction,
+    suggestTopicsAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -75,8 +94,18 @@ export const elizaPlugin: Plugin = {
       !!process.env.GEMINI_API_KEY?.trim();
     const hasTavily = !!process.env.TAVILY_API_KEY?.trim();
 
+    // Pre-analyze voice on startup
+    try {
+      const profile = analyzeVoice();
+      logger.info(
+        `[Eliza Plugin] Voice profile loaded (${profile.analyzedFiles} files analyzed)`,
+      );
+    } catch (e) {
+      logger.debug("[Eliza Plugin] Voice profile will be generated on first use");
+    }
+
     logger.info(
-      `[Eliza Plugin] ✅ Ready — UPLOAD (summarize: ${hasSummarize ? "✓" : "needs key"}), KNOWLEDGE_STATUS, WRITE_ESSAY (Substack), DRAFT_TWEETS (@ikigaistudioxyz), web search: ${hasTavily ? "✓" : "needs TAVILY"}`,
+      `[Eliza Plugin] ✅ Ready — 8 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS | Voice learning: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
     );
   },
 };
@@ -89,6 +118,12 @@ export {
   knowledgeStatusAction,
   writeEssayAction,
   draftTweetsAction,
+  repurposeAction,
+  researchQueueAction,
+  suggestTopicsAction,
 };
+
+// Export services
+export { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
 
 export default elizaPlugin;
