@@ -1,1 +1,17 @@
-export { default as openclawService, initCache, getCachedResult, cacheResult, checkRateLimit, calculateCost, getDailyCost, formatCost, clearCache, getCacheStats } from "./openclaw.service";
+export {
+  default as openclawService,
+  initCache,
+  getCachedResult,
+  cacheResult,
+  checkRateLimit,
+  calculateCost,
+  getDailyCost,
+  checkBudget,
+  formatCost,
+  emitStreamUpdate,
+  executeAgentWithStreaming,
+  executeAllAgentsWithStreaming,
+  clearCache,
+  getCacheStats,
+  streamEmitter,
+} from "./openclaw.service";

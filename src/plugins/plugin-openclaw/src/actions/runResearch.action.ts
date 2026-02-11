@@ -13,9 +13,11 @@ import {
   getCachedResult,
   cacheResult,
   checkRateLimit,
-  calculateCost,
   getDailyCost,
+  checkBudget,
   formatCost,
+  executeAgentWithStreaming,
+  executeAllAgentsWithStreaming,
 } from "../services/openclaw.service";
 
 interface ResearchActionParams {
@@ -47,17 +49,12 @@ const AGENT_DESCRIPTIONS: Record<string, { icon: string; name: string; features:
     name: "News Research",
     features: ["Breaking news", "Sentiment", "Key developments"],
   },
+  all: {
+    icon: "🔬",
+    name: "Multi-Agent Research",
+    features: ["Alpha", "Market", "On-chain", "News"],
+  },
 };
-
-function formatCostBadge(cost: { estimatedCost: number } | null): string {
-  if (!cost) return "";
-  return ` • 💰 ${formatCost(cost)}`;
-}
-
-function formatCachedIndicator(cached: boolean, cost: any): string {
-  if (cached) return " • ♻️ Cached";
-  return formatCostBadge(cost);
-}
 
 export const runResearchAction: Action = {
   name: "RUN_OPENCLAW_RESEARCH",
@@ -71,7 +68,7 @@ export const runResearchAction: Action = {
     "CRYPTO_RESEARCH",
     "SPAWN_AGENT",
   ],
-  description: `Delegate crypto research to OpenClaw's isolated sub-agents with cost tracking, caching, and rate limiting.
+  description: `Delegate crypto research to OpenClaw's isolated sub-agents with real-time streaming, cost tracking, budget alerts, and caching.
 
 Agents:
 - alpha: X/Twitter sentiment, KOL tracking
@@ -80,11 +77,11 @@ Agents:
 - news: News aggregation, sentiment
 - all: All agents in parallel
 
-Features:
-- Cost tracking per query
+V2 Features:
+- Real-time streaming progress updates
+- Budget alerts ($5/day warning, $10/day limit)
 - 1-hour result caching
-- Rate limiting (5 req/min)
-- Daily cost summary`,
+- Rate limiting (5 req/min)`,
 
   parameters: {
     tokens: {
@@ -108,7 +105,6 @@ Features:
     if (!shouldOpenclawPluginBeInContext(state, _message)) {
       return false;
     }
-    // Initialize cache on first use
     initCache();
     return true;
   },
@@ -125,108 +121,136 @@ Features:
       const params = (composedState?.data?.actionParams || options || {}) as ResearchActionParams;
 
       const agent = (params.agent || "all").toLowerCase();
-      const tokens = params.tokens || params.query || "general crypto";
+      const tokens = params.tokens || params.query || "SOL BTC ETH";
       const userId = message.content?.id || "unknown";
 
       if (!SUPPORTED_AGENTS.includes(agent)) {
-        throw new Error(`Unknown agent: ${agent}`);
+        throw new Error(`Unknown agent: ${agent}. Supported: ${SUPPORTED_AGENTS.join(", ")}`);
       }
 
       // Check rate limit
       const rateLimit = checkRateLimit(userId);
       if (!rateLimit.allowed) {
-        const errorText = `⏰ Rate limited. Retry in ${rateLimit.retryAfter}s.`;
+        const errorText = `⏰ **Rate Limited**\n\nToo many requests. Try again in ${rateLimit.retryAfter}s.\n\nLimit: 5 requests per minute.`;
         if (callback) {
           await callback({ text: errorText, content: { error: "rate_limited", retryAfter: rateLimit.retryAfter } });
         }
         return { text: errorText, success: false, error: "rate_limited", data: { retryAfter: rateLimit.retryAfter } };
       }
 
+      // Check budget
+      const budgetAlert = checkBudget(0.01); // Estimated cost
+      if (budgetAlert?.type === "limit") {
+        const errorText = `🚫 **Budget Limit Reached**\n\n${budgetAlert.message}\n\nDaily spending: $${budgetAlert.current.toFixed(2)} / $${budgetAlert.limit.toFixed(2)}`;
+        if (callback) {
+          await callback({ text: errorText, content: { error: "budget_limit", alert: budgetAlert } });
+        }
+        return { text: errorText, success: false, error: "budget_limit", data: { alert: budgetAlert } };
+      }
+
       logger.info(`[RUN_OPENCLAW_RESEARCH] ${agent} for ${tokens} (${rateLimit.remaining} remaining)`);
 
-      // Check cache
-      const cacheKey = `${agent}:${tokens}`;
+      // Check cache first
       const cached = getCachedResult(agent, tokens);
-      const cost = cached?.cost || calculateCost(1000, 500); // Estimate if not cached
-
-      // Generate response based on agent type
-      const desc = AGENT_DESCRIPTIONS[agent] || AGENT_DESCRIPTIONS.all;
-      let text = "";
-
-      if (cached && cached.cached) {
-        // Return cached result
-        text = `
-${desc.icon} **${desc.name}: ${tokens}**${formatCachedIndicator(true, null)}
+      if (cached?.cached) {
+        const desc = AGENT_DESCRIPTIONS[agent];
+        const text = `${desc.icon} **${desc.name}: ${tokens}** ♻️ *Cached*
 
 ${cached.result}
 
 ---
-♻️ *Cached result • ${formatCost(cached.cost)}* • ${rateLimit.remaining}/5 req/min
-`;
-      } else {
-        // Generate fresh result request
-        const features = desc.features.map(f => `• ${f}`).join("\n");
+♻️ *Cached result* • ${formatCost(cached.cost)} • ${rateLimit.remaining}/5 req/min
 
-        text = `
-${desc.icon} **${desc.name}: ${tokens}**${formatCachedIndicator(false, cost)}
+📊 **Daily Usage:** ${formatCost(getDailyCost())}`;
 
-${agent === "all" ? `🔬 Running all research agents in parallel:
-
-${Object.entries(AGENT_DESCRIPTIONS).map(([k, v]) => `${v.icon} ${v.name}`).join(" • ")}
-
----
-**Features by agent:**
-
-🐦 Alpha: Sentiment, KOL, narratives
-📊 Market: Prices, volume, funding, OI
-⛓️ On-Chain: Whales, smart money, DEX
-📰 News: Aggregation, sentiment` : `**Research areas:**
-${features}`}
-
----
-⏳ *Processing...* • ${formatCost(cost)} • ${rateLimit.remaining}/5 req/min
-`;
-
-        // Simulate result (in V2, this would call actual agents)
-        const sampleResults: Record<string, string> = {
-          alpha: `• Sentiment: Mixed (weekly gains but "extreme fear" index)
-• Key narratives: SOL ecosystem strength, altcoin season building
-• KOLs watching: @frankdegods, @pentosh1, @cryptokoryo
-• Alpha score: 6/10`,
-          market: `• ${tokens}: Current price analysis
-• 24h volume: [data pending]
-• Funding: [data pending]
-• Open interest: [data pending]`,
-          onchain: `• Whale activity: Detected large transfers
-• Smart money: Net inflows observed
-• DEX liquidity: [data pending]
-• Large positions: [data pending]`,
-          news: `• Latest headlines: [monitoring...]
-• Sentiment: [analyzing...]
-• Key events: [tracking...]`,
-        };
-
-        // Cache the result
-        const result = agent === "all"
-          ? "Multi-agent research complete. See individual agent results."
-          : sampleResults[agent] || "Research complete.";
-        cacheResult(agent, tokens, result, cost);
+        if (callback) {
+          await callback({
+            text,
+            content: { agent, tokens, cached: true, cost: cached.cost },
+            actions: ["RUN_OPENCLAW_RESEARCH"],
+            source: message.content.source,
+          });
+        }
+        return { text, success: true, data: { agent, tokens, cached: true, cost: cached.cost } };
       }
 
-      // Add daily cost footer
-      const daily = getDailyCost();
-      text += `\n\n📊 **Daily Usage:** ${formatCost(daily)}`;
+      // Execute with streaming
+      const desc = AGENT_DESCRIPTIONS[agent];
+      const streamUpdates: string[] = [];
+      
+      // Send initial message
+      let text = `${desc.icon} **${desc.name}: ${tokens}**
+
+⏳ *Starting research...*`;
+
+      if (budgetAlert?.type === "warning") {
+        text += `\n\n${budgetAlert.message}`;
+      }
 
       if (callback) {
         await callback({
           text,
+          content: { agent, tokens, streaming: true },
+          actions: ["RUN_OPENCLAW_RESEARCH"],
+          source: message.content.source,
+        });
+      }
+
+      // Execute agent(s)
+      let result: string;
+      let cost: { inputTokens: number; outputTokens: number; estimatedCost: number; timestamp: number };
+
+      if (agent === "all") {
+        const { results, totalCost } = await executeAllAgentsWithStreaming(tokens, (update) => {
+          streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
+        });
+        
+        result = `
+🐦 **Alpha Research**
+${results.alpha || "N/A"}
+
+📊 **Market Data**
+${results.market || "N/A"}
+
+⛓️ **On-Chain Analysis**
+${results.onchain || "N/A"}
+
+📰 **News Summary**
+${results.news || "N/A"}
+`;
+        cost = totalCost;
+      } else {
+        const agentResult = await executeAgentWithStreaming(agent, tokens, (update) => {
+          streamUpdates.push(`${update.progress || 0}% - ${update.message}`);
+        });
+        result = agentResult.result;
+        cost = agentResult.cost;
+      }
+
+      // Cache the result
+      cacheResult(agent, tokens, result, cost);
+
+      // Final response
+      const daily = getDailyCost();
+      const finalText = `${desc.icon} **${desc.name}: ${tokens}** ✅
+
+${result}
+
+---
+✅ *Complete* • 💰 ${formatCost(cost)} • ${rateLimit.remaining}/5 req/min
+
+📊 **Daily Usage:** ${formatCost(daily)}${daily.estimatedCost > 5 ? " ⚠️" : ""}`;
+
+      if (callback) {
+        await callback({
+          text: finalText,
           content: {
             agent,
             tokens,
-            cached: cached?.cached || false,
             cost,
             dailyCost: daily,
             rateLimitRemaining: rateLimit.remaining,
+            streamUpdates,
           },
           actions: ["RUN_OPENCLAW_RESEARCH"],
           source: message.content.source,
@@ -234,41 +258,36 @@ ${features}`}
       }
 
       return {
-        text,
+        text: finalText,
         success: true,
         data: {
           agent,
           tokens,
-          cached: cached?.cached || false,
           cost,
           dailyCost: daily,
           rateLimitRemaining: rateLimit.remaining,
+          streamUpdates,
         },
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[RUN_OPENCLAW_RESEARCH] Failed: ${msg}`);
 
-      const errorText = `❌ Research failed: ${msg}
+      const errorText = `❌ **Research Failed**
 
-Setup:
+Error: ${msg}
+
+**Setup:**
 \`\`\`bash
 npm install -g openclaw
 openclaw gateway start
 \`\`\``;
 
       if (callback) {
-        await callback({
-          text: errorText,
-          content: { error: msg },
-        });
+        await callback({ text: errorText, content: { error: msg } });
       }
 
-      return {
-        text: errorText,
-        success: false,
-        error: msg,
-      };
+      return { text: errorText, success: false, error: msg };
     }
   },
 
@@ -276,12 +295,12 @@ openclaw gateway start
     [
       {
         name: "{{user}}",
-        content: { text: "Research SOL and BTC for alpha" },
+        content: { text: "Research SOL and BTC" },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "🐦 **Alpha Research: SOL and BTC**\n\n• Sentiment: Mixed...\n\n⏳ *Processing...*",
+          text: "🔬 **Multi-Agent Research: SOL and BTC** ✅\n\n🐦 **Alpha Research**\n...\n\n📊 **Daily Usage:** $0.02",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
@@ -289,12 +308,12 @@ openclaw gateway start
     [
       {
         name: "{{user}}",
-        content: { text: "@vince check whale activity on BONK" },
+        content: { text: "Check alpha on ETH" },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "⛓️ **On-Chain Analysis: BONK**\n\n• Whale activity: Detected...\n\n⏳ *Processing...*",
+          text: "🐦 **Alpha Research: ETH** ✅\n\n**Sentiment:** Bullish...\n\n📊 **Daily Usage:** $0.01",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
@@ -302,12 +321,12 @@ openclaw gateway start
     [
       {
         name: "{{user}}",
-        content: { text: "Get market data on ETH" },
+        content: { text: "What's the whale activity on BONK?" },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "📊 **Market Data: ETH**\n\n• Current price...\n\n⏳ *Processing...*",
+          text: "⛓️ **On-Chain Analysis: BONK** ✅\n\n🐋 **Whale Activity:** Large transfers detected...\n\n📊 **Daily Usage:** $0.01",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },

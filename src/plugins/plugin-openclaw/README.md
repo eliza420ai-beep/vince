@@ -1,52 +1,39 @@
 # plugin-openclaw
 
-OpenClaw integration plugin for VINCE — multi-agent crypto research with cost tracking, caching, and rate limiting.
+OpenClaw integration plugin for VINCE — multi-agent crypto research with **real-time streaming**, **budget alerts**, **cost tracking**, and **smart caching**.
 
-## ✨ Features
+## ✨ V2 Features
 
 | Feature | Description |
 |---------|-------------|
-| **Multi-Agent Research** | Alpha, Market, On-Chain, News agents |
-| **Cost Tracking** | Per-query and daily cost summaries |
-| **Smart Caching** | 1-hour cache for repeated queries |
-| **Rate Limiting** | 5 requests per minute per user |
-| **Rich Output** | Icons, cost badges, daily stats |
+| **🔄 Real-Time Streaming** | Live progress updates during research |
+| **💰 Cost Tracking** | Per-query and daily cost summaries |
+| **🚨 Budget Alerts** | Warnings at $5/day, hard limit at $10/day |
+| **💾 Smart Caching** | 1-hour cache for repeated queries |
+| **⏱️ Rate Limiting** | 5 requests per minute per user |
+| **🎨 Rich Output** | Icons, progress bars, formatted results |
 
 ## 🏗️ Architecture
 
 ```
-VINCE Chat → RUN_OPENCLAW_RESEARCH → OpenClaw Agents
-                                    ↓
-                              Cost Tracking
-                                    ↓
-                              Cache Layer
-                                    ↓
-                              Rich Response
+VINCE Chat
+    │
+    ▼
+RUN_OPENCLAW_RESEARCH
+    │
+    ├── Rate Limit Check ──► ⏰ "Try again in Xs"
+    │
+    ├── Budget Check ──────► 🚨 "Daily limit reached"
+    │
+    ├── Cache Check ───────► ♻️ Return cached result
+    │
+    └── Execute Agents
+         │
+         ├── 🔄 Stream: "Starting..."
+         ├── 🔄 Stream: "Gathering data..." (20%)
+         ├── 🔄 Stream: "Analyzing..." (60%)
+         └── ✅ Complete with results
 ```
-
-## 📊 Cost Tracking
-
-```
-Per query: 💰 $0.0002 (1K in / 0.5K out)
-Daily:     📊 $0.05 total today
-```
-
-**MiniMax-M2.1 pricing:**
-- Input: $0.10 per 1M tokens
-- Output: $0.40 per 1M tokens
-
-## 💾 Caching
-
-- Results cached for **1 hour**
-- Cache key based on: `agent:tokens`
-- Automatic cache invalidation
-- Manual clear: `openclaw cache clear`
-
-## ⏱️ Rate Limiting
-
-- **5 requests** per minute per user
-- Automatic retry suggestions
-- Fair usage for all users
 
 ## 🚀 Usage
 
@@ -59,28 +46,78 @@ Daily:     📊 $0.05 total today
 @VINCE all SOL BTC ETH
 ```
 
-## 🎯 Agent Types
+## 🎯 Agents
 
-| Agent | Icon | Description |
-|-------|------|-------------|
-| **alpha** | 🐦 | X/Twitter sentiment, KOL tracking, narratives |
-| **market** | 📊 | Prices, volume, funding rates, open interest |
-| **onchain** | ⛓️ | Whale flows, smart money, DEX liquidity |
-| **news** | 📰 | News aggregation and sentiment |
-| **all** | 🔬 | All agents in parallel |
+| Agent | Icon | Description | Output |
+|-------|------|-------------|--------|
+| **alpha** | 🐦 | X/Twitter sentiment, KOL tracking | Sentiment score, narratives, signals |
+| **market** | 📊 | Prices, volume, funding, OI | Price action, derivatives data |
+| **onchain** | ⛓️ | Whale flows, smart money, DEX | Whale activity, address analytics |
+| **news** | 📰 | News aggregation, sentiment | Headlines, sentiment score |
+| **all** | 🔬 | All agents in parallel | Combined briefing |
 
-## 📈 Response Format
+## 💰 Cost Tracking
+
+**Pricing (MiniMax-M2.1):**
+- Input: $0.10 per 1M tokens
+- Output: $0.40 per 1M tokens
+
+**Display:**
+```
+💰 $0.0012 (2.5K in / 0.8K out)
+📊 Daily Usage: $0.05 total today
+```
+
+## 🚨 Budget Alerts
+
+| Level | Threshold | Action |
+|-------|-----------|--------|
+| **Per-query warning** | $0.10 | ⚠️ "This query is expensive" |
+| **Daily warning** | $5.00 | ⚠️ "Approaching daily limit" |
+| **Daily hard limit** | $10.00 | 🚫 Research paused |
+
+## 🔄 Real-Time Streaming
 
 ```
-🐦 **Alpha Research: SOL**
+⏳ Starting research...
+🔄 20% - Connecting to data sources...
+🔄 40% - Gathering market data...
+🔄 60% - Analyzing sentiment...
+🔄 80% - Compiling results...
+✅ Complete!
+```
 
-• Sentiment: Mixed
-• Key narratives: [...]
-• KOL activity: [...]
+## 💾 Caching
 
-⏳ *Processing...* • 💰 $0.0002 • 4/5 req/min
+- **TTL:** 1 hour
+- **Key:** MD5 of `agent:tokens`
+- **Storage:** Memory + disk (`.openclaw-cache/`)
+- **Indicator:** ♻️ *Cached result*
+
+## ⏱️ Rate Limiting
+
+- **Limit:** 5 requests per minute per user
+- **Response:** ⏰ "Try again in Xs"
+- **Remaining:** Shown in every response
+
+## 📊 Response Format
+
+```
+🐦 **Alpha Research: SOL** ✅
+
+📊 **Sentiment:** Mixed to Bullish
+• Twitter/X sentiment score: 7.2/10
+• KOL activity: High (12 mentions in 24h)
+• Narrative strength: Moderate
+
+🎯 **Key Signals:**
+• @frankdegods: Bullish on ecosystem growth
+• @pentosh1: Watching for breakout
+
+📈 **Alpha Score:** 6.5/10
 
 ---
+✅ *Complete* • 💰 $0.0012 • 4/5 req/min
 
 📊 **Daily Usage:** $0.05 total today
 ```
@@ -110,47 +147,22 @@ src/plugins/plugin-openclaw/
 └── src/
     ├── index.ts                 # Plugin export
     ├── actions/
-    │   └── runResearch.action.ts # Research action with cost/caching
+    │   └── runResearch.action.ts # V2 action with streaming
     └── services/
         ├── index.ts             # Service exports
-        └── openclaw.service.ts  # Cost tracking, caching, rate limiting
-```
-
-## 🧪 Testing
-
-```bash
-# 1. Start gateway
-openclaw gateway start
-
-# 2. Check health
-openclaw health
-
-# 3. Test in VINCE
-@VINCE research SOL BTC
-```
-
-## 🔧 CLI Commands
-
-```bash
-# Clear cache
-node openclaw-agents/orchestrator.js clear-cache
-
-# Check stats
-node openclaw-agents/orchestrator.js stats
-
-# Run agents
-node openclaw-agents/orchestrator.js all SOL BTC
+        └── openclaw.service.ts  # Cost, cache, rate-limit, streaming
 ```
 
 ## 📝 Changelog
 
 ### v2.0.0 (Current)
+- ✅ Real-time streaming progress
+- ✅ Budget alerts ($5 warning, $10 limit)
+- ✅ Actual agent execution (simulated)
 - ✅ Cost tracking per query
 - ✅ 1-hour caching
 - ✅ Rate limiting (5 req/min)
 - ✅ Rich output with icons
-- ✅ Daily cost summary
-- ✅ Better examples
 
 ### v1.0.0
 - Basic plugin structure
@@ -159,8 +171,8 @@ node openclaw-agents/orchestrator.js all SOL BTC
 
 ## 🚧 Roadmap
 
-- [ ] Actual agent execution (via SDK)
-- [ ] Real-time streaming results
+- [ ] Connect to actual OpenClaw SDK when available
 - [ ] Historical cost charts
-- [ ] Budget alerts
+- [ ] Watchlist with auto-refresh
 - [ ] Multi-language support
+- [ ] Custom budget limits
