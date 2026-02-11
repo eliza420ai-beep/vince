@@ -46,3 +46,43 @@ export {
   formatSchedules,
   getScheduleById,
 } from "./scheduler.service";
+
+// Portfolio
+export {
+  default as portfolioService,
+  getPortfolio,
+  addHolding,
+  removeHolding,
+  updateHolding,
+  formatPortfolio,
+  getPortfolioTokens,
+} from "./portfolio.service";
+
+// Alerts
+export {
+  default as alertsService,
+  getAlerts,
+  createAlert,
+  deleteAlert,
+  toggleAlert,
+  checkAlerts,
+  formatAlerts,
+  formatTriggeredAlert,
+  alertEmitter,
+} from "./alerts.service";
+
+// Analytics (Trends, Risk, Stats, Leaderboard)
+export {
+  default as analyticsService,
+  getTrends,
+  addTrendDataPoint,
+  getTokenTrend,
+  formatTrend,
+  analyzeRisk,
+  formatRiskAnalysis,
+  getStats,
+  recordQuery,
+  formatStats,
+  getLeaderboard,
+  formatLeaderboard,
+} from "./analytics.service";

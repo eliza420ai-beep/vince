@@ -4,36 +4,49 @@ import { watchlistAction } from "./actions/watchlist.action";
 import { compareAction } from "./actions/compare.action";
 import { historyAction } from "./actions/history.action";
 import { schedulerAction } from "./actions/scheduler.action";
+import { portfolioAction } from "./actions/portfolio.action";
+import { alertsAction } from "./actions/alerts.action";
+import { analyticsAction } from "./actions/analytics.action";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
 
 export const openclawPlugin: Plugin = {
   name: "plugin-openclaw",
-  description: `OpenClaw V2 - Multi-agent crypto research plugin for VINCE.
+  description: `OpenClaw V2 - Enterprise-grade multi-agent crypto research plugin for VINCE.
 
-Features:
-- 🔬 Multi-agent research (alpha, market, onchain, news)
-- 🔄 Real-time streaming progress
-- 💰 Cost tracking with budget alerts
-- 💾 Smart caching (1-hour TTL)
-- ⏱️ Rate limiting (5 req/min)
-- 📋 Token watchlist with alerts
-- ⚖️ Side-by-side comparison
-- 📜 Research history & export
-- ⏰ Scheduled automatic research
+🔬 **Research**
+- Multi-agent: alpha, market, onchain, news
+- Real-time streaming
+- Cost tracking & budget alerts
 
-Commands:
-- research <tokens> - Run multi-agent research
-- alpha/market/onchain/news <tokens> - Specific agent
-- watch/unwatch <token> - Manage watchlist
-- compare <tokens> - Compare tokens
-- history - View past research
-- schedule <tokens> <frequency> - Auto-research`,
+📋 **Organization**
+- Watchlist with alerts
+- Portfolio tracking
+- Research history & export
+- Scheduled auto-research
+
+📊 **Analytics**
+- Token comparison
+- Sentiment trends
+- Risk analysis
+- Usage stats dashboard
+- Token leaderboard
+
+🔔 **Alerts**
+- Price alerts
+- Sentiment alerts
+- Whale activity alerts
+
+Commands: research, watch, compare, history, schedule, portfolio, alerts, trend, risk, stats, leaderboard`,
+  
   actions: [
     runResearchAction,
     watchlistAction,
     compareAction,
     historyAction,
     schedulerAction,
+    portfolioAction,
+    alertsAction,
+    analyticsAction,
   ],
   evaluators: [],
   providers: [],
@@ -47,5 +60,8 @@ export {
   compareAction,
   historyAction,
   schedulerAction,
+  portfolioAction,
+  alertsAction,
+  analyticsAction,
   shouldOpenclawPluginBeInContext,
 };
