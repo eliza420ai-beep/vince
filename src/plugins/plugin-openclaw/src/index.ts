@@ -9,20 +9,30 @@ import { alertsAction } from "./actions/alerts.action";
 import { analyticsAction } from "./actions/analytics.action";
 import { insightsAction } from "./actions/insights.action";
 import { advancedAction } from "./actions/advanced.action";
+import { backtestAction } from "./actions/backtest.action";
+import { correlationAction } from "./actions/correlation.action";
+import { reportingAction } from "./actions/reporting.action";
+import { governanceAction } from "./actions/governance.action";
+import { webhookAction } from "./actions/webhook.action";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
 
 export const openclawPlugin: Plugin = {
   name: "plugin-openclaw",
   description: `OpenClaw V2 - Enterprise-grade multi-agent crypto research plugin for VINCE.
 
-🔬 **Research** - Multi-agent, Streaming, Cost, Budget
+🔬 **Research** - Multi-agent, Streaming, Cost Tracking, Budget Management
 📋 **Organization** - Watchlist, Portfolio, History, Scheduler
-📊 **Analytics** - Comparison, Trends, Risk, Stats, Leaderboard
-🔔 **Alerts** - Price, Sentiment, Whale, Volume
-🧠 **Insights** - AI insights, Market, Screener, Whales, News, Fear & Greed
-🏦 **Advanced** - DeFi, NFT, Gas, Social, Exchange Flows, Token Unlocks
+📊 **Analytics** - Comparison, Trends, Risk Analysis, Stats, Leaderboard
+🔔 **Alerts** - Price, Sentiment, Whale Activity, Volume Triggers
+🧠 **Insights** - AI Signals, Market Overview, Screener, Whales, News, Fear & Greed
+🏦 **Advanced** - DeFi, NFT, Gas, Social Metrics, Exchange Flows, Token Unlocks
+📈 **Backtest** - Strategy Backtesting, Signal Tracking, Agent Performance
+📐 **Correlation** - Cross-Token Analysis, Beta, Sector Exposure, Divergences
+📝 **Reports** - Professional Research Reports (Quick/Standard/Deep)
+🏛️ **Governance** - DAO Proposals, Voting, Delegates, Protocol Stats
+🔗 **Webhooks** - Discord, Slack, Telegram, HTTP Integrations
 
-28+ features • 10 actions • 8 services • 40+ commands`,
+50+ features • 15 actions • 11 services • 100+ commands`,
   
   actions: [
     runResearchAction,
@@ -35,6 +45,11 @@ export const openclawPlugin: Plugin = {
     analyticsAction,
     insightsAction,
     advancedAction,
+    backtestAction,
+    correlationAction,
+    reportingAction,
+    governanceAction,
+    webhookAction,
   ],
   evaluators: [],
   providers: [],
@@ -53,5 +68,10 @@ export {
   analyticsAction,
   insightsAction,
   advancedAction,
+  backtestAction,
+  correlationAction,
+  reportingAction,
+  governanceAction,
+  webhookAction,
   shouldOpenclawPluginBeInContext,
 };

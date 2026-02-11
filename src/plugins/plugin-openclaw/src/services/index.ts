@@ -1,4 +1,4 @@
-// Core service
+// Core service - Caching, Streaming, Cost Tracking, Budget Management
 export {
   default as openclawService,
   initCache,
@@ -120,3 +120,80 @@ export {
   getTokenUnlocks,
   formatTokenUnlocks,
 } from "./advanced.service";
+
+// Backtest & Signal Tracking
+export {
+  default as backtestService,
+  recordSignal,
+  closeSignal,
+  getOpenSignals,
+  getAllSignals,
+  getAgentPerformance,
+  formatAgentPerformance,
+  runBacktest,
+  formatBacktestResult,
+  getBacktestHistory,
+  formatBacktestHistory,
+} from "./backtest.service";
+
+// Correlation & Cross-Token Analysis
+export {
+  default as correlationService,
+  calculateCorrelationMatrix,
+  formatCorrelationMatrix,
+  calculateBeta,
+  formatBetaAnalysis,
+  getSectorExposure,
+  formatSectorExposure,
+  detectDivergences,
+  formatDivergences,
+  analyzePair,
+  formatPairAnalysis,
+} from "./correlation.service";
+
+// Professional Report Generation
+export {
+  default as reportingService,
+  generateReport,
+  formatReport,
+  getReportHistory,
+  loadReport,
+  formatReportHistory,
+} from "./reporting.service";
+
+// DAO Governance Tracking
+export {
+  default as governanceService,
+  getActiveProposals,
+  getProposalHistory,
+  formatProposal,
+  formatActiveProposals,
+  getWatchedProtocols,
+  watchProtocol,
+  unwatchProtocol,
+  formatWatchedProtocols,
+  getTopDelegates,
+  formatDelegates,
+  getGovernanceStats,
+  formatGovernanceStats,
+  checkGovernanceAlerts,
+  formatGovernanceAlerts,
+} from "./governance.service";
+
+// Webhook Integrations
+export {
+  default as webhookService,
+  createWebhook,
+  getWebhooks,
+  getWebhook,
+  updateWebhook,
+  deleteWebhook,
+  toggleWebhook,
+  deliverWebhook,
+  broadcastEvent,
+  getDeliveryHistory,
+  formatWebhookList,
+  formatWebhookDetails,
+  formatDeliveryHistory,
+  testWebhook,
+} from "./webhook.service";
