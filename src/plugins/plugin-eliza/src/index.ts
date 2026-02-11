@@ -10,7 +10,7 @@
  * - Research briefs and trend analysis
  * - Knowledge intelligence (graph, deduplication, quality)
  *
- * Actions (14 total):
+ * Actions (15 total):
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
@@ -24,14 +24,16 @@
  * - KNOWLEDGE_INTEL: Unified intelligence (monitor, graph, dedupe, quality)
  * - STYLE_CHECK: Brand style guide enforcement and auto-fix
  * - POLISH: Transform generic copy into premium, brand-elevating content
+ * - AUTO_RESEARCH: Autonomous knowledge expansion with gap analysis
  *
- * Services (6 total):
+ * Services (7 total):
  * - voice.service: Voice profile analysis and brand consistency
  * - autoMonitor.service: Knowledge health monitoring and suggestions
  * - knowledgeGraph.service: Relationship tracking between content
  * - deduplication.service: Smart duplicate detection and archival
  * - sourceQuality.service: Source trust and provenance tracking
  * - styleGuide.service: Brand style rules, checking, and auto-fix
+ * - researchAgenda.service: Research priorities, gaps, and session tracking
  *
  * Eliza uses plugin-inter-agent separately for ASK_AGENT.
  */
@@ -55,6 +57,7 @@ import { trendConnectionAction } from "./actions/trendConnection.action";
 import { knowledgeIntelligenceAction } from "./actions/knowledgeIntelligence.action";
 import { styleCheckAction } from "./actions/styleCheck.action";
 import { polishContentAction } from "./actions/polishContent.action";
+import { autoResearchAction } from "./actions/autoResearch.action";
 
 // Import services
 import { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
@@ -63,6 +66,7 @@ import * as knowledgeGraphService from "./services/knowledgeGraph.service";
 import * as deduplicationService from "./services/deduplication.service";
 import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
+import * as researchAgendaService from "./services/researchAgenda.service";
 
 // Re-export upload with Eliza-appropriate name
 const elizaUploadAction = {
@@ -84,7 +88,7 @@ const elizaMichelinAction = addMichelinRestaurantAction;
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 14 actions, 6 services.
+  description: `Eliza's knowledge & content plugin — 15 actions, 7 services.
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -120,7 +124,15 @@ export const elizaPlugin: Plugin = {
   • Apple principles (benefit-led, simple)
   • Porsche principles (confident, crafted)
   • AI-slop detection and rewrite guidance
-  • Before/after transformation examples`,
+  • Before/after transformation examples
+
+🔬 AUTONOMOUS RESEARCH:
+- AUTO_RESEARCH: Systematic knowledge expansion
+  • audit knowledge — Gap analysis vs coverage framework
+  • research agenda — View priorities and queue
+  • fill gaps — Auto-generate topics from gaps
+  • research session — Autonomous research cycle
+  • Tracks sessions, progress, and files created`,
 
   actions: [
     // Knowledge Management
@@ -141,6 +153,8 @@ export const elizaPlugin: Plugin = {
     // Brand & Quality
     styleCheckAction,
     polishContentAction,
+    // Autonomous Research
+    autoResearchAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -173,7 +187,7 @@ export const elizaPlugin: Plugin = {
     }, 5000);
 
     logger.info(
-      `[Eliza Plugin] ✅ Ready — 13 actions: UPLOAD, KNOWLEDGE_STATUS, WRITE_ESSAY, DRAFT_TWEETS, REPURPOSE, RESEARCH_QUEUE, SUGGEST_TOPICS, RESEARCH_BRIEF, TREND_CONNECTION, KNOWLEDGE_INTEL, STYLE_CHECK, POLISH | Voice: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
+      `[Eliza Plugin] ✅ Ready — 14 actions | Voice: ✓ | Research: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
     );
   },
 };
@@ -194,6 +208,7 @@ export {
   knowledgeIntelligenceAction,
   styleCheckAction,
   polishContentAction,
+  autoResearchAction,
 };
 
 // Export services
@@ -203,5 +218,6 @@ export * as knowledgeGraph from "./services/knowledgeGraph.service";
 export * as deduplication from "./services/deduplication.service";
 export * as sourceQuality from "./services/sourceQuality.service";
 export * as styleGuide from "./services/styleGuide.service";
+export * as researchAgenda from "./services/researchAgenda.service";
 
 export default elizaPlugin;
