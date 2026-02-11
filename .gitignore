@@ -28,3 +28,5 @@ otaku-ref/
 
 # Summarize slide extraction output (images); remove to commit slides
 knowledge/.slides/
+
+.openclaw-cache/
