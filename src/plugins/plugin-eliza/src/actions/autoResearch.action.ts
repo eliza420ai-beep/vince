@@ -132,8 +132,9 @@ function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], cove
       missing: gaps.filter(g => g.gapType === "missing"),
       shallow: gaps.filter(g => g.gapType === "shallow"),
       stale: gaps.filter(g => g.gapType === "stale"),
+      subtopics: gaps.filter(g => g.gapType === "subtopics"),
     };
-    
+
     if (gapsByType.missing.length > 0) {
       response += `🔴 **Missing Categories:**\n`;
       for (const gap of gapsByType.missing) {
@@ -141,7 +142,7 @@ function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], cove
       }
       response += `\n`;
     }
-    
+
     if (gapsByType.shallow.length > 0) {
       response += `🟡 **Shallow Coverage:**\n`;
       for (const gap of gapsByType.shallow) {
@@ -150,7 +151,17 @@ function formatAuditReport(gaps: ReturnType<typeof auditKnowledge>["gaps"], cove
       }
       response += `\n`;
     }
-    
+
+    if (gapsByType.subtopics.length > 0) {
+      response += `📋 **Missing subtopics (content gaps):**\n`;
+      for (const gap of gapsByType.subtopics) {
+        const topics = gap.suggestedTopics.slice(0, 5);
+        response += `• \`${gap.category}\` — ${gap.description}\n`;
+        response += `  Missing: ${topics.join(", ")}${gap.suggestedTopics.length > 5 ? "..." : ""}\n`;
+      }
+      response += `\n`;
+    }
+
     if (gapsByType.stale.length > 0) {
       response += `⏰ **Stale Content:**\n`;
       for (const gap of gapsByType.stale) {

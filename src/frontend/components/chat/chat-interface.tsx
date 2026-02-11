@@ -53,6 +53,11 @@ import {
   HelpCircle,
   Palette,
   Sparkles,
+  ClipboardList,
+  ListTodo,
+  PenLine,
+  MessageSquare,
+  Megaphone,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -151,9 +156,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "What can the CEO do?", message: "What can you do?" },
     { label: "Upload", message: "upload" },
     { label: "Ingest video", message: "ingest this video" },
+    { label: "Knowledge status", message: "knowledge status" },
+    { label: "Audit knowledge", message: "audit knowledge" },
     { label: "Our research", message: "what does our research say" },
     { label: "Brainstorm", message: "let's brainstorm" },
     { label: "Explore knowledge", message: "explore our knowledge" },
+    { label: "Draft essay", message: "write an essay" },
+    { label: "Draft tweets", message: "draft tweets" },
+    { label: "Positioning", message: "what's our positioning?" },
+    { label: "Research agenda", message: "research agenda" },
   ],
   // Kelly (CVO): lifestyle concierge — benefit-led labels; messages are the actual prompts sent.
   kelly: [
@@ -221,6 +232,8 @@ function getQuickActionsForAgent(agentName: string): { label: string; message: s
 const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
   vince:
     "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. One token? See X-RESEARCH.md for rate-limit options.",
+  eliza:
+    "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
@@ -254,6 +267,30 @@ const ELIZA_CATEGORIES: Record<
     promptToAsk: "ingest this video",
     description: "Send a YouTube or video URL to summarize and save",
   },
+  knowledgeStatus: {
+    title: "Knowledge Status",
+    icon: Activity,
+    promptToAsk: "knowledge status",
+    description: "Health and coverage of the knowledge base",
+  },
+  auditKnowledge: {
+    title: "Audit Knowledge",
+    icon: ClipboardList,
+    promptToAsk: "audit knowledge",
+    description: "Coverage gaps and missing subtopics",
+  },
+  researchAgenda: {
+    title: "Research Agenda",
+    icon: ListTodo,
+    promptToAsk: "research agenda",
+    description: "Current priorities and research queue",
+  },
+  fillGaps: {
+    title: "Fill Gaps",
+    icon: Target,
+    promptToAsk: "fill gaps",
+    description: "Generate research topics from audit gaps",
+  },
   research: {
     title: "Our Research",
     icon: BookOpen,
@@ -271,6 +308,24 @@ const ELIZA_CATEGORIES: Record<
     icon: Search,
     promptToAsk: "explore our knowledge",
     description: "Browse and search the corpus",
+  },
+  draftEssay: {
+    title: "Draft Essay",
+    icon: PenLine,
+    promptToAsk: "write an essay",
+    description: "Substack essay from knowledge (voice-aware)",
+  },
+  draftTweets: {
+    title: "Draft Tweets",
+    icon: MessageSquare,
+    promptToAsk: "draft tweets",
+    description: "Tweet suggestions for @ikigaistudioxyz",
+  },
+  positioning: {
+    title: "Positioning / GTM",
+    icon: Megaphone,
+    promptToAsk: "what's our positioning?",
+    description: "How we describe ourselves (marketing-gtm)",
   },
 };
 

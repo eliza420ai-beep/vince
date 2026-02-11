@@ -51,7 +51,7 @@ export interface ResearchTopic {
 
 export interface KnowledgeGap {
   category: string;
-  gapType: "missing" | "shallow" | "stale" | "emerging";
+  gapType: "missing" | "shallow" | "stale" | "emerging" | "subtopics";
   description: string;
   suggestedTopics: string[];
   priority: "critical" | "high" | "medium" | "low";
@@ -330,6 +330,19 @@ export function auditKnowledge(): { gaps: KnowledgeGap[]; coverage: Record<strin
       });
     }
 
+    // Always check content for missing subtopics (even when file count is high)
+    const missingSubtopics = findMissingSubtopicsFromFiles(allFilePaths, category.subtopics);
+    if (missingSubtopics.length > 0) {
+      gaps.push({
+        category: category.name,
+        gapType: "subtopics",
+        description: `${missingSubtopics.length} subtopics not covered in content (${fileCount} files)`,
+        suggestedTopics: missingSubtopics,
+        priority: category.priority,
+        detectedAt: new Date().toISOString(),
+      });
+    }
+
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     let staleCount = 0;
     for (const filePath of allFilePaths) {
@@ -535,7 +548,7 @@ export function generateTopicsFromGaps(): number {
       addResearchTopic(topic, gap.category, {
         priority: gap.priority,
         reason: `Gap detected: ${gap.gapType} - ${gap.description}`,
-        depth: gap.gapType === "shallow" ? "deep" : "intermediate",
+        depth: gap.gapType === "shallow" ? "deep" : gap.gapType === "subtopics" ? "intermediate" : "intermediate",
       });
       added++;
     }

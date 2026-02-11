@@ -556,11 +556,14 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Eliza: {
-    headline: "Vision. Knowledge. GTM.",
+    headline: "24/7 research & knowledge expansion.",
     intro:
-      "Chief Executive Officer (CEO): vision, foundational knowledge, research, brainstorming, GTM/PR, community (#knowledge), positioning, Substack. Eliza runs the corpus—upload, ingest, frameworks. She does not provide live data; that's VINCE. You ask; she synthesizes from knowledge and pushes Substack gold.",
+      "CEO for vision, knowledge, research, and GTM. Eliza runs the corpus: upload, ingest (URLs, YouTube), knowledge status, audit knowledge, fill gaps. She drafts Substack essays (WRITE_ESSAY) and tweets (DRAFT_TWEETS), and answers legal/compliance and positioning from knowledge. She does not provide live data—that's VINCE.",
     tags: [
       { label: "CEO", withSparkles: true },
+      { label: "Corpus" },
+      { label: "Upload" },
+      { label: "Audit" },
       { label: "Knowledge" },
       { label: "Research" },
       { label: "GTM" },
@@ -568,66 +571,84 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
     ],
     capabilities: [
       {
-        title: "Chat",
+        title: "Upload & Ingest",
         description:
-          "Open-ended. Trading, macro, lifestyle, art. One voice across domains.",
+          "URLs, YouTube, text into knowledge/.",
       },
       {
-        title: "Research",
+        title: "Knowledge Status & Audit",
         description:
-          "Substack, macro, the-good-life. Why BTC matters—macro, regime, narrative.",
+          "Health, coverage, missing subtopics.",
       },
       {
-        title: "Knowledge Retrieval",
+        title: "Fill Gaps & Research Agenda",
         description:
-          "700+ files. Trading, lifestyle, art. RAG.",
+          "Generate topics, queue, research session.",
+      },
+      {
+        title: "Draft Essay",
+        description:
+          "Substack essays from knowledge (voice-aware).",
+      },
+      {
+        title: "Draft Tweets",
+        description:
+          "Tweet suggestions for @ikigaistudioxyz.",
+      },
+      {
+        title: "Legal & GTM",
+        description:
+          "Disclaimers, positioning, how we describe ourselves (from knowledge).",
+      },
+      {
+        title: "Explore & Brainstorm",
+        description:
+          "Open-ended research and ideation from corpus.",
       },
       {
         title: "Web Search",
         description:
-          "When knowledge base gaps.",
-      },
-      {
-        title: "Leaderboard Dashboard",
-        description:
-          "Markets, Memetics, News, Art, Trading Bot. No chat required. Open the page, data is there.",
+          "When the knowledge base has gaps.",
       },
     ],
     plugins: [
       {
-        name: "Plugin-Vince",
-        category: "Trading",
+        name: "Plugin-Eliza",
+        category: "Corpus & Research",
         summary:
-          "Flagship paper trading bot. X sentiment is #1 signal source; ALOHA, perps, options on Hypersurface, HIP-3. WHY THIS TRADE.",
-        points: ["ALOHA, VINCE_PERPS, VINCE_OPTIONS, Leaderboard."],
-        example: '"ALOHA" or "Why does BTC matter?"',
+          "UPLOAD, KNOWLEDGE_STATUS, audit knowledge, fill gaps, WRITE_ESSAY, DRAFT_TWEETS, ADD_MICHELIN for #knowledge. Corpus health, research queue, Substack and tweet drafts.",
+        points: [
+          "Upload/ingest, knowledge status, audit, fill gaps.",
+          "WRITE_ESSAY (Substack), DRAFT_TWEETS.",
+        ],
+        example: '"knowledge status", "audit knowledge", "write an essay", "draft tweets"',
       },
       {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
-          "Why, not just what. One voice across options, perps, memes, lifestyle, art.",
+          "One voice across corpus, research, and content. RAG over knowledge; no live data.",
         points: [
-          "Cross-domain.",
+          "Corpus-first. Research and GTM from knowledge.",
         ],
-        example: '"Explain Benner cycles in plain language."',
+        example: '"explore our knowledge", "what\'s our positioning?"',
       },
       {
         name: "SQL",
         category: "Database",
         summary:
-          "Remembers context. Semantic search over past convos.",
+          "Remembers context. Semantic search over past convos and knowledge.",
         points: [
           "Remembers context across sessions.",
-          "Semantic search over past conversations.",
+          "Semantic search over past conversations and corpus.",
         ],
-        example: "Eliza recalls what you discussed last week.",
+        example: "Eliza recalls what you discussed and what's in the corpus.",
       },
       {
         name: "Web Search",
         category: "Research",
         summary:
-          "When the base doesn't have it.",
+          "When the knowledge base has gaps.",
         points: [
           "Fills gaps in the knowledge base.",
           "Time-range and topic filters.",
@@ -638,15 +659,15 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Bootstrap",
         category: "Memory",
         summary:
-          "Remembers. Learns.",
+          "Remembers. Learns from conversations.",
         points: [
-          "Facts. Understanding.",
+          "Facts. Understanding. Preferences.",
         ],
-        example: "Preferences. Interests.",
+        example: "Consistent context for research and drafts.",
       },
     ],
     proTip:
-      "Say gm or ALOHA. Why does BTC matter? Free first. Paid APIs optional.",
+      "Upload a link or YouTube. Ask 'knowledge status' or 'audit knowledge'. Request a Substack draft or tweet draft. For live data, ask VINCE.",
   },
 };
 
