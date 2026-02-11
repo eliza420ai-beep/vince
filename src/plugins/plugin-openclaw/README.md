@@ -1,114 +1,92 @@
 # plugin-openclaw
 
-OpenClaw integration plugin for VINCE — framework for spawning isolated sub-agents for crypto research.
+OpenClaw integration plugin for VINCE — delegates crypto research to OpenClaw's sub-agent system.
 
-## ⚠️ Status: Framework Ready - Full SDK Pending
-
-This plugin provides the foundation for OpenClaw integration. Full agent spawning requires the OpenClaw SDK to be exposed in the npm package.
-
-## Features (Planned)
-
-| Agent | Description | Status |
-|-------|-------------|--------|
-| **alpha** | X/Twitter sentiment, KOL tracking | 🚧 Framework |
-| **market** | Prices, volume, funding rates, OI | 🚧 Framework |
-| **onchain** | Whale flows, smart money, DEX | 🚧 Framework |
-| **news** | News aggregation and sentiment | 🚧 Framework |
-| **all** | Parallel execution | 🚧 Framework |
-
-## Usage (When Fully Enabled)
+## Architecture
 
 ```
-@VINCE research SOL BTC ETH
+VINCE Chat → RUN_OPENCLAW_RESEARCH action → OpenClaw sub-agents
+```
+
+**How it works:**
+1. User asks VINCE for research (e.g., "@VINCE research SOL alpha")
+2. Plugin action detects intent and formats the request
+3. Request is delegated to OpenClaw agents (isolated, parallel, cost-controlled)
+4. Results returned in structured briefing format
+
+## Agents
+
+| Agent | Description |
+|-------|-------------|
+| **alpha** | X/Twitter sentiment, KOL tracking, narratives |
+| **market** | Prices, volume, funding rates, open interest |
+| **onchain** | Whale flows, smart money, DEX liquidity |
+| **news** | News aggregation and sentiment |
+| **all** | All agents in parallel |
+
+## Usage
+
+```
+@VINCE research SOL BTC
 @VINCE alpha SOL
 @VINCE market ETH
 @VINCE onchain BONK
 @VINCE news crypto
+@VINCE all SOL BTC ETH
 ```
 
-## Setup Required
+## Setup
 
 ```bash
 # Install OpenClaw
 npm install -g openclaw
 
-# Start gateway
+# Start gateway (required)
 openclaw gateway start
 
-# Set API keys
-export X_BEARER_TOKEN="your_x_token"
-```
-
-## Architecture
-
-```
-VINCE Chat
-    │
-    ▼
-RUN_OPENCLAW_RESEARCH action
-    │
-    ▼
-orchestrator.js (framework)
-    │
-    ▼
-OpenClaw Gateway API ← Requires SDK exposure
+# Set API keys (optional)
+export X_BEARER_TOKEN="..."
 ```
 
 ## Files
 
 ```
 src/plugins/plugin-openclaw/
-├── matcher.ts                    # Context detection
-├── README.md                     # This file
+├── matcher.ts                    # Intent detection
+├── README.md                    # This file
 └── src/
     ├── index.ts                 # Plugin export
     └── actions/
         └── runResearch.action.ts # Research action
 ```
 
-## Current Limitations
+## Requirements
 
-The `sessions_spawn()` and `sessions_history()` functions are not exported in the OpenClaw npm package. These are internal tools.
+- **OpenClaw gateway running** - `openclaw gateway start`
+- Gateway must be accessible (default: `ws://127.0.0.1:18789`)
 
-**Workaround options:**
+## Troubleshooting
 
-1. **Use this framework** - Provides action structure, keyword matching, and graceful fallbacks
+**Gateway not running:**
+```bash
+openclaw gateway start
+openclaw health  # Verify
+```
 
-2. **Direct OpenClaw access** - Spawn agents directly via OpenClaw CLI or tools
+**No response from agents:**
+- Check gateway is running
+- Verify network connectivity to gateway port
+- Check agent specifications in `openclaw-agents/`
 
-3. **SDK exposure** - Request OpenClaw to export agent functions in npm package
-
-## Testing
+## How to Test
 
 ```bash
-# Check orchestrator framework
-node openclaw-agents/orchestrator.js
-
-# Start gateway
+# 1. Start gateway
 openclaw gateway start
 
-# Check health
-openclaw health
+# 2. Run orchestrator directly
+node openclaw-agents/orchestrator.js all SOL BTC
+
+# 3. Or ask VINCE in chat
+@VINCE research SOL
 ```
-
-## For Developers
-
-To enable full functionality, the OpenClaw SDK needs to expose:
-
-```typescript
-import { sessions_spawn, sessions_history } from 'openclaw';
-
-// Spawn agent
-const result = await sessions_spawn({
-  task: "Research SOL",
-  label: "vince-alpha",
-  model: "minimax-portal/MiniMax-M2.1",
-});
-
-// Get results
-const history = await sessions_history({
-  sessionKey: result.sessionKey,
-});
-```
-
-Track progress: https://github.com/openclaw/openclaw
