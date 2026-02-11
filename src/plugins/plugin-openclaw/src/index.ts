@@ -7,36 +7,20 @@ import { schedulerAction } from "./actions/scheduler.action";
 import { portfolioAction } from "./actions/portfolio.action";
 import { alertsAction } from "./actions/alerts.action";
 import { analyticsAction } from "./actions/analytics.action";
+import { insightsAction } from "./actions/insights.action";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
 
 export const openclawPlugin: Plugin = {
   name: "plugin-openclaw",
   description: `OpenClaw V2 - Enterprise-grade multi-agent crypto research plugin for VINCE.
 
-🔬 **Research**
-- Multi-agent: alpha, market, onchain, news
-- Real-time streaming
-- Cost tracking & budget alerts
+🔬 **Research** - Multi-agent research with streaming
+📋 **Organization** - Watchlist, Portfolio, History, Scheduler
+📊 **Analytics** - Comparison, Trends, Risk, Stats, Leaderboard
+🔔 **Alerts** - Price, Sentiment, Whale, Volume alerts
+🧠 **Insights** - AI insights, Market overview, Screener, Whales, News, Fear & Greed
 
-📋 **Organization**
-- Watchlist with alerts
-- Portfolio tracking
-- Research history & export
-- Scheduled auto-research
-
-📊 **Analytics**
-- Token comparison
-- Sentiment trends
-- Risk analysis
-- Usage stats dashboard
-- Token leaderboard
-
-🔔 **Alerts**
-- Price alerts
-- Sentiment alerts
-- Whale activity alerts
-
-Commands: research, watch, compare, history, schedule, portfolio, alerts, trend, risk, stats, leaderboard`,
+22+ features • 9 actions • 7 services`,
   
   actions: [
     runResearchAction,
@@ -47,6 +31,7 @@ Commands: research, watch, compare, history, schedule, portfolio, alerts, trend,
     portfolioAction,
     alertsAction,
     analyticsAction,
+    insightsAction,
   ],
   evaluators: [],
   providers: [],
@@ -63,5 +48,6 @@ export {
   portfolioAction,
   alertsAction,
   analyticsAction,
+  insightsAction,
   shouldOpenclawPluginBeInContext,
 };

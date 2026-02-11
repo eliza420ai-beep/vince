@@ -86,3 +86,20 @@ export {
   getLeaderboard,
   formatLeaderboard,
 } from "./analytics.service";
+
+// Insights (AI Insights, Market, Screener, Whales, News, Fear&Greed)
+export {
+  default as insightsService,
+  generateInsights,
+  formatInsights,
+  getMarketOverview,
+  formatMarketOverview,
+  screenTokens,
+  formatScreenerResults,
+  getWhaleMovements,
+  formatWhaleMovements,
+  getNewsDigest,
+  formatNewsDigest,
+  getFearGreedIndex,
+  formatFearGreed,
+} from "./insights.service";
