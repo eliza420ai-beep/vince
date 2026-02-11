@@ -1,16 +1,18 @@
 /**
- * Plugin-Sentinel — Core Dev: PRDs, Project Radar, Impact-Scored Suggestions, OpenClaw Expert
+ * Plugin-Sentinel — Core Dev: PRDs, Project Radar, Multi-Agent Vision, OpenClaw Expert
  *
  * The 10x upgrade: Sentinel is now a world-class core dev that:
  * - Produces enterprise-grade PRDs for Cursor/Claude Code
  * - Deeply understands project state via Project Radar
  * - Scores suggestions by impact (RICE + strategic alignment)
  * - Knows OpenClaw (formerly ClawdBot/MoltBot) inside and out
+ * - Deeply understands the MULTI-AGENT VISION ("feels genuinely alive")
  * - Tracks 24/7 market research as TOP PRIORITY
  *
- * Actions (13):
+ * Actions (14):
  * - SENTINEL_SUGGEST: Impact-scored suggestions with project awareness
  * - SENTINEL_PRD: World-class PRD generation
+ * - SENTINEL_MULTI_AGENT: Multi-agent architecture expert (ASK_AGENT, standups, Option C)
  * - SENTINEL_SHIP: What to ship for maximum impact
  * - SENTINEL_CLAWDBOT_GUIDE: Knowledge research setup
  * - SENTINEL_SETTINGS_SUGGEST: Settings recommendations
@@ -23,11 +25,12 @@
  * - SENTINEL_HOW_DID_WE_DO: Outcome review
  * - SENTINEL_SECURITY_CHECKLIST: Security hygiene
  *
- * Services (4):
+ * Services (5):
  * - projectRadar.service: Deep project state scanning (plugins, progress, knowledge, docs, todos)
  * - impactScorer.service: RICE + strategic scoring, learns from outcomes
  * - prdGenerator.service: World-class PRD templates with architecture rules
  * - openclawKnowledge.service: Deep OpenClaw/Milaidy/Clawdbot expertise
+ * - multiAgentVision.service: Dream team, ASK_AGENT, standups, deliverables, feedback flow
  *
  * Weekly + optional daily tasks. Sentinel only.
  */
@@ -38,6 +41,7 @@ import { logger } from "@elizaos/core";
 // Actions
 import { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 import { sentinelPrdAction } from "./actions/sentinelPrd.action";
+import { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
 import { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
 import { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 import { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
@@ -59,6 +63,7 @@ import * as projectRadarService from "./services/projectRadar.service";
 import * as impactScorerService from "./services/impactScorer.service";
 import * as prdGeneratorService from "./services/prdGenerator.service";
 import * as openclawKnowledgeService from "./services/openclawKnowledge.service";
+import * as multiAgentVisionService from "./services/multiAgentVision.service";
 
 export const sentinelPlugin: Plugin = {
   name: "plugin-sentinel",
@@ -67,7 +72,8 @@ export const sentinelPlugin: Plugin = {
 
   actions: [
     sentinelSuggestAction,      // Impact-scored suggestions
-    sentinelPrdAction,          // NEW: World-class PRD generation
+    sentinelPrdAction,          // World-class PRD generation
+    sentinelMultiAgentAction,   // Multi-agent architecture expert
     sentinelShipAction,         // What to ship for max impact
     sentinelClawdbotGuideAction,
     sentinelSettingsSuggestAction,
@@ -104,6 +110,7 @@ export const sentinelPlugin: Plugin = {
 // Action exports
 export { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 export { sentinelPrdAction } from "./actions/sentinelPrd.action";
+export { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
 export { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
 export { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 export { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
@@ -125,3 +132,4 @@ export * as projectRadar from "./services/projectRadar.service";
 export * as impactScorer from "./services/impactScorer.service";
 export * as prdGenerator from "./services/prdGenerator.service";
 export * as openclawKnowledge from "./services/openclawKnowledge.service";
+export * as multiAgentVision from "./services/multiAgentVision.service";
