@@ -337,22 +337,32 @@ AVOID:
 - Starting every sentence with the asset name
 - Repeating the same sentence structure`;
 
+/** Sections that require data we do not have (only price/24h from Hyperliquid). Return disclaimer instead of calling LLM. */
+const SECTIONS_WITHOUT_DATA = ["alpha", "onchain", "news"] as const;
+
+/** Honest disclaimer when alpha/on-chain/news data is not available. Prevents LLM from fabricating KOL/sentiment/whale/news. */
+function noDataDisclaimer(agent: string, tokens: string): string {
+  const labels: Record<string, string> = {
+    alpha: "Alpha (KOL/CT sentiment)",
+    onchain: "On-chain (whale activity, DEX flows)",
+    news: "News and headlines",
+  };
+  const label = labels[agent] ?? agent;
+  return `${label} data is not available for this run. Only Hyperliquid price and 24h change were provided for ${tokens}. Use the **Market** section for price-based context.`;
+}
+
 /**
- * Generate ALOHA-style prose from data context using LLM
+ * Generate ALOHA-style prose from data context using LLM.
+ * Only used for the "market" section when we have price/change data. Alpha, onchain, and news
+ * are not fed to the LLM with price-only input to avoid fabricating sentiment/whales/headlines.
  */
 async function generateResearchProse(
   runtime: IAgentRuntime,
   dataContext: string,
   tokens: string,
-  agent: string,
 ): Promise<{ text: string; inputTokens: number; outputTokens: number }> {
-  const sectionMap: Record<string, string> = {
-    alpha: "Alpha / sentiment (what CT and KOLs are saying, narrative strength)",
-    market: "Market data (prices, volume, market cap, derivatives if available)",
-    onchain: "On-chain (whale activity, smart money, DEX flows – use market data as proxy if no on-chain)",
-    news: "News and sentiment (headlines, fear/greed, recent developments)",
-  };
-  const sectionGuide = sectionMap[agent] || "relevant analysis";
+  const sectionGuide =
+    "Market data: describe only the price and 24h change from the data below. Do not add sentiment, KOLs, whales, news, volume, market cap, or derivatives—we only have price and 24h change. Use strictly the numbers provided.";
 
   const prompt = `${ALOHA_STYLE_PROMPT}
 
@@ -360,7 +370,7 @@ Here is the data for ${tokens}:
 
 ${dataContext}
 
-Write a brief ${sectionGuide} section. Use the actual numbers from the data. If a field is missing, don't invent it—focus on what we have. Write the briefing:`;
+Write a brief ${sectionGuide} Write the briefing:`;
 
   const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
   const text = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
@@ -385,15 +395,25 @@ export async function executeAgentWithStreaming(
   if (runtime) {
     try {
       onUpdate({ type: "progress", agent, message: "Gathering market data...", progress: 40 });
-      const { dataContext } = await fetchRealMarketData(runtime, tokens);
+      const { dataContext, dataPoints } = await fetchRealMarketData(runtime, tokens);
+
+      // We only have Hyperliquid price + 24h change. Do not ask LLM to write alpha/onchain/news—it would fabricate.
+      if (SECTIONS_WITHOUT_DATA.includes(agent as (typeof SECTIONS_WITHOUT_DATA)[number])) {
+        const disclaimer = noDataDisclaimer(agent, tokens);
+        const cost = calculateCost(0, 0);
+        onUpdate({ type: "complete", agent, message: "Research complete!", progress: 100, result: disclaimer });
+        return { result: disclaimer, cost };
+      }
+
+      if (dataPoints.length === 0) {
+        const noData = `No price data available for ${tokens}. Check symbols (Hyperliquid perps only).`;
+        const cost = calculateCost(0, 0);
+        onUpdate({ type: "complete", agent, message: "Research complete!", progress: 100, result: noData });
+        return { result: noData, cost };
+      }
 
       onUpdate({ type: "progress", agent, message: "Writing briefing...", progress: 70 });
-      const { text, inputTokens, outputTokens } = await generateResearchProse(
-        runtime,
-        dataContext,
-        tokens,
-        agent,
-      );
+      const { text, inputTokens, outputTokens } = await generateResearchProse(runtime, dataContext, tokens);
 
       const cost = calculateCost(inputTokens, outputTokens);
       await sleep(200);
