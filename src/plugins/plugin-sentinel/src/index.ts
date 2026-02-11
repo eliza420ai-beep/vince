@@ -1,9 +1,25 @@
 /**
  * Plugin-Sentinel — Core dev: ops, architecture, benchmarks, examples, plugins, cost steward.
  *
- * Actions: SENTINEL_SUGGEST, SENTINEL_CLAWDBOT_GUIDE, SENTINEL_SETTINGS_SUGGEST,
- * SENTINEL_ONNX_STATUS, SENTINEL_ART_GEMS, SENTINEL_COST_STATUS, SENTINEL_ART_PITCH,
- * SENTINEL_INVESTOR_REPORT, SENTINEL_HOW_DID_WE_DO, SENTINEL_SECURITY_CHECKLIST. Weekly + optional daily tasks. Sentinel only.
+ * Actions (12):
+ * - SENTINEL_SUGGEST: General improvement suggestions
+ * - SENTINEL_SHIP: What to ship for maximum impact (uses Project Radar + Impact Scorer)
+ * - SENTINEL_CLAWDBOT_GUIDE: Knowledge research setup
+ * - SENTINEL_SETTINGS_SUGGEST: Settings recommendations
+ * - SENTINEL_ONNX_STATUS: ML/ONNX health check
+ * - SENTINEL_ART_GEMS: ElizaOS examples/art gems
+ * - SENTINEL_DOC_IMPROVE: Documentation improvements
+ * - SENTINEL_COST_STATUS: Cost and treasury status
+ * - SENTINEL_ART_PITCH: Gen art pitch
+ * - SENTINEL_INVESTOR_REPORT: VC/investor pitch
+ * - SENTINEL_HOW_DID_WE_DO: Outcome review
+ * - SENTINEL_SECURITY_CHECKLIST: Security hygiene
+ *
+ * Services (2):
+ * - projectRadar.service: Scans entire project state (plugins, progress, knowledge, north star)
+ * - impactScorer.service: RICE + strategic scoring, learns from suggestion outcomes
+ *
+ * Weekly + optional daily tasks. Sentinel only.
  */
 
 import type { IAgentRuntime, Plugin } from "@elizaos/core";
@@ -19,8 +35,13 @@ import { sentinelArtPitchAction } from "./actions/sentinelArtPitch.action";
 import { sentinelInvestorReportAction } from "./actions/sentinelInvestorReport.action";
 import { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
 import { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
+import { sentinelShipAction } from "./actions/sentinelShip.action";
 import { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 import { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
+
+// Services
+import * as projectRadarService from "./services/projectRadar.service";
+import * as impactScorerService from "./services/impactScorer.service";
 
 export const sentinelPlugin: Plugin = {
   name: "plugin-sentinel",
@@ -29,6 +50,7 @@ export const sentinelPlugin: Plugin = {
 
   actions: [
     sentinelSuggestAction,
+    sentinelShipAction, // NEW: What to ship for max impact
     sentinelClawdbotGuideAction,
     sentinelSettingsSuggestAction,
     sentinelOnnxStatusAction,
@@ -70,3 +92,8 @@ export { sentinelHowDidWeDoAction } from "./actions/sentinelHowDidWeDo.action";
 export { sentinelSecurityChecklistAction } from "./actions/sentinelSecurityChecklist.action";
 export { registerSentinelWeeklyTask } from "./tasks/sentinelWeekly.tasks";
 export { registerSentinelDailyTask } from "./tasks/sentinelDaily.tasks";
+export { sentinelShipAction } from "./actions/sentinelShip.action";
+
+// Services
+export * as projectRadar from "./services/projectRadar.service";
+export * as impactScorer from "./services/impactScorer.service";
