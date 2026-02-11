@@ -8,12 +8,12 @@ import {
   logger,
 } from "@elizaos/core";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
-import { sessions_spawn, sessions_history } from "openclaw";
-import { readFileSync } from "fs";
+import { execSync } from "child_process";
+import { readFileSync, existsSync } from "fs";
 import path from "path";
 
 const AGENTS_DIR = path.resolve(process.cwd(), "openclaw-agents");
-const DEFAULT_MODEL = "minimax-portal/MiniMax-M2.1";
+const ORCHESTRATOR_PATH = path.join(AGENTS_DIR, "orchestrator.js");
 
 interface ResearchActionParams {
   tokens?: string;
@@ -21,14 +21,22 @@ interface ResearchActionParams {
   query?: string;
 }
 
-const SUPPORTED_AGENTS = ["alpha-research", "market-data", "onchain", "news", "all"];
+const SUPPORTED_AGENTS = ["alpha", "market", "onchain", "news", "all"];
 
-const AGENT_SPECS: Record<string, string> = {
-  "alpha-research": readFileSync(path.join(AGENTS_DIR, "alpha-research.md"), "utf-8"),
-  "market-data": readFileSync(path.join(AGENTS_DIR, "market-data.md"), "utf-8"),
-  "onchain": readFileSync(path.join(AGENTS_DIR, "onchain.md"), "utf-8"),
-  "news": readFileSync(path.join(AGENTS_DIR, "news.md"), "utf-8"),
-};
+function runOrchestrator(args: string[]): string {
+  if (!existsSync(ORCHESTRATOR_PATH)) {
+    throw new Error("OpenClaw orchestrator not found. Run: node openclaw-agents/orchestrator.js");
+  }
+  try {
+    const result = execSync(`node ${ORCHESTRATOR_PATH} ${args.join(" ")}`, {
+      encoding: "utf-8",
+      timeout: 300000, // 5 min
+    });
+    return result;
+  } catch (e) {
+    throw new Error(`Orchestrator failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
 
 function formatBriefing(results: Record<string, string>): string {
   return `
@@ -65,10 +73,10 @@ export const runResearchAction: Action = {
     "SPAWN_AGENT",
   ],
   description: `Use this action to run OpenClaw research agents for crypto alpha, market data, on-chain analysis, or news.
-  
+
 Agents available:
-- alpha-research: X/Twitter sentiment, KOL tracking, narratives
-- market-data: Prices, volume, funding rates, open interest
+- alpha: X/Twitter sentiment, KOL tracking, narratives
+- market: Prices, volume, funding rates, open interest
 - onchain: Whale flows, smart money, DEX liquidity
 - news: News aggregation and sentiment
 - all: Run all agents in parallel
@@ -101,15 +109,12 @@ Examples:
     if (!shouldOpenclawPluginBeInContext(state, message)) {
       return false;
     }
-    // Check if OpenClaw gateway is available
-    try {
-      const { execSync } = await import("child_process");
-      execSync("openclaw health --timeout 5", { encoding: "utf-8" });
-      return true;
-    } catch {
-      logger.warn("[RUN_OPENCLAW_RESEARCH] OpenClaw gateway not available");
+    // Check if orchestrator exists
+    if (!existsSync(ORCHESTRATOR_PATH)) {
+      logger.warn("[RUN_OPENCLAW_RESEARCH] OpenClaw orchestrator not found");
       return false;
     }
+    return true;
   },
 
   handler: async (
@@ -125,62 +130,49 @@ Examples:
 
       const agent = (params.agent || "all").toLowerCase();
       const tokens = params.tokens || params.query || "SOL BTC ETH";
-      const query = params.query || `Research these tokens: ${tokens}`;
 
       if (!SUPPORTED_AGENTS.includes(agent)) {
         throw new Error(`Unknown agent: ${agent}. Supported: ${SUPPORTED_AGENTS.join(", ")}`);
       }
 
-      logger.info(`[RUN_OPENCLAW_RESEARCH] Spawning ${agent} agent for: ${tokens}`);
+      logger.info(`[RUN_OPENCLAW_RESEARCH] Running ${agent} agent for: ${tokens}`);
 
-      // Spawn OpenClaw agent
-      const result = await sessions_spawn({
-        task: `${AGENT_SPECS[agent] || AGENT_SPECS["all"]}
+      // Run orchestrator via subprocess
+      const args = [agent, ...tokens.split(" ").filter(Boolean)];
+      const result = runOrchestrator(args);
 
-QUERY: ${query}
+      logger.info(`[RUN_OPENCLAW_RESEARCH] Orchestrator completed`);
 
-Provide your findings in a structured briefing.`,
-        label: `vince-plugin-${agent}-${Date.now()}`,
-        model: DEFAULT_MODEL,
-        timeoutSeconds: 150,
-      });
+      // Parse results from briefing file
+      const briefingPath = path.join(AGENTS_DIR, "last-briefing.md");
+      let briefing = "";
+      if (existsSync(briefingPath)) {
+        briefing = readFileSync(briefingPath, "utf-8");
+      } else {
+        briefing = result; // Fallback to stdout
+      }
 
-      const sessionKey = result.sessionKey;
-      logger.info(`[RUN_OPENCLAW_RESEARCH] Agent spawned: ${sessionKey}`);
-
-      // Wait for completion
-      await new Promise((resolve) => setTimeout(resolve, 60000)); // Wait 60s
-
-      // Fetch results
-      const history = await sessions_history({
-        sessionKey,
-        includeTools: false,
-        limit: 100,
-      });
-
-      const messages = history.messages || [];
-      const lastMsg = messages[messages.length - 1];
-      const content = lastMsg?.content?.text || lastMsg?.content || "No response";
-
-      // Format based on agent count
+      // Generate a response based on the agent
       let text: string;
       if (agent === "all") {
-        // Parse multi-agent results (simplified - actual parsing would be more robust)
-        text = formatBriefing({
-          alpha: content,
-          market: "See full briefing above",
-          onchain: "See full briefing above",
+        text = briefing || formatBriefing({
+          alpha: "Research completed",
+          market: "Research completed",
+          onchain: "Research completed",
         });
       } else {
-        text = `**OpenClaw ${agent} Research**
+        text = `**OpenClaw ${agent.toUpperCase()} Research**
 
-${content}`;
+${briefing || "Research completed successfully."}
+
+---
+*Run with VINCE: @vince ${agent === "all" ? "research" : agent} ${tokens}*`;
       }
 
       if (callback) {
         await callback({
           text,
-          content: { sessionKey, agent, tokens },
+          content: { agent, tokens },
           actions: ["RUN_OPENCLAW_RESEARCH"],
           source: message.content.source,
         });
@@ -189,7 +181,7 @@ ${content}`;
       return {
         text,
         success: true,
-        data: { sessionKey, agent, tokens },
+        data: { agent, tokens },
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -198,8 +190,14 @@ ${content}`;
       const errorText = `OpenClaw research failed: ${msg}
 
 Make sure:
-1. OpenClaw gateway is running (\`openclaw gateway start\`)
-2. Required API keys are configured (X_BEARER_TOKEN, etc.)`;
+1. OpenClaw is installed: \`npm install -g openclaw\`
+2. OpenClaw gateway is running: \`openclaw gateway start\`
+3. Required API keys are configured (X_BEARER_TOKEN, etc.)
+
+Quick test:
+\`\`\`bash
+node openclaw-agents/orchestrator.js all SOL
+\`\`\``;
 
       if (callback) {
         await callback({
@@ -225,7 +223,7 @@ Make sure:
       {
         name: "{{agent}}",
         content: {
-          text: "**OpenClaw Alpha Research**\n\n...",
+          text: "**OpenClaw ALPHA Research**\n\n...",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
@@ -238,7 +236,7 @@ Make sure:
       {
         name: "{{agent}}",
         content: {
-          text: "**OpenClaw Market Data**\n\n...",
+          text: "**OpenClaw MARKET Research**\n\n...",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
@@ -246,12 +244,12 @@ Make sure:
     [
       {
         name: "{{user}}",
-        content: { text: "@openclaw research BONK whale activity" },
+        content: { text: "@vince research BONK whale activity" },
       },
       {
         name: "{{agent}}",
         content: {
-          text: "**OpenClaw On-Chain Research**\n\n...",
+          text: "**OpenClaw ONCHAIN Research**\n\n...",
           actions: ["RUN_OPENCLAW_RESEARCH"],
         },
       },
