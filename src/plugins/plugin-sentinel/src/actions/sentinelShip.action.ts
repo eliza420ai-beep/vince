@@ -68,10 +68,39 @@ async function generateShipPriorities(
   state: ProjectState,
   userContext: string
 ): Promise<string> {
-  // Build context from project state
+  // Build rich context from project state
   let context = `**Project State:**\n`;
   context += `• ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.totalServices} services\n`;
-  context += `• ${state.completed.length} completed, ${state.inProgress.length} in progress, ${state.blocked.length} blocked\n\n`;
+  context += `• ${state.completed.length} completed, ${state.inProgress.length} in progress, ${state.blocked.length} blocked\n`;
+  context += `• ${state.docInsights.length} docs analyzed, ${state.allTodos.length} open TODOs\n\n`;
+  
+  // Top priorities from docs (most important!)
+  if (state.topPriorities.length > 0) {
+    context += `**🎯 Top Priorities (extracted from docs):**\n`;
+    for (const p of state.topPriorities.slice(0, 7)) {
+      context += `• ${p}\n`;
+    }
+    context += `\n`;
+  }
+  
+  // Critical blockers
+  if (state.criticalBlockers.length > 0) {
+    context += `**🚫 Blockers (from docs):**\n`;
+    for (const b of state.criticalBlockers.slice(0, 5)) {
+      context += `• ${b}\n`;
+    }
+    context += `\n`;
+  }
+  
+  // High priority TODOs
+  const highTodos = state.allTodos.filter(t => t.priority === "high");
+  if (highTodos.length > 0) {
+    context += `**🔴 High Priority TODOs:**\n`;
+    for (const t of highTodos.slice(0, 5)) {
+      context += `• ${t.text} (${t.source})\n`;
+    }
+    context += `\n`;
+  }
   
   // North star status
   const staleOrMissing = state.northStarDeliverables.filter(d => d.status !== "active");
@@ -83,9 +112,9 @@ async function generateShipPriorities(
     context += `\n`;
   }
   
-  // Blocked items
+  // Blocked items from progress files
   if (state.blocked.length > 0) {
-    context += `**Blocked:**\n`;
+    context += `**Blocked (progress.txt):**\n`;
     for (const b of state.blocked.slice(0, 5)) {
       context += `• ${b.title} (${b.plugin})\n`;
     }
@@ -101,11 +130,20 @@ async function generateShipPriorities(
     context += `\n`;
   }
   
-  // Knowledge gaps
-  if (state.knowledgeGaps.length > 0) {
-    context += `**Knowledge Gaps:**\n`;
-    for (const gap of state.knowledgeGaps) {
-      context += `• ${gap}\n`;
+  // Roadmap items
+  if (state.roadmapItems.length > 0) {
+    context += `**Roadmap (from docs):**\n`;
+    for (const r of state.roadmapItems.slice(0, 3)) {
+      context += `• ${r.title}\n`;
+    }
+    context += `\n`;
+  }
+  
+  // Lessons learned
+  if (state.lessonsLearned.length > 0) {
+    context += `**Lessons Learned:**\n`;
+    for (const l of state.lessonsLearned.slice(0, 3)) {
+      context += `• ${l.pattern}: ${l.action}\n`;
     }
     context += `\n`;
   }
@@ -113,47 +151,48 @@ async function generateShipPriorities(
   // Recent activity
   if (state.recentChanges.length > 0) {
     const todayChanges = state.recentChanges.filter(c => c.daysAgo === 0);
-    context += `**Recent Activity:** ${todayChanges.length} files changed today, ${state.recentChanges.length} this week\n\n`;
+    context += `**Recent Activity:** ${todayChanges.length} files today, ${state.recentChanges.length} this week\n\n`;
   }
   
-  // Get learnings from past suggestions
-  const learnings = getLearnings();
-  if (learnings.length > 0) {
-    context += `**Learnings from past suggestions:**\n`;
-    for (const l of learnings) {
+  // Get learnings from past Sentinel suggestions
+  const sentinelLearnings = getLearnings();
+  if (sentinelLearnings.length > 0) {
+    context += `**Sentinel suggestion history:**\n`;
+    for (const l of sentinelLearnings) {
       context += `${l}\n`;
     }
     context += `\n`;
   }
   
-  // Compose RAG state for additional context
+  // Compose RAG state for additional knowledge context
   const ragState = await runtime.composeState({ content: { text: userContext } } as Memory);
-  const ragContext = typeof ragState.text === "string" ? ragState.text.slice(0, 3000) : "";
+  const ragContext = typeof ragState.text === "string" ? ragState.text.slice(0, 2500) : "";
   
-  const prompt = `You are Sentinel, the core dev agent. Your job: suggest the MOST IMPACTFUL things to ship to push the project forward.
+  const prompt = `You are Sentinel, the core dev agent. Your job: suggest the MOST IMPACTFUL things to ship to push the project forward. You have analyzed ALL the project docs (${state.docInsights.length} docs) and extracted priorities, TODOs, blockers, and roadmap items.
 
-**PRIORITIES (in order):**
-1. 24/7 market research — Vince push, X research, signals (TOP PRIORITY)
-2. Unblock blocked items
-3. Complete in-progress work
-4. Fill north star gaps
-5. Revenue-generating features
-6. User-facing improvements
-7. Tech debt (only if blocking something)
+**PRIORITY ORDER:**
+1. 🔴 24/7 market research — Vince push, X research, signals (TOP PRIORITY per north star)
+2. 🚫 Unblock blockers — Nothing else moves until blockers are cleared
+3. 📋 High-priority TODOs from docs — These were marked important by the team
+4. 🔄 Complete in-progress work — Finish what's started before new work
+5. ⭐ Fill north star gaps — Missing deliverables hurt the mission
+6. 💰 Revenue-generating features — Money enables everything else
+7. 🔧 Tech debt — Only if it's blocking other work
 
-**PROJECT STATE:**
+**PROJECT STATE (from scanning all docs):**
 ${context}
 
-**KNOWLEDGE CONTEXT:**
+**ADDITIONAL KNOWLEDGE:**
 ${ragContext.slice(0, 2000)}
 
-**RULES:**
+**OUTPUT RULES:**
 - Max 5 suggestions, numbered
-- Each suggestion: one line, specific action, owner/plugin if relevant
-- Prioritize by impact on revenue and north star
-- If something is blocked, suggest how to unblock
+- Each suggestion: one line with specific action, owner/plugin, and why it matters
+- USE THE PRIORITIES AND TODOS FROM THE DOCS — don't invent new ideas when docs have clear priorities
+- If something is blocked, suggest how to unblock it specifically
+- Reference the source doc when relevant (e.g. "per TREASURY.md", "from lessons.md")
 - No fluff, no preamble — just the prioritized list
-- End with "🎯 Top pick: [your #1 recommendation and why in 1 sentence]"
+- End with "🎯 Top pick: [your #1 and ONE sentence why]"
 
 **User question:** ${userContext}
 
@@ -238,10 +277,23 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       // Generate summary header
       let response = `🚀 **Ship Priorities**\n\n`;
       
-      // Quick state summary
+      // Rich state summary
       const activeNS = projectState.northStarDeliverables.filter(d => d.status === "active").length;
       const totalNS = projectState.northStarDeliverables.length;
-      response += `*State: ${projectState.plugins.length} plugins, ${projectState.totalActions} actions | North Star: ${activeNS}/${totalNS} active | ${projectState.blocked.length} blocked*\n\n`;
+      const highTodos = projectState.allTodos.filter(t => t.priority === "high").length;
+      
+      response += `*Scanned ${projectState.docInsights.length} docs | ${projectState.plugins.length} plugins, ${projectState.totalActions} actions | `;
+      response += `${highTodos} high-priority TODOs | North Star: ${activeNS}/${totalNS} | `;
+      response += `${projectState.blocked.length + projectState.criticalBlockers.length} blockers*\n\n`;
+      
+      // Show blockers first if any
+      if (projectState.criticalBlockers.length > 0) {
+        response += `**🚫 Blockers to clear first:**\n`;
+        for (const b of projectState.criticalBlockers.slice(0, 3)) {
+          response += `• ${b}\n`;
+        }
+        response += `\n`;
+      }
       
       // Generate AI-powered priorities
       const priorities = await generateShipPriorities(runtime, projectState, userText);

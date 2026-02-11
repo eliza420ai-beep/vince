@@ -18,6 +18,24 @@ import { logger } from "@elizaos/core";
 const REPO_ROOT = process.cwd();
 const KNOWLEDGE_ROOT = path.join(REPO_ROOT, "knowledge");
 const PLUGINS_ROOT = path.join(REPO_ROOT, "src/plugins");
+const DOCS_ROOT = path.join(REPO_ROOT, "docs");
+const TASKS_ROOT = path.join(REPO_ROOT, "tasks");
+const RADAR_CACHE = path.join(REPO_ROOT, ".openclaw-cache", "project-radar.json");
+
+// Key docs to always scan for priorities
+const KEY_DOCS = [
+  "README.md",
+  "DEPLOY.md",
+  "TREASURY.md",
+  "FEATURE-STORE.md",
+  "ONNX.md",
+  "X-RESEARCH.md",
+  "NOTIFICATIONS.md",
+  "MULTI_AGENT.md",
+  "BRANDING.md",
+  "DISCORD.md",
+  "PLAN-SLACK-DISCORD-KNOWLEDGE-RESEARCH.md",
+];
 
 export interface PluginStatus {
   name: string;
@@ -36,6 +54,34 @@ export interface ProgressItem {
   date?: string;
   description?: string;
   plugin?: string;
+}
+
+export interface TodoItem {
+  text: string;
+  source: string;
+  priority?: "high" | "medium" | "low";
+  checked: boolean;
+}
+
+export interface RoadmapItem {
+  title: string;
+  description: string;
+  source: string;
+  status?: string;
+}
+
+export interface LessonLearned {
+  pattern: string;
+  action: string;
+  source: string;
+}
+
+export interface DocInsight {
+  doc: string;
+  summary: string;
+  todos: TodoItem[];
+  priorities: string[];
+  blockers: string[];
 }
 
 export interface ProjectState {
@@ -66,6 +112,14 @@ export interface ProjectState {
   
   // Recent activity
   recentChanges: Array<{ file: string; daysAgo: number }>;
+  
+  // NEW: Deep doc analysis
+  docInsights: DocInsight[];
+  allTodos: TodoItem[];
+  roadmapItems: RoadmapItem[];
+  lessonsLearned: LessonLearned[];
+  topPriorities: string[];
+  criticalBlockers: string[];
 }
 
 /**
@@ -278,6 +332,213 @@ function checkNorthStar(): ProjectState["northStarDeliverables"] {
 }
 
 /**
+ * Parse a doc for todos, priorities, and insights
+ */
+function parseDocForInsights(filepath: string): DocInsight | null {
+  if (!fs.existsSync(filepath)) return null;
+  
+  try {
+    const content = fs.readFileSync(filepath, "utf-8");
+    const docName = path.basename(filepath);
+    const todos: TodoItem[] = [];
+    const priorities: string[] = [];
+    const blockers: string[] = [];
+    
+    // Extract todos: - [ ] item or - [x] item
+    const todoMatches = content.matchAll(/^[\s]*[-*]\s*\[([ x])\]\s*(.+)$/gm);
+    for (const match of todoMatches) {
+      const checked = match[1] === "x";
+      const text = match[2].trim();
+      
+      // Determine priority from keywords
+      let priority: TodoItem["priority"] = "medium";
+      if (/urgent|critical|asap|blocker|top priority/i.test(text)) {
+        priority = "high";
+      } else if (/nice to have|later|maybe|low priority/i.test(text)) {
+        priority = "low";
+      }
+      
+      todos.push({ text, source: docName, priority, checked });
+    }
+    
+    // Extract priorities from headers and lists
+    const prioritySection = content.match(/(?:##?\s*(?:priorities?|top priority|what's next|roadmap|todo))\s*([\s\S]*?)(?=\n##|\n---|\Z)/gi);
+    if (prioritySection) {
+      for (const section of prioritySection) {
+        const items = section.matchAll(/^[\s]*[-*\d.]\s*\*?\*?(.+?)\*?\*?\s*$/gm);
+        for (const item of items) {
+          const text = item[1].trim();
+          if (text.length > 5 && text.length < 200 && !text.startsWith("#")) {
+            priorities.push(text);
+          }
+        }
+      }
+    }
+    
+    // Extract blockers
+    const blockerPatterns = [
+      /blocked(?:\s+by)?[:\s]+(.+)/gi,
+      /blocker[:\s]+(.+)/gi,
+      /waiting (?:on|for)[:\s]+(.+)/gi,
+      /depends on[:\s]+(.+)/gi,
+    ];
+    
+    for (const pattern of blockerPatterns) {
+      const matches = content.matchAll(pattern);
+      for (const match of matches) {
+        blockers.push(match[1].trim().slice(0, 100));
+      }
+    }
+    
+    // Generate summary from first meaningful paragraph
+    const lines = content.split("\n").filter(l => l.trim() && !l.startsWith("#") && !l.startsWith("-") && !l.startsWith("|"));
+    const summary = lines.slice(0, 3).join(" ").slice(0, 200);
+    
+    return {
+      doc: docName,
+      summary,
+      todos,
+      priorities: priorities.slice(0, 5),
+      blockers,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Scan all key docs for insights
+ */
+function scanAllDocs(): {
+  insights: DocInsight[];
+  allTodos: TodoItem[];
+  roadmapItems: RoadmapItem[];
+  lessons: LessonLearned[];
+  topPriorities: string[];
+  blockers: string[];
+} {
+  const insights: DocInsight[] = [];
+  const allTodos: TodoItem[] = [];
+  const roadmapItems: RoadmapItem[] = [];
+  const lessons: LessonLearned[] = [];
+  const topPriorities: string[] = [];
+  const blockers: string[] = [];
+  
+  // Scan root-level key docs
+  for (const doc of KEY_DOCS) {
+    const insight = parseDocForInsights(path.join(REPO_ROOT, doc));
+    if (insight) {
+      insights.push(insight);
+      allTodos.push(...insight.todos);
+      topPriorities.push(...insight.priorities);
+      blockers.push(...insight.blockers);
+    }
+  }
+  
+  // Scan docs/ folder
+  if (fs.existsSync(DOCS_ROOT)) {
+    const docFiles = fs.readdirSync(DOCS_ROOT).filter(f => f.endsWith(".md"));
+    for (const doc of docFiles) {
+      const insight = parseDocForInsights(path.join(DOCS_ROOT, doc));
+      if (insight) {
+        insights.push(insight);
+        allTodos.push(...insight.todos);
+        topPriorities.push(...insight.priorities);
+        blockers.push(...insight.blockers);
+      }
+    }
+  }
+  
+  // Scan tasks/ folder
+  if (fs.existsSync(TASKS_ROOT)) {
+    const taskFiles = fs.readdirSync(TASKS_ROOT).filter(f => f.endsWith(".md"));
+    for (const task of taskFiles) {
+      const insight = parseDocForInsights(path.join(TASKS_ROOT, task));
+      if (insight) {
+        insights.push(insight);
+        allTodos.push(...insight.todos);
+        topPriorities.push(...insight.priorities);
+        blockers.push(...insight.blockers);
+      }
+    }
+  }
+  
+  // Scan sentinel-docs for specific items
+  const sentinelDocs = path.join(KNOWLEDGE_ROOT, "sentinel-docs");
+  if (fs.existsSync(sentinelDocs)) {
+    const priorityDocs = [
+      "NORTH_STAR_DELIVERABLES.md",
+      "PROGRESS-CONSOLIDATED.md",
+      "ELIZAOS_BENCHMARKS.md",
+      "WORTH_IT_PROOF.md",
+    ];
+    
+    for (const doc of priorityDocs) {
+      const insight = parseDocForInsights(path.join(sentinelDocs, doc));
+      if (insight) {
+        insights.push(insight);
+        allTodos.push(...insight.todos);
+        topPriorities.push(...insight.priorities);
+      }
+    }
+  }
+  
+  // Parse lessons from tasks/lessons.md
+  const lessonsFile = path.join(TASKS_ROOT, "lessons.md");
+  if (fs.existsSync(lessonsFile)) {
+    try {
+      const content = fs.readFileSync(lessonsFile, "utf-8");
+      const patternMatches = content.matchAll(/\*\*(.+?):\*\*\s*(.+)/g);
+      for (const match of patternMatches) {
+        lessons.push({
+          pattern: match[1].trim(),
+          action: match[2].trim().slice(0, 150),
+          source: "lessons.md",
+        });
+      }
+    } catch (e) {
+      // Skip
+    }
+  }
+  
+  // Parse LESSONS-AND-IMPROVEMENTS.md
+  const lessonsImprovements = path.join(TASKS_ROOT, "LESSONS-AND-IMPROVEMENTS.md");
+  if (fs.existsSync(lessonsImprovements)) {
+    try {
+      const content = fs.readFileSync(lessonsImprovements, "utf-8");
+      
+      // Extract "What to improve next" section
+      const improveSection = content.match(/##\s*What to improve next([\s\S]*?)(?=\n##|\Z)/i);
+      if (improveSection) {
+        const items = improveSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*/gm);
+        for (const item of items) {
+          roadmapItems.push({
+            title: item[1].trim(),
+            description: "",
+            source: "LESSONS-AND-IMPROVEMENTS.md",
+          });
+        }
+      }
+    } catch (e) {
+      // Skip
+    }
+  }
+  
+  // Deduplicate and sort
+  const uniquePriorities = [...new Set(topPriorities)].slice(0, 10);
+  const uniqueBlockers = [...new Set(blockers)].slice(0, 10);
+  
+  return {
+    insights,
+    allTodos: allTodos.filter(t => !t.checked).slice(0, 50),
+    roadmapItems,
+    lessons,
+    topPriorities: uniquePriorities,
+    blockers: uniqueBlockers,
+  };
+}
+
+/**
  * Find recently changed files
  */
 function findRecentChanges(daysBack = 7): Array<{ file: string; daysAgo: number }> {
@@ -333,6 +594,13 @@ export function scanProject(): ProjectState {
     knowledgeGaps: [],
     northStarDeliverables: [],
     recentChanges: [],
+    // NEW
+    docInsights: [],
+    allTodos: [],
+    roadmapItems: [],
+    lessonsLearned: [],
+    topPriorities: [],
+    criticalBlockers: [],
   };
   
   // Scan plugins
@@ -371,7 +639,27 @@ export function scanProject(): ProjectState {
   // Find recent changes
   state.recentChanges = findRecentChanges();
   
-  logger.info(`[ProjectRadar] Scan complete: ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.completed.length} completed items`);
+  // NEW: Deep doc analysis
+  const docAnalysis = scanAllDocs();
+  state.docInsights = docAnalysis.insights;
+  state.allTodos = docAnalysis.allTodos;
+  state.roadmapItems = docAnalysis.roadmapItems;
+  state.lessonsLearned = docAnalysis.lessons;
+  state.topPriorities = docAnalysis.topPriorities;
+  state.criticalBlockers = docAnalysis.blockers;
+  
+  // Cache the scan
+  try {
+    const cacheDir = path.dirname(RADAR_CACHE);
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    fs.writeFileSync(RADAR_CACHE, JSON.stringify(state, null, 2));
+  } catch (e) {
+    // Ignore cache errors
+  }
+  
+  logger.info(`[ProjectRadar] Scan complete: ${state.plugins.length} plugins, ${state.totalActions} actions, ${state.docInsights.length} docs analyzed, ${state.allTodos.length} open todos`);
   
   return state;
 }
@@ -383,14 +671,47 @@ export function getProjectSummary(): string {
   const state = scanProject();
   
   let summary = `📡 **Project Radar**\n\n`;
-  summary += `*Scanned: ${new Date(state.scannedAt).toLocaleString()}*\n\n`;
+  summary += `*Scanned ${state.docInsights.length} docs, ${state.plugins.length} plugins, ${state.knowledgeCategories.length} knowledge categories*\n\n`;
+  
+  // Top Priorities (from docs)
+  if (state.topPriorities.length > 0) {
+    summary += `**🎯 Top Priorities (from docs):**\n`;
+    for (const p of state.topPriorities.slice(0, 5)) {
+      summary += `• ${p.slice(0, 80)}${p.length > 80 ? "..." : ""}\n`;
+    }
+    summary += `\n`;
+  }
+  
+  // Critical blockers
+  if (state.criticalBlockers.length > 0) {
+    summary += `**🚫 Blockers:**\n`;
+    for (const b of state.criticalBlockers.slice(0, 3)) {
+      summary += `• ${b}\n`;
+    }
+    summary += `\n`;
+  }
+  
+  // Open TODOs
+  const highTodos = state.allTodos.filter(t => t.priority === "high");
+  const mediumTodos = state.allTodos.filter(t => t.priority === "medium");
+  
+  summary += `**📋 Open TODOs:** ${state.allTodos.length} total\n`;
+  if (highTodos.length > 0) {
+    summary += `• 🔴 High: ${highTodos.length}`;
+    if (highTodos.length > 0) summary += ` — "${highTodos[0].text.slice(0, 40)}..."`;
+    summary += `\n`;
+  }
+  if (mediumTodos.length > 0) {
+    summary += `• 🟡 Medium: ${mediumTodos.length}\n`;
+  }
+  summary += `\n`;
   
   // Plugin overview
   summary += `**Plugins (${state.plugins.length}):** ${state.totalActions} actions, ${state.totalServices} services\n`;
-  const topPlugins = state.plugins.sort((a, b) => b.actionCount - a.actionCount).slice(0, 5);
+  const topPlugins = state.plugins.sort((a, b) => b.actionCount - a.actionCount).slice(0, 4);
   for (const p of topPlugins) {
     const health = p.healthScore >= 80 ? "🟢" : p.healthScore >= 50 ? "🟡" : "🔴";
-    summary += `${health} ${p.name}: ${p.actionCount} actions, ${p.serviceCount} services\n`;
+    summary += `${health} ${p.name}: ${p.actionCount}A/${p.serviceCount}S\n`;
   }
   summary += `\n`;
   
@@ -398,7 +719,7 @@ export function getProjectSummary(): string {
   summary += `**Progress:**\n`;
   summary += `• ✅ ${state.completed.length} completed\n`;
   summary += `• 🔄 ${state.inProgress.length} in progress\n`;
-  summary += `• 🚫 ${state.blocked.length} blocked\n`;
+  if (state.blocked.length > 0) summary += `• 🚫 ${state.blocked.length} blocked\n`;
   summary += `\n`;
   
   // North star
@@ -406,31 +727,52 @@ export function getProjectSummary(): string {
   const staleNS = state.northStarDeliverables.filter(d => d.status === "stale");
   const missingNS = state.northStarDeliverables.filter(d => d.status === "missing");
   
-  summary += `**North Star Deliverables:**\n`;
-  if (activeNS.length > 0) summary += `• 🟢 Active: ${activeNS.map(d => d.deliverable).join(", ")}\n`;
-  if (staleNS.length > 0) summary += `• 🟡 Stale: ${staleNS.map(d => d.deliverable).join(", ")}\n`;
-  if (missingNS.length > 0) summary += `• 🔴 Missing: ${missingNS.map(d => d.deliverable).join(", ")}\n`;
+  summary += `**North Star:** ${activeNS.length}/${state.northStarDeliverables.length} active\n`;
+  if (staleNS.length > 0) summary += `• Stale: ${staleNS.map(d => d.deliverable).join(", ")}\n`;
+  if (missingNS.length > 0) summary += `• Missing: ${missingNS.map(d => d.deliverable).join(", ")}\n`;
   summary += `\n`;
   
-  // Knowledge gaps
-  if (state.knowledgeGaps.length > 0) {
-    summary += `**Knowledge Gaps:**\n`;
-    for (const gap of state.knowledgeGaps.slice(0, 3)) {
-      summary += `• ${gap}\n`;
+  // Lessons learned
+  if (state.lessonsLearned.length > 0) {
+    summary += `**📚 Lessons (${state.lessonsLearned.length}):**\n`;
+    for (const l of state.lessonsLearned.slice(0, 2)) {
+      summary += `• ${l.pattern}: ${l.action.slice(0, 60)}...\n`;
     }
     summary += `\n`;
   }
   
   // Recent activity
   if (state.recentChanges.length > 0) {
-    summary += `**Recent Changes (${state.recentChanges.length}):**\n`;
     const today = state.recentChanges.filter(c => c.daysAgo === 0);
     const thisWeek = state.recentChanges.filter(c => c.daysAgo > 0);
-    if (today.length > 0) summary += `• Today: ${today.length} files\n`;
-    if (thisWeek.length > 0) summary += `• This week: ${thisWeek.length} files\n`;
+    summary += `**Activity:** ${today.length} files today, ${thisWeek.length} this week\n`;
   }
   
   return summary;
+}
+
+/**
+ * Get detailed todos from all docs
+ */
+export function getAllTodos(): TodoItem[] {
+  const state = scanProject();
+  return state.allTodos;
+}
+
+/**
+ * Get lessons learned
+ */
+export function getLessons(): LessonLearned[] {
+  const state = scanProject();
+  return state.lessonsLearned;
+}
+
+/**
+ * Get doc insights for a specific doc
+ */
+export function getDocInsight(docName: string): DocInsight | undefined {
+  const state = scanProject();
+  return state.docInsights.find(d => d.doc.toLowerCase().includes(docName.toLowerCase()));
 }
 
 export default {
