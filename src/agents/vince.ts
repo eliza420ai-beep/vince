@@ -81,6 +81,13 @@ export const vinceCharacter: Character = {
       ...(process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && { DISCORD_APPLICATION_ID: process.env.VINCE_DISCORD_APPLICATION_ID }),
       ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() && { DISCORD_API_TOKEN: process.env.VINCE_DISCORD_API_TOKEN }),
     },
+    /**
+     * Discord A2A: VINCE responds to bot messages (e.g., from Eliza).
+     * Loop protection: Eliza keeps shouldIgnoreBotMessages: true (default), so she won't
+     * respond to VINCE's replies. Flow: Eliza → VINCE → (Eliza ignores) → end.
+     * To enable symmetric A2A, both agents need custom loop detection (not yet implemented).
+     */
+    shouldIgnoreBotMessages: false,
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
