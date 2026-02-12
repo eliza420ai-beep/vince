@@ -501,6 +501,16 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "Suggest improvements to internal-docs, sentinel-docs, teammate. Consolidate progress.txt (plugin-vince, plugin-kelly, frontend).",
       },
       {
+        title: "PRD for Cursor",
+        description:
+          "World-class PRDs for Cursor/Claude Code: north star alignment, acceptance criteria, architecture rules, implementation guide.",
+      },
+      {
+        title: "What to Ship?",
+        description:
+          "Ship priorities from Project Radar + Impact Scorer. What's most impactful to ship next.",
+      },
+      {
         title: "VC / Angel Pitch",
         description:
           "No slides—demos that blow them away. Elevator pitch and TLDR of the big vision. 90% core dev; 10% gen art.",

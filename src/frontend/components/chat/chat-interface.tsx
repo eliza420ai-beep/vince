@@ -58,6 +58,7 @@ import {
   PenLine,
   MessageSquare,
   Megaphone,
+  Shield,
 } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -201,6 +202,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Clawdbot Guide", message: "clawdbot setup" },
     { label: "What's Next?", message: "what should we do next" },
     { label: "Improve Docs", message: "improve docs" },
+    { label: "PRD for Cursor", message: "prd for cursor" },
+    { label: "What to Ship?", message: "what should we ship" },
+    { label: "Security Checklist", message: "security checklist" },
+    { label: "Investor Report", message: "investor report" },
   ],
   // Otaku (COO): DeFi ops executor, token discovery, Morpho, yield, CDP wallet, Bankr (balance/swap/token launch/orders).
   otaku: [
@@ -244,6 +249,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
   echo:
     "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
+  sentinel:
+    "Core dev and ops only. No trading—ask VINCE or Solus.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
@@ -428,6 +435,42 @@ const SENTINEL_CATEGORIES: Record<
     icon: FileCode,
     promptToAsk: "improve docs",
     description: "Suggest doc improvements and consolidate progress.txt",
+  },
+  prd: {
+    title: "PRD for Cursor",
+    icon: FileCode,
+    promptToAsk: "prd for cursor",
+    description: "World-class PRDs for Cursor/Claude Code — north star, acceptance criteria, architecture rules",
+  },
+  ship: {
+    title: "What to Ship?",
+    icon: Target,
+    promptToAsk: "what should we ship",
+    description: "Ship priorities and impact — Project Radar + Impact Scorer",
+  },
+  securityChecklist: {
+    title: "Security Checklist",
+    icon: Shield,
+    promptToAsk: "security checklist",
+    description: "Pre-release security checks and hardening",
+  },
+  investorReport: {
+    title: "Investor Report",
+    icon: BarChart2,
+    promptToAsk: "investor report",
+    description: "VC/angel summary — elevator pitch, TLDR, demos; no slides",
+  },
+  multiAgent: {
+    title: "Multi-Agent",
+    icon: Users,
+    promptToAsk: "multi-agent status",
+    description: "Multi-agent orchestration and ASK_AGENT flow",
+  },
+  tradingIntel: {
+    title: "Trading Intel",
+    icon: TrendingUp,
+    promptToAsk: "trading intel",
+    description: "Summary of trading context; execution is VINCE/Solus",
   },
 };
 

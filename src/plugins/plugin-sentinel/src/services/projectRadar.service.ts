@@ -471,6 +471,7 @@ function scanAllDocs(): {
       "PROGRESS-CONSOLIDATED.md",
       "ELIZAOS_BENCHMARKS.md",
       "WORTH_IT_PROOF.md",
+      "RECENT-SHIPMENTS.md",
     ];
     
     for (const doc of priorityDocs) {
