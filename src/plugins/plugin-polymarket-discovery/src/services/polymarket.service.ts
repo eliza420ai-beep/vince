@@ -484,6 +484,7 @@ export class PolymarketService extends Service {
 
   /**
    * Fetch markets from multiple tags (e.g. VINCE preferred topics). Merges, dedupes by conditionId, sorts by volume, returns up to totalLimit.
+   * Resolves slugs to Gamma tag IDs once; only requests /events for tags that exist in Gamma (avoids 422 for unknown slugs).
    */
   async getMarketsByPreferredTags(options?: {
     tagSlugs?: string[];
@@ -494,12 +495,30 @@ export class PolymarketService extends Service {
     const limitPerTag = Math.min(Math.max(1, options?.limitPerTag ?? 10), 50);
     const totalLimit = Math.min(Math.max(1, options?.totalLimit ?? 20), MAX_PAGE_LIMIT);
 
+    const slugToTagId = new Map<string, string>();
+    try {
+      const tags = await this.getTags();
+      for (const t of tags) {
+        if (t.id && /^\d+$/.test(String(t.id))) {
+          if (t.slug) slugToTagId.set(t.slug, t.id);
+          if (t.label) slugToTagId.set(t.label.toLowerCase(), t.id);
+        }
+      }
+    } catch (err) {
+      logger.warn(`[PolymarketService] getMarketsByPreferredTags getTags failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
     const seen = new Set<string>();
     const merged: PolymarketMarket[] = [];
 
     for (const slug of tagSlugs) {
+      const tagId = slugToTagId.get(slug) ?? slugToTagId.get(slug.toLowerCase());
+      if (!tagId) {
+        logger.debug(`[PolymarketService] getMarketsByPreferredTags skip slug "${slug}" (no matching Gamma tag)`);
+        continue;
+      }
       try {
-        const markets = await this.getEventsByTag(slug, limitPerTag);
+        const markets = await this.getEventsByTag(tagId, limitPerTag);
         for (const m of markets) {
           const id = m.conditionId ?? (m as any).condition_id;
           if (id && !seen.has(id)) {
@@ -508,7 +527,7 @@ export class PolymarketService extends Service {
           }
         }
       } catch (err) {
-        logger.warn(`[PolymarketService] getMarketsByPreferredTags skip tag "${slug}": ${err instanceof Error ? err.message : String(err)}`);
+        logger.warn(`[PolymarketService] getMarketsByPreferredTags skip tag "${slug}" (id ${tagId}): ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
