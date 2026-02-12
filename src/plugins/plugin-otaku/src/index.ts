@@ -13,7 +13,13 @@
  * - OTAKU_POSITIONS: View portfolio and orders
  *
  * Routes (x402 paywalled when enabled):
- * - GET /otaku/positions: Portfolio positions and active orders
+ * - GET /otaku/positions: Portfolio positions and active orders ($0.05)
+ * - GET /otaku/quote: Swap quote without executing ($0.02)
+ * - GET /otaku/yields: DeFi yield opportunities ($0.10)
+ *
+ * Free routes:
+ * - GET /otaku/health: Service health status
+ * - GET /otaku/gas: Gas prices across chains
  */
 
 import type { Plugin } from "@elizaos/core";
@@ -24,11 +30,17 @@ import {
   otakuDcaAction,
   otakuPositionsAction,
 } from "./actions";
-import { positionsRoute } from "./routes/paidPositions";
+import {
+  positionsRoute,
+  quoteRoute,
+  yieldsRoute,
+  healthRoute,
+  gasRoute,
+} from "./routes";
 
 export const otakuPlugin: Plugin = {
   name: "otaku",
-  description: "Otaku COO execution layer - high-level DeFi operations via BANKR",
+  description: "Otaku COO execution layer - high-level DeFi operations via BANKR + x402 paid API",
   actions: [
     otakuSwapAction,
     otakuLimitOrderAction,
@@ -38,7 +50,15 @@ export const otakuPlugin: Plugin = {
   services: [OtakuService],
   providers: [],
   evaluators: [],
-  routes: [positionsRoute],
+  routes: [
+    // Paid routes (x402)
+    positionsRoute,
+    quoteRoute,
+    yieldsRoute,
+    // Free routes
+    healthRoute,
+    gasRoute,
+  ],
 };
 
 export default otakuPlugin;
