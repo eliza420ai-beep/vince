@@ -1599,7 +1599,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     return "Other";
                   };
                   const openMarkets = polymarketData.markets.filter(
-                    (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > Date.now()
+                    (m) =>
+                      (!m.endDateIso || new Date(m.endDateIso).getTime() > Date.now()) &&
+                      (m.yesPrice == null || m.yesPrice >= 0.05)
                   );
                   const bySection = openMarkets.reduce<Record<PolymarketSection, PM[]>>(
                     (acc, m) => {
