@@ -1,9 +1,9 @@
 /**
  * ECHO — Chief Sentiment Officer (CSO)
- * 
+ *
  * The voice of Crypto Twitter. Echoes what CT is saying, captures the vibe,
  * surfaces alpha, and warns when sentiment gets extreme.
- * 
+ *
  * Part of the VINCE Dream Team:
  * - Eliza (CEO) — Knowledge base, research, brainstorm
  * - VINCE (CDO) — Objective data: options, perps, prices, news
@@ -11,13 +11,28 @@
  * - Otaku (COO) — DeFi ops, onchain execution
  * - Kelly (CVO) — Lifestyle: travel, dining, health
  * - Sentinel (CTO) — Ops, code, infra
- * - ECHO (CSO) — CT sentiment, X research, social alpha ← NEW
+ * - ECHO (CSO) — CT sentiment, X research, social alpha
  */
 
-import type { Character } from '@elizaos/core';
+import {
+  type IAgentRuntime,
+  type ProjectAgent,
+  type Character,
+  type Plugin,
+} from "@elizaos/core";
+import { logger } from "@elizaos/core";
+import sqlPlugin from "@elizaos/plugin-sql";
+import bootstrapPlugin from "@elizaos/plugin-bootstrap";
+import anthropicPlugin from "@elizaos/plugin-anthropic";
+import openaiPlugin from "@elizaos/plugin-openai";
+import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
+
+const echoHasDiscord =
+  !!(process.env.ECHO_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
 
 export const echoCharacter: Character = {
-  name: 'ECHO',
+  name: "ECHO",
+  username: "echo",
 
   system: `You are ECHO, the Chief Sentiment Officer. Your role is to capture and communicate what Crypto Twitter is saying.
 
@@ -153,23 +168,68 @@ EXAMPLE OUTPUTS:
   },
 
   adjectives: [
-    'tuned-in',
-    'opinionated',
-    'contrarian-aware',
-    'quality-focused',
-    'CT-native',
-    'alpha-hunting',
-    'sentiment-tracking',
+    "tuned-in",
+    "opinionated",
+    "contrarian-aware",
+    "quality-focused",
+    "CT-native",
+    "alpha-hunting",
+    "sentiment-tracking",
   ],
 
-  plugins: ['@vince/plugin-x-research'],
+  plugins: [
+    "@elizaos/plugin-sql",
+    "@elizaos/plugin-bootstrap",
+    ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
+    ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
+    ...(echoHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    "@vince/plugin-x-research",
+  ],
 
   settings: {
-    model: 'gpt-4o',
+    secrets: {
+      ...(process.env.ECHO_DISCORD_APPLICATION_ID?.trim() && {
+        DISCORD_APPLICATION_ID: process.env.ECHO_DISCORD_APPLICATION_ID,
+      }),
+      ...(process.env.ECHO_DISCORD_API_TOKEN?.trim() && {
+        DISCORD_API_TOKEN: process.env.ECHO_DISCORD_API_TOKEN,
+      }),
+      ...(process.env.DISCORD_APPLICATION_ID?.trim() &&
+        !process.env.ECHO_DISCORD_APPLICATION_ID?.trim() && {
+          DISCORD_APPLICATION_ID: process.env.DISCORD_APPLICATION_ID,
+        }),
+      ...(process.env.DISCORD_API_TOKEN?.trim() &&
+        !process.env.ECHO_DISCORD_API_TOKEN?.trim() && {
+          DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
+        }),
+    },
+    model: "gpt-4o",
     voice: {
-      model: 'en_US-male-medium',
+      model: "en_US-male-medium",
     },
   },
+};
+
+const buildPlugins = (): Plugin[] =>
+  [
+    sqlPlugin,
+    bootstrapPlugin,
+    ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
+    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+    ...(echoHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    xResearchPlugin,
+  ] as Plugin[];
+
+const initEcho = async (_runtime: IAgentRuntime) => {
+  logger.info(
+    "[ECHO] Chief Sentiment Officer ready — X pulse, vibe checks, threads, alpha accounts.",
+  );
+};
+
+export const echoAgent: ProjectAgent = {
+  character: echoCharacter,
+  init: initEcho,
+  plugins: buildPlugins(),
 };
 
 export default echoCharacter;

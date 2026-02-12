@@ -35,6 +35,7 @@ import { solusAgent } from "./agents/solus.ts";
 import { otakuAgent } from "./agents/otaku.ts";
 import { kellyAgent } from "./agents/kelly.ts";
 import { sentinelAgent } from "./agents/sentinel.ts";
+import { echoAgent } from "./agents/echo.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 import { interAgentPlugin } from "./plugins/plugin-inter-agent/src/index.ts";
 
@@ -78,6 +79,11 @@ addIfDiscordEnabled(
   "Sentinel",
   !!(process.env.SENTINEL_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
   process.env.SENTINEL_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+);
+addIfDiscordEnabled(
+  "ECHO",
+  !!(process.env.ECHO_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
+  process.env.ECHO_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
 );
 
 const byAppId = new Map<string, string[]>();
@@ -125,6 +131,10 @@ const project: Project = {
       ...sentinelAgent,
       plugins: [logFilterPlugin, interAgentPlugin, ...(sentinelAgent.plugins ?? [])],
     },
+    {
+      ...echoAgent,
+      plugins: [logFilterPlugin, interAgentPlugin, ...(echoAgent.plugins ?? [])],
+    },
   ],
 };
 
@@ -134,5 +144,6 @@ export { solusAgent } from "./agents/solus.ts";
 export { otakuAgent } from "./agents/otaku.ts";
 export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
+export { echoAgent } from "./agents/echo.ts";
 export { character } from "./agents/eliza.ts";
 export default project;
