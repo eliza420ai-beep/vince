@@ -151,17 +151,16 @@ export function buildPriorityMarketsHandler() {
       const tagSections: Record<string, { label: string; markets: PriorityMarketItem[] }> = {};
       POLYMARKET_TAG_SECTION_SLUGS.forEach((slug, i) => {
         const raw = tagResults[i] as PolymarketMarket[] | undefined;
-        if (!Array.isArray(raw)) return;
-        const items = raw
-          .map(mapMarketToItem)
-          .filter(
-            (m) =>
-              (!m.endDateIso || new Date(m.endDateIso).getTime() > now) &&
-              (m.yesPrice == null || m.yesPrice >= 0.05)
-          );
-        if (items.length > 0) {
-          tagSections[slug] = { label: getLabelForSlug(slug), markets: items };
-        }
+        const items = Array.isArray(raw)
+          ? raw
+              .map(mapMarketToItem)
+              .filter(
+                (m) =>
+                  (!m.endDateIso || new Date(m.endDateIso).getTime() > now) &&
+                  (m.yesPrice == null || m.yesPrice >= 0.05)
+              )
+          : [];
+        tagSections[slug] = { label: getLabelForSlug(slug), markets: items };
       });
 
       const body: PriorityMarketsResponse = {
@@ -187,7 +186,7 @@ export function buildPriorityMarketsHandler() {
                 updatedAt: now,
               }
             : undefined,
-        tagSections: Object.keys(tagSections).length > 0 ? tagSections : undefined,
+        tagSections,
       };
 
       res.json(body);

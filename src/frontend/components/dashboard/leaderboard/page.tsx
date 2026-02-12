@@ -1815,9 +1815,13 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       {polymarketData.tagSections && Object.keys(polymarketData.tagSections).length > 0 ? (
                         TAG_SECTION_ORDER.map((slug) => {
                           const sec = polymarketData.tagSections![slug];
-                          if (!sec?.markets?.length) return null;
+                          if (!sec) return null;
+                          const markets = sec.markets ?? [];
                           return (
-                            <DashboardCard key={slug} title={`${sec.label} (${sec.markets.length})`} className="lg:col-span-2">
+                            <DashboardCard key={slug} title={`${sec.label} (${markets.length})`} className="lg:col-span-2">
+                              {markets.length === 0 ? (
+                                <p className="text-sm text-muted-foreground py-4">No open markets in this section.</p>
+                              ) : (
                               <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                   <thead>
@@ -1830,7 +1834,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {sortMarkets(sec.markets).map((m) => (
+                                    {sortMarkets(markets).map((m) => (
                                       <tr key={m.conditionId} className="border-b border-border/50">
                                         <td className="py-2 font-medium text-foreground/95 max-w-[320px] truncate" title={m.question}>{m.question}</td>
                                         <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
@@ -1853,6 +1857,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                   </tbody>
                                 </table>
                               </div>
+                              )}
                             </DashboardCard>
                           );
                         })
