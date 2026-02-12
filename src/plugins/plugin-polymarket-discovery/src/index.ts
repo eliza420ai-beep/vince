@@ -58,6 +58,9 @@ import { getTopHoldersAction } from "./actions/getTopHolders.action";
 // Provider
 import { polymarketDiscoveryProvider } from "./providers/polymarketDiscovery.provider";
 
+// Routes
+import { buildPriorityMarketsHandler } from "./routes/priorityMarkets";
+
 // Context Matcher
 export { shouldPolymarketPluginBeInContext, polymarketKeywordPatterns } from "../matcher";
 
@@ -114,6 +117,14 @@ export const polymarketDiscoveryPlugin: Plugin = {
     "Polymarket prediction markets plugin - browse markets, track portfolio, analyze positions (read-only, no trading)",
   evaluators: [],
   providers: [polymarketDiscoveryProvider],
+  routes: [
+    {
+      name: "polymarket-priority-markets",
+      path: "/polymarket/priority-markets",
+      type: "GET",
+      handler: buildPriorityMarketsHandler(),
+    },
+  ],
   actions: [
     // Phase 1: Market Discovery
     getActiveMarketsAction,

@@ -22,6 +22,7 @@ import {
   fetchKnowledgeWithError,
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
+  fetchPolymarketPriorityMarkets,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type { PaperResponse, KnowledgeResponse } from "@/frontend/lib/leaderboardsApi";
@@ -65,7 +66,7 @@ function signalSourceDisplayName(name: string): string {
   return SIGNAL_SOURCE_DISPLAY_NAMES[name] ?? name;
 }
 
-type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art" | "usage";
+type MainTab = "knowledge" | "markets" | "memetics" | "news" | "more" | "trading_bot" | "digital_art" | "usage" | "polymarket";
 
 // Type assertion for gamification service (will be available after API client rebuild)
 const gamificationClient = (elizaClient as any).gamification;
@@ -83,9 +84,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   // Markets (HIP-3, Crypto, Memes, etc.) come from plugin-vince — use VINCE agent so the route exists
   const vinceAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "VINCE");
   const elizaAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "ELIZA");
+  const oracleAgent = agents?.find((a) => (a.name ?? "").toUpperCase() === "ORACLE");
   const leaderboardsAgentId = (vinceAgent?.id ?? agents?.[0]?.id ?? agentId) as string;
   // Upload is Eliza-only: use her agent so the request is handled by plugin-eliza
   const uploadAgentId = (elizaAgent?.id ?? leaderboardsAgentId) as string;
+  const oracleAgentId = (oracleAgent?.id ?? null) as string | null;
   const [mainTab, setMainTab] = useState<MainTab>("trading_bot");
   const [scope, setScope] = useState<"weekly" | "all_time">("weekly");
   const [copied, setCopied] = useState(false);
@@ -150,6 +153,16 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
+
+  const { data: polymarketResult, isLoading: polymarketLoading, refetch: refetchPolymarket, isFetching: polymarketFetching } = useQuery({
+    queryKey: ["polymarket-priority", oracleAgentId],
+    queryFn: () => fetchPolymarketPriorityMarkets(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: LEADERBOARDS_STALE_MS,
+  });
+  const polymarketData = polymarketResult?.data ?? null;
+  const polymarketError = polymarketResult?.error ?? null;
+
   const leaderboardsData = leaderboardsResult?.data ?? null;
   const leaderboardsError = leaderboardsResult?.error ?? null;
   const leaderboardsStatus = leaderboardsResult?.status ?? null;
@@ -316,7 +329,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 ? "Curated NFT collections — floor prices and thin-floor opportunities"
                 : mainTab === "usage"
                   ? "Session token usage and estimated cost (TREASURY)"
-                  : "Open paper trades and portfolio overview";
+                  : mainTab === "polymarket"
+                    ? "Priority prediction markets — palantir, paper bot, Hypersurface strikes, vibe check"
+                    : "Open paper trades and portfolio overview";
 
   return (
     <DashboardPageLayout
@@ -340,6 +355,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <TabsTrigger value="memetics">Memetics</TabsTrigger>
               <TabsTrigger value="digital_art">Digital Art</TabsTrigger>
               <TabsTrigger value="more">More</TabsTrigger>
+              <TabsTrigger value="polymarket">Polymarket</TabsTrigger>
               <TabsTrigger value="usage">Usage</TabsTrigger>
             </TabsList>
             {(mainTab === "markets" || mainTab === "memetics" || mainTab === "news" || mainTab === "more" || mainTab === "digital_art") && (
@@ -373,6 +389,12 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
             {mainTab === "usage" && (
               <Button variant="outline" size="sm" onClick={() => refetchUsage()} disabled={usageFetching}>
                 <RefreshCw className={cn("w-4 h-4 mr-2", usageFetching && "animate-spin")} />
+                Refresh
+              </Button>
+            )}
+            {mainTab === "polymarket" && oracleAgentId && (
+              <Button variant="outline" size="sm" onClick={() => refetchPolymarket()} disabled={polymarketLoading || polymarketFetching}>
+                <RefreshCw className={cn("w-4 h-4 mr-2", (polymarketLoading || polymarketFetching) && "animate-spin")} />
                 Refresh
               </Button>
             )}
@@ -1522,6 +1544,95 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <p className="text-sm text-muted-foreground">Make sure VINCE is running, then click Refresh above.</p>
               </div>
             )}
+          </TabsContent>
+
+          {/* Polymarket tab: priority markets and why we track */}
+          <TabsContent value="polymarket" className="mt-6 flex-1 min-h-0 overflow-auto">
+            <div className="space-y-6">
+              {/* Why we track — static fallback + API copy when available */}
+              <DashboardCard title="Why we track these markets">
+                <p className="text-sm font-medium text-foreground/95">
+                  {polymarketData?.whyWeTrack ?? "Priority markets are a palantir into what the market thinks. We use them for: (1) Paper bot — short-term perps on Hyperliquid. (2) Hypersurface strike selection — weekly predictions are the most important. (3) Macro vibe check."}
+                </p>
+                {polymarketData?.intentSummary && (
+                  <p className="text-xs text-muted-foreground mt-2">{polymarketData.intentSummary}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">Read-only. No wallet or auth; for positions use Oracle in chat with a wallet address.</p>
+              </DashboardCard>
+
+              {(polymarketLoading || polymarketFetching) && !polymarketData ? (
+                <div className="space-y-4">
+                  <div className="h-32 bg-muted/50 rounded-xl animate-pulse" />
+                  <div className="h-24 bg-muted/50 rounded-xl animate-pulse" />
+                </div>
+              ) : !oracleAgentId ? (
+                <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
+                  <p className="font-medium text-foreground">Oracle agent not found</p>
+                  <p className="text-sm text-muted-foreground">Enable the Oracle agent for live priority markets data.</p>
+                </div>
+              ) : polymarketError ? (
+                <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
+                  <p className="font-medium text-foreground">Could not load priority markets</p>
+                  <p className="text-sm text-muted-foreground">{polymarketError}</p>
+                  <p className="text-xs text-muted-foreground">Ensure the Oracle agent is running, then click Refresh.</p>
+                </div>
+              ) : polymarketData?.markets && polymarketData.markets.length > 0 ? (
+                <>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-sm text-muted-foreground">
+                      {polymarketData.updatedAt != null
+                        ? `Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
+                        : null}
+                    </p>
+                  </div>
+                  <DashboardCard title="Priority markets" className="lg:col-span-2">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 font-medium">Market</th>
+                            <th className="text-right py-2 font-medium">Volume</th>
+                            <th className="text-right py-2 font-medium">Link</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {polymarketData.markets.map((m) => (
+                            <tr key={m.conditionId} className="border-b border-border/50">
+                              <td className="py-2 font-medium text-foreground/95">{m.question}</td>
+                              <td className="text-right font-mono text-muted-foreground">
+                                {m.volume != null
+                                  ? Number(m.volume) >= 1e6
+                                    ? `$${(Number(m.volume) / 1e6).toFixed(1)}M`
+                                    : Number(m.volume) >= 1e3
+                                      ? `$${(Number(m.volume) / 1e3).toFixed(0)}K`
+                                      : `$${Number(m.volume).toFixed(0)}`
+                                  : "—"}
+                              </td>
+                              <td className="text-right">
+                                {/* Link: event slug when available from API, else market conditionId (read-only; no auth). No manual slug curation. */}
+                                <a
+                                  href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline inline-flex items-center gap-1"
+                                >
+                                  View <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </DashboardCard>
+                </>
+              ) : polymarketData?.markets && polymarketData.markets.length === 0 ? (
+                <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
+                  <p className="font-medium text-foreground">No priority markets right now</p>
+                  <p className="text-sm text-muted-foreground">Try again later or click Refresh.</p>
+                </div>
+              ) : null}
+            </div>
           </TabsContent>
 
           {/* Usage / TREASURY tab: session token usage and estimated cost */}

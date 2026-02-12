@@ -1,6 +1,9 @@
 /**
  * Dashboard Leaderboards API – "who's doing best" data for the leaderboard page.
  * Aggregates HIP-3, HL Crypto, Memes, Meteora, News into rankable sections.
+ *
+ * Polymarket priority markets are intentionally not included here; they are served
+ * by plugin-polymarket-discovery via the Oracle agent and the leaderboard "Polymarket" tab.
  */
 
 import type { IAgentRuntime } from "@elizaos/core";

@@ -1,6 +1,9 @@
 /**
  * Leaderboards API – "who's doing best" market data for the leaderboard page.
  * GET /api/agents/:agentId/plugins/vince/leaderboards
+ *
+ * Data sources: Markets / Memes / News / More / Digital Art from plugin-vince;
+ * Polymarket from plugin-polymarket-discovery (Oracle agent only, separate tab).
  */
 
 export interface LeaderboardRow {
@@ -244,6 +247,54 @@ export async function fetchLeaderboardsWithError(
 }
 
 export { STALE_MS as LEADERBOARDS_STALE_MS };
+
+// ---------------------------------------------------------------------------
+// Polymarket priority markets (Polymarket tab – Oracle agent)
+// ---------------------------------------------------------------------------
+
+export interface PolymarketPriorityMarketsResponse {
+  whyWeTrack: string;
+  intentSummary: string;
+  markets: {
+    question: string;
+    conditionId: string;
+    volume?: string;
+    yesTokenId?: string;
+    noTokenId?: string;
+    slug?: string;
+  }[];
+  updatedAt: number;
+}
+
+export interface PolymarketPriorityMarketsFetchResult {
+  data: PolymarketPriorityMarketsResponse | null;
+  error: string | null;
+  status: number | null;
+}
+
+export async function fetchPolymarketPriorityMarkets(
+  agentId: string,
+): Promise<PolymarketPriorityMarketsFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-polymarket-discovery/polymarket/priority-markets`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(20000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return { data: body as PolymarketPriorityMarketsResponse, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Paper trading (Trading Bot tab)

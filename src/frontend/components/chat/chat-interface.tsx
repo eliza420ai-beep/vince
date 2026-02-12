@@ -234,6 +234,15 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },
   ],
+  // Oracle: Polymarket discovery, priority markets (palantir → paper bot, Hypersurface strikes, vibe check).
+  oracle: [
+    { label: "What can you do?", message: "What can you do?" },
+    { label: "Our focus markets", message: "What Polymarket markets matter for us?" },
+    { label: "Trending predictions", message: "What are the trending polymarket predictions?" },
+    { label: "Search: Bitcoin", message: "Search polymarket for bitcoin predictions" },
+    { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
+    { label: "Categories", message: "What categories are available on polymarket?" },
+  ],
 };
 
 function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
@@ -251,6 +260,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
   sentinel:
     "Core dev and ops only. No trading—ask VINCE or Solus.",
+  oracle:
+    "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)

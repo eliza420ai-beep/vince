@@ -650,6 +650,78 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       "Say \"What's CT saying about BTC?\" or \"quick pulse\". For content audit or top posts playbook, ask Eliza.",
   },
 
+  Oracle: {
+    headline: "A palantir into what the market thinks.",
+    intro:
+      "Prediction-markets specialist (Polymarket-first). Read-only discovery, odds, orderbooks, portfolio. Priority markets are a palantir into market belief; signals feed the paper bot (perps on Hyperliquid), Hypersurface strike selection (weekly predictions most important), and a macro vibe check. No trading—handoffs: live perps/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku.",
+    tags: [
+      { label: "Polymarket", withSparkles: true },
+      { label: "Palantir" },
+      { label: "Paper bot signals" },
+      { label: "Hypersurface strikes" },
+      { label: "Vibe check" },
+      { label: "Read-only" },
+    ],
+    capabilities: [
+      {
+        title: "VINCE-priority markets",
+        description:
+          "Markets that matter for us: crypto (Bitcoin, ETH, SOL, ETF, weekly/monthly), finance (stocks, fed rates, treasuries), geopolitics, economy. GET_VINCE_POLYMARKET_MARKETS. Signals feed paper bot, Hypersurface strike choice, and vibe check.",
+      },
+      {
+        title: "Discovery & search",
+        description:
+          "Trending markets, search by keyword or category, market detail, real-time prices, price history, categories, events.",
+      },
+      {
+        title: "Orderbooks & analytics",
+        description:
+          "Orderbook depth, open interest, live volume, spreads. Condition_id and token_id for follow-ups.",
+      },
+      {
+        title: "Portfolio (wallet)",
+        description:
+          "Positions, balance, trade history, closed positions, user activity, top holders—when a wallet address is provided.",
+      },
+      {
+        title: "Why we care",
+        description:
+          "Odds are a palantir. Short-term predictions improve the paper bot (perps). Weekly predictions help pick the right strike on Hypersurface—by far the most important. Plus macro vibe check.",
+      },
+    ],
+    plugins: [
+      {
+        name: "Plugin-Polymarket-Discovery",
+        category: "Prediction markets",
+        summary:
+          "Read-only Polymarket: priority markets, search, detail, prices, orderbooks, events, portfolio. Signals feed paper bot, Hypersurface strikes (weekly key), vibe check.",
+        points: [
+          "GET_VINCE_POLYMARKET_MARKETS for focus topics.",
+          "SEARCH_POLYMARKETS, GET_POLYMARKET_DETAIL, orderbooks, spreads.",
+        ],
+        example: '"What Polymarket markets matter for us?" or "trending predictions"',
+      },
+      {
+        name: "Powered by ElizaOS",
+        category: "AI Engine",
+        summary:
+          "One clear answer. Cite condition_id and token_id. Benefit-led, no AI-slop.",
+        points: [],
+        example: "",
+      },
+      {
+        name: "Bootstrap",
+        category: "Memory",
+        summary:
+          "Remembers. Recent activity context for discovery.",
+        points: [],
+        example: "",
+      },
+    ],
+    proTip:
+      "Ask \"What Polymarket markets matter for us?\" or \"Show our focus markets\". For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
+  },
+
   Eliza: {
     headline: "24/7 research & knowledge expansion.",
     intro:
