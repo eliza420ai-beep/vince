@@ -13,6 +13,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -221,7 +222,7 @@ export const sentinelSuggestAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<ActionResult> => {
     logger.debug("[SENTINEL_SUGGEST] Action fired");
 
     try {
@@ -246,7 +247,7 @@ export const sentinelSuggestAction: Action = {
         await callback({
           text: `📝 **Task Brief for Claude Code**\n\n\`\`\`\n${brief}\n\`\`\`\n\n*Paste this into Cursor or the Claude Code controller.*`,
         });
-        return true;
+        return { success: true };
       }
 
       // Handle integration instructions request
@@ -274,7 +275,7 @@ ${setup.benefits.map(b => `✅ ${b}`).join("\n")}
 ---
 *24/7 knowledge research without X API cost. OpenClaw matters A LOT.*`,
           });
-          return true;
+          return { success: true };
         }
 
         // General integration instructions
@@ -297,7 +298,7 @@ ${patternsText}
 
 *OpenClaw (formerly openclaw/MoltBot) matters A LOT.*`,
         });
-        return true;
+        return { success: true };
       }
 
       // Main suggestions flow
@@ -366,13 +367,14 @@ ${patternsText}
       response += `\n---\n*For a full PRD: "PRD for <feature>". For a task brief: "brief for Claude to <task>".*`;
       
       await callback({ text: response });
-      return true;
+      return { success: true };
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
       logger.error("[SENTINEL_SUGGEST] Failed:", error);
       await callback({
         text: "Failed to generate suggestions. Check logs and try again.",
       });
-      return false;
+      return { success: false, error: err };
     }
   },
 
