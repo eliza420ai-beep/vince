@@ -151,15 +151,12 @@ export function buildPriorityMarketsHandler() {
       const tagSections: Record<string, { label: string; markets: PriorityMarketItem[] }> = {};
       POLYMARKET_TAG_SECTION_SLUGS.forEach((slug, i) => {
         const raw = tagResults[i] as PolymarketMarket[] | undefined;
-        const items = Array.isArray(raw)
+        let items = Array.isArray(raw)
           ? raw
               .map(mapMarketToItem)
-              .filter(
-                (m) =>
-                  (!m.endDateIso || new Date(m.endDateIso).getTime() > now) &&
-                  (m.yesPrice == null || m.yesPrice >= 0.05)
-              )
+              .filter((m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now)
           : [];
+        items = items.sort((a, b) => Number(b.volume ?? b.liquidity ?? 0) - Number(a.volume ?? a.liquidity ?? 0));
         tagSections[slug] = { label: getLabelForSlug(slug), markets: items };
       });
 
