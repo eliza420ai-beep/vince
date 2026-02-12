@@ -11,6 +11,9 @@
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
  * - OTAKU_POSITIONS: View portfolio and orders
+ *
+ * Routes (x402 paywalled when enabled):
+ * - GET /otaku/positions: Portfolio positions and active orders
  */
 
 import type { Plugin } from "@elizaos/core";
@@ -21,6 +24,7 @@ import {
   otakuDcaAction,
   otakuPositionsAction,
 } from "./actions";
+import { positionsRoute } from "./routes/paidPositions";
 
 export const otakuPlugin: Plugin = {
   name: "otaku",
@@ -34,6 +38,7 @@ export const otakuPlugin: Plugin = {
   services: [OtakuService],
   providers: [],
   evaluators: [],
+  routes: [positionsRoute],
 };
 
 export default otakuPlugin;
