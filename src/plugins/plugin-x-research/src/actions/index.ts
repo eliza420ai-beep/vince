@@ -10,3 +10,4 @@ export { xMentionsAction } from './xMentions.action';
 export { xNewsAction } from './xNews.action';
 export { xWatchlistAction } from './xWatchlist.action';
 export { xSaveResearchAction } from './xSaveResearch.action';
+export { xSearchAction } from './xSearch.action';

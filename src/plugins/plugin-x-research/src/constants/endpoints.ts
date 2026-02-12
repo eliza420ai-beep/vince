@@ -5,8 +5,9 @@
 export const X_API_BASE = 'https://api.x.com/2';
 
 export const ENDPOINTS = {
-  // Search
+  // Search (full-archive requires Pro/Enterprise; gate with X_RESEARCH_FULL_ARCHIVE=true)
   SEARCH_RECENT: '/tweets/search/recent',
+  SEARCH_FULL_ARCHIVE: '/tweets/search/all',
   SEARCH_COUNTS: '/tweets/counts/recent',
   
   // Tweets

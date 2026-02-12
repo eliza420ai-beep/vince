@@ -17,8 +17,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
 
-import { STYLE_GUIDE_PATH } from "../config/paths";
-const STYLE_CACHE_PATH = path.join(process.cwd(), ".openclaw-cache", "style-guide.json");
+import { STYLE_GUIDE_PATH, getCacheRoot } from "../config/paths";
+const STYLE_CACHE_PATH = path.join(getCacheRoot(), "style-guide.json");
 
 export interface TerminologyRule {
   preferred: string;

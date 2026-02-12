@@ -15,6 +15,7 @@ import {
 import { getXAccountsService } from '../services/xAccounts.service';
 import { initXClientFromEnv } from '../services/xClient.service';
 import { TOPIC_BY_ID } from '../constants/topics';
+import { formatCostFooterCombined } from '../constants/cost';
 
 export const xAccountAction: Action = {
   name: 'X_ACCOUNT',
@@ -157,6 +158,11 @@ export const xAccountAction: Action = {
       const similar = await accountsService.findSimilarAccounts(username);
       if (similar.length > 0) {
         response += `\n**Similar:** ${similar.slice(0, 3).map(s => `@${s}`).join(', ')}`;
+      }
+
+      if (process.env.X_RESEARCH_SHOW_COST === 'true') {
+        const postReads = 20 + (aboutTopic ? 20 : 5);
+        response += `\n\n${formatCostFooterCombined({ userLookups: 1, postReads })}`;
       }
 
       callback({

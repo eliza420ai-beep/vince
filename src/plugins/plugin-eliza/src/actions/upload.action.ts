@@ -449,9 +449,10 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             await callback({
               text: `✅ **YouTube saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
+              success: true,
             });
           } else if (callback && !fileResult.success) {
-            await callback({ text: `❌ Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`, actions: ["UPLOAD"] });
+            await callback({ text: `❌ Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`, actions: ["UPLOAD"], success: false });
           }
           return;
         }
@@ -460,6 +461,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           await callback({
             text: `⚠️ **Couldn't fetch that YouTube**\n\n${errMsg}\n\n• Install: \`bun install -g @steipete/summarize\` and set \`OPENAI_API_KEY\` or \`GEMINI_API_KEY\`\n• Or paste the transcript here and I'll save it.${ELIZA_FOOTER}`,
             actions: ["UPLOAD"],
+            success: false,
           });
         }
         return;
@@ -473,6 +475,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             await callback({
               text: `⚠️ **X (Twitter) links can't be fetched here**\n\nPaste the thread or article text, then say **"upload that"** and I'll save it to knowledge.${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
+              success: false,
             });
           }
           return;
@@ -482,6 +485,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             await callback({
               text: `🔗 **Post this link in #knowledge** and I'll run **ADD_MICHELIN_RESTAURANT** to add the restaurant to \`knowledge/the-good-life/michelin-restaurants/\`.${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
+              success: false,
             });
           }
           return;
@@ -492,6 +496,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
             await callback({
               text: `🔗 **Fetching URL**\n\n${singleUrl}\n\nSummarizing... (up to ~90s)${ELIZA_FOOTER}`,
               actions: ["UPLOAD"],
+              success: false,
             });
           }
           const summarized = await runSummarizeCli(singleUrl, { isYouTube: false });
@@ -504,15 +509,16 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
               await callback({
                 text: `✅ **URL saved to knowledge**\n\n**Source**: ${summarized.sourceUrl}\n**Category**: \`${fileResult.file.category}\`\n**File**: \`${fileResult.file.filename}\`\n**Words**: ${fileResult.file.metadata.wordCount}${ELIZA_FOOTER}`,
                 actions: ["UPLOAD"],
+                success: true,
               });
             } else if (callback && !fileResult.success) {
-              await callback({ text: `❌ Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`, actions: ["UPLOAD"] });
+              await callback({ text: `❌ Save failed: ${fileResult.error ?? "Unknown"}${ELIZA_FOOTER}`, actions: ["UPLOAD"], success: false });
             }
             return;
           }
           if (callback) {
             const errMsg = summarized && "error" in summarized ? [summarized.error, summarized.stderr].filter(Boolean).join(summarized.stderr ? "\n(summarize): " : "") : "Install `bun install -g @steipete/summarize` and set an API key, or paste the article text here.";
-            await callback({ text: `⚠️ **Couldn't fetch that URL**\n\n${errMsg}${ELIZA_FOOTER}`, actions: ["UPLOAD"] });
+            await callback({ text: `⚠️ **Couldn't fetch that URL**\n\n${errMsg}${ELIZA_FOOTER}`, actions: ["UPLOAD"], success: false });
           }
           return;
         }
@@ -542,6 +548,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           await callback({
             text: `🔗 **Post the restaurant link in #knowledge** and I'll run **ADD_MICHELIN_RESTAURANT** to add it properly.${ELIZA_FOOTER}`,
             actions: ["UPLOAD"],
+            success: false,
           });
         }
         return;
@@ -552,6 +559,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           await callback({
             text: `The content is too short to save. Please provide more substantial content (at least 50 characters).${ELIZA_FOOTER}`,
             actions: ["UPLOAD"],
+            success: false,
           });
         }
         return;
@@ -581,11 +589,13 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
 
 Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${ELIZA_FOOTER}`,
             actions: ["UPLOAD"],
+            success: true,
           });
         } else {
           await callback({
             text: `❌ **Upload Failed**\n\n**Error**: ${fileResult.error || "Unknown error"}${ELIZA_FOOTER}`,
             actions: ["UPLOAD"],
+            success: false,
           });
         }
       }
@@ -595,6 +605,7 @@ Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${
         await callback({
           text: `❌ An error occurred while uploading: ${String(error)}${ELIZA_FOOTER}`,
           actions: ["UPLOAD"],
+          success: false,
         });
       }
     }

@@ -35,6 +35,22 @@ export interface MultiSearchOptions {
   cacheTtlMs?: number;
 }
 
+export interface FreeFormSearchOptions {
+  /** Free-form search query (keywords, hashtags, cashtags). */
+  query: string;
+  /** Optional: restrict to tweets from this username (without @). */
+  from?: string;
+  sortOrder?: 'recency' | 'relevancy';
+  maxResults?: number;
+  /** Max pages to fetch (1 page ≈ 100 tweets). Use >1 for deeper research. */
+  maxPages?: number;
+  /** Post-fetch min likes filter (quality). */
+  minLikes?: number;
+  hoursBack?: number;
+  /** Longer TTL for quick/repeat lookups. */
+  cacheTtlMs?: number;
+}
+
 /**
  * X Search Service
  */
@@ -76,8 +92,58 @@ export class XSearchService {
       cacheTtlMs: options.cacheTtlMs,
     });
 
-    // Enrich tweets with computed fields
-    return this.enrichTweets(response);
+    // Enrich tweets with computed fields, then apply min-likes filter post-fetch
+    const enriched = this.enrichTweets(response);
+    return this.filterByMinLikes(enriched, minLikes);
+  }
+
+  /**
+   * Free-form search (arbitrary query, optional from:user). Used by X_SEARCH action.
+   * When maxPages > 1, fetches multiple pages and merges results.
+   */
+  async searchQuery(options: FreeFormSearchOptions): Promise<XTweet[]> {
+    const {
+      query: rawQuery,
+      from,
+      sortOrder = 'relevancy',
+      maxResults = 50,
+      maxPages = 1,
+      minLikes = 0,
+      hoursBack = 24,
+      cacheTtlMs,
+    } = options;
+
+    let query = rawQuery.trim();
+    if (from) {
+      const username = from.replace(/^@/, '');
+      if (!query.toLowerCase().includes('from:')) {
+        query = `${query} from:${username}`;
+      }
+    }
+    query += ' lang:en -is:retweet -is:reply';
+
+    const startTime = new Date(Date.now() - hoursBack * 60 * 60 * 1000).toISOString();
+    const perPage = Math.min(maxResults, 100);
+    const allTweets: XTweet[] = [];
+    let nextToken: string | undefined;
+
+    for (let page = 0; page < maxPages; page++) {
+      const response = await this.client.searchRecent(query, {
+        maxResults: perPage,
+        sortOrder,
+        startTime,
+        nextToken,
+        cacheTtlMs: page === 0 ? cacheTtlMs : undefined,
+      });
+
+      const enriched = this.enrichTweets(response);
+      allTweets.push(...this.filterByMinLikes(enriched, minLikes));
+
+      nextToken = response.meta?.nextToken;
+      if (!nextToken) break;
+    }
+
+    return allTweets.slice(0, maxResults * maxPages);
   }
 
   /**
@@ -212,13 +278,18 @@ export class XSearchService {
       query = `(${termPart} OR ${cashtagPart})`;
     }
 
-    // Filters
+    // Filters (min_faves is not available on all X API tiers; we filter post-fetch instead)
     query += ' lang:en';
     if (excludeRetweets) query += ' -is:retweet';
     if (excludeReplies) query += ' -is:reply';
-    if (minLikes > 0) query += ` min_faves:${minLikes}`;
 
     return query;
+  }
+
+  /** Filter tweets by minimum likes post-fetch (min_faves operator not available on all tiers). */
+  private filterByMinLikes(tweets: XTweet[], minLikes: number): XTweet[] {
+    if (minLikes <= 0) return tweets;
+    return tweets.filter((t) => (t.metrics?.likeCount ?? 0) >= minLikes);
   }
 
   private enrichTweets(response: XSearchResponse): XTweet[] {

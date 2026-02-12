@@ -45,16 +45,21 @@ export async function handleUploadRequest(
   };
 
   let callbackMessage = "";
-  const callback = async (c: { text?: string }): Promise<Memory[]> => {
+  let explicitSuccess: boolean | null = null;
+  const callback = async (c: { text?: string; success?: boolean }): Promise<Memory[]> => {
     if (c?.text) callbackMessage = c.text;
+    if (typeof (c as { success?: boolean }).success === "boolean") {
+      explicitSuccess = (c as { success?: boolean }).success;
+    }
     return [];
   };
 
   try {
     await uploadAction.handler(runtime, memory, undefined, undefined, callback);
     const isSuccess =
-      callbackMessage.includes("✅") ||
-      callbackMessage.includes("saved to knowledge");
+      explicitSuccess === true ||
+      (explicitSuccess !== false &&
+        (callbackMessage.includes("✅") || callbackMessage.includes("saved to knowledge")));
     return {
       success: isSuccess,
       message: callbackMessage || (isSuccess ? "Uploaded successfully" : "Upload may have failed"),

@@ -16,6 +16,13 @@ import {
   DEFAULT_USER_FIELDS,
   DEFAULT_EXPANSIONS,
 } from '../constants/endpoints';
+import {
+  normalizeSearchResponse,
+  normalizeCountsResponse,
+  normalizeTweetResponse,
+  normalizeTweetArrayResponse,
+  normalizeUserResponse,
+} from '../utils/normalize';
 import type {
   XTweet,
   XUser,
@@ -71,7 +78,7 @@ export class XClientService {
   }
 
   /**
-   * Search recent tweets (last 7 days)
+   * Search tweets. Uses full-archive when X_RESEARCH_FULL_ARCHIVE=true (Pro/Enterprise).
    */
   async searchRecent(query: string, options: SearchOptions = {}): Promise<XSearchResponse> {
     const params = new URLSearchParams({
@@ -89,10 +96,17 @@ export class XClientService {
     if (options.nextToken) params.set('next_token', options.nextToken);
     if (options.sortOrder) params.set('sort_order', options.sortOrder);
 
-    return this.get<XSearchResponse>(
-      `${ENDPOINTS.SEARCH_RECENT}?${params.toString()}`,
-      { cacheKey: `search:${query}:${options.maxResults}`, cacheTtlMs: options.cacheTtlMs }
+    const useFullArchive = process.env.X_RESEARCH_FULL_ARCHIVE === 'true';
+    const searchPath = useFullArchive ? ENDPOINTS.SEARCH_FULL_ARCHIVE : ENDPOINTS.SEARCH_RECENT;
+    const cacheKey = useFullArchive && options.nextToken
+      ? undefined
+      : `search:${searchPath}:${query}:${options.maxResults}:${options.nextToken ?? ''}`;
+
+    const raw = await this.get<Record<string, unknown>>(
+      `${searchPath}?${params.toString()}`,
+      { cacheKey, cacheTtlMs: options.cacheTtlMs }
     );
+    return normalizeSearchResponse(raw);
   }
 
   /**
@@ -107,10 +121,11 @@ export class XClientService {
     if (options.startTime) params.set('start_time', options.startTime);
     if (options.endTime) params.set('end_time', options.endTime);
 
-    return this.get<XCountsResponse>(
+    const raw = await this.get<Record<string, unknown>>(
       `${ENDPOINTS.SEARCH_COUNTS}?${params.toString()}`,
       { cacheKey: `counts:${query}:${options.granularity}` }
     );
+    return normalizeCountsResponse(raw);
   }
 
   /**
@@ -124,11 +139,11 @@ export class XClientService {
       expansions: DEFAULT_EXPANSIONS,
     });
 
-    const response = await this.get<{ data?: XTweet }>(
+    const raw = await this.get<{ data?: Record<string, unknown> }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `tweet:${tweetId}` }
     );
-
+    const response = normalizeTweetResponse(raw);
     return response.data ?? null;
   }
 
@@ -148,11 +163,11 @@ export class XClientService {
       expansions: DEFAULT_EXPANSIONS,
     });
 
-    const response = await this.get<{ data?: XTweet[] }>(
+    const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${ENDPOINTS.TWEETS}?${params.toString()}`,
       { skipCache: true } // Don't cache bulk lookups
     );
-
+    const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
   }
 
@@ -165,11 +180,11 @@ export class XClientService {
       'user.fields': DEFAULT_USER_FIELDS,
     });
 
-    const response = await this.get<{ data?: XUser }>(
+    const raw = await this.get<{ data?: Record<string, unknown> }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `user:${username}` }
     );
-
+    const response = normalizeUserResponse(raw);
     return response.data ?? null;
   }
 
@@ -185,14 +200,19 @@ export class XClientService {
       max_results: String(options.maxResults ?? 10),
     });
 
-    if (options.excludeReplies) params.set('exclude', 'replies');
-    if (options.excludeRetweets) params.set('exclude', 'retweets');
+    const excludeParts = [
+      options.excludeReplies && 'replies',
+      options.excludeRetweets && 'retweets',
+    ].filter(Boolean) as string[];
+    if (excludeParts.length > 0) {
+      params.set('exclude', excludeParts.join(','));
+    }
 
-    const response = await this.get<{ data?: XTweet[] }>(
+    const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `user_tweets:${userId}:${options.maxResults}` }
     );
-
+    const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
   }
 
@@ -211,11 +231,11 @@ export class XClientService {
     if (options.startTime) params.set('start_time', options.startTime);
     if (options.nextToken) params.set('pagination_token', options.nextToken);
 
-    const response = await this.get<{ data?: XTweet[] }>(
+    const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `user_mentions:${userId}:${options.maxResults}`, cacheTtlMs: 15 * 60 * 1000 }
     );
-
+    const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
   }
 
@@ -233,35 +253,57 @@ export class XClientService {
 
     if (options.nextToken) params.set('pagination_token', options.nextToken);
 
-    const response = await this.get<{ data?: XTweet[] }>(
+    const raw = await this.get<{ data?: Record<string, unknown>[] }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `list:${listId}:${options.maxResults}` }
     );
-
+    const response = normalizeTweetArrayResponse(raw);
     return response.data ?? [];
   }
 
   /**
-   * Get personalized trends (NEW!)
+   * Get personalized trends. May require OAuth 2.0 user context (not app-only Bearer).
    */
   async getTrends(): Promise<XTrendsResponse> {
-    return this.get<XTrendsResponse>(
-      ENDPOINTS.PERSONALIZED_TRENDS,
-      { cacheKey: 'trends' }
-    );
+    try {
+      return await this.get<XTrendsResponse>(
+        ENDPOINTS.PERSONALIZED_TRENDS,
+        { cacheKey: 'trends' }
+      );
+    } catch (err) {
+      const e = err as XClientError;
+      if (e.status === 401 || e.status === 403) {
+        throw new Error(
+          'Personalized Trends may require OAuth 2.0 user context; app-only Bearer token might not be sufficient. ' +
+            (e.message ?? '')
+        ) as XClientError;
+      }
+      throw err;
+    }
   }
 
   /**
-   * Search news (NEW!)
+   * Search news. Not available on all X API tiers; verify endpoint access for your project.
    */
   async searchNews(query: string, options: NewsSearchOptions = {}): Promise<XNewsResponse> {
     const params = new URLSearchParams({ query });
     if (options.maxResults) params.set('max_results', String(options.maxResults));
 
-    return this.get<XNewsResponse>(
-      `${ENDPOINTS.NEWS_SEARCH}?${params.toString()}`,
-      { cacheKey: `news:${query}` }
-    );
+    try {
+      return await this.get<XNewsResponse>(
+        `${ENDPOINTS.NEWS_SEARCH}?${params.toString()}`,
+        { cacheKey: `news:${query}` }
+      );
+    } catch (err) {
+      const e = err as XClientError;
+      if (e.status === 401 || e.status === 403 || e.status === 404) {
+        throw new Error(
+          'News API may not be available for this project or tier. Check your X API access. ' +
+            (e.message ?? '')
+        ) as XClientError;
+      }
+      throw err;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -269,10 +311,10 @@ export class XClientService {
   // ─────────────────────────────────────────────────────────────
 
   private async get<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { cacheKey, skipCache, cacheTtlMs } = options;
+    const { cacheKey, skipCache, cacheTtlMs, retried } = options;
 
-    // Check cache first
-    if (cacheKey && !skipCache && this.cacheEnabled) {
+    // Check cache first (skip on retry after 429)
+    if (cacheKey && !skipCache && !retried && this.cacheEnabled) {
       const cached = this.getFromCache<T>(cacheKey);
       if (cached) return cached;
     }
@@ -294,6 +336,17 @@ export class XClientService {
 
     if (!response.ok) {
       const error = await this.handleError(response);
+      if (response.status === 429 && !retried && error.rateLimitReset) {
+        const waitMs = Math.max(1000, error.rateLimitReset * 1000 - Date.now() + 1000);
+        try {
+          const { logger } = await import('@elizaos/core');
+          logger?.info?.(`[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`);
+        } catch {
+          console.log(`[xClient] Rate limited, waiting ${Math.ceil(waitMs / 1000)}s before retry`);
+        }
+        await new Promise((r) => setTimeout(r, waitMs));
+        return this.get<T>(path, { ...options, retried: true });
+      }
       throw error;
     }
 
@@ -333,7 +386,12 @@ export class XClientService {
 
     if (state.remaining <= 1 && Date.now() < state.reset * 1000) {
       const waitMs = (state.reset * 1000) - Date.now() + 1000;
-      console.log(`[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`);
+      try {
+        const { logger } = await import('@elizaos/core');
+        logger?.info?.(`[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`);
+      } catch {
+        console.log(`[xClient] Rate limit hit, waiting ${Math.ceil(waitMs / 1000)}s`);
+      }
       await new Promise(resolve => setTimeout(resolve, waitMs));
     }
   }
@@ -371,7 +429,14 @@ export class XClientService {
       // Ignore JSON parse errors
     }
 
-    const error = new Error(body.detail ?? body.title ?? `HTTP ${response.status}`) as XClientError;
+    let message = body.detail ?? body.title ?? `HTTP ${response.status}`;
+    if (response.status === 401) {
+      message = 'X API authentication failed. Check that your Bearer token is valid and has the required permissions.';
+    } else if (response.status === 403) {
+      message = 'Access denied. Check your token and project access level for this endpoint.';
+    }
+
+    const error = new Error(message) as XClientError;
     error.status = response.status;
 
     if (response.status === 429) {
@@ -447,6 +512,8 @@ interface RequestOptions {
   cacheKey?: string;
   skipCache?: boolean;
   cacheTtlMs?: number;
+  /** Internal: set when retrying after 429 to avoid infinite retry */
+  retried?: boolean;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -469,7 +536,9 @@ export function getXClient(config?: XClientConfig): XClientService {
     if (clientsByToken.size === 0) {
       throw new Error('XClientService not initialized. Call initXClientFromEnv(runtime) first.');
     }
-    return clientsByToken.values().next().value;
+    const client = clientsByToken.values().next().value;
+    if (!client) throw new Error('XClientService not initialized.');
+    return client;
   }
   if (!clientsByToken.has(config.bearerToken)) {
     clientsByToken.set(config.bearerToken, new XClientService(config));

@@ -4,6 +4,9 @@
  * Fetches top posts by engagement (via plugin-x-research) and uses AI to produce
  * a playbook: hooks that work, topics that land, formats that engage, what to avoid.
  * Uses ELIZA_X_BEARER_TOKEN when set (initXClientFromEnv in plugin-x-research).
+ *
+ * Requires plugin-x-research at src/plugins/plugin-x-research (relative to repo).
+ * If the module is missing, the handler returns a clear message instead of leaking internals.
  */
 
 import {
@@ -107,12 +110,22 @@ export const contentAuditAction: Action = {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       const isTokenError = errMsg.includes('X_BEARER_TOKEN') || errMsg.includes('ELIZA_X_BEARER');
-      callback({
-        text: isTokenError
-          ? `**Content audit** — X API not configured. Set \`X_BEARER_TOKEN\` (or \`ELIZA_X_BEARER_TOKEN\` for Eliza) to enable.`
-          : `**Content audit** — Error: ${errMsg}`,
-        action: 'CONTENT_AUDIT',
-      });
+      const isMissingModule =
+        errMsg.includes('Cannot find module') ||
+        errMsg.includes('plugin-x-research') ||
+        errMsg.includes('getXClient') ||
+        errMsg.includes('getXAccountsService');
+      let text: string;
+      if (isTokenError) {
+        text =
+          '**Content audit** — X API not configured. Set `X_BEARER_TOKEN` (or `ELIZA_X_BEARER_TOKEN` for Eliza) to enable.';
+      } else if (isMissingModule) {
+        text =
+          '**Content audit** — Requires plugin-x-research (X/Twitter data). Ensure plugin-x-research is at `src/plugins/plugin-x-research` and set `ELIZA_X_BEARER_TOKEN` for the X API.';
+      } else {
+        text = `**Content audit** — Error: ${errMsg}`;
+      }
+      callback({ text, action: 'CONTENT_AUDIT' });
       return false;
     }
   },

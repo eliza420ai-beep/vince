@@ -18,10 +18,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
 
-import { getKnowledgeRoot } from "../config/paths";
+import { getKnowledgeRoot, getCacheRoot } from "../config/paths";
 
 const KNOWLEDGE_ROOT = getKnowledgeRoot();
-const MONITOR_STATE_PATH = path.join(process.cwd(), ".openclaw-cache", "monitor-state.json");
+const MONITOR_STATE_PATH = path.join(getCacheRoot(), "monitor-state.json");
 
 export interface ContentHealth {
   category: string;

@@ -16,6 +16,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { initXClientFromEnv } from '../services/xClient.service';
 import { getXAccountsService } from '../services/xAccounts.service';
+import { formatCostFooterCombined } from '../constants/cost';
 import type { XTweet } from '../types/tweet.types';
 
 const MAX_ACCOUNTS = 10;
@@ -111,12 +112,14 @@ export const xWatchlistAction: Action = {
       const accountsService = getXAccountsService();
       const toCheck = accounts.slice(0, MAX_ACCOUNTS);
       const lines: string[] = ['📋 **X Watchlist**\n'];
+      let totalPosts = 0;
 
       for (const acct of toCheck) {
         const label = acct.note ? `**@${acct.username}** (${acct.note})` : `**@${acct.username}**`;
         lines.push(label);
         try {
           const tweets = await accountsService.getRecentTakes(acct.username, TWEETS_PER_ACCOUNT);
+          totalPosts += tweets.length;
           if (tweets.length === 0) {
             lines.push('  No recent tweets.');
           } else {
@@ -133,8 +136,13 @@ export const xWatchlistAction: Action = {
         lines.push(`_Showing first ${MAX_ACCOUNTS} of ${accounts.length} accounts._`);
       }
 
+      let body = lines.join('\n').trimEnd();
+      if (process.env.X_RESEARCH_SHOW_COST === 'true') {
+        body += `\n\n${formatCostFooterCombined({ userLookups: toCheck.length, postReads: totalPosts })}`;
+      }
+
       callback({
-        text: lines.join('\n').trimEnd(),
+        text: body,
         action: 'X_WATCHLIST',
       });
       return true;

@@ -19,10 +19,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
 
-import { getKnowledgeRoot } from "../config/paths";
+import { getKnowledgeRoot, getCacheRoot } from "../config/paths";
 
 const KNOWLEDGE_ROOT = getKnowledgeRoot();
-const QUALITY_DB_PATH = path.join(process.cwd(), ".openclaw-cache", "source-quality.json");
+const QUALITY_DB_PATH = path.join(getCacheRoot(), "source-quality.json");
 
 export interface SourceRecord {
   id: string; // normalized domain or author

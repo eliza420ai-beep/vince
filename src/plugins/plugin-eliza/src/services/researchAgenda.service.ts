@@ -14,9 +14,9 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
-import { getKnowledgeRoot } from "../config/paths";
+import { getKnowledgeRoot, getCacheRoot } from "../config/paths";
 
-const AGENDA_PATH = path.join(process.cwd(), ".openclaw-cache", "research-agenda.json");
+const AGENDA_PATH = path.join(getCacheRoot(), "research-agenda.json");
 
 /**
  * Map coverage framework category names to actual knowledge folder names.

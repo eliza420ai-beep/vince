@@ -72,8 +72,9 @@ describe('XSentimentService', () => {
     });
 
     it('should detect contrarian warning for extreme sentiment', () => {
+      // Include a topic keyword (BTC) so tweets are assigned to a topic and weightedScore triggers contrarian
       const tweets: XTweet[] = Array(10).fill(null).map(() => 
-        createTweet('MEGA BULLISH! Moon! Parabolic! FOMO! LFG! Generational!')
+        createTweet('BTC MEGA BULLISH! Moon! Parabolic! FOMO! LFG! Generational!')
       );
 
       const result = service.analyzeSentiment(tweets, { detectContrarian: true });

@@ -10,8 +10,8 @@ describe('XThreadsService', () => {
   let service: XThreadsService;
 
   beforeEach(() => {
-    // Create service without client (for unit tests that don't need API)
-    service = new XThreadsService(null as any);
+    // Pass a mock client so getXClient() is not called (no token in test env)
+    service = new XThreadsService({} as any);
   });
 
   describe('detectThread', () => {

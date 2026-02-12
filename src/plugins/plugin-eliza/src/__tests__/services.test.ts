@@ -621,4 +621,30 @@ describe("Integration - Fix and Verify", () => {
   });
 });
 
+describe("Real styleGuide.service", () => {
+  it("checkStyle detects terminology violation (cryptocurrency -> crypto)", async () => {
+    const { checkStyle } = await import("../services/styleGuide.service");
+    const minimalGuide = {
+      name: "Test",
+      version: "1.0",
+      lastUpdated: new Date().toISOString(),
+      voiceDescription: "",
+      targetTone: [] as const,
+      terminology: [{ preferred: "crypto", avoid: ["cryptocurrency"], caseSensitive: false }],
+      capitalization: [],
+      toneMarkers: [],
+      prohibited: [],
+      required: [],
+      formatting: [],
+      customRules: [],
+    };
+    const result = checkStyle("I love cryptocurrency!", minimalGuide as Parameters<typeof checkStyle>[1]);
+    expect(result.violations.length).toBeGreaterThan(0);
+    const termViolation = result.violations.find((v) => v.type === "terminology");
+    expect(termViolation).toBeDefined();
+    expect(termViolation?.found).toBe("cryptocurrency");
+    expect(termViolation?.suggestion).toBe("crypto");
+  });
+});
+
 console.log("✅ Plugin-eliza service tests ready");

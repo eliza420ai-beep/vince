@@ -16,10 +16,10 @@ import { logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 
-import { getKnowledgeRoot } from "../config/paths";
+import { getKnowledgeRoot, getCacheRoot } from "../config/paths";
 
 const KNOWLEDGE_ROOT = getKnowledgeRoot();
-const TRENDS_CACHE = path.join(process.cwd(), ".openclaw-cache", "trend-connections.json");
+const TRENDS_CACHE = path.join(getCacheRoot(), "trend-connections.json");
 
 interface KnowledgeTopic {
   topic: string;
@@ -100,18 +100,24 @@ function extractKnowledgeTopics(): KnowledgeTopic[] {
   return topics;
 }
 
+export type TrendItem = { topic: string; momentum: number; sentiment: string; context: string };
+
 /**
- * Simulated VINCE trend data (in production, would call VINCE's research service)
- * This connects to plugin-openclaw's insights service
+ * Integration point for trend data. Currently returns static data.
+ * Set ELIZA_TREND_SOURCE=openclaw (or future values) to gate a live implementation.
+ * In production, a live implementation would call OpenClaw, CoinGecko, X API, etc.
  */
-function getVinceTrends(): Array<{ topic: string; momentum: number; sentiment: string; context: string }> {
-  // In production, this would call:
-  // - OpenClaw's trend analysis
-  // - CoinGecko trending
-  // - Social sentiment from X API
-  // - News aggregation
-  
-  // For now, return structure that can be populated
+export async function getTrends(): Promise<TrendItem[]> {
+  const source = process.env.ELIZA_TREND_SOURCE?.trim().toLowerCase();
+  if (source === "openclaw" || source === "vince") {
+    // Future: call OpenClaw/VINCE API when available
+    // return await fetchOpenClawTrends();
+  }
+  return getVinceTrendsStatic();
+}
+
+/** Static trend data (default when no live source is configured). */
+function getVinceTrendsStatic(): TrendItem[] {
   return [
     {
       topic: "AI Agents",
@@ -155,7 +161,7 @@ function getVinceTrends(): Array<{ topic: string; momentum: number; sentiment: s
 /**
  * Match knowledge topics to trends
  */
-function findConnections(topics: KnowledgeTopic[], trends: ReturnType<typeof getVinceTrends>): TrendConnection[] {
+function findConnections(topics: KnowledgeTopic[], trends: TrendItem[]): TrendConnection[] {
   const connections: TrendConnection[] = [];
   
   for (const topic of topics) {
@@ -222,7 +228,7 @@ function generateActionables(
  */
 function analyzeGapsAndOpportunities(
   topics: KnowledgeTopic[],
-  trends: ReturnType<typeof getVinceTrends>,
+  trends: TrendItem[],
   connections: TrendConnection[],
 ): { gaps: string[]; opportunities: string[] } {
   const gaps: string[] = [];
@@ -332,8 +338,8 @@ Uses VINCE's market research to prioritize content production.`,
       return true;
     }
 
-    // Get VINCE trends
-    const trends = getVinceTrends();
+    // Get trends (static by default; use ELIZA_TREND_SOURCE for future live source)
+    const trends = await getTrends();
     
     // Find connections
     const connections = findConnections(topics, trends);
@@ -386,7 +392,7 @@ Uses VINCE's market research to prioritize content production.`,
       response += `\n`;
     }
 
-    response += `\n---\n📁 Report cached at \`.openclaw-cache/trend-connections.json\``;
+    response += `\n---\n📁 Report cached at \`${path.relative(process.cwd(), TRENDS_CACHE)}\``;
 
     callback?.({ text: response });
     logger.info(`[Trend Connection] Found ${connections.length} connections, ${gaps.length} gaps`);

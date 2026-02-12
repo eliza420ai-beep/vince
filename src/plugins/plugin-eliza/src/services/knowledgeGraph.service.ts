@@ -18,10 +18,10 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
 
-import { getKnowledgeRoot } from "../config/paths";
+import { getKnowledgeRoot, getCacheRoot } from "../config/paths";
 
 const KNOWLEDGE_ROOT = getKnowledgeRoot();
-const GRAPH_PATH = path.join(process.cwd(), ".openclaw-cache", "knowledge-graph.json");
+const GRAPH_PATH = path.join(getCacheRoot(), "knowledge-graph.json");
 
 export interface KnowledgeNode {
   id: string; // filepath relative to knowledge/
