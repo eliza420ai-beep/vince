@@ -262,6 +262,12 @@ export interface PolymarketPriorityMarketsResponse {
     yesTokenId?: string;
     noTokenId?: string;
     slug?: string;
+    /** YES outcome probability 0–1 (display as % in UI) */
+    yesPrice?: number;
+    /** Optional category for grouping (e.g. crypto, finance, other) */
+    category?: string;
+    /** Optional end date ISO string for weekly/monthly context */
+    endDateIso?: string;
   }[];
   updatedAt: number;
 }
@@ -276,7 +282,7 @@ export async function fetchPolymarketPriorityMarkets(
   agentId: string,
 ): Promise<PolymarketPriorityMarketsFetchResult> {
   const base = window.location.origin;
-  const url = `${base}/api/agents/${agentId}/plugins/plugin-polymarket-discovery/polymarket/priority-markets`;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-discovery/polymarket/priority-markets`;
   try {
     const res = await fetch(url, {
       method: "GET",

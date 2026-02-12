@@ -1574,14 +1574,15 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center space-y-3 min-h-[120px] flex flex-col justify-center">
                   <p className="font-medium text-foreground">Could not load priority markets</p>
                   <p className="text-sm text-muted-foreground">{polymarketError}</p>
-                  <p className="text-xs text-muted-foreground">Ensure the Oracle agent is running, then click Refresh.</p>
+                  <p className="text-xs text-muted-foreground">Ensure the Oracle agent is running, then click Refresh. Start the Oracle agent from the Agents panel if it is stopped.</p>
                 </div>
               ) : polymarketData?.markets && polymarketData.markets.length > 0 ? (
                 <>
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <p className="text-sm text-muted-foreground">
+                      {polymarketData.markets.length} market{polymarketData.markets.length !== 1 ? "s" : ""}
                       {polymarketData.updatedAt != null
-                        ? `Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
+                        ? ` · Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
                         : null}
                     </p>
                   </div>
@@ -1591,6 +1592,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         <thead>
                           <tr className="border-b border-border">
                             <th className="text-left py-2 font-medium">Market</th>
+                            <th className="text-right py-2 font-medium">YES %</th>
                             <th className="text-right py-2 font-medium">Volume</th>
                             <th className="text-right py-2 font-medium">Link</th>
                           </tr>
@@ -1599,6 +1601,9 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           {polymarketData.markets.map((m) => (
                             <tr key={m.conditionId} className="border-b border-border/50">
                               <td className="py-2 font-medium text-foreground/95">{m.question}</td>
+                              <td className="text-right font-mono text-muted-foreground">
+                                {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
+                              </td>
                               <td className="text-right font-mono text-muted-foreground">
                                 {m.volume != null
                                   ? Number(m.volume) >= 1e6

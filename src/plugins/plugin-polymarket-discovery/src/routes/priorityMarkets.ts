@@ -1,18 +1,37 @@
 /**
  * GET /polymarket/priority-markets
  * Returns VINCE-priority Polymarket markets and "why we track" copy for the leaderboard tab.
- * Use Oracle agent ID: /api/agents/:oracleAgentId/plugins/plugin-polymarket-discovery/polymarket/priority-markets
+ * Use Oracle agent ID: /api/agents/:oracleAgentId/plugins/polymarket-discovery/polymarket/priority-markets
  */
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { VINCE_POLYMARKET_PREFERRED_TAG_SLUGS } from "../constants";
+import type { PolymarketMarket } from "../types";
 
 const WHY_WE_TRACK =
   "Priority markets are a palantir into what the market thinks. We use them for: (1) Paper bot — short-term perps on Hyperliquid. (2) Hypersurface strike selection — weekly predictions are the most important. (3) Macro vibe check.";
 
 const INTENT_SUMMARY =
   "These odds are a signal of what the market thinks; they inform the paper bot (perps, Hyperliquid), Hypersurface strike selection (weekly predictions most important), and macro vibe check.";
+
+/** Derive YES outcome probability (0–1) from market tokens or outcomePrices. */
+function getYesPrice(m: PolymarketMarket & { outcomePrices?: string | string[] }): number | undefined {
+  const yesToken = m.tokens?.find((t: { outcome?: string }) => t.outcome?.toLowerCase() === "yes");
+  if (yesToken != null && typeof (yesToken as { price?: number }).price === "number") {
+    return (yesToken as { price: number }).price;
+  }
+  try {
+    const prices = typeof m.outcomePrices === "string" ? JSON.parse(m.outcomePrices) : m.outcomePrices;
+    if (Array.isArray(prices) && prices.length > 0) {
+      const p = parseFloat(prices[0]);
+      if (!Number.isNaN(p)) return p;
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
 
 export interface PriorityMarketsResponse {
   whyWeTrack: string;
@@ -24,6 +43,9 @@ export interface PriorityMarketsResponse {
     yesTokenId?: string;
     noTokenId?: string;
     slug?: string;
+    yesPrice?: number;
+    category?: string;
+    endDateIso?: string;
   }[];
   updatedAt: number;
 }
@@ -46,7 +68,7 @@ export function buildPriorityMarketsHandler() {
     if (!agentRuntime) {
       res.status(503).json({
         error: "Priority markets require agent context",
-        hint: "Use /api/agents/:agentId/plugins/plugin-polymarket-discovery/polymarket/priority-markets with Oracle agent ID",
+        hint: "Use /api/agents/:agentId/plugins/polymarket-discovery/polymarket/priority-markets with Oracle agent ID",
       });
       return;
     }
@@ -79,6 +101,9 @@ export function buildPriorityMarketsHandler() {
           yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
           noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
           slug: m.slug ?? (m as any).market_slug,
+          yesPrice: getYesPrice(m as PolymarketMarket & { outcomePrices?: string | string[] }),
+          category: m.category,
+          endDateIso: m.endDateIso ?? m.end_date_iso,
         })),
         updatedAt: Date.now(),
       };
