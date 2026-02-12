@@ -12,6 +12,7 @@ import {
   bankrOrderStatusAction,
   bankrOrderCancelAction,
 } from "./actions";
+import { bankrProvider } from "./providers";
 
 /**
  * Bankr plugin: Agent API + External Orders API.
@@ -43,9 +44,10 @@ export const bankrPlugin: Plugin = {
     bankrOrderCancelAction,
   ],
   evaluators: [],
-  providers: [],
+  providers: [bankrProvider],
 };
 
 export default bankrPlugin;
 export { BankrAgentService, BankrOrdersService } from "./services";
+export { bankrProvider, getBankrData, type BankrProviderData } from "./providers";
 export * from "./types";
