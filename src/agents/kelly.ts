@@ -36,6 +36,8 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import personalityPlugin from "@elizaos/plugin-personality";
 import discoveryPlugin from "@elizaos/plugin-discovery";
 import { kellyPlugin } from "../plugins/plugin-kelly/src/index.ts";
+// Kelly is the standup facilitator — needs inter-agent plugin for STANDUP_FACILITATE action
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const kellyHasDiscord =
   !!(process.env.KELLY_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -80,6 +82,13 @@ export const kellyCharacter: Character = {
         !process.env.KELLY_DISCORD_API_TOKEN?.trim() && {
           DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
         }),
+    },
+    /**
+     * Kelly is the standup facilitator — she responds to other agents in Discord.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
     },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
@@ -937,6 +946,7 @@ const buildPlugins = (): Plugin[] =>
     ...(kellyHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     kellyPlugin, // KELLY_DAILY_BRIEFING action + KellyLifestyleService + daily push to kelly/lifestyle channels
     discoveryPlugin,
+    interAgentPlugin, // Standup facilitator: STANDUP_FACILITATE, DAILY_REPORT, A2A loop guard
   ] as Plugin[];
 
 const initKelly = async (_runtime: IAgentRuntime) => {

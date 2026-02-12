@@ -14,6 +14,7 @@ import type { Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
 import { dailyReportAction } from "./actions/dailyReport.action";
+import { standupFacilitatorAction } from "./actions/standupFacilitator.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
@@ -21,9 +22,9 @@ import { isStandupCoordinator, registerStandupTask } from "./standup";
 export const interAgentPlugin: Plugin = {
   name: "plugin-inter-agent",
   description:
-    "Multi-agent communication: ASK_AGENT, DAILY_REPORT, A2A loop guard, and structured standups with human participation.",
+    "Multi-agent standup system: Kelly facilitates, agents report, produces actionable Day Report. One team, one dream.",
 
-  actions: [askAgentAction, dailyReportAction],
+  actions: [askAgentAction, dailyReportAction, standupFacilitatorAction],
   evaluators: [a2aLoopGuardEvaluator],
   providers: [a2aContextProvider],
 

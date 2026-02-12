@@ -43,8 +43,9 @@ export const AGENT_ROLES = {
   },
   Kelly: {
     title: "CVO",
-    focus: "Lifestyle & Rhythm",
-    reportSections: ["daily_rhythm", "health_check", "lifestyle_suggestions", "team_wellness"],
+    focus: "Chief Vibes Officer & Standup Facilitator",
+    reportSections: ["standup_facilitation", "daily_rhythm", "health_check", "team_energy", "action_synthesis"],
+    isStandupFacilitator: true,
   },
   Sentinel: {
     title: "CTO",
@@ -244,36 +245,65 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 1. **[EXECUTE/WAIT/CANCEL]**: [action]
 2. **DECISION NEEDED**: [if any]`,
 
-  Kelly: `## Kelly Daily Report — {{date}}
+  Kelly: `## 🎯 Daily Standup — {{date}} ({{dayOfWeek}})
 
-### Daily Rhythm
+*Facilitated by Kelly (CVO) | One Team, One Dream*
+
+---
+
+### Team Check-In
+Let's hear from everyone. Keep it tight — data first, then insights.
+
+**Order:**
+1. @VINCE — Market Intelligence
+2. @Eliza — Research & Knowledge  
+3. @ECHO — CT Sentiment
+4. @Oracle — Prediction Markets
+5. @Solus — Trading Strategy
+6. @Otaku — DeFi Ops
+7. @Sentinel — System Status
+8. @Yves — Co-Founder direction
+
+---
+
+### 🌡️ Team Energy & Rhythm
 - Day: {{dayOfWeek}}
-- Energy forecast: [morning/afternoon/evening pattern]
-- Key focus blocks
+- @Yves health check: Days since last [pool/gym]
+- Energy forecast: [morning/afternoon/evening]
+- Blockers or low energy signals?
 
-### Health Check
-- @Yves: Days since last [pool/gym/outdoor]
-- Sleep debt status
-- Stress indicators
+---
 
-### Lifestyle Suggestions
-- **Lunch**: [recommendation + location]
-- **Movement**: [activity recommendation]
-- **Evening**: [wind-down suggestion]
+### 🎬 Today's Action Plan
 
-### Team Wellness
-- Midweek escape opportunity? [Yes/No]
-- Friday = sacred (options ritual)
-- Weekend planning
+After hearing from everyone, here's what we're doing:
 
-### Questions for Team
-- @Yves: How's energy today?
-- @Sentinel: Any heavy compute planned?
+| WHAT | HOW | WHY | OWNER | STATUS |
+|------|-----|-----|-------|--------|
+| [Action 1] | [Method] | [Reason] | @Agent | 🔵 New |
+| [Action 2] | [Method] | [Reason] | @Agent | 🔵 New |
+| [Action 3] | [Method] | [Reason] | @Agent | 🔵 New |
 
-### Recommendations
-1. **DO**: [lifestyle action]
-2. **SKIP**: [what to avoid]
-3. **DECISION NEEDED**: [if any]`,
+---
+
+### ⚡ Decisions for @Yves
+
+| Decision | Recommendation | Confidence | Why Now |
+|----------|----------------|------------|---------|
+| [Decision 1] | [Yes/No/Wait] | High/Med/Low | [Urgency reason] |
+
+---
+
+### 🎯 North Star Check
+*One team, one dream — are we aligned?*
+
+- **The Dream**: [Current focus/goal]
+- **Today's Step**: [How today moves us forward]
+- **Blockers**: [What's in the way]
+
+---
+
+Let's make it happen. @VINCE, you're up first.`,
 
   Sentinel: `## Sentinel Daily Report — {{date}}
 
