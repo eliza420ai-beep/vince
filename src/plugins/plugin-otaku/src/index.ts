@@ -6,22 +6,24 @@
  * - Natural language parsing
  * - Risk checks and balance validation
  *
- * Actions:
+ * Actions (6):
  * - OTAKU_SWAP: Quick token swaps
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
  * - OTAKU_POSITIONS: View portfolio and orders
  * - OTAKU_BRIDGE: Cross-chain bridge via Relay
+ * - OTAKU_BALANCE: Check wallet balances
  *
  * Providers:
  * - OTAKU_WALLET_STATUS: Wallet context for multi-agent queries
  *
- * Routes (x402 paywalled when enabled):
+ * Routes - Paid (x402 paywalled when enabled):
  * - GET /otaku/positions: Portfolio positions and active orders ($0.05)
  * - GET /otaku/quote: Swap quote without executing ($0.02)
  * - GET /otaku/yields: DeFi yield opportunities ($0.10)
+ * - GET /otaku/history: Transaction history ($0.05)
  *
- * Free routes:
+ * Routes - Free:
  * - GET /otaku/health: Service health status
  * - GET /otaku/gas: Gas prices across chains
  */
@@ -34,12 +36,14 @@ import {
   otakuDcaAction,
   otakuPositionsAction,
   otakuBridgeAction,
+  otakuBalanceAction,
 } from "./actions";
 import { walletStatusProvider } from "./providers";
 import {
   positionsRoute,
   quoteRoute,
   yieldsRoute,
+  historyRoute,
   healthRoute,
   gasRoute,
 } from "./routes";
@@ -53,6 +57,7 @@ export const otakuPlugin: Plugin = {
     otakuDcaAction,
     otakuPositionsAction,
     otakuBridgeAction,
+    otakuBalanceAction,
   ],
   services: [OtakuService],
   providers: [walletStatusProvider],
@@ -62,6 +67,7 @@ export const otakuPlugin: Plugin = {
     positionsRoute,
     quoteRoute,
     yieldsRoute,
+    historyRoute,
     // Free routes
     healthRoute,
     gasRoute,

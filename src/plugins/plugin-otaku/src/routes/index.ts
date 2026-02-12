@@ -5,6 +5,7 @@
  * - GET /otaku/positions - Portfolio positions and active orders
  * - GET /otaku/quote - Swap quote without executing
  * - GET /otaku/yields - DeFi yield opportunities
+ * - GET /otaku/history - Transaction history
  *
  * Free routes:
  * - GET /otaku/health - Service health status
@@ -14,4 +15,5 @@
 export { positionsRoute } from "./paidPositions";
 export { quoteRoute } from "./paidQuote";
 export { yieldsRoute } from "./paidYields";
+export { historyRoute } from "./paidHistory";
 export { healthRoute, gasRoute } from "./freeRoutes";
