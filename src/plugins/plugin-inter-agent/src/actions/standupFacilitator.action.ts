@@ -20,6 +20,10 @@ import {
   ModelType,
 } from "@elizaos/core";
 import { AGENT_ROLES, formatReportDate, getDayOfWeek } from "../standup/standupReports";
+import { saveDayReport, updateDayReportManifest, getRecentReportsContext } from "../standup/dayReportPersistence";
+import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from "../standup/actionItemTracker";
+import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
+import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
 
 /** 
  * Standup order — focused on trading alpha
@@ -253,22 +257,77 @@ export const standupFacilitatorAction: Action = {
       const recentContext = state?.recentMessages || 
         "No recent messages available. Generate a template Day Report.";
       
-      const prompt = buildWrapupPrompt(String(recentContext));
+      // Get additional context
+      const actionItemsContext = getActionItemsContext();
+      const recentReports = getRecentReportsContext(3);
+
+      // Extract signals from conversation for cross-validation
+      const signals: AgentSignal[] = [];
+      const contextStr = String(recentContext);
+      for (const agent of STANDUP_ORDER) {
+        const agentSignals = extractSignalsFromReport(agent, contextStr);
+        signals.push(...agentSignals);
+      }
+      const validationContext = buildValidationContext(signals);
+      
+      const prompt = buildWrapupPrompt(contextStr) + `
+
+## Additional Context
+
+### Previous Action Items
+${actionItemsContext}
+
+### Recent Day Reports
+${recentReports}
+
+### Cross-Agent Validation
+${validationContext}
+`;
       
       try {
         const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
           prompt,
-          maxTokens: 1000,
+          maxTokens: 1200,
           temperature: 0.7,
         });
 
-        if (callback && dayReport) {
+        const reportText = String(dayReport).trim();
+
+        // Save the day report to disk
+        const savedPath = saveDayReport(reportText);
+        if (savedPath) {
+          // Extract TL;DR for manifest
+          const tldrMatch = reportText.match(/### TL;DR\n([^\n#]+)/);
+          const summary = tldrMatch ? tldrMatch[1].trim() : "Day report generated";
+          updateDayReportManifest(savedPath, summary);
+        }
+
+        // Parse and track action items
+        const date = formatReportDate();
+        const parsedItems = parseActionItemsFromReport(reportText, date);
+        for (const item of parsedItems) {
+          if (item.what && item.owner) {
+            addActionItem({
+              date,
+              what: item.what,
+              how: item.how || "",
+              why: item.why || "",
+              owner: item.owner,
+              urgency: item.urgency || "today",
+            });
+          }
+        }
+
+        if (callback) {
+          const savedNote = savedPath ? `\n\n*📁 Saved to ${savedPath}*` : "";
           await callback({
-            text: String(dayReport).trim(),
+            text: reportText + savedNote,
             action: "STANDUP_FACILITATE",
             source: "Kelly",
           });
         }
+
+        logger.info(`[STANDUP_FACILITATE] Day report saved, ${parsedItems.length} action items tracked`);
       } catch (error) {
         logger.error({ error }, "[STANDUP_FACILITATE] Failed to generate Day Report");
         if (callback) {
@@ -280,10 +339,25 @@ export const standupFacilitatorAction: Action = {
         }
       }
     } else {
-      // Kickoff
+      // Kickoff — include schedule info and pending items
+      const config = getStandupConfig(runtime);
+      const pendingContext = getActionItemsContext();
+      
+      let kickoffText = buildKickoffMessage();
+      
+      if (config.enabled) {
+        kickoffText += `\n\n*⏰ Auto-standup: ${formatSchedule(config.schedule)}*`;
+      }
+      
+      // Add pending items reminder
+      const pendingMatch = pendingContext.match(/Pending \((\d+)\)/);
+      if (pendingMatch && parseInt(pendingMatch[1]) > 0) {
+        kickoffText += `\n\n*📋 ${pendingMatch[1]} pending action items from previous standups*`;
+      }
+
       if (callback) {
         await callback({
-          text: buildKickoffMessage(),
+          text: kickoffText,
           action: "STANDUP_FACILITATE",
           source: "Kelly",
         });

@@ -34,3 +34,58 @@ export type {
   SentimentData,
   StandupData,
 } from "./standupData.service";
+
+// Scheduler
+export {
+  getNextStandupTime,
+  isStandupTime,
+  getStandupConfig,
+  formatSchedule,
+  buildAutoStandupKickoff,
+} from "./standupScheduler";
+
+// Day Report Persistence
+export {
+  getDayReportFilename,
+  getDayReportPath,
+  saveDayReport,
+  loadDayReport,
+  listDayReports,
+  getRecentReportsContext,
+  updateDayReportManifest,
+} from "./dayReportPersistence";
+
+// Action Item Tracking
+export {
+  addActionItem,
+  updateActionItem,
+  getActionItemsByStatus,
+  getPendingActionItems,
+  getTodayActionItems,
+  getRecentCompletedItems,
+  calculateWinRate,
+  formatActionItemsTable,
+  parseActionItemsFromReport,
+  getActionItemsContext,
+} from "./actionItemTracker";
+export type {
+  ActionItem,
+  ActionItemStatus,
+  ActionItemUrgency,
+} from "./actionItemTracker";
+
+// Cross-Agent Validation
+export {
+  validateSignals,
+  validateAllAssets,
+  extractSignalsFromReport,
+  formatValidationResults,
+  getConfidenceAdjustment,
+  buildValidationContext,
+} from "./crossAgentValidation";
+export type {
+  SignalDirection,
+  ConfidenceLevel,
+  AgentSignal,
+  ValidationResult,
+} from "./crossAgentValidation";
