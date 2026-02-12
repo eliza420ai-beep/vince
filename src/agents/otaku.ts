@@ -17,6 +17,7 @@ import { relayPlugin } from "../plugins/plugin-relay/src/index.ts";
 import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
 import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
 import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const hasCdp =
   !!(
@@ -62,6 +63,13 @@ export const otakuCharacter: Character = {
         ...(process.env.BANKR_ORDER_URL?.trim() && { BANKR_ORDER_URL: process.env.BANKR_ORDER_URL }),
       }),
       ...(hasBiconomyKey && { BICONOMY_API_KEY: process.env.BICONOMY_API_KEY }),
+    },
+    /**
+     * Discord A2A: Otaku responds to bot messages for multi-agent standup.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
     },
     avatar: "/avatars/otaku.png",
     mcp: {
@@ -415,6 +423,7 @@ const buildPlugins = (): Plugin[] =>
     ...(hasBankr ? [bankrPlugin, otakuPlugin] : []),
     ...(hasEtherscanKey ? [etherscanPlugin] : []),
     defiLlamaPlugin,
+    interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
 const initOtaku = async (runtime: IAgentRuntime) => {

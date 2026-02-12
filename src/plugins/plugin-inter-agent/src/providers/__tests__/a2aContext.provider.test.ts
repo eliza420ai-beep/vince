@@ -43,14 +43,16 @@ describe("A2A Context Provider", () => {
     delete process.env.A2A_LOOKBACK_MESSAGES;
   });
 
-  it("returns empty string for non-agent messages", async () => {
+  it("returns human priority context for non-agent non-bot messages", async () => {
     const runtime = createMockRuntime();
     const memory = createMockMemory({
       content: { text: "Hello", name: "random-human" },
     });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toBe("");
+    // Non-agent, non-bot messages are treated as human users and get priority
+    expect(result).toContain("HUMAN MESSAGE");
+    expect(result).toContain("PRIORITY RESPONSE");
   });
 
   it("returns context for agent messages", async () => {

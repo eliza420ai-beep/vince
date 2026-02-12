@@ -36,6 +36,7 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import { sentinelPlugin } from "../plugins/plugin-sentinel/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const sentinelHasDiscord =
   !!(
@@ -90,6 +91,13 @@ export const sentinelCharacter: Character = {
         !process.env.SENTINEL_DISCORD_API_TOKEN?.trim() && {
           DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
         }),
+    },
+    /**
+     * Discord A2A: Sentinel responds to bot messages for multi-agent standup.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
     },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
@@ -553,6 +561,7 @@ const buildPlugins = (): Plugin[] =>
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
     sentinelPlugin,
+    interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
 const initSentinel = async (_runtime: IAgentRuntime) => {

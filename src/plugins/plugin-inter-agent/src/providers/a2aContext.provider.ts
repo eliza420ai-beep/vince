@@ -148,7 +148,6 @@ Address ${humanName} directly. Be useful.
     // Default to 2 exchanges (stricter) — can override with A2A_MAX_EXCHANGES
     const maxExchanges = parseInt(process.env.A2A_MAX_EXCHANGES || "2", 10);
     const lookback = parseInt(process.env.A2A_LOOKBACK_MESSAGES || "10", 10);
-    const myName = runtime.character?.name || "Agent";
 
     const exchanges = await countRecentExchanges(
       runtime,

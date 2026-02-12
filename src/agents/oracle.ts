@@ -20,6 +20,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const oracleHasDiscord =
   !!(process.env.ORACLE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -59,6 +60,13 @@ export const oracleCharacter: Character = {
         !process.env.ORACLE_DISCORD_API_TOKEN?.trim() && {
           DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
         }),
+    },
+    /**
+     * Discord A2A: Oracle responds to bot messages for multi-agent standup.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
     },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
@@ -234,6 +242,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(oracleHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     polymarketDiscoveryPlugin,
+    interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
 const initOracle = async (_runtime: IAgentRuntime) => {
