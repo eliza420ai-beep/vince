@@ -50,6 +50,66 @@ settings: {
 
 This makes "who can ask whom" configurable per character and reduces misrouting.
 
+## Symmetric A2A Discord Chat (NEW)
+
+Agents can now chat with each other **visibly in Discord** (not just via internal ASK_AGENT). This enables the north-star experience: agents talking to you AND each other in #daily-standup.
+
+### How It Works
+
+1. **Enable bot messages:** Set `shouldIgnoreBotMessages: false` in character settings
+2. **Loop protection:** The `A2A_LOOP_GUARD` evaluator in plugin-inter-agent prevents infinite ping-pong
+
+### Configuration
+
+Both Eliza and VINCE have `shouldIgnoreBotMessages: false` by default (v2.4+). To configure:
+
+```typescript
+// In character settings
+settings: {
+  shouldIgnoreBotMessages: false,  // Respond to other bots
+}
+```
+
+### Loop Guard Behavior
+
+The `A2A_LOOP_GUARD` evaluator automatically:
+
+1. **Max exchanges** — Stops responding after N back-and-forth messages (default: 3)
+2. **Ping-pong detection** — Won't respond to a reply to its own message
+3. **Known agent detection** — Only applies to messages from known agents (vince, eliza, kelly, solus, otaku, sentinel, echo, oracle)
+
+### Env Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `A2A_ENABLED` | `true` | Set to `"false"` to disable loop guard (not recommended) |
+| `A2A_MAX_EXCHANGES` | `3` | Max responses to same bot in recent history |
+| `A2A_LOOKBACK_MESSAGES` | `10` | How many messages to look back for counting exchanges |
+
+### Example Flow
+
+```
+User: "aloha @eliza, hope you enjoy your meeting with @vince"
+  ↓
+Eliza: responds (shouldIgnoreBotMessages: false)
+  ↓
+VINCE: responds to Eliza (shouldIgnoreBotMessages: false)
+  ↓
+Eliza: responds to VINCE (exchange 1)
+  ↓
+VINCE: responds (exchange 2)
+  ↓
+Eliza: responds (exchange 3)
+  ↓
+VINCE: [A2A_LOOP_GUARD] Max exchanges (3) reached → STOPS
+```
+
+### Requirements
+
+- Both agents need `plugin-inter-agent` loaded (includes A2A_LOOP_GUARD evaluator)
+- Both agents need separate Discord Application IDs (Option C)
+- Both agents need `shouldIgnoreBotMessages: false` in settings
+
 ## plugin-inter-agent vs plugin-agent-orchestrator
 
 - **plugin-inter-agent** (this repo): **Multi-runtime** A2A—ask another **agent** by name (ASK_AGENT) and standups (Kelly-coordinated 2×/day). Different runtimes (Vince, Kelly, Sentinel, etc.); `elizaOS.getAgents()` / `handleMessage(agentId, msg)` route to the correct runtime. Use for "Kelly asks Vince" and autonomous standups.

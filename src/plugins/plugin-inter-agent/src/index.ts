@@ -2,19 +2,27 @@
  * Plugin Inter-Agent — Lets agents ask other agents and report back.
  * Action: ASK_AGENT (ask Vince, Kelly, Solus, Sentinel, Eliza, Otaku and relay the answer).
  * Optional: 2x/day standup (STANDUP_ENABLED=true, STANDUP_COORDINATOR_AGENT=Sentinel).
+ *
+ * A2A Loop Guard: Enables symmetric agent-to-agent Discord chat with loop prevention.
+ * Set shouldIgnoreBotMessages: false on agents that should respond to other bots.
+ * The A2A_LOOP_GUARD evaluator prevents infinite ping-pong by:
+ * - Limiting max exchanges per conversation (A2A_MAX_EXCHANGES, default 3)
+ * - Detecting reply chains to own messages
  */
 
 import type { Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
+import { a2aLoopGuardEvaluator } from "./evaluators";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
 
 export const interAgentPlugin: Plugin = {
   name: "plugin-inter-agent",
   description:
-    "Lets agents ask other agents a question and report the answer back. Use ASK_AGENT when the user wants another agent's input.",
+    "Lets agents ask other agents a question and report the answer back. Use ASK_AGENT when the user wants another agent's input. Includes A2A loop guard for symmetric Discord chat.",
 
   actions: [askAgentAction],
+  evaluators: [a2aLoopGuardEvaluator],
 
   init: async (_config, runtime) => {
     const hasElizaOS = !!(runtime as { elizaOS?: unknown }).elizaOS;
