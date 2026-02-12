@@ -30,6 +30,7 @@ import { buildLeaderboardsResponse, buildDebugXSentimentResponse } from "./route
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
+import { buildBankrResponse } from "./routes/dashboardBankr";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -531,6 +532,42 @@ export const vincePlugin: Plugin = {
           logger.warn(`[VINCE] Knowledge quality results route error: ${err}`);
           res.status(500).json({
             error: "Failed to read knowledge quality results",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
+    {
+      name: "vince-bankr",
+      path: "/vince/bankr",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "BANKR data requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/bankr",
+          });
+          return;
+        }
+        try {
+          const data = await buildBankrResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] BANKR route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build BANKR data",
             message: err instanceof Error ? err.message : String(err),
           });
         }
