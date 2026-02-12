@@ -8,7 +8,7 @@
  * - Docs Analysis (what do the docs say?)
  *
  * North star: 24/7 market research is TOP PRIORITY.
- * OpenClaw (formerly ClawdBot/MoltBot) matters A LOT.
+ * OpenClaw (formerly openclaw/MoltBot) matters A LOT.
  */
 
 import type {
@@ -36,7 +36,7 @@ import {
 import { generateTaskBrief } from "../services/prdGenerator.service";
 import { 
   suggestOpenClawUsage,
-  getClawdbotSetup,
+  getopenclawSetup,
   getIntegrationPatterns,
 } from "../services/openclawKnowledge.service";
 
@@ -67,11 +67,11 @@ const TASK_BRIEF_TRIGGERS = [
 const INTEGRATION_TRIGGERS = [
   "milaidy",
   "openclaw",
-  "clawdbot",
+  "openclaw",
   "integration instructions",
   "how to run milaidy",
   "how to run openclaw",
-  "how to set up clawdbot",
+  "how to set up openclaw",
   "knowledge research setup",
 ];
 
@@ -115,7 +115,7 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
   if (state.knowledgeGaps.some(g => g.toLowerCase().includes("x") || g.toLowerCase().includes("research"))) {
     suggestions.push({
       id: "x-research-gaps",
-      title: "Set up Clawdbot for knowledge research",
+      title: "Set up openclaw for knowledge research",
       description: "24/7 knowledge ingestion: dedicated X account + curated follows + Birdy → knowledge pipeline. No X API cost.",
       category: "research",
       createdAt: now,
@@ -253,12 +253,12 @@ export const sentinelSuggestAction: Action = {
       if (wantsIntegration(userText)) {
         const lower = userText.toLowerCase();
         
-        // Clawdbot/knowledge research setup
-        if (lower.includes("clawdbot") || lower.includes("knowledge research")) {
-          const setup = getClawdbotSetup();
+        // openclaw/knowledge research setup
+        if (lower.includes("openclaw") || lower.includes("knowledge research")) {
+          const setup = getopenclawSetup();
           
           await callback({
-            text: `🤖 **Clawdbot Knowledge Research Setup**
+            text: `🤖 **openclaw Knowledge Research Setup**
 
 **Purpose:** ${setup.purpose}
 
@@ -295,7 +295,7 @@ ${patternsText}
 • openclaw-adapter: https://github.com/elizaOS/openclaw-adapter
 • Milaidy: https://github.com/milady-ai/milaidy
 
-*OpenClaw (formerly ClawdBot/MoltBot) matters A LOT.*`,
+*OpenClaw (formerly openclaw/MoltBot) matters A LOT.*`,
         });
         return true;
       }
@@ -382,7 +382,7 @@ ${patternsText}
       {
         name: "Sentinel",
         content: {
-          text: "🎯 **Sentinel Suggestions** (Impact-Scored)\n\n*North star: 24/7 market research is TOP PRIORITY.*\n\n**Top Priorities:**\n\n1. 🔥 **Improve plugin-vince health** (Score: 65)\n   Add tests, improve services...\n\n2. 🟢 **Set up Clawdbot** (Score: 45)\n   24/7 knowledge ingestion...",
+          text: "🎯 **Sentinel Suggestions** (Impact-Scored)\n\n*North star: 24/7 market research is TOP PRIORITY.*\n\n**Top Priorities:**\n\n1. 🔥 **Improve plugin-vince health** (Score: 65)\n   Add tests, improve services...\n\n2. 🟢 **Set up openclaw** (Score: 45)\n   24/7 knowledge ingestion...",
         },
       },
     ],
@@ -396,11 +396,11 @@ ${patternsText}
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do I set up clawdbot for knowledge research?" } },
+      { name: "{{user1}}", content: { text: "How do I set up openclaw for knowledge research?" } },
       {
         name: "Sentinel",
         content: {
-          text: "🤖 **Clawdbot Knowledge Research Setup**\n\n**Purpose:** 24/7 knowledge ingestion without X API cost...",
+          text: "🤖 **openclaw Knowledge Research Setup**\n\n**Purpose:** 24/7 knowledge ingestion without X API cost...",
         },
       },
     ],

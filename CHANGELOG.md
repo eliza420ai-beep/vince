@@ -26,7 +26,7 @@ All notable changes to the VINCE project will be documented in this file.
   - Standup coordination, deliverables flow, feedback loop
   - "Feels genuinely alive" philosophy
 
-- **OpenClaw Expert** — Deep knowledge of OpenClaw/Milaidy/Clawdbot
+- **OpenClaw Expert** — Deep knowledge of OpenClaw/Milaidy/OpenClaw
   - Gateway setup, skills, sub-agents, 24/7 research
   - Integration patterns with ElizaOS
 
@@ -39,7 +39,7 @@ All notable changes to the VINCE project will be documented in this file.
 | `SENTINEL_SHIP` | What to ship for max impact |
 | `SENTINEL_MULTI_AGENT` | Multi-agent architecture expert |
 | `SENTINEL_TRADING_INTEL` | Paper bot + options expert |
-| `SENTINEL_CLAWDBOT_GUIDE` | OpenClaw knowledge research setup |
+| `SENTINEL_OPENCLAW_GUIDE` | OpenClaw knowledge research setup |
 | `SENTINEL_ONNX_STATUS` | ML/ONNX health check |
 | `SENTINEL_DOC_IMPROVE` | Documentation improvements |
 | `SENTINEL_COST_STATUS` | Cost and treasury status |
