@@ -287,6 +287,8 @@ export interface PolymarketPriorityMarketsResponse {
     markets: PolymarketPriorityMarketItem[];
     updatedAt: number;
   };
+  /** Per-tag sections (Bitcoin, Ethereum, Solana, etc.) for leaderboard */
+  tagSections?: Record<string, { label: string; markets: PolymarketPriorityMarketItem[] }>;
 }
 
 export interface PolymarketPriorityMarketsFetchResult {

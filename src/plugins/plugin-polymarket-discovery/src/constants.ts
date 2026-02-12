@@ -45,6 +45,20 @@ export const VINCE_POLYMARKET_PREFERRED_TAG_SLUGS: string[] = [
   "economy",
 ];
 
+/** Ordered slugs that get a dedicated section on the leaderboard Polymarket tab (Bitcoin, Ethereum, Solana, etc.). */
+export const POLYMARKET_TAG_SECTION_SLUGS: string[] = [
+  "bitcoin",
+  "ethereum",
+  "solana",
+  "microstrategy",
+  "etf",
+  "stocks",
+  "fed-rates",
+  "treasuries",
+  "geopolitics",
+  "economy",
+];
+
 export type VincePolymarketGroup = "crypto" | "finance" | "other";
 
 /** Human-readable labels and group for provider text and knowledge doc. Same order/slugs as VINCE_POLYMARKET_PREFERRED_TAG_SLUGS where applicable. */

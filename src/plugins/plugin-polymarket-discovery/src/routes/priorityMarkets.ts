@@ -6,7 +6,11 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
-import { VINCE_POLYMARKET_PREFERRED_TAG_SLUGS } from "../constants";
+import {
+  VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
+  POLYMARKET_TAG_SECTION_SLUGS,
+  VINCE_POLYMARKET_PREFERRED_LABELS,
+} from "../constants";
 import type { PolymarketMarket } from "../types";
 
 const WHY_WE_TRACK =
@@ -63,6 +67,7 @@ export interface PriorityMarketsResponse {
     markets: PriorityMarketItem[];
     updatedAt: number;
   };
+  tagSections?: Record<string, { label: string; markets: PriorityMarketItem[] }>;
 }
 
 export function buildPriorityMarketsHandler() {
@@ -113,14 +118,24 @@ export function buildPriorityMarketsHandler() {
       endDateIso: m.endDateIso ?? m.end_date_iso,
     });
 
+    const getLabelForSlug = (slug: string): string => {
+      const found = VINCE_POLYMARKET_PREFERRED_LABELS.find((e) => e.slug === slug);
+      if (found) return found.label;
+      return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    };
+
     try {
-      const [markets, weeklyCryptoMarkets, cryptoEtfMarketsRaw] = await Promise.all([
+      const limitPerTag = 10;
+      const [markets, weeklyCryptoMarkets, cryptoEtfMarketsRaw, ...tagResults] = await Promise.all([
         service.getMarketsByPreferredTags({
           tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
           totalLimit: 30,
         }),
         service.getWeeklyCryptoMarkets(15),
         service.getEventsByTag("crypto-etf", 15).catch(() => [] as PolymarketMarket[]),
+        ...POLYMARKET_TAG_SECTION_SLUGS.map((slug) =>
+          service.getEventsByTag(slug, limitPerTag).catch(() => [] as PolymarketMarket[])
+        ),
       ]);
 
       const now = Date.now();
@@ -132,6 +147,22 @@ export function buildPriorityMarketsHandler() {
       const cryptoEtfOpen = cryptoEtfItems.filter(
         (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now
       );
+
+      const tagSections: Record<string, { label: string; markets: PriorityMarketItem[] }> = {};
+      POLYMARKET_TAG_SECTION_SLUGS.forEach((slug, i) => {
+        const raw = tagResults[i] as PolymarketMarket[] | undefined;
+        if (!Array.isArray(raw)) return;
+        const items = raw
+          .map(mapMarketToItem)
+          .filter(
+            (m) =>
+              (!m.endDateIso || new Date(m.endDateIso).getTime() > now) &&
+              (m.yesPrice == null || m.yesPrice >= 0.05)
+          );
+        if (items.length > 0) {
+          tagSections[slug] = { label: getLabelForSlug(slug), markets: items };
+        }
+      });
 
       const body: PriorityMarketsResponse = {
         whyWeTrack: WHY_WE_TRACK,
@@ -156,6 +187,7 @@ export function buildPriorityMarketsHandler() {
                 updatedAt: now,
               }
             : undefined,
+        tagSections: Object.keys(tagSections).length > 0 ? tagSections : undefined,
       };
 
       res.json(body);

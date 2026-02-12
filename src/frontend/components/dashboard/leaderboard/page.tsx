@@ -1585,9 +1585,21 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                   <p className="text-sm text-muted-foreground">{polymarketError}</p>
                   <p className="text-xs text-muted-foreground">Ensure the Oracle agent is running, then click Refresh. Start the Oracle agent from the Agents panel if it is stopped.</p>
                 </div>
-              ) : polymarketData?.markets && polymarketData.markets.length > 0 ? (
+              ) : (polymarketData?.markets && polymarketData.markets.length > 0) || (polymarketData?.tagSections && Object.keys(polymarketData.tagSections).length > 0) ? (
                 (() => {
                   type PM = (typeof polymarketData.markets)[number];
+                  const TAG_SECTION_ORDER = [
+                    "bitcoin",
+                    "ethereum",
+                    "solana",
+                    "microstrategy",
+                    "etf",
+                    "stocks",
+                    "fed-rates",
+                    "treasuries",
+                    "geopolitics",
+                    "economy",
+                  ] as const;
                   type PolymarketSection = "Crypto" | "Stocks" | "Macro & Geopolitics" | "Other";
                   const SECTION_ORDER: PolymarketSection[] = ["Crypto", "Stocks", "Macro & Geopolitics", "Other"];
                   const getPolymarketSection = (category: string | undefined): PolymarketSection => {
@@ -1769,11 +1781,25 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       )}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm text-muted-foreground">
-                          {openMarkets.length} market{openMarkets.length !== 1 ? "s" : ""}
-                          {closeThisWeek > 0 ? ` · ${closeThisWeek} close this week` : null}
-                          {polymarketData.updatedAt != null
-                            ? ` · Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
-                            : null}
+                          {polymarketData.tagSections && Object.keys(polymarketData.tagSections).length > 0
+                            ? (() => {
+                                const total = Object.values(polymarketData.tagSections).reduce((s, sec) => s + (sec?.markets?.length ?? 0), 0);
+                                const closeThisWeekTag = Object.values(polymarketData.tagSections).flatMap((sec) => sec?.markets ?? []).filter((m) => {
+                                  if (!m.endDateIso) return false;
+                                  const t = new Date(m.endDateIso).getTime();
+                                  return t >= Date.now() && t <= weekFromNow;
+                                }).length;
+                                return (
+                                  <>
+                                    {total} market{total !== 1 ? "s" : ""}
+                                    {closeThisWeekTag > 0 ? ` · ${closeThisWeekTag} close this week` : null}
+                                    {polymarketData.updatedAt != null
+                                      ? ` · Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
+                                      : null}
+                                  </>
+                                );
+                              })()
+                            : `${openMarkets.length} market${openMarkets.length !== 1 ? "s" : ""}${closeThisWeek > 0 ? ` · ${closeThisWeek} close this week` : ""}${polymarketData.updatedAt != null ? ` · Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}` : ""}`}
                         </p>
                         <Select value={polymarketSort} onValueChange={(v) => setPolymarketSort(v as "yes" | "volume" | "closes")}>
                           <SelectTrigger size="sm" className="w-[120px]">
@@ -1786,7 +1812,51 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </SelectContent>
                         </Select>
                       </div>
-                      {openMarkets.length === 0 ? (
+                      {polymarketData.tagSections && Object.keys(polymarketData.tagSections).length > 0 ? (
+                        TAG_SECTION_ORDER.map((slug) => {
+                          const sec = polymarketData.tagSections![slug];
+                          if (!sec?.markets?.length) return null;
+                          return (
+                            <DashboardCard key={slug} title={`${sec.label} (${sec.markets.length})`} className="lg:col-span-2">
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                  <thead>
+                                    <tr className="border-b border-border">
+                                      <th className="text-left py-2 font-medium">Market</th>
+                                      <th className="text-right py-2 font-medium">YES %</th>
+                                      <th className="text-right py-2 font-medium">Volume</th>
+                                      <th className="text-right py-2 font-medium">Closes</th>
+                                      <th className="text-right py-2 font-medium">Link</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {sortMarkets(sec.markets).map((m) => (
+                                      <tr key={m.conditionId} className="border-b border-border/50">
+                                        <td className="py-2 font-medium text-foreground/95 max-w-[320px] truncate" title={m.question}>{m.question}</td>
+                                        <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
+                                          {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
+                                        </td>
+                                        <td className="text-right font-mono text-muted-foreground">{formatVolume(m.volume)}</td>
+                                        <td className="text-right text-muted-foreground whitespace-nowrap">{formatCloses(m.endDateIso)}</td>
+                                        <td className="text-right">
+                                          <a
+                                            href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline inline-flex items-center gap-1"
+                                          >
+                                            View <ExternalLink className="w-3 h-3" />
+                                          </a>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </DashboardCard>
+                          );
+                        })
+                      ) : openMarkets.length === 0 ? (
                         <DashboardCard title="Priority markets" className="lg:col-span-2">
                           <p className="text-sm text-muted-foreground py-4">No open priority markets right now. All current markets have closed.</p>
                         </DashboardCard>
