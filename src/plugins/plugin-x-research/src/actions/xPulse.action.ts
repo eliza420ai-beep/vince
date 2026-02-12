@@ -18,6 +18,7 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
+  ModelType,
 } from '@elizaos/core';
 import { getXSearchService } from '../services/xSearch.service';
 import { getXSentimentService } from '../services/xSentiment.service';
@@ -323,6 +324,21 @@ async function generateBriefing(
   }
 
   output += `_Based on ${sampleSize} posts from the last 24h_`;
+
+  // Optional: append LLM-generated themes and takeaway (X_PULSE_LLM_NARRATIVE=true)
+  if (process.env.X_PULSE_LLM_NARRATIVE === 'true') {
+    try {
+      const narrativePrompt = `You are summarizing Crypto Twitter sentiment for a trader. Given this CT pulse summary, add 2-3 short sentences only: first "**Themes:**" (main themes in one line), then "**Takeaway:**" (one actionable takeaway). Do not repeat the data above. Output only the two lines, no preamble.\n\nSummary:\n${output}`;
+      const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt: narrativePrompt });
+      const narrative = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
+      const trimmed = narrative.trim();
+      if (trimmed.length > 0) {
+        output += `\n\n${trimmed}`;
+      }
+    } catch {
+      // Skip narrative on LLM failure; template output is still useful
+    }
+  }
 
   return output;
 }

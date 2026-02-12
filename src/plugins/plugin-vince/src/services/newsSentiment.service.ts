@@ -10,6 +10,8 @@
  * Integrates with plugin-web-search's MANDO_MINUTES action.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import { PuppeteerBrowserService } from "./fallbacks/puppeteer.browser";
 import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
@@ -822,6 +824,19 @@ export class VinceNewsSentimentService extends Service {
       };
 
       await this.runtime.setCache(MANDO_CACHE_KEYS[0], cacheData);
+
+      const sharedPath =
+        process.env.MANDO_SHARED_CACHE_PATH ||
+        path.join(process.cwd(), ".elizadb", "shared", "mando_minutes_latest_v9.json");
+      try {
+        const dir = path.dirname(sharedPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(sharedPath, JSON.stringify(cacheData, null, 2), "utf-8");
+      } catch (err) {
+        logger.debug(
+          `[VinceNewsSentiment] Shared cache write failed: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
 
       return cacheData;
     } catch (error) {

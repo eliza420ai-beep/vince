@@ -224,7 +224,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },
     { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
-    { label: "Summarize thread", message: "Summarize this thread (paste a tweet URL in your next message)" },
+    { label: "Summarize thread", message: "Summarize a thread — paste a tweet URL in your next message (e.g. https://x.com/user/status/123)." },
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },

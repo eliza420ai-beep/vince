@@ -13,8 +13,10 @@ import {
   type HandlerCallback,
 } from '@elizaos/core';
 import { getXNewsService } from '../services/xNews.service';
+import { getXSearchService } from '../services/xSearch.service';
 import { initXClientFromEnv } from '../services/xClient.service';
-import { FOCUS_TICKERS } from '../constants/topics';
+import { getMandoContextForX } from '../utils/mandoContext';
+import { ALL_TOPICS } from '../constants/topics';
 import { setLastResearch } from '../store/lastResearchStore';
 
 export const xNewsAction: Action = {
@@ -70,6 +72,12 @@ export const xNewsAction: Action = {
       const news = await newsService.getDailyTopNews();
 
       if (news.length === 0) {
+        const fallback = await buildNewsFallback(runtime);
+        if (fallback) {
+          if (message.roomId) setLastResearch(message.roomId, fallback);
+          callback({ text: fallback, action: 'X_NEWS' });
+          return true;
+        }
         callback({
           text: "📰 **X News**\n\nNo crypto news found. The News API might not have recent stories or is rate limited.",
           action: 'X_NEWS',
@@ -117,11 +125,20 @@ export const xNewsAction: Action = {
       return true;
     } catch (error) {
       console.error('[X_NEWS] Error:', error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      // Check if it's a "News API not available" type error
-      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+      const isNewsApiUnavailable =
+        errorMessage.includes('404') ||
+        errorMessage.includes('not found') ||
+        errorMessage.includes('News API');
+
+      const fallback = await buildNewsFallback(runtime);
+      if (fallback) {
+        callback({ text: fallback, action: 'X_NEWS' });
+        return true;
+      }
+
+      if (isNewsApiUnavailable) {
         callback({
           text: "📰 **X News**\n\n⚠️ X News API is not available. This endpoint may require specific API access or isn't enabled for your account.",
           action: 'X_NEWS',
@@ -132,7 +149,7 @@ export const xNewsAction: Action = {
           action: 'X_NEWS',
         });
       }
-      
+
       return false;
     }
   },
@@ -160,6 +177,47 @@ function formatNewsItem(item: {
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Fallback when X News API is unavailable: use Mando headlines or pulse-derived "headlines from CT".
+ */
+async function buildNewsFallback(runtime: IAgentRuntime): Promise<string | null> {
+  const mando = await getMandoContextForX(runtime);
+  if (mando?.headlines?.length) {
+    let out = '📰 **CT Headlines**\n\n';
+    out += `**Today's news:** ${mando.vibeCheck}\n\n`;
+    out += mando.headlines.slice(0, 7).map((h) => `• ${h.length > 70 ? h.slice(0, 67) + '...' : h}`).join('\n');
+    out += '\n\n_Headlines from MandoMinutes (X News API unavailable)_';
+    return out;
+  }
+
+  try {
+    initXClientFromEnv();
+    const searchService = getXSearchService();
+    const topicIds = ALL_TOPICS.filter((t) => t.priority === 'high').map((t) => t.id).slice(0, 2);
+    const results = await searchService.searchMultipleTopics({
+      topicsIds: topicIds,
+      maxResultsPerTopic: 10,
+      quick: true,
+      cacheTtlMs: 60 * 60 * 1000,
+    });
+    const tweets = Array.from(results.values()).flat();
+    if (tweets.length === 0) return null;
+
+    const sorted = [...tweets].sort((a, b) => (b.metrics?.likeCount ?? 0) - (a.metrics?.likeCount ?? 0));
+    const top = sorted.slice(0, 7);
+    let out = '📰 **Headlines from CT**\n\n';
+    for (const t of top) {
+      const author = t.author?.username ?? 'unknown';
+      const text = t.text.replace(/\n/g, ' ').slice(0, 80);
+      out += `• @${author}: ${text}${t.text.length > 80 ? '...' : ''}\n`;
+    }
+    out += '\n_Based on recent high-engagement tweets (X News API unavailable)_';
+    return out;
+  } catch {
+    return null;
+  }
 }
 
 export default xNewsAction;

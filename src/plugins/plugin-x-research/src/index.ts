@@ -18,11 +18,12 @@
  */
 
 import type { Plugin } from '@elizaos/core';
-import { 
-  xPulseAction, 
-  xVibeAction, 
-  xThreadAction, 
-  xAccountAction, 
+import {
+  xPulseAction,
+  xVibeAction,
+  xThreadAction,
+  xAccountAction,
+  xMentionsAction,
   xNewsAction,
   xWatchlistAction,
   xSaveResearchAction,
@@ -31,12 +32,13 @@ import {
 export const xResearchPlugin: Plugin = {
   name: 'plugin-x-research',
   description: 'X/Twitter research plugin for crypto sentiment and alpha',
-  
+
   actions: [
     xPulseAction,
     xVibeAction,
     xThreadAction,
     xAccountAction,
+    xMentionsAction,
     xNewsAction,
     xWatchlistAction,
     xSaveResearchAction,

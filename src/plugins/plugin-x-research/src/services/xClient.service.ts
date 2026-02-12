@@ -180,6 +180,8 @@ export class XClientService {
     const endpoint = ENDPOINTS.USER_TWEETS.replace(':id', userId);
     const params = new URLSearchParams({
       'tweet.fields': DEFAULT_TWEET_FIELDS,
+      'user.fields': DEFAULT_USER_FIELDS,
+      expansions: DEFAULT_EXPANSIONS,
       max_results: String(options.maxResults ?? 10),
     });
 
@@ -189,6 +191,29 @@ export class XClientService {
     const response = await this.get<{ data?: XTweet[] }>(
       `${endpoint}?${params.toString()}`,
       { cacheKey: `user_tweets:${userId}:${options.maxResults}` }
+    );
+
+    return response.data ?? [];
+  }
+
+  /**
+   * Get recent mentions of a user (tweets that mention them)
+   */
+  async getUserMentions(userId: string, options: UserTweetsOptions = {}): Promise<XTweet[]> {
+    const endpoint = ENDPOINTS.USER_MENTIONS.replace(':id', userId);
+    const params = new URLSearchParams({
+      'tweet.fields': DEFAULT_TWEET_FIELDS,
+      'user.fields': DEFAULT_USER_FIELDS,
+      expansions: DEFAULT_EXPANSIONS,
+      max_results: String(options.maxResults ?? 50),
+    });
+
+    if (options.startTime) params.set('start_time', options.startTime);
+    if (options.nextToken) params.set('pagination_token', options.nextToken);
+
+    const response = await this.get<{ data?: XTweet[] }>(
+      `${endpoint}?${params.toString()}`,
+      { cacheKey: `user_mentions:${userId}:${options.maxResults}`, cacheTtlMs: 15 * 60 * 1000 }
     );
 
     return response.data ?? [];
@@ -405,6 +430,8 @@ interface UserTweetsOptions {
   maxResults?: number;
   excludeReplies?: boolean;
   excludeRetweets?: boolean;
+  startTime?: string;
+  nextToken?: string;
 }
 
 interface ListTweetsOptions {

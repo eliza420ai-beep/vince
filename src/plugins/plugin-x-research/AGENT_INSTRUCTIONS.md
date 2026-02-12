@@ -29,3 +29,4 @@ Use this when you (the agent) need to choose how to respond to X/Twitter researc
 ## News context (MandoMinutes)
 
 - When MandoMinutes data is available (same runtime or shared cache), pulse and vibe include a **"Today's news"** line so research is aligned with what matters in the news.
+- When running **ECHO without VINCE** in the same process, "Today's news" can still appear if Mando data was written to the **shared cache file** (e.g. by another process that ran VINCE, or a previous run). Default path: `.elizadb/shared/mando_minutes_latest_v9.json`; override with `MANDO_SHARED_CACHE_PATH`. Data older than 24h (or `MANDO_SHARED_CACHE_MAX_AGE_MS`) is ignored.
