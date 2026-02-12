@@ -1650,9 +1650,12 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           : `$${Number(vol).toFixed(0)}`
                       : "—";
                   const wc = polymarketData.weeklyCrypto;
+                  const openWeeklyMarkets = (wc?.markets ?? []).filter(
+                    (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > Date.now()
+                  );
                   return (
                     <>
-                      {wc?.markets && wc.markets.length > 0 && (
+                      {openWeeklyMarkets.length > 0 && (
                         <DashboardCard title="Weekly Crypto vibe check">
                           <p className="text-sm text-muted-foreground mb-3">
                             {wc.oneLiner ?? "Market odds for BTC/ETH/SOL this week — vibe check for Hypersurface weekly options."}
@@ -1677,7 +1680,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                 </tr>
                               </thead>
                               <tbody>
-                                {wc.markets.slice(0, 15).map((m) => (
+                                {openWeeklyMarkets.slice(0, 15).map((m) => (
                                   <tr key={m.conditionId} className="border-b border-border/50">
                                     <td className="py-2 font-medium text-foreground/95 max-w-[280px] line-clamp-2" title={m.question}>{m.question}</td>
                                     <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>

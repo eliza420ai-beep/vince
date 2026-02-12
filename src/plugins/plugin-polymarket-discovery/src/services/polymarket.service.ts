@@ -327,8 +327,10 @@ export class PolymarketService extends Service {
       } catch (error) {
         lastError = error as Error;
         const isLastAttempt = attempt === retries - 1;
+        const isMarketNotFound = lastError.message?.includes("Market not found");
 
-        if (isLastAttempt) {
+        if (isLastAttempt || isMarketNotFound) {
+          if (isMarketNotFound) throw lastError;
           break;
         }
 
@@ -634,6 +636,14 @@ export class PolymarketService extends Service {
       return vb - va;
     };
 
+    const isMarketOpen = (m: PolymarketMarket): boolean => {
+      const end = m.endDateIso ?? (m as any).end_date_iso;
+      if (!end) return true;
+      return new Date(end).getTime() > Date.now();
+    };
+    const filterOpenMarkets = (list: PolymarketMarket[]): PolymarketMarket[] =>
+      list.filter(isMarketOpen);
+
     if (cryptoTagId) {
       try {
         const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(cryptoTagId)}&recurrence=weekly&closed=false&active=true&limit=50&order=volume&ascending=false`;
@@ -652,7 +662,7 @@ export class PolymarketService extends Service {
               }
             }
             deduped.sort(byVolume);
-            const out = deduped.slice(0, safeLimit);
+            const out = filterOpenMarkets(deduped).slice(0, safeLimit);
             logger.info(`[PolymarketService] getWeeklyCryptoMarkets (recurrence=weekly): ${out.length} markets`);
             return out;
           }
@@ -685,7 +695,7 @@ export class PolymarketService extends Service {
               }
             }
             deduped.sort(byVolume);
-            const out = deduped.slice(0, safeLimit);
+            const out = filterOpenMarkets(deduped).slice(0, safeLimit);
             logger.info(`[PolymarketService] getWeeklyCryptoMarkets (tag+filter): ${out.length} markets`);
             return out;
           }
@@ -698,8 +708,11 @@ export class PolymarketService extends Service {
     try {
       const markets = await this.searchMarketsViaGammaSearch("weekly crypto", safeLimit);
       if (markets.length > 0) {
-        logger.info(`[PolymarketService] getWeeklyCryptoMarkets (search fallback): ${markets.length} markets`);
-        return markets.slice(0, safeLimit);
+        const out = filterOpenMarkets(markets).slice(0, safeLimit);
+        if (out.length > 0) {
+          logger.info(`[PolymarketService] getWeeklyCryptoMarkets (search fallback): ${out.length} markets`);
+          return out;
+        }
       }
     } catch (err) {
       logger.debug(`[PolymarketService] getWeeklyCryptoMarkets search fallback failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -893,6 +906,64 @@ export class PolymarketService extends Service {
       logger.info(`[PolymarketService] Fetched market: ${marketWithTokens.question}`);
       return marketWithTokens;
     });
+  }
+
+  /**
+   * Derive MarketPrices from a market payload that already has outcomePrices or tokens (e.g. from Gamma search/events).
+   * Avoids getMarketDetail/getMarketPrices for search results whose conditionId is not in GET /markets list.
+   *
+   * @returns MarketPrices shape or null when payload has no usable prices
+   */
+  getPricesFromMarketPayload(market: PolymarketMarket): MarketPrices | null {
+    const conditionId = market.conditionId ?? (market as any).condition_id ?? "";
+    if (!conditionId) return null;
+
+    let yesPriceNum: number | undefined;
+    let noPriceNum: number | undefined;
+
+    if (market.tokens && market.tokens.length >= 2) {
+      const yesToken = market.tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
+      const noToken = market.tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
+      const yesP = yesToken && typeof (yesToken as any).price === "number" ? (yesToken as any).price : undefined;
+      const noP = noToken && typeof (noToken as any).price === "number" ? (noToken as any).price : undefined;
+      if (yesP != null && noP != null) {
+        yesPriceNum = yesP;
+        noPriceNum = noP;
+      }
+    }
+
+    if (yesPriceNum == null || noPriceNum == null) {
+      let prices: number[] = [];
+      try {
+        const raw = market.outcomePrices;
+        if (Array.isArray(raw)) prices = raw.map((p: any) => parseFloat(String(p))).filter((n) => !Number.isNaN(n));
+        else if (typeof raw === "string") prices = JSON.parse(raw).map((p: any) => parseFloat(String(p))).filter((n: number) => !Number.isNaN(n));
+      } catch {
+        // ignore
+      }
+      if (prices.length >= 2) {
+        yesPriceNum = prices[0];
+        noPriceNum = prices[1];
+      } else if (prices.length === 1) {
+        yesPriceNum = prices[0];
+        noPriceNum = 1 - yesPriceNum;
+      }
+    }
+
+    if (yesPriceNum == null || noPriceNum == null) return null;
+
+    const yesPrice = String(yesPriceNum);
+    const noPrice = String(noPriceNum);
+    const spread = Math.abs(yesPriceNum - noPriceNum).toFixed(4);
+    return {
+      condition_id: conditionId,
+      yes_price: yesPrice,
+      no_price: noPrice,
+      yes_price_formatted: `${(yesPriceNum * 100).toFixed(1)}%`,
+      no_price_formatted: `${(noPriceNum * 100).toFixed(1)}%`,
+      spread,
+      last_updated: Date.now(),
+    };
   }
 
   /**

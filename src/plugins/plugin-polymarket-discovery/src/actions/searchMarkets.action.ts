@@ -228,32 +228,21 @@ export const searchMarketsAction: Action = {
         });
       }
 
-      // Fetch prices for all markets in parallel
+      // Use prices from search payload (outcomePrices/tokens) to avoid getMarketDetail for conditionIds not in GET /markets list
       logger.info(`[SEARCH_POLYMARKETS] Fetching prices for ${markets.length} markets`);
-      const marketsWithPrices = await Promise.all(
-        markets.map(async (market) => {
-          try {
-            const prices = await service.getMarketPrices(market.conditionId);
-            return { market, prices };
-          } catch (error) {
-            logger.warn(
-              `[SEARCH_POLYMARKETS] Failed to fetch prices for ${market.conditionId}: ${error instanceof Error ? error.message : String(error)}`
-            );
-            return {
-              market,
-              prices: {
-                yes_price: "0.50",
-                no_price: "0.50",
-                yes_price_formatted: "50.0%",
-                no_price_formatted: "50.0%",
-                spread: "0.0000",
-                last_updated: Date.now(),
-                condition_id: market.conditionId,
-              },
-            };
-          }
-        })
-      );
+      const fallbackPrices = (market: { conditionId?: string; [k: string]: any }) => ({
+        yes_price: "0.50",
+        no_price: "0.50",
+        yes_price_formatted: "50.0%",
+        no_price_formatted: "50.0%",
+        spread: "0.0000",
+        last_updated: Date.now(),
+        condition_id: market.conditionId ?? market.condition_id ?? "",
+      });
+      const marketsWithPrices = markets.map((market) => {
+        const prices = service.getPricesFromMarketPayload(market) ?? fallbackPrices(market);
+        return { market, prices };
+      });
 
       // Format response
       const searchDesc = query

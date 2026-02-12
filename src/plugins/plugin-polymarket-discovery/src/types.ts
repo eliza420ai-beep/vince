@@ -56,6 +56,8 @@ export interface PolymarketMarket {
   condition_id?: string;           // Alias for conditionId
   end_date_iso?: string;           // Alias for endDateIso
   market_slug?: string;            // Alias for slug
+  // From Gamma search/events payload (for getPricesFromMarketPayload)
+  outcomePrices?: string | string[];
 }
 
 /**
