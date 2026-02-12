@@ -527,7 +527,13 @@ export class PolymarketService extends Service {
         }
       }
       const resolved = PolymarketService.resolveSlugToTagId(tagIdOrSlug, slugToTagId);
-      if (resolved) tagId = resolved;
+      if (resolved) {
+        tagId = resolved;
+      } else {
+        const fallback = await this.getTagBySlug(tagIdOrSlug);
+        const tag = fallback ?? (tagIdOrSlug.includes("-") ? await this.getTagBySlug(tagIdOrSlug.replace(/-/g, "_")) : null);
+        if (tag?.id && /^\d+$/.test(String(tag.id))) tagId = tag.id;
+      }
     }
     const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
     const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(tagId)}&closed=false&active=true&limit=${safeLimit}&order=volume&ascending=false`;
