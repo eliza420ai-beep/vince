@@ -139,14 +139,14 @@ const INTEGRATION_PATTERNS: IntegrationPattern[] = [
     example: "Standup identifies 'refactor options action' → Milaidy receives task → executes → returns deliverable path",
   },
   {
-    name: "Clawdbot for Knowledge Research",
-    description: "Dedicated X account + curated follows + Birdy → threads/URLs → knowledge pipeline (no X API cost)",
-    whenToUse: "When you need continuous knowledge ingestion from X without API quota",
-    implementation: `1. Create dedicated X account (e.g. @vince_research_bot)
-2. Curate high-quality follows (alpha accounts, researchers, devs)
-3. Set up Birdy to scrape home timeline
-4. Pipe threads/URLs through VINCE_UPLOAD → knowledge/`,
-    example: "Clawdbot follows 50 alpha accounts → Birdy captures threads → summarize → knowledge/crypto-research/",
+    name: "OpenClaw for Knowledge Research",
+    description: "Daily cron job using official X API → targeted searches → knowledge pipeline (pay-as-you-go, TOS compliant)",
+    whenToUse: "When you need continuous knowledge ingestion from X using official API",
+    implementation: `1. Set X_BEARER_TOKEN in OpenClaw env
+2. Create daily cron job with targeted searches (5-6 queries)
+3. Use x-research skill or VINCE_X_RESEARCH action
+4. Save results to knowledge/research-daily/ via UPLOAD`,
+    example: "Daily cron searches 'ElizaOS', '$BTC alpha', 'AI agents crypto' → saves to knowledge/research-daily/",
   },
   {
     name: "Hybrid Agent Mode",
@@ -157,27 +157,27 @@ const INTEGRATION_PATTERNS: IntegrationPattern[] = [
   },
 ];
 
-// Clawdbot setup guide
-const CLAWDBOT_SETUP: ClawdbotSetup = {
-  purpose: "24/7 knowledge research without X API cost — curated follows + scraping → knowledge pipeline",
+// OpenClaw knowledge research setup guide (official X API only - TOS compliant)
+const OPENCLAW_RESEARCH_SETUP: ClawdbotSetup = {
+  purpose: "Daily knowledge research using official X API (pay-as-you-go) → knowledge pipeline",
   requirements: [
-    "Dedicated X account for research (e.g. @vince_research_bot)",
-    "Birdy or equivalent scraper for home timeline",
+    "X API Bearer Token (developer.x.com)",
+    "X API credits (pay-as-you-go, with spending limit)",
+    "OpenClaw cron job for daily execution",
     "VINCE_UPLOAD action or scripts/ingest-urls.ts for ingestion",
-    "Optional: #vince-research Discord channel for pushes",
   ],
   steps: [
-    "1. Create a new X account dedicated to research (keeps follows curated)",
-    "2. Follow 30-50 high-signal accounts: researchers, alpha leakers, devs, analysts",
-    "3. Set up Birdy to capture home timeline (see github.com/birdy-ai/birdy)",
-    "4. Configure pipeline: Birdy output → filter for threads/URLs → VINCE_UPLOAD",
-    "5. Schedule: run every 2-4 hours to capture new content",
-    "6. Optional: Push summaries to #vince-research Discord channel",
+    "1. Create X API app at developer.x.com, get Bearer Token",
+    "2. Add credits and set spending limit (e.g. $25/month cap)",
+    "3. Set X_BEARER_TOKEN in OpenClaw env or shell profile",
+    "4. Create daily cron job with targeted searches (5-6 queries max)",
+    "5. Use x-research skill: bun run x-search.ts search '<query>' --save",
+    "6. Pipe saved results to knowledge/research-daily/ via UPLOAD",
   ],
   benefits: [
-    "No X API cost (scraping is free)",
-    "Curated feed (you control the follows)",
-    "24/7 operation (scheduled runs)",
+    "TOS compliant (official API only)",
+    "24hr deduplication (same posts don't double-charge)",
+    "Targeted high-signal queries",
     "Knowledge compounds over time",
     "Feeds into VINCE's research and content generation",
   ],
@@ -228,8 +228,8 @@ export function getIntegrationPattern(name: string): IntegrationPattern | undefi
 /**
  * Get Clawdbot setup guide
  */
-export function getClawdbotSetup(): ClawdbotSetup {
-  return CLAWDBOT_SETUP;
+export function getOpenclawResearchSetup(): ClawdbotSetup {
+  return OPENCLAW_RESEARCH_SETUP;
 }
 
 /**
@@ -262,10 +262,10 @@ ${getHighRelevanceCapabilities().map(c => `• **${c.name}:** ${c.description}`)
 ${INTEGRATION_PATTERNS.map(p => `### ${p.name}\n${p.whenToUse}`).join("\n\n")}
 
 ## Clawdbot for Knowledge Research
-${CLAWDBOT_SETUP.purpose}
+${OPENCLAW_RESEARCH_SETUP.purpose}
 
 **Steps:**
-${CLAWDBOT_SETUP.steps.join("\n")}
+${OPENCLAW_RESEARCH_SETUP.steps.join("\n")}
 `;
 }
 
@@ -334,16 +334,16 @@ ${milaidy?.implementation}
 
 ${clawdbot?.description}
 
-**Purpose:** ${CLAWDBOT_SETUP.purpose}
+**Purpose:** ${OPENCLAW_RESEARCH_SETUP.purpose}
 
 **Requirements:**
-${CLAWDBOT_SETUP.requirements.map(r => `• ${r}`).join("\n")}
+${OPENCLAW_RESEARCH_SETUP.requirements.map(r => `• ${r}`).join("\n")}
 
 **Steps:**
-${CLAWDBOT_SETUP.steps.join("\n")}
+${OPENCLAW_RESEARCH_SETUP.steps.join("\n")}
 
 **Benefits:**
-${CLAWDBOT_SETUP.benefits.map(b => `• ${b}`).join("\n")}
+${OPENCLAW_RESEARCH_SETUP.benefits.map(b => `• ${b}`).join("\n")}
 
 ---
 
@@ -411,7 +411,7 @@ export default {
   getHighRelevanceCapabilities,
   getIntegrationPatterns,
   getIntegrationPattern,
-  getClawdbotSetup,
+  getOpenclawResearchSetup,
   getQuickReference,
   generateIntegrationInstructions,
   hasAdapterDocs,
