@@ -14,6 +14,7 @@ import type { Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
+import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
 
 export const interAgentPlugin: Plugin = {
@@ -23,6 +24,7 @@ export const interAgentPlugin: Plugin = {
 
   actions: [askAgentAction],
   evaluators: [a2aLoopGuardEvaluator],
+  providers: [a2aContextProvider],
 
   init: async (_config, runtime) => {
     const hasElizaOS = !!(runtime as { elizaOS?: unknown }).elizaOS;
