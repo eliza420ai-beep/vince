@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -61,16 +62,16 @@ Commands:
   ],
   examples: [
     [
-      { user: "user1", content: { text: "backtest SOL momentum" } },
-      { user: "assistant", content: { text: "Running momentum backtest on SOL..." } },
+      { name: "{{user1}}", content: { text: "backtest SOL momentum" } },
+      { name: "{{agent}}", content: { text: "Running momentum backtest on SOL...", actions: ["OPENCLAW_BACKTEST"] } },
     ],
     [
-      { user: "user1", content: { text: "signal ETH long 3500 4000 3300" } },
-      { user: "assistant", content: { text: "Recorded long signal for ETH..." } },
+      { name: "{{user1}}", content: { text: "signal ETH long 3500 4000 3300" } },
+      { name: "{{agent}}", content: { text: "Recorded long signal for ETH...", actions: ["OPENCLAW_BACKTEST"] } },
     ],
     [
-      { user: "user1", content: { text: "show agent performance" } },
-      { user: "assistant", content: { text: "Here's the agent performance leaderboard..." } },
+      { name: "{{user1}}", content: { text: "show agent performance" } },
+      { name: "{{agent}}", content: { text: "Here's the agent performance leaderboard...", actions: ["OPENCLAW_BACKTEST"] } },
     ],
   ],
   
@@ -91,7 +92,7 @@ Commands:
     state: State | undefined,
     _options: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<ActionResult> => {
     const text = message.content?.text?.toLowerCase() || "";
     const originalText = message.content?.text || "";
     
@@ -104,7 +105,7 @@ Commands:
         const history = getBacktestHistory(10);
         const response = formatBacktestHistory(history);
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // Run backtest
@@ -141,7 +142,7 @@ Commands:
         const result = runBacktest(config);
         const response = formatBacktestResult(result);
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // Record signal
@@ -158,7 +159,7 @@ Commands:
           if (callback) {
             callback({ text: "⚠️ Please specify entry, target, and stop prices:\n`signal <token> long/short <entry> <target> <stop>`" });
           }
-          return true;
+          return { success: true };
         }
         
         const [entry, target, stop] = prices;
@@ -193,7 +194,7 @@ Signal ID: \`${signal.id}\`
 Close with: \`signal close ${signal.id} <exit_price>\``;
         
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // Close signal
@@ -203,7 +204,7 @@ Close with: \`signal close ${signal.id} <exit_price>\``;
           if (callback) {
             callback({ text: "⚠️ Please specify signal ID:\n`signal close <signal_id> <exit_price>`" });
           }
-          return true;
+          return { success: true };
         }
         
         const priceMatch = tokens.find(t => /^\d+(\.\d+)?$/.test(t));
@@ -211,7 +212,7 @@ Close with: \`signal close ${signal.id} <exit_price>\``;
           if (callback) {
             callback({ text: "⚠️ Please specify exit price:\n`signal close <signal_id> <exit_price>`" });
           }
-          return true;
+          return { success: true };
         }
         
         const exitPrice = parseFloat(priceMatch);
@@ -219,7 +220,7 @@ Close with: \`signal close ${signal.id} <exit_price>\``;
         
         if (!closedSignal) {
           if (callback) callback({ text: `❌ Signal not found or already closed: ${idMatch}` });
-          return true;
+          return { success: true };
         }
         
         const pnlIcon = (closedSignal.pnl || 0) >= 0 ? "📈" : "📉";
@@ -233,7 +234,7 @@ ${pnlIcon} **PnL:** ${(closedSignal.pnl || 0) >= 0 ? "+" : ""}${closedSignal.pnl
 **Result:** ${closedSignal.status === "hit_target" ? "🎯 Target Hit" : closedSignal.status === "hit_stop" ? "🛑 Stopped Out" : "📤 Manual Close"}`;
         
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // View signals
@@ -248,7 +249,7 @@ ${pnlIcon} **PnL:** ${(closedSignal.pnl || 0) >= 0 ? "+" : ""}${closedSignal.pnl
           if (callback) {
             callback({ text: `📊 **Open Signals**${token ? ` (${token})` : ""}\n\nNo open signals.\n\nRecord: \`signal <token> long/short <entry> <target> <stop>\`` });
           }
-          return true;
+          return { success: true };
         }
         
         const rows = signals.map((s, i) => {
@@ -269,7 +270,7 @@ ${rows}
 Close: \`signal close <id> <price>\``;
         
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // Performance leaderboard
@@ -277,7 +278,7 @@ Close: \`signal close <id> <price>\``;
         const performances = getAgentPerformance();
         const response = formatAgentPerformance(performances);
         if (callback) callback({ text: response });
-        return true;
+        return { success: true };
       }
       
       // Default - show help
@@ -298,14 +299,15 @@ Close: \`signal close <id> <price>\``;
 \`signal ETH long 3500 4000 3300\``;
       
       if (callback) callback({ text: response });
-      return true;
+      return { success: true };
       
     } catch (error) {
+      const msg = error instanceof Error ? error.message : "Unknown error";
       logger.error("[Backtest] Error:", error);
       if (callback) {
-        callback({ text: `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}` });
+        callback({ text: `❌ Error: ${msg}` });
       }
-      return false;
+      return { success: false, error: new Error(msg) };
     }
   },
 };
