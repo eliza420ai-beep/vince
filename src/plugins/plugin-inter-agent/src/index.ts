@@ -13,6 +13,7 @@
 import type { Plugin } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
+import { dailyReportAction } from "./actions/dailyReport.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
@@ -20,9 +21,9 @@ import { isStandupCoordinator, registerStandupTask } from "./standup";
 export const interAgentPlugin: Plugin = {
   name: "plugin-inter-agent",
   description:
-    "Lets agents ask other agents a question and report the answer back. Use ASK_AGENT when the user wants another agent's input. Includes A2A loop guard for symmetric Discord chat.",
+    "Multi-agent communication: ASK_AGENT, DAILY_REPORT, A2A loop guard, and structured standups with human participation.",
 
-  actions: [askAgentAction],
+  actions: [askAgentAction, dailyReportAction],
   evaluators: [a2aLoopGuardEvaluator],
   providers: [a2aContextProvider],
 

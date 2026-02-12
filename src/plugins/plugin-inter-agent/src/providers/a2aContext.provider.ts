@@ -6,6 +6,7 @@
  * - Whether the message is from another known agent
  * - How many exchanges have already happened
  * - Whether responding would create a loop
+ * - Whether a HUMAN is present (highest priority!)
  *
  * Works WITH the A2A_LOOP_GUARD evaluator for defense in depth.
  */
@@ -17,9 +18,35 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
+import { isHumanMessage, buildStandupContext, getAgentRole } from "../standup/standupReports";
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
+
+/** Human names to recognize (co-founders, team members) */
+const KNOWN_HUMANS = ["yves", "ikigai"];
+
+/** Check if message is from a known human */
+function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string | null } {
+  const senderName = (
+    memory.content?.name ||
+    memory.content?.userName ||
+    ""
+  ).toLowerCase();
+
+  for (const human of KNOWN_HUMANS) {
+    if (senderName.includes(human)) {
+      return { isHuman: true, humanName: human.charAt(0).toUpperCase() + human.slice(1) };
+    }
+  }
+
+  // Not a known agent = probably human
+  if (isHumanMessage(memory)) {
+    return { isHuman: true, humanName: senderName || "Human" };
+  }
+
+  return { isHuman: false, humanName: null };
+}
 
 /** Check if a message is from a known agent */
 function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string | null } {
@@ -80,17 +107,41 @@ async function countRecentExchanges(
 
 export const a2aContextProvider: Provider = {
   name: "A2A_CONTEXT",
-  description: "Provides context about agent-to-agent conversations to prevent loops",
+  description: "Provides context about agent-to-agent and agent-to-human conversations in standups",
 
   get: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state?: State
   ): Promise<string> => {
+    const myName = runtime.character?.name || "Agent";
+    
+    // Check if this is from a HUMAN (highest priority!)
+    const { isHuman, humanName } = isFromKnownHuman(message);
+    if (isHuman) {
+      logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
+      const role = getAgentRole(myName);
+      return `
+## ⭐ HUMAN MESSAGE — PRIORITY RESPONSE
+
+**${humanName}** (Co-Founder) is speaking to you directly.
+
+### Your Response Rules:
+1. RESPOND IMMEDIATELY — human messages override all loop limits
+2. Be helpful and concise
+3. If they ask a question, answer it directly
+4. If they give feedback, acknowledge and adapt
+5. If they make a decision, confirm and note it
+
+You are ${myName}${role ? ` (${role.title} - ${role.focus})` : ""}.
+Address ${humanName} directly. Be useful.
+`;
+    }
+
     const { isAgent, agentName } = isFromKnownAgent(message);
     
     if (!isAgent) {
-      // Not from an agent, no special context needed
+      // Not from an agent or human we recognize — treat as normal
       return "";
     }
 
