@@ -56,13 +56,8 @@ const character = {
 
 Get a full ALOHA-style briefing on X sentiment.
 
-**Triggers:**
-- "What's CT saying about BTC?"
-- "X vibe check"
-- "Twitter sentiment"
-- "Crypto twitter pulse"
+**Triggers:** "What's CT saying?", "X vibe check", "crypto twitter pulse"
 
-**Output:**
 ```
 📊 X Pulse
 
@@ -74,16 +69,81 @@ By Topic:
 • SOL 😐 +3
 
 Top Threads:
-🧵 @crediblecrypto: Technical breakdown of the supply shock...
-   2.3k likes | https://x.com/crediblecrypto/status/...
+🧵 @crediblecrypto: Technical breakdown...
 
 🔥 Breaking:
-• @lookonchain: Large BTC transfer to Coinbase flagged...
-  (340 likes/hour)
-
-⚠️ No contrarian warnings
+• @lookonchain: Large BTC transfer (340 likes/hour)
 
 _Based on 847 posts from the last 24h_
+```
+
+### X_VIBE
+
+Quick sentiment check for a single topic.
+
+**Triggers:** "What's the vibe on ETH?", "BTC sentiment check"
+
+```
+📊 ETH Vibe Check
+
+📉 Bearish (-28) | 65% confidence
+
+Breakdown:
+• Bullish: 23 tweets
+• Bearish: 47 tweets
+
+Whale alignment: +12 (whales more bullish)
+```
+
+### X_THREAD
+
+Fetch and summarize a Twitter thread.
+
+**Triggers:** "Summarize this thread: [URL]", "Get thread [ID]"
+
+```
+🧵 Thread Summary
+
+Author: @crediblecrypto (whale)
+Length: 12 tweets
+Engagement: 2.3k likes, 450 RTs
+
+TL;DR: [AI-generated summary of key points]
+```
+
+### X_ACCOUNT
+
+Analyze a Twitter/X account.
+
+**Triggers:** "Who is @crediblecrypto?", "Tell me about @DegenSpartan"
+
+```
+👤 @crediblecrypto
+
+Tier: 🐋 Whale
+Reason: 285K followers, market-moving
+
+Stats: 285K followers, 1.2k avg likes
+Focus: BTC, trading, macro
+Bias: Bullish | Reliability: 80/100
+```
+
+### X_NEWS
+
+Get crypto news from X's News API.
+
+**Triggers:** "Crypto news on X", "What's happening?"
+
+```
+📰 X News | Crypto
+
+🔴 HIGH IMPACT
+• BTC ETF Sees Record $1.2B Inflows [BTC]
+  📈 Bullish | Relevance: 95
+
+🟡 MEDIUM IMPACT
+• Solana DEX Volume Hits ATH [SOL]
+  📈 Bullish | Relevance: 72
 ```
 
 ## Architecture
@@ -91,15 +151,33 @@ _Based on 847 posts from the last 24h_
 ```
 plugin-x-research/
 ├── src/
-│   ├── index.ts           # Plugin entry
-│   ├── types/             # TypeScript types
-│   ├── constants/         # Topics, keywords, accounts
+│   ├── index.ts              # Plugin entry (5 actions)
+│   ├── types/                # TypeScript types
+│   │   ├── tweet.types.ts    # Tweet, User, SearchResponse
+│   │   ├── news.types.ts     # News API types
+│   │   ├── trends.types.ts   # Trends API types
+│   │   ├── sentiment.types.ts # Sentiment analysis types
+│   │   └── analysis.types.ts # Computed analysis results
+│   ├── constants/
+│   │   ├── topics.ts         # Topics we care about
+│   │   ├── sentimentKeywords.ts # Bullish/bearish keywords
+│   │   ├── qualityAccounts.ts # Whale/alpha/quality tiers
+│   │   └── endpoints.ts      # X API v2 URLs
 │   ├── services/
-│   │   ├── xClient        # Core API client
-│   │   ├── xSearch        # Topic search
-│   │   └── xSentiment     # Sentiment analysis
-│   └── actions/
-│       └── xPulse         # North star action
+│   │   ├── xClient.service   # Core API client (auth, cache, rate limits)
+│   │   ├── xSearch.service   # Topic search, volume spikes
+│   │   ├── xSentiment.service # Keyword scoring, tier weighting
+│   │   ├── xNews.service     # X News API integration
+│   │   ├── xTrends.service   # Personalized trends
+│   │   ├── xThreads.service  # Thread detection & fetching
+│   │   └── xAccounts.service # Account analysis
+│   ├── actions/
+│   │   ├── xPulse.action     # 🎯 North star - full briefing
+│   │   ├── xVibe.action      # Quick topic sentiment
+│   │   ├── xThread.action    # Thread summarization
+│   │   ├── xAccount.action   # Account analysis
+│   │   └── xNews.action      # News headlines
+│   └── __tests__/            # Vitest tests
 ```
 
 ## Topics We Track
@@ -152,13 +230,20 @@ bun test
 bun run dev
 ```
 
-## Future Actions
+## Roadmap
 
-- `X_VIBE`: Quick sentiment check for a single topic
-- `X_SEARCH`: Manual search with filters
-- `X_THREAD`: Fetch and summarize a thread
-- `X_ACCOUNT`: Analyze an account's recent takes
-- `X_NEWS`: Get news from X News API
+**Implemented:**
+- ✅ `X_PULSE` - Full ALOHA-style briefing
+- ✅ `X_VIBE` - Quick topic sentiment
+- ✅ `X_THREAD` - Thread summarization
+- ✅ `X_ACCOUNT` - Account analysis
+- ✅ `X_NEWS` - News headlines
+
+**Planned:**
+- `X_SEARCH` - Manual search with custom filters
+- `X_ALPHA` - Alpha discovery (new accounts, emerging narratives)
+- Providers for VINCE signal aggregation
+- X Spaces monitoring
 
 ## Credits
 

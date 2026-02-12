@@ -1,0 +1,162 @@
+/**
+ * X Thread Action
+ * 
+ * Fetch and summarize a Twitter thread.
+ * "Summarize this thread: https://x.com/..."
+ */
+
+import {
+  type Action,
+  type IAgentRuntime,
+  type Memory,
+  type State,
+  type HandlerCallback,
+  ModelClass,
+  generateText,
+} from '@elizaos/core';
+import { getXThreadsService } from '../services/xThreads.service';
+import { initXClientFromEnv } from '../services/xClient.service';
+
+export const xThreadAction: Action = {
+  name: 'X_THREAD',
+  description: 'Fetch and summarize a Twitter/X thread. Provide a tweet URL or ID.',
+  
+  similes: [
+    'SUMMARIZE_THREAD',
+    'GET_THREAD',
+    'THREAD_SUMMARY',
+  ],
+
+  examples: [
+    [
+      {
+        user: '{{user1}}',
+        content: { text: "Summarize this thread: https://x.com/crediblecrypto/status/1234567890" },
+      },
+      {
+        user: '{{agentName}}',
+        content: {
+          text: "🧵 **Thread Summary**\n\n**Author:** @crediblecrypto (whale)\n**Length:** 12 tweets\n**Engagement:** 2.3k likes, 450 RTs\n\n**TL;DR:**\nCredible argues we're in a supply shock setup for BTC. Key points:\n\n1. ETF inflows outpacing miner supply 3:1\n2. Exchange reserves at 5-year lows\n3. Long-term holder supply at ATH\n4. Retail hasn't arrived yet (Google Trends)\n\n**Conclusion:** \"This is the most asymmetric setup since 2020. The math doesn't lie.\"\n\n🔗 https://x.com/crediblecrypto/status/1234567890",
+          action: 'X_THREAD',
+        },
+      },
+    ],
+  ],
+
+  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    const text = message.content?.text ?? '';
+    
+    // Check for thread URL or thread-related request
+    const hasUrl = text.includes('x.com/') || text.includes('twitter.com/');
+    const hasThreadKeyword = /thread|summarize|tldr|tl;dr/i.test(text);
+    
+    return hasUrl || (hasThreadKeyword && /\d{10,}/.test(text));
+  },
+
+  handler: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+    state: State,
+    _options: Record<string, unknown>,
+    callback: HandlerCallback
+  ): Promise<boolean> => {
+    try {
+      initXClientFromEnv();
+
+      const text = message.content?.text ?? '';
+      
+      // Extract URL or tweet ID
+      const urlMatch = text.match(/(?:x\.com|twitter\.com)\/\w+\/status\/(\d+)/);
+      const idMatch = text.match(/\b(\d{10,})\b/);
+      
+      const tweetId = urlMatch?.[1] ?? idMatch?.[1];
+      
+      if (!tweetId) {
+        callback({
+          text: "I need a tweet URL or ID to fetch the thread. Example:\n`Summarize this thread: https://x.com/user/status/123456789`",
+          action: 'X_THREAD',
+        });
+        return true;
+      }
+
+      const threadsService = getXThreadsService();
+
+      // Fetch the thread
+      const tweets = await threadsService.getThread(tweetId);
+
+      if (tweets.length === 0) {
+        callback({
+          text: "Couldn't fetch the thread. The tweet might be deleted, protected, or the API is rate limited.",
+          action: 'X_THREAD',
+        });
+        return true;
+      }
+
+      // Get thread summary
+      const summary = threadsService.summarizeThread(tweets);
+
+      if (!summary) {
+        callback({
+          text: "Couldn't summarize the thread.",
+          action: 'X_THREAD',
+        });
+        return true;
+      }
+
+      // Combine all tweet text
+      const fullText = tweets.map((t, i) => `${i + 1}. ${t.text}`).join('\n\n');
+
+      // Use LLM to generate a proper summary
+      const llmSummary = await generateText({
+        runtime,
+        context: `You are summarizing a Twitter thread for a crypto trader. Be concise but capture key insights.
+
+Thread by @${summary.author.username} (${summary.tweetCount} tweets):
+
+${fullText}
+
+Generate a TL;DR summary with key points. Focus on actionable insights, data, and conclusions. Use bullet points for key points.`,
+        modelClass: ModelClass.SMALL,
+      });
+
+      // Build response
+      let response = `🧵 **Thread Summary**\n\n`;
+      response += `**Author:** @${summary.author.username}`;
+      if (summary.author.tier !== 'standard') {
+        response += ` (${summary.author.tier})`;
+      }
+      response += `\n`;
+      response += `**Length:** ${summary.tweetCount} tweets\n`;
+      response += `**Engagement:** ${formatNumber(summary.engagement.likes)} likes, ${formatNumber(summary.engagement.retweets)} RTs\n\n`;
+
+      response += `**TL;DR:**\n${llmSummary}\n\n`;
+      
+      response += `🔗 ${summary.url}`;
+
+      callback({
+        text: response,
+        action: 'X_THREAD',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('[X_THREAD] Error:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      callback({
+        text: `🧵 **Thread**\n\n❌ Error: ${errorMessage}`,
+        action: 'X_THREAD',
+      });
+      
+      return false;
+    }
+  },
+};
+
+function formatNumber(num: number): string {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+  return String(num);
+}
+
+export default xThreadAction;

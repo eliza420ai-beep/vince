@@ -18,7 +18,13 @@
  */
 
 import type { Plugin } from '@elizaos/core';
-import { xPulseAction } from './actions';
+import { 
+  xPulseAction, 
+  xVibeAction, 
+  xThreadAction, 
+  xAccountAction, 
+  xNewsAction,
+} from './actions';
 
 export const xResearchPlugin: Plugin = {
   name: 'plugin-x-research',
@@ -26,6 +32,10 @@ export const xResearchPlugin: Plugin = {
   
   actions: [
     xPulseAction,
+    xVibeAction,
+    xThreadAction,
+    xAccountAction,
+    xNewsAction,
   ],
 
   // Providers can be used by other plugins (e.g., VINCE ALOHA)
