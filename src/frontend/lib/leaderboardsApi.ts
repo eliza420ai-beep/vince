@@ -252,25 +252,34 @@ export { STALE_MS as LEADERBOARDS_STALE_MS };
 // Polymarket priority markets (Polymarket tab – Oracle agent)
 // ---------------------------------------------------------------------------
 
+export type PolymarketPriorityMarketItem = {
+  question: string;
+  conditionId: string;
+  volume?: string;
+  liquidity?: string;
+  yesTokenId?: string;
+  noTokenId?: string;
+  slug?: string;
+  /** YES outcome probability 0–1 (display as % in UI) */
+  yesPrice?: number;
+  /** Optional category for grouping (e.g. crypto, finance, other) */
+  category?: string;
+  /** Optional end date ISO string for weekly/monthly context */
+  endDateIso?: string;
+};
+
 export interface PolymarketPriorityMarketsResponse {
   whyWeTrack: string;
   intentSummary: string;
-  markets: {
-    question: string;
-    conditionId: string;
-    volume?: string;
-    liquidity?: string;
-    yesTokenId?: string;
-    noTokenId?: string;
-    slug?: string;
-    /** YES outcome probability 0–1 (display as % in UI) */
-    yesPrice?: number;
-    /** Optional category for grouping (e.g. crypto, finance, other) */
-    category?: string;
-    /** Optional end date ISO string for weekly/monthly context */
-    endDateIso?: string;
-  }[];
+  markets: PolymarketPriorityMarketItem[];
   updatedAt: number;
+  /** Weekly crypto odds for Hypersurface vibe check (Polymarket /crypto/weekly) */
+  weeklyCrypto?: {
+    oneLiner: string;
+    link: string;
+    markets: PolymarketPriorityMarketItem[];
+    updatedAt: number;
+  };
 }
 
 export interface PolymarketPriorityMarketsFetchResult {

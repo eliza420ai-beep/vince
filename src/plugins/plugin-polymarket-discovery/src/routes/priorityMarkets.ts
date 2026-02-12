@@ -33,22 +33,30 @@ function getYesPrice(m: PolymarketMarket & { outcomePrices?: string | string[] }
   return undefined;
 }
 
+export type PriorityMarketItem = {
+  question: string;
+  conditionId: string;
+  volume?: string;
+  liquidity?: string;
+  yesTokenId?: string;
+  noTokenId?: string;
+  slug?: string;
+  yesPrice?: number;
+  category?: string;
+  endDateIso?: string;
+};
+
 export interface PriorityMarketsResponse {
   whyWeTrack: string;
   intentSummary: string;
-  markets: {
-    question: string;
-    conditionId: string;
-    volume?: string;
-    liquidity?: string;
-    yesTokenId?: string;
-    noTokenId?: string;
-    slug?: string;
-    yesPrice?: number;
-    category?: string;
-    endDateIso?: string;
-  }[];
+  markets: PriorityMarketItem[];
   updatedAt: number;
+  weeklyCrypto?: {
+    oneLiner: string;
+    link: string;
+    markets: PriorityMarketItem[];
+    updatedAt: number;
+  };
 }
 
 export function buildPriorityMarketsHandler() {
@@ -86,28 +94,43 @@ export function buildPriorityMarketsHandler() {
       return;
     }
 
-    try {
-      const markets = await service.getMarketsByPreferredTags({
-        tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
-        totalLimit: 30,
-      });
+    const mapMarketToItem = (m: PolymarketMarket): PriorityMarketItem => ({
+      question: m.question,
+      conditionId: m.conditionId ?? (m as any).condition_id ?? "",
+      volume: m.volume,
+      liquidity: m.liquidity,
+      yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
+      noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
+      slug: m.slug ?? (m as any).market_slug,
+      yesPrice: getYesPrice(m as PolymarketMarket & { outcomePrices?: string | string[] }),
+      category: m.category,
+      endDateIso: m.endDateIso ?? m.end_date_iso,
+    });
 
+    try {
+      const [markets, weeklyCryptoMarkets] = await Promise.all([
+        service.getMarketsByPreferredTags({
+          tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
+          totalLimit: 30,
+        }),
+        service.getWeeklyCryptoMarkets(15),
+      ]);
+
+      const now = Date.now();
       const body: PriorityMarketsResponse = {
         whyWeTrack: WHY_WE_TRACK,
         intentSummary: INTENT_SUMMARY,
-        markets: markets.map((m) => ({
-          question: m.question,
-          conditionId: m.conditionId ?? (m as any).condition_id ?? "",
-          volume: m.volume,
-          liquidity: m.liquidity,
-          yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
-          noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
-          slug: m.slug ?? (m as any).market_slug,
-          yesPrice: getYesPrice(m as PolymarketMarket & { outcomePrices?: string | string[] }),
-          category: m.category,
-          endDateIso: m.endDateIso ?? m.end_date_iso,
-        })),
-        updatedAt: Date.now(),
+        markets: markets.map(mapMarketToItem),
+        updatedAt: now,
+        weeklyCrypto:
+          weeklyCryptoMarkets.length > 0
+            ? {
+                oneLiner: "Weekly crypto odds — vibe check for Hypersurface weekly options.",
+                link: "https://polymarket.com/crypto/weekly",
+                markets: weeklyCryptoMarkets.map(mapMarketToItem),
+                updatedAt: now,
+              }
+            : undefined,
       };
 
       res.json(body);

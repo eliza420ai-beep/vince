@@ -1641,8 +1641,67 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     if (yesPrice <= 0.4) return "bg-red-500/10";
                     return "";
                   };
+                  const formatVolume = (vol: string | undefined) =>
+                    vol != null
+                      ? Number(vol) >= 1e6
+                        ? `$${(Number(vol) / 1e6).toFixed(1)}M`
+                        : Number(vol) >= 1e3
+                          ? `$${(Number(vol) / 1e3).toFixed(0)}K`
+                          : `$${Number(vol).toFixed(0)}`
+                      : "—";
+                  const wc = polymarketData.weeklyCrypto;
                   return (
                     <>
+                      {wc?.markets && wc.markets.length > 0 && (
+                        <DashboardCard title="Weekly Crypto vibe check">
+                          <p className="text-sm text-muted-foreground mb-3">
+                            {wc.oneLiner ?? "Market odds for BTC/ETH/SOL this week — vibe check for Hypersurface weekly options."}
+                          </p>
+                          <a
+                            href={wc.link ?? "https://polymarket.com/crypto/weekly"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-primary font-medium hover:underline mb-4"
+                          >
+                            View on Polymarket <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-border">
+                                  <th className="text-left py-2 font-medium">Market</th>
+                                  <th className="text-right py-2 font-medium">YES %</th>
+                                  <th className="text-right py-2 font-medium">Volume</th>
+                                  <th className="text-right py-2 font-medium">Closes</th>
+                                  <th className="text-right py-2 font-medium">Link</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {wc.markets.slice(0, 15).map((m) => (
+                                  <tr key={m.conditionId} className="border-b border-border/50">
+                                    <td className="py-2 font-medium text-foreground/95 max-w-[280px] line-clamp-2" title={m.question}>{m.question}</td>
+                                    <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
+                                      {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
+                                    </td>
+                                    <td className="text-right font-mono text-muted-foreground">{formatVolume(m.volume)}</td>
+                                    <td className="text-right text-muted-foreground whitespace-nowrap">{formatCloses(m.endDateIso)}</td>
+                                    <td className="text-right">
+                                      <a
+                                        href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline inline-flex items-center gap-1"
+                                      >
+                                        View <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </DashboardCard>
+                      )}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm text-muted-foreground">
                           {polymarketData.markets.length} market{polymarketData.markets.length !== 1 ? "s" : ""}

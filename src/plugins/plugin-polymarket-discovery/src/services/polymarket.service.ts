@@ -438,6 +438,45 @@ export class PolymarketService extends Service {
   }
 
   /**
+   * Normalized keys for a tag (slug/label + hyphen/underscore/space variants) so preferred slugs like "fed-rates" match Gamma tags with slug "fed_rates" or label "Fed Rates".
+   */
+  private static tagKeys(slug: string, label?: string): string[] {
+    const keys = new Set<string>();
+    const add = (s: string) => {
+      if (!s || !s.trim()) return;
+      keys.add(s);
+      keys.add(s.toLowerCase());
+      keys.add(s.replace(/-/g, "_"));
+      keys.add(s.replace(/_/g, "-"));
+      keys.add(s.replace(/\s+/g, "-").trim());
+      keys.add(s.replace(/\s+/g, "_").trim());
+      keys.add(s.replace(/-/g, " ").trim());
+      keys.add(s.replace(/_/g, " ").trim());
+    };
+    if (slug?.trim()) add(slug.trim());
+    if (label?.trim()) add(label.trim());
+    return [...keys];
+  }
+
+  /**
+   * Resolve preferred slug to Gamma tag id using map built with tagKeys. Tries slug and normalized variants.
+   */
+  private static resolveSlugToTagId(slug: string, slugToTagId: Map<string, string>): string | undefined {
+    const candidates = [
+      slug,
+      slug.toLowerCase(),
+      slug.replace(/-/g, "_"),
+      slug.replace(/_/g, "-"),
+      slug.replace(/-/g, " "),
+    ];
+    for (const key of candidates) {
+      const id = slugToTagId.get(key);
+      if (id) return id;
+    }
+    return undefined;
+  }
+
+  /**
    * Fetch all tags from Gamma (for category/tag browse).
    */
   async getTags(): Promise<{ id: string; label: string; slug: string }[]> {
@@ -451,14 +490,22 @@ export class PolymarketService extends Service {
   }
 
   /**
-   * Get events by tag (id or slug). Resolve slug to id via getTags() if needed.
+   * Get events by tag (id or slug). Resolve slug to id via getTags() if needed. Uses normalized slug/label variants (hyphen/underscore/space) so "fed-rates" matches Gamma slug "fed_rates".
    */
   async getEventsByTag(tagIdOrSlug: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
     let tagId = tagIdOrSlug;
     if (!tagIdOrSlug.match(/^\d+$/)) {
       const tags = await this.getTags();
-      const bySlug = tags.find((t) => t.slug === tagIdOrSlug || t.label.toLowerCase() === tagIdOrSlug.toLowerCase());
-      if (bySlug) tagId = bySlug.id;
+      const slugToTagId = new Map<string, string>();
+      for (const t of tags) {
+        if (t.id && /^\d+$/.test(String(t.id))) {
+          for (const key of PolymarketService.tagKeys(t.slug ?? "", t.label)) {
+            if (key) slugToTagId.set(key, t.id);
+          }
+        }
+      }
+      const resolved = PolymarketService.resolveSlugToTagId(tagIdOrSlug, slugToTagId);
+      if (resolved) tagId = resolved;
     }
     const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
     const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(tagId)}&closed=false&active=true&limit=${safeLimit}&order=volume&ascending=false`;
@@ -500,8 +547,9 @@ export class PolymarketService extends Service {
       const tags = await this.getTags();
       for (const t of tags) {
         if (t.id && /^\d+$/.test(String(t.id))) {
-          if (t.slug) slugToTagId.set(t.slug, t.id);
-          if (t.label) slugToTagId.set(t.label.toLowerCase(), t.id);
+          for (const key of PolymarketService.tagKeys(t.slug ?? "", t.label)) {
+            if (key) slugToTagId.set(key, t.id);
+          }
         }
       }
     } catch (err) {
@@ -510,13 +558,17 @@ export class PolymarketService extends Service {
 
     const seen = new Set<string>();
     const merged: PolymarketMarket[] = [];
+    const resolvedSlugs: string[] = [];
+    const unresolvedSlugs: string[] = [];
 
     for (const slug of tagSlugs) {
-      const tagId = slugToTagId.get(slug) ?? slugToTagId.get(slug.toLowerCase());
+      const tagId = PolymarketService.resolveSlugToTagId(slug, slugToTagId);
       if (!tagId) {
+        unresolvedSlugs.push(slug);
         logger.debug(`[PolymarketService] getMarketsByPreferredTags skip slug "${slug}" (no matching Gamma tag)`);
         continue;
       }
+      resolvedSlugs.push(slug);
       try {
         const markets = await this.getEventsByTag(tagId, limitPerTag);
         for (const m of markets) {
@@ -531,6 +583,12 @@ export class PolymarketService extends Service {
       }
     }
 
+    logger.info(
+      `[PolymarketService] getMarketsByPreferredTags: resolved ${resolvedSlugs.length}/${tagSlugs.length}: ${resolvedSlugs.join(", ") || "none"}` +
+        (unresolvedSlugs.length > 0 ? `; unresolved: ${unresolvedSlugs.join(", ")}` : "") +
+        `; ${merged.length} unique → ${Math.min(merged.length, totalLimit)} returned`
+    );
+
     const byVolume = (a: PolymarketMarket, b: PolymarketMarket) => {
       const va = Number(a.volume ?? a.liquidity ?? 0);
       const vb = Number(b.volume ?? b.liquidity ?? 0);
@@ -538,8 +596,117 @@ export class PolymarketService extends Service {
     };
     merged.sort(byVolume);
     const out = merged.slice(0, totalLimit);
-    logger.info(`[PolymarketService] getMarketsByPreferredTags: ${tagSlugs.length} tags → ${merged.length} unique → ${out.length} returned`);
     return out;
+  }
+
+  /**
+   * Weekly Crypto markets for leaderboard vibe check (Hypersurface weekly options).
+   * Tries: (A) GET /events with tag_id=crypto + recurrence=weekly, (B) tag_id=crypto then filter by series.recurrence, (C) public-search "weekly crypto".
+   */
+  async getWeeklyCryptoMarkets(limit: number = 15): Promise<PolymarketMarket[]> {
+    const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
+    let cryptoTagId: string | null = null;
+    try {
+      const tags = await this.getTags();
+      const crypto = tags.find(
+        (t) => t.slug?.toLowerCase() === "crypto" || t.label?.toLowerCase() === "crypto"
+      );
+      if (crypto?.id && /^\d+$/.test(String(crypto.id))) cryptoTagId = crypto.id;
+    } catch (err) {
+      logger.warn(`[PolymarketService] getWeeklyCryptoMarkets getTags failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    const flattenEventsToMarkets = (events: GammaSearchEvent[]): PolymarketMarket[] => {
+      const markets: PolymarketMarket[] = [];
+      for (const ev of events) {
+        const eventMarkets = ev.markets ?? [];
+        for (const m of eventMarkets) {
+          const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
+          markets.push(mapApiMarketToInterface(apiMarket));
+        }
+      }
+      return markets.map((m) => this.parseTokens(m));
+    };
+
+    const byVolume = (a: PolymarketMarket, b: PolymarketMarket) => {
+      const va = Number(a.volume ?? a.liquidity ?? 0);
+      const vb = Number(b.volume ?? b.liquidity ?? 0);
+      return vb - va;
+    };
+
+    if (cryptoTagId) {
+      try {
+        const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(cryptoTagId)}&recurrence=weekly&closed=false&active=true&limit=50&order=volume&ascending=false`;
+        const response = await this.fetchWithTimeout(url);
+        if (response.ok) {
+          const events = (await response.json()) as GammaSearchEvent[];
+          if (events.length > 0) {
+            const markets = flattenEventsToMarkets(events);
+            const seen = new Set<string>();
+            const deduped: PolymarketMarket[] = [];
+            for (const m of markets) {
+              const id = m.conditionId ?? (m as any).condition_id;
+              if (id && !seen.has(id)) {
+                seen.add(id);
+                deduped.push(m);
+              }
+            }
+            deduped.sort(byVolume);
+            const out = deduped.slice(0, safeLimit);
+            logger.info(`[PolymarketService] getWeeklyCryptoMarkets (recurrence=weekly): ${out.length} markets`);
+            return out;
+          }
+        }
+      } catch (err) {
+        logger.debug(`[PolymarketService] getWeeklyCryptoMarkets recurrence path failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      try {
+        const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(cryptoTagId)}&closed=false&active=true&limit=100&order=volume&ascending=false`;
+        const response = await this.fetchWithTimeout(url);
+        if (response.ok) {
+          const events = (await response.json()) as GammaSearchEvent[];
+          const weeklyEvents = events.filter((ev) => {
+            const series = (ev as any).series;
+            const recurrence = series?.recurrence?.toLowerCase?.();
+            const slug = (ev.slug ?? "").toLowerCase();
+            const title = (ev.title ?? "").toLowerCase();
+            return recurrence === "weekly" || slug.includes("weekly") || title.includes("weekly");
+          });
+          if (weeklyEvents.length > 0) {
+            const markets = flattenEventsToMarkets(weeklyEvents);
+            const seen = new Set<string>();
+            const deduped: PolymarketMarket[] = [];
+            for (const m of markets) {
+              const id = m.conditionId ?? (m as any).condition_id;
+              if (id && !seen.has(id)) {
+                seen.add(id);
+                deduped.push(m);
+              }
+            }
+            deduped.sort(byVolume);
+            const out = deduped.slice(0, safeLimit);
+            logger.info(`[PolymarketService] getWeeklyCryptoMarkets (tag+filter): ${out.length} markets`);
+            return out;
+          }
+        }
+      } catch (err) {
+        logger.debug(`[PolymarketService] getWeeklyCryptoMarkets tag+filter path failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    try {
+      const markets = await this.searchMarketsViaGammaSearch("weekly crypto", safeLimit);
+      if (markets.length > 0) {
+        logger.info(`[PolymarketService] getWeeklyCryptoMarkets (search fallback): ${markets.length} markets`);
+        return markets.slice(0, safeLimit);
+      }
+    } catch (err) {
+      logger.debug(`[PolymarketService] getWeeklyCryptoMarkets search fallback failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    logger.info(`[PolymarketService] getWeeklyCryptoMarkets: no markets found`);
+    return [];
   }
 
   /**
