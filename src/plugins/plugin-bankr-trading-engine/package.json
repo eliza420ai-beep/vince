@@ -1,0 +1,21 @@
+{
+  "name": "plugin-bankr-trading-engine",
+  "version": "1.0.0",
+  "description": "BANKR Trading Engine - Direct EIP-712 signed orders (limit, stop, DCA, TWAP)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "keywords": [
+    "bankr",
+    "trading",
+    "dca",
+    "twap",
+    "eip-712",
+    "elizaos"
+  ],
+  "dependencies": {
+    "viem": "^2.0.0"
+  },
+  "peerDependencies": {
+    "@elizaos/core": "^1.0.0"
+  }
+}

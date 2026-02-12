@@ -18,6 +18,7 @@ import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
 import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
 import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+import { erc8004Plugin } from "../plugins/plugin-erc8004/src/index.ts";
 
 const hasCdp =
   !!(
@@ -34,10 +35,15 @@ const hasRelayKey = !!process.env.RELAY_API_KEY?.trim();
 const hasEtherscanKey = !!process.env.ETHERSCAN_API_KEY?.trim();
 const hasBiconomyKey = !!process.env.BICONOMY_API_KEY?.trim();
 
+// x402 HTTP payment protocol - Otaku receives USDC payments for API access
+const x402Enabled = process.env.X402_ENABLED === "true";
+const x402PayTo = process.env.X402_PAY_TO?.trim();
+
 export const otakuCharacter: Character = {
   name: "Otaku",
   plugins: [
     ...(otakuHasDiscord ? ["@elizaos/plugin-discord"] : []),
+    ...(x402Enabled ? ["@elizaos/plugin-x402"] : []),
   ],
   knowledge: [{ directory: "bankr", shared: false }],
   settings: {
@@ -424,6 +430,9 @@ const buildPlugins = (): Plugin[] =>
     ...(hasEtherscanKey ? [etherscanPlugin] : []),
     defiLlamaPlugin,
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
+    erc8004Plugin, // ERC-8004 Trustless Agents - on-chain identity & reputation
+    // x402 HTTP payment protocol - receive USDC on Base for API access
+    ...(x402Enabled ? (["@elizaos/plugin-x402"] as unknown as Plugin[]) : []),
   ] as Plugin[];
 
 const initOtaku = async (runtime: IAgentRuntime) => {
@@ -469,6 +478,17 @@ const initOtaku = async (runtime: IAgentRuntime) => {
     logger.info("[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps");
   }
   logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL and yield rates (GET_PROTOCOL_TVL, GET_YIELD_RATES)");
+  
+  // x402 payment protocol status
+  if (x402Enabled && x402PayTo) {
+    const network = process.env.X402_NETWORK || "base-sepolia";
+    logger.info(`[Otaku] x402 payments ENABLED — receiving USDC on ${network} to ${x402PayTo.slice(0, 10)}...`);
+  } else if (x402Enabled && !x402PayTo) {
+    logger.warn("[Otaku] x402 enabled but X402_PAY_TO not set — payments won't work");
+  } else {
+    logger.debug("[Otaku] x402 payments disabled (set X402_ENABLED=true + X402_PAY_TO to enable)");
+  }
+
   logger.info(
     "[Otaku] ✅ DeFi research assistant ready"
   );
