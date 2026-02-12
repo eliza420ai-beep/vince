@@ -40,6 +40,7 @@ export interface PriorityMarketsResponse {
     question: string;
     conditionId: string;
     volume?: string;
+    liquidity?: string;
     yesTokenId?: string;
     noTokenId?: string;
     slug?: string;
@@ -98,6 +99,7 @@ export function buildPriorityMarketsHandler() {
           question: m.question,
           conditionId: m.conditionId ?? (m as any).condition_id ?? "",
           volume: m.volume,
+          liquidity: m.liquidity,
           yesTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "yes")?.token_id,
           noTokenId: m.tokens?.find((t: any) => t.outcome?.toLowerCase() === "no")?.token_id,
           slug: m.slug ?? (m as any).market_slug,

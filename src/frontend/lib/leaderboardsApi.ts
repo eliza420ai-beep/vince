@@ -259,6 +259,7 @@ export interface PolymarketPriorityMarketsResponse {
     question: string;
     conditionId: string;
     volume?: string;
+    liquidity?: string;
     yesTokenId?: string;
     noTokenId?: string;
     slug?: string;
