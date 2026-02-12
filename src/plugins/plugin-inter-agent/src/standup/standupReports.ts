@@ -60,250 +60,251 @@ export type AgentName = keyof typeof AGENT_ROLES;
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  Eliza: `## Eliza Daily Report — {{date}}
+  Eliza: `## Eliza — Research Intel — {{date}}
 
-### Research Highlights
-- What I researched/learned today
-- Key findings and patterns discovered
-- New content added to knowledge base
+### Relevant Patterns (BTC, SOL, HYPE)
+| Pattern | Asset | Historical Win Rate | Current Match |
+|---------|-------|---------------------|---------------|
+| [pattern name] | BTC/SOL/HYPE | X% | Strong/Weak/Partial |
 
-### Knowledge Gaps Identified  
-- Missing information we need
-- Priority research topics
+### Knowledge Connections
+- VINCE's [signal] connects to: [research finding]
+- ECHO's [sentiment] aligns with: [historical pattern]
+- Oracle's [prediction] supported by: [framework]
 
-### Content Pipeline
-- Essays/threads in progress
-- Ready for review/publish
+### Hyperliquid/Hypersurface Research
+- Perps: [relevant research for positioning]
+- Options: [IV patterns, strike selection frameworks]
+- HIP-3: [any research on specific tokens]
 
-### Strategic Patterns
-- Connections between data points
-- Long-term trends observed
+### Gaps to Fill
+- Missing: [specific research that would help today's decisions]
+- Priority: [what to research next]
 
-### Questions for Team
-- @VINCE: [market data question]
-- @[Agent]: [relevant question]
+### Questions
+- @VINCE: Does [data] match the [pattern] I found?
+- @Solus: Should [research finding] affect sizing?
 
-### Recommendations
-1. **[ACTION/RESEARCH/PUBLISH]**: [description]
-2. **DECISION NEEDED**: [if any]`,
+### Action Items
+1. **[RESEARCH SUPPORTS]**: [specific trade thesis with evidence]`,
 
-  VINCE: `## VINCE Daily Report — {{date}}
+  VINCE: `## VINCE — Market Intelligence — {{date}}
 
-### Market Snapshot
-| Asset | Price | 24h | Funding | Signal |
-|-------|-------|-----|---------|--------|
-| BTC   | $X    | +X% | X%      | 🟢/🟡/🔴 |
-| ETH   | $X    | +X% | X%      | 🟢/🟡/🔴 |
-| SOL   | $X    | +X% | X%      | 🟢/🟡/🔴 |
-| HYPE  | $X    | +X% | X%      | 🟢/🟡/🔴 |
+### Core Assets (BTC, SOL, HYPE)
+| Asset | Price | 24h | Funding | OI Δ | Signal |
+|-------|-------|-----|---------|------|--------|
+| BTC   | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
+| SOL   | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
+| HYPE  | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
 
-### Paper Bot Performance
-- Today: XW/XL (+$X)
-- Week: X% win rate
-- Best/worst trades
+### HIP-3 Watch
+| Token | Price | Signal | Note |
+|-------|-------|--------|------|
+[Top HIP-3 movers relevant to our thesis]
 
-### Options Context
-- IV rank by asset
-- Notable skew
-- Friday prep status
+### Hyperliquid Perps
+- Paper bot: XW/XL (+$X today)
+- Best setup: [asset + direction + reasoning]
+- Funding edge: [where funding diverges from price]
 
-### Signals
-- 🟢 Bullish: [signal]
-- 🟡 Neutral: [signal]  
-- 🔴 Bearish: [signal]
+### Hypersurface Options (Friday prep)
+- IV rank: BTC X%, SOL X%, HYPE X%
+- Skew: [notable observations]
+- Strike candidates: [if Friday approaching]
 
-### Meme Watch
-- Top movers on BASE/SOL
-- Volume analysis
-- APE/WATCH/AVOID calls
+### Signals Summary
+- 🟢 **Bullish**: [specific signal with source]
+- 🟡 **Neutral**: [specific signal with source]
+- 🔴 **Bearish**: [specific signal with source]
 
-### Questions for Team
-- @Eliza: [research question]
-- @Solus: [trading question]
+### Questions
+- @Solus: [sizing/risk question]
+- @Oracle: [does Polymarket align?]
 
-### Recommendations
-1. **[WATCH/LONG/SHORT/SKIP]**: [asset + reasoning]
-2. **DECISION NEEDED**: [if any]`,
+### Action Items
+1. **[LONG/SHORT/SPOT/SKIP]**: [asset] at [price] — [reasoning]`,
 
-  ECHO: `## ECHO Daily Report — {{date}}
+  ECHO: `## ECHO — X/CT Sentiment — {{date}}
 
-### Sentiment Pulse
-- Overall CT mood: Bullish/Neutral/Bearish
-- Confidence: High/Medium/Low
-- Key sentiment drivers
+### Asset Sentiment (BTC, SOL, HYPE)
+| Asset | CT Mood | Confidence | Key Driver |
+|-------|---------|------------|------------|
+| BTC   | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
+| SOL   | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
+| HYPE  | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
 
-### Trending Topics
-1. [Topic] — [brief context]
-2. [Topic] — [brief context]
-3. [Topic] — [brief context]
+### Notable Takes (Hyperliquid focused)
+- @[handle]: "[key quote on perps/options]"
+- @[handle]: "[key quote on our assets]"
 
-### Influencer Takes
-- @[handle]: "[key quote]" — [interpretation]
-- Notable threads worth reading
+### Narrative Watch
+- **Gaining**: [narrative that supports our thesis]
+- **Fading**: [narrative that was hyped, now dying]
+- **Contrarian**: [signal that goes against crowd]
 
-### Narrative Shifts
-- What's gaining momentum
-- What's fading
-- Contrarian signals
+### Alignment with VINCE Data
+- [Does sentiment match the funding/OI data?]
+- [Divergences worth noting]
 
-### Questions for Team
-- @VINCE: Does data support [narrative]?
-- @Eliza: Any research on [topic]?
+### Questions
+- @VINCE: Sentiment says X, does funding confirm?
+- @Oracle: Is CT aligned with Polymarket?
 
-### Recommendations
-1. **[NARRATIVE]**: [what to watch]
-2. **DECISION NEEDED**: [if any]`,
+### Action Items
+1. **[SENTIMENT SIGNAL]**: [what CT is telling us to do]`,
 
-  Oracle: `## Oracle Daily Report — {{date}}
+  Oracle: `## Oracle — Polymarket Intel — {{date}}
 
-### Priority Markets
-| Market | Current | 24h Δ | Volume | Signal |
-|--------|---------|-------|--------|--------|
-| [market] | X% | +X% | $Xk | 🟢/🟡/🔴 |
+### BTC/SOL/HYPE Related Markets
+| Market | Odds | 24h Δ | Volume | Implication |
+|--------|------|-------|--------|-------------|
+| [BTC price market] | X% | +X% | $Xk | [what it means for perps] |
+| [Crypto macro market] | X% | +X% | $Xk | [risk-on/risk-off read] |
 
-### Odds Movements
-- Significant moves (>5% change)
-- Smart money signals
-- Unusual volume
+### Hyperliquid Relevance
+- Markets that inform perp positioning
+- Options strike implications (Hypersurface)
+- Timeline alignment (weekly expirations)
 
-### Market Insights
-- What prediction markets imply
-- Divergences from spot
-- Macro sentiment read
+### Smart Money Signals
+- Large position changes
+- Unusual volume spikes
+- Divergence from CT sentiment
 
-### Portfolio Exposure (if any)
-- Current positions
-- P&L status
+### Alignment Check
+- Polymarket vs VINCE data: [aligned/divergent]
+- Polymarket vs ECHO sentiment: [aligned/divergent]
+- Confidence in signal: High/Med/Low
 
-### Questions for Team
-- @VINCE: Does [market] align with funding data?
-- @Solus: Strike implications from [prediction]?
+### Questions
+- @VINCE: Does [prediction] match funding?
+- @Solus: How should this affect strike selection?
 
-### Recommendations
-1. **[MARKET]**: [insight + confidence]
-2. **DECISION NEEDED**: [if any]`,
+### Action Items
+1. **[PREDICTION SIGNAL]**: [what Polymarket tells us to do]`,
 
-  Solus: `## Solus Daily Report — {{date}}
+  Solus: `## Solus — Trading Strategy — {{date}}
 
-### Active Positions
-| Position | Entry | Current | P&L | Status |
-|----------|-------|---------|-----|--------|
-| [asset]  | $X    | $X      | +X% | 🟢/🟡/🔴 |
+### Active Positions (Hyperliquid)
+| Asset | Direction | Entry | Size | P&L | Invalidation |
+|-------|-----------|-------|------|-----|--------------|
+| BTC   | Long/Short/None | $X | $Xk | +X% | $X |
+| SOL   | Long/Short/None | $X | $Xk | +X% | $X |
+| HYPE  | Long/Short/None | $X | $Xk | +X% | $X |
 
-### Strike Selection (if Friday)
-- BTC: [strike] @ [premium] — [reasoning]
-- ETH: [strike] @ [premium] — [reasoning]
-- SOL: [strike] @ [premium] — [reasoning]
+### Perps Sizing (Hyperliquid)
+- **BTC**: [Size/Skip/Watch] — [reasoning from VINCE/ECHO data]
+- **SOL**: [Size/Skip/Watch] — [reasoning]
+- **HYPE**: [Size/Skip/Watch] — [reasoning]
 
-### Risk Assessment
-- Portfolio heat: Low/Medium/High
-- Max drawdown tolerance
-- Correlation exposure
+### Options Strategy (Hypersurface)
+*If Friday or Thursday:*
+| Asset | Strike | Premium | Delta | Reasoning |
+|-------|--------|---------|-------|-----------|
+| BTC   | $Xk    | X%      | X     | [why this strike] |
+| SOL   | $X     | X%      | X     | [why this strike] |
 
-### Weekly Outlook
-- Key levels to watch
-- Invalidation points
-- Size recommendations
+### HIP-3 Spot/1x
+- Worth accumulating: [token] — [reasoning]
+- Avoid: [token] — [reasoning]
 
-### Questions for Team
-- @VINCE: Confirm [data point]
-- @Oracle: What do prediction markets say about [event]?
+### Risk Check
+- Portfolio heat: Low/Med/High
+- Max position: $X per trade
+- Correlation: [are we too long/short same direction?]
 
-### Recommendations
-1. **[SIZE/SKIP/WATCH]**: [trade idea]
-2. **DECISION NEEDED**: [if any]`,
+### Questions
+- @VINCE: Confirm [level/data]
+- @Otaku: Ready to execute [order]?
 
-  Otaku: `## Otaku Daily Report — {{date}}
+### Action Items
+1. **[PERP/OPTION/SPOT]**: [specific trade with size and invalidation]`,
 
-### Wallet Status
-| Chain | Balance | Pending | Notes |
-|-------|---------|---------|-------|
-| Base  | $X      | X txns  |       |
-| SOL   | $X      | X txns  |       |
-| ETH   | $X      | X txns  |       |
+  Otaku: `## Otaku — Execution Status — {{date}}
+
+### Wallet Ready (Hyperliquid + BANKR)
+| Location | Balance | Available | Note |
+|----------|---------|-----------|------|
+| Hyperliquid | $X | $X | [margin available] |
+| Base (BANKR) | $X | $X | [for HIP-3/spot] |
+| SOL | $X | $X | [if relevant] |
 
 ### Pending Orders
-- [Order type]: [details] — Status
-- DCA progress
-- Limit orders waiting
+| Type | Asset | Size | Price | Status |
+|------|-------|------|-------|--------|
+| Limit | [asset] | $X | $X | Waiting/Partial |
+| DCA | [asset] | $X/day | — | X% complete |
 
-### Yield Opportunities
-- Best current yields
-- New farms/pools
-- Risk assessment
+### Execution Readiness
+- **Perps (Hyperliquid)**: Ready/Blocked — [reason if blocked]
+- **Options (Hypersurface)**: Ready/Blocked — [reason]
+- **Spot/1x (BANKR)**: Ready/Blocked — [reason]
 
-### Gas Conditions
-- ETH: X gwei (Low/Medium/High)
-- SOL: X (priority fee)
-- Recommended timing
+### Gas/Fees
+- Hyperliquid: [fee tier]
+- Base: X gwei
+- Optimal execution window: [timing]
 
-### Questions for Team
-- @Solus: Should I execute [order]?
-- @VINCE: Best chain for [action]?
+### Questions
+- @Solus: Confirm [order] ready to execute?
+- @VINCE: Should I set limit at [price]?
 
-### Recommendations
-1. **[EXECUTE/WAIT/CANCEL]**: [action]
-2. **DECISION NEEDED**: [if any]`,
+### Action Items
+1. **[EXECUTE/QUEUE/CANCEL]**: [specific order with details]`,
 
-  Kelly: `## 🎯 Daily Standup — {{date}} ({{dayOfWeek}})
+  Kelly: `## 🎯 Trading Standup — {{date}} ({{dayOfWeek}})
 
-*Facilitated by Kelly (CVO) | One Team, One Dream*
-
----
-
-### Team Check-In
-Let's hear from everyone. Keep it tight — data first, then insights.
-
-**Order:**
-1. @VINCE — Market Intelligence
-2. @Eliza — Research & Knowledge  
-3. @ECHO — CT Sentiment
-4. @Oracle — Prediction Markets
-5. @Solus — Trading Strategy
-6. @Otaku — DeFi Ops
-7. @Sentinel — System Status
-8. @Yves — Co-Founder direction
+*Facilitated by Kelly | One Team, One Dream*
 
 ---
 
-### 🌡️ Team Energy & Rhythm
-- Day: {{dayOfWeek}}
-- @Yves health check: Days since last [pool/gym]
-- Energy forecast: [morning/afternoon/evening]
-- Blockers or low energy signals?
+### Focus: BTC, SOL, HYPE + Hyperliquid Alpha
+
+**Core Assets:** BTC, SOL, HYPE, HIP-3 tokens
+**Products:** Perps (Hyperliquid), Options (Hypersurface), Spot/1x leverage
+**Intel:** X sentiment, Polymarket odds
 
 ---
 
-### 🎬 Today's Action Plan
+### Agent Reports (in order)
 
-After hearing from everyone, here's what we're doing:
+1. **@VINCE** — BTC/SOL/HYPE market data, funding, paper bot
+2. **@Eliza** — Research patterns, knowledge connections
+3. **@ECHO** — X/CT sentiment on our assets
+4. **@Oracle** — Polymarket odds, prediction signals
+5. **@Solus** — Strike selection, position sizing, risk
+6. **@Otaku** — Wallet status, pending orders, execution readiness
+7. **@Sentinel** — System health, costs
 
-| WHAT | HOW | WHY | OWNER | STATUS |
-|------|-----|-----|-------|--------|
-| [Action 1] | [Method] | [Reason] | @Agent | 🔵 New |
-| [Action 2] | [Method] | [Reason] | @Agent | 🔵 New |
-| [Action 3] | [Method] | [Reason] | @Agent | 🔵 New |
-
----
-
-### ⚡ Decisions for @Yves
-
-| Decision | Recommendation | Confidence | Why Now |
-|----------|----------------|------------|---------|
-| [Decision 1] | [Yes/No/Wait] | High/Med/Low | [Urgency reason] |
+*(Yves may or may not be present — proceed autonomously)*
 
 ---
 
-### 🎯 North Star Check
-*One team, one dream — are we aligned?*
+### 🎬 Action Plan
 
-- **The Dream**: [Current focus/goal]
-- **Today's Step**: [How today moves us forward]
-- **Blockers**: [What's in the way]
+| WHAT | HOW | WHY | OWNER | URGENCY |
+|------|-----|-----|-------|---------|
+| [Action] | [Method] | [Reason] | @Agent | Now/Today/This Week |
 
 ---
 
-Let's make it happen. @VINCE, you're up first.`,
+### ⚡ Decisions (if Yves present, flag for input)
+
+| Decision | Team Recommendation | Confidence | 
+|----------|---------------------|------------|
+| [Decision] | [Rec] | High/Med/Low |
+
+*If Yves not present: Proceed with HIGH confidence items. Flag MEDIUM/LOW for async review.*
+
+---
+
+### 🎯 North Star
+**The Dream:** Consistent alpha on BTC, SOL, HYPE via perps + options
+**Today's Edge:** [What makes today actionable]
+
+---
+
+@VINCE, market data — go.`,
 
   Sentinel: `## Sentinel Daily Report — {{date}}
 

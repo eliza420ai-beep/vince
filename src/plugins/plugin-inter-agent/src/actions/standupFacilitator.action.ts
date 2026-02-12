@@ -21,18 +21,30 @@ import {
 } from "@elizaos/core";
 import { AGENT_ROLES, formatReportDate, getDayOfWeek } from "../standup/standupReports";
 
-/** Standup order — Kelly facilitates, calls each in turn */
+/** 
+ * Standup order — focused on trading alpha
+ * Core assets: BTC, SOL, HYPE, HIP-3
+ * Products: Perps (Hyperliquid), Options (Hypersurface), Spot/1x
+ */
 const STANDUP_ORDER = [
-  "VINCE",    // Market data first
-  "Eliza",    // Research context
-  "ECHO",     // Sentiment layer
-  "Oracle",   // Prediction markets
-  "Solus",    // Trading strategy
-  "Otaku",    // Execution status
-  "Sentinel", // System health
-  // Yves jumps in whenever — human priority
-  // Kelly wraps up at the end
+  "VINCE",    // Market data: BTC/SOL/HYPE funding, paper bot, signals
+  "Eliza",    // Research: patterns, knowledge connections
+  "ECHO",     // X/CT sentiment on our assets
+  "Oracle",   // Polymarket odds, prediction signals
+  "Solus",    // Strike selection, sizing, risk assessment
+  "Otaku",    // Wallet, orders, execution readiness
+  "Sentinel", // System health, costs
+  // Yves may or may not be present — standup proceeds autonomously
+  // Kelly wraps up with actionable Day Report
 ];
+
+/** Focus areas for this standup (not lifestyle/NFTs/memes) */
+const STANDUP_FOCUS = {
+  assets: ["BTC", "SOL", "HYPE", "HIP-3"],
+  products: ["Perps (Hyperliquid)", "Options (Hypersurface)", "Spot/1x leverage"],
+  intel: ["X sentiment", "Polymarket"],
+  excluded: ["NFTs", "Memetics", "Lifestyle"], // These are for other meetings
+};
 
 const KICKOFF_TRIGGERS = [
   "start standup",
@@ -56,35 +68,45 @@ const WRAPUP_TRIGGERS = [
 ];
 
 /**
- * Build kickoff message
+ * Build kickoff message — trading-focused, autonomous
  */
 function buildKickoffMessage(): string {
   const date = formatReportDate();
   const day = getDayOfWeek();
   
-  return `## 🎯 Daily Standup — ${date} (${day})
+  return `## 🎯 Trading Standup — ${date} (${day})
 
-*One Team, One Dream — Let's align and take action.*
+*One Team, One Dream — BTC, SOL, HYPE alpha*
 
 ---
 
-Good ${getTimeOfDay()} team! Time for our daily sync.
+**Focus:** ${STANDUP_FOCUS.assets.join(", ")}
+**Products:** ${STANDUP_FOCUS.products.join(" | ")}
+**Intel:** ${STANDUP_FOCUS.intel.join(", ")}
 
-**Today's agenda:**
-1. Quick reports from each agent (data first, insights second)
-2. Cross-check — anyone see conflicts or alignments?
-3. Synthesize into today's action plan
-4. Decisions for @Yves
+*(Yves may join. If not, we proceed and flag decisions for async review.)*
 
-**The rules:**
-- Lead with numbers, not vibes
+---
+
+**Agenda:**
+1. Market data & signals (VINCE)
+2. Research patterns (Eliza)
+3. CT/X sentiment (ECHO)
+4. Prediction markets (Oracle)
+5. Position sizing & risk (Solus)
+6. Execution status (Otaku)
+7. System health (Sentinel)
+8. Synthesize → Action Plan
+
+**Rules:**
+- Numbers first, vibes never
 - Name your sources
-- End with ACTION or DECISION items
-- Keep it under 2 minutes each
+- BTC/SOL/HYPE/HIP-3 only — no NFTs, no memes, no lifestyle
+- End with ACTION or DECISION
 
 ---
 
-@VINCE, you're up first. What's the market telling us?`;
+@VINCE, market data on BTC, SOL, HYPE — go.`;
 }
 
 /**
@@ -117,12 +139,17 @@ function buildNextAgentMessage(completedAgent: string): string {
 }
 
 /**
- * Build wrap-up Day Report prompt
+ * Build wrap-up Day Report prompt — trading-focused, autonomous
  */
 function buildWrapupPrompt(conversationContext: string): string {
-  return `You are Kelly, the Chief Vibes Officer and Standup Facilitator.
+  return `You are Kelly, facilitating the Trading Standup.
 
-Based on today's standup conversation, create the **Actionable Day Report**.
+Based on today's standup, create the **Actionable Day Report**.
+
+FOCUS: BTC, SOL, HYPE, HIP-3 tokens
+PRODUCTS: Perps (Hyperliquid), Options (Hypersurface), Spot/1x leverage
+INTEL: X sentiment, Polymarket
+EXCLUDED: NFTs, Memetics, Lifestyle (wrong meeting for those)
 
 CONVERSATION CONTEXT:
 ${conversationContext}
@@ -131,36 +158,46 @@ Generate the Day Report with this EXACT structure:
 
 ## 📋 Day Report — ${formatReportDate()}
 
-### TL;DR (2 sentences max)
-[What's the main focus today and why]
+### TL;DR
+[One line: What's the edge today? What are we doing?]
+
+### 📊 Market Read
+| Asset | Signal | Confidence | Source |
+|-------|--------|------------|--------|
+| BTC   | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
+| SOL   | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
+| HYPE  | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
 
 ### 🎬 Action Plan
 
-| WHAT | HOW | WHY | OWNER | 
-|------|-----|-----|-------|
-[Extract 3-5 concrete actions from the standup. Be specific.]
+| WHAT | HOW | WHY | OWNER | URGENCY |
+|------|-----|-----|-------|---------|
+[3-5 concrete trading actions. Be SPECIFIC with entries/sizes/invalidation.]
 
-### ⚡ Decisions for @Yves
+### ⚡ Decisions
 
-| Decision | Rec | Confidence | Why Now |
-|----------|-----|------------|---------|
-[Any decisions that need Yves's input. Include recommendation.]
+| Decision | Team Rec | Confidence | Yves Needed? |
+|----------|----------|------------|--------------|
+[Decisions. HIGH confidence = proceed. MEDIUM/LOW = flag for Yves.]
 
-### 🚨 Blockers / Risks
-[Any blockers or risks mentioned. "None" if clear.]
+**If Yves not present:** Execute HIGH confidence actions. Hold MEDIUM/LOW for review.
 
-### 🎯 North Star Alignment
-**The Dream:** [Current team goal]
-**Today's Step:** [How today moves us forward]
+### 🚨 Risks
+[Key risks to watch. "Clear" if none.]
+
+### 🎯 North Star
+**The Dream:** Consistent alpha on BTC, SOL, HYPE
+**Today's Edge:** [What makes today actionable]
+**Execution:** [Who does what by when]
 
 ---
-*One team, one dream. Let's make it happen.*
+*One team, one dream. Ship it.*
 
 RULES:
-- Be SPECIFIC — "Size SOL long at $198" not "Consider SOL"
-- Include WHO owns each action
-- If something needs Yves, say WHY it's urgent
-- Keep it actionable, not informational`;
+- SPECIFIC: "Long SOL at $198, size $5k, invalidation $192" not "consider SOL"
+- OWNER: Every action has an @agent
+- AUTONOMOUS: If Yves absent, team proceeds on HIGH confidence
+- NO LIFESTYLE: This is trading standup only`;
 }
 
 function getTimeOfDay(): string {
