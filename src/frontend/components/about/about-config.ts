@@ -555,6 +555,91 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       "Core dev only. Say 'task brief for Claude 4.6', 'cost status', 'ONNX status', 'art gems', 'clawdbot setup', 'what should we do next', 'improve docs'. For trading or wealth plan, use VINCE or Solus.",
   },
 
+  ECHO: {
+    headline: "Your ears on Crypto Twitter.",
+    intro:
+      "Chief Sentiment Officer (CSO): captures and communicates what CT is saying. Pulse, vibe, threads, account analysis, watchlist, news from X. Subjective sentiment only—VINCE owns the numbers. Whale and alpha accounts weighted; contrarian warnings when sentiment gets extreme. No content audit—that's Eliza.",
+    tags: [
+      { label: "CSO", withSparkles: true },
+      { label: "X / CT" },
+      { label: "Pulse & Vibe" },
+      { label: "Threads" },
+      { label: "Watchlist" },
+      { label: "Sentiment only" },
+    ],
+    capabilities: [
+      {
+        title: "Pulse",
+        description:
+          "ALOHA-style briefing: what's CT saying, confidence, whale alignment, breaking content. Full or quick. Last 24h.",
+      },
+      {
+        title: "Vibe",
+        description:
+          "Sentiment check for a topic (BTC, ETH, SOL, etc.). Quick read.",
+      },
+      {
+        title: "Threads & Accounts",
+        description:
+          "Thread discovery and summarization. Account analysis and reputation tiers. \"What did @user say about X?\"",
+      },
+      {
+        title: "Watchlist",
+        description:
+          "Recent tweets from your watchlist accounts. Add/remove via CLI.",
+      },
+      {
+        title: "News from X",
+        description:
+          "X News API. Headlines and context.",
+      },
+      {
+        title: "Save that",
+        description:
+          "X_SAVE_RESEARCH saves last pulse, vibe, or news to a markdown file.",
+      },
+      {
+        title: "Contrarian warnings",
+        description:
+          "Flags when sentiment is extreme. Not all opinions equal—whale/alpha weighted.",
+      },
+    ],
+    plugins: [
+      {
+        name: "Plugin-X-Research",
+        category: "X / CT",
+        summary:
+          "X_PULSE, X_VIBE, X_THREAD, X_ACCOUNT, X_MENTIONS, X_NEWS, X_WATCHLIST, X_SAVE_RESEARCH. Official X API v2. Sentiment and alpha only—no content audit (Eliza).",
+        points: [
+          "Pulse and vibe from last 24h. Quality/whale filter when asked.",
+          "Watchlist read-only in chat; add/remove via CLI.",
+        ],
+        example: '"What\'s CT saying about BTC?" or "check my watchlist"',
+      },
+      {
+        name: "Powered by ElizaOS",
+        category: "AI Engine",
+        summary:
+          "One voice. Casual, data-backed. Cites sources; flags confidence.",
+        points: [
+          "Lead with the vibe, then details.",
+          "Defers price/data to VINCE.",
+        ],
+        example: '"Quick pulse on SOL" or "who should I follow for alpha?"',
+      },
+      {
+        name: "Bootstrap",
+        category: "Memory",
+        summary:
+          "Remembers context.",
+        points: [],
+        example: "",
+      },
+    ],
+    proTip:
+      "Say \"What's CT saying about BTC?\" or \"quick pulse\". For content audit or top posts playbook, ask Eliza.",
+  },
+
   Eliza: {
     headline: "24/7 research & knowledge expansion.",
     intro:
