@@ -241,7 +241,7 @@ export const vincePlugin: Plugin = {
     // Early Detection System
     vinceWatchlistAction,
     vinceAlertsAction,
-    vinceXResearchAction, // X research when X_BEARER_TOKEN set
+    // vinceXResearchAction, // DEPRECATED: X research moved to ECHO agent (plugin-x-research)
   ],
 
   // API route: dashboard pulse (snapshot + LLM insight) for frontend
