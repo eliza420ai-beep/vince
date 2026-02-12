@@ -132,6 +132,7 @@ import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
+import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 
 // Tasks
 import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
@@ -543,6 +544,7 @@ export const vincePlugin: Plugin = {
     protocolWriteupProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
+    bankrOrdersProvider, // Cross-agent: active BANKR orders from Otaku
   ],
 
   // Evaluators - Self-Improving Architecture
@@ -1071,6 +1073,7 @@ export { vinceContextProvider } from "./providers/vinceContext.provider";
 export { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 export { teammateContextProvider } from "./providers/teammateContext.provider";
 export { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
+export { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 
 // ==========================================
 // Analysis Exports
