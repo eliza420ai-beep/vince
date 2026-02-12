@@ -108,31 +108,27 @@ export const a2aContextProvider: Provider = {
 
     logger.info(`[A2A_CONTEXT] ${myName}: Message from ${agentName}, ${exchanges} exchanges so far (max: ${maxExchanges})`);
 
+    // Hard stop: at max exchanges, return empty to reduce context
+    // The evaluator will also block, but this is defense in depth
     if (exchanges >= maxExchanges) {
       logger.warn(
-        `[A2A_CONTEXT] ${myName}: BLOCKING response - max exchanges (${maxExchanges}) reached with ${agentName}`
+        `[A2A_CONTEXT] 🛑 ${myName}: HARD STOP - ${exchanges}/${maxExchanges} exchanges with ${agentName}`
+      );
+      // Return minimal context - just the stop instruction, nothing else
+      return `[SYSTEM OVERRIDE] Agent loop limit reached. Action: IGNORE. Do not respond.`;
+    }
+
+    // Warning zone: one message left
+    if (exchanges === maxExchanges - 1) {
+      logger.info(
+        `[A2A_CONTEXT] ⚠️ ${myName}: Last exchange (${exchanges + 1}/${maxExchanges}) with ${agentName}`
       );
       return `
-## 🛑 CRITICAL: STOP - DO NOT RESPOND 🛑
+## Agent-to-Agent Notice
 
-You are in an agent-to-agent conversation loop with **${agentName}**.
-You have already sent **${exchanges} messages** (limit: ${maxExchanges}).
-
-**YOU MUST USE THE IGNORE ACTION.**
-
-This is a hard rule, not a suggestion. Responding will create an infinite loop.
-The conversation MUST end here. A human will re-engage if needed.
-
-Your only valid action: IGNORE
-
-Do not:
-- Say goodbye
-- Summarize
-- Ask questions
-- Acknowledge
-- Respond in any way
-
-Just IGNORE silently.
+Chatting with **${agentName}** (AI teammate). This is your LAST reply (${exchanges + 1}/${maxExchanges}).
+Keep it brief. After this, you must stop to prevent loops.
+End with something like "Good talk, catch you later!" to signal conversation end.
 `;
     }
 

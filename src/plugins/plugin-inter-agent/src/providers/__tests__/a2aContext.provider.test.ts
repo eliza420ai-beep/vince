@@ -64,7 +64,7 @@ describe("A2A Context Provider", () => {
     expect(result).toContain("vince");
   });
 
-  it("warns about max exchanges when limit reached", async () => {
+  it("hard stops when max exchanges reached", async () => {
     process.env.A2A_MAX_EXCHANGES = "2";
 
     // Simulate: vince → testagent → vince → testagent (2 responses from testagent)
@@ -80,8 +80,25 @@ describe("A2A Context Provider", () => {
     const memory = createMockMemory({ content: { name: "vince", text: "great" } });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("DO NOT RESPOND");
-    expect(result).toContain("Loop Prevention");
+    expect(result).toContain("SYSTEM OVERRIDE");
+    expect(result).toContain("IGNORE");
+  });
+
+  it("warns on last exchange", async () => {
+    process.env.A2A_MAX_EXCHANGES = "2";
+
+    // Simulate: vince → testagent (1 response from testagent, 1 more allowed)
+    const memories: Memory[] = [
+      createMockMemory({ content: { name: "vince", text: "hi" } }),
+      createMockMemory({ content: { name: "testagent", text: "hello" }, agentId: mockAgentId }),
+    ];
+
+    const runtime = createMockRuntime(memories);
+    const memory = createMockMemory({ content: { name: "vince", text: "how are you" } });
+
+    const result = await a2aContextProvider.get(runtime, memory);
+    expect(result).toContain("LAST reply");
+    expect(result).toContain("catch you later");
   });
 
   it("allows response when under max exchanges", async () => {
