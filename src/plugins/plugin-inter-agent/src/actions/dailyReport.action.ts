@@ -14,7 +14,6 @@ import {
   type State,
   type HandlerCallback,
   logger,
-  composePromptFromState,
   ModelType,
 } from "@elizaos/core";
 import {
@@ -25,6 +24,13 @@ import {
   AGENT_ROLES,
   type AgentName,
 } from "../standup/standupReports";
+import {
+  getStandupData,
+  formatMarketTable,
+  formatPaperBotStats,
+  generateSignalSummary,
+  type StandupData,
+} from "../standup/standupData.service";
 
 const REPORT_TRIGGERS = [
   "daily report",
@@ -39,9 +45,9 @@ const REPORT_TRIGGERS = [
 ];
 
 /**
- * Build the prompt for generating a daily report
+ * Build the prompt for generating a daily report with real data
  */
-function buildReportPrompt(runtime: IAgentRuntime): string {
+function buildReportPrompt(runtime: IAgentRuntime, liveData: StandupData | null): string {
   const agentName = runtime.character?.name || "Agent";
   const template = getReportTemplate(agentName);
   const role = getAgentRole(agentName);
@@ -54,19 +60,40 @@ function buildReportPrompt(runtime: IAgentRuntime): string {
     .replace(/\{\{date\}\}/g, formatReportDate())
     .replace(/\{\{dayOfWeek\}\}/g, getDayOfWeek());
 
+  // Build live data context for VINCE
+  let liveDataContext = "";
+  if (liveData && agentName.toUpperCase() === "VINCE") {
+    liveDataContext = `
+## LIVE DATA (use this in your report)
+
+### Market Data
+${formatMarketTable(liveData.markets)}
+
+### Paper Bot
+${formatPaperBotStats(liveData.paperBot)}
+
+### Signals
+${generateSignalSummary(liveData.markets)}
+
+### Fear & Greed
+${liveData.fearGreed ? `${liveData.fearGreed.value} (${liveData.fearGreed.label})` : "Not available"}
+`;
+  }
+
   return `You are ${agentName} (${role.title} - ${role.focus}).
 
 Generate your daily standup report following this structure:
 
 ${filledTemplate}
+${liveDataContext}
 
 IMPORTANT RULES:
-1. Use REAL data if you have access to it (via providers, memory, etc.)
-2. If you don't have real data, make reasonable estimates but mark them as [estimated]
-3. Be specific with numbers, not vague ("up 2.3%" not "up a bit")
-4. Keep total response under 400 words
-5. Always end with clear ACTION or DECISION items
-6. Questions for team should be specific and actionable
+1. USE THE LIVE DATA ABOVE if provided — do NOT make up numbers
+2. If data says "Not available", say that — don't invent figures
+3. Be specific with numbers ("up 2.3%" not "up a bit")
+4. Focus on BTC, SOL, HYPE — these are our core assets
+5. Keep total response under 400 words
+6. Always end with clear ACTION or DECISION items
 
 Generate the report now:`;
 }
@@ -127,8 +154,17 @@ export const dailyReportAction: Action = {
     logger.info(`[DAILY_REPORT] ${agentName} generating daily report`);
 
     try {
-      // Build the report prompt
-      const reportPrompt = buildReportPrompt(runtime);
+      // Fetch live data (especially for VINCE)
+      let liveData: StandupData | null = null;
+      try {
+        liveData = await getStandupData(runtime);
+        logger.info(`[DAILY_REPORT] ${agentName} fetched live data: ${liveData.markets.length} assets`);
+      } catch (dataErr) {
+        logger.warn({ dataErr }, `[DAILY_REPORT] ${agentName} could not fetch live data, using template`);
+      }
+
+      // Build the report prompt with live data
+      const reportPrompt = buildReportPrompt(runtime, liveData);
 
       // Generate the report using the LLM
       const report = await runtime.useModel(ModelType.TEXT_LARGE, {
