@@ -1720,10 +1720,10 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       {openWeeklyMarkets.length > 0 && (
                         <DashboardCard title="Weekly Crypto vibe check">
                           <p className="text-sm text-muted-foreground mb-3">
-                            {wc.oneLiner ?? "Market odds for BTC/ETH/SOL this week — vibe check for Hypersurface weekly options."}
+                            {wc?.oneLiner ?? "Market odds for BTC/ETH/SOL this week — vibe check for Hypersurface weekly options."}
                           </p>
                           <a
-                            href={wc.link ?? "https://polymarket.com/crypto/weekly"}
+                            href={wc?.link ?? "https://polymarket.com/crypto/weekly"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-primary font-medium hover:underline mb-4"
