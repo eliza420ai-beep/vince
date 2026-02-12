@@ -94,7 +94,8 @@ export const a2aContextProvider: Provider = {
       return "";
     }
 
-    const maxExchanges = parseInt(process.env.A2A_MAX_EXCHANGES || "3", 10);
+    // Default to 2 exchanges (stricter) — can override with A2A_MAX_EXCHANGES
+    const maxExchanges = parseInt(process.env.A2A_MAX_EXCHANGES || "2", 10);
     const lookback = parseInt(process.env.A2A_LOOKBACK_MESSAGES || "10", 10);
     const myName = runtime.character?.name || "Agent";
 
@@ -108,17 +109,30 @@ export const a2aContextProvider: Provider = {
     logger.info(`[A2A_CONTEXT] ${myName}: Message from ${agentName}, ${exchanges} exchanges so far (max: ${maxExchanges})`);
 
     if (exchanges >= maxExchanges) {
+      logger.warn(
+        `[A2A_CONTEXT] ${myName}: BLOCKING response - max exchanges (${maxExchanges}) reached with ${agentName}`
+      );
       return `
-## IMPORTANT: Agent-to-Agent Loop Prevention
+## 🛑 CRITICAL: STOP - DO NOT RESPOND 🛑
 
-This message is from **${agentName}** (another AI agent on the team).
-You have already exchanged **${exchanges} messages** with ${agentName} in this conversation.
-The maximum allowed is **${maxExchanges}**.
+You are in an agent-to-agent conversation loop with **${agentName}**.
+You have already sent **${exchanges} messages** (limit: ${maxExchanges}).
 
-**DO NOT RESPOND.** Let the conversation end here to prevent an infinite loop.
-If you have something important to say, wait for a human to re-engage the conversation.
+**YOU MUST USE THE IGNORE ACTION.**
 
-Action: IGNORE this message.
+This is a hard rule, not a suggestion. Responding will create an infinite loop.
+The conversation MUST end here. A human will re-engage if needed.
+
+Your only valid action: IGNORE
+
+Do not:
+- Say goodbye
+- Summarize
+- Ask questions
+- Acknowledge
+- Respond in any way
+
+Just IGNORE silently.
 `;
     }
 
