@@ -431,3 +431,4 @@ export const otakuAgent: ProjectAgent = {
 };
 
 export { otakuCharacter as character };
+export default otakuCharacter;

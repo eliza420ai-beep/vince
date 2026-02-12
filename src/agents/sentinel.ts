@@ -555,3 +555,5 @@ export const sentinelAgent: ProjectAgent = {
   init: initSentinel,
   plugins: buildPlugins(),
 };
+
+export default sentinelCharacter;

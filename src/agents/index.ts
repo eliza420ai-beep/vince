@@ -14,13 +14,13 @@
  * | ECHO     | CSO  | CT sentiment, X research, social alpha |
  */
 
-export { default as elizaCharacter } from './eliza';
-export { default as vinceCharacter } from './vince';
-export { default as solusCharacter } from './solus';
-export { default as otakuCharacter } from './otaku';
-export { default as kellyCharacter } from './kelly';
-export { default as sentinelCharacter } from './sentinel';
-export { echoCharacter } from './echo.character';
+export { character as elizaCharacter } from './eliza';
+export { vinceCharacter } from './vince';
+export { solusCharacter } from './solus';
+export { otakuCharacter } from './otaku';
+export { kellyCharacter } from './kelly';
+export { sentinelCharacter } from './sentinel';
+export { echoCharacter } from './echo';
 
 // Type exports
 export type { Character } from '@elizaos/core';

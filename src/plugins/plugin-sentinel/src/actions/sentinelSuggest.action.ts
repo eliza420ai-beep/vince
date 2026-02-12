@@ -36,7 +36,7 @@ import {
 import { generateTaskBrief } from "../services/prdGenerator.service";
 import { 
   suggestOpenClawUsage,
-  getopenclawSetup,
+  getOpenclawResearchSetup,
   getIntegrationPatterns,
 } from "../services/openclawKnowledge.service";
 
@@ -255,7 +255,7 @@ export const sentinelSuggestAction: Action = {
         
         // openclaw/knowledge research setup
         if (lower.includes("openclaw") || lower.includes("knowledge research")) {
-          const setup = getopenclawSetup();
+          const setup = getOpenclawResearchSetup();
           
           await callback({
             text: `🤖 **openclaw Knowledge Research Setup**

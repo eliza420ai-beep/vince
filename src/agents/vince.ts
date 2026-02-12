@@ -492,3 +492,5 @@ export const vinceAgent: ProjectAgent = {
   init: async (runtime: IAgentRuntime) => await initVince({ runtime }),
   plugins: buildPlugins(),
 };
+
+export default vinceCharacter;

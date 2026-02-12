@@ -950,3 +950,5 @@ export const kellyAgent: ProjectAgent = {
   init: initKelly,
   plugins: buildPlugins(),
 };
+
+export default kellyCharacter;

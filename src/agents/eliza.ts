@@ -585,3 +585,4 @@ const elizaAgent: ProjectAgent = {
 
 export { elizaAgent };
 export { elizaCharacter as character };
+export default elizaCharacter;

@@ -376,3 +376,5 @@ export const solusAgent: ProjectAgent = {
   init: initSolus,
   plugins: buildPlugins(),
 };
+
+export default solusCharacter;
