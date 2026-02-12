@@ -63,6 +63,10 @@ export class CoinGeckoService extends Service {
   capabilityDescription = "Fetch token metadata from CoinGecko (free or Pro).";
 
   private proApiKey: string | undefined;
+  /** When true, use api.coingecko.com (e.g. for Demo API key). Set by COINGECKO_USE_PUBLIC_URL or after error 10011. */
+  private forcePublicUrl = false;
+  /** Set to true after we get "Demo API key" error and retry with public URL succeeds. */
+  private usePublicUrlOverride = false;
   private coinsCache: Array<{ id: string; symbol: string; name: string }> = [];
   private idSet = new Set<string>();
   private symbolToIds = new Map<string, string[]>();
@@ -82,7 +86,24 @@ export class CoinGeckoService extends Service {
   async initialize(runtime: IAgentRuntime): Promise<void> {
     // Prefer runtime settings, fallback to env
     this.proApiKey = (runtime.getSetting("COINGECKO_API_KEY") as string) || process.env.COINGECKO_API_KEY;
+    const usePublic =
+      runtime.getSetting("COINGECKO_USE_PUBLIC_URL") ?? process.env.COINGECKO_USE_PUBLIC_URL;
+    this.forcePublicUrl =
+      usePublic === true || String(usePublic).toLowerCase() === "true" || String(usePublic) === "1";
     await this.loadCoinsIndex();
+  }
+
+  /** Base URL and isPro flag. Use public URL when Demo key is in use (COINGECKO_USE_PUBLIC_URL or after error 10011). */
+  private getBaseUrl(): { baseUrl: string; isPro: boolean } {
+    const usePublic = this.forcePublicUrl || this.usePublicUrlOverride;
+    if (usePublic) {
+      return { baseUrl: "https://api.coingecko.com/api/v3", isPro: false };
+    }
+    const isPro = Boolean(this.proApiKey);
+    return {
+      baseUrl: isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3",
+      isPro,
+    };
   }
 
   async stop(): Promise<void> {}
@@ -93,8 +114,7 @@ export class CoinGeckoService extends Service {
    */
   async getSimplePrices(ids: string[]): Promise<Record<string, number>> {
     if (ids.length === 0) return {};
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const { baseUrl, isPro } = this.getBaseUrl();
     const params = new URLSearchParams({
       ids: ids.join(","),
       vs_currencies: "usd",
@@ -145,8 +165,7 @@ export class CoinGeckoService extends Service {
     const normalizedIds = (Array.isArray(ids) ? ids : [ids])
       .map((identifier) => (identifier || "").trim())
       .filter((identifier) => identifier.length > 0);
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const { baseUrl, isPro } = this.getBaseUrl();
 
     const results: TokenMetadataResolution[] = [];
 
@@ -302,13 +321,12 @@ export class CoinGeckoService extends Service {
   }
 
   private async loadCoinsIndex(): Promise<void> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
-    const url = `${baseUrl}/coins/list`;
     const maxAttempts = 5;
     const baseDelayMs = 500;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const { baseUrl, isPro } = this.getBaseUrl();
+      const url = `${baseUrl}/coins/list`;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
       try {
@@ -325,7 +343,17 @@ export class CoinGeckoService extends Service {
         clearTimeout(timeout);
 
         if (!res.ok) {
-          const body = await safeReadJson(res);
+          const body = await safeReadJson(res) as { error_code?: number; status?: { error_message?: string } } | null;
+          const isDemoKeyError =
+            res.status === 400 &&
+            (body?.error_code === 10011 ||
+              String(body?.status?.error_message ?? "").includes("Demo API key"));
+          if (isDemoKeyError && !this.usePublicUrlOverride) {
+            this.usePublicUrlOverride = true;
+            logger.info("[CoinGecko] Demo API key detected; switching to public URL (api.coingecko.com). Set COINGECKO_USE_PUBLIC_URL=true to avoid this.");
+            await this.loadCoinsIndex();
+            return;
+          }
           throw new Error(`Failed to load coins list ${res.status}: ${res.statusText}${body ? ` - ${JSON.stringify(body)}` : ""}`);
         }
 
@@ -480,8 +508,7 @@ export class CoinGeckoService extends Service {
       return [];
     }
 
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const { baseUrl, isPro } = this.getBaseUrl();
     const params = new URLSearchParams({
       vs_currency: "usd",
       ids: ids.join(","),
@@ -720,9 +747,8 @@ export class CoinGeckoService extends Service {
    * Uses Pro API when COINGECKO_API_KEY is set; otherwise public API.
    */
   async getNFTCollectionStats(collectionIdentifier: string): Promise<any> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
-    
+    const { baseUrl, isPro } = this.getBaseUrl();
+
     let collectionId = collectionIdentifier.trim().toLowerCase();
 
     // If it's a contract address, try to look it up first
@@ -815,9 +841,8 @@ export class CoinGeckoService extends Service {
    * Uses Pro API when COINGECKO_API_KEY is set; otherwise public API.
    */
   async getTrendingSearch(): Promise<any> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
-    
+    const { baseUrl, isPro } = this.getBaseUrl();
+
     const url = `${baseUrl}/search/trending`;
 
     const controller = new AbortController();
@@ -916,8 +941,7 @@ export class CoinGeckoService extends Service {
     timeframe: string = '24h',
     chain: string = 'base'
   ): Promise<any> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const { baseUrl, isPro } = this.getBaseUrl();
 
     // Map timeframes to days
     const daysMap: Record<string, string> = {
@@ -1105,8 +1129,7 @@ export class CoinGeckoService extends Service {
     market_cap_usd: number | null;
     total_volume_usd: number | null;
   }> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
+    const { baseUrl, isPro } = this.getBaseUrl();
 
     // Validate date format (should be dd-mm-yyyy)
     if (!/^\d{2}-\d{2}-\d{4}$/.test(date)) {
@@ -1238,9 +1261,8 @@ export class CoinGeckoService extends Service {
    * Uses Pro API when COINGECKO_API_KEY is set; otherwise public API.
    */
   async getCategoriesList(): Promise<Array<{ category_id: string; name: string }>> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
-    
+    const { baseUrl, isPro } = this.getBaseUrl();
+
     const url = `${baseUrl}/coins/categories/list`;
 
     const controller = new AbortController();
@@ -1294,9 +1316,8 @@ export class CoinGeckoService extends Service {
     volume_24h: number;
     updated_at: string;
   }>> {
-    const isPro = Boolean(this.proApiKey);
-    const baseUrl = isPro ? "https://pro-api.coingecko.com/api/v3" : "https://api.coingecko.com/api/v3";
-    
+    const { baseUrl, isPro } = this.getBaseUrl();
+
     const params = new URLSearchParams();
     if (order) {
       params.append('order', order);
