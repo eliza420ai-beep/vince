@@ -2,6 +2,116 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v2.2.0] - 2026-02-12
+
+### 🎭 Dream Team Complete — 8 Agents
+
+The full roster is now live. Clear lanes, no overlap.
+
+| Role | Agent | Lane |
+|------|-------|------|
+| CEO | Eliza | Knowledge base, research |
+| CDO | VINCE | Objective data: options, perps, prices |
+| **CSO** | **ECHO** | **CT sentiment, X research, social alpha** |
+| **CPO** | **Oracle** | **Prediction markets: Polymarket (read-only)** |
+| CFO | Solus | Trading execution, strike selection |
+| COO | Otaku | DeFi ops, wallet, yields |
+| CVO | Kelly | Lifestyle: travel, dining, health |
+| CTO | Sentinel | Ops, code, infra |
+
+**Design Principle:**
+- Data agents (VINCE, ECHO, Oracle) → inform, don't execute
+- Execution agents (Solus, Otaku) → trade, execute
+- Support agents (Eliza, Kelly, Sentinel) → knowledge, lifestyle, ops
+
+---
+
+### 🔮 Oracle Agent (NEW)
+
+Prediction markets specialist — Polymarket-first, read-only.
+
+**Why it matters:** Priority markets are "a palantir into market belief."
+
+**Three use cases:**
+1. **Paper bot** — Price predictions improve perps algo on Hyperliquid
+2. **Hypersurface strike selection** — Weekly predictions → options strikes (most important)
+3. **Vibe check** — Macro sentiment overlay
+
+**Actions:**
+- `GET_ACTIVE_POLYMARKETS` — Trending markets
+- `GET_VINCE_POLYMARKET_MARKETS` — Priority markets only
+- `SEARCH_POLYMARKETS` — Keyword search
+- `GET_POLYMARKET_DETAIL` / `GET_POLYMARKET_PRICE`
+- `GET_POLYMARKET_POSITIONS` / `GET_POLYMARKET_BALANCE`
+- Orderbooks, spreads, open interest, volume, top holders
+
+---
+
+### 📡 ECHO Agent (NEW)
+
+Chief Sentiment Officer — CT vibes, social alpha.
+
+**Separation of concerns:**
+- VINCE = objective data (prices, funding, options)
+- ECHO = subjective sentiment (CT says, whale takes, contrarian warnings)
+
+**Actions (9 total):**
+| Action | Description |
+|--------|-------------|
+| `X_PULSE` | ALOHA-style full briefing |
+| `X_VIBE` | Quick topic sentiment |
+| `X_THREAD` | Thread summarization |
+| `X_ACCOUNT` | Account analysis |
+| `X_NEWS` | X News API headlines |
+| `X_SEARCH` | Manual search |
+| `X_MENTIONS` | Track mentions |
+| `X_WATCHLIST` | Account watchlist |
+| `X_SAVE_RESEARCH` | Persist research |
+
+---
+
+### 📊 Polymarket Major Upgrade
+
+**plugin-polymarket-discovery** rewritten for production.
+
+- Priority markets with tag sections
+- Enhanced leaderboard UI with sorting
+- LLM extraction for market insights
+- Tag → Gamma ID resolution
+- Token info action
+- Full test coverage (6 test files)
+
+**New route:** `/vince/polymarket/priority-markets`
+
+---
+
+### 🧹 VINCE Cleanup
+
+X research fully migrated to ECHO:
+- **Deleted** `xResearch.action.ts` (1,102 lines)
+- **Deleted** `ctVibe.action.ts`
+- VINCE now pure objective data
+
+---
+
+### 📚 Plugin Eliza
+
+- `CONTENT_AUDIT` action — Film study for content
+- Knowledge gaps logging
+- Improved upload handling
+
+---
+
+### 📈 Stats
+
+- **116 files changed**
+- **+7,421 lines / -2,231 lines**
+- **8 agents** (up from 6)
+- **9 new X actions**
+- **6 new Polymarket test files**
+
+---
+
 ## [v2.1.0] - 2026-02-12
 
 ### 🚀 Sentinel 10x Upgrade (PR #10)
