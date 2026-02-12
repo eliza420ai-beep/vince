@@ -80,7 +80,8 @@
 | Agent | Lane |
 |:---|:---|
 | **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. **Heavy focus: improve and expand the knowledge base** (quality, gaps, new categories). Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
-| **VINCE** | All the data: options chains, perps, memes, news, X/CT, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
+| **VINCE** | Objective data: options chains, perps, memes, news, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
+| **ECHO** | CT sentiment, X research, social alpha. Echoes what Crypto Twitter is saying—threads, whale takes, contrarian warnings. Your ears on X. |
 | **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **Otaku** | **Only agent with a funded wallet.** DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP. Mints NFTs when Sentinel creates gen art; full onchain exploration. When you need DeFi edge. |
 | **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
@@ -91,7 +92,8 @@
 | Role | Agent | Why |
 |:---|:---|:---|
 | **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. **Improve and expand knowledge** (quality, gaps, categories). Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
-| **CDO** | VINCE | Data powerhouse: options, perps, memes, news, X/CT, paper bot. Push intel only—no marketing or external promo. |
+| **CDO** | VINCE | Objective data: options, perps, memes, news, paper bot. Push intel only—no marketing or external promo. |
+| **CSO** | ECHO | Subjective sentiment: CT vibes, X research, social alpha, contrarian warnings. Your ears on Crypto Twitter. |
 | **CFO** | Solus | Capital and risk: size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **COO** | Otaku | **Only agent with funded wallet.** DeFi ops: token discovery, Morpho, yield, CDP; mints NFTs (e.g. Sentinel gen art); full onchain. Keeps daily operations seamless. |
 | **CVO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |

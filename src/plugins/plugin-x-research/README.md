@@ -2,6 +2,12 @@
 
 ALOHA-style X/Twitter research for crypto sentiment and alpha.
 
+**Agent:** This plugin powers **ECHO**, the Chief Sentiment Officer (CSO) of the VINCE dream team.
+
+> **Separation of Concerns:**
+> - **VINCE** (CDO) = Objective data (prices, options, perps, funding)
+> - **ECHO** (CSO) = Subjective sentiment (CT vibes, social alpha)
+
 ## Overview
 
 Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the X/Twitter vibe for our focus areas:
