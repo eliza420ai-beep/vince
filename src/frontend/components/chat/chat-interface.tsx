@@ -134,22 +134,18 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
-  // VINCE (CDO): X is #1 source of insights/news/alpha/sentiment and feeds the flagship paper bot. Quick actions surface X first (search, profile, Spaces, lists, mentions), then bot, ALOHA, domains.
+  // VINCE (CDO): Locked in on data and flagship actions (ALOHA, perps, options, paper bot, news, HIP3, memes, intel). X research is on Echo.
   vince: [
     { label: "What can the CDO do?", message: "What can you do?" },
-    { label: "X: BTC", message: "What are people saying about BTC?" },
-    { label: "X: Perps", message: "What's CT saying about perps?" },
-    { label: "X: VIP", message: "What did @RaoulGMI post recently?" },
-    { label: "X: Spaces", message: "Spaces about BTC" },
-    { label: "X: Lists", message: "What lists does @RaoulGMI have?" },
-    { label: "X: Mentions", message: "What are people saying to @RaoulGMI?" },
-    { label: "X → Paper", message: "How does X sentiment affect the paper bot?" },
-    { label: "Trading Bot", message: "bot status" },
     { label: "ALOHA", message: "aloha" },
     { label: "Options", message: "options" },
     { label: "Perps", message: "perps" },
+    { label: "Trading Bot", message: "bot status" },
     { label: "News", message: "news" },
     { label: "HIP3", message: "hip3" },
+    { label: "Memes", message: "meme scanner" },
+    { label: "NFT Floor", message: "nft floor" },
+    { label: "Intel", message: "intel" },
   ],
   // Eliza (CEO): vision, knowledge, research, GTM, Substack.
   eliza: [
@@ -221,6 +217,18 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Launch Token", message: "Ask Bankr to deploy a token called MyAgent with symbol AGENT on base" },
     { label: "Limit Order Quote", message: "Get a limit buy quote for ETH on Base via Bankr" },
   ],
+  // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research).
+  echo: [
+    { label: "What can you do?", message: "What can you do?" },
+    { label: "X Pulse", message: "What's CT saying today?" },
+    { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
+    { label: "Vibe: ETH", message: "Sentiment on ETH" },
+    { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
+    { label: "Summarize thread", message: "Summarize this thread (paste a tweet URL in your next message)" },
+    { label: "Who is @user?", message: "Who is @crediblecrypto?" },
+    { label: "X News", message: "What's the crypto news on X?" },
+    { label: "CT Headlines", message: "Headlines from crypto Twitter" },
+  ],
 };
 
 function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
@@ -231,9 +239,11 @@ function getQuickActionsForAgent(agentName: string): { label: string; message: s
 // Limitations for quick actions (shown under the Quick: buttons when present). Keep short and clear.
 const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
   vince:
-    "X is our #1 source of insights, news, alpha, and sentiment—it feeds the flagship paper trading bot. Subject to X API rate limits and 7-day window; one token for vibe check and chat. One token? See X-RESEARCH.md for rate-limit options.",
+    "Objective data and paper bot. For X/CT sentiment and threads, ask Echo.",
   eliza:
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
+  echo:
+    "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
