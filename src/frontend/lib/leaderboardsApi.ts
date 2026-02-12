@@ -280,6 +280,13 @@ export interface PolymarketPriorityMarketsResponse {
     markets: PolymarketPriorityMarketItem[];
     updatedAt: number;
   };
+  /** Crypto ETF flows and related markets (polymarket.com/crypto/etf) */
+  cryptoEtf?: {
+    oneLiner: string;
+    link: string;
+    markets: PolymarketPriorityMarketItem[];
+    updatedAt: number;
+  };
 }
 
 export interface PolymarketPriorityMarketsFetchResult {

@@ -57,6 +57,12 @@ export interface PriorityMarketsResponse {
     markets: PriorityMarketItem[];
     updatedAt: number;
   };
+  cryptoEtf?: {
+    oneLiner: string;
+    link: string;
+    markets: PriorityMarketItem[];
+    updatedAt: number;
+  };
 }
 
 export function buildPriorityMarketsHandler() {
@@ -108,15 +114,21 @@ export function buildPriorityMarketsHandler() {
     });
 
     try {
-      const [markets, weeklyCryptoMarkets] = await Promise.all([
+      const [markets, weeklyCryptoMarkets, cryptoEtfMarketsRaw] = await Promise.all([
         service.getMarketsByPreferredTags({
           tagSlugs: VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
           totalLimit: 30,
         }),
         service.getWeeklyCryptoMarkets(15),
+        service.getEventsByTag("crypto-etf", 15).catch(() => [] as PolymarketMarket[]),
       ]);
 
       const now = Date.now();
+      const cryptoEtfItems = cryptoEtfMarketsRaw.map(mapMarketToItem);
+      const cryptoEtfOpen = cryptoEtfItems.filter(
+        (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now
+      );
+
       const body: PriorityMarketsResponse = {
         whyWeTrack: WHY_WE_TRACK,
         intentSummary: INTENT_SUMMARY,
@@ -128,6 +140,15 @@ export function buildPriorityMarketsHandler() {
                 oneLiner: "Weekly crypto odds — vibe check for Hypersurface weekly options.",
                 link: "https://polymarket.com/crypto/weekly",
                 markets: weeklyCryptoMarkets.map(mapMarketToItem),
+                updatedAt: now,
+              }
+            : undefined,
+        cryptoEtf:
+          cryptoEtfOpen.length > 0
+            ? {
+                oneLiner: "Crypto ETF flows and related markets — same view as polymarket.com/crypto/etf.",
+                link: "https://polymarket.com/crypto/etf",
+                markets: cryptoEtfOpen,
                 updatedAt: now,
               }
             : undefined,

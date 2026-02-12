@@ -492,6 +492,26 @@ export class PolymarketService extends Service {
   }
 
   /**
+   * Resolve a single tag by slug via GET /tags/slug/{slug}. Returns null on 404 or non-ok (no throw).
+   */
+  async getTagBySlug(slug: string): Promise<{ id: string; label: string; slug: string } | null> {
+    const url = `${this.gammaApiUrl}${GAMMA_TAGS_PATH}/slug/${encodeURIComponent(slug.trim())}`;
+    try {
+      const response = await this.fetchWithTimeout(url);
+      if (!response.ok) return null;
+      const tag = (await response.json()) as { id: string; label?: string; slug?: string };
+      if (!tag?.id) return null;
+      return {
+        id: String(tag.id),
+        label: tag.label ?? "",
+        slug: tag.slug ?? slug,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Get events by tag (id or slug). Resolve slug to id via getTags() if needed. Uses normalized slug/label variants (hyphen/underscore/space) so "fed-rates" matches Gamma slug "fed_rates".
    */
   async getEventsByTag(tagIdOrSlug: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
@@ -564,7 +584,17 @@ export class PolymarketService extends Service {
     const unresolvedSlugs: string[] = [];
 
     for (const slug of tagSlugs) {
-      const tagId = PolymarketService.resolveSlugToTagId(slug, slugToTagId);
+      let tagId = PolymarketService.resolveSlugToTagId(slug, slugToTagId);
+      if (!tagId) {
+        const tag = await this.getTagBySlug(slug);
+        const fallbackTag = tag ?? (slug.includes("-") ? await this.getTagBySlug(slug.replace(/-/g, "_")) : null);
+        if (fallbackTag && /^\d+$/.test(String(fallbackTag.id))) {
+          tagId = fallbackTag.id;
+          slugToTagId.set(slug, tagId);
+          slugToTagId.set(slug.toLowerCase(), tagId);
+          logger.info(`[PolymarketService] getMarketsByPreferredTags resolved slug "${slug}" via GET /tags/slug (id ${tagId})`);
+        }
+      }
       if (!tagId) {
         unresolvedSlugs.push(slug);
         logger.debug(`[PolymarketService] getMarketsByPreferredTags skip slug "${slug}" (no matching Gamma tag)`);
