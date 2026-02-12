@@ -30,6 +30,7 @@ import { buildLeaderboardsResponse, buildDebugXSentimentResponse } from "./route
 import { buildPaperResponse } from "./routes/dashboardPaper";
 import { buildUsageResponse } from "./routes/dashboardUsage";
 import { buildKnowledgeResponse } from "./routes/dashboardKnowledge";
+import { buildBankrResponse } from "./routes/dashboardBankr";
 
 // Services - Data Sources
 import { VinceCoinGlassService } from "./services/coinglass.service";
@@ -132,6 +133,7 @@ import { vinceContextProvider } from "./providers/vinceContext.provider";
 import { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 import { teammateContextProvider } from "./providers/teammateContext.provider";
 import { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
+import { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 
 // Tasks
 import { registerGrokExpertTask } from "./tasks/grokExpert.tasks";
@@ -535,6 +537,42 @@ export const vincePlugin: Plugin = {
         }
       },
     },
+    {
+      name: "vince-bankr",
+      path: "/vince/bankr",
+      type: "GET",
+      handler: async (
+        req: { params?: Record<string, string>; [k: string]: unknown },
+        res: {
+          status: (n: number) => { json: (o: object) => void };
+          json: (o: object) => void;
+        },
+        runtime?: IAgentRuntime,
+      ) => {
+        const agentRuntime =
+          runtime ??
+          (req as any).runtime ??
+          (req as any).agentRuntime ??
+          (req as any).agent?.runtime;
+        if (!agentRuntime) {
+          res.status(503).json({
+            error: "BANKR data requires agent context",
+            hint: "Use /api/agents/:agentId/plugins/plugin-vince/vince/bankr",
+          });
+          return;
+        }
+        try {
+          const data = await buildBankrResponse(agentRuntime);
+          res.json(data);
+        } catch (err) {
+          logger.warn(`[VINCE] BANKR route error: ${err}`);
+          res.status(500).json({
+            error: "Failed to build BANKR data",
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      },
+    },
   ],
 
   // Providers - unified context (teammate loads first so IDENTITY/USER/SOUL/TOOLS/MEMORY are always in context)
@@ -543,6 +581,7 @@ export const vincePlugin: Plugin = {
     protocolWriteupProvider,
     vinceContextProvider,
     trenchKnowledgeProvider,
+    bankrOrdersProvider, // Cross-agent: active BANKR orders from Otaku
   ],
 
   // Evaluators - Self-Improving Architecture
@@ -1071,6 +1110,7 @@ export { vinceContextProvider } from "./providers/vinceContext.provider";
 export { trenchKnowledgeProvider } from "./providers/trenchKnowledge.provider";
 export { teammateContextProvider } from "./providers/teammateContext.provider";
 export { protocolWriteupProvider } from "./providers/protocolWriteup.provider";
+export { bankrOrdersProvider } from "./providers/bankrOrders.provider";
 
 // ==========================================
 // Analysis Exports
