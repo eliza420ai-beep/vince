@@ -1,0 +1,28 @@
+{
+  "name": "@vince/plugin-otaku",
+  "version": "2.3.0",
+  "description": "Otaku COO execution layer - high-level DeFi operations via BANKR",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@elizaos/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.5"
+  },
+  "keywords": [
+    "elizaos",
+    "plugin",
+    "otaku",
+    "defi",
+    "bankr",
+    "swap",
+    "dca",
+    "limit-order"
+  ]
+}

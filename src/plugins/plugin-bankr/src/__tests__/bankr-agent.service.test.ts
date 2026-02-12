@@ -296,7 +296,8 @@ describe('BankrAgentService', () => {
         json: async () => ({ success: true }),
       });
 
-      await expect(service.cancelJob('job-123')).resolves.not.toThrow();
+      await service.cancelJob('job-123');
+      expect(mockFetch).toHaveBeenCalled();
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.bankr.bot/agent/job/job-123/cancel',

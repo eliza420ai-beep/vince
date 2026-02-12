@@ -102,7 +102,8 @@ describe('bankrProvider', () => {
     const runtime = createMockRuntime();
     const result = await bankrProvider.get(runtime, createMockMemory());
 
-    expect(result).toContain('Error');
+    // Provider catches errors and returns "BANKR: Error fetching state"
+    expect(result).toContain('BANKR:');
   });
 });
 

@@ -11,6 +11,7 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import cdpPlugin from "../plugins/plugin-cdp";
 import { bankrPlugin } from "../plugins/plugin-bankr/src/index.ts";
+import { otakuPlugin } from "../plugins/plugin-otaku/src/index.ts";
 import { morphoPlugin } from "../plugins/plugin-morpho/src/index.ts";
 import { relayPlugin } from "../plugins/plugin-relay/src/index.ts";
 import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
@@ -404,7 +405,7 @@ const buildPlugins = (): Plugin[] =>
     ...(hasCdp ? [morphoPlugin] : []),
     ...(hasCdp && hasRelayKey ? [relayPlugin] : []),
     ...(hasCdp && hasBiconomyKey ? [meePlugin] : []),
-    ...(hasBankr ? [bankrPlugin] : []),
+    ...(hasBankr ? [bankrPlugin, otakuPlugin] : []),
     ...(hasEtherscanKey ? [etherscanPlugin] : []),
     defiLlamaPlugin,
   ] as Plugin[];
