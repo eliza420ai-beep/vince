@@ -6,13 +6,14 @@
  * - Natural language parsing
  * - Risk checks and balance validation
  *
- * Actions (6):
+ * Actions (7):
  * - OTAKU_SWAP: Quick token swaps
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
  * - OTAKU_POSITIONS: View portfolio and orders
  * - OTAKU_BRIDGE: Cross-chain bridge via Relay
  * - OTAKU_BALANCE: Check wallet balances
+ * - OTAKU_STOP_LOSS: Stop-loss and take-profit orders
  *
  * Providers:
  * - OTAKU_WALLET_STATUS: Wallet context for multi-agent queries
@@ -37,6 +38,7 @@ import {
   otakuPositionsAction,
   otakuBridgeAction,
   otakuBalanceAction,
+  otakuStopLossAction,
 } from "./actions";
 import { walletStatusProvider } from "./providers";
 import {
@@ -58,6 +60,7 @@ export const otakuPlugin: Plugin = {
     otakuPositionsAction,
     otakuBridgeAction,
     otakuBalanceAction,
+    otakuStopLossAction,
   ],
   services: [OtakuService],
   providers: [walletStatusProvider],

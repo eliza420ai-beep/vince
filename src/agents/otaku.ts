@@ -18,6 +18,7 @@ import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
 import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
 import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+import { erc8004Plugin } from "../plugins/plugin-erc8004/src/index.ts";
 
 const hasCdp =
   !!(
@@ -429,6 +430,7 @@ const buildPlugins = (): Plugin[] =>
     ...(hasEtherscanKey ? [etherscanPlugin] : []),
     defiLlamaPlugin,
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
+    erc8004Plugin, // ERC-8004 Trustless Agents - on-chain identity & reputation
     // x402 HTTP payment protocol - receive USDC on Base for API access
     ...(x402Enabled ? (["@elizaos/plugin-x402"] as unknown as Plugin[]) : []),
   ] as Plugin[];
