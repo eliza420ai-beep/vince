@@ -77,9 +77,9 @@ export const xPulseAction: Action = {
     const text = message.content?.text?.toLowerCase() ?? '';
     
     const triggers = [
-      'x pulse', 'x vibe', 'ct saying', 'crypto twitter', 'twitter sentiment',
-      'what\'s x saying', 'what is x saying', 'x sentiment', 'ct vibe',
-      'twitter vibe', 'pulse check', 'vibe check x', 'x check',
+      'x pulse', 'x vibe', 'ct saying', 'ct saying today', 'what\'s ct saying',
+      'crypto twitter', 'twitter sentiment', 'what\'s x saying', 'what is x saying',
+      'x sentiment', 'ct vibe', 'twitter vibe', 'pulse check', 'vibe check x', 'x check',
       'quick pulse', 'fast vibe', 'quality pulse', 'curated vibe', 'whale take',
     ];
 
@@ -110,13 +110,18 @@ export const xPulseAction: Action = {
 
       const mandoContext = await getMandoContextForX(runtime);
 
+      const highPriorityTopicIds = ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id);
+      const requestedTopicIds = quick ? highPriorityTopicIds.slice(0, 2) : highPriorityTopicIds;
+
       // Search high-priority topics (quick = fewer topics + results)
       const topicResults = await searchService.searchMultipleTopics({
-        topicsIds: ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id),
+        topicsIds: requestedTopicIds,
         maxResultsPerTopic: quick ? 10 : 50,
         quick,
         cacheTtlMs: pulseCacheTtlMs,
       });
+
+      const emptyTopics = requestedTopicIds.filter((id) => (topicResults.get(id)?.length ?? 0) === 0);
 
       // Flatten all tweets; optionally filter to quality accounts only
       let allTweets = Array.from(topicResults.values()).flat();
@@ -156,6 +161,7 @@ export const xPulseAction: Action = {
         quick,
         qualityOnly,
         mandoContext,
+        emptyTopics: emptyTopics.length > 0 ? emptyTopics : undefined,
       });
 
       if (process.env.X_RESEARCH_SHOW_COST === 'true') {
@@ -244,9 +250,10 @@ async function generateBriefing(
     quick?: boolean;
     qualityOnly?: boolean;
     mandoContext?: { vibeCheck: string; headlines: string[] } | null;
+    emptyTopics?: string[];
   }
 ): Promise<string> {
-  const { sentiment, threads, breaking, spikes, sampleSize, quick, qualityOnly, mandoContext } = data;
+  const { sentiment, threads, breaking, spikes, sampleSize, quick, qualityOnly, mandoContext, emptyTopics } = data;
 
   // Build structured output
   let output = `📊 **X Pulse**\n\n`;
@@ -309,10 +316,13 @@ async function generateBriefing(
     output += `\n`;
   }
 
-  // Volume spikes
-  if (spikes.length > 0) {
+  // Volume spikes (only show spikes with valid finite positive multiple)
+  const validSpikes = spikes.filter(
+    (s) => Number.isFinite(s.spikeMultiple) && s.spikeMultiple > 0
+  );
+  if (validSpikes.length > 0) {
     output += `**⚡ Volume Spikes:**\n`;
-    for (const spike of spikes.slice(0, 2)) {
+    for (const spike of validSpikes.slice(0, 2)) {
       output += `• ${spike.topic}: ${spike.spikeMultiple}x normal volume\n`;
     }
     output += `\n`;
@@ -321,6 +331,10 @@ async function generateBriefing(
   // Warnings
   if (sentiment.warnings.length > 0) {
     output += `${sentiment.warnings.join('\n')}\n\n`;
+  }
+
+  if (emptyTopics && emptyTopics.length > 0) {
+    output += `_Some topics temporarily unavailable: ${emptyTopics.join(', ')}._\n\n`;
   }
 
   output += `_Based on ${sampleSize} posts from the last 24h_`;

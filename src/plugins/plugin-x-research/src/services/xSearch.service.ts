@@ -273,22 +273,25 @@ export class XSearchService {
   private analyzeVolumeCounts(topicId: string, counts: XCountsResponse): VolumeSpike | null {
     if (!counts.data || counts.data.length < 6) return null;
 
-    // Get recent hour vs average
-    const volumes = counts.data.map(d => d.tweetCount);
+    // Get recent hour vs average (safe mapping so missing/undefined tweetCount → 0)
+    const volumes = counts.data.map(d => Number(d?.tweetCount) || 0);
     const recentVolume = volumes[volumes.length - 1];
     const avgVolume = volumes.slice(0, -1).reduce((a, b) => a + b, 0) / (volumes.length - 1);
 
-    if (avgVolume < 10) return null; // Not enough baseline volume
+    if (!Number.isFinite(avgVolume) || avgVolume <= 0 || avgVolume < 10) return null; // Not enough baseline or invalid
 
     const spikeMultiple = recentVolume / avgVolume;
-
+    if (!Number.isFinite(spikeMultiple) || spikeMultiple <= 0) return null;
     if (spikeMultiple < 2.0) return null; // Need at least 2x spike
+
+    const rounded = Math.round(spikeMultiple * 10) / 10;
+    if (!Number.isFinite(rounded)) return null;
 
     return {
       topic: topicId,
       currentVolume: recentVolume,
       avgVolume: Math.round(avgVolume),
-      spikeMultiple: Math.round(spikeMultiple * 10) / 10,
+      spikeMultiple: rounded,
       startedAt: counts.data[counts.data.length - 1].start,
     };
   }
