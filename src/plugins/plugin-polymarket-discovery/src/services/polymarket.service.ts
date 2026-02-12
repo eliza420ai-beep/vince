@@ -841,8 +841,9 @@ export class PolymarketService extends Service {
    * Get detailed market information by condition ID
    *
    * LIMITATION: Gamma API does not provide a single-market endpoint by condition_id.
-   * This method fetches all markets and filters client-side to find the requested market.
-   * Results are cached using LRU eviction to minimize repeated full-list fetches.
+   * This method fetches up to 500 active markets and filters client-side to find the requested market.
+   * If the target market is not in the first 500 returned by Gamma (e.g. low volume or newer),
+   * it will not be found. Results are cached using LRU eviction to minimize repeated full-list fetches.
    *
    * OPTIMIZATION: Individual markets are cached by conditionId, so subsequent requests
    * for the same market will hit the cache instead of fetching the entire markets list.
@@ -881,7 +882,9 @@ export class PolymarketService extends Service {
       const rawMarkets = await response.json() as any[];
       const markets = rawMarkets.map(mapApiMarketToInterface);
       
-      const market = markets.find((m) => m.condition_id === conditionId);
+      const market = markets.find(
+        (m) => (m.condition_id ?? m.conditionId) === conditionId
+      );
 
       if (!market) {
         throw new Error(`Market not found: ${conditionId}`);
@@ -1485,21 +1488,22 @@ export class PolymarketService extends Service {
     }
 
     return this.retryFetch(async () => {
-      // Build query parameters
+      // Build query parameters (per Gamma docs: use closed=false unless historical data needed)
       const queryParams = new URLSearchParams();
       queryParams.set("limit", limit.toString());
       queryParams.set("offset", offset.toString());
-
       if (active !== undefined) {
         queryParams.set("active", active.toString());
+      } else {
+        queryParams.set("active", "true");
       }
-
       if (closed !== undefined) {
         queryParams.set("closed", closed.toString());
+      } else {
+        queryParams.set("closed", "false");
       }
-
       if (tag) {
-        queryParams.set("tag", tag);
+        queryParams.set("tag_id", tag);
       }
 
       const url = `${this.gammaApiUrl}/events?${queryParams.toString()}`;
@@ -1550,7 +1554,12 @@ export class PolymarketService extends Service {
     }
 
     return this.retryFetch(async () => {
-      const url = `${this.gammaApiUrl}/events/${eventIdOrSlug}`;
+      // Gamma API: GET /events/{id} for numeric id, GET /events/slug/{slug} for slug (per fetch guide)
+      const isNumericId = /^\d+$/.test(eventIdOrSlug.trim());
+      const path = isNumericId
+        ? `events/${eventIdOrSlug}`
+        : `events/slug/${encodeURIComponent(eventIdOrSlug.trim())}`;
+      const url = `${this.gammaApiUrl}/${path}`;
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
