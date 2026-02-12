@@ -1,16 +1,13 @@
 <div align="center">
 
-# IKIGAI STUDIO
+# LIVETHELIFETV
 
 ```
 ╔════════════════════════════════════════════════════════════════════════════════════╗
 ║                                                                                    ║
-║   ██╗██╗ ██╗██╗ ██████╗  █████╗ ██╗     ███████╗████████╗██╗   ██╗██████╗ ██╗ ██████╗ ║
-║   ██║██║ ██║██║██╔════╝ ██╔══██╗██║     ██╔════╝╚══██╔══╝██║   ██║██╔══██╗██║██╔═══██╗║
-║   ██║██║ ██║██║██║  ███╗███████║██║     ███████╗   ██║   ██║   ██║██║  ██║██║██║   ██║║
-║   ██║██║ ██║██║██║   ██║██╔══██║██║     ╚════██║   ██║   ██║   ██║██║  ██║██║██║   ██║║
-║   ██║██║ ██████║╚██████╔╝██║  ██║██║     ███████║   ██║   ╚██████╔╝██████╔╝██║╚██████╔╝║
-║   ╚═╝╚═╝ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚══════╝   ╚═╝    ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ║
+║   L I V E   T H E   L I F E   T V   —   H O L D I N G                             ║
+║                                                                                    ║
+║   IKIGAI LABS  ·  IKIGAI STUDIO  ·  CLAWTERM                                      ║
 ║                                                                                    ║
 ║              No hype. No shilling. No timing the market.                           ║
 ║                    Battle-tested signal from the trenches.                         ║
@@ -32,15 +29,33 @@
 
 ══════════════════════════════════════════════════════════════════════════════
 
+## ◆ Holding & brand architecture
+
+**LIVETHELIFETV** is the holding: heritage from live video (Akamai, Apple) and Bitcoin-first lifestyle; it houses **IKIGAI STUDIO** (content), **IKIGAI LABS** (product), and **CLAWTERM** (the terminal).
+
+| Layer | Brand | Role |
+|-------|-------|------|
+| **Holding** | **LIVETHELIFETV** | Parent entity; umbrella for thesis, product, and lifestyle. Heritage: early live video, Bitcoin-first lifestyle, sovereignty. |
+| **Brand** | **IKIGAI LABS** | Product and shipping arm. Ships ClawTerm (MVP), agents, terminal, data stack. ikigailabs.eth. Where we build and ship. No VCs, no permission. |
+| **Brand** | **IKIGAI STUDIO** | Content and thesis arm. Substack, essays, market insights, lifestyle. Where we underwrite and publish. No hype, no shilling. |
+| **Product** | **CLAWTERM** | The crypto Bloomberg-style terminal. Shipped by IKIGAI LABS as MVP on OpenClaw; in active development: openclaw agent grinds improvements (PRs, code), humans review, merge, and polish in Cursor with Claude 4.6. |
+
+```
+LIVETHELIFETV (holding)
+    ├── IKIGAI LABS (product: ClawTerm, agents, terminal)
+    ├── IKIGAI STUDIO (content: Substack, thesis)
+    └── CLAWTERM (product of Labs — crypto Bloomberg terminal)
+```
+
+══════════════════════════════════════════════════════════════════════════════
+
 ## ◆ Origin & Context
 
-**IKIGAI STUDIO** started on [Substack](https://ikigaistudio.substack.com/): that’s where we began underwriting our thesis, sharing market insights, and publishing lifestyle-related content. No gatekeepers, no VCs—conviction only.
-
-The brand is rooted in a path that started with refusing to sell hours ($100/hr in 1999 felt like winning until the trap became obvious), then building **LiveTheLife.TV** with Akamai and Apple—live, high-quality video before YouTube. Politics and funding shifts shelved it; the same billionaire later called it the biggest mistake of his life. Pattern recognition: being early is scar tissue.
+Under **LIVETHELIFETV**, the path is clear: from refusing to sell hours ($100/hr in 1999 felt like winning until the trap became obvious) to building **LiveTheLife.TV** with Akamai and Apple—live, high-quality video before YouTube. Politics and funding shifts shelved it; the same billionaire later called it the biggest mistake of his life. Pattern recognition: being early is scar tissue. That continuity is the holding.
 
 The same instinct led to pitching strangers-renting-homes in Palo Alto before Airbnb existed. Bitcoin hit in 2013: incorruptible money, math over trust. Bought after $10→$100, forced to sell at $200, watched $1,000 crash, then $20K in 2017. Maximum regret. True conviction at the $3K bottom. Bitcoin became the operating system: sovereignty, protest against fiat decay, a lifestyle, a protocol for freedom.
 
-Everything built now runs on conviction alone. No VCs. No permission. No exit. IKIGAI STUDIO is where we cut through the DeFi noise: no shilling, no hopium, no timing the market. Just battle-tested signal from someone who’s been early, wrong, hurt, and still standing.
+**IKIGAI STUDIO** started on [Substack](https://ikigaistudio.substack.com/): that’s where we began underwriting our thesis, sharing market insights, and publishing lifestyle-related content. **IKIGAI LABS** is where we ship the product. Everything built now runs on conviction alone. No VCs. No permission. No exit. LIVETHELIFETV houses both: Studio cuts through the DeFi noise with no shilling, no hopium, no timing the market; Labs ships ClawTerm and the agents. Just battle-tested signal from someone who’s been early, wrong, hurt, and still standing.
 
 ══════════════════════════════════════════════════════════════════════════════
 
@@ -48,9 +63,9 @@ Everything built now runs on conviction alone. No VCs. No permission. No exit. I
 
 ══════════════════════════════════════════════════════════════════════════════
 
-The **core of the project** is the trading and data stack: a self-improving **paper perp trading bot** on **Hyperliquid**; **onchain options** on **Hypersurface** with a weekly decision—**covered calls vs secured puts**, and **which asset** (BTC, ETH, SOL, HYPE). That decision is data-heavy; we need a unified data and intelligence layer. **ClawTerm** is that layer: the AI-powered Crypto Bloomberg Terminal (conversational intelligence, unified dashboard, autonomous agents, DeFi superpowers) built on OpenClaw. So: **core = terminal + paper bot + options ritual**; everything else supports or orbits that.
+Under **LIVETHELIFETV**: **IKIGAI STUDIO** is thesis and content (Substack, essays, market insights, lifestyle). **IKIGAI LABS** is product and shipping (ClawTerm, agents, terminal, data stack). **CLAWTERM** is the crypto Bloomberg-style terminal—shipped by IKIGAI LABS as MVP on OpenClaw; the openclaw agent now drives ongoing improvement, with human oversight to review and merge PRs and polish work in Cursor with Claude 4.6.
 
-**IKIGAI STUDIO** is the brand for thesis and content (Substack); **IKIGAI Labs** is where we ship the product (ClawTerm, agents, terminal). Kelly is essential to inspire living the good life; the core of the project is the trading and data stack. Our principle—**One Team One Dream**—ties narrative, intel, finance, DeFi, wellness, and tech into a single coherent identity.
+The **core of the project** is the trading and data stack: a self-improving **paper perp trading bot** on **Hyperliquid**; **onchain options** on **Hypersurface** with a weekly decision—**covered calls vs secured puts**, and **which asset** (BTC, ETH, SOL, HYPE). That decision is data-heavy; we need a unified data and intelligence layer. ClawTerm is that layer. So: **core = terminal + paper bot + options ritual**; everything else supports or orbits that. Kelly is essential to inspire living the good life. Our principle—**One Team One Dream**—ties narrative, intel, finance, DeFi, wellness, and tech into a single coherent identity.
 
 This brief defines the brand, voice, visual direction, and a **complete list of accounts to create** for the project (GitHub, Gmail, X, Google Calendar, and the rest) so every touchpoint speaks with one voice.
 
@@ -61,8 +76,10 @@ This brief defines the brand, voice, visual direction, and a **complete list of 
 │ • **Onchain options** on Hypersurface: weekly strike ritual—covered calls │
 │   vs secured puts, asset choice (BTC, ETH, SOL, HYPE).                    │
 │ • **ClawTerm:** the AI-powered Crypto Bloomberg Terminal on OpenClaw—     │
-│   unified data, conversational intelligence, autonomous agents. See      │
-│   [ClawTerm: product vision](#clawterm-product-vision) below.              │
+│   unified data, conversational intelligence, autonomous agents. Shipped   │
+│   by IKIGAI LABS as MVP; now evolved by the openclaw agent with human    │
+│   review and polish in Cursor (Claude 4.6). See [ClawTerm: product        │
+│   vision](#clawterm-product-vision) below.                                 │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ══════════════════════════════════════════════════════════════════════════════
@@ -71,7 +88,8 @@ This brief defines the brand, voice, visual direction, and a **complete list of 
 
 | Element | Definition |
 |--------|-------------|
-| **Brand Name** | **IKIGAI STUDIO** (content, Substack). **IKIGAI Labs** (product, ClawTerm, agents, terminal). Studio = content; Labs = product (ClawTerm, ikigailabs.eth). Extensions: Ikigai Cinema Agents for media. |
+| **Holding** | **LIVETHELIFETV** — The holding: heritage from live video and Bitcoin-first lifestyle; it houses IKIGAI STUDIO (content), IKIGAI LABS (product), and CLAWTERM (the terminal). |
+| **Brand Name** | **LIVETHELIFETV** (holding). **IKIGAI LABS** (product: ClawTerm, agents, terminal). **IKIGAI STUDIO** (content: Substack, thesis). **CLAWTERM** (product: crypto Bloomberg terminal by Labs, improved by openclaw + human). Extensions: Ikigai Cinema Agents for media. |
 | **Tagline** | *"No hype. No shilling. No timing the market."* — Battle-tested signal from the crypto trenches. Product: *"The AI-Powered Crypto Bloomberg Terminal – Built for the Onchain Era."* |
 | **Mission** | Unified onchain intelligence: paper perp bot (Hyperliquid), weekly options ritual (Hypersurface—covered calls vs secured puts, BTC/ETH/SOL/HYPE), and ClawTerm as the terminal. Underwrite and share thesis: Bitcoin as operating system, sovereignty, lifestyle, disciplined market insight—through Substack, agents, and every channel we own. |
 | **Product Core** | Paper perp bot (Hyperliquid); onchain options (Hypersurface) with weekly strike ritual; ClawTerm as the definitive onchain intelligence layer. |
@@ -81,7 +99,7 @@ This brief defines the brand, voice, visual direction, and a **complete list of 
 
 ### Voice & copy principles
 
-When revising About pages, product descriptions, company bios, or any marketing copy, apply these principles so the result is polished, high-end, and on-brand.
+Apply across **LIVETHELIFETV**, **IKIGAI LABS**, and **IKIGAI STUDIO**. When revising About pages, product descriptions, company bios, or any marketing copy, apply these principles so the result is polished, high-end, and on-brand.
 
 **1. Benefit-led (Apple-style)**
 
@@ -136,6 +154,11 @@ Imagine a world where institutional-grade crypto intelligence isn't locked behin
 
 We're not just building another dashboard. We're creating the definitive onchain intelligence layer—the Bloomberg Terminal crypto always deserved.
 
+**Who builds it (ship and evolution)**
+
+- **Shipped:** IKIGAI LABS shipped ClawTerm as the MVP—the crypto Bloomberg-style terminal on OpenClaw.
+- **Evolution:** The openclaw agent now drives ongoing improvement (code, features, fixes). Humans provide oversight: review and merge PRs, and polish work in Cursor with Claude 4.6. Agent grinding + human gatekeeping and quality.
+
 **The terminal is open. What's your first query?** · **ikigailabs.eth** · **Built on OpenClaw** · 2026 and beyond.
 
 *Where to read more:* [plugin-vince README](src/plugins/plugin-vince/README.md) (paper bot), [SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) (strike ritual, options), [NORTH_STAR_DELIVERABLES.md](knowledge/sentinel-docs/NORTH_STAR_DELIVERABLES.md) (perps + options deliverables).
@@ -145,7 +168,7 @@ We're not just building another dashboard. We're creating the definitive onchain
 ## ◆ Target Audience
 
 - **Primary:** Traders and builders who need unified crypto data, paper perp context, and the weekly options ritual (covered calls vs secured puts, asset choice). They want a Bloomberg-like terminal, not 20 fragmented tools.
-- **Secondary:** Lifestyle and wellness (Kelly), capital pathways (Solus), coders and ops (Sentinel), media/cinema (LiveTheLife heritage).
+- **Secondary:** Lifestyle and wellness (Kelly), capital pathways (Solus), coders and ops (Sentinel), media/cinema (LIVETHELIFETV heritage).
 - **Pain Points:** Noise, shilling, FOMO; fragmented data, no single terminal. We provide clarity, thesis, agent-backed execution, and unified intelligence.
 - **Channels:** [Substack](https://ikigaistudio.substack.com/) for long-form; X for real-time; Discord/Telegram for community and agents.
 
@@ -153,7 +176,7 @@ We're not just building another dashboard. We're creating the definitive onchain
 
 ## ◆ Accounts to Create (Master List)
 
-Use **IKIGAI STUDIO** (or approved variants below) consistently when naming accounts. For product-facing assets (ClawTerm, OpenClaw, terminal), use **IKIGAI Labs** or **ikigailabs.eth** where appropriate. Create and secure in this order where possible.
+Under **LIVETHELIFETV**. Use **IKIGAI STUDIO** for content/thesis accounts (Substack, long-form, social voice). Use **IKIGAI LABS** or **ikigailabs.eth** for product/ClawTerm/terminal accounts. Use the approved variants below consistently when naming accounts. Create and secure in this order where possible.
 
 ### Core identity & communication
 
@@ -202,7 +225,7 @@ Use **IKIGAI STUDIO** (or approved variants below) consistently when naming acco
 |---|-----------------|-------------------------|--------|
 | 22 | **Google Drive / Dropbox** | IKIGAI STUDIO (folder or workspace) | Brand assets, logos, media, backups. |
 | 23 | **Analytics** | IKIGAI STUDIO (property) | GA4, Plausible, or similar for site and Substack. |
-| 24 | **Password manager** | Vault / folder: IKIGAI STUDIO | All logins and 2FA under one label. |
+| 24 | **Password manager** | Vault / folder: IKIGAI STUDIO (or LIVETHELIFETV) | All logins and 2FA under one label. |
 | 25 | **Scheduling (recurring)** | Reclaim / Motion (optional) | If using multiple calendars; name calendar “IKIGAI STUDIO.” |
 
 ### Optional / future
@@ -246,7 +269,7 @@ Track progress as you create or claim each account. Fill in **Created** (Y/N), *
 | | 21 | Linktree / Beacons | | |
 | | 22 | Google Drive / Dropbox | | |
 | | 23 | Analytics | | |
-| | 24 | Password manager | | Vault label: IKIGAI STUDIO |
+| | 24 | Password manager | | Vault label: IKIGAI STUDIO or LIVETHELIFETV |
 | | 25 | Scheduling (Reclaim/Motion) | | Optional |
 | | 26 | Medium | | Optional |
 | | 27 | Bluesky | | Optional |
@@ -258,7 +281,7 @@ Track progress as you create or claim each account. Fill in **Created** (Y/N), *
 
 ### Accounts and API keys (from .env.example)
 
-The project’s **`.env.example`** implies **developer/API accounts** you’ll need in addition to the brand accounts above. Create or claim these so the stack can use them (keys go in `.env` or agent secrets). Use **IKIGAI STUDIO** or **ikigaistudio** where the platform allows a project/org name.
+The project’s **`.env.example`** implies **developer/API accounts** you’ll need in addition to the brand accounts above. Create or claim these so the stack can use them (keys go in `.env` or agent secrets). Use **IKIGAI STUDIO** / **IKIGAI LABS** or ikigaistudio / ikigailabs where the platform allows a project/org name (under LIVETHELIFETV).
 
 | Category | Service | Env vars (main) | Why we need it |
 |----------|---------|------------------|----------------|
@@ -297,13 +320,13 @@ The project’s **`.env.example`** implies **developer/API accounts** you’ll n
 
 **Multi-agent Discord:** Each agent (Eliza, VINCE, Solus, Otaku, Kelly, Sentinel) needs its **own** Discord application (Application ID + Bot token). Create one app per agent at [discord.com/developers/applications](https://discord.com/developers/applications) and set the matching `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN`. See DISCORD.md for channel layout.
 
-**Suggested order to create API accounts:** (1) One model provider (OpenAI or Anthropic). (2) Supabase (project + Postgres + optional Storage bucket `vince-ml-models`). (3) Discord app(s) for the agents you run. (4) X Developer (Basic or higher) if you use X research/sentiment. (5) Tavily for web search. (6) Crypto/data APIs as you enable features (Birdeye, Helius, Alchemy, etc.). Store keys in 1Password/Bitwarden (vault “IKIGAI STUDIO”) or in `.env` (never commit `.env`).
+**Suggested order to create API accounts:** (1) One model provider (OpenAI or Anthropic). (2) Supabase (project + Postgres + optional Storage bucket `vince-ml-models`). (3) Discord app(s) for the agents you run. (4) X Developer (Basic or higher) if you use X research/sentiment. (5) Tavily for web search. (6) Crypto/data APIs as you enable features (Birdeye, Helius, Alchemy, etc.). Store keys in 1Password/Bitwarden (vault “IKIGAI STUDIO” or “LIVETHELIFETV”) or in `.env` (never commit `.env`).
 
 ---
 
 ### Ideas from sentinel-docs (knowledge/sentinel-docs)
 
-The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, and **DISCORD.md** (repo root) are the main references for Sentinel, multi-agent behavior, Discord layout, and integration ideas. Below are concepts that can inform **accounts**, **tools**, and **roadmap**—not a duplicate of the rest of BRANDING, but a pointer to where to look.
+The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, and **DISCORD.md** (repo root) are the main references for Sentinel, multi-agent behavior, Discord layout, and integration ideas. **Discord server layouts** under the holding: **LiveTheLifeTV** (holding/C-suite, lifestyle focus) and **IKIGAI LABS** (VINCE Command Center, product)—see [DISCORD.md](DISCORD.md) for full channel lists and push routing. Below are concepts that can inform **accounts**, **tools**, and **roadmap**—not a duplicate of the rest of BRANDING, but a pointer to where to look.
 
 | Area | Doc(s) | Idea for BRANDING / setup |
 |------|--------|----------------------------|
@@ -395,7 +418,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 - **Substack:** Long-form thesis, market insights, lifestyle; anchor of the brand.
 - **X:** Short takes, threads, agent teasers, replies; drive to Substack and Discord.
-- **Agents:** VINCE (intel), Solus (finance), Kelly (lifestyle), Sentinel (tech)—all under IKIGAI STUDIO / IKIGAI Labs (product).
+- **Agents:** VINCE (intel), Solus (finance), Kelly (lifestyle), Sentinel (tech)—all under LIVETHELIFETV (IKIGAI STUDIO content, IKIGAI LABS product).
 
 ══════════════════════════════════════════════════════════════════════════════
 
@@ -403,7 +426,7 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 | Item | Target |
 |------|--------|
-| **Approval** | Confirm “IKIGAI STUDIO” and account list by February 15, 2026. |
+| **Approval** | Confirm holding and brand structure (LIVETHELIFETV, IKIGAI STUDIO, IKIGAI LABS) and account list by February 15, 2026. |
 | **Secure first** | Gmail, X handle, GitHub org, domain (ikigaistudio.com), ENS (ikigaistudio.eth). |
 | **Then** | Google Calendar, Discord, Telegram, custom email, Figma, Notion. |
 | **Metrics** | Substack subs; X followers and engagement; Discord/Telegram growth. |
@@ -417,16 +440,16 @@ Defined in `src/frontend/index.css` (OKLCH). Dark mode default.
 
 **Dedicated 2FA and mobility:** An **iPad mini** is assigned **only** to this project. It serves as:
 
-- **2FA device** for accounts that require it (Gmail, GitHub, Discord, X, Supabase, API providers, etc.). No mixing with personal devices—all IKIGAI STUDIO second factors live on one device.
+- **2FA device** for accounts that require it (Gmail, GitHub, Discord, X, Supabase, API providers, etc.). No mixing with personal devices—all LIVETHELIFETV / IKIGAI second factors live on one device.
 - **Road-trip capable:** With the iPad mini, you can approve logins, check Discord/Substack, or handle 2FA prompts from anywhere. The project stays mobile without moving the Mac mini.
 
-Keep the iPad mini signed into the same Apple ID used for the project (or a dedicated one), with auth apps (e.g. Google Authenticator, Authy, or 1Password) and any “trusted device” prompts for IKIGAI STUDIO accounts. Store nothing else on it so it stays a clean, project-only 2FA and lightweight control surface.
+Keep the iPad mini signed into the same Apple ID used for the project (or a dedicated one), with auth apps (e.g. Google Authenticator, Authy, or 1Password) and any “trusted device” prompts for LIVETHELIFETV / IKIGAI accounts. Store nothing else on it so it stays a clean, project-only 2FA and lightweight control surface.
 
 ══════════════════════════════════════════════════════════════════════════════
 
 ## ◆ Software with strong free tiers
 
-For the **entire team** (Eliza, VINCE, Solus, Otaku, Kelly, Sentinel)—docs, ops, design, hosting, analytics, automation—these tools offer **generous free tiers** and are commonly used by agent/Cursor/clawdbot-style workflows. Sign up with **IKIGAI STUDIO** (or ikigaistudio) where applicable.
+For the **entire team** (Eliza, VINCE, Solus, Otaku, Kelly, Sentinel)—docs, ops, design, hosting, analytics, automation—these tools offer **generous free tiers** and are commonly used by agent/Cursor/clawdbot-style workflows. Sign up with **IKIGAI STUDIO** (content) or **IKIGAI LABS** (product) / ikigaistudio / ikigailabs as appropriate under LIVETHELIFETV.
 
 *Context: [Clawd/OpenClaw](https://docs.clawd.bot/tools) users often rely on Notion, Obsidian, Trello, GitHub, and productivity integrations; Cursor users pair with Notion MCP for docs. The list below fits a multi-agent dev + content + ops stack.*
 
@@ -523,7 +546,7 @@ Across setup guides, tutorials, GitHub, and community (X, Reddit, tech blogs), *
 | **Messaging (agent entry points)** | **Telegram** (most), WhatsApp, Slack, Discord, iMessage/Signal/Teams | Easy bot setup, audio, daily commands (“summarize emails,” “check calendar”); Slack for GitHub/Airtable; Discord for personal/gaming automations | We use **Discord** (and Slack) as primary; **Telegram** already in account list. Adding **WhatsApp** optional for family/briefings. |
 | **Productivity & tasks** | **Google Calendar**, **Gmail**, **Notion**, **Todoist**, **Airtable** | Calendar + Gmail first for “add event,” “clear inbox”; Notion for second brain / project DB; Todoist for task lists; Airtable for custom DBs | **Calendar**, **Notion**, **Airtable** already recommended. Add **Gmail** (IKIGAI STUDIO) for a dedicated inbox; **Todoist** (free tier) for Kelly/standup task sync if you want list-style todos. |
 | **Model providers** | **Claude**, **OpenAI**, **Gemini**, **Ollama** | Claude default for coding/sub-agents; OpenAI backup/image; Gemini multimodal; Ollama for local/privacy | We use Claude + OpenAI (and Grok); **Ollama** fits LOCALSONLY/EXO if you run local inference. |
-| **Dev & automation** | **GitHub**, **Claude Code / Cursor**, **Home Assistant**, **browser tools**, **1Password** | GitHub for PRs/repos from chat; Cursor/Code for coding; Home Assistant for smart home (lights, weather, dashboards); 1Password for secrets | **GitHub**, **Cursor** already core. **1Password** (or Bitwarden free): vault/folder “IKIGAI STUDIO” for API keys and env — recommended. **Home Assistant**: only if you add smart-home or weather-aware automations. |
+| **Dev & automation** | **GitHub**, **Claude Code / Cursor**, **Home Assistant**, **browser tools**, **1Password** | GitHub for PRs/repos from chat; Cursor/Code for coding; Home Assistant for smart home (lights, weather, dashboards); 1Password for secrets | **GitHub**, **Cursor** already core. **1Password** (or Bitwarden free): vault/folder “IKIGAI STUDIO” or “LIVETHELIFETV” for API keys and env — recommended. **Home Assistant**: only if you add smart-home or weather-aware automations. |
 | **Niche / creative** | **Spotify**, **Sonos**, **Philips Hue**, **Cloudinary**, **ElevenLabs**, **Shopify**, **PiHole/Plex**, **crypto (EVM/Solana, Polymarket)** | Media and lights from prompts; image/audio (Cloudinary, ElevenLabs); e‑commerce (Shopify); network/media (PiHole, Plex); DeFi/trading bots | **ElevenLabs** (plugin exists): voice for Kelly or announcements. **Crypto/DeFi**: we already have Otaku + data; Polymarket/similar optional for thesis. Rest add only if needed. |
 
 **Setup order (community pattern):** Start with **Telegram (or Discord) + Claude + Google Calendar + Gmail** for quick wins → add **Notion/Todoist** for productivity → then **GitHub / Home Assistant / skills** for power use.
@@ -629,8 +652,8 @@ Shared for all: **Google Calendar** (one workspace, multiple calendars: Solus, O
 ```
 ╔══════════════════════════════════════════════════════════════════════════╗
 ║                                                                          ║
-║   IKIGAI STUDIO — where it started on Substack,                          ║
-║   and where it goes: thesis, agents, one team, one dream.                ║
+║   LIVETHELIFETV — IKIGAI STUDIO (thesis) · IKIGAI LABS (product)         ║
+║   · CLAWTERM (terminal). One team, one dream.                           ║
 ║                                                                          ║
 ║            No hype. No permission. No exit.                             ║
 ║            The terminal is open.                                         ║
