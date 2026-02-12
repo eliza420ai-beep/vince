@@ -310,6 +310,8 @@ export const getMarketPriceHistoryAction: Action = {
         return errorResult;
       }
 
+      callback?.({ text: " Fetching price history..." });
+
       // Fetch price history
       logger.info(
         `[GET_POLYMARKET_PRICE_HISTORY] Fetching history for ${conditionId}, outcome: ${outcome}, interval: ${interval}`
@@ -319,6 +321,11 @@ export const getMarketPriceHistoryAction: Action = {
         outcome,
         interval
       );
+
+      const roomId = message?.roomId ?? "";
+      if (roomId) {
+        service.recordActivity(roomId, "price_history", { conditionId, outcome, interval });
+      }
 
       // Compute statistics from the data (this is what we'll store/return, NOT the full array)
       const statistics = computeStatistics(historyData);

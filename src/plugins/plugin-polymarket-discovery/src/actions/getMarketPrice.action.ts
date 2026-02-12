@@ -15,6 +15,7 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
+import { extractPolymarketParams } from "../utils/llmExtract";
 
 interface GetMarketPriceParams {
   conditionId?: string;
@@ -84,12 +85,13 @@ export const getMarketPriceAction: Action = {
     try {
       logger.info("[GET_POLYMARKET_PRICE] Getting market price");
 
-      // Read parameters from state
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<GetMarketPriceParams>;
-
-      // Extract condition ID
-      const conditionId = (params.conditionId || params.marketId)?.trim();
+      let params = (composedState?.data?.actionParams ?? {}) as Partial<GetMarketPriceParams>;
+      let conditionId = (params.conditionId || params.marketId)?.trim();
+      if (!conditionId) {
+        const extracted = await extractPolymarketParams(runtime, message, _state, { useLlm: true });
+        conditionId = (extracted.conditionId ?? extracted.condition_id ?? extracted.tokenId)?.trim();
+      }
 
       if (!conditionId) {
         const errorMsg = "Market condition ID is required";
@@ -150,6 +152,8 @@ export const getMarketPriceAction: Action = {
         });
         return errorResult;
       }
+
+      callback?.({ text: " Fetching market price..." });
 
       // Fetch prices (and market for context)
       logger.info(`[GET_POLYMARKET_PRICE] Fetching price for ${conditionId}`);

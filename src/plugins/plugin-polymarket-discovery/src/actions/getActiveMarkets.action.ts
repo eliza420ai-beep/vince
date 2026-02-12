@@ -122,6 +122,8 @@ export const getActiveMarketsAction: Action = {
         return errorResult;
       }
 
+      callback?.({ text: " Fetching active markets and prices..." });
+
       // Fetch active markets
       logger.info(`[GET_ACTIVE_POLYMARKETS] Fetching ${limit} active markets`);
       const markets = await service.getActiveMarkets(limit);
@@ -134,6 +136,11 @@ export const getActiveMarketsAction: Action = {
           input: inputParams,
         };
         return result;
+      }
+
+      const roomId = message?.roomId ?? "";
+      if (roomId) {
+        service.recordActivity(roomId, "markets_list", { count: markets.length });
       }
 
       // Fetch prices for all markets in parallel

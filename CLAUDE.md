@@ -13,6 +13,7 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence. Weekly options (Hypersurface); makes money only with good strike + good weekly bull/bear sentiment. |
 | **Three curves** | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). See [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md). |
 | **Sentinel (core dev)** | `src/agents/sentinel.ts` — ops, architecture steward, 24/7 coding north star, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings; deep collab with Claude 4.6; plugin-sentinel (actions + weekly/daily tasks) |
+| **Oracle (prediction markets)** | `src/agents/oracle.ts` — Polymarket discovery, odds, portfolio (read-only); plugin-polymarket-discovery; prioritizes topics in [knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md](knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md), GET_VINCE_POLYMARKET_MARKETS for focus markets; handoffs: live data/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
 | **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
 | **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |

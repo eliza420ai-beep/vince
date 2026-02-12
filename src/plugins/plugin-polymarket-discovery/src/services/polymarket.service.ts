@@ -39,7 +39,24 @@ import type {
   ClosedPosition,
   UserActivity,
   TopHolder,
+  GammaPublicSearchResponse,
+  GammaSearchEvent,
+  GammaSearchMarket,
+  PolymarketActivityType,
+  PolymarketActivityEntry,
 } from "../types";
+import {
+  DEFAULT_GAMMA_API_URL,
+  GAMMA_PUBLIC_SEARCH_PATH,
+  GAMMA_TAGS_PATH,
+  GAMMA_EVENTS_PATH,
+  GAMMA_MARKETS_PATH,
+  DEFAULT_CLOB_API_URL,
+  DEFAULT_PAGE_LIMIT,
+  MAX_PAGE_LIMIT,
+  ACTIVITY_HISTORY_MAX_ITEMS,
+  VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
+} from "../constants";
 
 /**
  * Maps API response from camelCase to snake_case for our interface
@@ -90,9 +107,9 @@ export class PolymarketService extends Service {
   static serviceType = "POLYMARKET_DISCOVERY_SERVICE" as const;
   capabilityDescription = "Discover and fetch real-time pricing data for Polymarket prediction markets.";
 
-  // API endpoints
-  private gammaApiUrl: string = "https://gamma-api.polymarket.com";
-  private clobApiUrl: string = "https://clob.polymarket.com";
+  // API endpoints (overridden in initialize from settings)
+  private gammaApiUrl: string = DEFAULT_GAMMA_API_URL;
+  private clobApiUrl: string = DEFAULT_CLOB_API_URL;
   private dataApiUrl: string = "https://data-api.polymarket.com";
 
   // Proxy wallet constants
@@ -148,6 +165,9 @@ export class PolymarketService extends Service {
   private topHoldersCacheOrder: string[] = [];
   private topHoldersCacheTtl: number = 60000; // 1 minute
 
+  /** Lightweight activity log per room for provider context (last N entries) */
+  private activityLog: Map<string, PolymarketActivityEntry[]> = new Map();
+
   constructor(runtime: IAgentRuntime) {
     super(runtime);
   }
@@ -164,8 +184,8 @@ export class PolymarketService extends Service {
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
     // Load configuration with defaults and type guards
-    this.gammaApiUrl = runtime.getSetting("POLYMARKET_GAMMA_API_URL") as string || "https://gamma-api.polymarket.com";
-    this.clobApiUrl = runtime.getSetting("POLYMARKET_CLOB_API_URL") as string || "https://clob.polymarket.com";
+    this.gammaApiUrl = (runtime.getSetting("POLYMARKET_GAMMA_API_URL") as string) || DEFAULT_GAMMA_API_URL;
+    this.clobApiUrl = (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) || DEFAULT_CLOB_API_URL;
 
     // Safe parsing with validation
     const marketCacheTtlSetting = runtime.getSetting("POLYMARKET_MARKET_CACHE_TTL") as string;
@@ -366,7 +386,7 @@ export class PolymarketService extends Service {
     }
 
     return this.retryFetch(async () => {
-      const url = `${this.gammaApiUrl}/markets?limit=${limit}&active=true&closed=false`;
+      const url = `${this.gammaApiUrl}${GAMMA_MARKETS_PATH}?limit=${limit}&active=true&closed=false`;
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
@@ -388,6 +408,155 @@ export class PolymarketService extends Service {
       logger.info(`[PolymarketService] Fetched ${marketsWithTokens.length} active markets`);
       return marketsWithTokens;
     });
+  }
+
+  /**
+   * Gamma public-search: server-side keyword search. Returns markets from events.
+   */
+  async searchMarketsViaGammaSearch(query: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
+    const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
+    const url = `${this.gammaApiUrl}${GAMMA_PUBLIC_SEARCH_PATH}?q=${encodeURIComponent(query)}&limit_per_type=${safeLimit}&events_status=active`;
+    const response = await this.fetchWithTimeout(url);
+    if (!response.ok) {
+      throw new Error(`Gamma public-search error: ${response.status} ${response.statusText}`);
+    }
+    const body = (await response.json()) as GammaPublicSearchResponse;
+    const events = body.events ?? [];
+    const markets: PolymarketMarket[] = [];
+    for (const ev of events) {
+      const eventMarkets = ev.markets ?? [];
+      for (const m of eventMarkets) {
+        const apiMarket = { ...m, conditionId: m.conditionId ?? m.id };
+        markets.push(mapApiMarketToInterface(apiMarket));
+        if (markets.length >= safeLimit) break;
+      }
+      if (markets.length >= safeLimit) break;
+    }
+    const withTokens = markets.map((m) => this.parseTokens(m));
+    logger.info(`[PolymarketService] Gamma public-search "${query}" returned ${withTokens.length} markets`);
+    return withTokens;
+  }
+
+  /**
+   * Fetch all tags from Gamma (for category/tag browse).
+   */
+  async getTags(): Promise<{ id: string; label: string; slug: string }[]> {
+    const url = `${this.gammaApiUrl}${GAMMA_TAGS_PATH}`;
+    const response = await this.fetchWithTimeout(url);
+    if (!response.ok) {
+      throw new Error(`Gamma tags error: ${response.status} ${response.statusText}`);
+    }
+    const list = (await response.json()) as { id: string; label: string; slug: string }[];
+    return list;
+  }
+
+  /**
+   * Get events by tag (id or slug). Resolve slug to id via getTags() if needed.
+   */
+  async getEventsByTag(tagIdOrSlug: string, limit: number = DEFAULT_PAGE_LIMIT): Promise<PolymarketMarket[]> {
+    let tagId = tagIdOrSlug;
+    if (!tagIdOrSlug.match(/^\d+$/)) {
+      const tags = await this.getTags();
+      const bySlug = tags.find((t) => t.slug === tagIdOrSlug || t.label.toLowerCase() === tagIdOrSlug.toLowerCase());
+      if (bySlug) tagId = bySlug.id;
+    }
+    const safeLimit = Math.min(Math.max(1, limit), MAX_PAGE_LIMIT);
+    const url = `${this.gammaApiUrl}${GAMMA_EVENTS_PATH}?tag_id=${encodeURIComponent(tagId)}&closed=false&active=true&limit=${safeLimit}&order=volume&ascending=false`;
+    const response = await this.fetchWithTimeout(url);
+    if (!response.ok) {
+      throw new Error(`Gamma events-by-tag error: ${response.status} ${response.statusText}`);
+    }
+    const events = (await response.json()) as GammaSearchEvent[];
+    const markets: PolymarketMarket[] = [];
+    for (const ev of events) {
+      const eventMarkets = ev.markets ?? [];
+      for (const m of eventMarkets) {
+        const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
+        markets.push(mapApiMarketToInterface(apiMarket));
+        if (markets.length >= safeLimit) break;
+      }
+      if (markets.length >= safeLimit) break;
+    }
+    const withTokens = markets.map((m) => this.parseTokens(m));
+    logger.info(`[PolymarketService] getEventsByTag(${tagIdOrSlug}) returned ${withTokens.length} markets`);
+    return withTokens;
+  }
+
+  /**
+   * Fetch markets from multiple tags (e.g. VINCE preferred topics). Merges, dedupes by conditionId, sorts by volume, returns up to totalLimit.
+   */
+  async getMarketsByPreferredTags(options?: {
+    tagSlugs?: string[];
+    limitPerTag?: number;
+    totalLimit?: number;
+  }): Promise<PolymarketMarket[]> {
+    const tagSlugs = options?.tagSlugs ?? VINCE_POLYMARKET_PREFERRED_TAG_SLUGS;
+    const limitPerTag = Math.min(Math.max(1, options?.limitPerTag ?? 10), 50);
+    const totalLimit = Math.min(Math.max(1, options?.totalLimit ?? 20), MAX_PAGE_LIMIT);
+
+    const seen = new Set<string>();
+    const merged: PolymarketMarket[] = [];
+
+    for (const slug of tagSlugs) {
+      try {
+        const markets = await this.getEventsByTag(slug, limitPerTag);
+        for (const m of markets) {
+          const id = m.conditionId ?? (m as any).condition_id;
+          if (id && !seen.has(id)) {
+            seen.add(id);
+            merged.push(m);
+          }
+        }
+      } catch (err) {
+        logger.warn(`[PolymarketService] getMarketsByPreferredTags skip tag "${slug}": ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    const byVolume = (a: PolymarketMarket, b: PolymarketMarket) => {
+      const va = Number(a.volume ?? a.liquidity ?? 0);
+      const vb = Number(b.volume ?? b.liquidity ?? 0);
+      return vb - va;
+    };
+    merged.sort(byVolume);
+    const out = merged.slice(0, totalLimit);
+    logger.info(`[PolymarketService] getMarketsByPreferredTags: ${tagSlugs.length} tags → ${merged.length} unique → ${out.length} returned`);
+    return out;
+  }
+
+  /**
+   * Record activity for provider context (in-memory, per room).
+   */
+  recordActivity(roomId: string, type: PolymarketActivityType, data: Record<string, unknown>): void {
+    let list = this.activityLog.get(roomId);
+    if (!list) {
+      list = [];
+      this.activityLog.set(roomId, list);
+    }
+    list.push({ type, data, timestamp: Date.now() });
+    if (list.length > ACTIVITY_HISTORY_MAX_ITEMS) {
+      list.splice(0, list.length - ACTIVITY_HISTORY_MAX_ITEMS);
+    }
+  }
+
+  /**
+   * Get recent activity context for a room (for provider text).
+   */
+  getCachedActivityContext(roomId?: string): string {
+    if (!roomId) return "";
+    const list = this.activityLog.get(roomId);
+    if (!list || list.length === 0) return "";
+    const lines = list.slice(-5).map((e, i) => {
+      const n = list.length - 5 + i + 1;
+      if (e.type === "search") return `${n}. Search: "${e.data.query ?? "?"}"`;
+      if (e.type === "markets_list") return `${n}. Viewed markets list (${e.data.count ?? "?"} markets)`;
+      if (e.type === "market_detail") return `${n}. Viewed market detail: ${e.data.conditionId ?? "?"}`;
+      if (e.type === "price_history") return `${n}. Viewed price history: ${e.data.conditionId ?? "?"}`;
+      if (e.type === "orderbook") return `${n}. Viewed orderbook`;
+      if (e.type === "events_list") return `${n}. Viewed events list`;
+      if (e.type === "event_detail") return `${n}. Viewed event detail`;
+      return `${n}. ${e.type}`;
+    });
+    return `Recent activity: ${lines.join("; ")}`;
   }
 
   /**
@@ -430,7 +599,7 @@ export class PolymarketService extends Service {
       // NOTE: Gamma API doesn't provide server-side text search or category filtering.
       // We fetch based on pagination params and filter client-side.
       // This is a limitation of the Gamma API, not our implementation.
-      const url = `${this.gammaApiUrl}/markets?${queryParams.toString()}`;
+      const url = `${this.gammaApiUrl}${GAMMA_MARKETS_PATH}?${queryParams.toString()}`;
       const response = await this.fetchWithTimeout(url);
 
       if (!response.ok) {
@@ -1319,7 +1488,7 @@ export class PolymarketService extends Service {
           const tokenId = tokenIds[0];
           const spreadUrl = `${this.clobApiUrl}/spread?token_id=${tokenId}`;
 
-          const response = await fetch(spreadUrl, {
+          const response = await this.fetchWithTimeout(spreadUrl, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",

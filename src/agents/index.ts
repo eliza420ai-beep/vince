@@ -12,6 +12,7 @@
  * | Kelly    | CVO  | Lifestyle: travel, dining, health |
  * | Sentinel | CTO  | Ops, code, infra |
  * | ECHO     | CSO  | CT sentiment, X research, social alpha |
+ * | Oracle   | —    | Prediction markets (Polymarket discovery, odds, portfolio) |
  */
 
 export { character as elizaCharacter } from './eliza';
@@ -21,6 +22,7 @@ export { otakuCharacter } from './otaku';
 export { kellyCharacter } from './kelly';
 export { sentinelCharacter } from './sentinel';
 export { echoCharacter } from './echo';
+export { oracleCharacter } from './oracle';
 
 // Type exports
 export type { Character } from '@elizaos/core';

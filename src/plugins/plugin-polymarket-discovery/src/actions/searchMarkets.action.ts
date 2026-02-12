@@ -1,7 +1,8 @@
 /**
  * SEARCH_POLYMARKETS Action
  *
- * Search for prediction markets by keyword or category
+ * Search for prediction markets by keyword or category.
+ * For VINCE-priority-only results (crypto, finance, geopolitics, economy), use GET_VINCE_POLYMARKET_MARKETS instead.
  */
 
 import {
@@ -15,6 +16,7 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
+import { extractPolymarketParams } from "../utils/llmExtract";
 
 interface SearchMarketsParams {
   query?: string;
@@ -97,15 +99,23 @@ export const searchMarketsAction: Action = {
     try {
       logger.info("[SEARCH_POLYMARKETS] Searching markets");
 
-      // Read parameters from state
+      // Prefer ACTION_STATE; fill from LLM/regex when missing
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<SearchMarketsParams>;
+      let params = (composedState?.data?.actionParams ?? {}) as Partial<SearchMarketsParams>;
+      const hasCriteria = (params.query?.trim() || params.category?.trim());
+      if (!hasCriteria) {
+        const extracted = await extractPolymarketParams(runtime, message, _state, {
+          requiredKeys: [],
+          useLlm: true,
+        });
+        if (extracted.query) params = { ...params, query: extracted.query };
+        if (extracted.category) params = { ...params, category: extracted.category };
+        if (extracted.limit != null) params = { ...params, limit: extracted.limit };
+      }
 
-      // Extract search parameters
       const query = params.query?.trim();
       const category = params.category?.trim();
 
-      // Parse limit
       let limit = 10;
       if (params.limit) {
         const parsedLimit =
@@ -157,16 +167,42 @@ export const searchMarketsAction: Action = {
         return errorResult;
       }
 
-      // Perform search
-      logger.info(
-        `[SEARCH_POLYMARKETS] Searching with query="${query || 'none'}", category="${category || 'none'}"`
-      );
-      const markets = await service.searchMarkets({
-        query,
-        category,
-        active: true,
-        limit,
-      });
+      // Immediate acknowledgement
+      const ackMsg = query
+        ? `Searching Polymarket for "${query}"...`
+        : category
+          ? `Browsing Polymarket category "${category}"...`
+          : "Searching Polymarket...";
+      callback?.({ text: ackMsg });
+
+      // Prefer Gamma public-search (query) or events-by-tag (category); fallback to client-side search
+      let markets: Awaited<ReturnType<PolymarketService["searchMarkets"]>> = [];
+      if (query) {
+        try {
+          markets = await service.searchMarketsViaGammaSearch(query, limit);
+        } catch (err) {
+          logger.warn(
+            `[SEARCH_POLYMARKETS] Gamma public-search failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+      if (category && !query && markets.length === 0) {
+        try {
+          markets = await service.getEventsByTag(category, limit);
+        } catch (err) {
+          logger.warn(
+            `[SEARCH_POLYMARKETS] Gamma events-by-tag failed, using fallback: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+      if (markets.length === 0) {
+        markets = await service.searchMarkets({
+          query: query ?? undefined,
+          category: category ?? undefined,
+          active: true,
+          limit,
+        });
+      }
 
       if (markets.length === 0) {
         const searchDesc = query
@@ -181,6 +217,15 @@ export const searchMarketsAction: Action = {
           input: inputParams,
         };
         return result;
+      }
+
+      const roomId = message?.roomId ?? "";
+      if (roomId) {
+        service.recordActivity(roomId, "search", {
+          query: query ?? undefined,
+          category: category ?? undefined,
+          count: markets.length,
+        });
       }
 
       // Fetch prices for all markets in parallel

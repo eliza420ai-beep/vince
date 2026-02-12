@@ -29,6 +29,8 @@ import { getMarketDetailAction } from "./actions/getMarketDetail.action";
 import { getMarketPriceAction } from "./actions/getMarketPrice.action";
 import { getMarketCategoriesAction } from "./actions/getMarketCategories.action";
 import { getMarketPriceHistoryAction } from "./actions/getMarketPriceHistory.action";
+import { getTokenInfoAction } from "./actions/getTokenInfo.action";
+import { getVincePolymarketMarketsAction } from "./actions/getVincePolymarketMarkets.action";
 
 // Phase 2: Portfolio Tracking Actions
 import { getUserPositionsAction } from "./actions/getUserPositions.action";
@@ -52,6 +54,9 @@ import { getEventDetailAction } from "./actions/getEventDetail.action";
 import { getClosedPositionsAction } from "./actions/getClosedPositions.action";
 import { getUserActivityAction } from "./actions/getUserActivity.action";
 import { getTopHoldersAction } from "./actions/getTopHolders.action";
+
+// Provider
+import { polymarketDiscoveryProvider } from "./providers/polymarketDiscovery.provider";
 
 // Context Matcher
 export { shouldPolymarketPluginBeInContext, polymarketKeywordPatterns } from "../matcher";
@@ -108,7 +113,7 @@ export const polymarketDiscoveryPlugin: Plugin = {
   description:
     "Polymarket prediction markets plugin - browse markets, track portfolio, analyze positions (read-only, no trading)",
   evaluators: [],
-  providers: [],
+  providers: [polymarketDiscoveryProvider],
   actions: [
     // Phase 1: Market Discovery
     getActiveMarketsAction,
@@ -116,7 +121,9 @@ export const polymarketDiscoveryPlugin: Plugin = {
     getMarketDetailAction,
     getMarketPriceAction,
     getMarketPriceHistoryAction,
+    getTokenInfoAction,
     getMarketCategoriesAction,
+    getVincePolymarketMarketsAction,
     // Phase 2: Portfolio Tracking
     getUserPositionsAction,
     getUserBalanceAction,

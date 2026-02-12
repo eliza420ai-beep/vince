@@ -16,6 +16,7 @@ import {
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
+import { extractPolymarketParams } from "../utils/llmExtract";
 
 interface GetMarketDetailParams {
   conditionId?: string;
@@ -86,12 +87,15 @@ export const getMarketDetailAction: Action = {
     try {
       logger.info("[GET_POLYMARKET_DETAIL] Getting market details");
 
-      // Read parameters from state
-      const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = (composedState?.data?.actionParams ?? {}) as Partial<GetMarketDetailParams>;
-
-      // Extract condition ID (support multiple naming conventions)
-      const conditionId = (params.conditionId || params.condition_id || params.marketId)?.trim();
+      let params = (await runtime.composeState(message, ["ACTION_STATE"], true))?.data?.actionParams as Partial<GetMarketDetailParams> | undefined;
+      let conditionId = (params?.conditionId || params?.condition_id || params?.marketId)?.trim();
+      if (!conditionId) {
+        const extracted = await extractPolymarketParams(runtime, message, _state, {
+          requiredKeys: [],
+          useLlm: true,
+        });
+        conditionId = (extracted.conditionId ?? extracted.condition_id ?? extracted.tokenId)?.trim();
+      }
 
       if (!conditionId) {
         const errorMsg = "Market condition ID is required";
@@ -153,12 +157,19 @@ export const getMarketDetailAction: Action = {
         return errorResult;
       }
 
+      callback?.({ text: " Fetching market details and prices..." });
+
       // Fetch market details and prices in parallel
       logger.info(`[GET_POLYMARKET_DETAIL] Fetching details for ${conditionId}`);
       const [market, prices] = await Promise.all([
         service.getMarketDetail(conditionId),
         service.getMarketPrices(conditionId),
       ]);
+
+      const roomId = message?.roomId ?? "";
+      if (roomId) {
+        service.recordActivity(roomId, "market_detail", { conditionId });
+      }
 
       // Format response
       let text = ` **${market.question}**\n\n`;

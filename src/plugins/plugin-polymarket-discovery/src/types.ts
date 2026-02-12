@@ -480,3 +480,64 @@ export interface TopHolder {
   is_public: boolean;          // Whether wallet is publicly identified
 }
 
+/** Gamma API: tag from GET /tags */
+export interface GammaTag {
+  id: string;
+  label: string;
+  slug: string;
+}
+
+/** Gamma API: public-search response (events, tags, profiles, pagination) */
+export interface GammaPublicSearchResponse {
+  events?: GammaSearchEvent[];
+  tags?: GammaTag[];
+  profiles?: unknown[];
+  pagination?: { total?: number; limit?: number; offset?: number };
+}
+
+/** Gamma API: event in public-search (has markets array) */
+export interface GammaSearchEvent {
+  id: string;
+  title?: string;
+  slug?: string;
+  description?: string;
+  active?: boolean;
+  closed?: boolean;
+  volume?: string;
+  liquidity?: string;
+  endDate?: string;
+  markets?: GammaSearchMarket[];
+  image?: string;
+  [key: string]: unknown;
+}
+
+/** Gamma API: market inside an event (maps to PolymarketMarket) */
+export interface GammaSearchMarket {
+  id?: string;
+  conditionId?: string;
+  question?: string;
+  slug?: string;
+  outcomes?: string | string[];
+  outcomePrices?: string | string[];
+  clobTokenIds?: string | string[];
+  volume?: string;
+  endDate?: string;
+  [key: string]: unknown;
+}
+
+/** Activity log entry for session context */
+export type PolymarketActivityType =
+  | "search"
+  | "markets_list"
+  | "market_detail"
+  | "price_history"
+  | "orderbook"
+  | "events_list"
+  | "event_detail";
+
+export interface PolymarketActivityEntry {
+  type: PolymarketActivityType;
+  data: Record<string, unknown>;
+  timestamp: number;
+}
+

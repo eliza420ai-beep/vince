@@ -23,6 +23,7 @@ import {
   isValidEthereumAddress,
   truncateAddress,
 } from "../utils/actionHelpers";
+import { extractPolymarketParams } from "../utils/llmExtract";
 
 interface GetUserPositionsParams {
   walletAddress?: string;
@@ -70,11 +71,12 @@ export const getUserPositionsAction: Action = {
     try {
       logger.info("[GET_POLYMARKET_POSITIONS] Getting user positions");
 
-      // Read parameters from state
-      const params = await extractActionParams<GetUserPositionsParams>(runtime, message);
-
-      // Extract wallet address
-      const walletAddress = params.walletAddress?.trim();
+      let params = await extractActionParams<GetUserPositionsParams>(runtime, message);
+      let walletAddress = params.walletAddress?.trim();
+      if (!walletAddress) {
+        const extracted = await extractPolymarketParams(runtime, message, _state, { useLlm: true });
+        walletAddress = extracted.walletAddress?.trim();
+      }
 
       if (!walletAddress) {
         const errorMsg = "Wallet address is required";
@@ -129,6 +131,8 @@ export const getUserPositionsAction: Action = {
         });
         return errorResult;
       }
+
+      callback?.({ text: " Fetching positions..." });
 
       // Fetch user positions
       logger.info(`[GET_POLYMARKET_POSITIONS] Fetching positions for ${walletAddress}`);
