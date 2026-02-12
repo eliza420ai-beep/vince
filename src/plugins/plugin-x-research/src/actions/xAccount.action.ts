@@ -13,7 +13,8 @@ import {
   type HandlerCallback,
 } from '@elizaos/core';
 import { getXAccountsService } from '../services/xAccounts.service';
-import { initXClientFromEnv, getXClient } from '../services/xClient.service';
+import { initXClientFromEnv } from '../services/xClient.service';
+import { TOPIC_BY_ID } from '../constants/topics';
 
 export const xAccountAction: Action = {
   name: 'X_ACCOUNT',
@@ -57,9 +58,9 @@ export const xAccountAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = message.content?.text ?? '';
     
-    // Check for @username pattern or account-related question
+    // Check for @username pattern or account-related question (including "what did @user say about X")
     const hasUsername = /@\w+/.test(text);
-    const hasAccountQuery = /who is|tell me about|analyze|account|profile/i.test(text);
+    const hasAccountQuery = /who is|tell me about|analyze|account|profile|what did|say about/i.test(text);
     
     return hasUsername && hasAccountQuery;
   },
@@ -101,13 +102,25 @@ export const xAccountAction: Action = {
         return true;
       }
 
-      // Get recent takes
-      const recentTweets = await accountsService.getRecentTakes(username, 5);
+      // Get recent takes (fetch more if we'll filter by topic)
+      const aboutTopic = detectAboutTopic(text);
+      const recentTweets = await accountsService.getRecentTakes(username, aboutTopic ? 20 : 5);
+
+      // Optionally filter to tweets about a topic ("what did @user say about BTC")
+      let takesToShow = recentTweets;
+      let aboutLabel = '';
+      if (aboutTopic) {
+        const keywords = getTopicKeywords(aboutTopic);
+        takesToShow = recentTweets.filter((t) =>
+          keywords.some((kw) => t.text.toLowerCase().includes(kw.toLowerCase()))
+        );
+        aboutLabel = ` (about ${aboutTopic.toUpperCase()})`;
+      }
 
       // Build response
       const tierEmoji = getTierEmoji(analysis.tier);
       
-      let response = `👤 **@${analysis.username}**\n\n`;
+      let response = `👤 **@${analysis.username}**${aboutLabel}\n\n`;
       response += `**Tier:** ${tierEmoji} ${capitalize(analysis.tier)}\n`;
       response += `**Reason:** ${analysis.tierReason}\n\n`;
 
@@ -123,8 +136,16 @@ export const xAccountAction: Action = {
       response += `**Bias:** ${capitalize(analysis.sentimentBias)}\n`;
       response += `**Reliability:** ${analysis.reliability}/100\n`;
 
-      // Recent takes summary
-      if (recentTweets.length > 0) {
+      // Recent takes summary (filtered by topic if "about X")
+      if (takesToShow.length > 0) {
+        response += `\n**Recent Takes${aboutLabel}:**\n`;
+        for (const tweet of takesToShow.slice(0, 5)) {
+          const shortText = tweet.text.slice(0, 80).replace(/\n/g, ' ');
+          response += `• ${shortText}${tweet.text.length > 80 ? '...' : ''}\n`;
+        }
+      } else if (aboutTopic) {
+        response += `\nNo recent tweets from @${analysis.username} about ${aboutTopic.toUpperCase()}.`;
+      } else if (recentTweets.length > 0) {
         response += `\n**Recent Takes:**\n`;
         for (const tweet of recentTweets.slice(0, 3)) {
           const shortText = tweet.text.slice(0, 60).replace(/\n/g, ' ');
@@ -176,6 +197,28 @@ function formatNumber(num: number): string {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
   return String(num);
+}
+
+/** Detect "about BTC" / "about eth" etc. in message. Returns topic id or null. */
+function detectAboutTopic(text: string): string | null {
+  const m = text.match(/about\s+(\w+)/i);
+  if (!m) return null;
+  const word = m[1].toLowerCase();
+  const topic = TOPIC_BY_ID[word];
+  if (topic) return topic.id;
+  const bySearchTerm = Object.values(TOPIC_BY_ID).find(
+    (t) => t.searchTerms.some((s) => s.toLowerCase() === word) || t.id === word
+  );
+  return bySearchTerm?.id ?? null;
+}
+
+/** Keywords to filter tweets by topic (search terms + cashtags). */
+function getTopicKeywords(topicId: string): string[] {
+  const topic = TOPIC_BY_ID[topicId];
+  if (!topic) return [topicId];
+  const terms = [...topic.searchTerms];
+  if (topic.cashtags?.length) terms.push(...topic.cashtags);
+  return [...new Set(terms)];
 }
 
 export default xAccountAction;

@@ -98,3 +98,42 @@ export const PHRASE_OVERRIDES: { phrase: string; sentiment: "bullish" | "bearish
 
 /** Max words to look back for negation (e.g. "not" before "bullish"). */
 export const NEGATION_WINDOW = 3;
+
+/** Weighted keyword for finer sentiment scoring (-1 to +1). Aligned with plugin-x-research. */
+export interface WeightedKeyword {
+  word: string;
+  weight: number;
+}
+
+/** Weighted keywords: positive = bullish, negative = bearish. Used when useWeightedKeywords in computeSentimentFromTweets. */
+export const WEIGHTED_KEYWORDS: WeightedKeyword[] = [
+  { word: "moon", weight: 0.8 },
+  { word: "mooning", weight: 0.9 },
+  { word: "ath", weight: 0.7 },
+  { word: "breakout", weight: 0.6 },
+  { word: "bullish", weight: 0.7 },
+  { word: "pump", weight: 0.7 },
+  { word: "pumping", weight: 0.75 },
+  { word: "accumulate", weight: 0.4 },
+  { word: "accumulating", weight: 0.5 },
+  { word: "long", weight: 0.4 },
+  { word: "buying", weight: 0.4 },
+  { word: "support", weight: 0.3 },
+  { word: "rally", weight: 0.5 },
+  { word: "breakthrough", weight: 0.5 },
+  { word: "crash", weight: -0.8 },
+  { word: "crashing", weight: -0.85 },
+  { word: "dump", weight: -0.7 },
+  { word: "dumping", weight: -0.75 },
+  { word: "bearish", weight: -0.7 },
+  { word: "capitulation", weight: -0.8 },
+  { word: "liquidated", weight: -0.75 },
+  { word: "selling", weight: -0.4 },
+  { word: "short", weight: -0.4 },
+  { word: "breakdown", weight: -0.5 },
+  { word: "selloff", weight: -0.6 },
+  { word: "outflows", weight: -0.4 },
+  { word: "fud", weight: -0.5 },
+  { word: "panic", weight: -0.7 },
+  { word: "fear", weight: -0.4 },
+];

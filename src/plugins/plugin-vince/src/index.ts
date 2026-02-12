@@ -89,7 +89,6 @@ import { VinceMLInferenceService } from "./services/mlInference.service";
 // Actions
 import { vinceGmAction } from "./actions/gm.action";
 import { vinceAlohaAction } from "./actions/aloha.action";
-import { vinceCtVibeAction } from "./actions/ctVibe.action";
 import { vinceFundingPulseAction } from "./actions/fundingPulse.action";
 import { vinceRegimeAction } from "./actions/regime.action";
 import { vinceBotVerdictAction } from "./actions/botVerdict.action";
@@ -127,7 +126,6 @@ import { vinceMemeDeepDiveAction } from "./actions/memeDeepDive.action";
 // Actions - Early Detection System
 import { vinceWatchlistAction } from "./actions/watchlist.action";
 import { vinceAlertsAction } from "./actions/alerts.action";
-import { vinceXResearchAction } from "./actions/xResearch.action";
 
 // Providers
 import { vinceContextProvider } from "./providers/vinceContext.provider";
@@ -187,7 +185,8 @@ export const vincePlugin: Plugin = {
     VinceBinanceLiquidationService,
     VinceMarketRegimeService,
     VinceHIP3Service,
-    VinceXResearchService, // X (Twitter) read-only research when X_BEARER_TOKEN set
+    // X services are data-only (paper bot sentiment, aggregator, leaderboard). In-chat X/CT research is Echo (plugin-x-research).
+    VinceXResearchService,
     VinceXSentimentService, // X sentiment for paper algo (staggered: one asset per hour by default, cache 24h)
     // Early Detection System
     VinceWatchlistService,
@@ -213,7 +212,6 @@ export const vincePlugin: Plugin = {
   actions: [
     vinceGmAction,
     vinceAlohaAction,
-    vinceCtVibeAction,
     vinceFundingPulseAction,
     vinceRegimeAction,
     vinceBotVerdictAction,
@@ -241,7 +239,6 @@ export const vincePlugin: Plugin = {
     // Early Detection System
     vinceWatchlistAction,
     vinceAlertsAction,
-    // vinceXResearchAction, // DEPRECATED: X research moved to ECHO agent (plugin-x-research)
   ],
 
   // API route: dashboard pulse (snapshot + LLM insight) for frontend
@@ -985,7 +982,7 @@ export const vincePluginNoX: Plugin = {
   ...vincePlugin,
   name: "plugin-vince-no-x",
   description:
-    vincePlugin.description + " No X API (Solus uses this; VINCE owns X research/sentiment).",
+    vincePlugin.description + " No X API (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
   services: (vincePlugin.services as (typeof Service)[]).filter(
     (s) => s !== VinceXResearchService && s !== VinceXSentimentService,
   ),
@@ -1043,7 +1040,6 @@ export * from "./constants/targetAssets";
 
 export { vinceGmAction } from "./actions/gm.action";
 export { vinceAlohaAction } from "./actions/aloha.action";
-export { vinceCtVibeAction } from "./actions/ctVibe.action";
 export { vinceFundingPulseAction } from "./actions/fundingPulse.action";
 export { vinceRegimeAction } from "./actions/regime.action";
 export { vinceBotVerdictAction } from "./actions/botVerdict.action";

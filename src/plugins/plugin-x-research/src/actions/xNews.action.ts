@@ -15,6 +15,7 @@ import {
 import { getXNewsService } from '../services/xNews.service';
 import { initXClientFromEnv } from '../services/xClient.service';
 import { FOCUS_TICKERS } from '../constants/topics';
+import { setLastResearch } from '../store/lastResearchStore';
 
 export const xNewsAction: Action = {
   name: 'X_NEWS',
@@ -107,6 +108,7 @@ export const xNewsAction: Action = {
 
       response += `\n_Powered by X News API_`;
 
+      if (message.roomId) setLastResearch(message.roomId, response);
       callback({
         text: response,
         action: 'X_NEWS',

@@ -19,10 +19,12 @@ describe('xResearchPlugin', () => {
     expect(actionNames).toContain('X_THREAD');
     expect(actionNames).toContain('X_ACCOUNT');
     expect(actionNames).toContain('X_NEWS');
+    expect(actionNames).toContain('X_WATCHLIST');
+    expect(actionNames).toContain('X_SAVE_RESEARCH');
   });
 
-  it('should have 5 total actions', () => {
-    expect(xResearchPlugin.actions.length).toBe(5);
+  it('should have 7 total actions (pulse, vibe, thread, account, news, watchlist, save)', () => {
+    expect(xResearchPlugin.actions.length).toBe(7);
   });
 
   describe('X_PULSE action', () => {

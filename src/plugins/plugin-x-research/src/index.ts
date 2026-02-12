@@ -24,6 +24,8 @@ import {
   xThreadAction, 
   xAccountAction, 
   xNewsAction,
+  xWatchlistAction,
+  xSaveResearchAction,
 } from './actions';
 
 export const xResearchPlugin: Plugin = {
@@ -36,6 +38,8 @@ export const xResearchPlugin: Plugin = {
     xThreadAction,
     xAccountAction,
     xNewsAction,
+    xWatchlistAction,
+    xSaveResearchAction,
   ],
 
   // Providers can be used by other plugins (e.g., VINCE ALOHA)

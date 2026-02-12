@@ -25,6 +25,9 @@ import { initXClientFromEnv } from '../services/xClient.service';
 import type { XPulseResult, XThreadSummary, XBreakingContent } from '../types/analysis.types';
 import type { XTweet } from '../types/tweet.types';
 import { ALL_TOPICS, FOCUS_TICKERS } from '../constants/topics';
+import { formatCostFooter } from '../constants/cost';
+import { setLastResearch } from '../store/lastResearchStore';
+import { getMandoContextForX } from '../utils/mandoContext';
 
 const BREAKING_VELOCITY_THRESHOLD = 100; // 100+ likes/hour = breaking
 
@@ -76,6 +79,7 @@ export const xPulseAction: Action = {
       'x pulse', 'x vibe', 'ct saying', 'crypto twitter', 'twitter sentiment',
       'what\'s x saying', 'what is x saying', 'x sentiment', 'ct vibe',
       'twitter vibe', 'pulse check', 'vibe check x', 'x check',
+      'quick pulse', 'fast vibe', 'quality pulse', 'curated vibe', 'whale take',
     ];
 
     return triggers.some(t => text.includes(t));
@@ -95,20 +99,37 @@ export const xPulseAction: Action = {
       const searchService = getXSearchService();
       const sentimentService = getXSentimentService();
 
-      // Search high-priority topics
+      const text = (message.content?.text ?? '').toLowerCase();
+      const quick = process.env.X_PULSE_QUICK === 'true' || /quick|fast/.test(text);
+      const qualityOnly = process.env.X_PULSE_QUALITY === 'true' || /quality|curated|whale take/.test(text);
+
+      const pulseCacheTtlMs = process.env.X_PULSE_CACHE_TTL_MS
+        ? parseInt(process.env.X_PULSE_CACHE_TTL_MS, 10)
+        : 60 * 60 * 1000; // 1h default
+
+      const mandoContext = await getMandoContextForX(runtime);
+
+      // Search high-priority topics (quick = fewer topics + results)
       const topicResults = await searchService.searchMultipleTopics({
         topicsIds: ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id),
-        maxResultsPerTopic: 50,
+        maxResultsPerTopic: quick ? 10 : 50,
+        quick,
+        cacheTtlMs: pulseCacheTtlMs,
       });
 
-      // Flatten all tweets
-      const allTweets = Array.from(topicResults.values()).flat();
+      // Flatten all tweets; optionally filter to quality accounts only
+      let allTweets = Array.from(topicResults.values()).flat();
+      if (qualityOnly && allTweets.length > 0) {
+        allTweets = allTweets.filter(
+          t => t.computed?.qualityTier && t.computed.qualityTier !== 'standard'
+        );
+      }
 
       if (allTweets.length === 0) {
-        callback({
-          text: "📊 **X Pulse**\n\nNo recent data available. X API might be rate limited or no matching content found.",
-          action: 'X_PULSE',
-        });
+        const noDataMsg = qualityOnly
+          ? "📊 **X Pulse**\n\nNo recent tweets from quality/whale accounts in this window. Try full pulse or a different time."
+          : "📊 **X Pulse**\n\nNo recent data available. X API might be rate limited or no matching content found.";
+        callback({ text: noDataMsg, action: 'X_PULSE' });
         return true;
       }
 
@@ -125,14 +146,22 @@ export const xPulseAction: Action = {
       const spikes = await searchService.detectVolumeSpikes();
 
       // Generate the briefing
-      const briefing = await generateBriefing(runtime, {
+      let briefing = await generateBriefing(runtime, {
         sentiment,
         threads,
         breaking,
         spikes,
         sampleSize: allTweets.length,
+        quick,
+        qualityOnly,
+        mandoContext,
       });
 
+      if (process.env.X_RESEARCH_SHOW_COST === 'true') {
+        briefing += `\n\n${formatCostFooter(allTweets.length)}`;
+      }
+
+      if (message.roomId) setLastResearch(message.roomId, briefing);
       callback({
         text: briefing,
         action: 'X_PULSE',
@@ -211,13 +240,26 @@ async function generateBriefing(
     breaking: XBreakingContent[];
     spikes: Array<{ topic: string; spikeMultiple: number }>;
     sampleSize: number;
+    quick?: boolean;
+    qualityOnly?: boolean;
+    mandoContext?: { vibeCheck: string; headlines: string[] } | null;
   }
 ): Promise<string> {
-  const { sentiment, threads, breaking, spikes, sampleSize } = data;
+  const { sentiment, threads, breaking, spikes, sampleSize, quick, qualityOnly, mandoContext } = data;
 
   // Build structured output
   let output = `📊 **X Pulse**\n\n`;
-  
+  if (quick) output += `_Quick pulse — fewer posts._\n\n`;
+  if (qualityOnly) output += `_Quality/curated mode — whale & alpha accounts only._\n\n`;
+
+  if (mandoContext?.vibeCheck) {
+    output += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
+    if (mandoContext.headlines?.length > 0) {
+      const topHeadlines = mandoContext.headlines.slice(0, 5).map((h) => (h.length > 60 ? h.slice(0, 57) + '...' : h));
+      output += topHeadlines.map((h) => `• ${h}`).join('\n') + '\n\n';
+    }
+  }
+
   // Overall sentiment
   const emoji = sentiment.overallSentiment === 'bullish' ? '📈' :
                 sentiment.overallSentiment === 'bearish' ? '📉' :

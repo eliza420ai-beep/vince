@@ -6,6 +6,7 @@ import DashboardCard from "@/frontend/components/dashboard/card";
 import { MarketLeaderboardSection } from "@/frontend/components/dashboard/leaderboard/market-leaderboard-section";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Button } from "@/frontend/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/frontend/components/ui/tooltip";
 import { Input } from "@/frontend/components/ui/input";
 import {
   Tabs,
@@ -795,9 +796,69 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                 {/* X (Twitter) sentiment — same data feeds the trading algo */}
                 {leaderboardsData.news.xSentiment && (
                   <DashboardCard title="X (Twitter) vibe check" className="shrink-0">
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Our #1 X (Twitter) sentiment signal. Staggered refresh: one asset per hour (no burst)—e.g. 4 assets = full cycle every 4h; 24 assets = one per hour, full cycle every 24h. Same data feeds the trading algo. Richer vibe checks in the works: HIP-3 onchain stocks, airdrop alpha, and left-curve memetics.
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Based on last 24h of CT · same signal feeds the trading algo.
                     </p>
+                    {leaderboardsData.news.xSentiment.oldestUpdatedAt != null && (
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        Cache: oldest asset updated {Math.floor((Date.now() - leaderboardsData.news.xSentiment.oldestUpdatedAt) / 60_000)}m ago
+                        {leaderboardsData.news.xSentiment.newestUpdatedAt != null && leaderboardsData.news.xSentiment.newestUpdatedAt !== leaderboardsData.news.xSentiment.oldestUpdatedAt
+                          ? `; newest ${Math.floor((Date.now() - leaderboardsData.news.xSentiment.newestUpdatedAt) / 60_000)}m ago`
+                          : ""}
+                        . Full cycle ~1–4h (one asset per hour).
+                      </p>
+                    )}
+                    {(leaderboardsData.news.xSentiment.overall || leaderboardsData.news.xSentiment.oneLiner) && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+                        {leaderboardsData.news.xSentiment.overall && (
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              leaderboardsData.news.xSentiment.overall === "bullish" && "text-green-600 dark:text-green-400",
+                              leaderboardsData.news.xSentiment.overall === "bearish" && "text-red-600 dark:text-red-400",
+                              leaderboardsData.news.xSentiment.overall === "mixed" && "text-amber-600 dark:text-amber-400",
+                            )}
+                          >
+                            Overall: {leaderboardsData.news.xSentiment.overall.charAt(0).toUpperCase() + leaderboardsData.news.xSentiment.overall.slice(1)}
+                          </span>
+                        )}
+                        {leaderboardsData.news.xSentiment.oneLiner && (
+                          <span className="text-xs text-muted-foreground">{leaderboardsData.news.xSentiment.oneLiner}</span>
+                        )}
+                      </div>
+                    )}
+                    {leaderboardsData.news.listSentiment && leaderboardsData.news.listSentiment.confidence > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-muted-foreground mb-1">List (curated)</p>
+                        <div
+                          className={cn(
+                            "rounded-lg border px-3 py-2 text-center inline-block min-w-[120px]",
+                            leaderboardsData.news.listSentiment.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
+                            leaderboardsData.news.listSentiment.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
+                            leaderboardsData.news.listSentiment.sentiment === "neutral" && "border-border bg-muted/30",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "text-sm font-medium",
+                              leaderboardsData.news.listSentiment.sentiment === "bullish" && "text-green-600 dark:text-green-400",
+                              leaderboardsData.news.listSentiment.sentiment === "bearish" && "text-red-600 dark:text-red-400",
+                            )}
+                          >
+                            {leaderboardsData.news.listSentiment.sentiment === "bullish" ? "Bullish" : leaderboardsData.news.listSentiment.sentiment === "bearish" ? "Bearish" : "Neutral"}
+                          </span>
+                          <span className="text-muted-foreground text-xs ml-1">({leaderboardsData.news.listSentiment.confidence}%)</span>
+                          {leaderboardsData.news.listSentiment.hasHighRiskEvent && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-[10px] text-amber-600 dark:text-amber-400 ml-2 cursor-help">Risk event</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Unusual risk keywords in recent CT posts for this list.</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     {xRateLimitCountdownSec != null && xRateLimitCountdownSec > 0 && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
                         X API rate limited. Retry in {xRateLimitCountdownSec}s
@@ -834,15 +895,25 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                               )}
                             </div>
                             {row.hasHighRiskEvent && (
-                              <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block">Risk event</span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 block cursor-help">Risk event</span>
+                                </TooltipTrigger>
+                                <TooltipContent>Unusual risk keywords in recent CT posts for this asset.</TooltipContent>
+                              </Tooltip>
                             )}
                             {hasData ? (
-                              <span className={cn(
-                                "text-[10px] block mt-1",
-                                isStale ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
-                              )}>
-                                {isStale ? "Stale" : ageMin === 0 ? "Updated just now" : `Updated ${ageMin}m ago`}
-                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className={cn(
+                                    "text-[10px] block mt-1 cursor-help",
+                                    isStale ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground",
+                                  )}>
+                                    {isStale ? "Stale" : ageMin === 0 ? "Updated just now" : `Updated ${ageMin}m ago`}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>Staggered refresh: one asset per hour; full cycle 1–24h depending on asset count.</TooltipContent>
+                              </Tooltip>
                             ) : (
                               <span className="text-[10px] text-muted-foreground block mt-1">Pending refresh</span>
                             )}
@@ -857,33 +928,17 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         First refresh in ~1 hour (one asset per interval). Same data feeds the trading algo.
                       </p>
                     )}
-                    {leaderboardsData.news.listSentiment && leaderboardsData.news.listSentiment.confidence > 0 && (
-                      <div className="mt-3 pt-3 border-t border-border/50">
-                        <p className="text-xs text-muted-foreground mb-1">List (curated)</p>
-                        <div
-                          className={cn(
-                            "rounded-lg border px-3 py-2 text-center inline-block min-w-[120px]",
-                            leaderboardsData.news.listSentiment.sentiment === "bullish" && "border-green-500/40 bg-green-500/5",
-                            leaderboardsData.news.listSentiment.sentiment === "bearish" && "border-red-500/40 bg-red-500/5",
-                            leaderboardsData.news.listSentiment.sentiment === "neutral" && "border-border bg-muted/30",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "text-sm font-medium",
-                              leaderboardsData.news.listSentiment.sentiment === "bullish" && "text-green-600 dark:text-green-400",
-                              leaderboardsData.news.listSentiment.sentiment === "bearish" && "text-red-600 dark:text-red-400",
-                            )}
-                          >
-                            {leaderboardsData.news.listSentiment.sentiment === "bullish" ? "Bullish" : leaderboardsData.news.listSentiment.sentiment === "bearish" ? "Bearish" : "Neutral"}
-                          </span>
-                          <span className="text-muted-foreground text-xs ml-1">({leaderboardsData.news.listSentiment.confidence}%)</span>
-                          {leaderboardsData.news.listSentiment.hasHighRiskEvent && (
-                            <span className="text-[10px] text-amber-600 dark:text-amber-400 ml-2">Risk event</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
+                    <details className="mt-3 pt-2 border-t border-border/50 group">
+                      <summary className="text-xs text-muted-foreground cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                        How X improves the paper bot
+                      </summary>
+                      <p className="text-xs text-muted-foreground mt-2 pl-0">
+                        X sentiment votes long/short when confidence ≥ 40% (config: X_SENTIMENT_CONFIDENCE_FLOOR). Default weight 0.5× in the aggregator (~20 sources). When CT agrees with funding/regime, the bot can open or size trades. When X contributed to a trade, it appears in <strong>Trading Bot</strong> → Open positions → Why this trade → Sources as &quot;X (Twitter) sentiment&quot;.
+                      </p>
+                    </details>
+                    <p className="text-xs text-muted-foreground mt-2 pt-1 border-t border-border/50">
+                      Richer vibe in chat: ask ECHO for &quot;X pulse&quot; or &quot;CT vibe&quot;.
+                    </p>
                   </DashboardCard>
                 )}
 
@@ -1801,6 +1856,18 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           <span className="text-muted-foreground text-sm">No data sources</span>
                         )}
                       </div>
+                      <p className="text-xs text-muted-foreground pt-1">
+                        Same X signal as the News tab &quot;X (Twitter) vibe check&quot;. X contributes when confidence ≥ 40%; weight 0.5×. Richer vibe in chat: ask ECHO for &quot;X pulse&quot; or &quot;CT vibe&quot;.
+                      </p>
+                      {(paperData.recentClosedTrades?.length ?? 0) > 0 && (() => {
+                        const closed = paperData.recentClosedTrades ?? [];
+                        const withX = closed.filter((t) => (t.contributingSources ?? []).includes("XSentiment")).length;
+                        return (
+                          <p className="text-xs text-muted-foreground pt-1">
+                            X (Twitter) sentiment contributed to <strong>{withX}</strong> of the last <strong>{closed.length}</strong> closed trades.
+                          </p>
+                        );
+                      })()}
                     </div>
                   </DashboardCard>
                 )}
@@ -1836,6 +1903,11 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </ul>
                         </div>
                       </div>
+                      {([...(paperData.banditSummary.topSources ?? []), ...(paperData.banditSummary.bottomSources ?? [])].some((s) => s.source === "XSentiment") && (
+                        <p className="text-xs text-muted-foreground pt-2 border-t border-border/50">
+                          X (Twitter) sentiment&apos;s weight is learned from outcomes; when it appears in Top sources it&apos;s been profitable recently; when in Underperforming it&apos;s been scaled down.
+                        </p>
+                      ))}
                     </div>
                   </DashboardCard>
                 )}
@@ -1941,7 +2013,28 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                 {sources.length > 0 && (
                                   <div>
                                     <p className="text-xs text-muted-foreground mb-1">Sources</p>
-                                    <p className="text-xs">{sources.map(signalSourceDisplayName).join(", ")}</p>
+                                    <p className="text-xs">
+                                      {sources.map((src) => (
+                                        <span key={src}>
+                                          {sources.indexOf(src) > 0 && ", "}
+                                          {src === "XSentiment" ? (
+                                            <strong className="text-foreground">{signalSourceDisplayName(src)}</strong>
+                                          ) : (
+                                            signalSourceDisplayName(src)
+                                          )}
+                                        </span>
+                                      ))}
+                                    </p>
+                                    {sources.includes("XSentiment") && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-block mt-1 text-[11px] text-primary cursor-help border-b border-dotted border-primary/50">
+                                            X (CT) contributed to this entry
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Same sentiment data as the News tab vibe check; 0.5× weight in the aggregator.</TooltipContent>
+                                      </Tooltip>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -2037,6 +2130,13 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                             <p className="text-muted-foreground">
                               <span className="font-medium text-foreground">Why no trade:</span> {ev.reason}
                             </p>
+                            {ev.contributingSources && (
+                              <p className="text-[11px] text-muted-foreground">
+                                X (Twitter) sentiment: {ev.contributingSources.includes("XSentiment")
+                                  ? "in signal (overall below threshold)"
+                                  : "did not meet 40% or neutral"}
+                              </p>
+                            )}
                             <div className="grid gap-x-4 gap-y-0.5 sm:grid-cols-3 font-mono text-[11px]">
                               <p>Strength {ev.strength.toFixed(0)}% (need {ev.minStrength}%)</p>
                               <p>Confidence {ev.confidence.toFixed(0)}% (need {ev.minConfidence}%)</p>

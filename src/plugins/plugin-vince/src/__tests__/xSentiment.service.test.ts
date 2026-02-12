@@ -344,7 +344,7 @@ describe("VinceXSentimentService", () => {
   });
 
   describe("query shape", () => {
-    it("calls search with expanded query for BTC/ETH/SOL and HYPE crypto for HYPE", async () => {
+    it("calls search with expanded query plus quality filters (lang:en, -is:reply, -is:retweet) for BTC/ETH/SOL and HYPE", async () => {
       const search = vi.fn().mockResolvedValue(mockTweets(["bullish"]));
       const runtime = createMockRuntime({
         services: {
@@ -353,13 +353,13 @@ describe("VinceXSentimentService", () => {
       });
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(0);
-      expect(search).toHaveBeenLastCalledWith("$BTC OR Bitcoin", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$BTC OR Bitcoin lang:en -is:reply -is:retweet", expect.any(Object));
       await service.refreshOneAsset(1);
-      expect(search).toHaveBeenLastCalledWith("$ETH OR Ethereum", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$ETH OR Ethereum lang:en -is:reply -is:retweet", expect.any(Object));
       await service.refreshOneAsset(2);
-      expect(search).toHaveBeenLastCalledWith("$SOL OR Solana", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("$SOL OR Solana lang:en -is:reply -is:retweet", expect.any(Object));
       await service.refreshOneAsset(3);
-      expect(search).toHaveBeenLastCalledWith("HYPE crypto", expect.any(Object));
+      expect(search).toHaveBeenLastCalledWith("HYPE crypto lang:en -is:reply -is:retweet", expect.any(Object));
     });
   });
 
@@ -443,7 +443,7 @@ describe("VinceXSentimentService", () => {
       const service = new VinceXSentimentService(runtime);
       await service.refreshOneAsset(1);
       expect(search).toHaveBeenCalledTimes(1);
-      expect(search).toHaveBeenCalledWith("$ETH OR Ethereum", expect.any(Object));
+      expect(search).toHaveBeenCalledWith("$ETH OR Ethereum lang:en -is:reply -is:retweet", expect.any(Object));
     });
 
     it("loads cache from file on start so getTradingSentiment returns file data for other assets", async () => {

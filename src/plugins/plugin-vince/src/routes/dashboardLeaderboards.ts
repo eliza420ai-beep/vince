@@ -144,6 +144,13 @@ export interface NewsLeaderboardSection {
     assets: XSentimentAssetRow[];
     /** When set and > Date.now(), UI can show "Retry in Xs" (rate limit cooldown). */
     rateLimitedUntil?: number | null;
+    /** Overall CT bias from per-asset data: majority or "mixed". */
+    overall?: "bullish" | "bearish" | "neutral" | "mixed";
+    /** One-line summary for the card, e.g. "Bullish · BTC/ETH/SOL positive". */
+    oneLiner?: string;
+    /** Oldest/newest updatedAt (ms) across assets for cache summary. */
+    oldestUpdatedAt?: number | null;
+    newestUpdatedAt?: number | null;
   };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
   listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
@@ -573,7 +580,12 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
 
   const xSentimentService = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as VinceXSentimentService | null;
   let xSentiment:
-    | { assets: XSentimentAssetRow[]; rateLimitedUntil?: number }
+    | {
+        assets: XSentimentAssetRow[];
+        rateLimitedUntil?: number;
+        overall?: "bullish" | "bearish" | "neutral" | "mixed";
+        oneLiner?: string;
+      }
     | undefined;
   let listSentiment: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number } | undefined;
   if (xSentimentService?.isConfigured?.()) {
@@ -589,9 +601,36 @@ async function buildNewsSection(runtime: IAgentRuntime): Promise<NewsLeaderboard
     });
     const now = Date.now();
     const rateLimitedUntilMs = xSentimentService.getRateLimitedUntilMs();
+
+    const withData = assets.filter((a) => a.confidence > 0 || (a.updatedAt != null && a.updatedAt !== 0));
+    let overall: "bullish" | "bearish" | "neutral" | "mixed" = "neutral";
+    let oneLiner: string | undefined;
+    if (withData.length > 0) {
+      const bull = withData.filter((a) => a.sentiment === "bullish").length;
+      const bear = withData.filter((a) => a.sentiment === "bearish").length;
+      const neut = withData.filter((a) => a.sentiment === "neutral").length;
+      if (bull > bear && bull > neut) overall = "bullish";
+      else if (bear > bull && bear > neut) overall = "bearish";
+      else if (neut >= bull && neut >= bear) overall = "neutral";
+      else overall = "mixed";
+
+      const cap = overall.charAt(0).toUpperCase() + overall.slice(1);
+      const positive = withData.filter((a) => a.sentiment === "bullish").map((a) => a.asset);
+      const negative = withData.filter((a) => a.sentiment === "bearish").map((a) => a.asset);
+      if (overall === "bullish" && positive.length > 0) oneLiner = `${cap} · ${positive.join("/")} positive`;
+      else if (overall === "bearish" && negative.length > 0) oneLiner = `${cap} · ${negative.join("/")} negative`;
+      else if (overall === "mixed") oneLiner = `${cap} · ${[...new Set(positive.concat(negative))].join("/")} mixed`;
+      else oneLiner = `${cap} · per-asset sentiment below`;
+    }
+
+    const updatedAts = assets.map((a) => a.updatedAt).filter((t): t is number => t != null && t !== 0);
+    const oldestUpdatedAt = updatedAts.length > 0 ? Math.min(...updatedAts) : null;
+    const newestUpdatedAt = updatedAts.length > 0 ? Math.max(...updatedAts) : null;
     xSentiment = {
       assets,
       ...(rateLimitedUntilMs > now && { rateLimitedUntil: rateLimitedUntilMs }),
+      ...(withData.length > 0 && { overall, oneLiner }),
+      ...(oldestUpdatedAt != null && { oldestUpdatedAt, newestUpdatedAt: newestUpdatedAt ?? oldestUpdatedAt }),
     };
     try {
       const listS = await xSentimentService.getListSentiment();

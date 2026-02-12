@@ -45,6 +45,26 @@ export X_BEARER_TOKEN="your-bearer-token"
 export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 ```
 
+## Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `X_BEARER_TOKEN` | X API v2 Bearer Token (required) | — |
+| `X_PULSE_QUICK` | When `true`, use quick pulse (fewer topics, 10 results/topic) | `false` |
+| `X_PULSE_QUALITY` | When `true`, pulse/vibe show only whale/alpha/quality accounts | `false` |
+| `X_RESEARCH_SHOW_COST` | When `true`, append estimated X API cost to pulse/vibe responses | `false` |
+| `X_WATCHLIST_PATH` | Path to watchlist JSON (in-chat "check my watchlist") | `skills/x-research/data/watchlist.json` |
+| `X_RESEARCH_SAVE_DIR` | Directory for "save that" (last research export) | `skills/x-research/data/drafts` |
+| `X_PULSE_CACHE_TTL_MS` | Cache TTL for pulse/vibe search (ms) | `3600000` (1h) |
+| `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results | — |
+
+**Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh.
+
+## Security
+
+- **X_BEARER_TOKEN** must stay server-side only. Never expose it in client code, logs, or public repos.
+- Cost estimates (e.g. ~$0.005 per post) are for transparency only; they are not a billing guarantee.
+
 ### 3. Register Plugin
 
 ```typescript
@@ -133,6 +153,18 @@ Stats: 285K followers, 1.2k avg likes
 Focus: BTC, trading, macro
 Bias: Bullish | Reliability: 80/100
 ```
+
+### X_WATCHLIST
+
+Check the user's X watchlist (same file as `skills/x-research` CLI). Read-only in-chat; add/remove accounts via CLI: `cd skills/x-research && bun run x-search.ts watchlist add|remove <username>`.
+
+**Triggers:** "Check my watchlist", "my X watchlist", "what did my watchlist post"
+
+### X_SAVE_RESEARCH
+
+Save the last pulse/vibe/news output to a markdown file.
+
+**Triggers:** "Save that", "save this research", "save to file"
 
 ### X_NEWS
 
@@ -239,11 +271,13 @@ bun run dev
 ## Roadmap
 
 **Implemented:**
-- ✅ `X_PULSE` - Full ALOHA-style briefing
+- ✅ `X_PULSE` - Full ALOHA-style briefing (quick mode, quality-only mode)
 - ✅ `X_VIBE` - Quick topic sentiment
 - ✅ `X_THREAD` - Thread summarization
-- ✅ `X_ACCOUNT` - Account analysis
+- ✅ `X_ACCOUNT` - Account analysis ("what did @user say about BTC")
 - ✅ `X_NEWS` - News headlines
+- ✅ `X_WATCHLIST` - In-chat watchlist check (read-only)
+- ✅ `X_SAVE_RESEARCH` - Save last research to file
 
 **Planned:**
 - `X_SEARCH` - Manual search with custom filters

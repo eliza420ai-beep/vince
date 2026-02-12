@@ -21,12 +21,18 @@ export interface TopicSearchOptions {
   excludeRetweets?: boolean;
   excludeReplies?: boolean;
   hoursBack?: number;
+  /** Override cache TTL for this request (e.g. 1h for pulse/vibe). */
+  cacheTtlMs?: number;
 }
 
 export interface MultiSearchOptions {
   topicsIds?: string[];
   maxResultsPerTopic?: number;
   deduplicateAcrossTopics?: boolean;
+  /** When true, limit to first 2 topics and 10 results per topic (quick vibe check). */
+  quick?: boolean;
+  /** Cache TTL for search requests (e.g. 1h for pulse). */
+  cacheTtlMs?: number;
 }
 
 /**
@@ -67,6 +73,7 @@ export class XSearchService {
       maxResults,
       sortOrder,
       startTime,
+      cacheTtlMs: options.cacheTtlMs,
     });
 
     // Enrich tweets with computed fields
@@ -78,10 +85,15 @@ export class XSearchService {
    */
   async searchMultipleTopics(options: MultiSearchOptions = {}): Promise<Map<string, XTweet[]>> {
     const {
-      topicsIds = ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id),
-      maxResultsPerTopic = 50,
+      topicsIds: rawTopicsIds = ALL_TOPICS.filter(t => t.priority === 'high').map(t => t.id),
+      maxResultsPerTopic: rawMaxResults = 50,
       deduplicateAcrossTopics = true,
+      quick = false,
+      cacheTtlMs,
     } = options;
+
+    const topicsIds = quick ? rawTopicsIds.slice(0, 2) : rawTopicsIds;
+    const maxResultsPerTopic = quick ? 10 : rawMaxResults;
 
     const results = new Map<string, XTweet[]>();
     const seenIds = new Set<string>();
@@ -94,7 +106,11 @@ export class XSearchService {
       const batchResults = await Promise.all(
         batch.map(async (topicId) => {
           try {
-            const tweets = await this.searchTopic(topicId, { maxResults: maxResultsPerTopic });
+            const tweets = await this.searchTopic(topicId, {
+              maxResults: maxResultsPerTopic,
+              hoursBack: 24,
+              cacheTtlMs,
+            });
             return { topicId, tweets };
           } catch (error) {
             console.error(`[xSearch] Error searching ${topicId}:`, error);

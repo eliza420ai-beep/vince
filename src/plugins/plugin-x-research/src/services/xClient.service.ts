@@ -91,7 +91,7 @@ export class XClientService {
 
     return this.get<XSearchResponse>(
       `${ENDPOINTS.SEARCH_RECENT}?${params.toString()}`,
-      { cacheKey: `search:${query}:${options.maxResults}` }
+      { cacheKey: `search:${query}:${options.maxResults}`, cacheTtlMs: options.cacheTtlMs }
     );
   }
 
@@ -244,7 +244,7 @@ export class XClientService {
   // ─────────────────────────────────────────────────────────────
 
   private async get<T>(path: string, options: RequestOptions = {}): Promise<T> {
-    const { cacheKey, skipCache } = options;
+    const { cacheKey, skipCache, cacheTtlMs } = options;
 
     // Check cache first
     if (cacheKey && !skipCache && this.cacheEnabled) {
@@ -274,9 +274,9 @@ export class XClientService {
 
     const data = await response.json() as T;
 
-    // Cache the result
+    // Cache the result (per-request TTL when provided)
     if (cacheKey && this.cacheEnabled) {
-      this.setCache(cacheKey, data);
+      this.setCache(cacheKey, data, cacheTtlMs);
     }
 
     return data;
@@ -292,10 +292,11 @@ export class XClientService {
     return entry.data;
   }
 
-  private setCache<T>(key: string, data: T): void {
+  private setCache<T>(key: string, data: T, ttlMs?: number): void {
+    const ttl = ttlMs ?? this.cacheTtlMs;
     this.cache.set(key, {
       data,
-      expiresAt: Date.now() + this.cacheTtlMs,
+      expiresAt: Date.now() + ttl,
     });
   }
 
@@ -390,6 +391,8 @@ interface SearchOptions {
   tweetFields?: string;
   userFields?: string;
   expansions?: string;
+  /** Override cache TTL for this request (e.g. longer for pulse, shorter for ad-hoc search). */
+  cacheTtlMs?: number;
 }
 
 interface CountsOptions {
@@ -416,6 +419,7 @@ interface NewsSearchOptions {
 interface RequestOptions {
   cacheKey?: string;
   skipCache?: boolean;
+  cacheTtlMs?: number;
 }
 
 // ─────────────────────────────────────────────────────────────

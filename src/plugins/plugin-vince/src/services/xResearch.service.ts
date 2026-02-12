@@ -376,10 +376,23 @@ export class VinceXResearchService extends Service {
     throw new Error(`X API rate limited. Resets in ${waitSec}s`);
   }
 
+  /** Min ms between consecutive API calls to avoid bursting into 429s. */
+  private lastRequestTs = 0;
+
+  private async ensureRequestSpacing(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTs;
+    if (this.lastRequestTs > 0 && elapsed < RATE_DELAY_MS) {
+      await sleep(RATE_DELAY_MS - elapsed);
+    }
+  }
+
   private async apiGet(url: string, useBackground?: boolean, tokenIndex?: number): Promise<RawResponse> {
     const token = this.getToken(useBackground, tokenIndex);
     if (!token) throw new Error(useBackground ? "X_BEARER_TOKEN_SENTIMENT (or X_BEARER_TOKEN_BACKGROUND) not set" : "X_BEARER_TOKEN not set");
     await this.ensureNotRateLimited(useBackground, tokenIndex);
+    await this.ensureRequestSpacing();
+    this.lastRequestTs = Date.now();
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -632,13 +645,18 @@ export class VinceXResearchService extends Service {
       cacheTtlMs?: number;
     } = {},
   ): Promise<XTweet[]> {
-    const minEng = opts.minEngagement ?? 50;
+    const minEng =
+      opts.minEngagement ??
+      (typeof process.env.X_SENTIMENT_MIN_FAVES !== "undefined" && process.env.X_SENTIMENT_MIN_FAVES !== ""
+        ? parseInt(process.env.X_SENTIMENT_MIN_FAVES, 10)
+        : 50);
     const minFoll = opts.minFollowers ?? 0;
     const lang = opts.lang ?? "en";
     const tokenIdx = opts.tokenIndex ?? this.hashForTokenIndex(query);
     let q = query.trim();
     if (!q.toLowerCase().includes("lang:")) q += ` lang:${lang}`;
     if (!q.toLowerCase().includes("-is:reply")) q += " -is:reply";
+    if (!q.toLowerCase().includes("-is:retweet")) q += " -is:retweet";
     const tweets = await this.search(q, {
       maxResults: opts.maxResultsPerPage ?? 100,
       pages: opts.pages ?? 2,

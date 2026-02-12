@@ -404,6 +404,7 @@ export class VincePaperTradingService extends Service {
       }
     }
 
+    const contributingSources = signal.sourceBreakdown ? Object.keys(signal.sourceBreakdown) : [];
     // Always store for dashboard (every no-trade is a decision we want to see)
     this.recentNoTrades.push({
       asset,
@@ -416,6 +417,7 @@ export class VincePaperTradingService extends Service {
       minConfidence,
       minConfirming,
       timestamp: now,
+      contributingSources,
     });
     if (this.recentNoTrades.length > VincePaperTradingService.MAX_RECENT_NO_TRADES) {
       this.recentNoTrades.shift();
@@ -502,6 +504,7 @@ export class VincePaperTradingService extends Service {
     minConfidence: number;
     minConfirming: number;
     timestamp: number;
+    contributingSources?: string[];
   }> = [];
 
   /** Return recent no-trade evaluations for the dashboard */
@@ -516,8 +519,17 @@ export class VincePaperTradingService extends Service {
     minConfidence: number;
     minConfirming: number;
     timestamp: number;
+    contributingSources?: string[];
   }> {
     return [...this.recentNoTrades];
+  }
+
+  /** Recent closed trades (contributingSources only) for dashboard "X contributed to N of K" */
+  private static readonly MAX_RECENT_CLOSED_TRADES = 50;
+  private recentClosedTrades: Array<{ contributingSources?: string[] }> = [];
+
+  getRecentClosedTrades(): Array<{ contributingSources?: string[] }> {
+    return [...this.recentClosedTrades];
   }
 
   /** Recent "recorded data / ML influenced the algo" events for dashboard (bounded) */
@@ -1631,6 +1643,13 @@ export class VincePaperTradingService extends Service {
         realizedPnl: closedPosition.realizedPnl || 0,
         closeReason: reason || "manual",
       });
+    }
+
+    // Store for dashboard: "X contributed to N of K closed trades"
+    const contributingSources = closedPosition.metadata?.contributingSources as string[] | undefined;
+    this.recentClosedTrades.push({ contributingSources: contributingSources ?? [] });
+    if (this.recentClosedTrades.length > VincePaperTradingService.MAX_RECENT_CLOSED_TRADES) {
+      this.recentClosedTrades.shift();
     }
 
     // ==========================================

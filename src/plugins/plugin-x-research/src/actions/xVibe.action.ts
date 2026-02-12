@@ -16,6 +16,9 @@ import { getXSearchService } from '../services/xSearch.service';
 import { getXSentimentService } from '../services/xSentiment.service';
 import { initXClientFromEnv } from '../services/xClient.service';
 import { TOPIC_BY_ID, ALL_TOPICS } from '../constants/topics';
+import { formatCostFooter } from '../constants/cost';
+import { setLastResearch } from '../store/lastResearchStore';
+import { getMandoContextForX } from '../utils/mandoContext';
 
 export const xVibeAction: Action = {
   name: 'X_VIBE',
@@ -109,10 +112,15 @@ export const xVibeAction: Action = {
       const searchService = getXSearchService();
       const sentimentService = getXSentimentService();
 
+      const vibeCacheTtlMs = process.env.X_PULSE_CACHE_TTL_MS
+        ? parseInt(process.env.X_PULSE_CACHE_TTL_MS, 10)
+        : 60 * 60 * 1000; // 1h default, same as pulse
+
       // Search for the topic
       const tweets = await searchService.searchTopic(detectedTopic.id, {
         maxResults: 100,
         hoursBack: 24,
+        cacheTtlMs: vibeCacheTtlMs,
       });
 
       if (tweets.length === 0) {
@@ -134,6 +142,8 @@ export const xVibeAction: Action = {
         return true;
       }
 
+      const mandoContext = await getMandoContextForX(runtime);
+
       // Build response
       const emoji = topicSentiment.direction === 'bullish' ? '📈' :
                     topicSentiment.direction === 'bearish' ? '📉' :
@@ -144,6 +154,9 @@ export const xVibeAction: Action = {
         : String(topicSentiment.weightedScore);
 
       let response = `📊 **${detectedTopic.name} Vibe Check**\n\n`;
+      if (mandoContext?.vibeCheck) {
+        response += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
+      }
       response += `${emoji} ${capitalize(topicSentiment.direction)} (${scoreStr}) | ${topicSentiment.confidence}% confidence\n\n`;
 
       response += `**Breakdown:**\n`;
@@ -161,7 +174,11 @@ export const xVibeAction: Action = {
       }
 
       response += `_Based on ${tweets.length} tweets from the last 24h_`;
+      if (process.env.X_RESEARCH_SHOW_COST === 'true') {
+        response += `\n\n${formatCostFooter(tweets.length)}`;
+      }
 
+      if (message.roomId) setLastResearch(message.roomId, response);
       callback({
         text: response,
         action: 'X_VIBE',

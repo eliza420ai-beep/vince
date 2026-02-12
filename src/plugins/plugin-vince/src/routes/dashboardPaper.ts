@@ -23,6 +23,8 @@ export interface NoTradeEvaluation {
   minConfidence: number;
   minConfirming: number;
   timestamp: number;
+  /** Sources that contributed to the signal (still below threshold). When XSentiment missing, X was neutral/below 40%. */
+  contributingSources?: string[];
 }
 
 export interface MLInfluenceEvent {
@@ -61,6 +63,8 @@ export interface PaperResponse {
     topSources: { source: string; winRate: number }[];
     bottomSources: { source: string; winRate: number }[];
   } | null;
+  /** Last closed positions (contributingSources only) for "X contributed to N of K" */
+  recentClosedTrades: Array<{ contributingSources?: string[] }>;
   updatedAt: number;
 }
 
@@ -98,6 +102,7 @@ export async function buildPaperResponse(
       goalTargets: null,
       signalStatus: null,
       banditSummary: null,
+      recentClosedTrades: [],
       updatedAt: Date.now(),
     };
   }
@@ -158,6 +163,8 @@ export async function buildPaperResponse(
         }
       : null;
 
+  const recentClosedTrades = paperTrading?.getRecentClosedTrades?.() ?? [];
+
   return {
     openPositions,
     portfolio,
@@ -168,6 +175,7 @@ export async function buildPaperResponse(
     goalTargets,
     signalStatus,
     banditSummary,
+    recentClosedTrades,
     updatedAt: Date.now(),
   };
 }

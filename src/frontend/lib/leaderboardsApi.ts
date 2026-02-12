@@ -129,6 +129,13 @@ export interface NewsLeaderboardSection {
     assets: XSentimentAssetRow[];
     /** When set and > Date.now(), show "Retry in Xs" (rate limit cooldown). */
     rateLimitedUntil?: number | null;
+    /** Overall CT bias: majority or "mixed". */
+    overall?: "bullish" | "bearish" | "neutral" | "mixed";
+    /** One-line summary, e.g. "Bullish · BTC/ETH/SOL positive". */
+    oneLiner?: string;
+    /** Oldest/newest updatedAt (ms) across assets for cache summary. */
+    oldestUpdatedAt?: number | null;
+    newestUpdatedAt?: number | null;
   };
   /** Curated list sentiment when X_LIST_ID set (same scoring as per-asset). */
   listSentiment?: { sentiment: string; confidence: number; hasHighRiskEvent: boolean; updatedAt?: number };
@@ -309,6 +316,8 @@ export interface NoTradeEvaluation {
   minConfidence: number;
   minConfirming: number;
   timestamp: number;
+  /** Sources that contributed to the signal (still below threshold). When XSentiment missing, X was neutral/below 40%. */
+  contributingSources?: string[];
 }
 
 export interface MLInfluenceEvent {
@@ -368,6 +377,8 @@ export interface PaperResponse {
     topSources: { source: string; winRate: number }[];
     bottomSources: { source: string; winRate: number }[];
   } | null;
+  /** Last closed positions (contributingSources only) for "X contributed to N of K" */
+  recentClosedTrades: Array<{ contributingSources?: string[] }>;
   updatedAt: number;
 }
 

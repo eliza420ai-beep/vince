@@ -28,9 +28,19 @@ import {
   type SentimentKeywordLists,
   type SentimentCacheEntry,
   type ComputeSentimentOptions,
+  type TweetLike,
   simpleSentiment,
   hasRiskKeyword,
 } from "../utils/xSentimentLogic";
+
+/** Map XTweet[] to TweetLike[] with authorUsername for tier weighting. */
+function toTweetLikes(tweets: XTweet[]): TweetLike[] {
+  return tweets.map((t) => ({
+    text: t.text,
+    metrics: t.metrics,
+    authorUsername: t.username,
+  }));
+}
 
 export { simpleSentiment, hasRiskKeyword };
 
@@ -111,6 +121,15 @@ export function buildSentimentQuery(asset: string): string {
   return expanded[asset] ?? `$${asset}`;
 }
 
+/** Append quality filters to a sentiment search query (lang:en, -is:reply, -is:retweet). */
+export function appendSentimentQueryFilters(q: string, lang = "en"): string {
+  let out = q.trim();
+  if (!out.toLowerCase().includes("lang:")) out += ` lang:${lang}`;
+  if (!out.toLowerCase().includes("-is:reply")) out += " -is:reply";
+  if (!out.toLowerCase().includes("-is:retweet")) out += " -is:retweet";
+  return out;
+}
+
 /** Parse "Resets in Ns" from X API rate-limit error. Returns seconds or 0. Exported for tests. */
 export function parseRateLimitResetSeconds(message: string): number {
   const match = message.match(/Resets?\s+in\s+(\d+)\s*s/i);
@@ -165,6 +184,8 @@ interface CachedSentiment {
   confidence: number;
   hasHighRiskEvent: boolean;
   updatedAt: number;
+  isContrarian?: boolean;
+  contrarianNote?: string;
 }
 
 /** Cache file shape for persistence. Exported for cron script. */
@@ -288,6 +309,8 @@ export class VinceXSentimentService extends Service {
     confidence: number;
     hasHighRiskEvent: boolean;
     updatedAt?: number;
+    isContrarian?: boolean;
+    contrarianNote?: string;
   } {
     const cached = this.cache.get(asset);
     if (!cached) {
@@ -302,6 +325,8 @@ export class VinceXSentimentService extends Service {
       confidence: cached.confidence,
       hasHighRiskEvent: cached.hasHighRiskEvent,
       updatedAt: cached.updatedAt,
+      ...(cached.isContrarian !== undefined && { isContrarian: cached.isContrarian }),
+      ...(cached.contrarianNote && { contrarianNote: cached.contrarianNote }),
     };
   }
 
@@ -318,6 +343,8 @@ export class VinceXSentimentService extends Service {
     confidence: number;
     hasHighRiskEvent: boolean;
     updatedAt?: number;
+    isContrarian?: boolean;
+    contrarianNote?: string;
   }> {
     loadEnvOnce();
     const listEnabled = process.env.X_SENTIMENT_LIST_ENABLED;
@@ -337,16 +364,19 @@ export class VinceXSentimentService extends Service {
         confidence: this.listSentimentCache.confidence,
         hasHighRiskEvent: this.listSentimentCache.hasHighRiskEvent,
         updatedAt: this.listSentimentCache.updatedAt,
+        ...(this.listSentimentCache.isContrarian !== undefined && { isContrarian: this.listSentimentCache.isContrarian }),
+        ...(this.listSentimentCache.contrarianNote && { contrarianNote: this.listSentimentCache.contrarianNote }),
       };
     }
     try {
       const { tweets } = await xResearch.getListPosts(listId, { maxResults: 50, useBackgroundToken: useBackgroundToken() });
-      const entry = computeSentimentFromTweets(tweets, {
+      const entry = computeSentimentFromTweets(toTweetLikes(tweets), {
         keywordLists: getKeywordLists(),
         minTweets: getMinTweetsForConfidence(),
         bullBearThreshold: getBullBearThreshold(),
         engagementCap: getEngagementCap(),
         riskMinTweets: getRiskMinTweets(),
+        useWeightedKeywords: true,
       });
       this.listSentimentCache = entry;
       this.listSentimentCacheTs = now;
@@ -376,6 +406,8 @@ export class VinceXSentimentService extends Service {
               confidence: entry.confidence,
               hasHighRiskEvent: !!entry.hasHighRiskEvent,
               updatedAt: entry.updatedAt,
+              ...(entry.isContrarian !== undefined && { isContrarian: entry.isContrarian }),
+              ...(entry.contrarianNote && { contrarianNote: entry.contrarianNote }),
             });
           }
         }
@@ -484,7 +516,7 @@ export class VinceXSentimentService extends Service {
     const tweets =
       "searchForSentiment" in xResearch && typeof xResearch.searchForSentiment === "function"
         ? await xResearch.searchForSentiment(query, { pages: 2, since, sortOrder, tokenIndex: assetIndex })
-        : await xResearch.search(query, {
+        : await xResearch.search(appendSentimentQueryFilters(query), {
             maxResults: 30,
             pages: 1,
             sortOrder,
@@ -493,14 +525,20 @@ export class VinceXSentimentService extends Service {
             tokenIndex: assetIndex,
           });
 
-    const entry = computeSentimentFromTweets(tweets, {
+    const entry = computeSentimentFromTweets(toTweetLikes(tweets), {
       keywordLists: getKeywordLists(),
       minTweets: getMinTweetsForConfidence(),
       bullBearThreshold: getBullBearThreshold(),
       engagementCap: getEngagementCap(),
       riskMinTweets: getRiskMinTweets(),
+      useWeightedKeywords: true,
     });
     this.cache.set(asset, entry);
+    const showCost = process.env.X_SENTIMENT_SHOW_COST === "true" || process.env.LOG_LEVEL === "debug";
+    if (showCost && tweets.length > 0) {
+      const estUsd = (tweets.length * 0.005).toFixed(2);
+      logger.debug({ asset, posts: tweets.length, estUsd }, "[plugin-vince] X sentiment refresh");
+    }
   }
 
   /**
@@ -557,12 +595,13 @@ export class VinceXSentimentService extends Service {
     }
     tweets = xResearch.dedupeById(tweets);
     const { keywordLists, minTweets, bullBearThreshold, engagementCap, riskMinTweets } = opts;
-    const entry = computeSentimentFromTweets(tweets, {
+    const entry = computeSentimentFromTweets(toTweetLikes(tweets), {
       keywordLists: keywordLists ?? getKeywordLists(),
       minTweets: minTweets ?? getMinTweetsForConfidence(),
       bullBearThreshold: bullBearThreshold ?? getBullBearThreshold(),
       engagementCap: engagementCap ?? getEngagementCap(),
       riskMinTweets: riskMinTweets ?? getRiskMinTweets(),
+      useWeightedKeywords: true,
     });
     return { tweets, sentiment: entry };
   }
