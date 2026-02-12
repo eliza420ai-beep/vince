@@ -53,20 +53,23 @@ describe("Standup Reports", () => {
       }
     });
 
-    it("VINCE template has market sections", () => {
-      expect(REPORT_TEMPLATES.VINCE).toContain("Market Snapshot");
-      expect(REPORT_TEMPLATES.VINCE).toContain("Paper Bot");
-      expect(REPORT_TEMPLATES.VINCE).toContain("Options Context");
+    it("VINCE template has trading sections", () => {
+      expect(REPORT_TEMPLATES.VINCE).toContain("Core Assets");
+      expect(REPORT_TEMPLATES.VINCE).toContain("BTC");
+      expect(REPORT_TEMPLATES.VINCE).toContain("SOL");
+      expect(REPORT_TEMPLATES.VINCE).toContain("HYPE");
+      expect(REPORT_TEMPLATES.VINCE).toContain("Hyperliquid");
     });
 
     it("Eliza template has research sections", () => {
-      expect(REPORT_TEMPLATES.Eliza).toContain("Research Highlights");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge Gaps");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Research Intel");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge Connections");
     });
 
-    it("Kelly template has lifestyle sections", () => {
-      expect(REPORT_TEMPLATES.Kelly).toContain("Daily Rhythm");
+    it("Kelly template is standup facilitator", () => {
+      expect(REPORT_TEMPLATES.Kelly).toContain("Trading Standup");
       expect(REPORT_TEMPLATES.Kelly).toContain("{{dayOfWeek}}");
+      expect(REPORT_TEMPLATES.Kelly).toContain("One Team, One Dream");
     });
   });
 
