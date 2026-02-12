@@ -60,7 +60,7 @@ export const xThreadAction: Action = {
     callback: HandlerCallback
   ): Promise<boolean> => {
     try {
-      initXClientFromEnv();
+      initXClientFromEnv(runtime);
 
       const text = message.content?.text ?? '';
       

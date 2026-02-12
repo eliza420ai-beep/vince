@@ -85,7 +85,7 @@ export const xMentionsAction: Action = {
     callback: HandlerCallback
   ): Promise<boolean> => {
     try {
-      initXClientFromEnv();
+      initXClientFromEnv(runtime);
       const text = message.content?.text ?? '';
       const match = text.match(/@(\w+)/);
       if (!match) {

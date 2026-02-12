@@ -114,6 +114,27 @@ export class XAccountsService {
   }
 
   /**
+   * Get top tweets by engagement (for content audit).
+   * Fetches up to 100 tweets, sorts by likeCount + 2*retweetCount + replyCount, returns top count.
+   */
+  async getTopTweetsByEngagement(username: string, count = 20): Promise<XTweet[]> {
+    const cleanUsername = username.replace(/^@/, '');
+    const user = await this.getAccount(cleanUsername);
+    if (!user) return [];
+
+    const tweets = await this.client.getUserTweets(user.id, {
+      maxResults: 100,
+      excludeRetweets: true,
+      excludeReplies: true,
+    });
+
+    const score = (t: XTweet) =>
+      (t.metrics?.likeCount ?? 0) + 2 * (t.metrics?.retweetCount ?? 0) + (t.metrics?.replyCount ?? 0);
+    const sorted = [...tweets].sort((a, b) => score(b) - score(a));
+    return sorted.slice(0, count);
+  }
+
+  /**
    * Check if an account is in our quality list
    */
   isQualityAccount(username: string): boolean {

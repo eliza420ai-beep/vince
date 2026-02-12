@@ -10,7 +10,7 @@
  * - Research briefs and trend analysis
  * - Knowledge intelligence (graph, deduplication, quality)
  *
- * Actions (14 total):
+ * Actions (15 total):
  * - UPLOAD: Ingest content (text, URLs, YouTube) into knowledge/
  * - ADD_MICHELIN_RESTAURANT: Add Michelin Guide restaurants to knowledge
  * - KNOWLEDGE_STATUS: Check health and coverage of knowledge base
@@ -25,6 +25,7 @@
  * - STYLE_CHECK: Brand style guide enforcement and auto-fix
  * - POLISH: Transform generic copy into premium, brand-elevating content
  * - AUTO_RESEARCH: Autonomous knowledge expansion with gap analysis
+ * - CONTENT_AUDIT: Content playbook from top X posts by engagement
  *
  * Services (7 total):
  * - voice.service: Voice profile analysis and brand consistency
@@ -57,6 +58,7 @@ import { knowledgeIntelligenceAction } from "./actions/knowledgeIntelligence.act
 import { styleCheckAction } from "./actions/styleCheck.action";
 import { polishContentAction } from "./actions/polishContent.action";
 import { autoResearchAction } from "./actions/autoResearch.action";
+import { contentAuditAction } from "./actions/contentAudit.action";
 
 // Import services
 import { analyzeVoice, getVoicePromptAddition } from "./services/voice.service";
@@ -69,7 +71,7 @@ import * as researchAgendaService from "./services/researchAgenda.service";
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 14 actions, 7 services.
+  description: `Eliza's knowledge & content plugin — 15 actions, 7 services.
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -113,7 +115,10 @@ export const elizaPlugin: Plugin = {
   • research agenda — View priorities and queue
   • fill gaps — Auto-generate topics from gaps
   • research session — Autonomous research cycle
-  • Tracks sessions, progress, and files created`,
+  • Tracks sessions, progress, and files created
+
+📊 CONTENT AUDIT:
+- CONTENT_AUDIT: Top posts analysis from top X posts (hooks, topics, formats). Uses plugin-x-research for X data; set ELIZA_X_BEARER_TOKEN for Eliza.`,
 
   routes: [
     {
@@ -178,6 +183,8 @@ export const elizaPlugin: Plugin = {
     polishContentAction,
     // Autonomous Research
     autoResearchAction,
+    // Content Audit (top posts analysis; uses plugin-x-research)
+    contentAuditAction,
   ],
 
   init: async (_config, runtime: IAgentRuntime) => {
@@ -210,7 +217,7 @@ export const elizaPlugin: Plugin = {
     }, 5000);
 
     logger.info(
-      `[Eliza Plugin] ✅ Ready — 14 actions | Voice: ✓ | Research: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
+      `[Eliza Plugin] ✅ Ready — 15 actions | Voice: ✓ | Research: ✓ | Summarize: ${hasSummarize ? "✓" : "needs key"}`,
     );
   },
 };
@@ -231,6 +238,7 @@ export {
   styleCheckAction,
   polishContentAction,
   autoResearchAction,
+  contentAuditAction,
 };
 
 // Export services

@@ -95,7 +95,7 @@ export const xPulseAction: Action = {
   ): Promise<boolean> => {
     try {
       // Initialize client
-      initXClientFromEnv();
+      initXClientFromEnv(runtime);
       
       const searchService = getXSearchService();
       const sentimentService = getXSentimentService();

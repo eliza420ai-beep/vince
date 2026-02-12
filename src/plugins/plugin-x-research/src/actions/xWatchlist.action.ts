@@ -98,7 +98,7 @@ export const xWatchlistAction: Action = {
     callback: HandlerCallback
   ): Promise<boolean> => {
     try {
-      initXClientFromEnv();
+      initXClientFromEnv(runtime);
       const accounts = loadWatchlist();
       if (accounts.length === 0) {
         callback({

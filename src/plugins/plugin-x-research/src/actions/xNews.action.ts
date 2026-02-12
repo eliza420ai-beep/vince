@@ -64,7 +64,7 @@ export const xNewsAction: Action = {
     callback: HandlerCallback
   ): Promise<boolean> => {
     try {
-      initXClientFromEnv();
+      initXClientFromEnv(runtime);
 
       const newsService = getXNewsService();
 
@@ -193,7 +193,7 @@ async function buildNewsFallback(runtime: IAgentRuntime): Promise<string | null>
   }
 
   try {
-    initXClientFromEnv();
+    initXClientFromEnv(runtime);
     const searchService = getXSearchService();
     const topicIds = ALL_TOPICS.filter((t) => t.priority === 'high').map((t) => t.id).slice(0, 2);
     const results = await searchService.searchMultipleTopics({

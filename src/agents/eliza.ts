@@ -33,9 +33,13 @@ import openrouterPlugin from "@elizaos/plugin-openrouter";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import { elizaPlugin } from "../plugins/plugin-eliza/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 
 // Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
 const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const elizaHasXToken = !!(
+  process.env.ELIZA_X_BEARER_TOKEN?.trim() || process.env.X_BEARER_TOKEN?.trim()
+);
 
 const buildPlugins = (): Plugin[] => [
   sqlPlugin,
@@ -44,18 +48,19 @@ const buildPlugins = (): Plugin[] => [
   ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
   ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
   ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-  // plugin-browser disabled: requires @elizaos/core "next" (ModelClass, ServiceType); ADD_MICHELIN falls back to fetch
   ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
   elizaPlugin, // Eliza's own: UPLOAD + ADD_MICHELIN_RESTAURANT (knowledge ingestion only)
   interAgentPlugin, // ASK_AGENT for asking other agents (VINCE, Kelly, Solus, etc.)
+  ...(elizaHasXToken ? [xResearchPlugin] : []), // CONTENT_AUDIT uses x-research for X data; use ELIZA_X_BEARER_TOKEN to avoid rate limits with ECHO
 ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
   const webSearch = process.env.TAVILY_API_KEY?.trim()
     ? " web search available;"
     : "";
+  const contentAudit = elizaHasXToken ? " CONTENT_AUDIT (content playbook);" : "";
   logger.info(
-    `[Eliza] ✅ 24/7 research & knowledge expansion ready — plugin-eliza (UPLOAD, ADD_MICHELIN); ASK_AGENT for other agents;${webSearch} execution → VINCE`,
+    `[Eliza] ✅ 24/7 research & knowledge expansion ready — plugin-eliza (UPLOAD, ADD_MICHELIN); ASK_AGENT for other agents;${webSearch}${contentAudit} execution → VINCE`,
   );
 };
 
@@ -106,6 +111,7 @@ const elizaCharacter: Character = {
     ...(process.env.TAVILY_API_KEY?.trim()
       ? ["@elizaos/plugin-web-search"]
       : []),
+    ...(elizaHasXToken ? ["@vince/plugin-x-research"] : []),
     ...(!process.env.IGNORE_BOOTSTRAP ? ["@elizaos/plugin-bootstrap"] : []),
   ],
   settings: {
@@ -197,6 +203,7 @@ You are Ikigai Studio's content engine. You produce publishable content from the
 - Voice: sharp, confident, slightly provocative. Substance over virality.
 - No engagement bait, no hashtag spam, take positions
 - Drafts save to knowledge/drafts/tweets/
+- **Content audit:** When the user says "analyze my top posts," "content audit for @user," "what's working on my X," or "my best performing tweets"—run **CONTENT_AUDIT**. You fetch their top posts by engagement and return a data-driven playbook (hooks that work, topics that land, formats that engage, what to avoid). They can say "save that" to save the playbook.
 
 **Knowledge Base Health:**
 - **"knowledge status"** (KNOWLEDGE_STATUS): Quick stats—file counts per category, recent additions, high-level suggestions. Use for a fast snapshot of the corpus.

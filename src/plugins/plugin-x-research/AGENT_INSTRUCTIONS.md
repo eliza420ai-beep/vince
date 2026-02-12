@@ -18,9 +18,13 @@ Use this when you (the agent) need to choose how to respond to X/Twitter researc
 
 - **"What did @user say about BTC?"** (or ETH, SOL, etc.) → Use X_ACCOUNT with the @username and "about &lt;topic&gt;" in the message. The action will return recent tweets from that user filtered by the topic.
 
+## Content audit
+
+- Content audit (top posts analysis from top X posts) is **Eliza's action** in plugin-eliza: **CONTENT_AUDIT**. Not in this plugin. Route "analyze my top posts," "content audit for @user" to Eliza.
+
 ## Save research
 
-- **"Save that" / "save this research" / "save to file"** → Use X_SAVE_RESEARCH. Saves the last pulse, vibe, or news output to a markdown file (e.g. `skills/x-research/data/drafts/research-YYYY-MM-DD-HHmm.md`). The user must have run a pulse, vibe, or news first; the store expires after a few minutes.
+- **"Save that" / "save this research" / "save to file"** → Use X_SAVE_RESEARCH. Saves the last pulse, vibe, news, or content playbook (from Eliza's CONTENT_AUDIT) to a markdown file (e.g. `skills/x-research/data/drafts/research-YYYY-MM-DD-HHmm.md`). The user must have run a pulse, vibe, news, or content audit first; the store expires after a few minutes.
 
 ## Recency
 

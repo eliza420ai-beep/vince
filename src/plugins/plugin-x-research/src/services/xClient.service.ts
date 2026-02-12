@@ -450,31 +450,59 @@ interface RequestOptions {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Factory
+// Factory (per-token instances to avoid rate limits when multiple agents use different tokens)
 // ─────────────────────────────────────────────────────────────
 
-let clientInstance: XClientService | null = null;
+const clientsByToken = new Map<string, XClientService>();
+let lastInitializedToken: string | null = null;
 
 /**
- * Get or create the X client instance
+ * Get or create an X client. Keyed by bearer token so each token gets one client instance.
+ * Use initXClientFromEnv(runtime) so Eliza can use ELIZA_X_BEARER_TOKEN and others use X_BEARER_TOKEN.
+ * When called without config, returns the client for the token last passed to initXClientFromEnv (so the current request uses the right agent's token).
  */
 export function getXClient(config?: XClientConfig): XClientService {
-  if (!clientInstance && config) {
-    clientInstance = new XClientService(config);
+  if (!config?.bearerToken) {
+    if (lastInitializedToken) {
+      return getXClient({ bearerToken: lastInitializedToken });
+    }
+    if (clientsByToken.size === 0) {
+      throw new Error('XClientService not initialized. Call initXClientFromEnv(runtime) first.');
+    }
+    return clientsByToken.values().next().value;
   }
-  if (!clientInstance) {
-    throw new Error('XClientService not initialized. Call getXClient with config first.');
+  if (!clientsByToken.has(config.bearerToken)) {
+    clientsByToken.set(config.bearerToken, new XClientService(config));
   }
-  return clientInstance;
+  return clientsByToken.get(config.bearerToken)!;
 }
 
 /**
- * Initialize the X client from environment
+ * Resolve bearer token from env: Eliza uses ELIZA_X_BEARER_TOKEN when set to avoid sharing rate limits with ECHO.
  */
-export function initXClientFromEnv(): XClientService {
-  const bearerToken = process.env.X_BEARER_TOKEN;
-  if (!bearerToken) {
-    throw new Error('X_BEARER_TOKEN environment variable is required');
+function getBearerTokenForAgent(agentName?: string): string {
+  const isEliza = agentName?.toLowerCase() === 'eliza';
+  const token =
+    isEliza && process.env.ELIZA_X_BEARER_TOKEN?.trim()
+      ? process.env.ELIZA_X_BEARER_TOKEN.trim()
+      : process.env.X_BEARER_TOKEN?.trim();
+  if (!token) {
+    throw new Error(
+      isEliza
+        ? 'X API token required. Set ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN.'
+        : 'X_BEARER_TOKEN environment variable is required'
+    );
   }
+  return token;
+}
+
+/**
+ * Initialize the X client from environment. Pass runtime so Eliza can use ELIZA_X_BEARER_TOKEN (avoids rate limits when two agents use X).
+ * Sets the "current" token so getXClient() with no config returns this client for the rest of the request.
+ */
+export function initXClientFromEnv(runtime?: { character?: { name?: string } }): XClientService {
+  const agentName = runtime?.character?.name;
+  const bearerToken = getBearerTokenForAgent(agentName);
+  lastInitializedToken = bearerToken;
   return getXClient({ bearerToken });
 }

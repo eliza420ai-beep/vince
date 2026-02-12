@@ -2,7 +2,11 @@
 
 **Inspired by:** “Content is not a Slot Machine” — study your top-performing content with AI to find patterns (emotional triggers, hooks, topics, format) and build a repeatable playbook.
 
+**Product terminology:** We use "content audit" and "top posts analysis" in the product; "film study" was from the inspiration article.
+
 **Scope:** plugin-x-research only. No new dependencies; uses existing X client, accounts service, runtime LLM, and save flow.
+
+**Rate limits:** When Eliza and ECHO both use plugin-x-research, they must not share one X bearer token or they hit rate limits. Use `ELIZA_X_BEARER_TOKEN` for Eliza and `X_BEARER_TOKEN` for ECHO; the client is keyed by token so each agent gets the correct client.
 
 ---
 

@@ -26,6 +26,7 @@ Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the
 - **Volume Spikes**: Detect unusual activity on topics
 - **Thread Discovery**: Find high-engagement threads
 - **Contrarian Warnings**: Flag extreme sentiment as potential reversals
+- Content audit (top posts analysis from top X posts) lives in **plugin-eliza** (CONTENT_AUDIT); Eliza uses this plugin for X data. Primary agent: Eliza. Use `ELIZA_X_BEARER_TOKEN` so Eliza and ECHO don’t share one token and hit rate limits.
 
 ## Setup
 
@@ -49,7 +50,8 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `X_BEARER_TOKEN` | X API v2 Bearer Token (required) | — |
+| `X_BEARER_TOKEN` | X API v2 Bearer Token (required for ECHO / default) | — |
+| `ELIZA_X_BEARER_TOKEN` | X token for Eliza only. When set, Eliza uses this and ECHO uses `X_BEARER_TOKEN`, avoiding shared rate limits when both agents use X. | — |
 | `X_PULSE_QUICK` | When `true`, use quick pulse (fewer topics, 10 results/topic) | `false` |
 | `X_PULSE_QUALITY` | When `true`, pulse/vibe show only whale/alpha/quality accounts | `false` |
 | `X_RESEARCH_SHOW_COST` | When `true`, append estimated X API cost to pulse/vibe responses | `false` |
