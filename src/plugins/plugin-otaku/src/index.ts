@@ -11,6 +11,10 @@
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
  * - OTAKU_POSITIONS: View portfolio and orders
+ * - OTAKU_BRIDGE: Cross-chain bridge via Relay
+ *
+ * Providers:
+ * - OTAKU_WALLET_STATUS: Wallet context for multi-agent queries
  *
  * Routes (x402 paywalled when enabled):
  * - GET /otaku/positions: Portfolio positions and active orders ($0.05)
@@ -29,7 +33,9 @@ import {
   otakuLimitOrderAction,
   otakuDcaAction,
   otakuPositionsAction,
+  otakuBridgeAction,
 } from "./actions";
+import { walletStatusProvider } from "./providers";
 import {
   positionsRoute,
   quoteRoute,
@@ -46,9 +52,10 @@ export const otakuPlugin: Plugin = {
     otakuLimitOrderAction,
     otakuDcaAction,
     otakuPositionsAction,
+    otakuBridgeAction,
   ],
   services: [OtakuService],
-  providers: [],
+  providers: [walletStatusProvider],
   evaluators: [],
   routes: [
     // Paid routes (x402)
