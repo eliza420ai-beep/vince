@@ -51,6 +51,9 @@ import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 // OpenClaw integration for multi-agent research
 import { openclawPlugin } from "../plugins/plugin-openclaw/src/index.ts";
 
+// Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
+
 // Load Discord for VINCE when he has his own bot (VINCE_DISCORD_* set and different from Eliza's app).
 // No separate "enabled" flag: set VINCE_DISCORD_APPLICATION_ID + VINCE_DISCORD_API_TOKEN to use Discord (see DISCORD.md).
 const vinceHasOwnDiscord =
@@ -83,11 +86,12 @@ export const vinceCharacter: Character = {
     },
     /**
      * Discord A2A: VINCE responds to bot messages (e.g., from Eliza).
-     * Loop protection: Eliza keeps shouldIgnoreBotMessages: true (default), so she won't
-     * respond to VINCE's replies. Flow: Eliza → VINCE → (Eliza ignores) → end.
-     * To enable symmetric A2A, both agents need custom loop detection (not yet implemented).
+     * Loop protection provided by A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider
+     * in plugin-inter-agent: max 3 exchanges, then stops.
      */
-    shouldIgnoreBotMessages: false,
+    discord: {
+      shouldIgnoreBotMessages: false,
+    },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
@@ -488,6 +492,7 @@ const buildPlugins = (): Plugin[] =>
     ...(vinceHasOwnDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
     openclawPlugin, // Multi-agent research via OpenClaw (alpha, market, on-chain, news)
+    interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
   ] as Plugin[];
 
 // ==========================================

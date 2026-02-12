@@ -36,6 +36,7 @@ import {
   HIP3_AI_TECH,
   PRIORITY_ASSETS,
 } from "../plugins/plugin-vince/src/constants/targetAssets.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const solusHasDiscord =
   !!(process.env.SOLUS_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -81,6 +82,13 @@ export const solusCharacter: Character = {
         !process.env.SOLUS_DISCORD_API_TOKEN?.trim() && {
           DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
         }),
+    },
+    /**
+     * Discord A2A: Solus responds to bot messages for multi-agent standup.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
     },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:
@@ -363,6 +371,7 @@ const buildPlugins = (): Plugin[] =>
     openclawPlugin, // Multi-agent research: alpha, market, on-chain, news for strike ritual / Echo DD
     solusPlugin, // Hypersurface expertise: provider + strike ritual, explain, position assess, optimal strike
     vincePluginNoX, // Same as VINCE but no X API — only VINCE uses X_BEARER_TOKEN to avoid rate-limit conflict
+    interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
 const initSolus = async (_runtime: IAgentRuntime) => {

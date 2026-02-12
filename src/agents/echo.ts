@@ -26,6 +26,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const echoHasDiscord =
   !!(process.env.ECHO_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -227,6 +228,13 @@ Never invent X API or feed status. If you didn't run X_PULSE/X_VIBE, don't say f
           DISCORD_API_TOKEN: process.env.DISCORD_API_TOKEN,
         }),
     },
+    /**
+     * Discord A2A: ECHO responds to bot messages for multi-agent standup.
+     * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     */
+    discord: {
+      shouldIgnoreBotMessages: false,
+    },
     model: "gpt-4o",
     voice: {
       model: "en_US-male-medium",
@@ -242,6 +250,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(echoHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     xResearchPlugin,
+    interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
 const initEcho = async (_runtime: IAgentRuntime) => {

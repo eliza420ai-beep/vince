@@ -133,11 +133,12 @@ const elizaCharacter: Character = {
     },
     /**
      * Discord A2A: Eliza responds to bot messages (e.g., from VINCE).
-     * Loop protection provided by A2A_LOOP_GUARD evaluator in plugin-inter-agent:
-     * - Max exchanges per conversation (A2A_MAX_EXCHANGES, default 3)
-     * - Detects reply chains to own messages (ping-pong prevention)
+     * Loop protection provided by A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider
+     * in plugin-inter-agent: max 3 exchanges, then stops.
      */
-    shouldIgnoreBotMessages: false,
+    discord: {
+      shouldIgnoreBotMessages: false,
+    },
     avatar: "https://elizaos.github.io/eliza-avatars/Eliza/portrait.png",
     ragKnowledge: true,
   },
