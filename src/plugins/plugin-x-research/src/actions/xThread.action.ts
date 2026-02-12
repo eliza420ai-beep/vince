@@ -11,8 +11,7 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
-  ModelClass,
-  generateText,
+  ModelType,
 } from '@elizaos/core';
 import { getXThreadsService } from '../services/xThreads.service';
 import { initXClientFromEnv } from '../services/xClient.service';
@@ -107,17 +106,15 @@ export const xThreadAction: Action = {
       const fullText = tweets.map((t, i) => `${i + 1}. ${t.text}`).join('\n\n');
 
       // Use LLM to generate a proper summary
-      const llmSummary = await generateText({
-        runtime,
-        context: `You are summarizing a Twitter thread for a crypto trader. Be concise but capture key insights.
+      const prompt = `You are summarizing a Twitter thread for a crypto trader. Be concise but capture key insights.
 
 Thread by @${summary.author.username} (${summary.tweetCount} tweets):
 
 ${fullText}
 
-Generate a TL;DR summary with key points. Focus on actionable insights, data, and conclusions. Use bullet points for key points.`,
-        modelClass: ModelClass.SMALL,
-      });
+Generate a TL;DR summary with key points. Focus on actionable insights, data, and conclusions. Use bullet points for key points.`;
+      const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
+      const llmSummary = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
 
       // Build response
       let response = `🧵 **Thread Summary**\n\n`;

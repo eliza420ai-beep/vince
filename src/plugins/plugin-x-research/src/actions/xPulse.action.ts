@@ -18,8 +18,6 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
-  ModelClass,
-  generateText,
 } from '@elizaos/core';
 import { getXSearchService } from '../services/xSearch.service';
 import { getXSentimentService } from '../services/xSentiment.service';

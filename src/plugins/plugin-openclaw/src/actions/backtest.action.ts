@@ -16,8 +16,6 @@ import {
   type State,
   type HandlerCallback,
   logger,
-  ModelClass,
-  generateText,
 } from "@elizaos/core";
 import {
   runBacktest,
