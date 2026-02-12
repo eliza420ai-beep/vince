@@ -54,7 +54,8 @@ export class RelayService extends Service {
   async initialize(runtime: IAgentRuntime): Promise<void> {
     this.isTestnet = runtime.getSetting("RELAY_ENABLE_TESTNET") === "true";
     this.apiUrl = this.isTestnet ? TESTNET_RELAY_API : MAINNET_RELAY_API;
-    this.apiKey = runtime.getSetting("RELAY_API_KEY");
+    const rawKey = runtime.getSetting("RELAY_API_KEY");
+    this.apiKey = typeof rawKey === "string" ? rawKey : undefined;
 
     // Define supported chains
     const supportedChains: Chain[] = [mainnet, base, arbitrum];

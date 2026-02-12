@@ -55,18 +55,23 @@ export const bankrAgentPromptAction: Action = {
     try {
       callback?.({ text: "Sending to Bankr…" });
       const { jobId } = await service.submitPrompt(prompt);
-      callback?.({
-        text: `Bankr job \`${jobId}\` started. Waiting for result…`,
-        actions: ["BANKR_AGENT_PROMPT"],
-      });
 
-      const result = await service.pollJobUntilComplete(jobId, {
-        intervalMs: 1500,
-        maxAttempts: 120,
-        onStatus: (status, msg) => {
-          callback?.({ text: `Bankr: ${msg}`, actions: ["BANKR_AGENT_PROMPT"] });
-        },
-      });
+      let result = await service.getJobStatus(jobId);
+      if (result.status !== "completed" && result.status !== "failed" && result.status !== "cancelled") {
+        callback?.({
+          text: `Bankr job \`${jobId}\` started. Waiting for result…`,
+          actions: ["BANKR_AGENT_PROMPT"],
+        });
+        result = await service.pollJobUntilComplete(jobId, {
+          intervalMs: 1500,
+          maxAttempts: 120,
+          onStatus: (status, msg) => {
+            if (status === "pending" || status === "processing") {
+              callback?.({ text: `Bankr: ${msg}`, actions: ["BANKR_AGENT_PROMPT"] });
+            }
+          },
+        });
+      }
 
       if (result.status === "cancelled") {
         callback?.({ text: "Bankr job was cancelled.", actions: ["BANKR_AGENT_PROMPT"] });

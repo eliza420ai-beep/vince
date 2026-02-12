@@ -11,6 +11,27 @@ import type {
 } from "../types";
 
 const DEFAULT_ORDER_URL = "https://api.bankr.bot/trading/order";
+const REQUEST_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(`Bankr Orders API request timed out after ${timeoutMs}ms`);
+    }
+    throw e;
+  }
+}
 
 export class BankrOrdersService extends Service {
   static serviceType = "bankr_orders" as const;
@@ -45,14 +66,17 @@ export class BankrOrdersService extends Service {
 
   private async request<T>(path: string, init: RequestInit): Promise<T> {
     const url = `${this.apiUrl.replace(/\/$/, "")}${path}`;
-    const res = await fetch(url, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": this.apiKey,
-        ...(init.headers as Record<string, string>),
-      },
-    });
+    const res = await fetchWithTimeout(
+      url,
+      {
+        ...init,
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": this.apiKey,
+          ...(init.headers as Record<string, string>),
+        },
+      }
+    );
     const data = (await res.json()) as T & { error?: { message?: string }; message?: string };
     if (!res.ok) {
       const err = (data as { error?: { message?: string }; message?: string }).error?.message

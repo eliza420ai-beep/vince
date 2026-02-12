@@ -10,6 +10,10 @@ import { CdpService } from "../services/cdp.service";
 /**
  * Validate that CDP service is available and plugin context is active
  *
+ * CDP plugin is always active when the service is present (no keyword-based context matching).
+ * For optional keyword-based activation, see matcher.ts shouldCdpPluginBeInContext and
+ * cdpKeywordPatterns; they are not used here by design so wallet actions stay available.
+ *
  * @param runtime - Agent runtime
  * @param actionName - Name of action for logging
  * @param state - Optional state for plugin context check
@@ -23,8 +27,7 @@ export function validateCdpService(
   _message?: Memory
 ): boolean {
   try {
-    // CDP plugin always active - no context matching required
-    // This ensures wallet operations are always available to the agent
+    // CDP plugin always active when service exists - no context matching required
 
     const service = runtime.getService(
       CdpService.serviceType

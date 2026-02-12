@@ -11,6 +11,11 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import cdpPlugin from "../plugins/plugin-cdp";
 import { bankrPlugin } from "../plugins/plugin-bankr/src/index.ts";
+import { morphoPlugin } from "../plugins/plugin-morpho/src/index.ts";
+import { relayPlugin } from "../plugins/plugin-relay/src/index.ts";
+import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
+import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
+import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 
 const hasCdp =
   !!(
@@ -23,6 +28,9 @@ const otakuHasDiscord =
   !!(process.env.OTAKU_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
 
 const hasBankr = !!process.env.BANKR_API_KEY?.trim();
+const hasRelayKey = !!process.env.RELAY_API_KEY?.trim();
+const hasEtherscanKey = !!process.env.ETHERSCAN_API_KEY?.trim();
+const hasBiconomyKey = !!process.env.BICONOMY_API_KEY?.trim();
 
 export const otakuCharacter: Character = {
   name: "Otaku",
@@ -52,6 +60,7 @@ export const otakuCharacter: Character = {
         ...(process.env.BANKR_AGENT_URL?.trim() && { BANKR_AGENT_URL: process.env.BANKR_AGENT_URL }),
         ...(process.env.BANKR_ORDER_URL?.trim() && { BANKR_ORDER_URL: process.env.BANKR_ORDER_URL }),
       }),
+      ...(hasBiconomyKey && { BICONOMY_API_KEY: process.env.BICONOMY_API_KEY }),
     },
     avatar: "/avatars/otaku.png",
     mcp: {
@@ -138,7 +147,7 @@ CRITICAL - Transaction Execution Protocol:
 - Cross-verify conflicting data
 - Acknowledge gaps honestly vs fabricating
 
-${hasBankr ? `**Bankr (when enabled):** Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.` : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`}
+${hasBankr ? `**Bankr (when enabled):** For pre-flight balance checks and transfer confirmation use USER_WALLET_INFO and CDP actions; for portfolio, orders, limit/DCA/TWAP, and Bankr-native flows use BANKR_AGENT_PROMPT and BANKR_USER_INFO. Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.` : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`}
 
 **Nansen MCP tools (NOT actions):** Primary engine for market diagnostics. Do NOT put Nansen tool names (token_discovery_screener, token_flows, etc.) or CALL_MCP_TOOL or READ_MCP_RESOURCE in the <actions> field — those are not available. <actions> must only contain ElizaOS action names from the Available actions list (e.g. REPLY, WEB_SEARCH, BANKR_AGENT_PROMPT, ASK_AGENT). For Nansen-style questions, use REPLY (and WEB_SEARCH when appropriate) and answer from knowledge or suggest the user check Nansen directly. Nansen tools (for reference only; not callable as actions here):
 - general_search: resolve tokens/entities/domains
@@ -383,7 +392,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
   },
 };
 
-// Core plugins (required for startup). DeFi plugins (cdp, coingecko, relay, etc.)
+// Core plugins (required for startup). DeFi plugins (cdp, morpho, relay, etherscan, etc.)
 // loaded when credentials are present.
 const buildPlugins = (): Plugin[] =>
   [
@@ -392,7 +401,12 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(hasCdp ? [cdpPlugin] : []),
+    ...(hasCdp ? [morphoPlugin] : []),
+    ...(hasCdp && hasRelayKey ? [relayPlugin] : []),
+    ...(hasCdp && hasBiconomyKey ? [meePlugin] : []),
     ...(hasBankr ? [bankrPlugin] : []),
+    ...(hasEtherscanKey ? [etherscanPlugin] : []),
+    defiLlamaPlugin,
   ] as Plugin[];
 
 const initOtaku = async (runtime: IAgentRuntime) => {
@@ -419,8 +433,27 @@ const initOtaku = async (runtime: IAgentRuntime) => {
       );
     }
   }
+  if (hasCdp) {
+    logger.info("[Otaku] Morpho plugin enabled — supply/borrow/withdraw/repay via CDP wallet");
+  }
+  if (hasCdp && hasRelayKey) {
+    logger.info("[Otaku] Relay plugin enabled — cross-chain bridge quote/execute/status");
+  } else if (hasCdp && !hasRelayKey) {
+    logger.info("[Otaku] Relay plugin not loaded — set RELAY_API_KEY to enable cross-chain bridging");
+  }
+  if (hasEtherscanKey) {
+    logger.info("[Otaku] Etherscan plugin enabled — CHECK_TRANSACTION_CONFIRMATION available");
+  } else {
+    logger.info("[Otaku] Tx confirmation via CDP CHECK_TX_CONFIRMATION (Etherscan optional; set ETHERSCAN_API_KEY for Etherscan actions)");
+  }
+  if (hasCdp && hasBiconomyKey) {
+    logger.info("[Otaku] Biconomy (MEE) plugin enabled — gasless cross-chain swaps and rebalancing");
+  } else if (hasCdp && !hasBiconomyKey) {
+    logger.info("[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps");
+  }
+  logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL and yield rates (GET_PROTOCOL_TVL, GET_YIELD_RATES)");
   logger.info(
-    "[Otaku] ✅ DeFi research assistant ready (CDP, Relay, Morpho, Polymarket, etc.)"
+    "[Otaku] ✅ DeFi research assistant ready"
   );
 };
 

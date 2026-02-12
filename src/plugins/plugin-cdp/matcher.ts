@@ -2,7 +2,9 @@ import type { Memory, State } from "@elizaos/core";
 import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
 
 /**
- * Keyword patterns for CDP plugin context activation
+ * Keyword patterns for optional CDP plugin context activation.
+ * Not used by validateCdpService by default (CDP stays always active when service exists).
+ * Wire shouldCdpPluginBeInContext into action validate() if you want keyword-based activation.
  */
 export const cdpKeywordPatterns: PluginKeywordPatterns = {
   keywords: [

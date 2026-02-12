@@ -282,6 +282,8 @@ Plugins needed for full Otaku behavior come from the [elizaOS/otaku](https://git
 
 Plus **@elizaos/plugin-sql** for database (messages, memories, state).
 
+**Plugin loading in VINCE:** In this repo, Otaku loads plugins conditionally. **Relay** is gated on `RELAY_API_KEY` (and CDP); once set, the Relay plugin is loaded and cross-chain bridge actions become available. **Etherscan** is optional: when `ETHERSCAN_API_KEY` is not set, transaction confirmation is handled by the CDP plugin’s `CHECK_TX_CONFIRMATION` (viem/RPC); set the key to enable Etherscan’s `CHECK_TRANSACTION_CONFIRMATION` and related endpoints. **Biconomy (MEE)** is gated on CDP + `BICONOMY_API_KEY`; when set, gasless cross-chain swaps and portfolio rebalancing (MEE_FUSION_SWAP, MEE_SUPERTRANSACTION_REBALANCE) are available—use for swaps/bridges when the user lacks native gas on the destination chain. **DefiLlama** is always loaded: protocol-level TVL and yield rates (GET_PROTOCOL_TVL, GET_YIELD_RATES, etc.) for DeFi analysis; no overlap with plugin-vince (which uses pool/DEX TVL from Meteora/DexScreener). **Clanker** is not loaded: token launch is handled by Bankr (“deploy a token on base” / “launch a token on solana” via BANKR_AGENT_PROMPT); Clanker is redundant for a Bankr-first setup. **CoinGecko** is not loaded for Otaku; execution and quote context come from Relay/Bankr/Morpho and Nansen; for perps/options context elsewhere (Vince, Solus), Hyperliquid is preferred over CoinGecko.
+
 ### CDP Plugin (plugin-cdp)
 
 Coinbase Developer Platform integration providing wallet and payment functionality.

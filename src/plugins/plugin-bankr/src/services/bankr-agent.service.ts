@@ -11,6 +11,28 @@ import type {
 } from "../types";
 
 const DEFAULT_AGENT_URL = "https://api.bankr.bot";
+const API_KEY_HEADER = "X-API-Key";
+const REQUEST_TIMEOUT_MS = 30_000;
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (e) {
+    clearTimeout(id);
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new Error(`Bankr API request timed out after ${timeoutMs}ms`);
+    }
+    throw e;
+  }
+}
 
 export class BankrAgentService extends Service {
   static serviceType = "bankr_agent" as const;
@@ -51,14 +73,17 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/prompt`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "x-api-key": this.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt }),
-    });
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          [API_KEY_HEADER]: this.apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt }),
+      }
+    );
     const data = (await res.json()) as PromptResponse & { error?: string; message?: string };
     if (!res.ok) {
       throw new Error(data.error || data.message || "Bankr Agent API error");
@@ -74,9 +99,9 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/job/${jobId}`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "GET",
-      headers: { "x-api-key": this.apiKey },
+      headers: { [API_KEY_HEADER]: this.apiKey },
     });
     const data = (await res.json()) as JobStatusResponse & { error?: string; message?: string };
     if (!res.ok) {
@@ -90,9 +115,9 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/me`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "GET",
-      headers: { "X-API-Key": this.apiKey },
+      headers: { [API_KEY_HEADER]: this.apiKey },
     });
     const data = (await res.json()) as UserInfoResponse & { error?: string; message?: string };
     if (!res.ok) {
@@ -118,10 +143,10 @@ export class BankrAgentService extends Service {
       if (body.transaction == null) throw new Error("eth_signTransaction requires transaction or payload (object)");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/sign`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: {
-        "X-API-Key": this.apiKey,
+        [API_KEY_HEADER]: this.apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -140,10 +165,10 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/submit`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: {
-        "X-API-Key": this.apiKey,
+        [API_KEY_HEADER]: this.apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
@@ -165,9 +190,9 @@ export class BankrAgentService extends Service {
       throw new Error("BANKR_API_KEY is not set");
     }
     const url = `${this.apiUrl.replace(/\/$/, "")}/agent/job/${jobId}/cancel`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
-      headers: { "x-api-key": this.apiKey, "Content-Type": "application/json" },
+      headers: { [API_KEY_HEADER]: this.apiKey, "Content-Type": "application/json" },
     });
     if (!res.ok) {
       const data = (await res.json()) as { error?: string; message?: string };

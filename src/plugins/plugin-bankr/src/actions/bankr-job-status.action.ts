@@ -9,19 +9,20 @@ import {
 } from "@elizaos/core";
 import { BankrAgentService } from "../services/bankr-agent.service";
 
+/** Prefer actionParams.jobId (or job_id); fall back to message text regex only when params are missing. */
 function getJobIdFromMessageOrState(message: Memory, state?: State): string | null {
+  const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
+  const fromParams = params.jobId ?? params.job_id;
+  if (typeof fromParams === "string" && fromParams.trim()) return fromParams.trim();
   const text = message?.content?.text?.trim() ?? "";
   const match = text.match(/\b([a-zA-Z0-9_-]{8,})\b/);
-  if (match) return match[1];
-  const params = (state?.data?.actionParams || {}) as Record<string, unknown>;
-  const jobId = params.jobId ?? params.job_id;
-  return typeof jobId === "string" ? jobId.trim() : null;
+  return match ? match[1] : null;
 }
 
 export const bankrJobStatusAction: Action = {
   name: "BANKR_JOB_STATUS",
   description:
-    "Get the status of a Bankr prompt job by jobId. Returns status (pending, processing, completed, failed, cancelled), response text if completed, error if failed, and whether it is cancellable. Use when the user asks what's the status of my Bankr job, check on job X, or similar. jobId can be in the message or in actionParams.jobId.",
+    "Get the status of a Bankr prompt job by jobId. Returns status (pending, processing, completed, failed, cancelled), response text if completed, error if failed, and whether it is cancellable. Prefer actionParams.jobId (or actionParams.job_id) when available; otherwise jobId may be inferred from message text. Use when the user asks what's the status of my Bankr job, check on job X, or similar.",
   similes: ["BANKR_JOB_STATUS", "BANKR_CHECK_JOB", "BANKR_GET_JOB"],
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State) => {
