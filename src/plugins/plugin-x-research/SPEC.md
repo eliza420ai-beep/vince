@@ -1,99 +1,198 @@
-# Plugin X Research — Full Specification
+# Plugin X Research — Full Specification v2
 
-**Version:** 1.0.0  
+**Version:** 2.0.0  
 **Status:** Specification Complete  
-**Author:** VINCE Dream Team  
-**Purpose:** Dedicated X/Twitter research and sentiment plugin for VINCE
+**Last Updated:** 2026-02-12
 
 ---
 
-## Table of Contents
+## 🎯 North Star
 
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [X API v2 Reference](#x-api-v2-reference)
-4. [Services](#services)
-5. [Actions](#actions)
-6. [Providers](#providers)
-7. [Analysis Modules](#analysis-modules)
-8. [Types](#types)
-9. [Configuration](#configuration)
-10. [Caching Strategy](#caching-strategy)
-11. [Rate Limiting](#rate-limiting)
-12. [Testing](#testing)
-13. [Migration from plugin-vince](#migration-from-plugin-vince)
-14. [Examples](#examples)
+> **ALOHA for X** — One action that delivers sentiment and alpha around the topics we care about, written like a smart friend texting you about what's happening on CT.
 
----
-
-## Overview
-
-### Why a Dedicated Plugin?
-
-The X API v2 is extensive (50+ endpoints) and X/Twitter is the primary source of crypto alpha. Current implementation is fragmented:
-
-| Current Location | What |
-|------------------|------|
-| `plugin-vince/services/xResearch.service.ts` | Search, profile, thread |
-| `plugin-vince/services/xSentiment.service.ts` | Trading sentiment |
-| `plugin-vince/actions/xResearch.action.ts` | In-chat research |
-| `plugin-vince/utils/xSentimentLogic.ts` | Keyword scoring |
-| `skills/x-research/` | OpenClaw CLI tool |
-
-**Problems:**
-- Logic spread across 5 locations
-- Hard to test sentiment without trading code
-- Can't reuse in other agents (Eliza, Sentinel)
-- Missing advanced features (volume, velocity, threads)
-
-**Solution:** `plugin-x-research` — single source of truth for all X research.
-
-### Goals
-
-1. **Complete X API v2 coverage** — all read endpoints
-2. **Trading-grade sentiment** — weighted, tiered, velocity-aware
-3. **Alpha discovery** — threads, emerging accounts, narratives
-4. **ALOHA-style output** — human, opinionated briefings
-5. **Reusable** — provider pattern for other plugins
-6. **Cost-efficient** — smart caching, deduplication, staggered refresh
-
----
-
-## Architecture
+Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the X/Twitter vibe for our focus areas:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         plugin-x-research                                │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ACTIONS                                                                 │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
-│  │ X_SEARCH │ │ X_VIBE   │ │ X_THREAD │ │ X_ALPHA  │ │ X_PULSE  │      │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘      │
-│       │            │            │            │            │             │
-├───────┼────────────┼────────────┼────────────┼────────────┼─────────────┤
-│  SERVICES                                                                │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                      xClient.service.ts                          │    │
-│  │  (Auth, Rate Limits, Request Queue, Error Handling)              │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-│       │                                                                  │
-│  ┌────┴────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│  │ xSearch │ │xSentiment│ │xAccounts │ │ xLists   │ │ xThreads │       │
-│  └─────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘       │
-│                                                                          │
-├──────────────────────────────────────────────────────────────────────────┤
-│  ANALYSIS                                                                │
-│  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐ │
-│  │ velocity  │ │ topics    │ │ contrarian│ │ reputation│ │ threads   │ │
-│  └───────────┘ └───────────┘ └───────────┘ └───────────┘ └───────────┘ │
-│                                                                          │
-├──────────────────────────────────────────────────────────────────────────┤
-│  PROVIDERS (for other plugins)                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │ xSentimentProvider — getTradingSentiment(asset) → Signal        │    │
-│  │ xVibeProvider — getMarketVibe() → VibeCheck                     │    │
-│  └─────────────────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────────────────┘
+"What's CT saying about BTC today?"
+→ Bullish sentiment (72% confidence), 3 threads worth reading,
+  @crediblecrypto's take on ETF flows hit 2k likes in 2 hours,
+  whale accounts quiet, retail is fading. Classic divergence setup.
+```
+
+---
+
+## 📌 Topics We Care About
+
+From the VINCE README — these are our focus areas:
+
+### Core Assets (Paper Trading)
+| Asset | Why |
+|-------|-----|
+| **BTC** | Primary trading asset, market leader |
+| **ETH** | L2 activity, DeFi backbone |
+| **SOL** | Meme season, speed narrative |
+| **HYPE** | Our ecosystem token |
+
+### Trading Intelligence
+| Topic | Why |
+|-------|-----|
+| **Perps & Funding** | Crowded longs/shorts, liquidation cascades |
+| **Options & DVOL** | IV, put/call ratios, whale positioning |
+| **Whale Moves** | Smart money flows, large transfers |
+| **Liquidations** | Cascade detection, pain points |
+
+### Ecosystem
+| Topic | Why |
+|-------|-----|
+| **ElizaOS** | Our framework, community, releases |
+| **AI Agents** | Industry trends, competitors |
+| **DeFi** | Yields, protocols, exploits |
+| **Memes** | Early detection, lifecycle |
+
+### Meta
+| Topic | Why |
+|-------|-----|
+| **Macro** | FOMC, CPI, risk-on/risk-off |
+| **Regulatory** | SEC, legislation, enforcement |
+| **Hacks/Exploits** | Risk events, security |
+
+---
+
+## 🔥 X API v2 — Full Endpoint Coverage
+
+### NEW: News API (Game Changer!)
+
+```
+GET /2/news/search
+GET /2/news/:id
+```
+
+**What it returns:**
+```json
+{
+  "name": "BTC ETF Sees Record Inflows",
+  "summary": "Bitcoin ETFs recorded $1.2B in inflows...",
+  "hook": "The biggest single-day inflow since launch",
+  "contexts": {
+    "finance": { "tickers": ["BTC", "IBIT", "GBTC"] },
+    "topics": ["Cryptocurrency", "ETF"],
+    "entities": {
+      "organizations": ["BlackRock", "Fidelity"],
+      "people": ["Larry Fink"]
+    }
+  },
+  "cluster_posts_results": [
+    { "post_id": "1989409257394245835" },
+    { "post_id": "1989410019562197162" }
+  ]
+}
+```
+
+**Why it's gold:**
+- Pre-structured news with Grok summaries
+- **finance.tickers** — filter for crypto/stocks we care about
+- **cluster_posts_results** — the actual tweets driving the story
+- No need to parse sentiment from raw tweets for news
+
+### NEW: Personalized Trends API
+
+```
+GET /2/users/personalized_trends
+```
+
+**What it returns:**
+```json
+{
+  "data": [
+    { "trend_name": "#Bitcoin", "post_count": 125000, "category": "Finance" },
+    { "trend_name": "ETH", "post_count": 85000, "category": "Crypto" }
+  ]
+}
+```
+
+**Why it matters:**
+- Volume numbers (post_count) for trending topics
+- Category filtering
+- Detect when our topics are trending
+
+### Lists API (Quality-First Approach)
+
+```
+GET /2/lists/:id              # List metadata
+GET /2/lists/:id/tweets       # Posts from list members
+GET /2/lists/:id/members      # Quality accounts
+```
+
+**Our approach:**
+1. Create curated X list with 50-100 quality crypto accounts
+2. Set `X_RESEARCH_QUALITY_LIST_ID` to that list
+3. Weight posts from list members higher
+4. Use list feed as primary source, search as supplement
+
+### Posts API (Search & Analysis)
+
+```
+GET /2/tweets/search/recent   # Search last 7 days
+GET /2/tweets/counts/recent   # Volume by hour/day (spike detection)
+GET /2/tweets/:id             # Single post
+GET /2/tweets                 # Multiple posts by ID
+GET /2/tweets/:id/quote_tweets    # Reactions
+GET /2/tweets/:id/retweeted_by    # Spread
+```
+
+### Users API (Account Analysis)
+
+```
+GET /2/users/by/username/:username   # Profile
+GET /2/users/:id/tweets              # Timeline
+GET /2/users/:id/mentions            # Who's mentioning
+GET /2/users/:id/followers           # Follower analysis (rate limited)
+GET /2/users/:id/following           # Alpha discovery (rate limited)
+```
+
+### Spaces API (Future)
+
+```
+GET /2/spaces/search          # Find spaces about topic
+GET /2/spaces/:id             # Space details
+```
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         plugin-x-research                                    │
+│                                                                              │
+│  ╔═══════════════════════════════════════════════════════════════════════╗  │
+│  ║                        🎯 X_PULSE (North Star)                         ║  │
+│  ║  ALOHA-style briefing: sentiment + alpha + threads + warnings          ║  │
+│  ╚═══════════════════════════════════════════════════════════════════════╝  │
+│                                    │                                         │
+│         ┌──────────────────────────┼──────────────────────────┐             │
+│         ▼                          ▼                          ▼             │
+│  ┌─────────────┐          ┌─────────────┐           ┌─────────────┐        │
+│  │  xNews      │          │ xSentiment  │           │  xAlpha     │        │
+│  │  Service    │          │  Service    │           │  Service    │        │
+│  │             │          │             │           │             │        │
+│  │ • News API  │          │ • Keywords  │           │ • Velocity  │        │
+│  │ • Tickers   │          │ • Tiers     │           │ • Threads   │        │
+│  │ • Summaries │          │ • Contrarian│           │ • Discovery │        │
+│  └─────────────┘          └─────────────┘           └─────────────┘        │
+│         │                          │                          │             │
+│         └──────────────────────────┼──────────────────────────┘             │
+│                                    ▼                                         │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         xClient Service                                │  │
+│  │  Auth • Rate Limits • Request Queue • Caching • Error Handling        │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                         │
+│  ┌─────────┬─────────┬─────────┬───┴───┬─────────┬─────────┬─────────┐     │
+│  │ Search  │ Counts  │  News   │ Trends│  Lists  │  Users  │ Threads │     │
+│  └─────────┴─────────┴─────────┴───────┴─────────┴─────────┴─────────┘     │
+│                              X API v2                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Directory Structure
@@ -101,811 +200,457 @@ The X API v2 is extensive (50+ endpoints) and X/Twitter is the primary source of
 ```
 src/plugins/plugin-x-research/
 ├── src/
-│   ├── index.ts                      # Plugin export
+│   ├── index.ts
 │   │
 │   ├── services/
-│   │   ├── xClient.service.ts        # Core API client
-│   │   ├── xSearch.service.ts        # Search, counts, trending
-│   │   ├── xSentiment.service.ts     # Sentiment analysis
-│   │   ├── xAccounts.service.ts      # User profiles, followers
-│   │   ├── xLists.service.ts         # Curated lists
-│   │   ├── xThreads.service.ts       # Thread detection + fetch
-│   │   └── xSpaces.service.ts        # Audio spaces (future)
+│   │   ├── xClient.service.ts       # Core API client (auth, rate limits)
+│   │   ├── xNews.service.ts         # 🆕 News API (summaries, tickers)
+│   │   ├── xTrends.service.ts       # 🆕 Personalized trends
+│   │   ├── xSearch.service.ts       # Search + counts
+│   │   ├── xSentiment.service.ts    # Trading sentiment
+│   │   ├── xLists.service.ts        # Curated quality accounts
+│   │   ├── xAccounts.service.ts     # User profiles, discovery
+│   │   ├── xThreads.service.ts      # Thread detection + fetch
+│   │   └── xAlpha.service.ts        # Alpha aggregation
 │   │
 │   ├── actions/
-│   │   ├── xSearch.action.ts         # "search X for..."
-│   │   ├── xVibe.action.ts           # CT vibe check
-│   │   ├── xAccount.action.ts        # "what's @user thinking"
-│   │   ├── xThread.action.ts         # "get thread..."
-│   │   ├── xAlpha.action.ts          # "find alpha on X"
-│   │   ├── xPulse.action.ts          # Daily briefing
-│   │   └── xMentions.action.ts       # "who's mentioning @user"
+│   │   ├── xPulse.action.ts         # 🎯 North Star — ALOHA for X
+│   │   ├── xNews.action.ts          # "crypto news on X"
+│   │   ├── xVibe.action.ts          # Quick sentiment check
+│   │   ├── xSearch.action.ts        # Manual search
+│   │   ├── xThread.action.ts        # Get thread
+│   │   └── xAccount.action.ts       # Account analysis
 │   │
 │   ├── providers/
-│   │   ├── xSentiment.provider.ts    # For signal aggregator
-│   │   └── xVibe.provider.ts         # For ALOHA action
+│   │   ├── xSentiment.provider.ts   # For VINCE signal aggregator
+│   │   ├── xNews.provider.ts        # For VINCE news sentiment
+│   │   └── xVibe.provider.ts        # For VINCE ALOHA
 │   │
 │   ├── analysis/
-│   │   ├── velocityScorer.ts         # Engagement velocity
-│   │   ├── topicCluster.ts           # Narrative detection
-│   │   ├── contrarianDetector.ts     # Extreme sentiment warnings
-│   │   ├── accountReputation.ts      # Tier scoring
-│   │   ├── threadDetector.ts         # Thread identification
-│   │   └── volumeAnalyzer.ts         # Volume trends/spikes
+│   │   ├── velocityScorer.ts        # Engagement velocity (likes/hour)
+│   │   ├── topicCluster.ts          # Emerging narratives
+│   │   ├── contrarianDetector.ts    # Extreme sentiment warnings
+│   │   ├── accountReputation.ts     # Whale/alpha/quality tiers
+│   │   ├── threadDetector.ts        # Thread identification
+│   │   ├── volumeAnalyzer.ts        # Spike detection (counts API)
+│   │   └── newsAnalyzer.ts          # 🆕 News relevance scoring
 │   │
 │   ├── constants/
-│   │   ├── sentimentKeywords.ts      # Bullish/bearish/risk
-│   │   ├── qualityAccounts.ts        # Default VIP handles
-│   │   ├── endpoints.ts              # X API URLs
-│   │   └── defaults.ts               # Default config values
+│   │   ├── topics.ts                # Topics we care about
+│   │   ├── sentimentKeywords.ts     # Bullish/bearish/risk
+│   │   ├── qualityAccounts.ts       # Default VIP handles
+│   │   └── endpoints.ts             # X API URLs
 │   │
 │   ├── types/
-│   │   ├── index.ts                  # All type exports
-│   │   ├── tweet.types.ts            # XTweet, XThread
-│   │   ├── user.types.ts             # XUser, XAccountTier
-│   │   ├── sentiment.types.ts        # XSentiment, XVibe
-│   │   ├── analysis.types.ts         # Velocity, Cluster, etc.
-│   │   └── api.types.ts              # X API response types
-│   │
-│   ├── utils/
-│   │   ├── queryBuilder.ts           # Build X search queries
-│   │   ├── rateLimiter.ts            # Token bucket / backoff
-│   │   ├── cache.ts                  # Cache helpers
-│   │   └── parseHelpers.ts           # Response parsing
+│   │   ├── index.ts
+│   │   ├── tweet.types.ts
+│   │   ├── news.types.ts            # 🆕 XNews types
+│   │   ├── trends.types.ts          # 🆕 XTrend types
+│   │   ├── sentiment.types.ts
+│   │   └── analysis.types.ts
 │   │
 │   └── __tests__/
-│       ├── xClient.test.ts
-│       ├── xSearch.test.ts
-│       ├── xSentiment.test.ts
-│       ├── velocityScorer.test.ts
-│       ├── topicCluster.test.ts
-│       └── integration/
-│           └── fullPipeline.test.ts
 │
-├── README.md
-├── CHANGELOG.md
-└── package.json
+└── README.md
 ```
 
 ---
 
-## X API v2 Reference
+## 🆕 Services
 
-### Authentication
-
-```typescript
-// Bearer Token (App-Only) — what we use
-Authorization: Bearer ${X_BEARER_TOKEN}
-
-// Rate limits: ~450 requests per 15-minute window (Basic tier)
-// Pay-as-you-go: deduplication within 24hr UTC window
-```
-
-### Endpoints We Use
-
-#### Posts
-
-| Endpoint | Method | Description | Rate |
-|----------|--------|-------------|------|
-| `/2/tweets/search/recent` | GET | Search posts (last 7 days) | 450/15m |
-| `/2/tweets/counts/recent` | GET | Count posts per time bucket | 300/15m |
-| `/2/tweets/:id` | GET | Single post by ID | 900/15m |
-| `/2/tweets` | GET | Multiple posts by IDs | 900/15m |
-| `/2/tweets/:id/quote_tweets` | GET | Quote tweets of a post | 75/15m |
-| `/2/tweets/:id/retweeted_by` | GET | Users who retweeted | 75/15m |
-| `/2/tweets/:id/liking_users` | GET | Users who liked | 75/15m |
-
-#### Users
-
-| Endpoint | Method | Description | Rate |
-|----------|--------|-------------|------|
-| `/2/users/by/username/:username` | GET | User by handle | 900/15m |
-| `/2/users/by` | GET | Multiple users by usernames | 900/15m |
-| `/2/users/:id` | GET | User by ID | 900/15m |
-| `/2/users/:id/tweets` | GET | User's timeline | 900/15m |
-| `/2/users/:id/mentions` | GET | Mentions of user | 450/15m |
-| `/2/users/:id/followers` | GET | User's followers | 15/15m |
-| `/2/users/:id/following` | GET | Who user follows | 15/15m |
-
-#### Lists
-
-| Endpoint | Method | Description | Rate |
-|----------|--------|-------------|------|
-| `/2/lists/:id` | GET | List metadata | 75/15m |
-| `/2/lists/:id/tweets` | GET | Posts from list | 900/15m |
-| `/2/lists/:id/members` | GET | List members | 900/15m |
-| `/2/users/:id/owned_lists` | GET | Lists user owns | 15/15m |
-| `/2/users/:id/list_memberships` | GET | Lists containing user | 75/15m |
-
-#### Spaces (Future)
-
-| Endpoint | Method | Description | Rate |
-|----------|--------|-------------|------|
-| `/2/spaces/search` | GET | Search spaces | 300/15m |
-| `/2/spaces/:id` | GET | Space details | 300/15m |
-
-### Query Operators
-
-```
-# Basic
-from:username       Posts from user
-to:username         Replies to user
-@username           Mentions user
-#hashtag            Has hashtag
-$cashtag            Has cashtag (e.g., $BTC)
-
-# Filters
--is:retweet         Exclude retweets
--is:reply           Exclude replies
-is:verified         Only verified accounts
-has:links           Has URLs
-has:media           Has images/video
-
-# Engagement (post-hoc only, not query)
-# X API doesn't support min_faves in query — filter after fetch
-
-# Time
-since:2024-01-01    After date
-until:2024-01-31    Before date
-
-# Combine
-($BTC OR Bitcoin) -is:retweet -giveaway -airdrop min_faves:50
-```
-
----
-
-## Services
-
-### xClient.service.ts
-
-Core API client handling auth, rate limits, and request queue.
+### xNews.service.ts (NEW!)
 
 ```typescript
 /**
- * X API Client Service
+ * X News Service
  * 
- * Responsibilities:
- * - Bearer token management (primary + optional background token)
- * - Rate limit tracking per endpoint
- * - Request queue with backoff
- * - Response parsing and error handling
- * - Usage tracking for cost monitoring
- */
-
-export interface XClientConfig {
-  bearerToken: string;
-  backgroundToken?: string;        // For sentiment (doesn't block in-chat)
-  maxRetries: number;              // Default: 3
-  baseDelayMs: number;             // Default: 1000
-  maxDelayMs: number;              // Default: 60000
-}
-
-export interface XClientService {
-  // Core request method
-  request<T>(
-    endpoint: string,
-    params?: Record<string, string>,
-    options?: RequestOptions
-  ): Promise<XApiResponse<T>>;
-  
-  // Rate limit info
-  getRateLimitStatus(endpoint: string): RateLimitStatus;
-  isRateLimited(endpoint: string): boolean;
-  getSecondsUntilReset(endpoint: string): number;
-  
-  // Token management
-  useBackgroundToken(): boolean;
-  getActiveToken(): string;
-  
-  // Usage tracking
-  getUsageToday(): UsageSummary;
-  getUsageThisMonth(): UsageSummary;
-}
-
-interface RateLimitStatus {
-  limit: number;
-  remaining: number;
-  resetAtMs: number;
-}
-
-interface UsageSummary {
-  requests: number;
-  estimatedCost: number;
-  byEndpoint: Record<string, number>;
-}
-```
-
-### xSearch.service.ts
-
-Search, counts, and trending analysis.
-
-```typescript
-/**
- * X Search Service
+ * Leverages the new News API for structured crypto/finance news.
+ * Returns Grok-generated summaries with ticker extraction.
  * 
  * Endpoints:
- * - /2/tweets/search/recent
- * - /2/tweets/counts/recent
+ * - GET /2/news/search
+ * - GET /2/news/:id
  */
 
-export interface XSearchService {
-  // Basic search
-  search(query: string, options?: SearchOptions): Promise<XSearchResult>;
+export interface XNewsService {
+  // Search news by query
+  searchNews(query: string, options?: NewsSearchOptions): Promise<XNewsResult[]>;
   
-  // Paginated search (generator)
-  searchPaginated(
-    query: string, 
-    options?: SearchOptions
-  ): AsyncGenerator<XSearchPage>;
+  // Get news by ID (with full details)
+  getNews(newsId: string): Promise<XNewsItem>;
   
-  // Collect up to N tweets
-  searchAll(
-    query: string, 
-    options?: SearchAllOptions
-  ): Promise<XTweet[]>;
+  // Get news for our focus tickers
+  getTickerNews(tickers: string[]): Promise<XNewsResult[]>;
   
-  // Volume analysis
-  getCounts(
-    query: string, 
-    options?: CountsOptions
-  ): Promise<XCountsResult>;
+  // Get crypto-specific news
+  getCryptoNews(options?: CryptoNewsOptions): Promise<XNewsResult[]>;
   
-  // Volume trend (spike detection)
-  getVolumeTrend(query: string): Promise<VolumeTrend>;
-  
-  // Trending (based on velocity)
-  getTrending(options?: TrendingOptions): Promise<TrendingResult>;
+  // Get posts that drove a news story
+  getNewsClusterPosts(newsId: string): Promise<XTweet[]>;
 }
 
-interface SearchOptions {
-  maxResults?: number;           // 10-100, default 100
-  sinceId?: string;
-  untilId?: string;
-  startTime?: string;            // ISO timestamp
-  endTime?: string;
-  sortOrder?: 'relevancy' | 'recency';
-  expansions?: string[];
-  tweetFields?: string[];
-  userFields?: string[];
+interface XNewsItem {
+  id: string;
+  name: string;                  // Headline
+  summary: string;               // Grok-generated summary
+  hook: string;                  // Attention-grabbing one-liner
+  category: string;
+  
+  contexts: {
+    finance: {
+      tickers: string[];         // BTC, ETH, NVDA, etc.
+    };
+    topics: string[];            // Cryptocurrency, ETF, etc.
+    entities: {
+      organizations: string[];   // BlackRock, SEC, etc.
+      people: string[];          // Vitalik, CZ, etc.
+      events: string[];
+      places: string[];
+    };
+  };
+  
+  clusterPostIds: string[];      // Tweet IDs driving the story
+  lastUpdatedAt: number;
+  disclaimer: string;
 }
 
-interface SearchAllOptions extends SearchOptions {
-  maxTweets?: number;            // Total tweets to collect
-  maxPages?: number;             // Max pagination requests
+interface XNewsResult extends XNewsItem {
+  relevanceScore: number;        // How relevant to our topics (0-100)
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  impactLevel: 'high' | 'medium' | 'low';
 }
 
-interface CountsOptions {
-  granularity?: 'minute' | 'hour' | 'day';
-  startTime?: string;
-  endTime?: string;
+// Filter news for our focus areas
+const FOCUS_TICKERS = ['BTC', 'ETH', 'SOL', 'HYPE'];
+const FOCUS_TOPICS = ['Cryptocurrency', 'DeFi', 'NFT', 'AI', 'Blockchain'];
+const FOCUS_ORGS = ['SEC', 'Binance', 'Coinbase', 'BlackRock', 'Fidelity'];
+```
+
+### xTrends.service.ts (NEW!)
+
+```typescript
+/**
+ * X Trends Service
+ * 
+ * Personalized trends with volume data.
+ * 
+ * Endpoint:
+ * - GET /2/users/personalized_trends
+ */
+
+export interface XTrendsService {
+  // Get personalized trends
+  getTrends(): Promise<XTrend[]>;
+  
+  // Filter for crypto/finance trends
+  getCryptoTrends(): Promise<XTrend[]>;
+  
+  // Check if our topics are trending
+  getOurTopicsTrending(): Promise<TrendingTopicStatus[]>;
+  
+  // Volume comparison
+  getTrendVolume(topic: string): Promise<TrendVolume>;
 }
 
-interface VolumeTrend {
-  query: string;
-  currentHour: number;
-  previousHour: number;
+interface XTrend {
+  trendName: string;
+  postCount: number;
+  category?: string;
+  trendingSince?: string;
+}
+
+interface TrendingTopicStatus {
+  topic: string;                 // BTC, ETH, ElizaOS, etc.
+  isTrending: boolean;
+  postCount?: number;
+  rank?: number;                 // Position in trends
+}
+
+interface TrendVolume {
+  topic: string;
+  current: number;
   avg24h: number;
   percentChange: number;
-  isSpike: boolean;              // > 2x avg
-  trend: 'rising' | 'falling' | 'stable';
+  isSpike: boolean;
 }
 ```
 
-### xSentiment.service.ts
-
-Trading-grade sentiment analysis.
-
-```typescript
-/**
- * X Sentiment Service
- * 
- * Produces sentiment signals for the trading aggregator.
- * Features:
- * - Keyword + phrase scoring
- * - Engagement-weighted sentiment
- * - Account reputation tiers
- * - Velocity adjustment
- * - Contrarian detection
- */
-
-export interface XSentimentService {
-  // Core sentiment for trading
-  getTradingSentiment(asset: string): Promise<XTradingSentiment>;
-  
-  // Batch sentiment (multiple assets)
-  getBatchSentiment(assets: string[]): Promise<Map<string, XTradingSentiment>>;
-  
-  // List-based sentiment (curated accounts)
-  getListSentiment(listId: string): Promise<XListSentiment>;
-  
-  // Raw tweet sentiment (for analysis)
-  analyzeTweets(tweets: XTweet[]): TweetSentimentAnalysis;
-  
-  // Staggered refresh (background)
-  startBackgroundRefresh(): void;
-  stopBackgroundRefresh(): void;
-  
-  // Manual refresh
-  refreshAsset(asset: string): Promise<XTradingSentiment>;
-}
-
-interface XTradingSentiment {
-  asset: string;
-  direction: 'bullish' | 'bearish' | 'neutral';
-  score: number;                 // -1 to 1
-  confidence: number;            // 0 to 100
-  strength: number;              // 0 to 100
-  
-  // Breakdown
-  tweetCount: number;
-  avgEngagement: number;
-  topTier: AccountTier;          // Highest tier that contributed
-  
-  // Warnings
-  hasHighRiskEvent: boolean;
-  contrarianWarning?: string;
-  
-  // Meta
-  cachedAt: number;
-  expiresAt: number;
-  source: 'search' | 'list' | 'combined';
-}
-
-interface TweetSentimentAnalysis {
-  tweets: Array<{
-    tweet: XTweet;
-    sentiment: number;
-    keywords: string[];
-    tier: AccountTier;
-    velocityScore: number;
-  }>;
-  aggregate: {
-    average: number;
-    weighted: number;            // By engagement + tier
-    velocityAdjusted: number;    // Recent tweets weighted higher
-  };
-  breakdown: {
-    bullish: number;
-    bearish: number;
-    neutral: number;
-  };
-}
-```
-
-### xAccounts.service.ts
-
-User profiles, followers, and discovery.
-
-```typescript
-/**
- * X Accounts Service
- * 
- * Endpoints:
- * - /2/users/by/username/:username
- * - /2/users/:id/tweets
- * - /2/users/:id/mentions
- * - /2/users/:id/followers
- * - /2/users/:id/following
- */
-
-export interface XAccountsService {
-  // Get user profile
-  getUser(username: string): Promise<XUser>;
-  getUsers(usernames: string[]): Promise<XUser[]>;
-  getUserById(id: string): Promise<XUser>;
-  
-  // User timeline
-  getUserTweets(
-    username: string, 
-    options?: TimelineOptions
-  ): Promise<XTweet[]>;
-  
-  // Mentions
-  getMentions(
-    username: string, 
-    options?: MentionsOptions
-  ): Promise<XTweet[]>;
-  
-  // Social graph (rate limited!)
-  getFollowers(userId: string, maxResults?: number): Promise<XUser[]>;
-  getFollowing(userId: string, maxResults?: number): Promise<XUser[]>;
-  
-  // Account analysis
-  analyzeAccount(username: string): Promise<AccountAnalysis>;
-  
-  // Discovery
-  discoverAccounts(tweets: XTweet[]): Promise<AccountDiscovery[]>;
-}
-
-interface XUser {
-  id: string;
-  username: string;
-  name: string;
-  description: string;
-  verified: boolean;
-  protected: boolean;
-  createdAt: string;
-  
-  metrics: {
-    followers: number;
-    following: number;
-    tweets: number;
-    listed: number;
-  };
-  
-  // Computed
-  tier: AccountTier;
-  reputationScore: number;
-}
-
-interface AccountAnalysis {
-  user: XUser;
-  tier: AccountTier;
-  recentActivity: {
-    tweetsLast24h: number;
-    avgEngagement: number;
-    topTopics: string[];
-  };
-  influence: {
-    score: number;
-    reach: number;
-    engagement_rate: number;
-  };
-}
-
-interface AccountDiscovery {
-  username: string;
-  engagementTotal: number;
-  tweetCount: number;
-  avgEngagement: number;
-  isNew: boolean;                 // Not in quality list
-  suggestion: string;
-}
-```
-
-### xLists.service.ts
-
-Curated lists for quality filtering.
+### xLists.service.ts (Quality-First)
 
 ```typescript
 /**
  * X Lists Service
  * 
- * Endpoints:
- * - /2/lists/:id
- * - /2/lists/:id/tweets
- * - /2/lists/:id/members
+ * Curated lists are our primary source of quality content.
+ * Search is supplementary.
+ * 
+ * Strategy:
+ * 1. Maintain a curated list of 50-100 quality crypto accounts
+ * 2. Fetch list posts first (high signal)
+ * 3. Use search to fill gaps or check specific queries
+ * 4. Weight list members higher in sentiment calculation
  */
 
 export interface XListsService {
-  // List metadata
+  // Get list metadata
   getList(listId: string): Promise<XList>;
   
-  // List tweets
-  getListTweets(
-    listId: string, 
-    options?: ListTweetsOptions
-  ): Promise<XTweet[]>;
+  // Get recent posts from list (primary content source!)
+  getListPosts(listId: string, options?: ListPostsOptions): Promise<XTweet[]>;
   
-  // List members (quality accounts)
+  // Get list members (our quality account set)
   getListMembers(listId: string): Promise<XUser[]>;
   
-  // Quality account management
-  getQualityAccounts(): Promise<QualityAccountSet>;
+  // Check if account is in quality list
   isQualityAccount(username: string): boolean;
   
-  // Filter tweets by quality
-  filterByQuality(
-    tweets: XTweet[], 
-    options?: QualityFilterOptions
-  ): XTweet[];
+  // Get quality account set (cached)
+  getQualityAccounts(): Promise<QualityAccountSet>;
+  
+  // Filter tweets to quality authors only
+  filterToQualityAuthors(tweets: XTweet[]): XTweet[];
 }
 
-interface XList {
-  id: string;
-  name: string;
-  description: string;
-  memberCount: number;
-  followerCount: number;
-  private: boolean;
-  ownerId: string;
+interface ListPostsOptions {
+  maxResults?: number;           // Up to 100
+  sinceId?: string;
+  untilId?: string;
+  excludeReplies?: boolean;
+  excludeRetweets?: boolean;
 }
 
-interface QualityAccountSet {
-  fromList: Set<string>;         // From X_RESEARCH_QUALITY_LIST_ID
-  vipHandles: Set<string>;       // From SOLUS_X_VIP_HANDLES
-  combined: Set<string>;
-  lastUpdated: number;
-}
-
-interface QualityFilterOptions {
-  minFollowers?: number;         // Default: 5000
-  minLikes?: number;             // Default: 50
-  minImpressions?: number;       // Default: 5000
-  requireQualityAuthor?: boolean;
-  useFallbackBar?: boolean;      // Relax to 1000/10
-}
+// Our curated list approach
+const QUALITY_LIST_STRATEGY = `
+1. Create X list: "VINCE Alpha Sources"
+2. Add accounts: @crediblecrypto, @lightcrypto, @cobie, @inversebrah, etc.
+3. Set X_RESEARCH_QUALITY_LIST_ID=<list_id>
+4. Plugin fetches list posts → high-signal content
+5. Supplement with search for specific queries
+`;
 ```
 
-### xThreads.service.ts
-
-Thread detection and full conversation fetch.
+### xAlpha.service.ts (Alpha Aggregation)
 
 ```typescript
 /**
- * X Threads Service
+ * X Alpha Service
  * 
- * Endpoints:
- * - /2/tweets/search/recent (conversation_id)
- * - /2/tweets/:id (with expansions)
+ * Aggregates alpha from all sources:
+ * - News API (structured news with tickers)
+ * - List posts (curated accounts)
+ * - Search (specific queries)
+ * - Trends (what's hot)
+ * 
+ * Applies analysis:
+ * - Engagement velocity (what's going viral NOW)
+ * - Thread detection (where's the deep alpha)
+ * - Account tiers (weight whales higher)
+ * - Contrarian signals (extreme sentiment warnings)
  */
 
-export interface XThreadsService {
-  // Detect thread starters
-  detectThreadStarters(tweets: XTweet[]): XTweet[];
+export interface XAlphaService {
+  // Main alpha aggregation
+  getAlpha(options?: AlphaOptions): Promise<XAlphaResult>;
   
-  // Get full thread
-  getThread(tweetId: string): Promise<XThread>;
+  // Alpha for specific asset
+  getAssetAlpha(asset: string): Promise<AssetAlpha>;
   
-  // Get conversation (all replies)
-  getConversation(
-    conversationId: string, 
-    options?: ConversationOptions
-  ): Promise<XConversation>;
+  // Get velocity winners (fastest-growing posts)
+  getVelocityWinners(count?: number): Promise<VelocityWinner[]>;
   
-  // Auto-fetch threads from search results
-  enrichWithThreads(
-    tweets: XTweet[], 
-    options?: ThreadEnrichOptions
-  ): Promise<EnrichedSearchResult>;
+  // Get threads worth reading
+  getAlphaThreads(): Promise<XThread[]>;
+  
+  // Get emerging accounts to watch
+  getEmergingAccounts(): Promise<AccountDiscovery[]>;
 }
 
-interface XThread {
-  id: string;
-  author: XUser;
-  tweets: XTweet[];              // Ordered by position
-  totalTweets: number;
-  engagement: {
-    totalLikes: number;
-    totalRetweets: number;
-    totalReplies: number;
+interface XAlphaResult {
+  // Top-level summary
+  summary: {
+    overallVibe: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+    confidence: number;
+    topNarratives: string[];
+    warnings: ContrarianWarning[];
   };
-  summary?: string;              // LLM-generated
-}
-
-interface XConversation {
-  rootTweet: XTweet;
-  replies: XTweet[];
-  participants: XUser[];
-  depth: number;
-}
-
-interface ThreadEnrichOptions {
-  maxThreads?: number;           // Default: 3
-  minReplies?: number;           // Default: 10
-  includeConversation?: boolean;
-}
-
-interface EnrichedSearchResult {
-  tweets: XTweet[];
+  
+  // By source
+  news: XNewsResult[];           // From News API
+  listPosts: XTweet[];           // From curated list
+  trending: XTrend[];            // From Trends API
+  
+  // Analysis
+  velocityWinners: VelocityWinner[];
   threads: XThread[];
-  threadStarters: XTweet[];
+  emergingAccounts: AccountDiscovery[];
+  topicClusters: TopicCluster[];
+  
+  // For trading
+  assetSentiments: Map<string, XTradingSentiment>;
+}
+
+interface AlphaOptions {
+  assets?: string[];             // Focus assets (default: BTC,ETH,SOL,HYPE)
+  includeNews?: boolean;         // Use News API
+  includeTrends?: boolean;       // Use Trends API
+  includeList?: boolean;         // Use curated list
+  includeSearch?: boolean;       // Use search
+  timeWindow?: string;           // '1h', '6h', '24h'
 }
 ```
 
 ---
 
-## Actions
+## 🎯 Actions
 
-### X_SEARCH
+### X_PULSE (North Star Action)
 
 ```typescript
 /**
- * X_SEARCH — Search X/Twitter
+ * X_PULSE — ALOHA for X
  * 
- * Triggers:
- * - "search X for {query}"
- * - "what are people saying about {topic}"
- * - "X research {query}"
- * - "check X for {topic}"
- */
-
-name: "X_SEARCH"
-similes: ["SEARCH_X", "TWITTER_SEARCH", "X_RESEARCH"]
-
-// Input parsing
-extractQuery(text: string): string
-expandTicker(query: string): string  // BTC → "$BTC OR Bitcoin"
-
-// Output: ALOHA-style narrative + top posts
-```
-
-### X_VIBE
-
-```typescript
-/**
- * X_VIBE — CT Vibe Check
- * 
- * Triggers:
- * - "CT vibe"
- * - "crypto twitter sentiment"
- * - "what's the vibe on X"
- */
-
-name: "X_VIBE"
-similes: ["CT_VIBE", "TWITTER_SENTIMENT", "X_SENTIMENT"]
-
-// Output: Overall market vibe with breakdown by asset
-```
-
-### X_ACCOUNT
-
-```typescript
-/**
- * X_ACCOUNT — Account Analysis
- * 
- * Triggers:
- * - "what's @user thinking"
- * - "recent from @user"
- * - "profile @user"
- */
-
-name: "X_ACCOUNT"
-similes: ["TWITTER_PROFILE", "USER_TWEETS"]
-
-// Output: Account analysis + recent tweets
-```
-
-### X_THREAD
-
-```typescript
-/**
- * X_THREAD — Get Thread
- * 
- * Triggers:
- * - "get thread {url}"
- * - "thread for {tweet_id}"
- * - x.com/user/status/123 URL
- */
-
-name: "X_THREAD"
-similes: ["GET_THREAD", "TWITTER_THREAD"]
-
-// Output: Full thread with summary
-```
-
-### X_ALPHA
-
-```typescript
-/**
- * X_ALPHA — Find Alpha
- * 
- * Triggers:
- * - "find alpha on X"
- * - "X alpha {topic}"
- * - "what alpha is on Twitter"
- */
-
-name: "X_ALPHA"
-similes: ["FIND_ALPHA", "TWITTER_ALPHA"]
-
-// Searches, filters by velocity + quality, returns top alpha posts
-```
-
-### X_PULSE
-
-```typescript
-/**
- * X_PULSE — Daily Briefing
+ * The north star action. Delivers sentiment and alpha around our
+ * focus topics, written like VINCE's ALOHA.
  * 
  * Triggers:
  * - "X pulse"
- * - "daily X briefing"
- * - (scheduled via cron)
+ * - "what's CT saying"
+ * - "crypto twitter vibe"
+ * - "X sentiment"
+ * - (scheduled via daily cron)
+ * 
+ * Output: ALOHA-style briefing (300-500 words)
  */
 
 name: "X_PULSE"
-similes: ["DAILY_X", "X_BRIEFING"]
+similes: ["CT_PULSE", "TWITTER_VIBE", "X_SENTIMENT", "CRYPTO_TWITTER"]
 
-// Full pipeline: search → analyze → ALOHA narrative
-// Saves to knowledge/research-daily/
+// Pipeline:
+// 1. Fetch news (News API) → filter for our tickers
+// 2. Fetch list posts (curated accounts) → sentiment + velocity
+// 3. Check trends (Trends API) → what's hot
+// 4. Search (specific queries) → fill gaps
+// 5. Analyze (velocity, threads, contrarian)
+// 6. Generate ALOHA-style narrative
+
+// Output format:
+interface XPulseOutput {
+  briefing: string;              // ALOHA-style narrative
+  
+  // Structured data
+  sentiment: {
+    overall: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+    confidence: number;
+    byAsset: Map<string, number>;
+  };
+  
+  news: XNewsResult[];           // Top 3 relevant news
+  velocityWinners: VelocityWinner[];  // Top 3 fast-movers
+  threads: XThread[];            // Top 2 threads to read
+  warnings: ContrarianWarning[]; // Extreme sentiment alerts
+  accountsToWatch: string[];     // Emerging accounts
+  
+  // Meta
+  savedPath: string;             // knowledge/research-daily/...
+}
 ```
 
-### X_MENTIONS
+### X_NEWS (News Focus)
 
 ```typescript
 /**
- * X_MENTIONS — Who's Mentioning
+ * X_NEWS — Crypto News from X
  * 
  * Triggers:
- * - "who's mentioning @user"
- * - "mentions of @user"
+ * - "crypto news on X"
+ * - "X news about BTC"
+ * - "what's the news on Twitter"
  */
 
-name: "X_MENTIONS"
-similes: ["GET_MENTIONS", "TWITTER_MENTIONS"]
+name: "X_NEWS"
+similes: ["CRYPTO_NEWS", "TWITTER_NEWS"]
 
-// Output: Recent mentions with sentiment
+// Uses News API directly
+// Filters for our focus tickers and topics
+// Returns structured news with summaries
+```
+
+### X_VIBE (Quick Check)
+
+```typescript
+/**
+ * X_VIBE — Quick Sentiment Check
+ * 
+ * Triggers:
+ * - "BTC vibe on X"
+ * - "what's CT saying about ETH"
+ * - "SOL sentiment"
+ */
+
+name: "X_VIBE"
+similes: ["CT_VIBE", "QUICK_SENTIMENT"]
+
+// Fast sentiment for specific asset
+// Returns: direction, confidence, top posts
 ```
 
 ---
 
-## Providers
+## 🔬 Analysis Modules
 
-### xSentiment.provider.ts
-
-Exposes sentiment to signal aggregator.
+### newsAnalyzer.ts (NEW!)
 
 ```typescript
 /**
- * X Sentiment Provider
+ * News Analyzer
  * 
- * Used by plugin-vince signal aggregator:
- * 
- * import { xSentimentProvider } from "@vince/plugin-x-research";
- * const signal = await xSentimentProvider.getTradingSentiment("BTC");
+ * Scores news relevance to our focus areas.
  */
 
-export const xSentimentProvider = {
-  name: "X_SENTIMENT_PROVIDER",
+export function scoreNewsRelevance(news: XNewsItem): number {
+  let score = 0;
   
-  async getTradingSentiment(asset: string): Promise<TradingSignal> {
-    const sentiment = await xSentimentService.getTradingSentiment(asset);
-    
-    return {
-      source: "XSentiment",
-      direction: sentiment.direction,
-      strength: sentiment.strength,
-      confidence: sentiment.confidence,
-      factors: [{
-        name: "X Sentiment",
-        value: sentiment.score,
-        explanation: `${sentiment.tweetCount} posts, ${sentiment.direction} bias`
-      }],
-      warnings: sentiment.contrarianWarning 
-        ? [sentiment.contrarianWarning] 
-        : []
-    };
-  },
+  // Ticker match (highest weight)
+  const ourTickers = ['BTC', 'ETH', 'SOL', 'HYPE'];
+  const tickerMatches = news.contexts.finance.tickers
+    .filter(t => ourTickers.includes(t)).length;
+  score += tickerMatches * 30;
   
-  // For batch requests
-  async getBatchSentiment(assets: string[]): Promise<Map<string, TradingSignal>> {
-    // ...
-  }
-};
+  // Topic match
+  const ourTopics = ['Cryptocurrency', 'DeFi', 'Blockchain', 'AI'];
+  const topicMatches = news.contexts.topics
+    .filter(t => ourTopics.includes(t)).length;
+  score += topicMatches * 20;
+  
+  // Organization match
+  const relevantOrgs = ['SEC', 'Binance', 'Coinbase', 'BlackRock', 'Fidelity'];
+  const orgMatches = news.contexts.entities.organizations
+    .filter(o => relevantOrgs.includes(o)).length;
+  score += orgMatches * 15;
+  
+  // Keywords in summary
+  const keywords = ['ETF', 'regulation', 'whale', 'hack', 'exploit', 'airdrop'];
+  const keywordMatches = keywords
+    .filter(k => news.summary.toLowerCase().includes(k)).length;
+  score += keywordMatches * 10;
+  
+  return Math.min(100, score);
+}
+
+export function extractNewsSentiment(news: XNewsItem): 'bullish' | 'bearish' | 'neutral' {
+  const text = `${news.name} ${news.summary} ${news.hook}`.toLowerCase();
+  
+  const bullishWords = ['surge', 'soar', 'rally', 'bullish', 'inflow', 'adoption', 'approval'];
+  const bearishWords = ['plunge', 'crash', 'bearish', 'outflow', 'reject', 'hack', 'exploit'];
+  
+  const bullCount = bullishWords.filter(w => text.includes(w)).length;
+  const bearCount = bearishWords.filter(w => text.includes(w)).length;
+  
+  if (bullCount > bearCount + 1) return 'bullish';
+  if (bearCount > bullCount + 1) return 'bearish';
+  return 'neutral';
+}
 ```
-
-### xVibe.provider.ts
-
-Exposes vibe check to ALOHA action.
-
-```typescript
-/**
- * X Vibe Provider
- * 
- * Used by VINCE_ALOHA action for market vibe section.
- */
-
-export const xVibeProvider = {
-  name: "X_VIBE_PROVIDER",
-  
-  async getMarketVibe(): Promise<MarketVibe> {
-    const assets = ["BTC", "ETH", "SOL"];
-    const sentiments = await xSentimentService.getBatchSentiment(assets);
-    
-    return {
-      overall: computeOverallVibe(sentiments),
-      byAsset: sentiments,
-      trending: await xSearchService.getTrending(),
-      contrarianWarnings: detectContrarianSignals(sentiments)
-    };
-  }
-};
-```
-
----
-
-## Analysis Modules
 
 ### velocityScorer.ts
 
@@ -913,114 +658,26 @@ export const xVibeProvider = {
 /**
  * Engagement Velocity Scorer
  * 
- * Problem: 1000 likes from yesterday < 100 likes in 1 hour
- * Solution: Score by likes/hour
+ * 100 likes in 1 hour > 1000 likes from yesterday
  */
 
 export function engagementVelocity(tweet: XTweet): number {
   const ageMs = Date.now() - new Date(tweet.created_at).getTime();
-  const ageHours = ageMs / 3_600_000;
-  
-  // Minimum 30 minutes to avoid division by tiny numbers
-  const effectiveAge = Math.max(0.5, ageHours);
+  const ageHours = Math.max(0.5, ageMs / 3_600_000);
   
   const likes = tweet.metrics.likes;
-  const retweets = tweet.metrics.retweets * 2; // Weight RT higher
+  const retweets = tweet.metrics.retweets * 2;
+  const quotes = tweet.metrics.quotes * 3;  // Quotes = high engagement
   
-  return (likes + retweets) / effectiveAge;
+  return (likes + retweets + quotes) / ageHours;
 }
 
-export function sortByVelocity(tweets: XTweet[]): XTweet[] {
-  return [...tweets].sort((a, b) => 
-    engagementVelocity(b) - engagementVelocity(a)
-  );
-}
-
-export function getVelocityWinners(
-  tweets: XTweet[], 
-  count: number = 5
-): VelocityWinner[] {
-  return sortByVelocity(tweets)
-    .slice(0, count)
-    .map(t => ({
-      tweet: t,
-      velocity: engagementVelocity(t),
-      ageHours: (Date.now() - new Date(t.created_at).getTime()) / 3_600_000,
-      label: formatVelocityLabel(t)
-    }));
-}
-
-function formatVelocityLabel(tweet: XTweet): string {
-  const v = engagementVelocity(tweet);
-  const age = (Date.now() - new Date(tweet.created_at).getTime()) / 3_600_000;
-  
-  if (age < 1) {
-    return `${tweet.metrics.likes} likes in ${Math.round(age * 60)}min 🔥`;
-  }
-  return `${tweet.metrics.likes} likes in ${age.toFixed(1)}h`;
-}
-```
-
-### topicCluster.ts
-
-```typescript
-/**
- * Topic Clustering
- * 
- * Groups tweets by common themes to identify emerging narratives.
- */
-
-export interface TopicCluster {
-  topic: string;
-  keywords: string[];
-  tweets: XTweet[];
-  engagement: number;
-  sentiment: number;
-  isEmerging: boolean;
-}
-
-export function clusterByTopic(tweets: XTweet[]): TopicCluster[] {
-  const clusters = new Map<string, XTweet[]>();
-  
-  for (const tweet of tweets) {
-    const topics = extractTopics(tweet);
-    for (const topic of topics) {
-      const existing = clusters.get(topic) || [];
-      existing.push(tweet);
-      clusters.set(topic, existing);
-    }
-  }
-  
-  return Array.from(clusters.entries())
-    .map(([topic, tweets]) => ({
-      topic,
-      keywords: extractKeywords(tweets),
-      tweets,
-      engagement: sumEngagement(tweets),
-      sentiment: avgSentiment(tweets),
-      isEmerging: tweets.length >= 3 && avgAge(tweets) < 6 // hours
-    }))
-    .filter(c => c.tweets.length >= 2)
-    .sort((a, b) => b.engagement - a.engagement);
-}
-
-function extractTopics(tweet: XTweet): string[] {
-  const topics: string[] = [];
-  
-  // Cashtags
-  topics.push(...tweet.hashtags.filter(h => h.startsWith('$')));
-  
-  // Hashtags
-  topics.push(...tweet.hashtags.filter(h => !h.startsWith('$')));
-  
-  // Known topics from text
-  const text = tweet.text.toLowerCase();
-  if (text.includes('etf')) topics.push('ETF');
-  if (text.includes('whale')) topics.push('Whales');
-  if (text.includes('airdrop')) topics.push('Airdrops');
-  if (text.includes('hack') || text.includes('exploit')) topics.push('Security');
-  
-  return [...new Set(topics)];
+export interface VelocityWinner {
+  tweet: XTweet;
+  velocity: number;
+  ageHours: number;
+  label: string;                 // "2.1k likes in 2h 🔥"
+  why: string;                   // "Thread on ETF flows"
 }
 ```
 
@@ -1034,82 +691,47 @@ function extractTopics(tweet: XTweet): string[] {
  */
 
 export interface ContrarianWarning {
-  type: 'extreme_bullish' | 'extreme_bearish' | 'divergence';
+  type: 'extreme_bullish' | 'extreme_bearish' | 'divergence' | 'whale_silence';
   asset?: string;
-  sentiment: number;
-  confidence: number;
   message: string;
   severity: 'info' | 'warning' | 'alert';
 }
 
 export function detectContrarian(
-  sentiment: XTradingSentiment
+  sentiment: XTradingSentiment,
+  priceChange?: number
 ): ContrarianWarning | null {
-  const { score, confidence, asset } = sentiment;
-  
   // Extreme bullish
-  if (score > 0.6 && confidence > 70) {
+  if (sentiment.score > 0.6 && sentiment.confidence > 70) {
     return {
       type: 'extreme_bullish',
-      asset,
-      sentiment: score,
-      confidence,
-      message: `⚠️ ${asset} sentiment extremely bullish (${(score * 100).toFixed(0)}%). Historically precedes pullbacks.`,
+      asset: sentiment.asset,
+      message: `⚠️ Extreme bullish sentiment on ${sentiment.asset}. Historically precedes pullbacks.`,
       severity: 'warning'
     };
   }
   
   // Extreme bearish
-  if (score < -0.6 && confidence > 70) {
+  if (sentiment.score < -0.6 && sentiment.confidence > 70) {
     return {
       type: 'extreme_bearish',
-      asset,
-      sentiment: score,
-      confidence,
-      message: `🔄 ${asset} sentiment extremely bearish. Contrarian buy signal?`,
+      asset: sentiment.asset,
+      message: `🔄 Extreme fear on ${sentiment.asset}. Contrarian buy signal?`,
       severity: 'info'
     };
   }
   
-  return null;
-}
-
-export function detectDivergence(
-  sentiments: Map<string, XTradingSentiment>,
-  priceChanges: Map<string, number>
-): ContrarianWarning[] {
-  const warnings: ContrarianWarning[] = [];
-  
-  for (const [asset, sentiment] of sentiments) {
-    const priceChange = priceChanges.get(asset);
-    if (priceChange === undefined) continue;
-    
-    // Bullish sentiment + falling price = potential bull trap
-    if (sentiment.score > 0.4 && priceChange < -5) {
-      warnings.push({
-        type: 'divergence',
-        asset,
-        sentiment: sentiment.score,
-        confidence: sentiment.confidence,
-        message: `${asset}: Bullish sentiment but price down ${priceChange.toFixed(1)}%. Divergence.`,
-        severity: 'warning'
-      });
-    }
-    
-    // Bearish sentiment + rising price = potential bear trap
-    if (sentiment.score < -0.4 && priceChange > 5) {
-      warnings.push({
-        type: 'divergence',
-        asset,
-        sentiment: sentiment.score,
-        confidence: sentiment.confidence,
-        message: `${asset}: Bearish sentiment but price up ${priceChange.toFixed(1)}%. Divergence.`,
-        severity: 'info'
-      });
-    }
+  // Divergence: bullish sentiment + falling price
+  if (priceChange !== undefined && sentiment.score > 0.4 && priceChange < -5) {
+    return {
+      type: 'divergence',
+      asset: sentiment.asset,
+      message: `${sentiment.asset}: Bullish CT but price down ${priceChange.toFixed(1)}%. Watch for trap.`,
+      severity: 'warning'
+    };
   }
   
-  return warnings;
+  return null;
 }
 ```
 
@@ -1124,568 +746,264 @@ export function detectDivergence(
 
 export type AccountTier = 'whale' | 'alpha' | 'quality' | 'emerging' | 'unknown';
 
-export interface TierConfig {
-  minFollowers: number;
-  weight: number;
-  label: string;
-}
-
-export const TIER_CONFIG: Record<AccountTier, TierConfig> = {
-  whale: { minFollowers: 100_000, weight: 3.0, label: '🐋 Whale' },
-  alpha: { minFollowers: 25_000, weight: 2.0, label: '⭐ Alpha' },
-  quality: { minFollowers: 5_000, weight: 1.0, label: '✓ Quality' },
-  emerging: { minFollowers: 1_000, weight: 0.5, label: '📈 Emerging' },
-  unknown: { minFollowers: 0, weight: 0.25, label: '?' }
+export const TIER_CONFIG = {
+  whale:    { minFollowers: 100_000, weight: 3.0, emoji: '🐋' },
+  alpha:    { minFollowers: 25_000,  weight: 2.0, emoji: '⭐' },
+  quality:  { minFollowers: 5_000,   weight: 1.0, emoji: '✓' },
+  emerging: { minFollowers: 1_000,   weight: 0.5, emoji: '📈' },
+  unknown:  { minFollowers: 0,       weight: 0.25, emoji: '?' }
 };
 
-export function getAccountTier(followers: number | undefined): AccountTier {
-  if (followers === undefined) return 'unknown';
-  
+export function getAccountTier(followers?: number): AccountTier {
+  if (!followers) return 'unknown';
   if (followers >= 100_000) return 'whale';
   if (followers >= 25_000) return 'alpha';
   if (followers >= 5_000) return 'quality';
   if (followers >= 1_000) return 'emerging';
   return 'unknown';
 }
-
-export function getTierWeight(tier: AccountTier): number {
-  return TIER_CONFIG[tier].weight;
-}
-
-export function weightedSentiment(tweet: XTweet, baseSentiment: number): number {
-  const tier = getAccountTier(tweet.author_followers);
-  return baseSentiment * getTierWeight(tier);
-}
-```
-
-### volumeAnalyzer.ts
-
-```typescript
-/**
- * Volume Analyzer
- * 
- * Uses counts endpoint to detect volume spikes.
- */
-
-export interface VolumeAnalysis {
-  query: string;
-  buckets: VolumeBucket[];
-  currentHour: number;
-  avg24h: number;
-  max24h: number;
-  percentChange: number;
-  isSpike: boolean;
-  trend: 'rising' | 'falling' | 'stable';
-  narrative: string;
-}
-
-interface VolumeBucket {
-  start: string;
-  end: string;
-  count: number;
-}
-
-export async function analyzeVolume(
-  countsData: VolumeBucket[]
-): Promise<VolumeAnalysis> {
-  const counts = countsData.map(b => b.count);
-  const current = counts[counts.length - 1] || 0;
-  const previous = counts[counts.length - 2] || current;
-  const avg = counts.reduce((a, b) => a + b, 0) / counts.length;
-  const max = Math.max(...counts);
-  
-  const percentChange = previous > 0 
-    ? ((current - previous) / previous) * 100 
-    : 0;
-  
-  const isSpike = current > avg * 2;
-  const trend = percentChange > 20 ? 'rising' 
-    : percentChange < -20 ? 'falling' 
-    : 'stable';
-  
-  return {
-    query: '',
-    buckets: countsData,
-    currentHour: current,
-    avg24h: avg,
-    max24h: max,
-    percentChange,
-    isSpike,
-    trend,
-    narrative: generateVolumeNarrative(current, avg, trend, isSpike)
-  };
-}
-
-function generateVolumeNarrative(
-  current: number, 
-  avg: number, 
-  trend: string, 
-  isSpike: boolean
-): string {
-  if (isSpike) {
-    return `🔥 Volume spike: ${current} posts this hour (${(current / avg).toFixed(1)}x average)`;
-  }
-  if (trend === 'rising') {
-    return `📈 Volume rising: ${current} posts (+${((current - avg) / avg * 100).toFixed(0)}% vs avg)`;
-  }
-  if (trend === 'falling') {
-    return `📉 Volume falling: ${current} posts (${((current - avg) / avg * 100).toFixed(0)}% vs avg)`;
-  }
-  return `Volume stable: ${current} posts (near average)`;
-}
-```
-
-### threadDetector.ts
-
-```typescript
-/**
- * Thread Detector
- * 
- * Identifies thread starters from search results.
- */
-
-export interface ThreadCandidate {
-  tweet: XTweet;
-  confidence: number;
-  indicators: string[];
-}
-
-export function detectThreadStarters(tweets: XTweet[]): ThreadCandidate[] {
-  const candidates: ThreadCandidate[] = [];
-  
-  for (const tweet of tweets) {
-    const indicators: string[] = [];
-    let confidence = 0;
-    
-    // High replies = likely thread
-    if (tweet.metrics.replies > 20) {
-      indicators.push(`${tweet.metrics.replies} replies`);
-      confidence += 30;
-    } else if (tweet.metrics.replies > 10) {
-      indicators.push(`${tweet.metrics.replies} replies`);
-      confidence += 20;
-    }
-    
-    // conversation_id === id means it's a root tweet
-    if (tweet.conversation_id === tweet.id) {
-      indicators.push('Thread root');
-      confidence += 20;
-    }
-    
-    // Text patterns
-    const text = tweet.text.toLowerCase();
-    if (text.includes('thread') || text.includes('🧵')) {
-      indicators.push('Thread marker in text');
-      confidence += 25;
-    }
-    if (text.match(/^\d+[.\/)]/) || text.includes('1/')) {
-      indicators.push('Numbered format');
-      confidence += 15;
-    }
-    
-    // High engagement relative to replies = valuable thread
-    const engagementRatio = tweet.metrics.likes / Math.max(1, tweet.metrics.replies);
-    if (engagementRatio > 10) {
-      indicators.push('High like:reply ratio');
-      confidence += 10;
-    }
-    
-    if (confidence >= 40) {
-      candidates.push({ tweet, confidence, indicators });
-    }
-  }
-  
-  return candidates.sort((a, b) => b.confidence - a.confidence);
-}
 ```
 
 ---
 
-## Types
-
-### tweet.types.ts
-
-```typescript
-export interface XTweet {
-  id: string;
-  text: string;
-  author_id: string;
-  username: string;
-  name: string;
-  created_at: string;
-  conversation_id: string;
-  author_followers?: number;
-  
-  metrics: {
-    likes: number;
-    retweets: number;
-    replies: number;
-    quotes: number;
-    impressions: number;
-    bookmarks: number;
-  };
-  
-  urls: string[];
-  mentions: string[];
-  hashtags: string[];
-  cashtags: string[];
-  
-  tweet_url: string;
-  
-  // Computed
-  sentiment?: number;
-  velocityScore?: number;
-  tier?: AccountTier;
-}
-
-export interface XThread {
-  id: string;
-  rootTweetId: string;
-  author: XUser;
-  tweets: XTweet[];
-  totalEngagement: number;
-  summary?: string;
-}
-```
-
-### sentiment.types.ts
-
-```typescript
-export interface XTradingSentiment {
-  asset: string;
-  direction: 'bullish' | 'bearish' | 'neutral';
-  score: number;                 // -1 to 1
-  confidence: number;            // 0-100
-  strength: number;              // 0-100
-  
-  tweetCount: number;
-  avgEngagement: number;
-  topTier: AccountTier;
-  
-  hasHighRiskEvent: boolean;
-  riskKeywords: string[];
-  contrarianWarning?: ContrarianWarning;
-  
-  cachedAt: number;
-  expiresAt: number;
-  source: 'search' | 'list' | 'combined';
-}
-
-export interface XMarketVibe {
-  overall: {
-    direction: 'bullish' | 'bearish' | 'neutral' | 'mixed';
-    score: number;
-    confidence: number;
-    narrative: string;
-  };
-  
-  byAsset: Map<string, XTradingSentiment>;
-  
-  trending: TrendingResult;
-  
-  volumeAnalysis?: VolumeAnalysis;
-  
-  contrarianWarnings: ContrarianWarning[];
-  
-  velocityWinners: VelocityWinner[];
-  
-  emergingNarratives: TopicCluster[];
-  
-  threadsToRead: XThread[];
-  
-  accountsToWatch: AccountDiscovery[];
-}
-```
-
----
-
-## Configuration
+## ⚙️ Configuration
 
 ### Environment Variables
 
 ```bash
 # Required
-X_BEARER_TOKEN=xxx                    # Primary API token
+X_BEARER_TOKEN=xxx                       # Primary API token
 
-# Optional: Second token for background (prevents blocking in-chat)
+# Quality List (Primary content source!)
+X_RESEARCH_QUALITY_LIST_ID=xxx           # Your curated list ID
+SOLUS_X_VIP_HANDLES=user1,user2,user3    # Additional VIP handles
+
+# Optional: Second token for background
 X_BEARER_TOKEN_SENTIMENT=xxx
 
-# Quality filtering
-X_RESEARCH_QUALITY_LIST_ID=xxx        # Curated X list ID
-SOLUS_X_VIP_HANDLES=user1,user2       # Additional VIP handles
-CRYPTO_VIP_HANDLES=user3,user4        # More VIP handles
+# Focus topics (what we care about)
+X_FOCUS_TICKERS=BTC,ETH,SOL,HYPE
+X_FOCUS_TOPICS=Cryptocurrency,DeFi,AI,Blockchain
 
 # Sentiment
-X_SENTIMENT_ASSETS=BTC,ETH,SOL,HYPE   # Assets to track
-X_SENTIMENT_STAGGER_INTERVAL_MS=3600000  # 1 hour between refreshes
-X_SENTIMENT_CONFIDENCE_FLOOR=40       # Min confidence to contribute
-X_SENTIMENT_SINCE=1d                  # Search window (6h, 1d, 2d)
-X_SENTIMENT_SORT_ORDER=relevancy      # or recency
+X_SENTIMENT_CONFIDENCE_FLOOR=40
+X_SENTIMENT_STAGGER_INTERVAL_MS=3600000
 
-# Analysis features
-X_VELOCITY_SORT=true                  # Sort by engagement velocity
-X_THREAD_AUTO_FETCH=true              # Auto-fetch detected threads
-X_VOLUME_ANALYSIS=true                # Use counts endpoint
-X_CONTRARIAN_WARNINGS=true            # Warn at sentiment extremes
-X_ACCOUNT_DISCOVERY=true              # Flag emerging accounts
-
-# Rate limiting
-X_MAX_REQUESTS_PER_15M=400            # Stay under 450 limit
-X_BACKOFF_BASE_MS=1000
-X_BACKOFF_MAX_MS=60000
+# Features
+X_NEWS_ENABLED=true                      # Use News API
+X_TRENDS_ENABLED=true                    # Use Trends API
+X_VELOCITY_SORT=true                     # Sort by engagement velocity
+X_THREAD_AUTO_FETCH=true                 # Auto-fetch detected threads
+X_CONTRARIAN_WARNINGS=true               # Warn at extremes
 
 # Caching
-X_CACHE_TTL_SEARCH_MS=900000          # 15 minutes
-X_CACHE_TTL_SENTIMENT_MS=86400000     # 24 hours
-X_CACHE_TTL_LIST_MEMBERS_MS=86400000  # 24 hours
+X_CACHE_TTL_NEWS_MS=300000               # 5 min (news changes fast)
+X_CACHE_TTL_TRENDS_MS=300000             # 5 min
+X_CACHE_TTL_SEARCH_MS=900000             # 15 min
+X_CACHE_TTL_LIST_MS=900000               # 15 min
 ```
 
-### Default Config
+### constants/topics.ts
 
 ```typescript
-// constants/defaults.ts
+/**
+ * Topics We Care About
+ * 
+ * These drive:
+ * - News API filtering
+ * - Search queries
+ * - Relevance scoring
+ */
 
-export const DEFAULTS = {
-  // Search
-  maxResults: 100,
-  sinceDefault: '1d',
-  sortOrder: 'relevancy' as const,
+export const FOCUS_AREAS = {
+  // Core assets we trade
+  tickers: ['BTC', 'ETH', 'SOL', 'HYPE'],
   
-  // Quality filter
-  minFollowersQuality: 5000,
-  minLikesQuality: 50,
-  minImpressionsQuality: 5000,
-  minFollowersFallback: 1000,
-  minLikesFallback: 10,
+  // Topics for news/trends filtering
+  topics: [
+    'Cryptocurrency',
+    'DeFi',
+    'NFT',
+    'AI',
+    'Blockchain',
+    'Trading'
+  ],
   
-  // Sentiment
-  confidenceFloor: 40,
-  softTierFloor: 25,
-  bullBearThreshold: 0.15,
-  minTweetsForConfidence: 3,
-  engagementCap: 3,
+  // Keywords for search
+  keywords: {
+    trading: ['perps', 'funding', 'liquidation', 'whale', 'options', 'DVOL'],
+    ecosystem: ['ElizaOS', 'AI agents', 'elizaos'],
+    defi: ['yield', 'airdrop', 'protocol', 'TVL'],
+    risk: ['hack', 'exploit', 'rug', 'scam', 'SEC', 'regulation']
+  },
   
-  // Analysis
-  velocitySortEnabled: true,
-  threadAutoFetchEnabled: true,
-  maxThreadsToFetch: 3,
-  minRepliesForThread: 10,
+  // Organizations to track
+  organizations: [
+    'SEC',
+    'Binance',
+    'Coinbase',
+    'BlackRock',
+    'Fidelity',
+    'Grayscale'
+  ]
+};
+
+// Default search queries for daily pulse
+export const PULSE_QUERIES = [
+  '"ElizaOS" OR "@elizaos"',
+  '$BTC alpha -is:retweet min_faves:20',
+  '$ETH alpha -is:retweet min_faves:20',
+  '"AI agents" crypto -is:retweet',
+  'onchain alpha min_faves:30'
+];
+```
+
+---
+
+## 📤 Providers (for plugin-vince)
+
+### xSentiment.provider.ts
+
+```typescript
+/**
+ * X Sentiment Provider
+ * 
+ * Used by plugin-vince signal aggregator.
+ */
+
+export const xSentimentProvider = {
+  name: "X_SENTIMENT_PROVIDER",
   
-  // Volume
-  volumeAnalysisEnabled: true,
-  spikeThreshold: 2.0,  // 2x average
+  async getTradingSentiment(asset: string): Promise<TradingSignal> {
+    const sentiment = await xSentimentService.getAssetSentiment(asset);
+    
+    return {
+      source: "XSentiment",
+      direction: sentiment.direction,
+      strength: sentiment.strength,
+      confidence: sentiment.confidence,
+      factors: [{
+        name: "X Sentiment",
+        value: sentiment.score,
+        explanation: buildExplanation(sentiment)
+      }],
+      warnings: sentiment.contrarianWarning 
+        ? [sentiment.contrarianWarning.message] 
+        : []
+    };
+  }
+};
+```
+
+### xNews.provider.ts
+
+```typescript
+/**
+ * X News Provider
+ * 
+ * Used by plugin-vince for news sentiment integration.
+ */
+
+export const xNewsProvider = {
+  name: "X_NEWS_PROVIDER",
   
-  // Contrarian
-  extremeBullishThreshold: 0.6,
-  extremeBearishThreshold: -0.6,
-  extremeConfidenceThreshold: 70,
+  async getRelevantNews(): Promise<XNewsResult[]> {
+    return xNewsService.getCryptoNews({
+      tickers: FOCUS_AREAS.tickers,
+      maxResults: 10
+    });
+  },
   
-  // Tiers
-  tiers: {
-    whale: 100_000,
-    alpha: 25_000,
-    quality: 5_000,
-    emerging: 1_000
+  async getTickerNews(ticker: string): Promise<XNewsResult[]> {
+    return xNewsService.getTickerNews([ticker]);
   }
 };
 ```
 
 ---
 
-## Caching Strategy
+## 📊 Example Output
 
-```typescript
-/**
- * Cache Layers:
- * 
- * 1. In-memory (fast, loses on restart)
- * 2. File-based (persistent, .elizadb/plugin-x-research/)
- * 3. X API deduplication (24hr UTC window, server-side)
- */
-
-// Cache TTLs
-const CACHE_TTLS = {
-  search: 15 * 60 * 1000,        // 15 min (fresh results)
-  sentiment: 24 * 60 * 60 * 1000, // 24h (staggered refresh)
-  listMembers: 24 * 60 * 60 * 1000, // 24h (rarely changes)
-  userProfile: 60 * 60 * 1000,    // 1h
-  thread: 60 * 60 * 1000,         // 1h
-  counts: 5 * 60 * 1000           // 5 min (volume analysis)
-};
-
-// Cache keys
-const CACHE_KEYS = {
-  search: (query: string) => `x:search:${hash(query)}`,
-  sentiment: (asset: string) => `x:sentiment:${asset}`,
-  listMembers: (listId: string) => `x:list:${listId}:members`,
-  user: (username: string) => `x:user:${username}`,
-  thread: (tweetId: string) => `x:thread:${tweetId}`,
-  counts: (query: string) => `x:counts:${hash(query)}`
-};
-```
-
----
-
-## Rate Limiting
-
-```typescript
-/**
- * Rate Limit Strategy:
- * 
- * 1. Track limits per endpoint category
- * 2. Pre-check before request
- * 3. Exponential backoff on 429
- * 4. Respect X-Rate-Limit headers
- */
-
-interface RateLimitBucket {
-  endpoint: string;
-  limit: number;
-  remaining: number;
-  resetAtMs: number;
-}
-
-// Endpoint categories
-const RATE_LIMITS = {
-  search: { limit: 450, window: 15 * 60 * 1000 },
-  counts: { limit: 300, window: 15 * 60 * 1000 },
-  tweets: { limit: 900, window: 15 * 60 * 1000 },
-  users: { limit: 900, window: 15 * 60 * 1000 },
-  followers: { limit: 15, window: 15 * 60 * 1000 },
-  lists: { limit: 75, window: 15 * 60 * 1000 }
-};
-
-// Backoff
-function backoffDelay(attempt: number, baseMs: number = 1000): number {
-  return Math.min(
-    baseMs * Math.pow(2, attempt) + Math.random() * 1000,
-    60000
-  );
-}
-```
-
----
-
-## Testing
-
-### Unit Tests
-
-```typescript
-// __tests__/velocityScorer.test.ts
-
-describe('engagementVelocity', () => {
-  it('scores recent tweets higher', () => {
-    const recent = mockTweet({ likes: 100, createdAt: minutesAgo(30) });
-    const old = mockTweet({ likes: 1000, createdAt: hoursAgo(24) });
-    
-    expect(engagementVelocity(recent)).toBeGreaterThan(
-      engagementVelocity(old)
-    );
-  });
-  
-  it('handles edge case of very new tweet', () => {
-    const veryNew = mockTweet({ likes: 10, createdAt: minutesAgo(5) });
-    const velocity = engagementVelocity(veryNew);
-    
-    expect(velocity).toBeLessThan(1000); // Capped by min age
-  });
-});
-```
-
-### Integration Tests
-
-```typescript
-// __tests__/integration/fullPipeline.test.ts
-
-describe('Full X Research Pipeline', () => {
-  it('produces ALOHA-style briefing', async () => {
-    // Mock X API responses
-    mockXApi.search.mockResolvedValue(mockSearchResults);
-    mockXApi.counts.mockResolvedValue(mockCountsResults);
-    
-    const result = await xPulseAction.execute();
-    
-    expect(result.briefing).toContain('vibe');
-    expect(result.velocityWinners.length).toBeGreaterThan(0);
-    expect(result.savedPath).toMatch(/research-daily/);
-  });
-});
-```
-
----
-
-## Migration from plugin-vince
-
-### Phase 1: Create Plugin (Week 1)
-- [ ] Scaffold directory structure
-- [ ] Copy `xResearch.service.ts` → `xSearch.service.ts`
-- [ ] Copy `xSentiment.service.ts` → new location
-- [ ] Copy `xSentimentLogic.ts` → `analysis/`
-- [ ] Update imports
-
-### Phase 2: Add Features (Week 2)
-- [ ] Implement `velocityScorer.ts`
-- [ ] Implement `topicCluster.ts`
-- [ ] Implement `contrarianDetector.ts`
-- [ ] Implement `volumeAnalyzer.ts`
-- [ ] Add `X_PULSE` action
-
-### Phase 3: Integration (Week 3)
-- [ ] Create `xSentiment.provider.ts`
-- [ ] Update plugin-vince signal aggregator to import from plugin-x-research
-- [ ] Update ALOHA action to use `xVibe.provider.ts`
-- [ ] Update OpenClaw cron job
-
-### Phase 4: Deprecation (Week 4)
-- [ ] Mark old services as deprecated
-- [ ] Update documentation
-- [ ] Remove old code after verification
-
----
-
-## Examples
-
-### Daily Pulse Output
+### X_PULSE Daily Briefing
 
 ```markdown
 # X Pulse — Feb 12, 2026
 
-Quiet morning on CT but something's brewing under the surface. BTC discourse 
-is cautiously bullish with the usual suspects calling for 90k, but engagement 
-is muted — posts that would normally get 500 likes are sitting at 150. ETH 
-sentiment turned sharply negative overnight after that thread from @crediblecrypto 
-about declining L2 activity got 2k likes in 3 hours.
+CT is cautiously optimistic this morning but the volume tells a different story. 
+BTC sentiment sits at 68% bullish, mostly driven by ETF flow discourse — 
+@BitcoinMagazine's thread on BlackRock inflows hit 3k likes in 4 hours and the 
+replies are uncharacteristically measured. ETH is where the real action is: three 
+separate threads about declining L2 activity dropped overnight, and @crediblecrypto's 
+take at 2.1k likes is the one everyone's quoting.
 
-The interesting stuff is in the weeds. Three separate threads about a new 
-restaking protocol dropped in the last 6 hours, all from accounts I don't 
-recognize but with solid engagement velocity. Worth watching. Meanwhile the 
-AI agent discourse has cooled significantly — @shawmakesmagic's thread on 
-ElizaOS V2 got attention but the replies are more skeptical than the usual 
-cheerleading.
+The News API caught something interesting — a structured story about Nebius/Meta 
+GPU deals that's tangentially connected to AI compute narratives. Not directly 
+crypto but the infrastructure angle is worth tracking.
 
-One thing that stands out: sentiment is bullish but volume is down 40% from 
-yesterday. That divergence usually means either a slow bleed or a sharp move 
-coming. The whales are quiet, the mids are posting, and the retail crowd is 
-nowhere. Classic calm before something.
+Whale accounts are quiet. Like, suspiciously quiet. When @cobie and @lightcrypto 
+go radio silent for 48 hours while retail is euphoric, that's usually a tell. 
+SOL meme discourse has cooled significantly — engagement down 40% from last week. 
+Either the rotation is real or everyone's waiting for the next catalyst.
+
+One flag: BTC sentiment is bullish but OI is flat and funding is neutral. 
+That divergence plus whale silence = I'd be careful about new longs here.
 
 ---
-**Velocity Winners** (fastest-growing posts):
-1. [@crediblecrypto](https://x.com/...) — ETH L2 analysis — 2.1k likes in 3h 🔥
-2. [@inversebrah](https://x.com/...) — BTC funding rates — 890 likes in 2h
 
-**Threads Worth Reading**:
-- [ETH L2 Activity Declining](https://x.com/crediblecrypto/status/...)
-- [New Restaking Protocol Deep Dive](https://x.com/...)
+**🔥 Velocity Winners:**
+1. [@crediblecrypto](link) — ETH L2 analysis — 2.1k likes in 4h
+2. [@inversebrah](link) — BTC funding take — 890 likes in 2h
+3. [@shawmakesmagic](link) — ElizaOS V2 thread — 650 likes in 3h
 
-**Sources**: @crediblecrypto, @inversebrah, @shawmakesmagic, @colocho, @lightcrypto
+**📰 News:**
+- "BlackRock ETF Sees $400M Single-Day Inflow" (bullish, BTC)
+- "SEC Delays Decision on ETH ETF Options" (neutral, ETH)
+
+**📖 Threads:**
+- [ETH L2 Activity Deep Dive](link) — @crediblecrypto
+- [ElizaOS V2 Roadmap](link) — @shawmakesmagic
+
+**⚠️ Warnings:**
+- Whale accounts silent 48h (unusual)
+- BTC bullish sentiment + flat OI divergence
+
+**Sources:** @crediblecrypto, @inversebrah, @shawmakesmagic, @BitcoinMagazine
 ```
 
 ---
 
-## References
+## 🚀 Implementation Priority
 
-- [X API v2 Documentation](https://docs.x.com/x-api)
-- [X TypeScript XDK](https://docs.x.com/xdks/typescript)
-- [X API Pricing](https://docs.x.com/x-api/getting-started/pricing)
-- [Search Operators](https://developer.x.com/en/docs/twitter-api/tweets/search/integrate/build-a-query)
-- [Rate Limits](https://docs.x.com/fundamentals/rate-limits)
+### Phase 1: Core (Week 1)
+- [ ] `xClient.service.ts` — auth, rate limits, caching
+- [ ] `xNews.service.ts` — News API integration
+- [ ] `xLists.service.ts` — curated list as primary source
+- [ ] `xSearch.service.ts` — search fallback
+
+### Phase 2: Analysis (Week 2)
+- [ ] `velocityScorer.ts`
+- [ ] `accountReputation.ts`
+- [ ] `newsAnalyzer.ts`
+- [ ] `contrarianDetector.ts`
+
+### Phase 3: Actions (Week 3)
+- [ ] `X_PULSE` — north star action
+- [ ] `X_NEWS` — news focused
+- [ ] `X_VIBE` — quick sentiment
+
+### Phase 4: Integration (Week 4)
+- [ ] Providers for plugin-vince
+- [ ] OpenClaw cron job update
+- [ ] Migrate from old xResearch/xSentiment
+
+---
+
+## 📚 X API References
+
+- [News API](https://docs.x.com/x-api/news/introduction)
+- [Personalized Trends](https://docs.x.com/x-api/trends/personalized-trends/introduction)
+- [Lists](https://docs.x.com/x-api/lists)
+- [Posts Search](https://docs.x.com/x-api/posts/search-recent-posts)
+- [Posts Counts](https://docs.x.com/x-api/posts/get-count-of-recent-posts)
+- [Users](https://docs.x.com/x-api/users)
+- [Pricing](https://docs.x.com/x-api/getting-started/pricing)
