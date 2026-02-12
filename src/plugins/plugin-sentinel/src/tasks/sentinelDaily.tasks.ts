@@ -1,6 +1,6 @@
 /**
  * Sentinel daily digest task.
- * Optional: SENTINEL_DAILY_ENABLED=true. Digest: ONNX/feature-store status, clawdbot reminder, ART gem, task-brief suggestion for Claude 4.6.
+ * Optional: SENTINEL_DAILY_ENABLED=true. Digest: ONNX/feature-store status, openclaw reminder, ART gem, task-brief suggestion for Claude 4.6.
  * Pushes to sentinel/ops channels. Includes optional ONNX nudge (e.g. if 90+ rows suggest run train_models).
  */
 
@@ -102,9 +102,9 @@ async function generateDailyDigest(runtime: IAgentRuntime): Promise<string> {
     null,
   );
   const contextBlock = typeof state.text === "string" ? state.text : "";
-  const prompt = `You are Sentinel. North star: 24/7 coding, ML/ONNX, ART, clawdbot, best settings. You use all .md in knowledge and improve docs and consolidate progress. Produce a SHORT daily digest (4 items max, one line each):
+  const prompt = `You are Sentinel. North star: 24/7 coding, ML/ONNX, ART, openclaw, best settings. You use all .md in knowledge and improve docs and consolidate progress. Produce a SHORT daily digest (4 items max, one line each):
 1) ONNX/feature-store: one line status (e.g. "N new rows; ready for training" or "Run train_models if 90+ rows" or "Enable Supabase dual-write").
-2) Clawdbot/knowledge research: one reminder or link (e.g. "Spin up clawdbot" or "Create #vince-research").
+2) openclaw/knowledge research: one reminder or link (e.g. "Spin up openclaw" or "Create #vince-research").
 3) ART or docs: one gem from examples/art OR one doc improvement (e.g. "Run sync-sentinel-docs.sh" or "Update PROGRESS-CONSOLIDATED").
 4) Claude 4.6: one task-brief suggestion (e.g. "Next: refactor X" or "Add ARCHITECTURE.md").
 No intro. Just 4 short lines. Context:\n${contextBlock}`;
@@ -141,7 +141,7 @@ export async function registerSentinelDailyTask(
           digest.trim(),
           "",
           "---",
-          "_Ask me: ONNX status, clawdbot guide, best settings, art gems, task brief for Claude 4.6._",
+          "_Ask me: ONNX status, openclaw guide, best settings, art gems, task brief for Claude 4.6._",
         ].join("\n");
         const sent = await pushToSentinelChannels(rt, message);
         if (sent > 0) {
@@ -160,7 +160,7 @@ export async function registerSentinelDailyTask(
   await runtime.createTask({
     name: "SENTINEL_DAILY_DIGEST",
     description:
-      "Daily digest: ONNX/feature-store status, clawdbot reminder, ART gem, Claude 4.6 task-brief suggestion. Pushed to sentinel/ops channels.",
+      "Daily digest: ONNX/feature-store status, openclaw reminder, ART gem, Claude 4.6 task-brief suggestion. Pushed to sentinel/ops channels.",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["sentinel", "ops", "repeat", "daily"],

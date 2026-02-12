@@ -17,7 +17,7 @@
  * - SENTINEL_MULTI_AGENT: Multi-agent architecture expert (ASK_AGENT, standups, Option C)
  * - SENTINEL_TRADING_INTEL: Paper trading bot + options strategy expert
  * - SENTINEL_SHIP: What to ship for maximum impact
- * - SENTINEL_CLAWDBOT_GUIDE: Knowledge research setup
+ * - SENTINEL_OPENCLAW_GUIDE: Knowledge research setup
  * - SENTINEL_SETTINGS_SUGGEST: Settings recommendations
  * - SENTINEL_ONNX_STATUS: ML/ONNX health check
  * - SENTINEL_ART_GEMS: ElizaOS examples/art gems
@@ -47,7 +47,7 @@ import { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 import { sentinelPrdAction } from "./actions/sentinelPrd.action";
 import { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
 import { sentinelTradingIntelAction } from "./actions/sentinelTradingIntel.action";
-import { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
+import { sentinelOpenclawGuideAction } from "./actions/sentinelOpenclawGuide.action";
 import { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 import { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
 import { sentinelArtGemsAction } from "./actions/sentinelArtGems.action";
@@ -82,7 +82,7 @@ export const sentinelPlugin: Plugin = {
     sentinelMultiAgentAction,   // Multi-agent architecture expert
     sentinelTradingIntelAction, // Paper trading + options strategy expert
     sentinelShipAction,         // What to ship for max impact
-    sentinelClawdbotGuideAction,
+    sentinelOpenclawGuideAction,
     sentinelSettingsSuggestAction,
     sentinelOnnxStatusAction,
     sentinelArtGemsAction,
@@ -119,7 +119,7 @@ export { sentinelSuggestAction } from "./actions/sentinelSuggest.action";
 export { sentinelPrdAction } from "./actions/sentinelPrd.action";
 export { sentinelMultiAgentAction } from "./actions/sentinelMultiAgent.action";
 export { sentinelTradingIntelAction } from "./actions/sentinelTradingIntel.action";
-export { sentinelClawdbotGuideAction } from "./actions/sentinelClawdbotGuide.action";
+export { sentinelOpenclawGuideAction } from "./actions/sentinelOpenclawGuide.action";
 export { sentinelSettingsSuggestAction } from "./actions/sentinelSettingsSuggest.action";
 export { sentinelOnnxStatusAction } from "./actions/sentinelOnnxStatus.action";
 export { sentinelArtGemsAction } from "./actions/sentinelArtGems.action";
