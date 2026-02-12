@@ -33,6 +33,42 @@
 
 ---
 
+## 🆕 What's New in v2.1.0
+
+<table>
+<tr>
+<td width="50%">
+
+**🦞 Sentinel 10x** — World-class core dev
+
+- **PRD Generator** — Enterprise-grade specs for Cursor/Claude
+- **Project Radar** — Scans plugins, progress, docs, todos
+- **Trading Intelligence** — Paper bot + options expertise
+- **Multi-Agent Vision** — Dream team architecture expert
+- **OpenClaw Expert** — Clawdbot/Milaidy knowledge
+
+*15 actions, 6 services*
+
+</td>
+<td width="50%">
+
+**📚 Eliza V2** — Autonomous research engine
+
+- **Auto-Research** — Gap analysis + knowledge expansion
+- **Content Production** — Essays, tweets, repurpose
+- **Knowledge Intelligence** — Graph, quality, dedup
+- **Brand Consistency** — Voice profile, style guide
+
+*14 actions, 7 services*
+
+</td>
+</tr>
+</table>
+
+**Stats:** 20 plugins · 162 actions · +15,900 lines → [Full changelog](CHANGELOG.md)
+
+---
+
 ## One team, one dream
 
 <div align="center">
