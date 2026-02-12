@@ -1,12 +1,12 @@
 /**
  * Plugin Otaku - COO Execution Layer
  *
- * High-level DeFi operations via BANKR with:
+ * High-level DeFi operations via BANKR/CDP with:
  * - Built-in confirmation flows
  * - Natural language parsing
  * - Risk checks and balance validation
  *
- * Actions (7):
+ * Actions (10):
  * - OTAKU_SWAP: Quick token swaps
  * - OTAKU_LIMIT_ORDER: Limit orders at target prices
  * - OTAKU_DCA: Dollar cost averaging schedules
@@ -14,6 +14,9 @@
  * - OTAKU_BRIDGE: Cross-chain bridge via Relay
  * - OTAKU_BALANCE: Check wallet balances
  * - OTAKU_STOP_LOSS: Stop-loss and take-profit orders
+ * - OTAKU_MORPHO: Supply/withdraw from Morpho vaults
+ * - OTAKU_APPROVE: Token approval management
+ * - OTAKU_NFT_MINT: Mint NFTs (Sentinel handoff for gen art)
  *
  * Providers:
  * - OTAKU_WALLET_STATUS: Wallet context for multi-agent queries
@@ -23,6 +26,7 @@
  * - GET /otaku/quote: Swap quote without executing ($0.02)
  * - GET /otaku/yields: DeFi yield opportunities ($0.10)
  * - GET /otaku/history: Transaction history ($0.05)
+ * - GET /otaku/portfolio: Full portfolio visualization ($0.25)
  *
  * Routes - Free:
  * - GET /otaku/health: Service health status
@@ -39,6 +43,9 @@ import {
   otakuBridgeAction,
   otakuBalanceAction,
   otakuStopLossAction,
+  otakuMorphoAction,
+  otakuApproveAction,
+  otakuNftMintAction,
 } from "./actions";
 import { walletStatusProvider } from "./providers";
 import {
@@ -46,6 +53,7 @@ import {
   quoteRoute,
   yieldsRoute,
   historyRoute,
+  portfolioRoute,
   healthRoute,
   gasRoute,
 } from "./routes";
@@ -61,6 +69,9 @@ export const otakuPlugin: Plugin = {
     otakuBridgeAction,
     otakuBalanceAction,
     otakuStopLossAction,
+    otakuMorphoAction,
+    otakuApproveAction,
+    otakuNftMintAction,
   ],
   services: [OtakuService],
   providers: [walletStatusProvider],
@@ -71,6 +82,7 @@ export const otakuPlugin: Plugin = {
     quoteRoute,
     yieldsRoute,
     historyRoute,
+    portfolioRoute,
     // Free routes
     healthRoute,
     gasRoute,

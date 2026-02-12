@@ -44,8 +44,8 @@ describe("Otaku Plugin", () => {
     expect(otakuPlugin.name).toBe("otaku");
   });
 
-  it("should have 7 actions", () => {
-    expect(otakuPlugin.actions).toHaveLength(7);
+  it("should have 10 actions", () => {
+    expect(otakuPlugin.actions).toHaveLength(10);
   });
 
   it("should have 1 service", () => {
@@ -61,6 +61,9 @@ describe("Otaku Plugin", () => {
       "OTAKU_BRIDGE",
       "OTAKU_BALANCE",
       "OTAKU_STOP_LOSS",
+      "OTAKU_MORPHO",
+      "OTAKU_APPROVE",
+      "OTAKU_NFT_MINT",
     ];
 
     for (const actionName of expectedActions) {

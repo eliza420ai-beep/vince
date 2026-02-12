@@ -5,3 +5,6 @@ export { otakuPositionsAction } from "./otakuPositions.action";
 export { otakuBridgeAction } from "./otakuBridge.action";
 export { otakuBalanceAction } from "./otakuBalance.action";
 export { otakuStopLossAction } from "./otakuStopLoss.action";
+export { otakuMorphoAction } from "./otakuMorpho.action";
+export { otakuApproveAction } from "./otakuApprove.action";
+export { otakuNftMintAction } from "./otakuNftMint.action";
