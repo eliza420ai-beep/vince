@@ -7,6 +7,9 @@ export {
   getStandupFacilitatorId,
   TASK_NAME,
   STANDUP_INTERVAL_MS,
+  getStandupHours,
+  isStandupTime,
+  DEFAULT_STANDUP_HOUR_UTC,
 } from "./standup.constants";
 export {
   AGENT_ROLES,
@@ -35,13 +38,13 @@ export type {
   StandupData,
 } from "./standupData.service";
 
-// Scheduler
+// Scheduler (note: isStandupTime is exported from standup.constants for hour-based checks)
 export {
   getNextStandupTime,
-  isStandupTime,
   getStandupConfig,
   formatSchedule,
   buildAutoStandupKickoff,
+  isStandupTime as isStandupTimeMinute, // Minute-precise version for cron-like schedule
 } from "./standupScheduler";
 
 // Day Report Persistence

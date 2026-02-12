@@ -15,6 +15,8 @@ import {
   STANDUP_INTERVAL_MS,
   TASK_NAME,
   STANDUP_ACTION_ITEM_TASK_NAME,
+  isStandupTime,
+  getStandupHours,
 } from "./standup.constants";
 import { buildStandupKickoffText } from "./standup.context";
 import { parseStandupTranscript, type StandupActionItem } from "./standup.parse";
@@ -494,9 +496,14 @@ function registerStandupActionItemWorker(runtime: IAgentRuntime): void {
   });
 }
 
+// Track last standup execution to prevent duplicate runs in the same hour
+let lastStandupHour: number | null = null;
+
 /**
  * Register the standup task worker and create the recurring task.
  * Call only from the coordinator agent's plugin init (when isStandupCoordinator(runtime)).
+ *
+ * Schedule: STANDUP_UTC_HOURS (default: "9" for 09:00 UTC daily)
  */
 export async function registerStandupTask(runtime: IAgentRuntime): Promise<void> {
   registerStandupActionItemWorker(runtime);
@@ -505,7 +512,22 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
     validate: async () => true,
     execute: async (rt: IAgentRuntime) => {
       if (process.env.STANDUP_ENABLED !== "true") return;
-      logger.info("[Standup] Running standup...");
+
+      // Check if it's standup time
+      const currentHour = new Date().getUTCHours();
+      if (!isStandupTime()) {
+        logger.debug(`[Standup] Not standup time (current: ${currentHour}:00 UTC, scheduled: ${getStandupHours().join(",")}:00 UTC)`);
+        return;
+      }
+
+      // Prevent duplicate runs in the same hour
+      if (lastStandupHour === currentHour) {
+        logger.debug(`[Standup] Already ran standup at ${currentHour}:00 UTC this hour, skipping`);
+        return;
+      }
+
+      lastStandupHour = currentHour;
+      logger.info(`[Standup] 🎬 Starting scheduled standup (${currentHour}:00 UTC)...`);
       try {
         const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
         const kickoffText = await buildStandupKickoffText(rt);
@@ -578,7 +600,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
   await runtime.createTask({
     name: TASK_NAME,
     description:
-      "2x/day agent standup: crypto performance, recent code, action items, lessons learned.",
+      "Scheduled standup: market data, reports, action items, lessons learned.",
     roomId: taskWorldId,
     worldId: taskWorldId,
     tags: ["queue", "repeat", "standup"],
@@ -588,7 +610,9 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
     },
   });
 
+  const scheduledHours = getStandupHours();
+  const hoursStr = scheduledHours.map((h) => `${h.toString().padStart(2, "0")}:00`).join(", ");
   logger.info(
-    `[Standup] Task registered (interval ${intervalMs / 3600_000}h). Set STANDUP_ENABLED=true and STANDUP_COORDINATOR_AGENT to coordinator name.`,
+    `[Standup] ✅ Task registered — scheduled at ${hoursStr} UTC (check every ${intervalMs / 60000} min). Set STANDUP_ENABLED=true to activate.`,
   );
 }
