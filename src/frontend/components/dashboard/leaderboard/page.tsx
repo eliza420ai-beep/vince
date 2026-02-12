@@ -1588,13 +1588,28 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               ) : polymarketData?.markets && polymarketData.markets.length > 0 ? (
                 (() => {
                   type PM = (typeof polymarketData.markets)[number];
-                  const normalizeCategory = (c: string | undefined) => (c?.trim() || "Other");
-                  const byCategory = polymarketData.markets.reduce<Record<string, PM[]>>((acc, m) => {
-                    const key = normalizeCategory(m.category);
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push(m);
-                    return acc;
-                  }, {});
+                  type PolymarketSection = "Crypto" | "Stocks" | "Macro & Geopolitics" | "Other";
+                  const SECTION_ORDER: PolymarketSection[] = ["Crypto", "Stocks", "Macro & Geopolitics", "Other"];
+                  const getPolymarketSection = (category: string | undefined): PolymarketSection => {
+                    const c = (category ?? "").toLowerCase().trim();
+                    if (!c) return "Other";
+                    if (/crypto|bitcoin|ethereum|solana|defi/.test(c)) return "Crypto";
+                    if (/finance|stocks|ipo|indices|commodities|equities/.test(c)) return "Stocks";
+                    if (/economy|politics|geopolitics|economics|fed|treasuries/.test(c)) return "Macro & Geopolitics";
+                    return "Other";
+                  };
+                  const openMarkets = polymarketData.markets.filter(
+                    (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > Date.now()
+                  );
+                  const bySection = openMarkets.reduce<Record<PolymarketSection, PM[]>>(
+                    (acc, m) => {
+                      const section = getPolymarketSection(m.category);
+                      if (!acc[section]) acc[section] = [];
+                      acc[section].push(m);
+                      return acc;
+                    },
+                    {} as Record<PolymarketSection, PM[]>
+                  );
                   const sortMarkets = (list: PM[]): PM[] => {
                     const copy = [...list];
                     if (polymarketSort === "yes") {
@@ -1610,17 +1625,8 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     }
                     return copy;
                   };
-                  const categoryOrder = ["Crypto", "Finance", "Politics", "Other"];
-                  const sortedCategories = Object.keys(byCategory).sort((a, b) => {
-                    const ia = categoryOrder.indexOf(a);
-                    const ib = categoryOrder.indexOf(b);
-                    if (ia !== -1 && ib !== -1) return ia - ib;
-                    if (ia !== -1) return -1;
-                    if (ib !== -1) return 1;
-                    return a.localeCompare(b);
-                  });
                   const weekFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000;
-                  const closeThisWeek = polymarketData.markets.filter((m) => {
+                  const closeThisWeek = openMarkets.filter((m) => {
                     if (!m.endDateIso) return false;
                     const t = new Date(m.endDateIso).getTime();
                     return t >= Date.now() && t <= weekFromNow;
@@ -1686,7 +1692,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                               <tbody>
                                 {openCryptoEtfMarkets.slice(0, 15).map((m) => (
                                   <tr key={m.conditionId} className="border-b border-border/50">
-                                    <td className="py-2 font-medium text-foreground/95 max-w-[280px] line-clamp-2" title={m.question}>{m.question}</td>
+                                    <td className="py-2 font-medium text-foreground/95 max-w-[320px] truncate" title={m.question}>{m.question}</td>
                                     <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
                                       {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
                                     </td>
@@ -1736,7 +1742,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                               <tbody>
                                 {openWeeklyMarkets.slice(0, 15).map((m) => (
                                   <tr key={m.conditionId} className="border-b border-border/50">
-                                    <td className="py-2 font-medium text-foreground/95 max-w-[280px] line-clamp-2" title={m.question}>{m.question}</td>
+                                    <td className="py-2 font-medium text-foreground/95 max-w-[320px] truncate" title={m.question}>{m.question}</td>
                                     <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
                                       {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
                                     </td>
@@ -1761,7 +1767,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                       )}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <p className="text-sm text-muted-foreground">
-                          {polymarketData.markets.length} market{polymarketData.markets.length !== 1 ? "s" : ""}
+                          {openMarkets.length} market{openMarkets.length !== 1 ? "s" : ""}
                           {closeThisWeek > 0 ? ` · ${closeThisWeek} close this week` : null}
                           {polymarketData.updatedAt != null
                             ? ` · Updated ${new Date(polymarketData.updatedAt).toLocaleTimeString()}`
@@ -1778,58 +1784,58 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           </SelectContent>
                         </Select>
                       </div>
-                      <DashboardCard title="Priority markets" className="lg:col-span-2">
-                        <div className="overflow-x-auto space-y-6">
-                          {sortedCategories.map((cat) => (
-                            <div key={cat}>
-                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{cat}</p>
-                              <table className="w-full text-sm">
-                                <thead>
-                                  <tr className="border-b border-border">
-                                    <th className="text-left py-2 font-medium">Market</th>
-                                    <th className="text-right py-2 font-medium">YES %</th>
-                                    <th className="text-right py-2 font-medium">Volume</th>
-                                    <th className="text-right py-2 font-medium">Closes</th>
-                                    <th className="text-right py-2 font-medium">Link</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {sortMarkets(byCategory[cat]).map((m) => (
-                                    <tr key={m.conditionId} className="border-b border-border/50">
-                                      <td className="py-2 font-medium text-foreground/95 max-w-[280px] line-clamp-2" title={m.question}>{m.question}</td>
-                                      <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
-                                        {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
-                                      </td>
-                                      <td className="text-right font-mono text-muted-foreground">
-                                        {m.volume != null
-                                          ? Number(m.volume) >= 1e6
-                                            ? `$${(Number(m.volume) / 1e6).toFixed(1)}M`
-                                            : Number(m.volume) >= 1e3
-                                              ? `$${(Number(m.volume) / 1e3).toFixed(0)}K`
-                                              : `$${Number(m.volume).toFixed(0)}`
-                                          : "—"}
-                                      </td>
-                                      <td className="text-right text-muted-foreground whitespace-nowrap">
-                                        {formatCloses(m.endDateIso)}
-                                      </td>
-                                      <td className="text-right">
-                                        <a
-                                          href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-primary hover:underline inline-flex items-center gap-1"
-                                        >
-                                          View <ExternalLink className="w-3 h-3" />
-                                        </a>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          ))}
-                        </div>
-                      </DashboardCard>
+                      {openMarkets.length === 0 ? (
+                        <DashboardCard title="Priority markets" className="lg:col-span-2">
+                          <p className="text-sm text-muted-foreground py-4">No open priority markets right now. All current markets have closed.</p>
+                        </DashboardCard>
+                      ) : (
+                        SECTION_ORDER.map(
+                          (section) =>
+                            (bySection[section]?.length ?? 0) > 0 && (
+                              <DashboardCard key={section} title={`${section} (${bySection[section].length})`} className="lg:col-span-2">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b border-border">
+                                        <th className="text-left py-2 font-medium">Market</th>
+                                        <th className="text-right py-2 font-medium">YES %</th>
+                                        <th className="text-right py-2 font-medium">Volume</th>
+                                        <th className="text-right py-2 font-medium">Closes</th>
+                                        <th className="text-right py-2 font-medium">Link</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {sortMarkets(bySection[section]).map((m) => (
+                                        <tr key={m.conditionId} className="border-b border-border/50">
+                                          <td className="py-2 font-medium text-foreground/95 max-w-[320px] truncate" title={m.question}>{m.question}</td>
+                                          <td className={cn("text-right font-mono py-2 pr-2 rounded-r", yesTint(m.yesPrice))}>
+                                            {m.yesPrice != null ? `${Math.round(m.yesPrice * 100)}%` : "—"}
+                                          </td>
+                                          <td className="text-right font-mono text-muted-foreground">
+                                            {formatVolume(m.volume)}
+                                          </td>
+                                          <td className="text-right text-muted-foreground whitespace-nowrap">
+                                            {formatCloses(m.endDateIso)}
+                                          </td>
+                                          <td className="text-right">
+                                            <a
+                                              href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline inline-flex items-center gap-1"
+                                            >
+                                              View <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </DashboardCard>
+                            )
+                        )
+                      )}
                     </>
                   );
                 })()

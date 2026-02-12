@@ -124,6 +124,10 @@ export function buildPriorityMarketsHandler() {
       ]);
 
       const now = Date.now();
+      const openMarkets = markets.filter((m) => {
+        const end = m.endDateIso ?? (m as any).end_date_iso;
+        return !end || new Date(end).getTime() > now;
+      });
       const cryptoEtfItems = cryptoEtfMarketsRaw.map(mapMarketToItem);
       const cryptoEtfOpen = cryptoEtfItems.filter(
         (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > now
@@ -132,7 +136,7 @@ export function buildPriorityMarketsHandler() {
       const body: PriorityMarketsResponse = {
         whyWeTrack: WHY_WE_TRACK,
         intentSummary: INTENT_SUMMARY,
-        markets: markets.map(mapMarketToItem),
+        markets: openMarkets.map(mapMarketToItem),
         updatedAt: now,
         weeklyCrypto:
           weeklyCryptoMarkets.length > 0
