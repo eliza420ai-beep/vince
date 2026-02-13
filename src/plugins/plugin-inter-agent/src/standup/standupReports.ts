@@ -29,17 +29,19 @@ export const AGENT_ROLES = {
   Oracle: {
     title: "CPO",
     focus: "Prediction Markets",
-    reportSections: ["priority_markets", "odds_movements", "market_insights", "portfolio_exposure"],
+    reportSections: ["status_update"],
+    isUnderConstruction: true, // Polymarket feeds not fully wired yet
   },
   Solus: {
     title: "CFO",
-    focus: "Trading Strategy",
-    reportSections: ["active_positions", "strike_selection", "risk_assessment", "weekly_outlook"],
+    focus: "Hypersurface Options (BTC-first)",
+    reportSections: ["weekly_strikes", "btc_thesis", "risk_assessment"],
   },
   Otaku: {
     title: "COO",
     focus: "DeFi Operations",
-    reportSections: ["wallet_status", "pending_orders", "yield_opportunities", "gas_conditions"],
+    reportSections: ["status_update"],
+    isUnderConstruction: true, // No wallet configured yet
   },
   Kelly: {
     title: "CVO",
@@ -62,143 +64,80 @@ export type AgentName = keyof typeof AGENT_ROLES;
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
   Eliza: `## Eliza — Research — {{date}}
 
-| Asset | Pattern | Confidence |
-|-------|---------|------------|
-| BTC | [pattern] | H/M/L |
-| SOL | [pattern] | H/M/L |
+**BTC insight:** [One key pattern or thesis for this week]
+**Supporting:** [Data point or source]
+**Confidence:** High/Med/Low
 
-**Key insight:** [One sentence connecting data to action]
-**Action:** [One specific recommendation]`,
+**Action:** [One specific recommendation for Solus/strike selection]`,
 
   VINCE: `## VINCE — Data — {{date}}
 
-| Asset | Price | Funding | Signal |
-|-------|-------|---------|--------|
-| BTC | $X | X% | 🟢/🟡/🔴 |
-| SOL | $X | X% | 🟢/🟡/🔴 |
-| HYPE | $X | X% | 🟢/🟡/🔴 |
+| Asset | Price | 24h | Funding | OI Δ | Signal |
+|-------|-------|-----|---------|------|--------|
+| BTC | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
+| SOL | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
+| HYPE | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
 
-**Paper bot:** XW/XL | **Best setup:** [asset + direction]
-**Action:** [One specific trade]`,
+**BTC focus:** [Key level or setup for Hypersurface strike selection]
+**Paper bot:** XW/XL | PnL: $X
+**Action:** [One specific trade signal]`,
 
   ECHO: `## ECHO — CT Sentiment — {{date}}
 
-### Vibes
-| Asset | Mood | Driver |
-|-------|------|--------|
-| BTC | Bull/Bear/Flat | [one phrase] |
-| SOL | Bull/Bear/Flat | [one phrase] |
-| HYPE | Bull/Bear/Flat | [one phrase] |
+| Asset | CT Mood | Key Voice |
+|-------|---------|-----------|
+| BTC | 📈/📉/😐 (+/-X) | @handle: "[quote]" |
+| SOL | 📈/📉/😐 (+/-X) | @handle: "[quote]" |
 
-### Hot Take
-- @[handle]: "[key quote]" — [implication]
+**Narrative:** [What's driving CT today in one sentence]
+**Contrarian?** [Yes/No — if extreme, flag it]
 
-### vs VINCE Data
-[Aligned/Divergent] — [one sentence why]
+**Action:** [One sentiment-based trade implication]`,
 
-### Action
-1. **[SENTIMENT SIGNAL]**: [one specific trade implication]`,
+  Oracle: `## Oracle — {{date}}
 
-  Oracle: `## Oracle — Polymarket — {{date}}
+🚧 **Prediction market feeds under construction.**
+Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
 
-### Key Markets (BTC/SOL focus)
-| Market | Odds | Δ24h | Signal |
-|--------|------|------|--------|
-| [most relevant] | X% | ±X% | Bull/Bear |
+*No action items.*`,
 
-### Smart Money
-- [One notable position or divergence]
+  Solus: `## Solus — Hypersurface — {{date}}
 
-### Bottom Line
-**Signal**: Bull/Bear/Neutral — Confidence: H/M/L
-**Why**: [One sentence]
+**BTC Options (Core Income)**
+| Strike | Type | Expiry | Thesis |
+|--------|------|--------|--------|
+| $Xk | Call/Put | Fri 08:00 UTC | [one sentence] |
 
-### Action
-1. **[PREDICTION SIGNAL]**: [one specific implication]`,
+**Weekly View:** Bull/Bear/Neutral — [why in 10 words]
+**Invalidation:** [specific level or event]
 
-  Solus: `## Solus — Risk — {{date}}
+**Action:** [Size/Skip + strike recommendation]`,
 
-| Asset | Call | Size | Entry | Invalidation |
-|-------|------|------|-------|--------------|
-| BTC | Long/Short/Skip | $Xk | $X | $X |
-| SOL | Long/Short/Skip | $Xk | $X | $X |
+  Otaku: `## Otaku — {{date}}
 
-**Portfolio heat:** Low/Med/High
-**Action:** [One specific sizing decision]`,
+🔧 **Wallet integration in progress.**
+Observing team reports — no execution capability yet.
 
-  Otaku: `## Otaku — Execution — {{date}}
+*Watching for: DeFi opportunities to act on once wallet is live.*`,
 
-| Venue | Ready | Balance |
-|-------|-------|---------|
-| Hyperliquid | ✅/❌ | $X |
-| Base/BANKR | ✅/❌ | $X |
+  Kelly: `Good morning team. {{date}} standup.
 
-**Pending:** [Orders waiting or "None"]
-**Action:** [Ready to execute X or blocker]`,
+**Focus:** BTC options (Hypersurface) + perps (Hyperliquid)
 
-  Kelly: `## 🎯 Trading Standup — {{date}} ({{dayOfWeek}})
+@VINCE — market data, go.`,
 
-*Facilitated by Kelly | One Team, One Dream*
+  Sentinel: `## Sentinel — Tech — {{date}}
 
----
+**Shipped:** [Recent commits/PRs or "Nothing new"]
+**In Progress:** [Current dev work]
+**Blocked:** [Blockers or "None"]
 
-### Focus: BTC, SOL, HYPE + Hyperliquid Alpha
+| System | Status |
+|--------|--------|
+| Agents | 🟢/🟡/🔴 |
+| APIs | 🟢/🟡/🔴 |
 
-**Core Assets:** BTC, SOL, HYPE, HIP-3 tokens
-**Products:** Perps (Hyperliquid), Options (Hypersurface), Spot/1x leverage
-**Intel:** X sentiment, Polymarket odds
-
----
-
-### Agent Reports (in order)
-
-1. **@VINCE** — BTC/SOL/HYPE market data, funding, paper bot
-2. **@Eliza** — Research patterns, knowledge connections
-3. **@ECHO** — X/CT sentiment on our assets
-4. **@Oracle** — Polymarket odds, prediction signals
-5. **@Solus** — Strike selection, position sizing, risk
-6. **@Otaku** — Wallet status, pending orders, execution readiness
-7. **@Sentinel** — System health, costs
-
-*(Yves may or may not be present — proceed autonomously)*
-
----
-
-### 🎬 Action Plan
-
-| WHAT | HOW | WHY | OWNER | URGENCY |
-|------|-----|-----|-------|---------|
-| [Action] | [Method] | [Reason] | @Agent | Now/Today/This Week |
-
----
-
-### ⚡ Decisions (if Yves present, flag for input)
-
-| Decision | Team Recommendation | Confidence | 
-|----------|---------------------|------------|
-| [Decision] | [Rec] | High/Med/Low |
-
-*If Yves not present: Proceed with HIGH confidence items. Flag MEDIUM/LOW for async review.*
-
----
-
-### 🎯 North Star
-**The Dream:** Consistent alpha on BTC, SOL, HYPE via perps + options
-**Today's Edge:** [What makes today actionable]
-
----
-
-@VINCE, market data — go.`,
-
-  Sentinel: `## Sentinel — Ops — {{date}}
-
-| System | Status | Cost 24h |
-|--------|--------|----------|
-| Agents | 🟢/🟡/🔴 | $X |
-| APIs | 🟢/🟡/🔴 | $X |
-
-**Alerts:** [Any or "None"]
-**Action:** [One specific ops recommendation]`,
+**Action:** [One tech recommendation]`,
 };
 
 /**

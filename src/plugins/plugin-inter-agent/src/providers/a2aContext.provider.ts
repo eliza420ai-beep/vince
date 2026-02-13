@@ -18,7 +18,7 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
-import { isHumanMessage, buildStandupContext, getAgentRole } from "../standup/standupReports";
+import { isHumanMessage, buildStandupContext, getAgentRole, AGENT_ROLES, type AgentName } from "../standup/standupReports";
 import {
   isStandupActive,
   startStandupSession,
@@ -382,6 +382,46 @@ Action: IGNORE. Do not reply until it's your turn.`;
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
+      
+      // Check if this agent is under construction
+      const roleKey = Object.keys(AGENT_ROLES).find(
+        (k) => k.toLowerCase() === myNameLower
+      ) as AgentName | undefined;
+      const isUnderConstruction = roleKey ? (AGENT_ROLES[roleKey] as { isUnderConstruction?: boolean }).isUnderConstruction : false;
+      
+      // Under construction agents give minimal status update
+      if (isUnderConstruction) {
+        logger.info(`[A2A_CONTEXT] ${myName}: Under construction — minimal response`);
+        
+        // Fetch the status message
+        let statusData = "";
+        try {
+          const data = await fetchAgentData(runtime, myName);
+          if (data) {
+            statusData = data;
+          }
+        } catch (err) {
+          logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+        }
+        
+        return `
+## 🚧 YOUR TURN — Status Update (Under Construction)
+
+Kelly called on you. You are **under construction** — give a BRIEF status.
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+
+**YOUR RESPONSE (copy exactly):**
+
+${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No action items.*`}
+
+**RULES:**
+- MAX 30 WORDS
+- Just acknowledge you're under construction
+- NO fake data, NO promises
+- DO NOT say "happy to help" or offer to do things you can't do
+`;
+      }
       
       // Fetch real data for this agent
       let liveData = "";

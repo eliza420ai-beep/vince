@@ -111,57 +111,26 @@ ${rows.join("\n")}
 
 /**
  * Fetch prediction market data for Oracle's report
+ * NOTE: Oracle is currently under construction - Polymarket feeds not fully wired
  */
-export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
-  try {
-    const polymarket = runtime.getService("VINCE_POLYMARKET_SERVICE") as {
-      getPriceMarkets?: () => Promise<Array<{ question: string; odds: number; change24h: number }> | null>;
-    } | null;
+export async function fetchOracleData(_runtime: IAgentRuntime): Promise<string> {
+  // Oracle is under construction - return minimal status
+  return `🚧 **Prediction market feeds under construction.**
+Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
 
-    const markets = await polymarket?.getPriceMarkets?.();
-    
-    if (!markets || markets.length === 0) {
-      return "*(Polymarket data unavailable)*";
-    }
-
-    // Get most relevant market
-    const top = markets[0];
-    const signal = top.change24h > 0 ? "Bull" : top.change24h < 0 ? "Bear" : "Flat";
-    
-    return `
-| Market | Odds | Δ24h | Signal |
-|--------|------|------|--------|
-| ${top.question.slice(0, 30)}... | ${(top.odds * 100).toFixed(0)}% | ${top.change24h >= 0 ? "+" : ""}${(top.change24h * 100).toFixed(1)}% | ${signal} |
-`.trim();
-  } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
-    return "*(Polymarket unavailable)*";
-  }
+*No action items.*`;
 }
 
 /**
  * Fetch wallet data for Otaku's report
+ * NOTE: Otaku is under construction - no wallet configured yet
  */
-export async function fetchOtakuData(runtime: IAgentRuntime): Promise<string> {
-  try {
-    const bankr = runtime.getService("bankr_sdk") as {
-      isConfigured?: () => boolean;
-    } | null;
+export async function fetchOtakuData(_runtime: IAgentRuntime): Promise<string> {
+  // Otaku is under construction - no funded wallet yet
+  return `🔧 **Wallet integration in progress.**
+Observing team reports — no execution capability yet.
 
-    const configured = bankr?.isConfigured?.() ?? false;
-    
-    return `
-| Venue | Ready | Note |
-|-------|-------|------|
-| Hyperliquid | ${configured ? "✅" : "❌"} | ${configured ? "Connected" : "Not configured"} |
-| BANKR | ${configured ? "✅" : "❌"} | ${configured ? "Ready" : "Need API key"} |
-
-**Pending:** None
-`.trim();
-  } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Otaku data");
-    return "*(Wallet status unavailable)*";
-  }
+*Watching for: DeFi opportunities to act on once wallet is live.*`;
 }
 
 /**

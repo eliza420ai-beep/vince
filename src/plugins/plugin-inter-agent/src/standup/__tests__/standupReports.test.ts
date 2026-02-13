@@ -66,9 +66,9 @@ describe("Standup Reports", () => {
     });
 
     it("Kelly template is standup facilitator", () => {
-      expect(REPORT_TEMPLATES.Kelly).toContain("Trading Standup");
-      expect(REPORT_TEMPLATES.Kelly).toContain("{{dayOfWeek}}");
-      expect(REPORT_TEMPLATES.Kelly).toContain("One Team, One Dream");
+      expect(REPORT_TEMPLATES.Kelly).toContain("standup");
+      expect(REPORT_TEMPLATES.Kelly).toContain("{{date}}");
+      expect(REPORT_TEMPLATES.Kelly).toContain("@VINCE");
     });
   });
 
