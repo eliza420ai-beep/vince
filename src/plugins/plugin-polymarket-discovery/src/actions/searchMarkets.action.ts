@@ -272,27 +272,12 @@ export const searchMarketsAction: Action = {
           }
         }
 
-        // Include condition_id so the LLM can reference it for GET_POLYMARKET_DETAIL
-        if (market.condition_id) {
-          text += `   condition_id: \`${market.condition_id}\`\n`;
-        }
-
-        // Include token_ids if available for direct orderbook queries
-        const tokens = market.tokens || [];
-        const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-        const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-        if (yesToken) {
-          text += `   yes_token_id: \`${yesToken.token_id}\`\n`;
-        }
-        if (noToken) {
-          text += `   no_token_id: \`${noToken.token_id}\`\n`;
-        }
-
         text += "\n";
       });
 
+      // Don't put condition_id/token_id in user-facing text—no insight, just noise. Data stays in result for follow-up actions.
       text +=
-        "_Use GET_POLYMARKET_DETAIL with condition_id for full market info, or GET_POLYMARKET_ORDERBOOK with token_id for orderbook depth._";
+        "_I can get live odds or full detail for any of these—say which market._";
 
       const result: SearchMarketsActionResult = {
         text,
