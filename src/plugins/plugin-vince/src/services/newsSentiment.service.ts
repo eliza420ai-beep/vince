@@ -1053,6 +1053,17 @@ export class VinceNewsSentimentService extends Service {
   }
 
   /**
+   * True if the line is a price-snapshot line (e.g. "BTC: 66.8k (-1%)") or "Cryptocurrency Prices" block.
+   * Such lines are not stored as headlines so ECHO and others never see stale prices.
+   */
+  private isPriceSnapshotLine(line: string): boolean {
+    if (!line || typeof line !== "string") return false;
+    const t = line.trim();
+    if (/Cryptocurrency\s+Prices|^Prices:\s*/i.test(t)) return true;
+    return /\b(BTC|ETH|SOL|BNB|BTC\.D):\s*\$?[\d,.]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?/i.test(t);
+  }
+
+  /**
    * Add a parsed article with deduplication
    */
   private addParsedArticle(
@@ -1062,6 +1073,7 @@ export class VinceNewsSentimentService extends Service {
     source: string,
     category: "crypto" | "macro" | "leftcurve",
   ): void {
+    if (this.isPriceSnapshotLine(headline)) return;
     const normalized = headline.toLowerCase().trim();
 
     if (

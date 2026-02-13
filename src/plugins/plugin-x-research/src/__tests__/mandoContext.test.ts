@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { getMandoContextForX } from '../utils/mandoContext';
+import { getMandoContextForX, isPriceLikeHeadline } from '../utils/mandoContext';
 import type { IAgentRuntime } from '@elizaos/core';
 
 describe('getMandoContextForX', () => {
@@ -259,5 +259,80 @@ describe('getMandoContextForX', () => {
       if (origMaxAge !== undefined) process.env.MANDO_SHARED_CACHE_MAX_AGE_MS = origMaxAge;
       else delete process.env.MANDO_SHARED_CACHE_MAX_AGE_MS;
     }
+  });
+
+  describe('price-line filtering', () => {
+    it('isPriceLikeHeadline returns true for price snapshot and Cryptocurrency Prices', () => {
+      expect(isPriceLikeHeadline('BTC: 66.8k (-1%)')).toBe(true);
+      expect(isPriceLikeHeadline('ETH: 1957 (-1%)')).toBe(true);
+      expect(isPriceLikeHeadline('SOL: 80 (-2%)')).toBe(true);
+      expect(isPriceLikeHeadline('Cryptocurrency Prices: BTC: 69k')).toBe(true);
+      expect(isPriceLikeHeadline('Prices: BTC 70k')).toBe(true);
+      expect(isPriceLikeHeadline('SEC approves spot ETF')).toBe(false);
+      expect(isPriceLikeHeadline('Ethereum upgrade live')).toBe(false);
+    });
+
+    it('filters out price-like headlines from news service', async () => {
+      const runtime = {
+        getService: vi.fn(() => ({
+          hasData: () => true,
+          getVibeCheck: () => 'Risk-on: ETF flows.',
+          getTopHeadlines: () => [
+            { title: 'SEC approves spot ETF' },
+            { title: 'BTC: 66.8k (-1%)' },
+            { title: 'Ethereum upgrade live' },
+            { title: 'Cryptocurrency Prices: BTC: 69k' },
+          ],
+        })),
+        getCache: vi.fn(() => Promise.resolve(undefined)),
+      } as unknown as IAgentRuntime;
+
+      const result = await getMandoContextForX(runtime);
+      expect(result).not.toBeNull();
+      expect(result!.headlines).toEqual(['SEC approves spot ETF', 'Ethereum upgrade live']);
+      expect(result!.headlines).not.toContain('BTC: 66.8k (-1%)');
+      expect(result!.headlines).not.toContain('Cryptocurrency Prices: BTC: 69k');
+    });
+
+    it('filters out price-like headlines from cache', async () => {
+      const runtime = {
+        getService: vi.fn(() => null),
+        getCache: vi.fn((key: string) => {
+          if (key === 'mando_minutes:latest:v9') {
+            return Promise.resolve({
+              articles: [
+                { title: 'Crypto lower, AI wobble' },
+                { title: 'BTC: 66.8k (-1%)' },
+                { title: 'SOL: 80 (-2%);' },
+              ],
+            });
+          }
+          return Promise.resolve(undefined);
+        }),
+      } as unknown as IAgentRuntime;
+
+      const result = await getMandoContextForX(runtime);
+      expect(result).not.toBeNull();
+      expect(result!.headlines).toEqual(['Crypto lower, AI wobble']);
+      expect(result!.vibeCheck).not.toContain('66.8');
+      expect(result!.vibeCheck).not.toContain('BTC: 66');
+    });
+
+    it('sanitizes vibeCheck when it contains price snapshot', async () => {
+      const runtime = {
+        getService: vi.fn(() => ({
+          hasData: () => true,
+          getVibeCheck: () => 'Headlines: Crypto lower; BTC: 66.8k (-1%); ETH: 1957 (-1%).',
+          getTopHeadlines: (n: number) => [{ title: 'Crypto lower' }],
+        })),
+        getCache: vi.fn(() => Promise.resolve(undefined)),
+      } as unknown as IAgentRuntime;
+
+      const result = await getMandoContextForX(runtime);
+      expect(result).not.toBeNull();
+      expect(result!.vibeCheck).not.toContain('66.8');
+      expect(result!.vibeCheck).not.toContain('BTC: 66');
+      expect(result!.vibeCheck).not.toContain('1957');
+    });
   });
 });

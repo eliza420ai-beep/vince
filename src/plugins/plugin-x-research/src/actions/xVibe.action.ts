@@ -157,6 +157,7 @@ export const xVibeAction: Action = {
       let response = `📊 **${detectedTopic.name} Vibe Check**\n\n`;
       if (mandoContext?.vibeCheck) {
         response += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
+        response += `_(Prices: ask VINCE for current levels.)_\n\n`;
       }
       response += `${emoji} ${capitalize(topicSentiment.direction)} (${scoreStr}) | ${topicSentiment.confidence}% confidence\n\n`;
 

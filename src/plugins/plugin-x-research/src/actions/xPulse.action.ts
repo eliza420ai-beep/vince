@@ -266,6 +266,7 @@ async function generateBriefing(
       const topHeadlines = mandoContext.headlines.slice(0, 5).map((h) => (h.length > 60 ? h.slice(0, 57) + '...' : h));
       output += topHeadlines.map((h) => `• ${h}`).join('\n') + '\n\n';
     }
+    output += `_(Prices: ask VINCE for current levels.)_\n\n`;
   }
 
   // Overall sentiment

@@ -1,6 +1,7 @@
 /**
  * MandoMinutes context for X-Research.
  * When available (same runtime or shared cache), pulse/vibe can frame output with "today's news".
+ * Price-snapshot lines are filtered out so ECHO never displays stale prices.
  */
 
 import fs from 'node:fs';
@@ -12,9 +13,40 @@ const MANDO_RAW_CACHE_KEY = 'mando_minutes:latest:v9';
 const MANDO_SHARED_CACHE_MAX_AGE_MS =
   Number(process.env.MANDO_SHARED_CACHE_MAX_AGE_MS) || 86400000; // 24h
 
+/** Pattern: ASSET: $?number[kKmMbB]? (optional % change). Avoids surfacing stale prices in ECHO. */
+const PRICE_SNAPSHOT_REGEX =
+  /\b(BTC|ETH|SOL|BNB|BTC\.D):\s*\$?[\d,.]+[kmb]?\s*(\([+-]?\d+\.?\d*%?\))?/gi;
+const CRYPTO_PRICES_LABEL = /Cryptocurrency\s+Prices|^Prices:\s*/i;
+const PRICE_PLACEHOLDER = 'Market snapshot omitted; ask VINCE for prices.';
+
 export interface MandoContextForX {
   vibeCheck: string;
   headlines: string[];
+}
+
+/**
+ * Returns true if the line looks like a price snapshot or a "Cryptocurrency Prices" block,
+ * so we can filter it from headlines and sanitize vibeCheck (avoid stale prices in ECHO).
+ */
+export function isPriceLikeHeadline(title: string): boolean {
+  if (!title || typeof title !== 'string') return false;
+  const t = title.trim();
+  if (CRYPTO_PRICES_LABEL.test(t)) return true;
+  PRICE_SNAPSHOT_REGEX.lastIndex = 0;
+  return PRICE_SNAPSHOT_REGEX.test(t);
+}
+
+/**
+ * Remove price-snapshot segments from a vibe string. If the whole string is price-like, return placeholder.
+ */
+function sanitizeVibeCheck(vibe: string): string {
+  if (!vibe || typeof vibe !== 'string') return vibe;
+  if (isPriceLikeHeadline(vibe)) return PRICE_PLACEHOLDER;
+  const priceRe = new RegExp(PRICE_SNAPSHOT_REGEX.source, 'gi');
+  let out = vibe.replace(priceRe, '').replace(CRYPTO_PRICES_LABEL, '');
+  out = out.replace(/\s*;\s*;\s*/g, '; ').replace(/^\s*;\s*|;\s*$/g, '').trim();
+  if (!out || out.length < 10) return PRICE_PLACEHOLDER;
+  return out.slice(0, 150);
 }
 
 /**
@@ -36,14 +68,17 @@ export async function getMandoContextForX(
       if (typeof news.hasData === 'function' && !news.hasData()) {
         return null;
       }
-      const vibeCheck = typeof news.getVibeCheck === 'function' ? news.getVibeCheck() : '';
+      const rawVibe = typeof news.getVibeCheck === 'function' ? news.getVibeCheck() : '';
       const topHeadlines = typeof news.getTopHeadlines === 'function' ? news.getTopHeadlines(8) : [];
-      if (!vibeCheck || vibeCheck === 'No news data yet.' || topHeadlines.length === 0) {
+      const headlines = topHeadlines
+        .map((n) => n.title ?? '')
+        .filter((t) => Boolean(t) && !isPriceLikeHeadline(t));
+      if (!rawVibe || rawVibe === 'No news data yet.' || headlines.length === 0) {
         return null;
       }
       return {
-        vibeCheck,
-        headlines: topHeadlines.map((n) => n.title ?? '').filter(Boolean),
+        vibeCheck: sanitizeVibeCheck(rawVibe),
+        headlines,
       };
     } catch {
       return null;
@@ -56,15 +91,17 @@ export async function getMandoContextForX(
       timestamp?: number;
     }>(MANDO_RAW_CACHE_KEY);
     if (raw?.articles?.length) {
-      const headlines = raw.articles.map((a) => a.title ?? '').filter(Boolean);
-      const vibeCheck =
+      const headlines = raw.articles
+        .map((a) => a.title ?? '')
+        .filter((t) => Boolean(t) && !isPriceLikeHeadline(t));
+      const rawVibe =
         'Headlines: ' +
         raw.articles
           .slice(0, 5)
           .map((a) => a.title)
           .join('; ')
           .slice(0, 150);
-      return { vibeCheck, headlines };
+      return { vibeCheck: sanitizeVibeCheck(rawVibe), headlines };
     }
   } catch {
     // ignore
@@ -87,15 +124,17 @@ export async function getMandoContextForX(
     ) {
       return null;
     }
-    const headlines = raw.articles.map((a) => a.title ?? '').filter(Boolean);
-    const vibeCheck =
+    const headlines = raw.articles
+      .map((a) => a.title ?? '')
+      .filter((t) => Boolean(t) && !isPriceLikeHeadline(t));
+    const rawVibe =
       'Headlines: ' +
       raw.articles
         .slice(0, 5)
         .map((a) => a.title)
         .join('; ')
         .slice(0, 150);
-    return { vibeCheck, headlines };
+    return { vibeCheck: sanitizeVibeCheck(rawVibe), headlines };
   } catch {
     return null;
   }
