@@ -274,10 +274,32 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
   }
 }
 
+/** Standup channel name substrings for skipping reflection (REFLECTION_SKIP_STANDUP) */
+function getReflectionStandupChannelParts(): string[] {
+  const raw = process.env.REFLECTION_STANDUP_CHANNEL_NAMES ?? 'standup,daily-standup';
+  return raw
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isReflectionStandupRoom(roomName: string | undefined): boolean {
+  if (!roomName) return false;
+  const normalized = roomName.toLowerCase();
+  return getReflectionStandupChannelParts().some((part) => normalized.includes(part));
+}
+
 export const reflectionEvaluator: Evaluator = {
   name: 'REFLECTION',
   similes: ['REFLECT', 'SELF_REFLECT', 'EVALUATE_INTERACTION', 'ASSESS_SITUATION'],
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+    if (process.env.REFLECTION_SKIP_STANDUP === 'true') {
+      const room = await runtime.getRoom(message.roomId);
+      if (isReflectionStandupRoom(room?.name)) {
+        return false;
+      }
+    }
+
     const lastMessageId = await runtime.getCache<string>(
       `${message.roomId}-reflection-last-processed`
     );
@@ -294,7 +316,8 @@ export const reflectionEvaluator: Evaluator = {
       }
     }
 
-    const reflectionInterval = Math.ceil(runtime.getConversationLength() / 4);
+    const divisor = Math.max(1, parseInt(process.env.REFLECTION_INTERVAL_DIVISOR ?? '4', 10));
+    const reflectionInterval = Math.ceil(runtime.getConversationLength() / divisor);
 
     return messages.length > reflectionInterval;
   },

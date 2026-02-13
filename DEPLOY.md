@@ -148,6 +148,10 @@ The agent **is** running (you’ll see e.g. "Received message from central bus",
 
 **Summary:** In the **current state** (PGLite, no Postgres, no Supabase keys), redeploying to Eliza Cloud gives a **fresh container** — trading data is **not** stored or used after redeploy. To keep and use trading data across redeploys, set **`POSTGRES_URL`** (and optionally **`SUPABASE_SERVICE_ROLE_KEY`** for the feature table). ML ONNX models must still be [copied into the repo and committed](#ml-onnx-on-eliza-cloud--will-it-be-active) to be active on Cloud.
 
+### Rate limits and standup
+
+To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input tokens/min), use standup single-responder and skip reflection in standup. See [docs/RATE_LIMIT_AND_STANDUP.md](docs/RATE_LIMIT_AND_STANDUP.md). Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`, `REFLECTION_SKIP_STANDUP=true`; optionally lower conversation length if your ElizaOS version supports it.
+
 Optional (plugin-vince features):
 
 | Env | Used by |
@@ -374,6 +378,7 @@ VINCE loads many services (DB, Meteora, Deribit, DexScreener, NFT floor, etc.). 
 - [README.md](README.md) — Project overview, getting started, configuration
 - [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage (JSONL, PGLite/Postgres, Supabase)
 - [CLAUDE.md](CLAUDE.md) — ElizaOS dev guide for this project
+- [docs/RATE_LIMIT_AND_STANDUP.md](docs/RATE_LIMIT_AND_STANDUP.md) — Rate limits, standup single-responder, reflection skip
 
 ### 5. **CLI troubleshooting (from the error message)**
 

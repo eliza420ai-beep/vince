@@ -71,6 +71,31 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
   return { isAgent: false, agentName: null };
 }
 
+/** Standup channel name substrings (from A2A_STANDUP_CHANNEL_NAMES or default) */
+function getStandupChannelParts(): string[] {
+  const raw = process.env.A2A_STANDUP_CHANNEL_NAMES ?? "standup,daily-standup";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** Check if room is a standup channel by name */
+function isStandupRoom(roomName: string | undefined): boolean {
+  if (!roomName) return false;
+  const normalized = roomName.toLowerCase();
+  return getStandupChannelParts().some((part) => normalized.includes(part));
+}
+
+/** Agent name allowed to respond to human messages in standup (single responder) */
+function getStandupSingleResponder(): string {
+  return (
+    process.env.A2A_STANDUP_SINGLE_RESPONDER?.trim() ||
+    process.env.STANDUP_COORDINATOR_AGENT?.trim() ||
+    "Kelly"
+  ).trim();
+}
+
 /** Count recent exchanges with a specific sender */
 async function countRecentExchanges(
   runtime: IAgentRuntime,
@@ -119,6 +144,20 @@ export const a2aContextProvider: Provider = {
     // Check if this is from a HUMAN (highest priority!)
     const { isHuman, humanName } = isFromKnownHuman(message);
     if (isHuman) {
+      // In standup channels only the facilitator responds to humans (rate limit)
+      const room = await runtime.getRoom(message.roomId);
+      const roomName = room?.name ?? "";
+      if (isStandupRoom(roomName)) {
+        const singleResponder = getStandupSingleResponder();
+        const amFacilitator =
+          myName.trim().toLowerCase() === singleResponder.toLowerCase();
+        if (!amFacilitator) {
+          logger.info(
+            `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
+          );
+          return `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.`;
+        }
+      }
       logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
       const role = getAgentRole(myName);
       return `

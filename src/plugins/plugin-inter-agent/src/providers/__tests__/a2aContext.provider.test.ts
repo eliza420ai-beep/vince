@@ -11,11 +11,19 @@ describe("A2A Context Provider", () => {
   const mockAgentId = "agent-123" as UUID;
   const mockRoomId = "room-456" as UUID;
 
-  const createMockRuntime = (memories: Memory[] = []): IAgentRuntime =>
+  const createMockRuntime = (
+    memories: Memory[] = [],
+    options?: { characterName?: string; roomName?: string }
+  ): IAgentRuntime =>
     ({
       agentId: mockAgentId,
-      character: { name: "TestAgent" },
+      character: { name: options?.characterName ?? "TestAgent" },
       getMemories: mock(() => Promise.resolve(memories)),
+      getRoom: mock(() =>
+        Promise.resolve(
+          options?.roomName != null ? { name: options.roomName } : { name: "general" }
+        )
+      ),
     }) as unknown as IAgentRuntime;
 
   const createMockMemory = (
@@ -36,11 +44,15 @@ describe("A2A Context Provider", () => {
   beforeEach(() => {
     delete process.env.A2A_MAX_EXCHANGES;
     delete process.env.A2A_LOOKBACK_MESSAGES;
+    delete process.env.A2A_STANDUP_SINGLE_RESPONDER;
+    delete process.env.A2A_STANDUP_CHANNEL_NAMES;
   });
 
   afterEach(() => {
     delete process.env.A2A_MAX_EXCHANGES;
     delete process.env.A2A_LOOKBACK_MESSAGES;
+    delete process.env.A2A_STANDUP_SINGLE_RESPONDER;
+    delete process.env.A2A_STANDUP_CHANNEL_NAMES;
   });
 
   it("returns human priority context for non-agent non-bot messages", async () => {
@@ -144,5 +156,53 @@ describe("A2A Context Provider", () => {
 
     const result = await a2aContextProvider.get(runtime, memory);
     expect(result).toContain("Agent-to-Agent");
+  });
+
+  describe("standup single-responder", () => {
+    it("human in standup room: only facilitator (Kelly) gets PRIORITY RESPONSE", async () => {
+      const runtime = createMockRuntime([], {
+        characterName: "Kelly",
+        roomName: "daily-standup",
+      });
+      const memory = createMockMemory({
+        content: { text: "What's the TLDR?", name: "yves" },
+      });
+
+      const result = await a2aContextProvider.get(runtime, memory);
+      expect(result).toContain("HUMAN MESSAGE");
+      expect(result).toContain("PRIORITY RESPONSE");
+      expect(result).not.toContain("IGNORE");
+    });
+
+    it("human in standup room: non-facilitator gets IGNORE", async () => {
+      const runtime = createMockRuntime([], {
+        characterName: "VINCE",
+        roomName: "daily-standup",
+      });
+      const memory = createMockMemory({
+        content: { text: "What's the TLDR?", name: "yves" },
+      });
+
+      const result = await a2aContextProvider.get(runtime, memory);
+      expect(result).toContain("IGNORE");
+      expect(result).toContain("Do not reply");
+      expect(result).toContain("standup facilitator");
+      expect(result).not.toContain("PRIORITY RESPONSE");
+    });
+
+    it("human in non-standup room: all agents get PRIORITY RESPONSE", async () => {
+      const runtime = createMockRuntime([], {
+        characterName: "VINCE",
+        roomName: "general",
+      });
+      const memory = createMockMemory({
+        content: { text: "Hey", name: "yves" },
+      });
+
+      const result = await a2aContextProvider.get(runtime, memory);
+      expect(result).toContain("HUMAN MESSAGE");
+      expect(result).toContain("PRIORITY RESPONSE");
+      expect(result).not.toContain("IGNORE");
+    });
   });
 });
