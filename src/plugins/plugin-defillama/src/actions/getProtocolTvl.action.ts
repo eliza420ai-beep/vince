@@ -9,7 +9,7 @@ import {
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService, type ProtocolLookupResult, type ProtocolSummary } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 
 // Extend Action type to support parameter schemas for tool calling
 
@@ -34,7 +34,7 @@ export const getProtocolTvlAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_PROTOCOL_TVL", state, message);
+    return validateDefiLlamaService(runtime, "GET_PROTOCOL_TVL", state, message);
   },
 
   handler: async (
@@ -45,7 +45,7 @@ export const getProtocolTvlAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }

@@ -15,7 +15,7 @@ import {
   type ProtocolTvlHistory,
   type ProtocolTvlPoint,
 } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 import {
   limitSeries,
   parsePositiveInteger,
@@ -61,7 +61,7 @@ export const getProtocolTvlHistoryAction: Action = {
     },
   },
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_PROTOCOL_TVL_HISTORY", state, message);
+    return validateDefiLlamaService(runtime, "GET_PROTOCOL_TVL_HISTORY", state, message);
   },
   handler: async (
     runtime: IAgentRuntime,
@@ -72,7 +72,7 @@ export const getProtocolTvlHistoryAction: Action = {
   ): Promise<ActionResult> => {
     let validatedChain: string | undefined;
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }

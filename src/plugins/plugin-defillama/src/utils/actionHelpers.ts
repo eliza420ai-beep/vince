@@ -19,7 +19,7 @@ import { shouldDefiLlamaPluginBeActive } from "../../matcher";
  * @param message - Optional message for plugin context check
  * @returns True if service is available and plugin context is active
  */
-export function validateDefillamaService(
+export function validateDefiLlamaService(
   runtime: IAgentRuntime,
   actionName: string,
   state?: State,
@@ -56,7 +56,7 @@ export function validateDefillamaService(
  * @param runtime - Agent runtime
  * @returns DefiLlama service instance or null
  */
-export function getDefillamaService(
+export function getDefiLlamaService(
   runtime: IAgentRuntime
 ): DefiLlamaService | null {
   return runtime.getService(

@@ -13,7 +13,7 @@ import {
   type ChainTvlHistoryOptions,
   type ChainTvlPoint,
 } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 import {
   limitSeries,
   parsePositiveInteger,
@@ -50,7 +50,7 @@ export const getChainTvlHistoryAction: Action = {
     },
   },
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_CHAIN_TVL_HISTORY", state, message);
+    return validateDefiLlamaService(runtime, "GET_CHAIN_TVL_HISTORY", state, message);
   },
   handler: async (
     runtime: IAgentRuntime,
@@ -60,7 +60,7 @@ export const getChainTvlHistoryAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }

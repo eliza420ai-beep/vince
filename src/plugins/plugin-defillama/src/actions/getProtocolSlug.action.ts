@@ -2,13 +2,14 @@ import {
   Action,
   ActionResult,
   HandlerCallback,
+  HandlerOptions,
   IAgentRuntime,
   Memory,
   State,
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService, type ProtocolLookupResult, type ProtocolSummary } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 
 export const getProtocolSlugAction: Action = {
   name: "GET_PROTOCOL_SLUG",
@@ -32,18 +33,18 @@ export const getProtocolSlugAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_PROTOCOL_SLUG", state, message);
+    return validateDefiLlamaService(runtime, "GET_PROTOCOL_SLUG", state, message);
   },
 
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state?: State,
-    _options?: { [key: string]: unknown },
+    _options?: HandlerOptions,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }

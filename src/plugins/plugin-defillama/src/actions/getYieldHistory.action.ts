@@ -9,7 +9,7 @@ import {
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 
 export const getYieldHistoryAction: Action = {
   name: "GET_YIELD_HISTORY",
@@ -44,7 +44,7 @@ export const getYieldHistoryAction: Action = {
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_YIELD_HISTORY", state, message);
+    return validateDefiLlamaService(runtime, "GET_YIELD_HISTORY", state, message);
   },
 
   handler: async (
@@ -55,7 +55,7 @@ export const getYieldHistoryAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }

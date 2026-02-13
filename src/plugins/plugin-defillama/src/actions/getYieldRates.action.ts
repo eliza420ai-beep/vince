@@ -9,7 +9,7 @@ import {
   logger,
 } from "@elizaos/core";
 import { DefiLlamaService } from "../services/defillama.service";
-import { validateDefillamaService, getDefillamaService, extractActionParams } from "../utils/actionHelpers";
+import { validateDefiLlamaService, getDefiLlamaService, extractActionParams } from "../utils/actionHelpers";
 
 export const getYieldRatesAction: Action = {
   name: "GET_YIELD_RATES",
@@ -41,10 +41,25 @@ export const getYieldRatesAction: Action = {
       description: "Blockchain name (e.g., 'Ethereum', 'Base', 'Arbitrum'). Optional.",
       required: false,
     },
+    minApy: {
+      type: "number",
+      description: "Minimum APY filter (e.g. 8 for 8%). Optional.",
+      required: false,
+    },
+    stablecoinOnly: {
+      type: "boolean",
+      description: "If true, return only stablecoin pools. Optional.",
+      required: false,
+    },
+    limit: {
+      type: "number",
+      description: "Max number of results (default 10). Optional.",
+      required: false,
+    },
   },
 
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
-    return validateDefillamaService(runtime, "GET_YIELD_RATES", state, message);
+    return validateDefiLlamaService(runtime, "GET_YIELD_RATES", state, message);
   },
 
   handler: async (
@@ -55,24 +70,38 @@ export const getYieldRatesAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     try {
-      const svc = getDefillamaService(runtime);
+      const svc = getDefiLlamaService(runtime);
       if (!svc) {
         throw new Error("DefiLlamaService not available");
       }
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
-      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string }>(runtime, message);
+      const params = await extractActionParams<{
+        protocol?: string;
+        token?: string;
+        chain?: string;
+        minApy?: number;
+        stablecoinOnly?: boolean;
+        limit?: number;
+      }>(runtime, message);
 
       // Extract optional parameters
       const protocol = params?.protocol?.trim() || undefined;
       const token = params?.token?.trim() || undefined;
       const chain = params?.chain?.trim() || undefined;
+      const minApy = typeof params?.minApy === "number" && Number.isFinite(params.minApy) ? params.minApy : undefined;
+      const stablecoinOnly = params?.stablecoinOnly === true;
+      const limitParam = typeof params?.limit === "number" && params.limit > 0 ? params.limit : undefined;
+      const limit = limitParam ?? 10;
 
       // Log what we're searching for
       const searchCriteria = [];
       if (protocol) searchCriteria.push(`protocol: ${protocol}`);
       if (token) searchCriteria.push(`token: ${token}`);
       if (chain) searchCriteria.push(`chain: ${chain}`);
+      if (minApy !== undefined) searchCriteria.push(`minApy: ${minApy}%`);
+      if (stablecoinOnly) searchCriteria.push("stablecoinOnly");
+      searchCriteria.push(`limit: ${limit}`);
       
       const searchDesc = searchCriteria.length > 0 
         ? searchCriteria.join(", ") 
@@ -81,14 +110,16 @@ export const getYieldRatesAction: Action = {
       logger.info(`[GET_YIELD_RATES] Searching for yields: ${searchDesc}`);
 
       // Store input parameters for return
-      const inputParams = { protocol, token, chain };
+      const inputParams = { protocol, token, chain, minApy, stablecoinOnly, limit };
 
       // Search for yields
       const results = await svc.searchYields({
         protocol,
         token,
         chain,
-        limit: 10, // Top 10 results
+        minApy,
+        stablecoinOnly: stablecoinOnly || undefined,
+        limit,
       });
 
       if (!Array.isArray(results) || results.length === 0) {
@@ -150,11 +181,14 @@ export const getYieldRatesAction: Action = {
       logger.error(`[GET_YIELD_RATES] Action failed: ${msg}`);
       
       // Try to capture input params even in failure
-      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string }>(runtime, message);
+      const params = await extractActionParams<{ protocol?: string; token?: string; chain?: string; minApy?: number; stablecoinOnly?: boolean; limit?: number }>(runtime, message);
       const failureInputParams = {
         protocol: params?.protocol,
         token: params?.token,
         chain: params?.chain,
+        minApy: params?.minApy,
+        stablecoinOnly: params?.stablecoinOnly,
+        limit: params?.limit,
       };
       
       const errorResult: ActionResult = {

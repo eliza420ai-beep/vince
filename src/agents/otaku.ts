@@ -11,6 +11,7 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import cdpPlugin from "../plugins/plugin-cdp";
 import { bankrPlugin } from "../plugins/plugin-bankr/src/index.ts";
+import { clankerPlugin } from "../plugins/plugin-clanker/src/index.ts";
 import { otakuPlugin } from "../plugins/plugin-otaku/src/index.ts";
 import { morphoPlugin } from "../plugins/plugin-morpho/src/index.ts";
 import { relayPlugin } from "../plugins/plugin-relay/src/index.ts";
@@ -172,6 +173,10 @@ ${hasBankr ? `**Bankr (when enabled):** For pre-flight balance checks and transf
 - **OTAKU_DCA** — Dollar cost averaging schedules. "DCA $500 into ETH over 30 days" creates 30 daily buys.
 - **OTAKU_POSITIONS** — View portfolio positions and active orders (limit/stop/DCA/TWAP) in one place.
 Use these for cleaner UX with confirmation flows, or use raw BANKR_* actions for full control. Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.` : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`}
+${hasCdp ? `
+When CDP is configured, **DEPLOY_TOKEN** deploys a token on Base via the Clanker protocol (name, symbol, optional image/vanity); use it for direct Base token deploys, or use **BANKR_AGENT_PROMPT** for Bankr-hosted launch (Base or Solana).` : ""}
+
+**DefiLlama (protocol TVL and yields):** Use for TVL comparison, protocol lookup, history, and yield discovery. **GET_PROTOCOL_TVL** — current TVL by protocol name/symbol (e.g. Aave, Curve, Morpho). **GET_PROTOCOL_SLUG** — resolve name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. **GET_PROTOCOL_TVL_HISTORY** — historical TVL for a protocol (optional chain, days, compact). **GET_CHAIN_TVL_HISTORY** — historical TVL for a chain (optional filter e.g. staking). **GET_YIELD_RATES** — APY/yield by protocol, token, and/or chain (e.g. "USDC yields on Base", "Aave USDC"). **GET_YIELD_HISTORY** — historical APY for a specific pool (protocol + token, optional chain).
 
 **Nansen MCP tools (NOT actions):** Primary engine for market diagnostics. Do NOT put Nansen tool names (token_discovery_screener, token_flows, etc.) or CALL_MCP_TOOL or READ_MCP_RESOURCE in the <actions> field — those are not available. <actions> must only contain ElizaOS action names from the Available actions list (e.g. REPLY, WEB_SEARCH, BANKR_AGENT_PROMPT, ASK_AGENT). For Nansen-style questions, use REPLY (and WEB_SEARCH when appropriate) and answer from knowledge or suggest the user check Nansen directly. Nansen tools (for reference only; not callable as actions here):
 - general_search: resolve tokens/entities/domains
@@ -428,6 +433,7 @@ const buildPlugins = (): Plugin[] =>
     ...(hasCdp ? [morphoPlugin] : []),
     ...(hasCdp && hasRelayKey ? [relayPlugin] : []),
     ...(hasCdp && hasBiconomyKey ? [meePlugin] : []),
+    ...(hasCdp ? [clankerPlugin] : []),
     ...(hasBankr ? [bankrPlugin, otakuPlugin] : []),
     ...(hasEtherscanKey ? [etherscanPlugin] : []),
     defiLlamaPlugin,
@@ -464,6 +470,9 @@ const initOtaku = async (runtime: IAgentRuntime) => {
   if (hasCdp) {
     logger.info("[Otaku] Morpho plugin enabled — supply/borrow/withdraw/repay via CDP wallet");
   }
+  if (hasCdp) {
+    logger.info("[Otaku] Clanker plugin enabled — DEPLOY_TOKEN (Base token deploy via Clanker) available");
+  }
   if (hasCdp && hasRelayKey) {
     logger.info("[Otaku] Relay plugin enabled — cross-chain bridge quote/execute/status");
   } else if (hasCdp && !hasRelayKey) {
@@ -479,7 +488,7 @@ const initOtaku = async (runtime: IAgentRuntime) => {
   } else if (hasCdp && !hasBiconomyKey) {
     logger.info("[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps");
   }
-  logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL and yield rates (GET_PROTOCOL_TVL, GET_YIELD_RATES)");
+  logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL, slug search, TVL/chain history, yield rates and history");
   
   // x402 payment protocol status
   if (x402Enabled && x402PayTo) {

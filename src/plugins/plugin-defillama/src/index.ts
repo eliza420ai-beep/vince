@@ -1,4 +1,5 @@
 import type { Plugin } from "@elizaos/core";
+import { logger } from "@elizaos/core";
 import { DefiLlamaService } from "./services/defillama.service";
 import { getProtocolTvlAction } from "./actions/getProtocolTvl.action";
 import { getProtocolSlugAction } from "./actions/getProtocolSlug.action";
@@ -11,6 +12,11 @@ import { shouldDefiLlamaPluginBeActive } from "../matcher";
 export const defiLlamaPlugin: Plugin = {
   name: "plugin-defillama",
   description: "DeFiLlama integration: protocol discovery, TVL lookups, yield opportunities, and historical trends",
+
+  async init() {
+    logger.info("Initializing DefiLlama plugin...");
+  },
+
   actions: [
     getProtocolSlugAction,
     getProtocolTvlAction,
