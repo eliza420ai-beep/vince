@@ -299,7 +299,7 @@ export const reflectionEvaluator: Evaluator = {
       room?.name ??
       (typeof meta?.channelName === 'string' ? meta.channelName : undefined) ??
       (typeof meta?.name === 'string' ? meta.name : undefined) ??
-      ''
+      (typeof message.content?.channelName === 'string' ? message.content.channelName : '')
     ).trim();
     if (isReflectionStandupRoom(roomName)) {
       if (process.env.REFLECTION_RUN_IN_STANDUP !== 'true') {

@@ -9,7 +9,7 @@ In channels identified as "standup" (e.g. `#daily-standup`), **only one agent** 
 - **Env:** `A2A_STANDUP_SINGLE_RESPONDER` — agent name that may respond to humans in standup (default: `STANDUP_COORDINATOR_AGENT` or `"Kelly"`).
 - **Env:** `A2A_STANDUP_CHANNEL_NAMES` — comma-separated substrings that identify standup rooms (default: `standup,daily-standup`). Room name is matched case-insensitively.
 
-**Standup room detection:** Detection uses `room.name`; if that is empty (e.g. some Discord adapters), the code falls back to `room.metadata.channelName` or `room.metadata.name`. Ensure your standup channel’s name (in Discord or in the room object) contains one of the substrings in `A2A_STANDUP_CHANNEL_NAMES` (e.g. `standup` or `daily-standup`). If it doesn’t, every agent will call the LLM on every message and rate limits will spike.
+**Standup room detection:** Detection uses `room.name`; if that is empty (e.g. some Discord adapters), the code falls back to `room.metadata.channelName`, `room.metadata.name`, and then `message.content.channelName` when the room record has no name. The Discord plugin should set `message.content.channelName` when building messages from channel events so standup is detected even when the room object is not yet populated. Ensure your standup channel’s name (in Discord or in the room object) contains one of the substrings in `A2A_STANDUP_CHANNEL_NAMES` (e.g. `standup` or `daily-standup`). If it doesn’t, every agent will call the LLM on every message and rate limits will spike.
 
 Outside standup channels, all agents still get priority response to human messages (no change).
 

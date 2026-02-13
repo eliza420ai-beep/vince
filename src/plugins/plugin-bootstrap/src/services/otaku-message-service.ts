@@ -1329,6 +1329,7 @@ export class OtakuMessageService implements IMessageService {
       room.name ??
       (typeof meta?.channelName === 'string' ? meta.channelName : undefined) ??
       (typeof meta?.name === 'string' ? meta.name : undefined) ??
+      (typeof message.content?.channelName === 'string' ? message.content.channelName : undefined) ??
       ''
     ).trim();
     const standupChannelNames =
