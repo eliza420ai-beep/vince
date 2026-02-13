@@ -54,16 +54,15 @@ describe("Standup Reports", () => {
     });
 
     it("VINCE template has trading sections", () => {
-      expect(REPORT_TEMPLATES.VINCE).toContain("Core Assets");
+      expect(REPORT_TEMPLATES.VINCE).toContain("VINCE");
       expect(REPORT_TEMPLATES.VINCE).toContain("BTC");
       expect(REPORT_TEMPLATES.VINCE).toContain("SOL");
-      expect(REPORT_TEMPLATES.VINCE).toContain("HYPE");
-      expect(REPORT_TEMPLATES.VINCE).toContain("Hyperliquid");
+      expect(REPORT_TEMPLATES.VINCE).toContain("Signal");
     });
 
     it("Eliza template has research sections", () => {
-      expect(REPORT_TEMPLATES.Eliza).toContain("Research Intel");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge Connections");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Research");
     });
 
     it("Kelly template is standup facilitator", () => {

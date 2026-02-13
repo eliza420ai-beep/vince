@@ -41,6 +41,27 @@ const STANDUP_TURN_ORDER = [
   // Kelly wraps up
 ];
 
+/** Get next agent in standup order */
+function getNextAgentInOrder(currentAgent: string): string | null {
+  const idx = STANDUP_TURN_ORDER.indexOf(currentAgent.toLowerCase());
+  if (idx === -1 || idx === STANDUP_TURN_ORDER.length - 1) {
+    return null;
+  }
+  return STANDUP_TURN_ORDER[idx + 1];
+}
+
+/** Check if agent is the last in standup */
+function isLastStandupAgent(agentName: string): boolean {
+  return agentName.toLowerCase() === STANDUP_TURN_ORDER[STANDUP_TURN_ORDER.length - 1];
+}
+
+/** Check if message looks like a standup report */
+function looksLikeReport(text: string): boolean {
+  const lower = text.toLowerCase();
+  const indicators = ["##", "|", "signal", "bull", "bear", "action", "btc", "sol"];
+  return indicators.filter((i) => lower.includes(i)).length >= 2;
+}
+
 /**
  * Check if this agent is being directly called/mentioned in the message.
  * Returns true if "@AgentName" or "AgentName," or "AgentName:" appears.
@@ -231,24 +252,61 @@ Address ${humanName} directly. Be useful.
       
       // Kelly (facilitator) can always respond to manage the standup
       if (amFacilitator) {
+        // Check if an agent just reported — auto-progress to next
+        const reportingAgent = STANDUP_TURN_ORDER.find((a) => 
+          agentName?.toLowerCase() === a
+        );
+        
+        if (reportingAgent && looksLikeReport(messageText)) {
+          // An agent just gave their report — Kelly should call the next one
+          const nextAgent = getNextAgentInOrder(reportingAgent);
+          
+          if (nextAgent) {
+            const nextDisplay = nextAgent.charAt(0).toUpperCase() + nextAgent.slice(1);
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — auto-calling ${nextAgent}`);
+            return `
+## AUTO-PROGRESS: Call Next Agent
+
+${reportingAgent.toUpperCase()} just gave their report.
+
+**YOUR ONLY JOB RIGHT NOW:** Call the next agent.
+
+Say EXACTLY: "@${nextDisplay}, go."
+
+Nothing else. No commentary. No summary. Just call them.
+`;
+          } else if (isLastStandupAgent(reportingAgent)) {
+            // Last agent done — wrap up
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} was last — triggering wrap-up`);
+            return `
+## AUTO-WRAP: Generate Day Report
+
+All agents have reported. ${reportingAgent.toUpperCase()} was the last one.
+
+**YOUR ONLY JOB RIGHT NOW:** Generate the Day Report.
+
+Use the STANDUP_FACILITATE action with wrap-up intent.
+Keep the TL;DR to ONE sentence.
+Total report under 300 words.
+`;
+          }
+        }
+        
         logger.info(`[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`);
         return `
 ## Standup Facilitator Mode
 
 You are Kelly, facilitating the trading standup.
 
-**Your job:**
-- Call on agents ONE AT A TIME (use @AgentName)
-- Keep things moving — if an agent rambles, cut them off
-- After all agents report, synthesize into the Day Report
-- Be BRIEF in transitions: "Thanks VINCE. @Eliza, you're up."
-
 **Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Wrap-up
 
-**Do NOT:**
-- Give long introductions
-- Repeat what agents said
-- Ask open-ended questions to all agents at once
+**Rules:**
+- Call agents ONE AT A TIME: "@AgentName, go."
+- After each report, immediately call the next agent
+- After Sentinel, generate the Day Report
+- NO long intros, NO summaries between agents
+
+**Transitions are 3 words max:** "@Eliza, go."
 `;
       }
       
@@ -268,23 +326,28 @@ Action: IGNORE. Do not reply until it's your turn.`;
       return `
 ## 🎯 YOUR TURN — Standup Report
 
-Kelly called on you. Give your standup update NOW.
+Kelly called on you. Report NOW. Be BRIEF.
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
-**Your focus:** ${role?.focus || "Your area of expertise"}
 
-**FORMAT (be CONCISE):**
-1. **Data/Status:** Key numbers, 2-3 bullet points max
-2. **Signal:** Bull/Bear/Neutral + confidence (High/Med/Low)
-3. **Action:** What should we do? Be specific.
+**FORMAT (EXACTLY THIS):**
 
-**RULES:**
-- MAX 150 words — no essays
-- Numbers > vibes
-- End with a clear recommendation
-- Do NOT ask questions back — just report
+### ${myName} — ${role?.focus || "Update"}
+| Asset | Signal | Note |
+|-------|--------|------|
+| BTC | Bull/Bear/Flat | [5 words max] |
+| SOL | Bull/Bear/Flat | [5 words max] |
 
-After you respond, Kelly will call the next agent.
+**Action:** [ONE specific trade recommendation in 10 words or less]
+
+**HARD RULES:**
+- MAXIMUM 80 WORDS TOTAL
+- ONE table, ONE action line
+- NO introductions, NO "here's my update"
+- NO questions back
+- NO "let me explain" — just DATA
+
+If you write more than 80 words, you are FAILING at your job.
 `;
     }
     

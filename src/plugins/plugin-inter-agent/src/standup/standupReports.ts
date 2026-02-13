@@ -60,69 +60,26 @@ export type AgentName = keyof typeof AGENT_ROLES;
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  Eliza: `## Eliza — Research Intel — {{date}}
+  Eliza: `## Eliza — Research — {{date}}
 
-### Relevant Patterns (BTC, SOL, HYPE)
-| Pattern | Asset | Historical Win Rate | Current Match |
-|---------|-------|---------------------|---------------|
-| [pattern name] | BTC/SOL/HYPE | X% | Strong/Weak/Partial |
+| Asset | Pattern | Confidence |
+|-------|---------|------------|
+| BTC | [pattern] | H/M/L |
+| SOL | [pattern] | H/M/L |
 
-### Knowledge Connections
-- VINCE's [signal] connects to: [research finding]
-- ECHO's [sentiment] aligns with: [historical pattern]
-- Oracle's [prediction] supported by: [framework]
+**Key insight:** [One sentence connecting data to action]
+**Action:** [One specific recommendation]`,
 
-### Hyperliquid/Hypersurface Research
-- Perps: [relevant research for positioning]
-- Options: [IV patterns, strike selection frameworks]
-- HIP-3: [any research on specific tokens]
+  VINCE: `## VINCE — Data — {{date}}
 
-### Gaps to Fill
-- Missing: [specific research that would help today's decisions]
-- Priority: [what to research next]
+| Asset | Price | Funding | Signal |
+|-------|-------|---------|--------|
+| BTC | $X | X% | 🟢/🟡/🔴 |
+| SOL | $X | X% | 🟢/🟡/🔴 |
+| HYPE | $X | X% | 🟢/🟡/🔴 |
 
-### Questions
-- @VINCE: Does [data] match the [pattern] I found?
-- @Solus: Should [research finding] affect sizing?
-
-### Action Items
-1. **[RESEARCH SUPPORTS]**: [specific trade thesis with evidence]`,
-
-  VINCE: `## VINCE — Market Intelligence — {{date}}
-
-### Core Assets (BTC, SOL, HYPE)
-| Asset | Price | 24h | Funding | OI Δ | Signal |
-|-------|-------|-----|---------|------|--------|
-| BTC   | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
-| SOL   | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
-| HYPE  | $X    | +X% | X%      | +X%  | 🟢/🟡/🔴 |
-
-### HIP-3 Watch
-| Token | Price | Signal | Note |
-|-------|-------|--------|------|
-[Top HIP-3 movers relevant to our thesis]
-
-### Hyperliquid Perps
-- Paper bot: XW/XL (+$X today)
-- Best setup: [asset + direction + reasoning]
-- Funding edge: [where funding diverges from price]
-
-### Hypersurface Options (Friday prep)
-- IV rank: BTC X%, SOL X%, HYPE X%
-- Skew: [notable observations]
-- Strike candidates: [if Friday approaching]
-
-### Signals Summary
-- 🟢 **Bullish**: [specific signal with source]
-- 🟡 **Neutral**: [specific signal with source]
-- 🔴 **Bearish**: [specific signal with source]
-
-### Questions
-- @Solus: [sizing/risk question]
-- @Oracle: [does Polymarket align?]
-
-### Action Items
-1. **[LONG/SHORT/SPOT/SKIP]**: [asset] at [price] — [reasoning]`,
+**Paper bot:** XW/XL | **Best setup:** [asset + direction]
+**Action:** [One specific trade]`,
 
   ECHO: `## ECHO — CT Sentiment — {{date}}
 
@@ -159,74 +116,25 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 ### Action
 1. **[PREDICTION SIGNAL]**: [one specific implication]`,
 
-  Solus: `## Solus — Trading Strategy — {{date}}
+  Solus: `## Solus — Risk — {{date}}
 
-### Active Positions (Hyperliquid)
-| Asset | Direction | Entry | Size | P&L | Invalidation |
-|-------|-----------|-------|------|-----|--------------|
-| BTC   | Long/Short/None | $X | $Xk | +X% | $X |
-| SOL   | Long/Short/None | $X | $Xk | +X% | $X |
-| HYPE  | Long/Short/None | $X | $Xk | +X% | $X |
+| Asset | Call | Size | Entry | Invalidation |
+|-------|------|------|-------|--------------|
+| BTC | Long/Short/Skip | $Xk | $X | $X |
+| SOL | Long/Short/Skip | $Xk | $X | $X |
 
-### Perps Sizing (Hyperliquid)
-- **BTC**: [Size/Skip/Watch] — [reasoning from VINCE/ECHO data]
-- **SOL**: [Size/Skip/Watch] — [reasoning]
-- **HYPE**: [Size/Skip/Watch] — [reasoning]
+**Portfolio heat:** Low/Med/High
+**Action:** [One specific sizing decision]`,
 
-### Options Strategy (Hypersurface)
-*If Friday or Thursday:*
-| Asset | Strike | Premium | Delta | Reasoning |
-|-------|--------|---------|-------|-----------|
-| BTC   | $Xk    | X%      | X     | [why this strike] |
-| SOL   | $X     | X%      | X     | [why this strike] |
+  Otaku: `## Otaku — Execution — {{date}}
 
-### HIP-3 Spot/1x
-- Worth accumulating: [token] — [reasoning]
-- Avoid: [token] — [reasoning]
+| Venue | Ready | Balance |
+|-------|-------|---------|
+| Hyperliquid | ✅/❌ | $X |
+| Base/BANKR | ✅/❌ | $X |
 
-### Risk Check
-- Portfolio heat: Low/Med/High
-- Max position: $X per trade
-- Correlation: [are we too long/short same direction?]
-
-### Questions
-- @VINCE: Confirm [level/data]
-- @Otaku: Ready to execute [order]?
-
-### Action Items
-1. **[PERP/OPTION/SPOT]**: [specific trade with size and invalidation]`,
-
-  Otaku: `## Otaku — Execution Status — {{date}}
-
-### Wallet Ready (Hyperliquid + BANKR)
-| Location | Balance | Available | Note |
-|----------|---------|-----------|------|
-| Hyperliquid | $X | $X | [margin available] |
-| Base (BANKR) | $X | $X | [for HIP-3/spot] |
-| SOL | $X | $X | [if relevant] |
-
-### Pending Orders
-| Type | Asset | Size | Price | Status |
-|------|-------|------|-------|--------|
-| Limit | [asset] | $X | $X | Waiting/Partial |
-| DCA | [asset] | $X/day | — | X% complete |
-
-### Execution Readiness
-- **Perps (Hyperliquid)**: Ready/Blocked — [reason if blocked]
-- **Options (Hypersurface)**: Ready/Blocked — [reason]
-- **Spot/1x (BANKR)**: Ready/Blocked — [reason]
-
-### Gas/Fees
-- Hyperliquid: [fee tier]
-- Base: X gwei
-- Optimal execution window: [timing]
-
-### Questions
-- @Solus: Confirm [order] ready to execute?
-- @VINCE: Should I set limit at [price]?
-
-### Action Items
-1. **[EXECUTE/QUEUE/CANCEL]**: [specific order with details]`,
+**Pending:** [Orders waiting or "None"]
+**Action:** [Ready to execute X or blocker]`,
 
   Kelly: `## 🎯 Trading Standup — {{date}} ({{dayOfWeek}})
 
@@ -282,39 +190,15 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 
 @VINCE, market data — go.`,
 
-  Sentinel: `## Sentinel Daily Report — {{date}}
+  Sentinel: `## Sentinel — Ops — {{date}}
 
-### System Status
-| Component | Status | Notes |
-|-----------|--------|-------|
-| All Agents | 🟢/🟡/🔴 | |
-| APIs | 🟢/🟡/🔴 | |
-| Database | 🟢/🟡/🔴 | |
+| System | Status | Cost 24h |
+|--------|--------|----------|
+| Agents | 🟢/🟡/🔴 | $X |
+| APIs | 🟢/🟡/🔴 | $X |
 
-### Cost Tracking (24h)
-- Total: $X.XX
-- Claude API: $X.XX (X requests)
-- OpenAI: $X.XX
-- External APIs: $X.XX
-- Budget status: Under/At/Over
-
-### Security Alerts
-- [Any alerts or "None"]
-- Dependabot status
-- Access anomalies
-
-### Pending Updates
-- [Package/system]: [version] available
-- Recommended timing
-- Breaking changes?
-
-### Questions for Team
-- @Yves: Approve [update/budget]?
-- @[Agent]: Seeing issues with [service]?
-
-### Recommendations
-1. **[UPDATE/MONITOR/INVESTIGATE]**: [action]
-2. **DECISION NEEDED**: [if any]`,
+**Alerts:** [Any or "None"]
+**Action:** [One specific ops recommendation]`,
 };
 
 /**
