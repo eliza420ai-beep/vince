@@ -25,23 +25,8 @@ import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from
 import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
 import { startStandupSession, endStandupSession, getSessionStats } from "../standup/standupState";
-
-/** 
- * Standup order — focused on trading alpha
- * Core assets: BTC, SOL, HYPE, HIP-3
- * Products: Perps (Hyperliquid), Options (Hypersurface), Spot/1x
- */
-const STANDUP_ORDER = [
-  "VINCE",    // Market data: BTC/SOL/HYPE funding, paper bot, signals
-  "Eliza",    // Research: patterns, knowledge connections
-  "ECHO",     // X/CT sentiment on our assets
-  "Oracle",   // Polymarket odds, prediction signals
-  "Solus",    // Strike selection, sizing, risk assessment
-  "Otaku",    // Wallet, orders, execution readiness
-  "Sentinel", // System health, costs
-  // Yves may or may not be present — standup proceeds autonomously
-  // Kelly wraps up with actionable Day Report
-];
+import { STANDUP_REPORT_ORDER } from "../standup/standup.constants";
+import { buildDayReportPrompt } from "../standup/standupDayReport";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
 const STANDUP_FOCUS = {
@@ -92,15 +77,15 @@ BTC · SOL · HYPE · HIP-3 — Numbers only, no fluff.
  * Get next agent in order
  */
 function getNextAgent(currentAgent: string): string | null {
-  const currentIndex = STANDUP_ORDER.findIndex(
+  const currentIndex = STANDUP_REPORT_ORDER.findIndex(
     (a) => a.toLowerCase() === currentAgent.toLowerCase()
   );
   
-  if (currentIndex === -1 || currentIndex === STANDUP_ORDER.length - 1) {
+  if (currentIndex === -1 || currentIndex === STANDUP_REPORT_ORDER.length - 1) {
     return null; // Last agent or not found
   }
   
-  return STANDUP_ORDER[currentIndex + 1];
+  return STANDUP_REPORT_ORDER[currentIndex + 1];
 }
 
 /**
@@ -115,49 +100,6 @@ function buildNextAgentMessage(completedAgent: string): string {
   
   // Ultra short transition — just call the next agent
   return `@${next}, go.`;
-}
-
-/**
- * Build wrap-up Day Report prompt — CONCISE, structured, actionable
- */
-function buildWrapupPrompt(conversationContext: string): string {
-  return `You are Kelly. Synthesize the standup into a CONCISE Day Report.
-
-CONVERSATION:
-${conversationContext}
-
-OUTPUT FORMAT (follow EXACTLY):
-
-## 📋 Day Report — ${formatReportDate()}
-
-**TL;DR:** [ONE sentence: Asset + Direction + Action. Example: "BTC neutral, SOL bullish — size SOL long at $198."]
-
-### Signals
-| Asset | Call | Confidence | Key Data |
-|-------|------|------------|----------|
-| BTC | Bull/Bear/Flat | H/M/L | [one metric] |
-| SOL | Bull/Bear/Flat | H/M/L | [one metric] |
-| HYPE | Bull/Bear/Flat | H/M/L | [one metric] |
-
-### Actions
-1. **[ACTION]** — @Owner — [specific entry/size/invalidation]
-2. **[ACTION]** — @Owner — [specific entry/size/invalidation]
-3. **[ACTION]** — @Owner — [specific entry/size/invalidation]
-
-### Decisions (Yves review if not HIGH confidence)
-- [ ] [Decision] — Confidence: H/M/L
-
-### Risks
-[One line or "Clear"]
-
----
-*Ship it.*
-
-RULES:
-- TL;DR = ONE sentence, no more
-- Max 3 actions, each with @Owner
-- No fluff, no "consider", no "monitor" — specific trades only
-- Total output under 300 words`;
 }
 
 function getTimeOfDay(): string {
@@ -220,13 +162,13 @@ export const standupFacilitatorAction: Action = {
       // Extract signals from conversation for cross-validation
       const signals: AgentSignal[] = [];
       const contextStr = String(recentContext);
-      for (const agent of STANDUP_ORDER) {
+      for (const agent of STANDUP_REPORT_ORDER) {
         const agentSignals = extractSignalsFromReport(agent, contextStr);
         signals.push(...agentSignals);
       }
       const validationContext = buildValidationContext(signals);
       
-      const prompt = buildWrapupPrompt(contextStr) + `
+      const prompt = buildDayReportPrompt(contextStr) + `
 
 ## Additional Context
 

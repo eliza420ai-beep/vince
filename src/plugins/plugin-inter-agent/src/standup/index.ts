@@ -10,6 +10,8 @@ export {
   getStandupHours,
   isStandupTime,
   DEFAULT_STANDUP_HOUR_UTC,
+  getEssentialStandupQuestion,
+  ESSENTIAL_STANDUP_QUESTION,
 } from "./standup.constants";
 export {
   AGENT_ROLES,

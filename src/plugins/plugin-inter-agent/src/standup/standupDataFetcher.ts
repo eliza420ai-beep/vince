@@ -111,11 +111,12 @@ ${rows.join("\n")}
 
 /**
  * Fetch prediction market data for Oracle's report
- * NOTE: Oracle is currently under construction - Polymarket feeds not fully wired
+ * NOTE: Oracle is under construction - Polymarket feeds not fully wired. Data unreliable for real-time.
  */
 export async function fetchOracleData(_runtime: IAgentRuntime): Promise<string> {
-  // Oracle is under construction - return minimal status
-  return `🚧 **Prediction market feeds under construction.**
+  return `Polymarket data available but still unreliable for real-time; caveat when citing odds or predictions.
+
+🚧 **Prediction market feeds under construction.**
 Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
 
 *No action items.*`;
@@ -126,8 +127,9 @@ Polymarket integration in progress — will surface BTC price predictions + stri
  * NOTE: Otaku is under construction - no wallet configured yet
  */
 export async function fetchOtakuData(_runtime: IAgentRuntime): Promise<string> {
-  // Otaku is under construction - no funded wallet yet
-  return `🔧 **Wallet integration in progress.**
+  return `You are the agent with wallet (Bankr, Coinbase) and DeFi skills; currently under construction — no execution yet.
+
+🔧 **Wallet integration in progress.**
 Observing team reports — no execution capability yet.
 
 *Watching for: DeFi opportunities to act on once wallet is live.*`;
@@ -135,17 +137,20 @@ Observing team reports — no execution capability yet.
 
 /**
  * Fetch system data for Sentinel's report
+ * Prompt Sentinel to report what's next in coding and what's been pushed to the repo.
  */
 export async function fetchSentinelData(_runtime: IAgentRuntime): Promise<string> {
-  // System health is usually internal metrics
-  return `
+  return `**What's next in coding:** (what still needs to be done)
+**What's been pushed to the repo:** (recent commits/PRs)
+
+Use your knowledge of PRDs, progress, and recent work. If no recent pushes, say "Nothing new."
+
 | System | Status | Note |
 |--------|--------|------|
 | Agents | 🟢 | All responsive |
 | APIs | 🟢 | Connected |
 
-**Alerts:** None
-`.trim();
+**Alerts:** None`;
 }
 
 /**

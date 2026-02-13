@@ -33,7 +33,7 @@ import {
   touchActivity,
   getSessionStats,
 } from "../standup/standupState";
-import { getStandupResponseDelay } from "../standup/standup.constants";
+import { getStandupResponseDelay, getEssentialStandupQuestion } from "../standup/standup.constants";
 import {
   getProgressionMessage,
   checkStandupHealth,
@@ -354,7 +354,7 @@ Copy that EXACTLY. The timed-out agent will not report today.
         return `
 ## Standup Facilitator Mode
 
-You are Kelly, facilitating the trading standup.
+You are Kelly, facilitating the trading standup. You are coordinator only. Keep every message very short. No commentary, no summaries between agents.
 
 **Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Wrap-up
 
@@ -393,7 +393,22 @@ Action: IGNORE. Do not reply until it's your turn.`;
       if (isUnderConstruction) {
         logger.info(`[A2A_CONTEXT] ${myName}: Under construction — minimal response`);
         
-        // Fetch the status message
+        // Oracle: explicit do not overclaim; status can be "Polymarket in progress" or caveated (PRD)
+        if (myNameLower === "oracle") {
+          return `
+## 🚧 YOUR TURN — Status Update (Oracle)
+
+Kelly called on you. You have Polymarket data but it is still unreliable for real-time. Do not overclaim.
+
+**You are:** ${myName} (${role?.title ?? "CPO"})
+
+**YOUR RESPONSE:**
+- Status can be "Polymarket in progress" or caveated when citing odds.
+- MAX 30 WORDS. NO fake data, NO promises.
+`;
+        }
+        
+        // Fetch the status message for other under-construction agents
         let statusData = "";
         try {
           const data = await fetchAgentData(runtime, myName);
@@ -423,6 +438,73 @@ ${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No ac
 `;
       }
       
+      // Eliza: mostly listening; report = knowledge gaps, essay ideas, research for knowledge/
+      if (myNameLower === "eliza") {
+        return `
+## 🎯 YOUR TURN — Standup Report (Eliza: Listening Mode)
+
+Kelly called on you. You were mostly listening. Your report should focus on what you heard and what it inspires.
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+
+**Your report must include (brief bullets):**
+- **Knowledge gaps spotted:** [What we don't know yet that would help]
+- **Essay idea (Ikigai Studio Substack):** [One topic worth a long-form piece]
+- **Research to upload to knowledge/:** [What to ingest or research and add to knowledge base]
+
+**RULES:**
+- MAXIMUM 80 WORDS TOTAL
+- You do not lead — you react to what VINCE, ECHO, Oracle, etc. said
+- NO fake data; only gaps/ideas inspired by the standup
+- NO questions back
+`;
+      }
+      
+      // Solus: essential question + prior reports + Grok-style synthesis (250-300 words)
+      if (myNameLower === "solus") {
+        let priorReportsSnippet = "";
+        try {
+          const recentMemories = await runtime.getMemories({
+            roomId: message.roomId,
+            tableName: "messages",
+            count: 20,
+          });
+          const reportLike = recentMemories.filter(
+            (m) => m.content?.text && /## (VINCE|Eliza|ECHO|Oracle)/i.test(String(m.content.text))
+          );
+          const texts = reportLike.slice(-6).map((m) => String(m.content?.text || "").trim());
+          if (texts.length > 0) {
+            priorReportsSnippet = `\n\n**Prior reports (this standup):**\n${texts.join("\n\n---\n\n")}`;
+          }
+        } catch (err) {
+          logger.warn({ err }, "[A2A_CONTEXT] Failed to get prior reports for Solus");
+        }
+        const essentialQ = getEssentialStandupQuestion();
+        return `
+## 🎯 YOUR TURN — Standup Report (Solus: Options Lead)
+
+Kelly called on you. You do most of the thinking. Answer the essential question using data from the team.
+${priorReportsSnippet}
+
+**Essential question to answer:** ${essentialQ}
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""} — Hypersurface options settle weekly (Friday 08:00 UTC). We do the wheel; we sit in BTC. Use data + sentiment + news to choose optimal strike for BTC covered calls.
+
+**Your answer must include (Grok-style):**
+- Current data (price, Fear & Greed)
+- X sentiment and Polymarket/options expiry if available
+- Macro/volatility (e.g. liquidations, Fed, tech selloffs) if relevant
+- On-chain/contrarian (e.g. MVRV, base-building, cost floor) if relevant
+- **Clear Yes/No** (e.g. "No, I don't think BTC will be above $70K by next Friday")
+- Short-term path and caveats in 1-2 sentences
+
+**RULES:**
+- 250-300 WORDS — enough to be as actionable as a Grok-style reply
+- Use prior reports above; don't make up numbers
+- End with "My take: [Yes/No], ..." and one sentence path
+`;
+      }
+      
       // Fetch real data for this agent
       let liveData = "";
       try {
@@ -438,12 +520,27 @@ ${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No ac
         myNameLower === "solus"
           ? "\n**You are the options expert:** Lead with strike/position call or Hypersurface-relevant action; keep coordination chat to a minimum.\n"
           : "";
+      const vinceLine =
+        myNameLower === "vince"
+          ? "\n**You have the most accurate data and recent news.** Live data (prices, funding, paper bot W/L and PnL) must drive your report. Report paper trading bot results for perps on Hyperliquid. Use LIVE DATA only.\n"
+          : "";
+      const echoLine =
+        myNameLower === "echo"
+          ? "\n**Show insights from X (plugin-x-research):** sentiment, key voices, narrative. Use LIVE DATA above.\n"
+          : "";
+      const sentinelLine =
+        myNameLower === "sentinel"
+          ? "\n**Report what's next in coding and what has been pushed to the repo.**\n"
+          : "";
 
       return `
 ## 🎯 YOUR TURN — Standup Report
 
 Kelly called on you. Report NOW. Be BRIEF.
+${vinceLine}
+${echoLine}
 ${solusOptionsLine}
+${sentinelLine}
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 ${liveData}
 

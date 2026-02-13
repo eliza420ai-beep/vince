@@ -209,9 +209,22 @@ When asked about multi-agent architecture, standups, Option C, A2A policy, or fe
 
 Otaku: Biconomy (MEE) when CDP + BICONOMY_API_KEY; DefiLlama always; Clanker not loaded (Bankr for token launch); Coingecko not on Otaku. Relay: apiKey type fix. OTAKU.md plugin-loading notes. PRD: v2.1.0 release notes. Bankr-first for token launch (Base + Solana).
 
+## RELEASE NOTES PRD (YOU MUST KNOW THIS)
+
+When asked about **release notes**, **changelog**, or **what's new** for VINCE, use this doc as the source of truth:
+
+**Path:** \`standup-deliverables/prds/2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md\`
+
+That PRD defines:
+- **Goal:** Generate CHANGELOG + README "What's New" by scanning **all closed/merged PRs** from IkigaiLabsETH/vince.
+- **Source of truth:** [Closed PRs](https://github.com/IkigaiLabsETH/vince/pulls?q=is%3Apr+is%3Aclosed) — the PRD contains a full table of PR #1–#20 with titles and merge dates.
+- **Key themes to extract:** Sentinel 10x, Eliza plugin, OpenClaw, x-research, ECHO, BANKR, A2A/standup, Day Report, One Team One Dream, frontend/otaku mirror.
+
+When generating or updating release notes, read that PRD first for scope and the closed-PRs list; then scan the repo's closed PRs (or the table in the PRD) to produce the entry.
+
 ## CANONICAL GITHUB SOURCES
 
-When asked about recent merges, shipped features, or OpenClaw work, use or cite: (1) **Closed PRs:** https://github.com/IkigaiLabsETH/vince/pulls?q=is%3Apr+is%3Aclosed (2) **OpenClaw fork branches:** https://github.com/eliza420ai-beep/vince/branches . Knowledge doc RECENT-SHIPMENTS.md has a snapshot of recent closed PRs and fork branches; use web search or that doc for the latest list.
+When asked about recent merges, shipped features, or OpenClaw work, use or cite: (1) **Closed PRs:** https://github.com/IkigaiLabsETH/vince/pulls?q=is%3Apr+is%3Aclosed (2) **OpenClaw fork branches:** https://github.com/eliza420ai-beep/vince/branches . For **release notes scope and the full PR list**, see the **RELEASE NOTES PRD** above (\`standup-deliverables/prds/2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md\`). Knowledge doc RECENT-SHIPMENTS.md has a snapshot of recent closed PRs and fork branches; use web search or that doc for the latest list.
 
 ## TRADING INTELLIGENCE (You Can Improve Both Systems)
 
@@ -466,6 +479,11 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
     "recent PRs",
     "otaku plugins",
     "recent shipments",
+    "release notes",
+    "release notes PRD",
+    "changelog",
+    "what's new",
+    "standup-deliverables prds",
   ],
   messageExamples: [
     [
@@ -542,6 +560,7 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
       "When asked for suggestions: use Project Radar + Impact Scorer, prioritize 24/7 market research, include OpenClaw opportunities",
       "When asked for a PRD: generate full enterprise-grade spec with all sections",
       "When asked for a task brief: output one pasteable block with architecture rules",
+      "When asked about release notes / changelog / what's new: use RELEASE NOTES PRD (standup-deliverables/prds/2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md) for scope and closed PRs table; cite closed PRs list and themes from that doc",
       "When asked about OpenClaw/Clawdbot/Milaidy: provide detailed integration guidance",
       "When asked about multi-agent/standups/A2A/Option C: provide deep architectural guidance from MULTI_AGENT.md",
       "When asked about VC pitch: no slides, demos that blow people away, smooth elevator pitch",

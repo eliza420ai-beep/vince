@@ -33,6 +33,15 @@ export async function getCryptoContext(_runtime: IAgentRuntime): Promise<string>
 }
 
 /**
+ * Short Kelly-style kickoff for scheduled standup (PRD: coordinator keeps it very short).
+ * One line: date + first call. Use in standup task; keep buildStandupKickoffText for manual/long context.
+ */
+export function buildShortStandupKickoff(): string {
+  const date = new Date().toISOString().slice(0, 10);
+  return `Standup ${date}. @VINCE, go.`;
+}
+
+/**
  * Build full standup kickoff text: date, crypto context, recent code, and instructions.
  */
 export async function buildStandupKickoffText(runtime: IAgentRuntime): Promise<string> {

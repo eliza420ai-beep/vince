@@ -1,7 +1,7 @@
 /**
  * Plugin Inter-Agent — Lets agents ask other agents and report back.
  * Action: ASK_AGENT (ask Vince, Kelly, Solus, Sentinel, Eliza, Otaku and relay the answer).
- * Optional: 2x/day standup (STANDUP_ENABLED=true, STANDUP_COORDINATOR_AGENT=Sentinel).
+ * Optional: 2x/day standup (STANDUP_ENABLED=true; STANDUP_COORDINATOR_AGENT defaults to Kelly).
  *
  * A2A Loop Guard: Enables symmetric agent-to-agent Discord chat with loop prevention.
  * Set shouldIgnoreBotMessages: false on agents that should respond to other bots.
@@ -41,3 +41,5 @@ export const interAgentPlugin: Plugin = {
 };
 
 export { askAgentAction } from "./actions/askAgent.action";
+export { getElizaOS } from "./types";
+export type { ElizaOSAgentInfo, IElizaOSRegistry } from "./types";

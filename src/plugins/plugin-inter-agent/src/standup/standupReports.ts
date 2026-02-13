@@ -62,13 +62,13 @@ export type AgentName = keyof typeof AGENT_ROLES;
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  Eliza: `## Eliza — Research — {{date}}
+  Eliza: `## Eliza — Research (Listening) — {{date}}
 
-**BTC insight:** [One key pattern or thesis for this week]
-**Supporting:** [Data point or source]
-**Confidence:** High/Med/Low
+**Knowledge gaps spotted:** [What we don't know yet that would help]
+**Essay idea (Ikigai Studio Substack):** [One topic worth a long-form piece]
+**Research to upload to knowledge/:** [What to ingest or add to knowledge base]
 
-**Action:** [One specific recommendation for Solus/strike selection]`,
+**Action:** [One specific recommendation inspired by what you heard]`,
 
   VINCE: `## VINCE — Data — {{date}}
 
@@ -82,7 +82,9 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 **Paper bot:** XW/XL | PnL: $X
 **Action:** [One specific trade signal]`,
 
-  ECHO: `## ECHO — CT Sentiment — {{date}}
+  ECHO: `## ECHO — CT Sentiment (X insights) — {{date}}
+
+Show insights from X (plugin-x-research): sentiment, key voices, narrative.
 
 | Asset | CT Mood | Key Voice |
 |-------|---------|-----------|
@@ -96,12 +98,16 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 
   Oracle: `## Oracle — {{date}}
 
+Polymarket data available but still unreliable for real-time; caveat when citing odds or predictions.
+
 🚧 **Prediction market feeds under construction.**
 Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
 
 *No action items.*`,
 
   Solus: `## Solus — Hypersurface — {{date}}
+
+Answer the essential question (e.g. "Will BTC be above $70K by next Friday?") in Grok-style: current data, sentiment, Polymarket/options, clear Yes/No, short-term path.
 
 **BTC Options (Core Income)**
 | Strike | Type | Expiry | Thesis |
@@ -111,9 +117,11 @@ Polymarket integration in progress — will surface BTC price predictions + stri
 **Weekly View:** Bull/Bear/Neutral — [why in 10 words]
 **Invalidation:** [specific level or event]
 
-**Action:** [Size/Skip + strike recommendation]`,
+**My take:** [Yes/No] — [one sentence path]. Then **Action:** [Size/Skip + strike recommendation]`,
 
   Otaku: `## Otaku — {{date}}
+
+You are the agent with wallet (Bankr, Coinbase) and DeFi skills; currently under construction — no execution yet.
 
 🔧 **Wallet integration in progress.**
 Observing team reports — no execution capability yet.
@@ -128,7 +136,9 @@ Observing team reports — no execution capability yet.
 
   Sentinel: `## Sentinel — Tech — {{date}}
 
-**Shipped:** [Recent commits/PRs or "Nothing new"]
+**What's next in coding:** [What still needs to be done]
+**What's been pushed to the repo:** [Recent commits/PRs or "Nothing new"]
+
 **In Progress:** [Current dev work]
 **Blocked:** [Blockers or "None"]
 

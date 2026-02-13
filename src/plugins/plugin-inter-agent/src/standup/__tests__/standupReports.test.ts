@@ -13,6 +13,7 @@ import {
   formatReportDate,
   getDayOfWeek,
 } from "../standupReports";
+import { getEssentialStandupQuestion, ESSENTIAL_STANDUP_QUESTION } from "../standup.constants";
 import type { Memory, UUID } from "@elizaos/core";
 
 describe("Standup Reports", () => {
@@ -60,9 +61,34 @@ describe("Standup Reports", () => {
       expect(REPORT_TEMPLATES.VINCE).toContain("Signal");
     });
 
-    it("Eliza template has research sections", () => {
+    it("Eliza template has listening/knowledge gaps/essay/research", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Research");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge gaps spotted");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Essay idea");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Research to upload to knowledge");
+    });
+
+    it("Oracle template caveats real-time reliability", () => {
+      expect(REPORT_TEMPLATES.Oracle).toContain("unreliable");
+    });
+
+    it("Otaku template states who he is (Bankr, DeFi)", () => {
+      expect(REPORT_TEMPLATES.Otaku).toContain("Bankr");
+      expect(REPORT_TEMPLATES.Otaku).toContain("DeFi");
+    });
+
+    it("Sentinel template has what's next / what's pushed", () => {
+      expect(REPORT_TEMPLATES.Sentinel).toContain("What's next in coding");
+      expect(REPORT_TEMPLATES.Sentinel).toContain("What's been pushed");
+    });
+
+    it("ECHO template references X insights", () => {
+      expect(REPORT_TEMPLATES.ECHO).toContain("plugin-x-research");
+    });
+
+    it("Solus template has essential question and My take", () => {
+      expect(REPORT_TEMPLATES.Solus).toContain("essential question");
+      expect(REPORT_TEMPLATES.Solus).toContain("My take");
     });
 
     it("Kelly template is standup facilitator", () => {
@@ -163,6 +189,22 @@ describe("Standup Reports", () => {
       const day = getDayOfWeek();
       const validDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
       expect(validDays).toContain(day);
+    });
+  });
+
+  describe("Essential standup question", () => {
+    it("ESSENTIAL_STANDUP_QUESTION is non-empty and mentions BTC and Friday", () => {
+      expect(ESSENTIAL_STANDUP_QUESTION).toBeTruthy();
+      expect(ESSENTIAL_STANDUP_QUESTION.length).toBeGreaterThan(10);
+      expect(ESSENTIAL_STANDUP_QUESTION).toContain("BTC");
+      expect(ESSENTIAL_STANDUP_QUESTION).toContain("Friday");
+    });
+
+    it("getEssentialStandupQuestion returns non-empty and mentions BTC", () => {
+      const q = getEssentialStandupQuestion();
+      expect(q).toBeTruthy();
+      expect(q).toContain("BTC");
+      expect(q).toContain("Friday");
     });
   });
 });

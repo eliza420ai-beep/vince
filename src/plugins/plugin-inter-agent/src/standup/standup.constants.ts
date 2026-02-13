@@ -35,6 +35,17 @@ export function getStandupResponseDelay(): number {
 export const TASK_NAME = "AGENT_STANDUP";
 export const STANDUP_ACTION_ITEM_TASK_NAME = "STANDUP_ACTION_ITEM";
 
+/** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. */
+export const STANDUP_REPORT_ORDER = [
+  "VINCE",
+  "Eliza",
+  "ECHO",
+  "Oracle",
+  "Solus",
+  "Otaku",
+  "Sentinel",
+] as const;
+
 /** Get configured standup hours (UTC). Returns array of hours [0-23]. */
 export function getStandupHours(): number[] {
   const hoursEnv = process.env.STANDUP_UTC_HOURS?.trim();
@@ -54,6 +65,19 @@ export function isStandupTime(): boolean {
   const scheduledHours = getStandupHours();
   return scheduledHours.includes(currentHour);
 }
+
+/**
+ * Essential question we want answered every daily standup (Solus).
+ * Level can be overridden via ESSENTIAL_STANDUP_BTC_LEVEL env (e.g. "70000").
+ */
+export function getEssentialStandupQuestion(): string {
+  const level = process.env.ESSENTIAL_STANDUP_BTC_LEVEL?.trim() || "70K";
+  return `Based on current market sentiment, do you think BTC will be above $${level} by next Friday?`;
+}
+
+/** Default essential question (static fallback). */
+export const ESSENTIAL_STANDUP_QUESTION =
+  "Based on current market sentiment, do you think BTC will be above $70K by next Friday?";
 
 /** Resolve standup world ID for the coordinator runtime (deterministic). */
 export function getStandupWorldId(runtime: { agentId: UUID }): UUID {

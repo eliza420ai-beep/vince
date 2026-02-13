@@ -10,9 +10,10 @@
  */
 
 import { logger } from "@elizaos/core";
+import { STANDUP_REPORT_ORDER } from "./standup.constants";
 
-/** Standup turn order */
-const STANDUP_ORDER = [
+/** Standup turn order (lowercase); derived from canonical STANDUP_REPORT_ORDER */
+const STANDUP_ORDER = STANDUP_REPORT_ORDER.map((n) => n.toLowerCase()) as readonly [
   "vince",
   "eliza",
   "echo",
@@ -20,9 +21,9 @@ const STANDUP_ORDER = [
   "solus",
   "otaku",
   "sentinel",
-] as const;
+];
 
-type StandupAgent = typeof STANDUP_ORDER[number];
+type StandupAgent = (typeof STANDUP_ORDER)[number];
 
 interface StandupSession {
   startedAt: number;

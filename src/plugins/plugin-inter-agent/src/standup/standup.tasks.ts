@@ -4,7 +4,7 @@
  * Only the coordinator runtime (e.g. Sentinel) registers and runs this task.
  */
 
-import { type IAgentRuntime, type UUID, logger, ChannelType } from "@elizaos/core";
+import { type IAgentRuntime, type UUID, logger, ChannelType, ModelType } from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { v4 as uuidv4 } from "uuid";
@@ -15,13 +15,16 @@ import {
   STANDUP_INTERVAL_MS,
   TASK_NAME,
   STANDUP_ACTION_ITEM_TASK_NAME,
+  STANDUP_REPORT_ORDER,
   isStandupTime,
   getStandupHours,
 } from "./standup.constants";
-import { buildStandupKickoffText } from "./standup.context";
+import { buildShortStandupKickoff } from "./standup.context";
 import { parseStandupTranscript, type StandupActionItem } from "./standup.parse";
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
+import { buildDayReportPrompt } from "./standupDayReport";
+import { saveDayReport, updateDayReportManifest } from "./dayReportPersistence";
 
 const STANDUP_SOURCE = "standup";
 
@@ -192,13 +195,19 @@ export async function runStandupRoundRobin(
     return { transcript: kickoffText, replies: [] };
   }
   const agents = eliza.getAgents();
-  const sorted = [...agents].sort((a, b) => (a?.character?.name ?? "").localeCompare(b?.character?.name ?? ""));
+  const byName = new Map<string, (typeof agents)[number]>();
+  for (const a of agents) {
+    const name = a?.character?.name?.trim();
+    if (name) byName.set(name.toLowerCase(), a);
+  }
+  const ordered: { agentId: string; agentName: string }[] = [];
+  for (const name of STANDUP_REPORT_ORDER) {
+    const a = byName.get(name.toLowerCase());
+    if (a?.agentId) ordered.push({ agentId: a.agentId, agentName: a.character?.name ?? name });
+  }
   const replies: { agentId: string; agentName: string; text: string }[] = [];
   let transcript = `[Standup kickoff]\n${kickoffText}`;
-  for (const a of sorted) {
-    const agentId = a?.agentId;
-    const agentName = a?.character?.name ?? agentId?.slice(0, 8) ?? "Agent";
-    if (!agentId) continue;
+  for (const { agentId, agentName } of ordered) {
     try {
       const reply = await runOneStandupTurn(
         runtime,
@@ -530,7 +539,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
       logger.info(`[Standup] 🎬 Starting scheduled standup (${currentHour}:00 UTC)...`);
       try {
         const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
-        const kickoffText = await buildStandupKickoffText(rt);
+        const kickoffText = buildShortStandupKickoff();
         const kickoffMemory = {
           id: uuidv4() as UUID,
           entityId: facilitatorEntityId,
@@ -574,12 +583,32 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           `[Standup] Done: ${replies.length} replies, ${Object.keys(parsed.lessonsByAgentName).length} lessons, ${parsed.actionItems.length} action items (${buildCount} build, ${northStarCount} north-star, ${remindCount} remind), ${parsed.disagreements.length} disagreements.`,
         );
         await persistStandupSuggestions(parsed.suggestions);
+        let dayReportPath: string | null = null;
+        try {
+          const dayReportPrompt = buildDayReportPrompt(transcript);
+          const dayReport = await rt.useModel(ModelType.TEXT_LARGE, {
+            prompt: dayReportPrompt,
+            maxTokens: 1200,
+            temperature: 0.7,
+          });
+          const reportText = String(dayReport).trim();
+          dayReportPath = saveDayReport(reportText);
+          if (dayReportPath) {
+            const tldrMatch = reportText.match(/### TL;DR\n([^\n#]+)/);
+            const summary = tldrMatch ? tldrMatch[1].trim() : "Day report generated";
+            updateDayReportManifest(dayReportPath, summary);
+            logger.info(`[Standup] Day Report saved to ${dayReportPath}`);
+          }
+        } catch (dayReportErr) {
+          logger.warn({ err: dayReportErr }, "[Standup] Day Report generation failed; continuing with summary only");
+        }
         const dateStr = new Date().toISOString().slice(0, 10);
         const summaryLines = [
           `**Standup ${dateStr}** (one team, one dream)`,
           `• ${replies.length} agents spoke`,
           `• Lessons: ${Object.keys(parsed.lessonsByAgentName).length}`,
           `• Action items: ${parsed.actionItems.length}${deliverableCount > 0 ? ` (${deliverableCount} deliverables — will be posted when ready)` : ""}`,
+          dayReportPath ? `• Day Report: \`${dayReportPath}\`` : "",
           parsed.disagreements.length > 0 ? `• Disagreements noted: ${parsed.disagreements.length}` : "",
           "",
           transcript.slice(-2000),

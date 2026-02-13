@@ -25,15 +25,11 @@ export interface IElizaOSRegistry {
   ): Promise<unknown>;
 }
 
-/** Runtime with optional elizaOS attachment (set by server when using in-process agents). */
-interface RuntimeWithElizaOS extends IAgentRuntime {
-  elizaOS?: IElizaOSRegistry;
-}
-
 /**
  * Get the in-process elizaOS registry from a runtime, if present.
  * Use this instead of inline casts in ASK_AGENT and standup code.
+ * (We cast to a minimal shape to avoid conflicting with core's IAgentRuntime.elizaOS type.)
  */
 export function getElizaOS(runtime: IAgentRuntime): IElizaOSRegistry | undefined {
-  return (runtime as RuntimeWithElizaOS).elizaOS;
+  return (runtime as { elizaOS?: IElizaOSRegistry }).elizaOS;
 }
