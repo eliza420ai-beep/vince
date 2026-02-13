@@ -22,6 +22,14 @@ const TRIGGERS = [
   "hypersurface position",
   "secured puts on hypersurface",
   "covered call position",
+  "underwater",
+  "assigned",
+  "being assigned",
+  "get assigned",
+  "our secured puts",
+  "our $70k puts",
+  "our $70k secured puts",
+  "premium reduces cost basis",
 ];
 
 function wantsPositionAssess(text: string): boolean {

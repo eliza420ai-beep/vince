@@ -1322,7 +1322,96 @@ export class OtakuMessageService implements IMessageService {
       return { shouldRespond: true, skipEvaluation: true, reason: `platform ${mentionType}` };
     }
 
-    // 4. All other cases: let the LLM decide
+    // 4. Standup channel: only single responder (human) or called agent (agent message) may respond
+    const roomName = (room.name ?? '').trim();
+    const standupChannelNames =
+      (runtime.getSetting('A2A_STANDUP_CHANNEL_NAMES') as string) ||
+      process.env.A2A_STANDUP_CHANNEL_NAMES ||
+      'standup,daily-standup';
+    const standupParts = standupChannelNames
+      .split(',')
+      .map((s: string) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const isStandupRoom =
+      roomName.length > 0 &&
+      standupParts.some((part: string) => roomName.toLowerCase().includes(part));
+
+    if (isStandupRoom) {
+      const KNOWN_AGENTS = [
+        'vince',
+        'eliza',
+        'kelly',
+        'solus',
+        'otaku',
+        'sentinel',
+        'echo',
+        'oracle',
+      ];
+      const senderName = (
+        message.content?.name ||
+        message.content?.userName ||
+        ''
+      ).toLowerCase();
+      const metadata = message.content?.metadata as Record<string, unknown> | undefined;
+      const isFromBot =
+        metadata?.isBot === true || metadata?.fromBot === true;
+      const isFromKnownAgent =
+        KNOWN_AGENTS.some((a) => senderName.includes(a)) || isFromBot;
+
+      const singleResponder = (
+        (runtime.getSetting('A2A_STANDUP_SINGLE_RESPONDER') as string) ||
+        (runtime.getSetting('STANDUP_COORDINATOR_AGENT') as string) ||
+        process.env.A2A_STANDUP_SINGLE_RESPONDER ||
+        process.env.STANDUP_COORDINATOR_AGENT ||
+        'Kelly'
+      )
+        .trim()
+        .toLowerCase();
+      const myName = (runtime.character?.name ?? '').trim().toLowerCase();
+
+      if (!isFromKnownAgent) {
+        // Human in standup: only single responder (e.g. Kelly) may respond
+        const amSingleResponder = myName === singleResponder;
+        return {
+          shouldRespond: amSingleResponder,
+          skipEvaluation: true,
+          reason: amSingleResponder
+            ? 'standup channel, human message, single responder'
+            : 'standup channel, human message, only facilitator responds',
+        };
+      }
+
+      // Agent message in standup: only respond if directly called
+      const messageText = message.content?.text ?? '';
+      const nameLower = myName;
+      const isDirectlyCalled =
+        messageText.toLowerCase().includes(`@${nameLower}`) ||
+        new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')},`, 'i').test(
+          messageText
+        ) ||
+        new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`, 'i').test(
+          messageText
+        ) ||
+        new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} you're up`, 'i').test(
+          messageText
+        ) ||
+        new RegExp(`\\b${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}—`, 'i').test(
+          messageText
+        ) ||
+        new RegExp(`^${nameLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(
+          messageText
+        );
+
+      return {
+        shouldRespond: isDirectlyCalled,
+        skipEvaluation: true,
+        reason: isDirectlyCalled
+          ? 'standup channel, agent message, called by name'
+          : 'standup channel, agent message, not called',
+      };
+    }
+
+    // 5. All other cases: let the LLM decide
     return { shouldRespond: false, skipEvaluation: false, reason: 'needs LLM evaluation' };
   }
 

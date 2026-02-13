@@ -86,6 +86,15 @@ describe("solusHypersurfaceExplainAction", () => {
     }
   });
 
+  it("validate returns true for standup-style explain phrases (assigned, premium, underwater puts)", async () => {
+    const runtime = createSolusRuntime();
+    const phrases = ["what happens if we get assigned", "premium reduces cost basis", "underwater puts"];
+    for (const phrase of phrases) {
+      const result = await solusHypersurfaceExplainAction.validate!(runtime, createMessage(phrase));
+      expect(result).toBe(true);
+    }
+  });
+
   it("validate returns false when not Solus", async () => {
     const runtime = createNonSolusRuntime();
     const result = await solusHypersurfaceExplainAction.validate!(runtime, createMessage("explain hypersurface"));
@@ -97,6 +106,15 @@ describe("solusPositionAssessAction", () => {
   it("validate returns true for position phrases when Solus", async () => {
     const runtime = createSolusRuntime();
     const phrases = ["assess my position", "we bought secured puts", "review my hypersurface position"];
+    for (const phrase of phrases) {
+      const result = await solusPositionAssessAction.validate!(runtime, createMessage(phrase));
+      expect(result).toBe(true);
+    }
+  });
+
+  it("validate returns true for standup-style position phrases (underwater, assigned, our $70k puts)", async () => {
+    const runtime = createSolusRuntime();
+    const phrases = ["our $70K secured puts are underwater", "we might get assigned", "our $70k puts", "premium reduces cost basis"];
     for (const phrase of phrases) {
       const result = await solusPositionAssessAction.validate!(runtime, createMessage(phrase));
       expect(result).toBe(true);

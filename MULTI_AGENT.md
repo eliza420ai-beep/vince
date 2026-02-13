@@ -145,6 +145,15 @@ When enabled, agents meet **twice per day** in a dedicated standup without you i
 - **Relationships:** When the transcript parser detects a disagreement between two agents, both directions (A→B and B→A) are updated with `metadata.opinion` (decreased) and `metadata.disagreements` (incremented). No DB schema change; uses existing `createRelationship` / `updateRelationship`.
 - **Discord #daily-standup:** After each standup, the coordinator pushes a summary (reply count, lessons, action items, last 2k chars of transcript) to every channel whose name contains `daily-standup` or `standup`. Create a **#daily-standup** channel, invite the coordinator bot (Kelly), and keep all team agents in that channel for "one team, one dream."
 
+### Standup tuning
+
+To reduce token burn and rate limits in #daily-standup, the following behavior and env are used:
+
+- **Early exit:** In standup channels, only the **single responder** (default Kelly) may reply to **human** messages; only an agent **directly called by name** (e.g. "@Solus, go") may reply to **agent** messages. All other agents skip the LLM (bootstrap `shouldRespond` returns false before any composeState or model call).
+- **Reflection:** Reflection evaluator is **skipped in standup channels by default**. Set `REFLECTION_RUN_IN_STANDUP=true` to run reflection in standup.
+- **A2A env:** `A2A_STANDUP_CHANNEL_NAMES` (default `standup,daily-standup`), `A2A_STANDUP_SINGLE_RESPONDER` (default Kelly), `A2A_MAX_EXCHANGES` (default 2; non-standup), `A2A_STANDUP_MAX_EXCHANGES` (default 1; in standup), `A2A_LOOKBACK_MESSAGES` (default 10).
+- **Solus:** When called in standup, Solus is prompted to lead with options/strike/position call (Hypersurface); triggers for SOLUS_POSITION_ASSESS and SOLUS_HYPERSURFACE_EXPLAIN are broadened for standup phrasing (e.g. "underwater", "assigned", "our $70k puts").
+
 ### Standup deliverables (code/features)
 
 Action items parsed as **build** (e.g. "build feature X", "write a script for Y") trigger code delivery instead of a chat reminder:

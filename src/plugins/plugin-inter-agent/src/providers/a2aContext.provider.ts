@@ -434,11 +434,16 @@ ${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No ac
         logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
       }
       
+      const solusOptionsLine =
+        myNameLower === "solus"
+          ? "\n**You are the options expert:** Lead with strike/position call or Hypersurface-relevant action; keep coordination chat to a minimum.\n"
+          : "";
+
       return `
 ## 🎯 YOUR TURN — Standup Report
 
 Kelly called on you. Report NOW. Be BRIEF.
-
+${solusOptionsLine}
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 ${liveData}
 
@@ -465,8 +470,10 @@ If you write more than 80 words, you are FAILING.
       return "";
     }
 
-    // Default to 2 exchanges (stricter) — can override with A2A_MAX_EXCHANGES
-    const maxExchanges = parseInt(process.env.A2A_MAX_EXCHANGES || "2", 10);
+    // In standup use stricter cap (default 1); otherwise A2A_MAX_EXCHANGES (default 2)
+    const maxExchanges = inStandupChannel
+      ? parseInt(process.env.A2A_STANDUP_MAX_EXCHANGES || "1", 10)
+      : parseInt(process.env.A2A_MAX_EXCHANGES || "2", 10);
     const lookback = parseInt(process.env.A2A_LOOKBACK_MESSAGES || "10", 10);
 
     const exchanges = await countRecentExchanges(

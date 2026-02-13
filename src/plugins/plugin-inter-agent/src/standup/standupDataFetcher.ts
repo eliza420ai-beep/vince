@@ -149,6 +149,14 @@ export async function fetchSentinelData(_runtime: IAgentRuntime): Promise<string
 }
 
 /**
+ * Fetch data for Solus's standup report (options expert)
+ */
+export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
+  return `**Options expert:** Lead with strike/position call or Hypersurface-relevant action.
+Use spot + mechanics from context. Invalidation and hold/roll/adjust in one line. Minimal coordination chat.`;
+}
+
+/**
  * Fetch data for a specific agent
  */
 export async function fetchAgentData(
@@ -164,11 +172,13 @@ export async function fetchAgentData(
       return fetchEchoData(runtime);
     case "oracle":
       return fetchOracleData(runtime);
+    case "solus":
+      return fetchSolusData(runtime);
     case "otaku":
       return fetchOtakuData(runtime);
     case "sentinel":
       return fetchSentinelData(runtime);
     default:
-      return null; // Eliza and Solus don't have specific data fetchers
+      return null; // Eliza doesn't have a specific data fetcher
   }
 }

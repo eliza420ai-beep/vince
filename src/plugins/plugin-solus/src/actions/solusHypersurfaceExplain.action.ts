@@ -21,6 +21,11 @@ const TRIGGERS = [
   "how do covered calls work",
   "how do secured puts work",
   "hypersurface mechanics",
+  "what happens if we get assigned",
+  "what happens if i get assigned",
+  "premium reduces cost basis",
+  "underwater puts",
+  "how do secured puts work",
 ];
 
 function wantsExplain(text: string): boolean {

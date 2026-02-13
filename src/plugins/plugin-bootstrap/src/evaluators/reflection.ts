@@ -293,9 +293,9 @@ export const reflectionEvaluator: Evaluator = {
   name: 'REFLECTION',
   similes: ['REFLECT', 'SELF_REFLECT', 'EVALUATE_INTERACTION', 'ASSESS_SITUATION'],
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
-    if (process.env.REFLECTION_SKIP_STANDUP === 'true') {
-      const room = await runtime.getRoom(message.roomId);
-      if (isReflectionStandupRoom(room?.name)) {
+    const room = await runtime.getRoom(message.roomId);
+    if (isReflectionStandupRoom(room?.name)) {
+      if (process.env.REFLECTION_RUN_IN_STANDUP !== 'true') {
         return false;
       }
     }
