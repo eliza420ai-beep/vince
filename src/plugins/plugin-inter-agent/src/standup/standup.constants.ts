@@ -22,6 +22,16 @@ export const DEFAULT_STANDUP_HOUR_UTC = 9;
 /** Check interval: hourly to catch the scheduled time */
 export const STANDUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
+/** 
+ * Response delay between agent turns (ms).
+ * Helps avoid rate limits by staggering responses.
+ * Set via STANDUP_RESPONSE_DELAY_MS env var.
+ */
+export function getStandupResponseDelay(): number {
+  const delay = parseInt(process.env.STANDUP_RESPONSE_DELAY_MS || "2000", 10);
+  return isNaN(delay) ? 2000 : delay;
+}
+
 export const TASK_NAME = "AGENT_STANDUP";
 export const STANDUP_ACTION_ITEM_TASK_NAME = "STANDUP_ACTION_ITEM";
 

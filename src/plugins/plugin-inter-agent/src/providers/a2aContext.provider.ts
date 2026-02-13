@@ -26,6 +26,44 @@ const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "
 /** Human names to recognize (co-founders, team members) */
 const KNOWN_HUMANS = ["yves", "ikigai"];
 
+/** 
+ * Standup turn order — agents respond ONE AT A TIME in this sequence.
+ * Kelly calls each agent by name, others WAIT until called.
+ */
+const STANDUP_TURN_ORDER = [
+  "vince",    // Market data first (best data)
+  "eliza",    // Research patterns
+  "echo",     // CT sentiment
+  "oracle",   // Prediction markets
+  "solus",    // Risk/sizing
+  "otaku",    // Execution status
+  "sentinel", // System health
+  // Kelly wraps up
+];
+
+/**
+ * Check if this agent is being directly called/mentioned in the message.
+ * Returns true if "@AgentName" or "AgentName," or "AgentName:" appears.
+ */
+function isDirectlyAddressed(agentName: string, messageText: string): boolean {
+  const lower = messageText.toLowerCase();
+  const nameLower = agentName.toLowerCase();
+  
+  // Check for @mention
+  if (lower.includes(`@${nameLower}`)) return true;
+  
+  // Check for "AgentName," or "AgentName:" at word boundary
+  const patterns = [
+    new RegExp(`\\b${nameLower},`, "i"),
+    new RegExp(`\\b${nameLower}:`, "i"),
+    new RegExp(`\\b${nameLower} you're up`, "i"),
+    new RegExp(`\\b${nameLower}—`, "i"),
+    new RegExp(`^${nameLower}\\b`, "i"), // Starts with name
+  ];
+  
+  return patterns.some((p) => p.test(messageText));
+}
+
 /** Check if message is from a known human */
 function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string | null } {
   const senderName = (
@@ -140,17 +178,22 @@ export const a2aContextProvider: Provider = {
     _state?: State
   ): Promise<string> => {
     const myName = runtime.character?.name || "Agent";
+    const myNameLower = myName.toLowerCase();
+    const messageText = message.content?.text || "";
+    
+    // Check room type
+    const room = await runtime.getRoom(message.roomId);
+    const roomName = room?.name ?? "";
+    const inStandupChannel = isStandupRoom(roomName);
     
     // Check if this is from a HUMAN (highest priority!)
     const { isHuman, humanName } = isFromKnownHuman(message);
     if (isHuman) {
       // In standup channels only the facilitator responds to humans (rate limit)
-      const room = await runtime.getRoom(message.roomId);
-      const roomName = room?.name ?? "";
-      if (isStandupRoom(roomName)) {
+      if (inStandupChannel) {
         const singleResponder = getStandupSingleResponder();
         const amFacilitator =
-          myName.trim().toLowerCase() === singleResponder.toLowerCase();
+          myNameLower === singleResponder.toLowerCase();
         if (!amFacilitator) {
           logger.info(
             `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
@@ -178,6 +221,72 @@ Address ${humanName} directly. Be useful.
     }
 
     const { isAgent, agentName } = isFromKnownAgent(message);
+    
+    // ═══════════════════════════════════════════════════════════════════════
+    // STANDUP TURN-BASED LOGIC: Only respond when directly called
+    // ═══════════════════════════════════════════════════════════════════════
+    if (inStandupChannel && isAgent) {
+      const amDirectlyCalled = isDirectlyAddressed(myName, messageText);
+      const amFacilitator = myNameLower === getStandupSingleResponder().toLowerCase();
+      
+      // Kelly (facilitator) can always respond to manage the standup
+      if (amFacilitator) {
+        logger.info(`[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`);
+        return `
+## Standup Facilitator Mode
+
+You are Kelly, facilitating the trading standup.
+
+**Your job:**
+- Call on agents ONE AT A TIME (use @AgentName)
+- Keep things moving — if an agent rambles, cut them off
+- After all agents report, synthesize into the Day Report
+- Be BRIEF in transitions: "Thanks VINCE. @Eliza, you're up."
+
+**Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Wrap-up
+
+**Do NOT:**
+- Give long introductions
+- Repeat what agents said
+- Ask open-ended questions to all agents at once
+`;
+      }
+      
+      // Not the facilitator: only respond if directly called
+      if (!amDirectlyCalled) {
+        logger.info(
+          `[A2A_CONTEXT] 🚫 ${myName}: In standup but NOT called — waiting for turn`
+        );
+        return `[SYSTEM OVERRIDE] This is a turn-based standup. You were NOT called by name. 
+Wait for Kelly to call "@${myName}" before responding. 
+Action: IGNORE. Do not reply until it's your turn.`;
+      }
+      
+      // I was directly called — it's my turn!
+      logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
+      const role = getAgentRole(myName);
+      return `
+## 🎯 YOUR TURN — Standup Report
+
+Kelly called on you. Give your standup update NOW.
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+**Your focus:** ${role?.focus || "Your area of expertise"}
+
+**FORMAT (be CONCISE):**
+1. **Data/Status:** Key numbers, 2-3 bullet points max
+2. **Signal:** Bull/Bear/Neutral + confidence (High/Med/Low)
+3. **Action:** What should we do? Be specific.
+
+**RULES:**
+- MAX 150 words — no essays
+- Numbers > vibes
+- End with a clear recommendation
+- Do NOT ask questions back — just report
+
+After you respond, Kelly will call the next agent.
+`;
+    }
     
     if (!isAgent) {
       // Not from an agent or human we recognize — treat as normal

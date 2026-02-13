@@ -124,64 +124,40 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 ### Action Items
 1. **[LONG/SHORT/SPOT/SKIP]**: [asset] at [price] — [reasoning]`,
 
-  ECHO: `## ECHO — X/CT Sentiment — {{date}}
+  ECHO: `## ECHO — CT Sentiment — {{date}}
 
-### Asset Sentiment (BTC, SOL, HYPE)
-| Asset | CT Mood | Confidence | Key Driver |
-|-------|---------|------------|------------|
-| BTC   | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
-| SOL   | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
-| HYPE  | Bull/Bear/Neutral | High/Med/Low | [what's driving it] |
+### Vibes
+| Asset | Mood | Driver |
+|-------|------|--------|
+| BTC | Bull/Bear/Flat | [one phrase] |
+| SOL | Bull/Bear/Flat | [one phrase] |
+| HYPE | Bull/Bear/Flat | [one phrase] |
 
-### Notable Takes (Hyperliquid focused)
-- @[handle]: "[key quote on perps/options]"
-- @[handle]: "[key quote on our assets]"
+### Hot Take
+- @[handle]: "[key quote]" — [implication]
 
-### Narrative Watch
-- **Gaining**: [narrative that supports our thesis]
-- **Fading**: [narrative that was hyped, now dying]
-- **Contrarian**: [signal that goes against crowd]
+### vs VINCE Data
+[Aligned/Divergent] — [one sentence why]
 
-### Alignment with VINCE Data
-- [Does sentiment match the funding/OI data?]
-- [Divergences worth noting]
+### Action
+1. **[SENTIMENT SIGNAL]**: [one specific trade implication]`,
 
-### Questions
-- @VINCE: Sentiment says X, does funding confirm?
-- @Oracle: Is CT aligned with Polymarket?
+  Oracle: `## Oracle — Polymarket — {{date}}
 
-### Action Items
-1. **[SENTIMENT SIGNAL]**: [what CT is telling us to do]`,
+### Key Markets (BTC/SOL focus)
+| Market | Odds | Δ24h | Signal |
+|--------|------|------|--------|
+| [most relevant] | X% | ±X% | Bull/Bear |
 
-  Oracle: `## Oracle — Polymarket Intel — {{date}}
+### Smart Money
+- [One notable position or divergence]
 
-### BTC/SOL/HYPE Related Markets
-| Market | Odds | 24h Δ | Volume | Implication |
-|--------|------|-------|--------|-------------|
-| [BTC price market] | X% | +X% | $Xk | [what it means for perps] |
-| [Crypto macro market] | X% | +X% | $Xk | [risk-on/risk-off read] |
+### Bottom Line
+**Signal**: Bull/Bear/Neutral — Confidence: H/M/L
+**Why**: [One sentence]
 
-### Hyperliquid Relevance
-- Markets that inform perp positioning
-- Options strike implications (Hypersurface)
-- Timeline alignment (weekly expirations)
-
-### Smart Money Signals
-- Large position changes
-- Unusual volume spikes
-- Divergence from CT sentiment
-
-### Alignment Check
-- Polymarket vs VINCE data: [aligned/divergent]
-- Polymarket vs ECHO sentiment: [aligned/divergent]
-- Confidence in signal: High/Med/Low
-
-### Questions
-- @VINCE: Does [prediction] match funding?
-- @Solus: How should this affect strike selection?
-
-### Action Items
-1. **[PREDICTION SIGNAL]**: [what Polymarket tells us to do]`,
+### Action
+1. **[PREDICTION SIGNAL]**: [one specific implication]`,
 
   Solus: `## Solus — Trading Strategy — {{date}}
 
