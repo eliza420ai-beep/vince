@@ -3,7 +3,7 @@ import { GamificationService } from '../services/GamificationService';
 
 export const leaderboardProvider: Provider = {
   name: 'LEADERBOARD',
-  description: 'Provides top users for leaderboard awareness',
+  description: "Top ranks and user's rank for context.",
 
   dynamic: true,
   get: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<ProviderResult> => {
@@ -11,7 +11,7 @@ export const leaderboardProvider: Provider = {
       const gamificationService = runtime.getService('gamification') as GamificationService;
       if (!gamificationService) {
         return {
-          text: 'Gamification service not available',
+          text: 'Ranking service unavailable.',
           values: {},
         };
       }
@@ -35,7 +35,7 @@ export const leaderboardProvider: Provider = {
       };
     } catch (error) {
       return {
-        text: 'Unable to fetch leaderboard',
+        text: 'Could not load leaderboard.',
         values: {},
       };
     }

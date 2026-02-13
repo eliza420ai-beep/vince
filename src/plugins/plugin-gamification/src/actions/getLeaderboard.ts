@@ -3,8 +3,8 @@ import { GamificationService } from '../services/GamificationService';
 
 export const getLeaderboardAction: Action = {
   name: 'GET_LEADERBOARD',
-  description: 'Get the current leaderboard rankings',
-  similes: ['LEADERBOARD', 'RANKINGS', 'TOP_USERS', 'LEADERBOARD_RANKINGS'],
+  description: "Top ranks this week or all time.",
+  similes: ['LEADERBOARD', 'RANKINGS', 'TOP_USERS', 'LEADERBOARD_RANKINGS', 'WHOS_ON_TOP'],
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     return true;
@@ -20,7 +20,7 @@ export const getLeaderboardAction: Action = {
     try {
       const gamificationService = runtime.getService('gamification') as GamificationService;
       if (!gamificationService) {
-        const errorText = 'Gamification service not available';
+        const errorText = 'Ranking service unavailable.';
         await callback?.({
           text: errorText,
         });
@@ -30,21 +30,21 @@ export const getLeaderboardAction: Action = {
         };
       }
 
-      // Default to weekly, but could parse scope from message
       const scope = (options?.scope as 'weekly' | 'all_time') || 'weekly';
       const limit = (options?.limit as number) || 10;
 
       const entries = await gamificationService.getLeaderboard(scope, limit);
       const userRank = await gamificationService.getUserRank(message.entityId, scope);
 
-      let text = `**${scope === 'weekly' ? 'Weekly' : 'All-Time'} Leaderboard (Top ${limit}):**\n\n`;
+      const scopeLabel = scope === 'weekly' ? 'Weekly' : 'All-time';
+      let text = `**${scopeLabel} top ${limit}**\n\n`;
       entries.forEach((entry) => {
         const displayName = entry.username || entry.levelName || `User ${entry.userId.substring(0, 8)}`;
-        text += `${entry.rank}. ${displayName} - ${entry.points.toLocaleString()} pts\n`;
+        text += `${entry.rank}. ${displayName} — ${entry.points.toLocaleString()} pts\n`;
       });
 
       if (userRank > 0) {
-        text += `\n**Your Rank:** #${userRank}`;
+        text += `\n**Your rank:** #${userRank}`;
       }
 
       const data = { entries, userRank, scope };
@@ -60,7 +60,7 @@ export const getLeaderboardAction: Action = {
         data,
       };
     } catch (error) {
-      const errorText = 'Error fetching leaderboard';
+      const errorText = 'Could not load leaderboard.';
       await callback?.({
         text: errorText,
       });
@@ -70,5 +70,16 @@ export const getLeaderboardAction: Action = {
       };
     }
   },
+
+  examples: [
+    [
+      { name: 'user', content: { text: 'Leaderboard' } },
+      { name: 'agent', content: { text: 'Here’s the weekly top.', actions: ['GET_LEADERBOARD'] } },
+    ],
+    [
+      { name: 'user', content: { text: 'Who’s on top?' } },
+      { name: 'agent', content: { text: 'Top ranks.', actions: ['GET_LEADERBOARD'] } },
+    ],
+  ],
 };
 

@@ -13,7 +13,7 @@ export default function RebelsRanking({
   maxHeight = "65vh",
 }: RebelsRankingProps) {
   return (
-    <DashboardCard title="Leaderboard" intent="default">
+    <DashboardCard title="Rebels" intent="default">
       <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight }}>
         {rebels.map((rebel) => (
           <div key={rebel.id} className="flex items-center w-full">

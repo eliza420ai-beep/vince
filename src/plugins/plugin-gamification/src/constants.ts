@@ -62,13 +62,13 @@ export const VOLUME_MULTIPLIERS = {
 };
 
 /**
- * Level thresholds
+ * Level thresholds (Rebels progression: Scout → Operator → Architect → Sovereign)
  */
 export const LEVEL_THRESHOLDS = [
-  { level: 0, name: 'Explorer', minPoints: 0, maxPoints: 999 },
-  { level: 1, name: 'Strategist', minPoints: 1000, maxPoints: 4999 },
+  { level: 0, name: 'Scout', minPoints: 0, maxPoints: 999 },
+  { level: 1, name: 'Operator', minPoints: 1000, maxPoints: 4999 },
   { level: 2, name: 'Architect', minPoints: 5000, maxPoints: 19999 },
-  { level: 3, name: 'Overlord', minPoints: 20000, maxPoints: Infinity },
+  { level: 3, name: 'Sovereign', minPoints: 20000, maxPoints: Infinity },
 ];
 
 /**

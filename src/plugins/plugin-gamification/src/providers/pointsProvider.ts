@@ -3,7 +3,7 @@ import { GamificationService } from '../services/GamificationService';
 
 export const pointsProvider: Provider = {
   name: 'USER_POINTS',
-  description: 'Provides current user points, level, and streak for agent awareness',
+  description: "User's points, level, streak for context.",
 
   dynamic: true,
   get: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<ProviderResult> => {
@@ -11,7 +11,7 @@ export const pointsProvider: Provider = {
       const gamificationService = runtime.getService('gamification') as GamificationService;
       if (!gamificationService) {
         return {
-          text: 'Gamification service not available',
+          text: 'Ranking service unavailable.',
           values: {},
         };
       }
@@ -37,7 +37,7 @@ export const pointsProvider: Provider = {
       };
     } catch (error) {
       return {
-        text: 'Unable to fetch user points',
+        text: 'Could not load points.',
         values: {},
       };
     }

@@ -57,9 +57,20 @@ function sendUnauthorized(res: Response): void {
     success: false,
     error: {
       code: 'UNAUTHORIZED',
-      message: 'Authentication required. Please provide a valid Bearer token.',
+      message: 'Auth required.',
     },
   });
+}
+
+/**
+ * Get referral link base URL from runtime setting or env (default https://otaku.so)
+ */
+function getReferralBaseUrl(runtime: IAgentRuntime): string {
+  const base =
+    (runtime.getSetting('GAMIFICATION_REFERRAL_BASE_URL') as string) ||
+    process.env.GAMIFICATION_REFERRAL_BASE_URL ||
+    'https://otaku.so';
+  return base.replace(/\/$/, '');
 }
 
 /**
@@ -77,13 +88,13 @@ async function handleGetLeaderboard(req: Request, res: Response, runtime: IAgent
 
     // Validate scope
     if (scope !== 'weekly' && scope !== 'all_time') {
-      res.status(400).json({ error: 'Invalid scope. Must be "weekly" or "all_time"' });
+      res.status(400).json({ error: 'Scope must be weekly or all_time.' });
       return;
     }
 
     const gamificationService = runtime.getService('gamification') as GamificationService;
     if (!gamificationService) {
-      res.status(503).json({ error: 'Gamification service not available' });
+      res.status(503).json({ error: 'Ranking service unavailable.' });
       return;
     }
 
@@ -114,7 +125,7 @@ async function handleGetLeaderboard(req: Request, res: Response, runtime: IAgent
     });
   } catch (error) {
     logger.error({ error }, '[GamificationPlugin] Error fetching leaderboard');
-    res.status(500).json({ error: 'Error fetching leaderboard' });
+    res.status(500).json({ error: 'Could not load leaderboard.' });
   }
 }
 
@@ -137,7 +148,7 @@ async function handleGetUserSummary(req: Request, res: Response, runtime: IAgent
 
     const gamificationService = runtime.getService('gamification') as GamificationService;
     if (!gamificationService) {
-      res.status(503).json({ error: 'Gamification service not available' });
+      res.status(503).json({ error: 'Ranking service unavailable.' });
       return;
     }
 
@@ -148,7 +159,7 @@ async function handleGetUserSummary(req: Request, res: Response, runtime: IAgent
     res.json(safeSummary);
   } catch (error) {
     logger.error({ error }, '[GamificationPlugin] Error fetching user summary');
-    res.status(500).json({ error: 'Error fetching user summary' });
+    res.status(500).json({ error: 'Could not load summary.' });
   }
 }
 
@@ -171,21 +182,22 @@ async function handleGetReferralCode(req: Request, res: Response, runtime: IAgen
 
     const referralService = runtime.getService('referral') as ReferralService;
     if (!referralService) {
-      res.status(503).json({ error: 'Referral service not available' });
+      res.status(503).json({ error: 'Referral service unavailable.' });
       return;
     }
 
     const { code, stats } = await referralService.getOrCreateCode(userId as UUID);
-    res.json({ code, stats, referralLink: `https://otaku.so/?ref=${code}` });
+    const baseUrl = getReferralBaseUrl(runtime);
+    res.json({ code, stats, referralLink: `${baseUrl}?ref=${code}` });
   } catch (error) {
     logger.error({ error }, '[GamificationPlugin] Error fetching referral code');
-    res.status(500).json({ error: 'Error fetching referral code' });
+    res.status(500).json({ error: 'Could not load referral.' });
   }
 }
 
 export const gamificationPlugin: Plugin = {
   name: 'gamification',
-  description: 'Points economy, leaderboards, and referral system for Otaku',
+  description: 'Ranking and points for who shows up. Referrals included.',
 
   schema: gamificationSchema,
 

@@ -17,7 +17,7 @@ interface RuntimeWithDb {
 
 export class ReferralService extends Service {
   static serviceType = 'referral';
-  capabilityDescription = 'Manages referral codes and attribution';
+  capabilityDescription = "Your invite code and who joined from it.";
 
   private getDb(): PgDatabase<PgQueryResultHKT> | undefined {
     return (this.runtime as unknown as RuntimeWithDb).db;

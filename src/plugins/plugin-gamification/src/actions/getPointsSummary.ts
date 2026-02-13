@@ -3,8 +3,8 @@ import { GamificationService } from '../services/GamificationService';
 
 export const getPointsSummaryAction: Action = {
   name: 'GET_POINTS_SUMMARY',
-  description: "Get the user's current points, level, streak, and recent awards",
-  similes: ['CHECK_POINTS', 'MY_POINTS', 'POINTS_BALANCE', 'SHOW_LEVEL'],
+  description: "Where you stand: points, level, streak, next milestone.",
+  similes: ['CHECK_POINTS', 'MY_POINTS', 'POINTS_BALANCE', 'SHOW_LEVEL', 'WHERE_DO_I_STAND'],
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     return true;
@@ -20,7 +20,7 @@ export const getPointsSummaryAction: Action = {
     try {
       const gamificationService = runtime.getService('gamification') as GamificationService;
       if (!gamificationService) {
-        const errorText = 'Gamification service not available';
+        const errorText = 'Ranking service unavailable.';
         await callback?.({
           text: errorText,
         });
@@ -32,15 +32,14 @@ export const getPointsSummaryAction: Action = {
 
       const summary = await gamificationService.getUserSummary(message.entityId);
 
-      const text = `**Your Points Summary**
-- **Total Points:** ${summary.allTimePoints.toLocaleString()}
-- **This Week:** ${summary.weeklyPoints.toLocaleString()}
+      const nextLine = summary.nextMilestone
+        ? `\n- **Next:** ${summary.nextMilestone.pointsNeeded.toLocaleString()} pts to ${summary.nextMilestone.levelName}`
+        : '';
+      const text = `**Where you stand**
+- **Total points:** ${summary.allTimePoints.toLocaleString()}
+- **This week:** ${summary.weeklyPoints.toLocaleString()}
 - **Level:** ${summary.levelName} (${summary.level})
-- **Daily Streak:** ${summary.streakDays} days${
-        summary.nextMilestone
-          ? `\n- **Next Milestone:** ${summary.nextMilestone.pointsNeeded.toLocaleString()} points to ${summary.nextMilestone.levelName}`
-          : ''
-      }`;
+- **Streak:** ${summary.streakDays} days${nextLine}`;
 
       await callback?.({
         text,
@@ -53,7 +52,7 @@ export const getPointsSummaryAction: Action = {
         data: summary,
       };
     } catch (error) {
-      const errorText = 'Error fetching points summary';
+      const errorText = 'Could not load your points.';
       await callback?.({
         text: errorText,
       });
@@ -63,5 +62,16 @@ export const getPointsSummaryAction: Action = {
       };
     }
   },
+
+  examples: [
+    [
+      { name: 'user', content: { text: 'Where do I stand?' } },
+      { name: 'agent', content: { text: 'Checking your rank and points.', actions: ['GET_POINTS_SUMMARY'] } },
+    ],
+    [
+      { name: 'user', content: { text: 'My points' } },
+      { name: 'agent', content: { text: 'Here’s where you stand.', actions: ['GET_POINTS_SUMMARY'] } },
+    ],
+  ],
 };
 

@@ -1,9 +1,17 @@
 import type { Action, IAgentRuntime, Memory, State, HandlerCallback, ActionResult } from '@elizaos/core';
 import { ReferralService } from '../services/ReferralService';
 
+function getReferralBaseUrl(runtime: IAgentRuntime): string {
+  const base =
+    (runtime.getSetting('GAMIFICATION_REFERRAL_BASE_URL') as string) ||
+    process.env.GAMIFICATION_REFERRAL_BASE_URL ||
+    'https://otaku.so';
+  return base.replace(/\/$/, '');
+}
+
 export const getReferralCodeAction: Action = {
   name: 'GET_REFERRAL_CODE',
-  description: "Generate or retrieve the user's unique referral code",
+  description: "Your invite link and how it's doing.",
   similes: ['REFERRAL_CODE', 'MY_REFERRAL', 'INVITE_LINK', 'SHARE_CODE'],
 
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
@@ -20,7 +28,7 @@ export const getReferralCodeAction: Action = {
     try {
       const referralService = runtime.getService('referral') as ReferralService;
       if (!referralService) {
-        const errorText = 'Referral service not available';
+        const errorText = 'Referral service unavailable.';
         await callback?.({
           text: errorText,
         });
@@ -31,17 +39,16 @@ export const getReferralCodeAction: Action = {
       }
 
       const { code, stats } = await referralService.getOrCreateCode(message.entityId);
+      const baseUrl = getReferralBaseUrl(runtime);
+      const link = `${baseUrl}?ref=${code}`;
 
-      const text = `**Your Referral Code:** \`${code}\`
+      const text = `**Your invite link** \`${code}\`
 
-Share this link: https://otaku.so/?ref=${code}
+${link}
 
-**Stats:**
-- Signups: ${stats.totalReferrals}
-- Activated: ${stats.activatedReferrals}
-- Points Earned: ${stats.totalPointsEarned.toLocaleString()}`;
+Signups: ${stats.totalReferrals} · Activated: ${stats.activatedReferrals} · Points earned: ${stats.totalPointsEarned.toLocaleString()}`;
 
-      const data = { code, stats };
+      const data = { code, stats, referralLink: link };
 
       await callback?.({
         text,
@@ -54,7 +61,7 @@ Share this link: https://otaku.so/?ref=${code}
         data,
       };
     } catch (error) {
-      const errorText = 'Error fetching referral code';
+      const errorText = 'Could not load referral.';
       await callback?.({
         text: errorText,
       });
@@ -64,5 +71,12 @@ Share this link: https://otaku.so/?ref=${code}
       };
     }
   },
+
+  examples: [
+    [
+      { name: 'user', content: { text: 'My referral link' } },
+      { name: 'agent', content: { text: 'Here’s your invite link and stats.', actions: ['GET_REFERRAL_CODE'] } },
+    ],
+  ],
 };
 

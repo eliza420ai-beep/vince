@@ -34,7 +34,7 @@ interface RuntimeWithDb {
 
 export class GamificationService extends Service {
   static serviceType = 'gamification';
-  capabilityDescription = 'Records points for user actions and provides gamification state';
+  capabilityDescription = 'Tracks engagement and ranks; points for swaps, bridges, chat, referrals.';
 
   private getDb(): PgDatabase<PgQueryResultHKT> | undefined {
     return (this.runtime as unknown as RuntimeWithDb).db;
