@@ -243,20 +243,20 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
     { label: "Categories", message: "What categories are available on polymarket?" },
   ],
-  // Clawterm: OpenClaw research terminal — research (alpha, market, onchain, news), gateway status, setup, watchlist, portfolio, alerts, analytics.
+  // Clawterm: AI terminal, OpenClaw expert — AI 2027, AGI, setup, gateway, openclaw-agents, tips, use cases, HIP-3 AI assets. For crypto data—VINCE.
   clawterm: [
     { label: "What can you do?", message: "What can you do?" },
-    { label: "Research: SOL BTC", message: "research SOL BTC" },
-    { label: "Research: Alpha", message: "run alpha research for ETH" },
-    { label: "Research: Market", message: "run market research for SOL" },
-    { label: "Research: Onchain", message: "run onchain research for BTC" },
-    { label: "Research: News", message: "run news research" },
+    { label: "AI 2027", message: "What's AI 2027?" },
+    { label: "AGI timeline", message: "Tell me about the AGI timeline" },
+    { label: "Research agents", message: "What are research agents?" },
     { label: "Gateway Status", message: "gateway status" },
     { label: "OpenClaw Setup", message: "openclaw setup" },
-    { label: "Watchlist", message: "show my watchlist" },
-    { label: "Portfolio", message: "show my portfolio" },
-    { label: "Alerts", message: "show my alerts" },
-    { label: "Analytics", message: "analytics" },
+    { label: "OpenClaw agents", message: "openclaw agents" },
+    { label: "Workspace sync", message: "workspace sync" },
+    { label: "OpenClaw tips", message: "tips for OpenClaw" },
+    { label: "Use cases", message: "What are OpenClaw use cases?" },
+    { label: "HIP-3 AI assets", message: "HIP-3 AI assets on Hyperliquid?" },
+    { label: "Search X: AGI", message: "Search X for AGI timeline" },
   ],
 };
 
@@ -278,7 +278,7 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
   oracle:
     "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
   clawterm:
-    "OpenClaw research terminal. For paper bot or VINCE data, ask VINCE.",
+    "AI terminal, OpenClaw expert. For crypto research, prices, watchlist, portfolio—ask VINCE.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)

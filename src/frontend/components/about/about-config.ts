@@ -651,70 +651,98 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Clawterm: {
-    headline: "OpenClaw research terminal.",
+    headline: "AI terminal. OpenClaw expert.",
     intro:
-      "Multi-agent crypto research: alpha (X sentiment, KOL), market (prices, volume, funding, OI), onchain (whale flows, DEX), news. Gateway status, setup guide, watchlist, portfolio, alerts, analytics, insights, backtest, correlation, reporting, governance, webhooks. Lead with the outcome. Benefit-led, no AI-slop. In-process or via Gateway when OPENCLAW_GATEWAY_URL is set.",
+      "The bridge between AI futures and the crypto Bloomberg terminal. AI 2027, AGI timelines, alignment, research agents. OpenClaw setup, gateway status, openclaw-agents (orchestrator, 8 pillars), workspace sync, tips, use cases. X and web search for AI insights when configured. HIP-3 AI assets on Hyperliquid (NVDA, GOOGL, META, OPENAI, ANTHROPIC). For live prices, watchlist, portfolio, alerts—ask VINCE.",
     tags: [
-      { label: "OpenClaw Terminal", withSparkles: true },
-      { label: "Research" },
-      { label: "Gateway Status" },
-      { label: "Setup Guide" },
-      { label: "Watchlist & Portfolio" },
-      { label: "Alerts & Analytics" },
+      { label: "AI Terminal", withSparkles: true },
+      { label: "AI 2027 & AGI" },
+      { label: "OpenClaw Expert" },
+      { label: "Gateway & Setup" },
+      { label: "HIP-3 AI Assets" },
+      { label: "No Crypto Data" },
     ],
     capabilities: [
       {
-        title: "Run Research",
+        title: "AI 2027 & AGI",
         description:
-          "Alpha (X sentiment, KOL), market (prices, volume, funding, OI), onchain (whale flows, DEX), news, or all in parallel. Default tokens from OPENCLAW_DEFAULT_TOKENS or SOL BTC ETH.",
+          "Scenario summary: superhuman AI, AGI timelines, OpenBrain, agent progression, alignment, takeoff. OPENCLAW_AI_2027.",
+      },
+      {
+        title: "Research Agents",
+        description:
+          "How research agents work and how OpenClaw enables them. OPENCLAW_AI_RESEARCH_AGENTS.",
+      },
+      {
+        title: "OpenClaw Setup",
+        description:
+          "Step-by-step install, onboard, gateway, security, plugin env. OPENCLAW_SETUP_GUIDE.",
       },
       {
         title: "Gateway Status",
         description:
-          "Check OpenClaw Gateway health when OPENCLAW_GATEWAY_URL is set. One-line status.",
+          "Check Gateway health when OPENCLAW_GATEWAY_URL is set. OPENCLAW_GATEWAY_STATUS.",
       },
       {
-        title: "Setup Guide",
+        title: "openclaw-agents",
         description:
-          "Step-by-step OpenClaw install and configuration.",
+          "Orchestrator, 8-pillar flows (Brain→Nerves), HOW-TO-RUN. OPENCLAW_AGENTS_GUIDE.",
       },
       {
-        title: "Watchlist, Portfolio, History",
+        title: "Tips & Use Cases",
         description:
-          "Organization: add tokens, track positions, scheduler.",
+          "Fresh Mac setup, best skills. Fork VINCE, bio-digital hub, multi-channel gateway. OPENCLAW_TIPS, OPENCLAW_USE_CASES.",
       },
       {
-        title: "Compare, Alerts, Analytics, Insights",
+        title: "Workspace Sync",
         description:
-          "Analytics, alerts, advanced metrics, AI signals, market overview.",
+          "Repo ↔ knowledge/teammate ↔ ~/.openclaw/workspace. OPENCLAW_WORKSPACE_SYNC.",
       },
       {
-        title: "Backtest, Correlation, Reporting",
+        title: "HIP-3 AI Assets",
         description:
-          "Strategy backtest, cross-token correlation, professional reports, governance, webhooks.",
+          "AI-related assets on Hyperliquid: NVDA, GOOGL, META, OPENAI, ANTHROPIC, SNDK, AMD, MAG7, SEMIS. For live prices—ask VINCE.",
       },
     ],
     plugins: [
       {
         name: "Plugin-OpenClaw",
-        category: "Research",
+        category: "AI & OpenClaw",
         summary:
-          "Multi-agent research (alpha, market, onchain, news), gateway status, setup guide, watchlist, portfolio, alerts, analytics, insights, backtest, correlation, reporting, governance, webhooks.",
+          "AI 2027, research agents, setup guide, gateway status, openclaw-agents, tips, use cases, workspace sync, HIP-3 AI assets.",
         points: [
-          "RUN_OPENCLAW_RESEARCH: alpha, market, onchain, news, or all.",
-          "OPENCLAW_GATEWAY_STATUS, OPENCLAW_SETUP_GUIDE.",
-          "In-process or via Gateway when OPENCLAW_GATEWAY_URL is set.",
+          "OPENCLAW_AI_2027, OPENCLAW_AI_RESEARCH_AGENTS.",
+          "OPENCLAW_SETUP_GUIDE, OPENCLAW_GATEWAY_STATUS, OPENCLAW_AGENTS_GUIDE.",
+          "OPENCLAW_TIPS, OPENCLAW_USE_CASES, OPENCLAW_WORKSPACE_SYNC, OPENCLAW_HIP3_AI_ASSETS.",
         ],
-        example: '"research SOL BTC" or "gateway status" or "openclaw setup"',
+        example: '"What\'s AI 2027?" or "gateway status" or "openclaw setup"',
+      },
+      {
+        name: "X Research",
+        category: "AI Insights",
+        summary:
+          "Search X for AI takes, AGI debate, research agents. When X_BEARER_TOKEN is set.",
+        points: [
+          'X_SEARCH: "Search X for …", "what are people saying about …".',
+        ],
+        example: '"Search X for AGI timeline"',
+      },
+      {
+        name: "Web Search",
+        category: "AI Insights",
+        summary:
+          "Find AI insights on the web. When TAVILY_API_KEY is set.",
+        points: [],
+        example: "",
       },
       {
         name: "Knowledge",
         category: "Context",
         summary:
-          "clawdbot, OPENCLAW_VISION, setup-guides, branding.",
+          "clawdbot, OPENCLAW_VISION, setup-guides, branding, HIP3_AI_ASSETS.",
         points: [
-          "ClawdBot curated follows, OpenClaw practical tips, one-click install plans.",
-          "Vision and lore. Benefit-led, no AI-slop.",
+          "ClawdBot curated follows, OpenClaw vision and lore.",
+          "Benefit-led, no AI-slop. Data integrity—never hallucinate.",
         ],
         example: "Answers from clawdbot and OpenClaw vision docs.",
       },
@@ -722,7 +750,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
-          "One voice. Lead with the outcome. Run research or status when asked; report the result directly.",
+          "One voice. Lead with the outcome. Run actions when asked; report the result directly.",
         points: [],
         example: "",
       },
@@ -744,7 +772,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      "Say 'research SOL BTC', 'gateway status', or 'openclaw setup'. For paper bot or VINCE data, ask VINCE.",
+      "Say 'What\'s AI 2027?', 'gateway status', 'openclaw setup', 'openclaw agents', or 'workspace sync'. For crypto research, prices, watchlist, portfolio—ask VINCE.",
   },
 
   Oracle: {
