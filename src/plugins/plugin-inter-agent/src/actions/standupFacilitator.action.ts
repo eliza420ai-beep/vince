@@ -72,45 +72,19 @@ const WRAPUP_TRIGGERS = [
 ];
 
 /**
- * Build kickoff message — trading-focused, autonomous
+ * Build kickoff message — SHORT, calls VINCE immediately
+ * Keep it brief to avoid rate limits and get to the data fast.
  */
 function buildKickoffMessage(): string {
   const date = formatReportDate();
   const day = getDayOfWeek();
   
-  return `## 🎯 Trading Standup — ${date} (${day})
+  // ULTRA SHORT kickoff — gets to VINCE immediately
+  return `## 🎯 Standup ${date} (${day})
 
-*One Team, One Dream — BTC, SOL, HYPE alpha*
+BTC · SOL · HYPE · HIP-3 — Numbers only, no fluff.
 
----
-
-**Focus:** ${STANDUP_FOCUS.assets.join(", ")}
-**Products:** ${STANDUP_FOCUS.products.join(" | ")}
-**Intel:** ${STANDUP_FOCUS.intel.join(", ")}
-
-*(Yves may join. If not, we proceed and flag decisions for async review.)*
-
----
-
-**Agenda:**
-1. Market data & signals (VINCE)
-2. Research patterns (Eliza)
-3. CT/X sentiment (ECHO)
-4. Prediction markets (Oracle)
-5. Position sizing & risk (Solus)
-6. Execution status (Otaku)
-7. System health (Sentinel)
-8. Synthesize → Action Plan
-
-**Rules:**
-- Numbers first, vibes never
-- Name your sources
-- BTC/SOL/HYPE/HIP-3 only — no NFTs, no memes, no lifestyle
-- End with ACTION or DECISION
-
----
-
-@VINCE, market data on BTC, SOL, HYPE — go.`;
+@VINCE, market data — go.`;
 }
 
 /**
@@ -129,79 +103,60 @@ function getNextAgent(currentAgent: string): string | null {
 }
 
 /**
- * Build "next agent" prompt
+ * Build "next agent" prompt — SHORT, just calls the next agent
  */
 function buildNextAgentMessage(completedAgent: string): string {
   const next = getNextAgent(completedAgent);
   
   if (!next) {
-    return `Thanks ${completedAgent}. That's everyone — let me synthesize the action plan.`;
+    return `Got it. Synthesizing action plan now...`;
   }
   
-  const role = AGENT_ROLES[next as keyof typeof AGENT_ROLES];
-  return `Thanks ${completedAgent}. @${next}, you're up — ${role?.focus || "your update"}.`;
+  // Ultra short transition — just call the next agent
+  return `@${next}, go.`;
 }
 
 /**
- * Build wrap-up Day Report prompt — trading-focused, autonomous
+ * Build wrap-up Day Report prompt — CONCISE, structured, actionable
  */
 function buildWrapupPrompt(conversationContext: string): string {
-  return `You are Kelly, facilitating the Trading Standup.
+  return `You are Kelly. Synthesize the standup into a CONCISE Day Report.
 
-Based on today's standup, create the **Actionable Day Report**.
-
-FOCUS: BTC, SOL, HYPE, HIP-3 tokens
-PRODUCTS: Perps (Hyperliquid), Options (Hypersurface), Spot/1x leverage
-INTEL: X sentiment, Polymarket
-EXCLUDED: NFTs, Memetics, Lifestyle (wrong meeting for those)
-
-CONVERSATION CONTEXT:
+CONVERSATION:
 ${conversationContext}
 
-Generate the Day Report with this EXACT structure:
+OUTPUT FORMAT (follow EXACTLY):
 
 ## 📋 Day Report — ${formatReportDate()}
 
-### TL;DR
-[One line: What's the edge today? What are we doing?]
+**TL;DR:** [ONE sentence: Asset + Direction + Action. Example: "BTC neutral, SOL bullish — size SOL long at $198."]
 
-### 📊 Market Read
-| Asset | Signal | Confidence | Source |
-|-------|--------|------------|--------|
-| BTC   | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
-| SOL   | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
-| HYPE  | [Bull/Bear/Neutral] | [High/Med/Low] | [VINCE/ECHO/Oracle] |
+### Signals
+| Asset | Call | Confidence | Key Data |
+|-------|------|------------|----------|
+| BTC | Bull/Bear/Flat | H/M/L | [one metric] |
+| SOL | Bull/Bear/Flat | H/M/L | [one metric] |
+| HYPE | Bull/Bear/Flat | H/M/L | [one metric] |
 
-### 🎬 Action Plan
+### Actions
+1. **[ACTION]** — @Owner — [specific entry/size/invalidation]
+2. **[ACTION]** — @Owner — [specific entry/size/invalidation]
+3. **[ACTION]** — @Owner — [specific entry/size/invalidation]
 
-| WHAT | HOW | WHY | OWNER | URGENCY |
-|------|-----|-----|-------|---------|
-[3-5 concrete trading actions. Be SPECIFIC with entries/sizes/invalidation.]
+### Decisions (Yves review if not HIGH confidence)
+- [ ] [Decision] — Confidence: H/M/L
 
-### ⚡ Decisions
-
-| Decision | Team Rec | Confidence | Yves Needed? |
-|----------|----------|------------|--------------|
-[Decisions. HIGH confidence = proceed. MEDIUM/LOW = flag for Yves.]
-
-**If Yves not present:** Execute HIGH confidence actions. Hold MEDIUM/LOW for review.
-
-### 🚨 Risks
-[Key risks to watch. "Clear" if none.]
-
-### 🎯 North Star
-**The Dream:** Consistent alpha on BTC, SOL, HYPE
-**Today's Edge:** [What makes today actionable]
-**Execution:** [Who does what by when]
+### Risks
+[One line or "Clear"]
 
 ---
-*One team, one dream. Ship it.*
+*Ship it.*
 
 RULES:
-- SPECIFIC: "Long SOL at $198, size $5k, invalidation $192" not "consider SOL"
-- OWNER: Every action has an @agent
-- AUTONOMOUS: If Yves absent, team proceeds on HIGH confidence
-- NO LIFESTYLE: This is trading standup only`;
+- TL;DR = ONE sentence, no more
+- Max 3 actions, each with @Owner
+- No fluff, no "consider", no "monitor" — specific trades only
+- Total output under 300 words`;
 }
 
 function getTimeOfDay(): string {
