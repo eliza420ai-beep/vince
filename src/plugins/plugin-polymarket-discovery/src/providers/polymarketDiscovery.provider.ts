@@ -58,7 +58,7 @@ export const polymarketDiscoveryProvider: Provider = {
       DEFAULT_CLOB_API_URL;
 
     let text =
-      "Polymarket discovery available (read-only). Features: market search, browse by category, market detail, prices, orderbooks, events, portfolio (with wallet address).";
+      "Polymarket discovery available (read-only). Features: market search, browse by category, market detail, prices, orderbooks, events, portfolio (with wallet address). For current odds use GET_POLYMARKET_PRICE with condition_id; list and search may show Gamma-derived odds.";
     const values: Record<string, unknown> = {
       polymarketDiscovery: !!service,
       readOnly: true,

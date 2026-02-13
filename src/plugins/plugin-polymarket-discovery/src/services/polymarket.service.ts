@@ -52,6 +52,7 @@ import {
   GAMMA_EVENTS_PATH,
   GAMMA_MARKETS_PATH,
   DEFAULT_CLOB_API_URL,
+  DEFAULT_DATA_API_URL,
   DEFAULT_PAGE_LIMIT,
   MAX_PAGE_LIMIT,
   ACTIVITY_HISTORY_MAX_ITEMS,
@@ -110,7 +111,7 @@ export class PolymarketService extends Service {
   // API endpoints (overridden in initialize from settings)
   private gammaApiUrl: string = DEFAULT_GAMMA_API_URL;
   private clobApiUrl: string = DEFAULT_CLOB_API_URL;
-  private dataApiUrl: string = "https://data-api.polymarket.com";
+  private dataApiUrl: string = DEFAULT_DATA_API_URL;
 
   // Proxy wallet constants
   private readonly GNOSIS_PROXY_FACTORY = "0xaB45c5A4B0c941a2F231C04C3f49182e1A254052";
@@ -186,6 +187,7 @@ export class PolymarketService extends Service {
     // Load configuration with defaults and type guards
     this.gammaApiUrl = (runtime.getSetting("POLYMARKET_GAMMA_API_URL") as string) || DEFAULT_GAMMA_API_URL;
     this.clobApiUrl = (runtime.getSetting("POLYMARKET_CLOB_API_URL") as string) || DEFAULT_CLOB_API_URL;
+    this.dataApiUrl = (runtime.getSetting("POLYMARKET_DATA_API_URL") as string) || DEFAULT_DATA_API_URL;
 
     // Safe parsing with validation
     const marketCacheTtlSetting = runtime.getSetting("POLYMARKET_MARKET_CACHE_TTL") as string;
@@ -212,7 +214,7 @@ export class PolymarketService extends Service {
       this.requestTimeout = 10000; // Default 10 seconds
     }
 
-    logger.info(`[PolymarketService] Initialized with Gamma API: ${this.gammaApiUrl}, CLOB API: ${this.clobApiUrl}`);
+    logger.info(`[PolymarketService] Initialized with Gamma API: ${this.gammaApiUrl}, CLOB API: ${this.clobApiUrl}, Data API: ${this.dataApiUrl}`);
   }
 
   async stop(): Promise<void> {

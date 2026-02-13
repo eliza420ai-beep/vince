@@ -102,6 +102,11 @@ All 20 actions are documented in the plugin [index.ts](src/index.ts) docblock. S
 - **CLOB API**: Real-time orderbook, pricing, spreads
 - **Data API**: User positions, balance, trades, activity, holders
 
+### Data sources and real-time accuracy
+- **CLOB** is the source of truth for live trading prices. **GET_POLYMARKET_PRICE** and **GET_POLYMARKET_ORDERBOOK** (and the service’s `getMarketPrices()`) use the CLOB orderbook (best ask) and are appropriate when you need current odds.
+- **Gamma** provides indexed market/event data. List and search surfaces (e.g. **SEARCH_POLYMARKETS** results, **GET /polymarket/priority-markets**) use Gamma-derived prices (`outcomePrices` / `tokens[].price`) or placeholders when CLOB is not fetched—so they are not guaranteed CLOB-level real-time. For current odds on a specific market, use **GET_POLYMARKET_PRICE** with the market’s `condition_id`.
+- **getMarketDetail(conditionId)** resolves by fetching Gamma’s first 500 active markets and finding the match client-side. Markets outside that set (e.g. low volume or newer) will not be found; **getMarketPrices(conditionId)** then cannot run for them. This is a known limitation.
+
 ### Caching Strategy
 - Market data: 60-second TTL (configurable)
 - Price data: 15-second TTL (configurable)
@@ -121,6 +126,7 @@ Optional environment variables:
 # API Endpoints (defaults provided)
 POLYMARKET_GAMMA_API_URL=https://gamma-api.polymarket.com
 POLYMARKET_CLOB_API_URL=https://clob.polymarket.com
+POLYMARKET_DATA_API_URL=https://data-api.polymarket.com
 
 # Cache TTLs (in milliseconds)
 POLYMARKET_MARKET_CACHE_TTL=60000  # 1 minute
@@ -191,6 +197,11 @@ bun run build
 Type check:
 ```bash
 bun run typecheck
+```
+
+Run live API checks (optional; hits real Gamma/CLOB):
+```bash
+POLYMARKET_LIVE_TEST=1 bun run scripts/polymarket-verify-live.ts
 ```
 
 ## Code Structure
