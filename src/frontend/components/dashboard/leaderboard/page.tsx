@@ -1567,6 +1567,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                   <p className="text-xs text-muted-foreground mt-2">{polymarketData.intentSummary}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">Read-only. No wallet or auth; for positions use Oracle in chat with a wallet address.</p>
+                <p className="text-xs text-muted-foreground mt-1">Data from last fetch; use Refresh for latest.</p>
               </DashboardCard>
 
               {(polymarketLoading || polymarketFetching) && !polymarketData ? (
@@ -1669,6 +1670,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           ? `$${(Number(vol) / 1e3).toFixed(0)}K`
                           : `$${Number(vol).toFixed(0)}`
                       : "—";
+                  /** Build Polymarket View URL: prefer event slug+id, then event slug, then market slug, else conditionId (may 404). */
+                  const getPolymarketViewUrl = (m: PM): string => {
+                    if (m.eventSlug != null && m.eventSlug !== "" && m.eventId != null && m.eventId !== "") {
+                      return `https://polymarket.com/event/${m.eventSlug}-${m.eventId}`;
+                    }
+                    if (m.eventSlug != null && m.eventSlug !== "") {
+                      return `https://polymarket.com/event/${m.eventSlug}`;
+                    }
+                    if (m.slug != null && m.slug !== "") {
+                      return `https://polymarket.com/market/${m.slug}`;
+                    }
+                    return `https://polymarket.com/market/${m.conditionId}`;
+                  };
                   const wc = polymarketData.weeklyCrypto;
                   const openWeeklyMarkets = (wc?.markets ?? []).filter(
                     (m) => !m.endDateIso || new Date(m.endDateIso).getTime() > Date.now()
@@ -1714,7 +1728,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                     <td className="text-right text-muted-foreground whitespace-nowrap">{formatCloses(m.endDateIso)}</td>
                                     <td className="text-right">
                                       <a
-                                        href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                        href={getPolymarketViewUrl(m)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-primary hover:underline inline-flex items-center gap-1"
@@ -1764,7 +1778,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                     <td className="text-right text-muted-foreground whitespace-nowrap">{formatCloses(m.endDateIso)}</td>
                                     <td className="text-right">
                                       <a
-                                        href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                        href={getPolymarketViewUrl(m)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-primary hover:underline inline-flex items-center gap-1"
@@ -1844,7 +1858,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                         <td className="text-right text-muted-foreground whitespace-nowrap">{formatCloses(m.endDateIso)}</td>
                                         <td className="text-right">
                                           <a
-                                            href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                            href={getPolymarketViewUrl(m)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-primary hover:underline inline-flex items-center gap-1"
@@ -1896,7 +1910,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                           </td>
                                           <td className="text-right">
                                             <a
-                                              href={m.slug ? `https://polymarket.com/event/${m.slug}` : `https://polymarket.com/market/${m.conditionId}`}
+                                              href={getPolymarketViewUrl(m)}
                                               target="_blank"
                                               rel="noopener noreferrer"
                                               className="text-primary hover:underline inline-flex items-center gap-1"

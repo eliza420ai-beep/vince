@@ -266,6 +266,10 @@ export type PolymarketPriorityMarketItem = {
   category?: string;
   /** Optional end date ISO string for weekly/monthly context */
   endDateIso?: string;
+  /** Parent event slug for building polymarket.com/event URLs */
+  eventSlug?: string;
+  /** Parent event id for building polymarket.com/event URLs */
+  eventId?: string;
 };
 
 export interface PolymarketPriorityMarketsResponse {

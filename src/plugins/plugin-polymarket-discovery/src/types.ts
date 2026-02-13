@@ -58,6 +58,9 @@ export interface PolymarketMarket {
   market_slug?: string;            // Alias for slug
   // From Gamma search/events payload (for getPricesFromMarketPayload)
   outcomePrices?: string | string[];
+  // Parent event context when market comes from GET /events (for building polymarket.com/event URLs)
+  eventSlug?: string;
+  eventId?: string;
 }
 
 /**

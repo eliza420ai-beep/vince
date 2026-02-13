@@ -547,9 +547,16 @@ export class PolymarketService extends Service {
     const markets: PolymarketMarket[] = [];
     for (const ev of events) {
       const eventMarkets = ev.markets ?? [];
+      const evSlug = ev.slug ?? (ev as any).slug;
+      const evId = ev.id != null ? String(ev.id) : (ev as any).id != null ? String((ev as any).id) : undefined;
       for (const m of eventMarkets) {
         const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
-        markets.push(mapApiMarketToInterface(apiMarket));
+        const mapped = mapApiMarketToInterface(apiMarket);
+        markets.push({
+          ...mapped,
+          eventSlug: evSlug,
+          eventId: evId,
+        });
         if (markets.length >= safeLimit) break;
       }
       if (markets.length >= safeLimit) break;
@@ -660,9 +667,16 @@ export class PolymarketService extends Service {
       const markets: PolymarketMarket[] = [];
       for (const ev of events) {
         const eventMarkets = ev.markets ?? [];
+        const evSlug = ev.slug ?? (ev as any).slug;
+        const evId = ev.id != null ? String(ev.id) : (ev as any).id != null ? String((ev as any).id) : undefined;
         for (const m of eventMarkets) {
           const apiMarket = { ...m, conditionId: m.conditionId ?? (m as any).id };
-          markets.push(mapApiMarketToInterface(apiMarket));
+          const mapped = mapApiMarketToInterface(apiMarket);
+          markets.push({
+            ...mapped,
+            eventSlug: evSlug,
+            eventId: evId,
+          });
         }
       }
       return markets.map((m) => this.parseTokens(m));

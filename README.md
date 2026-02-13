@@ -492,7 +492,7 @@ The **Leaderboard** is a single-page dashboard that surfaces “who’s doing be
 
 **Why we built it:** Push, not pull. You open the page and see live leaderboards and pulse; no “ask VINCE for perps” or “ask for memes.” The backend (`plugin-vince` route `GET …/vince/leaderboards`) aggregates HIP-3, HL, DexScreener, Meteora, News, NFT floor, and “More” in parallel with **per-section timeouts** (`safe()`) so one slow source doesn’t kill the response. Frontend uses React Query (stale time, refetch per tab), a reusable **MarketLeaderboardSection** (top movers, volume leaders, categories in grid or stack), and clear 503/404 handling with hints (patch script, `curl` example). Gamification “Rebels” ranking appears when the gamification plugin is available.
 
-**Where it lives:** `src/frontend/components/dashboard/leaderboard/page.tsx`, `market-leaderboard-section.tsx`, `src/frontend/lib/leaderboardsApi.ts`, `src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts`.
+**Where it lives:** `src/frontend/components/dashboard/leaderboard/page.tsx`, `market-leaderboard-section.tsx`, `src/frontend/lib/leaderboardsApi.ts`, `src/plugins/plugin-vince/src/routes/dashboardLeaderboards.ts`. **Polymarket tab:** priority markets from Gamma/CLOB; data is fetch-based (refetch when tab is open every 60s and on Refresh); “Updated” is the last fetch time.
 
 ---
 

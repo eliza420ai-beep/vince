@@ -48,6 +48,10 @@ export type PriorityMarketItem = {
   yesPrice?: number;
   category?: string;
   endDateIso?: string;
+  /** Parent event slug for building polymarket.com/event URLs */
+  eventSlug?: string;
+  /** Parent event id for building polymarket.com/event URLs */
+  eventId?: string;
 };
 
 export interface PriorityMarketsResponse {
@@ -116,6 +120,8 @@ export function buildPriorityMarketsHandler() {
       yesPrice: getYesPrice(m as PolymarketMarket & { outcomePrices?: string | string[] }),
       category: m.category,
       endDateIso: m.endDateIso ?? m.end_date_iso,
+      eventSlug: m.eventSlug,
+      eventId: m.eventId,
     });
 
     const getLabelForSlug = (slug: string): string => {
