@@ -49,6 +49,8 @@ export interface EnrichedMarketContext {
   // V2: Added for Open Window Trend Spotting
   dailyOpenPrice: number | null;
   volumeRatio: number; // Current volume vs average (1.0 = average)
+  /** 24h notional volume USD (HL or CoinGecko). Used by feature store and ML. */
+  volume24h?: number;
   openWindowInfo: OpenWindowInfo | null;
 
   // Optional: from feature store / extended snapshot (bot action, signal aggregator)
@@ -183,8 +185,11 @@ export class VinceMarketDataService extends Service {
         if (hlData != null && hlData.price > 0) {
           currentPrice = hlData.price;
           priceChange24h = hlData.change24h;
+          if (typeof hlData.volume24h === "number" && hlData.volume24h > 0) {
+            volume24h = hlData.volume24h;
+          }
           logger.debug(
-            `[VinceMarketData] Price from Hyperliquid: ${asset} $${currentPrice.toFixed(2)} (24h: ${priceChange24h.toFixed(2)}%)`,
+            `[VinceMarketData] Price from Hyperliquid: ${asset} $${currentPrice.toFixed(2)} (24h: ${priceChange24h.toFixed(2)}%)${volume24h > 0 ? ` vol24h: $${(volume24h / 1e6).toFixed(1)}M` : ""}`,
           );
         }
       } catch {
@@ -303,6 +308,7 @@ export class VinceMarketDataService extends Service {
       // V2: Open Window Trend Spotting
       dailyOpenPrice,
       volumeRatio,
+      ...(volume24h > 0 && { volume24h }),
       openWindowInfo,
     };
   }

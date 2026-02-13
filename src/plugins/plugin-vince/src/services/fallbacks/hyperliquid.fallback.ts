@@ -502,11 +502,11 @@ export class HyperliquidFallbackService implements IHyperliquidService {
   }
 
   /**
-   * Get mark price and 24h change for an asset (uses prevDayPx for change). Preferred for core assets.
+   * Get mark price, 24h change, and 24h notional volume for an asset (uses prevDayPx and dayNtlVlm). Preferred for core assets.
    */
   async getMarkPriceAndChange(
     symbol: string,
-  ): Promise<{ price: number; change24h: number } | null> {
+  ): Promise<{ price: number; change24h: number; volume24h?: number } | null> {
     try {
       const data = await this.postHyperliquid<MetaAndAssetCtxsResponse>(
         { type: "metaAndAssetCtxs" },
@@ -527,7 +527,9 @@ export class HyperliquidFallbackService implements IHyperliquidService {
       const prevDayPx = parseFloat(String(ctx?.prevDayPx ?? "0"));
       const change24h =
         prevDayPx > 0 ? ((price - prevDayPx) / prevDayPx) * 100 : 0;
-      return { price, change24h };
+      const dayNtl = parseFloat(String(ctx?.dayNtlVlm ?? "0"));
+      const volume24h = dayNtl > 0 ? dayNtl : undefined;
+      return { price, change24h, ...(volume24h != null && { volume24h }) };
     } catch {
       return null;
     }

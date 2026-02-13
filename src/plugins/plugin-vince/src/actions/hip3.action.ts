@@ -237,16 +237,17 @@ Write a HIP-3 briefing that covers:
 2. The GOLD vs BTC comparison is important - this tells you about risk appetite. If GOLD is winning, it's a risk-off day. If BTC wins, risk-on.
 3. Highlight the biggest movers naturally. Don't just list - explain why it might matter. "NVDA up 3% while everything else is flat means AI trade is back" is better than just listing.
 4. Use the SECTOR ANALYSIS to compare performance. Which sector is seeing the most action (volume/OI)?
-5. FUNDING RATES matter - if longs are crowded on a specific asset, mention it as a warning. Crowded trades often reverse. Highlight any extreme funding.
-6. The AI plays (OPENAI, ANTHROPIC, SPACEX) are unique to Hyperliquid - mention them if they're moving significantly.
-7. Open interest tells you conviction - high OI + price move = real flow. Low OI moves can be noise.
-8. End with your take - is HIP-3 worth watching today or is it dead? If there's a crowded trade to fade or a clean setup, mention it.
+5. Call out volume-confirmed vs low-volume moves: a big mover with high volume = conviction; a big % move with low volume = treat with caution. Prefer highlighting names that are both top movers and volume leaders when making a "worth watching" call.
+6. FUNDING RATES matter - if longs are crowded on a specific asset, mention it as a warning. Crowded trades often reverse. Highlight any extreme funding.
+7. The AI plays (OPENAI, ANTHROPIC, SPACEX) are unique to Hyperliquid - mention them if they're moving significantly.
+8. Open interest tells you conviction - high OI + price move = real flow. Low OI moves can be noise.
+9. End with your take - is HIP-3 worth watching today or is it dead? If there's a crowded trade to fade or a clean setup, mention it.
 
 STYLE RULES:
 - Write like explaining this to a friend who trades both crypto and TradFi
 - Short punchy sentences mixed with context
 - Use specific numbers but weave them naturally - "GOLD at 2650 and climbing" not "GOLD: $2650.00"
-- Mention volume/OI when it adds to the story (high volume confirms a move, low volume means skepticism)
+- Mention volume/OI when it adds to the story: high volume confirms a move (conviction), low volume on a big % move means skepticism—call that out
 - Call out crowded funding as a potential reversal signal
 - No bullet points - flow naturally
 - Have opinions. If commodities look better than tech, say it. If a trade looks crowded, warn about it.

@@ -79,7 +79,7 @@ export class HyperliquidServiceAlias extends Service implements IHyperliquidServ
     return this.fallback.getMarkPrice?.(symbol) ?? Promise.resolve(null);
   }
 
-  getMarkPriceAndChange(symbol: string): Promise<{ price: number; change24h: number } | null> {
+  getMarkPriceAndChange(symbol: string): Promise<{ price: number; change24h: number; volume24h?: number } | null> {
     return this.fallback.getMarkPriceAndChange?.(symbol) ?? Promise.resolve(null);
   }
 

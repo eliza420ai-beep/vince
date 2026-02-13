@@ -785,10 +785,12 @@ export class VincePaperTradingService extends Service {
           continue;
         }
         let fundingRate = 0;
+        let volumeRatio = 1.0;
         if (marketData) {
           try {
             const ctx = await marketData.getEnrichedContext(asset);
             fundingRate = ctx?.fundingRate ?? 0;
+            volumeRatio = ctx?.volumeRatio ?? 1.0;
           } catch (_) {}
         }
         const adjustedConfidence = getAdjustedConfidence(
@@ -937,6 +939,14 @@ export class VincePaperTradingService extends Service {
               `[VincePaperTrading] Could not get regime for ${asset}: ${e}`,
             );
           }
+        }
+
+        // Volume gate: reduce size when 24h volume is very low vs recent average (dead session)
+        if (volumeRatio > 0 && volumeRatio < 0.5) {
+          baseSizeUsd = baseSizeUsd * 0.5;
+          logger.debug(
+            `[VincePaperTrading] ${asset} volume ratio ${volumeRatio.toFixed(2)} (<0.5): size reduced 50%`,
+          );
         }
 
         // Apply session-based sizing (from time modifiers)

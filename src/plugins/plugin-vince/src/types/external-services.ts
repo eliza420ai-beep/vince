@@ -155,10 +155,11 @@ export interface IHyperliquidService {
 
   /**
    * Get mark price and 24h change for an asset. Preferred for core assets (BTC, ETH, SOL, HYPE).
+   * volume24h (HL day notional volume USD) when available from same metaAndAssetCtxs call.
    */
   getMarkPriceAndChange?(
     symbol: string,
-  ): Promise<{ price: number; change24h: number } | null>;
+  ): Promise<{ price: number; change24h: number; volume24h?: number } | null>;
 
   /**
    * Check if we're in a rate-limited state (optional - for fallback compatibility)

@@ -36,10 +36,18 @@ import {
   getOrCreateHyperliquidService,
   getOrCreateDeribitService,
 } from "../services/fallbacks";
+import type { IHyperliquidOptionsPulse } from "../types/external-services";
 
 // ==========================================
 // Build comprehensive data context for LLM
 // ==========================================
+
+function formatVolUsd(v: number): string {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}k`;
+  return `$${v.toFixed(0)}`;
+}
 
 interface AssetOptionsData {
   currency: string;
@@ -50,6 +58,7 @@ function buildOptionsDataContext(
   assetsData: AssetOptionsData[],
   fearGreed: { value: number; classification: string } | null,
   isFriday: boolean,
+  pulseAssets?: IHyperliquidOptionsPulse["assets"],
 ): string {
   const lines: string[] = [];
 
@@ -165,6 +174,28 @@ function buildOptionsDataContext(
     }
   }
 
+  // Perp volume (24h) from Hyperliquid - informs conviction vs thin flow
+  if (pulseAssets) {
+    const assets = [
+      { key: "btc" as const, label: "BTC" },
+      { key: "eth" as const, label: "ETH" },
+      { key: "sol" as const, label: "SOL" },
+      { key: "hype" as const, label: "HYPE" },
+    ];
+    const volLines: string[] = assets
+      .map(({ key, label }) => {
+        const p = pulseAssets[key];
+        if (!p?.volume24h || p.volume24h <= 0) return null;
+        return `${label} perp 24h vol: ${formatVolUsd(p.volume24h)}`;
+      })
+      .filter((s): s is string => s != null);
+    if (volLines.length > 0) {
+      lines.push("");
+      lines.push("=== PERP VOLUME (24h) ===");
+      lines.push(...volLines);
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -191,6 +222,7 @@ IMPORTANT CONTEXT:
 - Position size: ~$100K capital, targeting $1K-$2K weekly premium income (1-2% yield)
 - The Deribit data below is MARKET INTELLIGENCE ONLY - use it to guide strike width and asset selection
 - Your job: recommend which asset to write on HYPERSURFACE this week and approximate OTM distance
+- If 24h perp volume (below) is high, treat the move as more conviction; if low, note that premium or sentiment may not be backed by flow
 
 DERIBIT MARKET INTELLIGENCE:
 ${dataContext}
@@ -331,11 +363,12 @@ export const vinceOptionsAction: Action = {
         }
       }
 
-      // Get Hyperliquid perps funding for strike guidance + HYPE context
+      // Get Hyperliquid perps funding + volume for strike guidance and HYPE context
       let hypeContext: string | null = null;
+      let optionsPulse: IHyperliquidOptionsPulse | null = null;
       if (hyperliquidService) {
         try {
-          const optionsPulse = await hyperliquidService.getOptionsPulse();
+          optionsPulse = await hyperliquidService.getOptionsPulse();
           if (optionsPulse) {
             sources.push("Hyperliquid perps funding");
             // Build HYPE context from Hyperliquid data
@@ -370,11 +403,12 @@ export const vinceOptionsAction: Action = {
         }
       }
 
-      // Build data context
+      // Build data context (include HL perp volume when available)
       const dataContext = buildOptionsDataContext(
         assetsData,
         fearGreed,
         isFriday,
+        optionsPulse?.assets,
       );
 
       // Generate human briefing via LLM
