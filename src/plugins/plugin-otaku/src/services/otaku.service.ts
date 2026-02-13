@@ -10,8 +10,7 @@
 
 import {
   type IAgentRuntime,
-  type Service,
-  ServiceType,
+  Service,
   logger,
 } from "@elizaos/core";
 
@@ -66,13 +65,16 @@ export interface PositionsResult {
   totalUsdValue?: string;
 }
 
-export class OtakuService implements Service {
-  static serviceType: ServiceType = "otaku" as ServiceType;
+export class OtakuService extends Service {
+  static serviceType = "otaku" as const;
   readonly serviceType = OtakuService.serviceType;
-  private runtime: IAgentRuntime;
+
+  get capabilityDescription(): string {
+    return "Otaku: high-level DeFi operations (swaps, limit/DCA orders, positions, bridge, balance, stop-loss, Morpho, approvals, NFT mint) with confirmation flows and BANKR/CDP.";
+  }
 
   constructor(runtime: IAgentRuntime) {
-    this.runtime = runtime;
+    super(runtime);
   }
 
   static async start(runtime: IAgentRuntime): Promise<OtakuService> {
@@ -83,6 +85,10 @@ export class OtakuService implements Service {
 
   async initialize(): Promise<void> {
     logger.info("[OTAKU] Service initialized");
+  }
+
+  async stop(): Promise<void> {
+    logger.info("[OTAKU] Service stopping");
   }
 
   /**
