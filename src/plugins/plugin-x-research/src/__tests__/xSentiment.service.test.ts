@@ -60,6 +60,19 @@ describe('XSentimentService', () => {
       expect(['neutral', 'mixed']).toContain(result.overallSentiment);
     });
 
+    it('should detect mixed sentiment when bullish and bearish balance', () => {
+      const tweets: XTweet[] = [
+        createTweet('BTC mooning! LFG! Parabolic breakout!'),
+        createTweet('ETH pumping hard, accumulating more'),
+        createTweet('BTC crash incoming, bloodbath'),
+        createTweet('Dump everything, bear market'),
+      ];
+
+      const result = service.analyzeSentiment(tweets);
+      
+      expect(['neutral', 'mixed']).toContain(result.overallSentiment);
+    });
+
     it('should weight whale accounts higher', () => {
       const bullishWhale = createTweet('Super bullish on BTC', 'caboronto'); // whale
       const bearishRetail = createTweet('BTC crash incoming', 'randomuser');

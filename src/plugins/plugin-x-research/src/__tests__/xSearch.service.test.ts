@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { XSearchService } from '../services/xSearch.service';
+import { XSearchService, getXSearchService } from '../services/xSearch.service';
 import type { XTweet, XSearchResponse } from '../types/tweet.types';
 
 // Mock the xClient
@@ -146,6 +146,42 @@ describe('XSearchService', () => {
     });
   });
 
+  describe('searchQuery', () => {
+    it('includes from:user in query when from option provided', async () => {
+      mockClient.searchRecent.mockResolvedValue({ data: [], meta: { resultCount: 0 } });
+      await service.searchQuery({
+        query: 'bitcoin',
+        from: 'crediblecrypto',
+        maxResults: 10,
+      });
+      expect(mockClient.searchRecent).toHaveBeenCalledWith(
+        expect.stringMatching(/from:crediblecrypto/),
+        expect.any(Object)
+      );
+    });
+
+    it('paginates when nextToken returned', async () => {
+      const tweet1 = createMockTweet('First', 'u1');
+      const tweet2 = createMockTweet('Second', 'u2');
+      mockClient.searchRecent
+        .mockResolvedValueOnce({
+          data: [tweet1],
+          meta: { resultCount: 1, nextToken: 'next-page' },
+        })
+        .mockResolvedValueOnce({
+          data: [tweet2],
+          meta: { resultCount: 1 },
+        });
+      const results = await service.searchQuery({
+        query: 'btc',
+        maxResults: 100,
+        maxPages: 2,
+      });
+      expect(results.length).toBe(2);
+      expect(mockClient.searchRecent).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('detectVolumeSpikes', () => {
     it('should detect volume spike above 2x', async () => {
       mockClient.getCounts.mockResolvedValue({
@@ -182,6 +218,33 @@ describe('XSearchService', () => {
       const spikes = await service.detectVolumeSpikes(['btc']);
 
       expect(spikes.length).toBe(0);
+    });
+
+    it('returns spike with topic, currentVolume, spikeMultiple', async () => {
+      mockClient.getCounts.mockResolvedValue({
+        data: [
+          { start: '2024-01-01T00:00:00Z', end: '2024-01-01T01:00:00Z', tweetCount: 50 },
+          { start: '2024-01-01T01:00:00Z', end: '2024-01-01T02:00:00Z', tweetCount: 50 },
+          { start: '2024-01-01T02:00:00Z', end: '2024-01-01T03:00:00Z', tweetCount: 50 },
+          { start: '2024-01-01T03:00:00Z', end: '2024-01-01T04:00:00Z', tweetCount: 50 },
+          { start: '2024-01-01T04:00:00Z', end: '2024-01-01T05:00:00Z', tweetCount: 50 },
+          { start: '2024-01-01T05:00:00Z', end: '2024-01-01T06:00:00Z', tweetCount: 200 },
+        ],
+        meta: { totalTweetCount: 450 },
+      });
+      const spikes = await service.detectVolumeSpikes(['eth']);
+      expect(spikes.length).toBe(1);
+      expect(spikes[0]).toHaveProperty('topic', 'eth');
+      expect(spikes[0]).toHaveProperty('currentVolume');
+      expect(spikes[0]).toHaveProperty('spikeMultiple');
+    });
+  });
+
+  describe('getXSearchService', () => {
+    it('returns service instance (singleton)', () => {
+      const svc = getXSearchService();
+      expect(svc).toBeDefined();
+      expect(svc.searchQuery).toBeDefined();
     });
   });
 });

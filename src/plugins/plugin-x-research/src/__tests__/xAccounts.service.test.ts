@@ -172,7 +172,82 @@ describe('XAccountsService', () => {
     });
   });
 
+  describe('getRecentTakes', () => {
+    it('returns tweets when user exists', async () => {
+      const mockUser: XUser = {
+        id: '123',
+        username: 'trader',
+        name: 'Trader',
+        metrics: { followersCount: 1000, followingCount: 100, tweetCount: 500 },
+      };
+      const mockTweets = [createMockTweet('Take 1', 50, 5), createMockTweet('Take 2', 60, 6)];
+      mockClient.getUserByUsername.mockResolvedValue(mockUser);
+      mockClient.getUserTweets.mockResolvedValue(mockTweets);
+
+      const result = await service.getRecentTakes('trader', 10);
+
+      expect(result).toEqual(mockTweets);
+      expect(mockClient.getUserTweets).toHaveBeenCalledWith('123', {
+        maxResults: 10,
+        excludeRetweets: true,
+        excludeReplies: true,
+      });
+    });
+
+    it('returns [] when user not found', async () => {
+      mockClient.getUserByUsername.mockResolvedValue(null);
+      const result = await service.getRecentTakes('nonexistent');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getTopTweetsByEngagement', () => {
+    it('returns top tweets sorted by engagement', async () => {
+      const mockUser: XUser = {
+        id: '123',
+        username: 'trader',
+        name: 'Trader',
+        metrics: { followersCount: 1000, followingCount: 100, tweetCount: 500 },
+      };
+      const tweets = [
+        createMockTweet('Low', 10, 1),
+        createMockTweet('High', 500, 50),
+        createMockTweet('Mid', 100, 10),
+      ];
+      mockClient.getUserByUsername.mockResolvedValue(mockUser);
+      mockClient.getUserTweets.mockResolvedValue(tweets);
+
+      const result = await service.getTopTweetsByEngagement('trader', 2);
+
+      expect(result.length).toBe(2);
+      expect(result[0].metrics?.likeCount).toBe(500);
+      expect(result[1].metrics?.likeCount).toBe(100);
+    });
+
+    it('returns [] when user not found', async () => {
+      mockClient.getUserByUsername.mockResolvedValue(null);
+      const result = await service.getTopTweetsByEngagement('nonexistent');
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('findSimilarAccounts', () => {
+    it('returns [] when analysis has no topic focus', async () => {
+      const mockUser: XUser = {
+        id: '123',
+        username: 'random_user',
+        name: 'Random',
+        metrics: { followersCount: 100, followingCount: 100, tweetCount: 50 },
+      };
+      const mockTweets = [createMockTweet('Random stuff', 5, 0)];
+      mockClient.getUserByUsername.mockResolvedValue(mockUser);
+      mockClient.getUserTweets.mockResolvedValue(mockTweets);
+
+      const similar = await service.findSimilarAccounts('random_user');
+
+      expect(similar).toEqual([]);
+    });
+
     it('should find accounts with similar topic focus', async () => {
       const mockUser: XUser = {
         id: '123',
@@ -194,6 +269,42 @@ describe('XAccountsService', () => {
 
       // Should find accounts with BTC/trading focus
       expect(Array.isArray(similar)).toBe(true);
+    });
+  });
+
+  describe('batchAnalyze', () => {
+    it('returns map of analyses', async () => {
+      const mockUser: XUser = {
+        id: '123',
+        username: 'user1',
+        name: 'User',
+        metrics: { followersCount: 1000, followingCount: 100, tweetCount: 100 },
+      };
+      mockClient.getUserByUsername.mockResolvedValue(mockUser);
+      mockClient.getUserTweets.mockResolvedValue([createMockTweet('tweet', 10, 1)]);
+
+      const result = await service.batchAnalyze(['user1']);
+
+      expect(result.size).toBe(1);
+      expect(result.get('user1')).not.toBeNull();
+    });
+
+    it('sets null for usernames that fail', async () => {
+      mockClient.getUserByUsername
+        .mockResolvedValueOnce({
+          id: '1',
+          username: 'good',
+          name: 'Good',
+          metrics: { followersCount: 100, followingCount: 10, tweetCount: 50 },
+        })
+        .mockResolvedValueOnce(null);
+
+      mockClient.getUserTweets.mockResolvedValue([]);
+
+      const result = await service.batchAnalyze(['good', 'nonexistent']);
+
+      expect(result.get('good')).not.toBeNull();
+      expect(result.get('nonexistent')).toBeNull();
     });
   });
 });

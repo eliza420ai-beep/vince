@@ -2,16 +2,21 @@
  * X Threads Service Tests
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { XThreadsService } from '../services/xThreads.service';
 import type { XTweet } from '../types/tweet.types';
+
+const mockClient = {
+  getTweet: vi.fn(),
+  searchRecent: vi.fn(),
+};
 
 describe('XThreadsService', () => {
   let service: XThreadsService;
 
   beforeEach(() => {
-    // Pass a mock client so getXClient() is not called (no token in test env)
-    service = new XThreadsService({} as any);
+    vi.clearAllMocks();
+    service = new XThreadsService(mockClient as any);
   });
 
   describe('detectThread', () => {
@@ -136,6 +141,53 @@ describe('XThreadsService', () => {
       const threads = service.findThreads(tweets);
       
       expect(threads.length).toBe(0);
+    });
+  });
+
+  describe('fetchThread', () => {
+    it('returns tweets sorted by created_at', async () => {
+      const older = createTweet('1/ First');
+      older.createdAt = '2024-01-01T10:00:00Z';
+      const newer = createTweet('2/ Second');
+      newer.createdAt = '2024-01-01T11:00:00Z';
+      mockClient.searchRecent.mockResolvedValue({
+        data: [newer, older],
+        meta: { resultCount: 2 },
+      });
+
+      const result = await service.fetchThread('conv-123');
+
+      expect(result.length).toBe(2);
+      expect(result[0].text).toBe('1/ First');
+      expect(result[1].text).toBe('2/ Second');
+    });
+  });
+
+  describe('getThread', () => {
+    it('fetches thread by tweet ID', async () => {
+      const rootTweet = createTweet('🧵 Thread');
+      rootTweet.id = '123';
+      rootTweet.conversationId = '123';
+      const replyTweet = createTweet('2/ Second');
+      replyTweet.conversationId = '123';
+      mockClient.getTweet.mockResolvedValue(rootTweet);
+      mockClient.searchRecent.mockResolvedValue({
+        data: [rootTweet, replyTweet],
+        meta: { resultCount: 2 },
+      });
+
+      const result = await service.getThread('123');
+
+      expect(result.length).toBe(2);
+    });
+
+    it('throws for invalid tweet ID', async () => {
+      await expect(service.getThread('invalid')).rejects.toThrow('Invalid tweet ID');
+    });
+
+    it('throws when tweet not found', async () => {
+      mockClient.getTweet.mockResolvedValue(null);
+      await expect(service.getThread('999')).rejects.toThrow('Tweet not found');
     });
   });
 });

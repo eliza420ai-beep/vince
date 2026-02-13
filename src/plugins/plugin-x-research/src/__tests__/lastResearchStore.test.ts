@@ -21,9 +21,11 @@ describe('lastResearchStore', () => {
   });
 
   it('returns null for unknown room', () => {
-    setLastResearch('room-1', 'Some text');
-    expect(getLastResearch('room-2')).toBeNull();
-    expect(getLastResearch('room-1')).toBe('Some text');
+    const knownRoom = `lastresearch-known-${Date.now()}`;
+    const unknownRoom = `lastresearch-unknown-${Date.now()}`;
+    setLastResearch(knownRoom, 'Some text');
+    expect(getLastResearch(unknownRoom)).toBeNull();
+    expect(getLastResearch(knownRoom)).toBe('Some text');
   });
 
   it('returns null after TTL expires', () => {

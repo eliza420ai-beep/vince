@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { XNewsService } from '../services/xNews.service';
+import { XNewsService, getXNewsService } from '../services/xNews.service';
 import type { XNewsItem } from '../types/news.types';
 
 // Mock the xClient
@@ -225,6 +225,14 @@ describe('XNewsService', () => {
 
       expect(posts.length).toBe(0);
       expect(mockClient.getTweets).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getXNewsService', () => {
+    it('returns singleton instance', () => {
+      const a = getXNewsService();
+      const b = getXNewsService();
+      expect(a).toBe(b);
     });
   });
 });

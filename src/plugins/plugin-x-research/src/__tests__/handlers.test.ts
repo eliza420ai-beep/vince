@@ -4,8 +4,8 @@
  * Tests handler logic with mocked services.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { mkdirSync, existsSync, readFileSync } from 'node:fs';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { xSaveResearchAction } from '../actions/xSaveResearch.action';
@@ -13,8 +13,14 @@ import { xSearchAction } from '../actions/xSearch.action';
 import { setLastResearch } from '../store/lastResearchStore';
 import type { Memory, IAgentRuntime, HandlerCallback } from '@elizaos/core';
 
+const mockInitXClient = vi.fn();
 vi.mock('../services/xClient.service', () => ({
-  initXClientFromEnv: vi.fn(),
+  initXClientFromEnv: (...args: unknown[]) => mockInitXClient(...args),
+}));
+
+const mockSearchQuery = vi.fn();
+vi.mock('../services/xSearch.service', () => ({
+  getXSearchService: () => ({ searchQuery: mockSearchQuery }),
 }));
 
 const mockRuntime = {} as IAgentRuntime;
@@ -31,6 +37,10 @@ function createMemory(text: string, roomId?: string): Memory {
 function createCallback(): HandlerCallback {
   return vi.fn();
 }
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('X_SAVE_RESEARCH handler', () => {
   it('calls callback with help when no roomId', async () => {
@@ -110,6 +120,34 @@ describe('X_SAVE_RESEARCH handler', () => {
       else delete process.env.X_RESEARCH_SAVE_DIR;
     }
   });
+
+  it('calls callback with error when save fails', async () => {
+    const roomId = 'room-save-fail';
+    setLastResearch(roomId, 'Content to save');
+    const callback = createCallback();
+    const invalidDir = join(tmpdir(), `x-save-invalid-${Date.now()}`);
+    writeFileSync(invalidDir, ''); // Create as file, not directory
+    const origEnv = process.env.X_RESEARCH_SAVE_DIR;
+    process.env.X_RESEARCH_SAVE_DIR = invalidDir;
+    try {
+      await xSaveResearchAction.handler!(
+        mockRuntime,
+        createMemory('save that', roomId),
+        {},
+        {},
+        callback as HandlerCallback
+      );
+      expect(callback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          text: expect.stringContaining('Failed to save'),
+          action: 'X_SAVE_RESEARCH',
+        })
+      );
+    } finally {
+      if (origEnv !== undefined) process.env.X_RESEARCH_SAVE_DIR = origEnv;
+      else delete process.env.X_RESEARCH_SAVE_DIR;
+    }
+  });
 });
 
 describe('X_SEARCH handler', () => {
@@ -134,6 +172,54 @@ describe('X_SEARCH handler', () => {
     );
   });
 
+  it('returns search results when query is extracted', async () => {
+    mockSearchQuery.mockResolvedValueOnce([
+      {
+        id: '1',
+        text: 'BNKR looking strong',
+        author: { username: 'user1' },
+        metrics: { likeCount: 42 },
+      },
+    ]);
+    const callback = createCallback();
+    await xSearchAction.handler!(
+      mockRuntime,
+      createMemory('Search X for BNKR', 'room-1'),
+      {},
+      {},
+      callback as HandlerCallback
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining('BNKR'),
+        action: 'X_SEARCH',
+      })
+    );
+    expect(mockSearchQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: 'BNKR',
+        sortOrder: 'relevancy',
+      })
+    );
+  });
+
+  it('returns empty message when no results', async () => {
+    mockSearchQuery.mockResolvedValueOnce([]);
+    const callback = createCallback();
+    await xSearchAction.handler!(
+      mockRuntime,
+      createMemory('Search X for obscurexyz123', 'room-2'),
+      {},
+      {},
+      callback as HandlerCallback
+    );
+    expect(callback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: expect.stringContaining('No matching posts'),
+        action: 'X_SEARCH',
+      })
+    );
+  });
 });
 
 describe('Plugin actions structure', () => {
