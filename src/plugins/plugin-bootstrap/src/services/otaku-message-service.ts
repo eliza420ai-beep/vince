@@ -263,6 +263,7 @@ async function ensureMessageSendersInRoom(
           id: entityId as UUID,
           names: [name],
           agentId: runtime.agentId,
+          metadata: {},
         });
       }
       await r.ensureConnection({
@@ -1323,7 +1324,13 @@ export class OtakuMessageService implements IMessageService {
     }
 
     // 4. Standup channel: only single responder (human) or called agent (agent message) may respond
-    const roomName = (room.name ?? '').trim();
+    const meta = room.metadata as Record<string, unknown> | undefined;
+    const roomName = (
+      room.name ??
+      (typeof meta?.channelName === 'string' ? meta.channelName : undefined) ??
+      (typeof meta?.name === 'string' ? meta.name : undefined) ??
+      ''
+    ).trim();
     const standupChannelNames =
       (runtime.getSetting('A2A_STANDUP_CHANNEL_NAMES') as string) ||
       process.env.A2A_STANDUP_CHANNEL_NAMES ||
@@ -1347,10 +1354,8 @@ export class OtakuMessageService implements IMessageService {
         'echo',
         'oracle',
       ];
-      const senderName = (
-        message.content?.name ||
-        message.content?.userName ||
-        ''
+      const senderName = String(
+        message.content?.name ?? message.content?.userName ?? ''
       ).toLowerCase();
       const metadata = message.content?.metadata as Record<string, unknown> | undefined;
       const isFromBot =

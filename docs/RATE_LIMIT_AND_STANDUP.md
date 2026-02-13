@@ -9,13 +9,19 @@ In channels identified as "standup" (e.g. `#daily-standup`), **only one agent** 
 - **Env:** `A2A_STANDUP_SINGLE_RESPONDER` — agent name that may respond to humans in standup (default: `STANDUP_COORDINATOR_AGENT` or `"Kelly"`).
 - **Env:** `A2A_STANDUP_CHANNEL_NAMES` — comma-separated substrings that identify standup rooms (default: `standup,daily-standup`). Room name is matched case-insensitively.
 
+**Standup room detection:** Detection uses `room.name`; if that is empty (e.g. some Discord adapters), the code falls back to `room.metadata.channelName` or `room.metadata.name`. Ensure your standup channel’s name (in Discord or in the room object) contains one of the substrings in `A2A_STANDUP_CHANNEL_NAMES` (e.g. `standup` or `daily-standup`). If it doesn’t, every agent will call the LLM on every message and rate limits will spike.
+
 Outside standup channels, all agents still get priority response to human messages (no change).
+
+## GROK daily pulse (plugin-vince)
+
+The Grok Expert daily pulse task (`GROK_EXPERT_DAILY_PULSE`) is registered **only for the VINCE agent**. Other agents that load plugin-vince (e.g. Solus) do not register this task, avoiding duplicate runs and extra token use.
 
 ## Reflection evaluator
 
 The reflection evaluator runs after replies and also calls the LLM. In standup, that can double token use. You can skip reflection in standup channels and/or run it less often.
 
-- **Env:** `REFLECTION_SKIP_STANDUP=true` — skip the reflection evaluator in standup channels (recommended when standup is heavy).
+- Reflection is **skipped in standup channels by default**. Set `REFLECTION_RUN_IN_STANDUP=true` to run reflection there (not recommended when standup is heavy).
 - **Env:** `REFLECTION_STANDUP_CHANNEL_NAMES` — comma-separated substrings for standup (default: `standup,daily-standup`).
 - **Env:** `REFLECTION_INTERVAL_DIVISOR` — divisor for how often reflection runs (default: 4). e.g. `8` = half as often.
 

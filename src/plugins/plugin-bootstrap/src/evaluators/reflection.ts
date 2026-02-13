@@ -294,7 +294,14 @@ export const reflectionEvaluator: Evaluator = {
   similes: ['REFLECT', 'SELF_REFLECT', 'EVALUATE_INTERACTION', 'ASSESS_SITUATION'],
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const room = await runtime.getRoom(message.roomId);
-    if (isReflectionStandupRoom(room?.name)) {
+    const meta = room?.metadata as Record<string, unknown> | undefined;
+    const roomName = (
+      room?.name ??
+      (typeof meta?.channelName === 'string' ? meta.channelName : undefined) ??
+      (typeof meta?.name === 'string' ? meta.name : undefined) ??
+      ''
+    ).trim();
+    if (isReflectionStandupRoom(roomName)) {
       if (process.env.REFLECTION_RUN_IN_STANDUP !== 'true') {
         return false;
       }

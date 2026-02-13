@@ -939,11 +939,14 @@ export const vincePlugin: Plugin = {
       })();
     }
 
-    try {
-      await registerGrokExpertTask(runtime);
-      logger.debug("[VINCE] Grok Expert daily task registered");
-    } catch (e) {
-      logger.warn("[VINCE] Failed to register Grok Expert task:", e);
+    // Grok daily pulse: only VINCE registers this to avoid duplicate runs (e.g. Solus also loads plugin-vince)
+    if (isVinceAgent(runtime)) {
+      try {
+        await registerGrokExpertTask(runtime);
+        logger.debug("[VINCE] Grok Expert daily task registered");
+      } catch (e) {
+        logger.warn("[VINCE] Failed to register Grok Expert task:", e);
+      }
     }
 
     // ONNX training: when feature store has 90+ complete trades, train models (runs on schedule, max once per 24h)
