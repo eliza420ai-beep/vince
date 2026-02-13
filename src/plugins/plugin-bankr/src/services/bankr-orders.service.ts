@@ -51,9 +51,7 @@ export class BankrOrdersService extends Service {
 
   static async start(runtime: IAgentRuntime): Promise<BankrOrdersService> {
     logger.info("[BANKR ORDERS] Starting Bankr Orders service");
-    const service = new BankrOrdersService(runtime);
-    await service.initialize(runtime);
-    return service;
+    return new BankrOrdersService(runtime);
   }
 
   async stop(): Promise<void> {

@@ -52,6 +52,12 @@ export class ERC8004Service implements Service {
     this.config = this.loadConfig();
   }
 
+  static async start(runtime: IAgentRuntime): Promise<ERC8004Service> {
+    const svc = new ERC8004Service(runtime);
+    await svc.initialize();
+    return svc;
+  }
+
   async initialize(): Promise<void> {
     const network = this.config.network;
     const chain = network === "base" ? base : baseSepolia;

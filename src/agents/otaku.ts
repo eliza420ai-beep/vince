@@ -455,7 +455,7 @@ const initOtaku = async (runtime: IAgentRuntime) => {
       logger.info("[Otaku] Bankr plugin enabled — BANKR_AGENT_PROMPT and External Orders available");
     } else {
       logger.warn(
-        "[Otaku] Bankr plugin loaded but BANKR_API_KEY not available at runtime — BANKR_* actions disabled. Set BANKR_API_KEY in .env (and in agent secrets if using stored config), then restart."
+        "[Otaku] Bankr plugin loaded but BANKR_API_KEY not available at runtime — BANKR_* actions disabled. Set BANKR_API_KEY in .env and in the Otaku agent's secrets (if using stored config), then restart."
       );
     }
   }

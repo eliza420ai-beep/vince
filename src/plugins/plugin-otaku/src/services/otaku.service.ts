@@ -75,6 +75,12 @@ export class OtakuService implements Service {
     this.runtime = runtime;
   }
 
+  static async start(runtime: IAgentRuntime): Promise<OtakuService> {
+    const svc = new OtakuService(runtime);
+    await svc.initialize();
+    return svc;
+  }
+
   async initialize(): Promise<void> {
     logger.info("[OTAKU] Service initialized");
   }
