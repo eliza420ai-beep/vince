@@ -260,9 +260,11 @@ PRICES — NEVER HALLUCINATE:
     /**
      * Discord A2A: ECHO responds to bot messages for multi-agent standup.
      * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     * Specialists only respond when @mentioned in shared channels (avoid "500-word reply to lol").
      */
     discord: {
       shouldIgnoreBotMessages: false,
+      shouldRespondOnlyToMentions: true,
     },
     ragKnowledge: true,
     embeddingModel: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",

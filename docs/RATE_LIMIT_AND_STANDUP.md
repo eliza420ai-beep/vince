@@ -13,6 +13,10 @@ In channels identified as "standup" (e.g. `#daily-standup`), **only one agent** 
 
 Outside standup channels, all agents still get priority response to human messages (no change).
 
+## Channel naming verification (standup)
+
+Your standup channel's name must contain one of the substrings in `A2A_STANDUP_CHANNEL_NAMES` (default: `standup`, `daily-standup`), case-insensitive. Examples that work: `#daily-standup`, `#standup`, `#team-standup`, `#daily_standup`. Verify the channel name in Discord; if it does not match, every agent will process every message and rate limits will spike.
+
 ## GROK daily pulse (plugin-vince)
 
 The Grok Expert daily pulse task (`GROK_EXPERT_DAILY_PULSE`) is registered **only for the VINCE agent**. Other agents that load plugin-vince (e.g. Solus) do not register this task, avoiding duplicate runs and extra token use.

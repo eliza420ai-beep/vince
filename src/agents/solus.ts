@@ -86,9 +86,11 @@ export const solusCharacter: Character = {
     /**
      * Discord A2A: Solus responds to bot messages for multi-agent standup.
      * Loop protection via A2A_LOOP_GUARD evaluator + A2A_CONTEXT provider.
+     * Specialists only respond when @mentioned in shared channels (avoid "500-word reply to lol").
      */
     discord: {
       shouldIgnoreBotMessages: false,
+      shouldRespondOnlyToMentions: true,
     },
     model: process.env.ANTHROPIC_LARGE_MODEL || "claude-sonnet-4-20250514",
     embeddingModel:

@@ -93,6 +93,46 @@ Create six Discord applications (one per agent), invite each bot to the server, 
 
 ---
 
+## Channel invite rules (multi-agent)
+
+Invite each bot **only** to its category channels plus `#daily-standup`. Do not invite all bots to all channels—every bot in a channel receives every message and runs validation, even when it exits early. Channel isolation cuts overhead and token burn.
+
+| Agent | Invite to |
+|-------|-----------|
+| **Eliza** | CEO category channels (`meet_eliza`, `knowledge`, `research`, `gtm_substack`) + `#daily-standup` |
+| **VINCE** | CDO category channels (`meet_vince`, `daily`, `news`, `lifestyle`, `alerts`, `upload_youtube`) + `#daily-standup` |
+| **Solus** | CFO category channels (`meet_solus`, `plan_100k`, `strike_ritual`, etc.) + `#daily-standup` |
+| **Otaku** | COO category channels (`meet_otaku`, `token_discovery`, etc.) + `#daily-standup` |
+| **Kelly** | CHRO category channels (`meet_kelly`, `kelly`, `daily_standup`, etc.) + `#daily-standup` |
+| **Sentinel** | CTO category channels (`meet_sentinel`, `sentinel_ops`, etc.) + `#daily-standup` |
+| **Echo** | Echo channels (if any) + `#daily-standup` |
+| **Oracle** | Oracle channels (if any) + `#daily-standup` |
+
+**Example:** Solus should be in `#meet_solus`, `#plan_100k`, `#daily-standup`—not `#vince-daily-reports`. If Solus is invited to `#vince-daily-reports`, he receives every VINCE push and runs validation (even though he exits before the LLM).
+
+**Optional:** Add `allowedChannelIds` per agent in `character.settings.discord` when the ElizaOS Discord plugin supports it, for application-level filtering in addition to the invite list.
+
+---
+
+## Multi-agent Discord checklist
+
+From lessons learned running 4–8 agents on one server:
+
+| Item | VINCE config |
+|------|--------------|
+| **Separate bot token per agent** | Option C: one Discord app per agent. Set `*_DISCORD_APPLICATION_ID` and `*_DISCORD_API_TOKEN` per agent. Do not share. |
+| **Dedicated channels per agent** | One category per bot; sub-channels by agent focus. See [LiveTheLifeTV C-suite layout](#livethelifetv-c-suite-layout). |
+| **Channel invite rules** | Invite each bot only to its category channels + `#daily-standup`. See [Channel invite rules](#channel-invite-rules-multi-agent). |
+| **Standup single-responder** | Only Kelly responds to humans in standup. Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md). |
+| **requireMention on specialists** | Solus, Sentinel, Otaku, Echo, Oracle have `shouldRespondOnlyToMentions: true` so they only respond when @mentioned in shared channels. Kelly, VINCE, Eliza stay open. |
+| **Reflection skipped in standup** | Reflection is skipped in standup channels by default. Set `REFLECTION_RUN_IN_STANDUP=true` only if needed. |
+| **Standup channel naming** | Channel name must contain `standup` or `daily-standup` (case-insensitive) so `A2A_STANDUP_CHANNEL_NAMES` matches. Otherwise every agent processes every message. |
+| **Explicit bindings** | "Bindings" = which channels each bot is invited to + `shouldRespond` logic in OtakuMessageService. No gateway; config and invite changes only. |
+
+Get the plumbing right first. The intelligence follows.
+
+---
+
 ## Agent Capabilities
 
 | Agent | Role | Key Commands / Actions |
