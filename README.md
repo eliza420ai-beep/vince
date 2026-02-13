@@ -676,6 +676,10 @@ Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 
 → [DEPLOY.md](DEPLOY.md)
 
+### Discord "Cannot access audit logs"
+
+If the bot logs `Cannot access audit logs - permission change alerts will not include executor info (error=Missing Permissions)`, grant the bot **View Audit Log** in your Discord server (Server Settings → Integrations → [bot]). See [DEPLOY.md § Discord: audit log warning](docs/DEPLOY.md#discord-audit-log-warning).
+
 ### Known Limitations
 
 | | Limitation | Notes |

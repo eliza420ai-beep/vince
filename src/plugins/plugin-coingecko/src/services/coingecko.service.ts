@@ -354,6 +354,12 @@ export class CoinGeckoService extends Service {
             await this.loadCoinsIndex();
             return;
           }
+          if (res.status === 429 && attempt === 1 && isPro && !this.usePublicUrlOverride && this.proApiKey) {
+            this.usePublicUrlOverride = true;
+            logger.info("[CoinGecko] Pro API rate limited (429); retrying once with public URL (api.coingecko.com).");
+            await this.loadCoinsIndex();
+            return;
+          }
           throw new Error(`Failed to load coins list ${res.status}: ${res.statusText}${body ? ` - ${JSON.stringify(body)}` : ""}`);
         }
 
@@ -386,6 +392,13 @@ export class CoinGeckoService extends Service {
         const msg = e instanceof Error ? e.message : String(e);
         if (isLast) {
           logger.error(`[CoinGecko] Failed to load coins index after ${maxAttempts} attempts: ${msg}`);
+          this.coinsCache = [];
+          this.idSet.clear();
+          this.symbolToIds.clear();
+          this.nameToIds.clear();
+          logger.warn(
+            "[CoinGecko] Coins index unavailable (rate limit or network); token resolution by symbol/name will be limited. getSimplePrices and direct coin ids still work.",
+          );
           break;
         }
         const backoff = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);

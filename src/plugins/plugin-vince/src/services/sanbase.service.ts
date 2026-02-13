@@ -115,7 +115,7 @@ export class VinceSanbaseService extends Service {
               `[VinceSanbaseService] ✅ API verified via dev activity: ${devData.activity.toFixed(0)} commits`,
             );
           } else {
-            logger.warn(
+            logger.debug(
               "[VinceSanbaseService] API configured but no data returned - check API key or rate limits",
             );
           }
