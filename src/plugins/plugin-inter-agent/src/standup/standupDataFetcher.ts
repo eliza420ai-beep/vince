@@ -72,41 +72,14 @@ ${botLine}
 
 /**
  * Fetch sentiment data for ECHO's report
+ * ECHO uses plugin-x-research, not plugin-vince. The fetcher returns a prompt
+ * that primes ECHO to run X_PULSE during its standup turn; ECHO uses that output.
  */
-export async function fetchEchoData(runtime: IAgentRuntime): Promise<string> {
-  try {
-    const xSentiment = runtime.getService("VINCE_X_SENTIMENT_SERVICE") as {
-      getSentiment?: (asset: string) => Promise<{ score: number; mood: string } | null>;
-    } | null;
-
-    if (!xSentiment?.getSentiment) {
-      return "*(X sentiment unavailable)*";
-    }
-
-    const rows: string[] = [];
-    
-    for (const asset of STANDUP_ASSETS) {
-      const sentiment = await xSentiment.getSentiment(asset);
-      const mood = sentiment?.mood || "Unknown";
-      const score = sentiment?.score ?? 0;
-      
-      let driver = "No signal";
-      if (score > 0.6) driver = "CT bullish";
-      else if (score < 0.4) driver = "CT bearish";
-      else driver = "Mixed takes";
-      
-      rows.push(`| ${asset} | ${mood} | ${driver} |`);
-    }
-
-    return `
-| Asset | Mood | Driver |
-|-------|------|--------|
-${rows.join("\n")}
-`.trim();
-  } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] Failed to fetch ECHO data");
-    return "*(Sentiment data unavailable)*";
-  }
+export async function fetchEchoData(_runtime: IAgentRuntime): Promise<string> {
+  return `**CT sentiment (X insights)** — Run X_PULSE for current Crypto Twitter sentiment and summarize the result here.
+- Lead with overall vibe (bullish/bearish/neutral) and key narratives.
+- Mention any contrarian warnings if sentiment is extreme.
+- If X API is unavailable, say so plainly — do not invent status.`;
 }
 
 /**
