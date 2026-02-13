@@ -1,6 +1,6 @@
 # OpenClaw 8-Pillar Architecture (VINCE mapping)
 
-This doc maps the OpenClaw model (Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, Nerves) to what lives in VINCE and in this directory.
+This doc maps the OpenClaw model (Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, Nerves) to what lives in VINCE and in this directory. The **openclaw-adapter** ([elizaOS/openclaw-adapter](https://github.com/elizaOS/openclaw-adapter)) runs Eliza plugins inside OpenClaw as tools; see [OPENCLAW_ADAPTER.md](../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md) for details.
 
 | Pillar | Role | In VINCE / openclaw-agents |
 |--------|------|----------------------------|

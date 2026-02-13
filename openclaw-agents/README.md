@@ -22,6 +22,10 @@ This module adds **OpenClaw sub-agents** to VINCE for specialized, isolated rese
 
 **Hybrid approach:** VINCE handles conversation + orchestration. OpenClaw agents do specialized research in parallel.
 
+### Eliza plugins inside OpenClaw
+
+The **openclaw-adapter** runs Eliza plugins (e.g. plugin-evm, plugin-solana) inside an OpenClaw agent as tools, hooks, and services—the inverse of this repo’s flow (Eliza spawning OpenClaw). Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins. See [openclaw-adapter](https://github.com/elizaOS/openclaw-adapter) and [knowledge/sentinel-docs/OPENCLAW_ADAPTER.md](../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md) for config and limitations.
+
 ## Agents
 
 | Agent | Role | Command |
