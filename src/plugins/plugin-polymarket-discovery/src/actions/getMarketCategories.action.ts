@@ -106,6 +106,10 @@ export const getMarketCategoriesAction: Action = {
           data: { categories: [], count: 0 },
           input: inputParams,
         };
+        callback?.({
+          text: result.text,
+          actions: ["GET_POLYMARKET_CATEGORIES"],
+        });
         return result;
       }
 
@@ -135,6 +139,11 @@ export const getMarketCategoriesAction: Action = {
       logger.info(
         `[GET_POLYMARKET_CATEGORIES] Successfully fetched ${categories.length} categories`
       );
+      // Send the category list to the user (action only returns result; callback delivers the message)
+      callback?.({
+        text: result.text,
+        actions: ["GET_POLYMARKET_CATEGORIES"],
+      });
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
