@@ -1,6 +1,6 @@
 # Bankr — TL;DR
 
-What Bankr is, why it matters for VINCE, and how it compares. Use this for the [token/ticker path](knowledge/internal-docs/vince-as-ticker-bankr-deep-dive.md), skill/execution integration, and a **utility token** that pays for access, dev, contributors, and premium APIs.
+What Bankr is, why it matters for VINCE, and how it compares. Use this for the [token/ticker path](../knowledge/internal-docs/vince-as-ticker-bankr-deep-dive.md), skill/execution integration, and a **utility token** that pays for access, dev, contributors, and premium APIs.
 
 **Idea:** Skills become the product. You ship a skill; others install it. You get paid when they use it. That’s the shift: from big apps to small, reusable skills that compound.
 

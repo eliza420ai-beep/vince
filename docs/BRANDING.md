@@ -124,7 +124,7 @@ Avoid (among others): leverage, utilize (use "use"), streamline, robust, cutting
 
 The result should be polished, high-end copy that's persuasive and brand-elevating—inspired by Apple (simplicity, user focus) and Porsche (craft, exclusivity)—and should never read like generic AI output. Ideal for About pages, product descriptions, and marketing materials where standing out matters.
 
-Extended examples and the full banned list: [knowledge/brand/style-guide.md](knowledge/brand/style-guide.md) and agent prompts in [CLAUDE.md](CLAUDE.md).
+Extended examples and the full banned list: [knowledge/brand/style-guide.md](../knowledge/brand/style-guide.md) and agent prompts in [CLAUDE.md](../CLAUDE.md).
 
 ══════════════════════════════════════════════════════════════════════════════
 
@@ -161,7 +161,7 @@ We're not just building another dashboard. We're creating the definitive onchain
 
 **The terminal is open. What's your first query?** · **ikigailabs.eth** · **Built on OpenClaw** · 2026 and beyond.
 
-*Where to read more:* [plugin-vince README](src/plugins/plugin-vince/README.md) (paper bot), [SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) (strike ritual, options), [NORTH_STAR_DELIVERABLES.md](knowledge/sentinel-docs/NORTH_STAR_DELIVERABLES.md) (perps + options deliverables).
+*Where to read more:* [plugin-vince README](../src/plugins/plugin-vince/README.md) (paper bot), [SOLUS_NORTH_STAR.md](SOLUS_NORTH_STAR.md) (strike ritual, options), [NORTH_STAR_DELIVERABLES.md](../knowledge/sentinel-docs/NORTH_STAR_DELIVERABLES.md) (perps + options deliverables).
 
 ══════════════════════════════════════════════════════════════════════════════
 
@@ -326,7 +326,7 @@ The project’s **`.env.example`** implies **developer/API accounts** you’ll n
 
 ### Ideas from sentinel-docs (knowledge/sentinel-docs)
 
-The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, and **DISCORD.md** (repo root) are the main references for Sentinel, multi-agent behavior, Discord layout, and integration ideas. **Discord server layouts** under the holding: **LiveTheLifeTV** (holding/C-suite, lifestyle focus) and **IKIGAI LABS** (VINCE Command Center, product)—see [DISCORD.md](DISCORD.md) for full channel lists and push routing. Below are concepts that can inform **accounts**, **tools**, and **roadmap**—not a duplicate of the rest of BRANDING, but a pointer to where to look.
+The **sentinel-docs** folder (`knowledge/sentinel-docs`), **MULTI_AGENT.md**, and **DISCORD.md** (in docs/) are the main references for Sentinel, multi-agent behavior, Discord layout, and integration ideas. **Discord server layouts** under the holding: **LiveTheLifeTV** (holding/C-suite, lifestyle focus) and **IKIGAI LABS** (VINCE Command Center, product)—see [DISCORD.md](DISCORD.md) for full channel lists and push routing. Below are concepts that can inform **accounts**, **tools**, and **roadmap**—not a duplicate of the rest of BRANDING, but a pointer to where to look.
 
 | Area | Doc(s) | Idea for BRANDING / setup |
 |------|--------|----------------------------|

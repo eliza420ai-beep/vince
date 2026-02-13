@@ -105,7 +105,7 @@ Before running sub-agents:
 
 ## Solus Today
 
-Current implementation lives in [src/agents/solus.ts](../src/agents/solus.ts) and is described for X research in [X-RESEARCH.md](../X-RESEARCH.md).
+Current implementation lives in [src/agents/solus.ts](../src/agents/solus.ts) and is described for X research in [X-RESEARCH.md](X-RESEARCH.md).
 
 **What exists:**
 

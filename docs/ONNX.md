@@ -38,10 +38,10 @@
 | | |
 |:---|:---|
 | [**FEATURE-STORE**](FEATURE-STORE.md) | Where training data lives · 90+ trades for ONNX |
-| [**plugin-vince/models/**](src/plugins/plugin-vince/models/README.md) | Ship ONNX for Cloud · copy after training |
-| [**train_models.py**](src/plugins/plugin-vince/scripts/train_models.py) | XGBoost → ONNX pipeline |
-| [**mlInference.service**](src/plugins/plugin-vince/src/services/mlInference.service.ts) | Load and run ONNX at runtime |
-| [**README**](README.md) | Full ML loop · Supabase · deploy |
+| [**plugin-vince/models/**](../src/plugins/plugin-vince/models/README.md) | Ship ONNX for Cloud · copy after training |
+| [**train_models.py**](../src/plugins/plugin-vince/scripts/train_models.py) | XGBoost → ONNX pipeline |
+| [**mlInference.service**](../src/plugins/plugin-vince/src/services/mlInference.service.ts) | Load and run ONNX at runtime |
+| [**README**](../README.md) | Full ML loop · Supabase · deploy |
 
 ---
 
@@ -288,7 +288,7 @@ For this project specifically: **bull** = VC is right if you double down on plat
 | **Ship for Cloud** | Copy from training output into repo | `cp .elizadb/.../models/*.onnx src/plugins/plugin-vince/models/` (+ metadata) → commit → deploy |
 | **Cloud (no redeploy)** | Train in container at 90+ trades | Task uploads to `vince-ml-models`, then `reloadModels()`; next deploy pulls latest from bucket |
 | **Inference** | `VinceMLInferenceService` | Loads ONNX when present; else rule-based signal quality, sizing, TP/SL |
-| **Docs** | [FEATURE-STORE.md](FEATURE-STORE.md) · [models/README](src/plugins/plugin-vince/models/README.md) | [README.md](README.md) (full ML loop) |
+| **Docs** | [FEATURE-STORE.md](FEATURE-STORE.md) · [models/README](../src/plugins/plugin-vince/models/README.md) | [README.md](../README.md) (full ML loop) |
 
 ---
 

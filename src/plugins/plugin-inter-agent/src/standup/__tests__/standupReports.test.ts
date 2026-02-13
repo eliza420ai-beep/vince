@@ -68,8 +68,12 @@ describe("Standup Reports", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Research to upload to knowledge");
     });
 
-    it("Oracle template caveats real-time reliability", () => {
-      expect(REPORT_TEMPLATES.Oracle).toContain("unreliable");
+    it("Oracle template uses LIVE DATA and priority markets (condition_id)", () => {
+      expect(REPORT_TEMPLATES.Oracle).toContain("LIVE DATA");
+      expect(REPORT_TEMPLATES.Oracle).toContain("condition_id");
+      expect(REPORT_TEMPLATES.Oracle).toMatch(/Priority|priority/);
+      expect(REPORT_TEMPLATES.Oracle).not.toContain("under construction");
+      expect(REPORT_TEMPLATES.Oracle).not.toContain("unreliable");
     });
 
     it("Otaku template states who he is (Bankr, DeFi)", () => {

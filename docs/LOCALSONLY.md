@@ -173,10 +173,10 @@ Many “local vs API” analyses understate the benefit of local (e.g. M3 Ultra 
 | exo API | [docs/api.md](https://github.com/exo-explore/exo/blob/main/docs/api.md), [src/exo/master/api.py](https://github.com/exo-explore/exo/tree/main/src/exo/master) |
 | OpenCLAW | (Add orchestrator / OpenCLAW repo link when available) |
 | TREASURY | [TREASURY.md](TREASURY.md) — cost coverage, profitability |
-| README | [README.md](README.md) — project overview |
-| CLAUDE | [CLAUDE.md](CLAUDE.md) — dev guide |
-| Agents | [src/agents/](src/agents/) — VINCE, Kelly, Solus, Otaku, Eliza |
+| README | [README.md](../README.md) — project overview |
+| CLAUDE | [CLAUDE.md](../CLAUDE.md) — dev guide |
+| Agents | [src/agents/](../src/agents/) — VINCE, Kelly, Solus, Otaku, Eliza |
 
 ---
 
-*Last updated: 2026-02-09. Cost model for ~2B tokens/month; added caveats (five common mistakes in local vs API comparisons).*
+*Last updated: 2026-02-13. Cost model for ~2B tokens/month; added caveats (five common mistakes in local vs API comparisons).*

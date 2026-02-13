@@ -29,8 +29,7 @@ export const AGENT_ROLES = {
   Oracle: {
     title: "CPO",
     focus: "Prediction Markets",
-    reportSections: ["status_update"],
-    isUnderConstruction: true, // Polymarket feeds not fully wired yet
+    reportSections: ["priority_markets", "odds_snapshot", "action"],
   },
   Solus: {
     title: "CFO",
@@ -98,12 +97,12 @@ Show insights from X (plugin-x-research): sentiment, key voices, narrative.
 
   Oracle: `## Oracle — {{date}}
 
-Polymarket data available but still unreliable for real-time; caveat when citing odds or predictions.
+Use the LIVE DATA below (Priority markets table). Report one line per market or a short summary; cite condition_id for follow-ups.
 
-🚧 **Prediction market feeds under construction.**
-Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
+| Priority market | YES% | condition_id |
+(Use LIVE DATA table from fetcher)
 
-*No action items.*`,
+**Action:** [One prediction-market implication for paper bot or Hypersurface strike — 10 words or less]`,
 
   Solus: `## Solus — Hypersurface — {{date}}
 

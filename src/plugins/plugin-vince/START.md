@@ -796,4 +796,4 @@ Go fucking build something today.
 - [CLAUDE.md](./CLAUDE.md) — AI operating manual for plugin-vince
 - [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md) — Signal sources and how to verify them in logs
 - [README.md](./README.md) — Plugin overview and usage
-- [../../FEATURE-STORE.md](../../FEATURE-STORE.md) — Paper bot feature storage and ML (project root)
+- [FEATURE-STORE.md](../../docs/FEATURE-STORE.md) — Paper bot feature storage and ML (project root)

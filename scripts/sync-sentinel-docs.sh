@@ -50,4 +50,23 @@ done
   [ -f "$ROOT/src/frontend/progress.txt" ] && cat "$ROOT/src/frontend/progress.txt" || echo "(missing)"
 } > "$OUT/PROGRESS-CONSOLIDATED.md"
 
+# Rewrite relative links so they resolve when read from knowledge/sentinel-docs/
+# Order: ../knowledge/ before ../src/ to avoid rewriting paths inside knowledge
+for f in "$OUT"/*.md; do
+  [ -f "$f" ] || continue
+  sed -e 's|](../README\.md)|](../../README.md)|g' \
+      -e 's|](../CLAUDE\.md)|](../../CLAUDE.md)|g' \
+      -e 's|](../knowledge/)|](../|g' \
+      -e 's|](../src/)|](../../src/)|g' \
+      -e 's|](../FEATURE-STORE\.md)|](FEATURE-STORE.md)|g' \
+      -e 's|](../DEPLOY\.md)|](DEPLOY.md)|g' \
+      -e 's|](../TREASURY\.md)|](TREASURY.md)|g' \
+      -e 's|](../MULTI_AGENT\.md)|](MULTI_AGENT.md)|g' \
+      -e 's|](../ONNX\.md)|](ONNX.md)|g' \
+      -e 's|](../BANKR\.md)|](BANKR.md)|g' \
+      -e 's|](../X-RESEARCH\.md)|](X-RESEARCH.md)|g' \
+      -e 's|](../LOCALSONLY\.md)|](LOCALSONLY.md)|g' \
+      "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+done
+
 echo "Synced sentinel-docs: $OUT"

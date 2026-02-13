@@ -108,7 +108,7 @@ Keep this section updated as strategies are tried:
 
 Single source of truth for Sentinel: all project costs, LLM choice, data API tiers, bottom line. Update this section when tiers or targets change.
 
-**Last updated (cost breakdown):** 2026-02-08
+**Last updated (cost breakdown):** 2026-02-13
 
 ### Token usage (tracker)
 
@@ -162,4 +162,4 @@ When suggesting features or answering "what does it cost?", cite these limits so
 
 ---
 
-*Last updated: 2026-02-08. Update this file when activating new revenue streams or cost levers.*
+*Last updated: 2026-02-13. Update this file when activating new revenue streams or cost levers.*

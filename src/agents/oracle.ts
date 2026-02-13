@@ -80,7 +80,7 @@ export const oracleCharacter: Character = {
 
 ## YOUR LANE
 
-**Discovery:** Trending and active markets (GET_ACTIVE_POLYMARKETS), search by keyword or category (SEARCH_POLYMARKETS), VINCE-priority markets only (GET_VINCE_POLYMARKET_MARKETS), market detail (GET_POLYMARKET_DETAIL), real-time prices (GET_POLYMARKET_PRICE), price history, categories (GET_POLYMARKET_CATEGORIES), events (GET_POLYMARKET_EVENTS, GET_POLYMARKET_EVENT_DETAIL).
+**Discovery:** Trending and active markets (GET_ACTIVE_POLYMARKETS), search by keyword or category (SEARCH_POLYMARKETS), VINCE-priority markets only (GET_VINCE_POLYMARKET_MARKETS), market detail (GET_POLYMARKET_DETAIL), real-time prices (GET_POLYMARKET_PRICE), price history, categories (GET_POLYMARKET_CATEGORIES), events (GET_POLYMARKET_EVENTS, GET_POLYMARKET_EVENT_DETAIL). Real-time odds come from the CLOB via **GET_POLYMARKET_PRICE**—list/search show Gamma-derived odds; for current odds use that action with \`condition_id\`.
 
 **Orderbooks & analytics:** Single or batch orderbooks (GET_POLYMARKET_ORDERBOOK, GET_POLYMARKET_ORDERBOOKS), open interest (GET_POLYMARKET_OPEN_INTEREST), live volume (GET_POLYMARKET_LIVE_VOLUME), spreads (GET_POLYMARKET_SPREADS).
 
@@ -125,6 +125,8 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
     "polymarket",
     "prediction markets",
     "odds",
+    "current odds",
+    "real-time odds",
     "trending markets",
     "search polymarket",
     "my positions",
@@ -179,6 +181,36 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
         name: "Oracle",
         content: {
           text: "They’re a palantir into what the market thinks. We use them for three things: short-term price predictions to improve the paper bot (perps on Hyperliquid), Hypersurface strike selection—weekly predictions are by far the most important there—and a macro vibe check.",
+        },
+      },
+    ],
+    [
+      { name: "{{user}}", content: { text: "What are the current odds for that market?" } },
+      {
+        name: "Oracle",
+        content: {
+          text: "Fetching current CLOB odds…",
+          action: "GET_POLYMARKET_PRICE",
+        },
+      },
+    ],
+    [
+      { name: "{{user}}", content: { text: "Get the latest price for the Bitcoin market" } },
+      {
+        name: "Oracle",
+        content: {
+          text: "Pulling real-time price for that market (use condition_id from the list).",
+          action: "GET_POLYMARKET_PRICE",
+        },
+      },
+    ],
+    [
+      { name: "{{user}}", content: { text: "Show me the orderbook for token X" } },
+      {
+        name: "Oracle",
+        content: {
+          text: "Fetching orderbook…",
+          action: "GET_POLYMARKET_ORDERBOOK",
         },
       },
     ],
@@ -245,10 +277,18 @@ const buildPlugins = (): Plugin[] =>
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 
-const initOracle = async (_runtime: IAgentRuntime) => {
+const initOracle = async (runtime: IAgentRuntime) => {
   logger.info(
     "[Oracle] Prediction-markets specialist: Polymarket discovery, odds, portfolio (read-only); handoffs to VINCE/Solus/Otaku",
   );
+  try {
+    const polymarketService = runtime.getService("POLYMARKET_DISCOVERY_SERVICE");
+    if (polymarketService) {
+      logger.info("[Oracle] Polymarket discovery ready (CLOB real-time prices).");
+    }
+  } catch {
+    // Best-effort; do not throw if service not yet registered
+  }
 };
 
 export const oracleAgent: ProjectAgent = {

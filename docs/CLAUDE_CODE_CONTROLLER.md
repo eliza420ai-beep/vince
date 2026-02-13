@@ -36,7 +36,7 @@ For **code/repo tasks** (refactors, reviews, applying improvement journal entrie
 
 ## Session cost / TREASURY
 
-Code tasks run on your **Claude Code subscription** (e.g. Max plan). They are **not** included in VINCE’s Usage tab (Leaderboard → Usage), which tracks ElizaOS runtime session tokens only. See [TREASURY.md](../TREASURY.md) for cost coverage and strategies.
+Code tasks run on your **Claude Code subscription** (e.g. Max plan). They are **not** included in VINCE’s Usage tab (Leaderboard → Usage), which tracks ElizaOS runtime session tokens only. See [TREASURY.md](TREASURY.md) for cost coverage and strategies.
 
 ## Improvement journal → controller (optional)
 

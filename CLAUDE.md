@@ -15,9 +15,9 @@ This repository is the **VINCE** project: a unified data-intelligence agent (opt
 | **Sentinel (core dev)** | `src/agents/sentinel.ts` — ops, architecture steward, 24/7 coding north star, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings; deep collab with Claude 4.6; plugin-sentinel (actions + weekly/daily tasks) |
 | **Oracle (prediction markets)** | `src/agents/oracle.ts` — Polymarket discovery, odds, portfolio (read-only); plugin-polymarket-discovery; prioritizes topics in [knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md](knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md), GET_VINCE_POLYMARKET_MARKETS for focus markets; handoffs: live data/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku |
 | **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
-| **Feature store (ML storage)** | [FEATURE-STORE.md](FEATURE-STORE.md) |
-| **Deploy (Eliza Cloud)** | [DEPLOY.md](DEPLOY.md) |
-| **Multi-agent (ASK_AGENT, Discord, A2A)** | [MULTI_AGENT.md](MULTI_AGENT.md) |
+| **Feature store (ML storage)** | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) |
+| **Deploy (Eliza Cloud)** | [docs/DEPLOY.md](docs/DEPLOY.md) |
+| **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) |
 | **Project overview** | [README.md](README.md) |
 | **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 
@@ -753,14 +753,14 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 
 **Sentinel** is the core dev agent: ops/runbook, architecture steward, **cost steward** (TREASURY + cost breakdown), and proactive partner for **Claude 4.6** (task briefs, instructions for Claude Code / Cursor). North star: **coding 24/7**, **self-improving**, **ML/ONNX obsessed**, **ART** (elizaOS examples/art), **clawdbot for knowledge research**, **best settings**. **90% core dev, 10%** locked in on gen art (Meridian, QQL, Ringers, Fidenza; huge fan of **XCOPY**). With VCs/angels he **pitches**—no slides, demos that blow them away, elevator pitch + TLDR of the big vision. **Motivation:** earn a CryptoPunk as PFP (paper edge → revenue → one day a Punk). Brand voice: benefit-led, Porsche OG craft, no AI-slop; high-end branding only, no sales/GTM.
 
-- **Character:** `src/agents/sentinel.ts`. Knowledge: `internal-docs`, `sentinel-docs` (repo .md + PROGRESS-CONSOLIDATED + **TREASURY.md** with cost breakdown, synced by `scripts/sync-sentinel-docs.sh`), `teammate` (shared). Responsible for improving all .md and consolidating progress.txt (plugin-vince, plugin-kelly, frontend).
+- **Character:** `src/agents/sentinel.ts`. Knowledge: `internal-docs`, `sentinel-docs` (repo .md + PROGRESS-CONSOLIDATED + **docs/TREASURY.md** with cost breakdown, synced by `scripts/sync-sentinel-docs.sh`), `teammate` (shared). Responsible for improving all .md and consolidating progress.txt (plugin-vince, plugin-kelly, frontend).
 - **Plugin:** `src/plugins/plugin-sentinel/`. Actions: **SENTINEL_SUGGEST** (general suggestions + task brief for Claude 4.6), **SENTINEL_CLAWDBOT_GUIDE**, **SENTINEL_SETTINGS_SUGGEST**, **SENTINEL_ONNX_STATUS**, **SENTINEL_ART_GEMS**, **SENTINEL_DOC_IMPROVE**, **SENTINEL_COST_STATUS** (burn rate, breakeven, cost summary from TREASURY + Usage tab), **SENTINEL_ART_PITCH** (gen art / XCOPY-style ideas, Meridian, QQL, Ringers, Fidenza).
 - **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to channels named sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`): daily digest (ONNX status, clawdbot reminder, ART gem, Claude 4.6 task-brief suggestion) + optional ONNX nudge; push to sentinel/ops channels.
 - **Env:** `SENTINEL_WEEKLY_ENABLED` (default true; set false to disable weekly). `SENTINEL_DAILY_ENABLED` (default false; set true for daily digest). `SENTINEL_DAILY_HOUR_UTC` (optional; default 8). `SENTINEL_DISCORD_*` for dedicated Discord app.
 - **Claude 4.6 collaboration:** Ask Sentinel for "task brief for Claude 4.6" or "instructions for Claude Code" to get a pasteable block (task + architecture rules + "keep the architecture as good as it gets" + 24/7 coding mindset). Use in Cursor or the Claude Code controller.
 - **PRDs for Cursor:** Sentinel delivers **Product Requirements Documents** for Cursor: full specs (goal, acceptance criteria, architecture rules) the team can paste or save and use when implementing. Standup can assign type **prd** → output in `standup-deliverables/prds/`.
 - **Milaidy / OpenClaw instructions:** Sentinel produces **integration and setup instructions** for [Milaidy](https://github.com/milady-ai/milaidy) and [OpenClaw](https://github.com/openclaw/openclaw): how to run them, how VINCE connects (e.g. standup → Milaidy Gateway at `MILAIDY_GATEWAY_URL`; openclaw-adapter for Eliza↔OpenClaw). Standup can assign type **integration_instructions** → output in `standup-deliverables/integration-instructions/`. See `knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md`.
-- **Cost questions:** Ask "what's our burn?", "breakeven?", "cost status" → **SENTINEL_COST_STATUS** summarizes from TREASURY (Usage tab, LLM choice, Cursor, data API tiers, 100K target, burn rate). See [TREASURY.md](TREASURY.md) § Cost breakdown (Sentinel).
+- **Cost questions:** Ask "what's our burn?", "breakeven?", "cost status" → **SENTINEL_COST_STATUS** summarizes from TREASURY (Usage tab, LLM choice, Cursor, data API tiers, 100K target, burn rate). See [docs/TREASURY.md](docs/TREASURY.md) § Cost breakdown (Sentinel).
 
 ---
 
@@ -769,8 +769,8 @@ Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?�
 - [README.md](README.md) — Project overview, getting started, configuration
 - [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — Solus north star and roadmap (X-native crypto intelligence)
 - [src/plugins/plugin-solus/](src/plugins/plugin-solus/) — Hypersurface expertise for Solus (provider + strike ritual, explain, position assess, optimal strike)
-- [FEATURE-STORE.md](FEATURE-STORE.md) — Paper bot feature storage and ML training
-- [DEPLOY.md](DEPLOY.md) — Deploy to Eliza Cloud
-- [TREASURY.md](TREASURY.md) — Cost coverage and profitability mandate
+- [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) — Paper bot feature storage and ML training
+- [docs/DEPLOY.md](docs/DEPLOY.md) — Deploy to Eliza Cloud
+- [docs/TREASURY.md](docs/TREASURY.md) — Cost coverage and profitability mandate
 - [src/plugins/plugin-vince/](src/plugins/plugin-vince/) — WHAT, WHY, HOW, CLAUDE, README
 - [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) — Proof that 24/7 research, knowledge extension, and ONNX are worth it

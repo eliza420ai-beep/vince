@@ -20,7 +20,7 @@
 
 ## Pillar 2 — 24/7 research
 
-**What we do:** Scheduled tasks (daily report, news briefing, [GROK_EXPERT_DAILY_PULSE](../src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts)), multi-source signal aggregation (CoinGlass, Binance, Deribit, Hyperliquid, etc.), and feature-store ingestion so the paper bot has continuous context and ONNX has data to train on. See [SIGNAL_SOURCES.md](../src/plugins/plugin-vince/SIGNAL_SOURCES.md) and [FEATURE-STORE.md](../FEATURE-STORE.md).
+**What we do:** Scheduled tasks (daily report, news briefing, [GROK_EXPERT_DAILY_PULSE](../src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts)), multi-source signal aggregation (CoinGlass, Binance, Deribit, Hyperliquid, etc.), and feature-store ingestion so the paper bot has continuous context and ONNX has data to train on. See [SIGNAL_SOURCES.md](../src/plugins/plugin-vince/SIGNAL_SOURCES.md) and [FEATURE-STORE.md](FEATURE-STORE.md).
 
 **What "worth it" means:** Without 24/7 we wouldn't have diverse signals or enough closed trades to train. With it, the paper bot gets continuous context and the ML loop gets data; signal diversity and feature-store growth are necessary for the ONNX proof above.
 
@@ -76,6 +76,6 @@ For full detail (essential parameters, causal chain, unit tests), see [ML_IMPROV
 ## See also
 
 - [ML_IMPROVEMENT_PROOF.md](../src/plugins/plugin-vince/ML_IMPROVEMENT_PROOF.md) — How to prove ML improves the algo (validate_ml_improvement, tests)
-- [FEATURE-STORE.md](../FEATURE-STORE.md) — Feature storage, training data, Supabase
+- [FEATURE-STORE.md](FEATURE-STORE.md) — Feature storage, training data, Supabase
 - [SIGNAL_SOURCES.md](../src/plugins/plugin-vince/SIGNAL_SOURCES.md) — Signal sources and aggregator
 - [README.md](../README.md) — Project overview

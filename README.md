@@ -33,7 +33,7 @@
 
 ---
 
-## 🆕 What's New in v2.1.0
+## 🆕 What's New in v2.2.0
 
 <table>
 <tr>
@@ -82,6 +82,7 @@
 | **Eliza** | Full knowledge, research, brainstorm—the base everything else builds on. **Heavy focus: improve and expand the knowledge base** (quality, gaps, new categories). Her own Discord + #knowledge for ingestion; Leaderboard **Knowledge** tab tracks the corpus. |
 | **VINCE** | Objective data: options chains, perps, memes, news, paper bot status, yield. Push, not pull. Data only—no marketing or GTM. |
 | **ECHO** | CT sentiment, X research, social alpha. Echoes what Crypto Twitter is saying—threads, whale takes, contrarian warnings. Your ears on X. |
+| **Oracle** | Prediction markets: Polymarket (read-only). Discovery, odds, portfolio; priority markets; handoffs to VINCE (live data) and Solus (strike/execution). |
 | **Solus** | Plan and call. You paste context (or get it from VINCE); he gives size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **Otaku** | **Only agent with a funded wallet.** DeFi wiz: token discovery, Morpho, yield, smart money flows, CDP. Mints NFTs when Sentinel creates gen art; full onchain exploration. When you need DeFi edge. |
 | **Kelly** | Touch grass, live the good life. Hotels, fine dining, wine, health, fitness—no trading. |
@@ -94,6 +95,7 @@
 | **CEO** | Eliza | Strategy, knowledge base, research—the base everything builds on. **Improve and expand knowledge** (quality, gaps, categories). Extends to GTM/PR, community, Discord #knowledge, positioning, Substack. |
 | **CDO** | VINCE | Objective data: options, perps, memes, news, paper bot. Push intel only—no marketing or external promo. |
 | **CSO** | ECHO | Subjective sentiment: CT vibes, X research, social alpha, contrarian warnings. Your ears on Crypto Twitter. |
+| **CPO** | Oracle | Prediction markets: Polymarket discovery, odds, portfolio (read-only). Priority markets; feeds paper bot and strike selection. |
 | **CFO** | Solus | Capital and risk: size/skip/watch, invalidation, rebalance. Execution architect for the $100K stack. |
 | **COO** | Otaku | **Only agent with funded wallet.** DeFi ops: token discovery, Morpho, yield, CDP; mints NFTs (e.g. Sentinel gen art); full onchain. Keeps daily operations seamless. |
 | **CVO** | Kelly | People and balance: touch grass, hotels, dining, wine, health, fitness. Culture where humans recharge; no burnout. |
@@ -111,7 +113,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 
 **You control who can ask whom.** An allowlist limits which agents are askable; optional rules (e.g. only Kelly can ask anyone) give fine-grained policy without code. Each agent keeps its own runtime; routing is by name.
 
-→ [MULTI_AGENT.md](MULTI_AGENT.md) — ASK_AGENT resolution, Discord Option C, policy, plugin-inter-agent vs orchestrator.
+→ [MULTI_AGENT.md](docs/MULTI_AGENT.md) — ASK_AGENT resolution, Discord Option C, policy, plugin-inter-agent vs orchestrator.
 
 ---
 
@@ -119,7 +121,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 
 **VINCE** = ElizaOS agent that **pushes** daily intel (options, perps, memes, DeFi) to Discord/Slack instead of you asking. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + “trade today?”. Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase—no redeploy to improve. **Kelly** is a separate **lifestyle-only concierge** agent: travel advisor, private sommelier, Michelin guide for fine dining, health guru, and fitness coach—and the one who motivates you to touch grass and rebalance. She uses **plugin-kelly** only (no vincePlugin) and can push a daily concierge briefing to channels with "kelly" or "lifestyle" in the name; no trading actions. She knows your context (paper perps, options income) but never gives trading advice. **Run:** `elizaos dev` · **Deploy:** `bun run deploy:cloud` · **Backfill features:** `bun run sync:supabase`.
 
-**Multi-agent strategy (priority):** (1) **First:** Implement feedback-from-testing → Sentinel triages → PRD or Eliza task to `standup-deliverables/`; keep implementation in Cursor/human. (2) **If bottleneck:** Add a dev worker to apply PRDs; prefer **Milaidy** (ElizaOS, existing Gateway hook) over OpenClaw. (3) Full rationale, limitations, and options → [MULTI_AGENT.md](MULTI_AGENT.md).
+**Multi-agent strategy (priority):** (1) **First:** Implement feedback-from-testing → Sentinel triages → PRD or Eliza task to `standup-deliverables/`; keep implementation in Cursor/human. (2) **If bottleneck:** Add a dev worker to apply PRDs; prefer **Milaidy** (ElizaOS, existing Gateway hook) over OpenClaw. (3) Full rationale, limitations, and options → [MULTI_AGENT.md](docs/MULTI_AGENT.md).
 
 ---
 

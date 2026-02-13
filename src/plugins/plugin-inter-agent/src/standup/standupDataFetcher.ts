@@ -1,11 +1,12 @@
 /**
  * Standup Data Fetcher
- * 
+ *
  * Fetches REAL data for each agent's standup report.
  * This ensures reports contain actual numbers, not placeholders.
  */
 
 import { type IAgentRuntime, logger } from "@elizaos/core";
+import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
 
 /** Asset list for trading standup */
 const STANDUP_ASSETS = ["BTC", "SOL", "HYPE"];
@@ -83,16 +84,47 @@ export async function fetchEchoData(_runtime: IAgentRuntime): Promise<string> {
 }
 
 /**
- * Fetch prediction market data for Oracle's report
- * NOTE: Oracle is under construction - Polymarket feeds not fully wired. Data unreliable for real-time.
+ * Fetch prediction market data for Oracle's report.
+ * Uses PolymarketService.getMarketsByPreferredTags and getPricesFromMarketPayload (Gamma-derived for standup; CLOB via GET_POLYMARKET_PRICE in chat).
  */
-export async function fetchOracleData(_runtime: IAgentRuntime): Promise<string> {
-  return `Polymarket data available but still unreliable for real-time; caveat when citing odds or predictions.
+export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const service = runtime.getService(
+      PolymarketService.serviceType
+    ) as InstanceType<typeof PolymarketService> | null;
 
-🚧 **Prediction market feeds under construction.**
-Polymarket integration in progress — will surface BTC price predictions + strike selection signals once wired.
+    if (!service) {
+      return "Polymarket service not loaded. Report: discovery ready when Oracle is used in chat.";
+    }
 
-*No action items.*`;
+    const markets = await service.getMarketsByPreferredTags({ totalLimit: 8 });
+    if (markets.length === 0) {
+      return "No VINCE-priority markets returned. Report: Polymarket discovery ready; no markets in scope.";
+    }
+
+    const rows: string[] = [];
+    for (const m of markets) {
+      const cid = m.conditionId ?? (m as { condition_id?: string }).condition_id ?? "—";
+      const prices = service.getPricesFromMarketPayload(m);
+      const yesPct =
+        prices?.yes_price != null
+          ? `${(parseFloat(prices.yes_price) * 100).toFixed(0)}%`
+          : "—";
+      const question = (m.question ?? "").slice(0, 50) + (m.question && m.question.length > 50 ? "…" : "");
+      rows.push(`| ${question} | ${yesPct} | \`${cid}\` |`);
+    }
+
+    return `
+| Priority market | YES% | condition_id |
+|-----------------|------|--------------|
+${rows.join("\n")}
+
+Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
+`.trim();
+  } catch (err) {
+    logger.warn({ err }, "[STANDUP_DATA] Failed to fetch Oracle data");
+    return "Polymarket data unavailable; report discovery readiness.";
+  }
 }
 
 /**

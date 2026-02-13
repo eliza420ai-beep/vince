@@ -80,4 +80,4 @@ VINCE runs on **free** sources by default (Binance, Deribit, DexScreener, Hyperl
 - **Signal sources and debugging:** [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md).
 - **ML improvement, tuning, and proof:** [IMPROVEMENT_WEIGHTS_AND_TUNING.md](./IMPROVEMENT_WEIGHTS_AND_TUNING.md), [ML_IMPROVEMENT_PROOF.md](./ML_IMPROVEMENT_PROOF.md).
 - **Why ElizaOS (and trade-offs):** [WHY.md](./WHY.md).
-- **Cost coverage and profitability context:** [TREASURY.md](../../TREASURY.md) (project root).
+- **Cost coverage and profitability context:** [TREASURY.md](../../docs/TREASURY.md) (project root).

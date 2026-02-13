@@ -392,22 +392,7 @@ Action: IGNORE. Do not reply until it's your turn.`;
       // Under construction agents give minimal status update
       if (isUnderConstruction) {
         logger.info(`[A2A_CONTEXT] ${myName}: Under construction — minimal response`);
-        
-        // Oracle: explicit do not overclaim; status can be "Polymarket in progress" or caveated (PRD)
-        if (myNameLower === "oracle") {
-          return `
-## 🚧 YOUR TURN — Status Update (Oracle)
 
-Kelly called on you. You have Polymarket data but it is still unreliable for real-time. Do not overclaim.
-
-**You are:** ${myName} (${role?.title ?? "CPO"})
-
-**YOUR RESPONSE:**
-- Status can be "Polymarket in progress" or caveated when citing odds.
-- MAX 30 WORDS. NO fake data, NO promises.
-`;
-        }
-        
         // Fetch the status message for other under-construction agents
         let statusData = "";
         try {

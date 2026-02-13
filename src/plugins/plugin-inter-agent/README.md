@@ -12,7 +12,7 @@ Standup is turn-based. **Kelly** kicks off and acts only as coordinator (very sh
 | **VINCE**   | Most accurate data and recent news. Reports paper trading bot results for perps on Hyperliquid. |
 | **Eliza**   | Mostly listening. Reports knowledge gaps spotted, essay ideas (Ikigai Studio Substack), and research to upload to `knowledge/`. |
 | **ECHO**    | Shows insights from X (plugin-x-research): sentiment, key voices, narrative. |
-| **Oracle**  | Polymarket data; caveat that real-time is still unreliable. |
+| **Oracle**  | Reports live Polymarket priority markets (YES%, condition_id). Real-time odds from CLOB via GET_POLYMARKET_PRICE. |
 | **Solus**   | Does most of the thinking. Answers the **essential question** (e.g. BTC above $70K by next Friday?) using prior reports; Grok-style: data, sentiment, Polymarket, clear Yes/No, short-term path. Options settle Friday 08:00 UTC (Hypersurface). |
 | **Otaku**   | Under construction. Brief status; agent with wallet (Bankr, Coinbase) and DeFi skills. |
 | **Sentinel**| What's next in coding and what's been pushed to the repo. |
