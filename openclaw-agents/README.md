@@ -1,6 +1,16 @@
 # OpenClaw Integration for VINCE
 
-This module adds **OpenClaw sub-agents** to VINCE for specialized, isolated research tasks.
+This module adds **OpenClaw sub-agents** to VINCE for specialized, isolated research tasks, and hosts the **Brain**, **Muscles**, **Bones**, **DNA**, **Soul**, **Eyes**, **Heartbeat**, and **Nerves** flows (operator mapping, AI system architect, codebase intelligence, behavioral architect, personality architect, activation architect, evolution architect, context efficiency architect → workspace files and skills/, memory/, SOUL, IDENTITY, HEARTBEAT, BOOT, CONTEXT_MANAGEMENT).
+
+- **Architecture:** See [ARCHITECTURE.md](ARCHITECTURE.md) for the 8-pillar map (Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, Nerves) and workspace file set.
+- **Brain (init):** See [brain/README.md](brain/README.md) for running the Jarvis-style onboarding (in-repo script or external) and syncing workspace files.
+- **Muscles (system architect):** See [muscles/README.md](muscles/README.md) for mapping AI models and tools and generating routing/cost architecture (run after Brain).
+- **Bones (codebase intelligence):** See [bones/README.md](bones/README.md) for mapping every repo and producing skills/ plus TOOLS, AGENTS, MEMORY, HEARTBEAT (run after Brain, ideally after Muscles).
+- **DNA (behavioral architect):** See [dna/README.md](dna/README.md) for defining how the AI thinks, decides, and learns (run after Brain/Muscles/Bones).
+- **Soul (personality architect):** See [soul/README.md](soul/README.md) for defining how the AI feels to interact with (run after Brain/Muscles/Bones/DNA).
+- **Eyes (activation architect):** See [eyes/README.md](eyes/README.md) for defining what the AI watches for and acts on without being asked (run after Brain/Muscles/Bones/DNA/Soul).
+- **Heartbeat (evolution architect):** See [heartbeat/README.md](heartbeat/README.md) for defining how the AI grows and evolves over time (run after Brain/Muscles/Bones/DNA/Soul/Eyes).
+- **Nerves (context efficiency architect):** See [nerves/README.md](nerves/README.md) for auditing token usage and defining context guardrails (run after Brain/…/Heartbeat).
 
 ## Why OpenClaw?
 
@@ -85,6 +95,15 @@ VINCE (ElizaOS)
                           └─────────────────────┘
 ```
 
+## Sync (workspace files)
+
+Brain output and operator profile files can live in `openclaw-agents/workspace/` or `knowledge/teammate/`. Keep them in sync so VINCE (teammate provider) and OpenClaw CLI use the same profile.
+
+- **To OpenClaw CLI:** Copy or symlink `openclaw-agents/workspace/*.md` or `knowledge/teammate/*.md` to `~/.openclaw/workspace/`.
+- **From OpenClaw:** If you ran OpenClaw’s own onboarding, copy `~/.openclaw/workspace/*.md` into this repo (`workspace/` or `knowledge/teammate/`).
+
+Details: [ARCHITECTURE.md](ARCHITECTURE.md#sync).
+
 ## Requirements
 
 - **OpenClaw gateway running:** `openclaw gateway start`
@@ -95,12 +114,47 @@ VINCE (ElizaOS)
 
 ```
 openclaw-agents/
+├── ARCHITECTURE.md     # 8 pillars + workspace set + sync
+├── README.md           # This file
+├── brain/
+│   ├── BRAIN_PROMPT.md # Full Brain (Jarvis init) prompt
+│   ├── README.md       # How to run Brain (script + external)
+│   └── run-brain.ts    # Conversation runner → workspace files
+├── muscles/
+│   ├── MUSCLES_PROMPT.md # Full Muscles (system architect) prompt
+│   ├── README.md         # How to run Muscles (after Brain)
+│   └── run-muscles.ts    # Conversation runner → TOOLS, AGENTS, MEMORY, HEARTBEAT
+├── bones/
+│   ├── BONES_PROMPT.md   # Full Bones (codebase intelligence) prompt
+│   ├── README.md         # How to run Bones (after Brain/Muscles)
+│   └── run-bones.ts      # Conversation runner → skills/ + TOOLS, AGENTS, MEMORY, HEARTBEAT
+├── dna/
+│   ├── DNA_PROMPT.md     # Full DNA (behavioral architect) prompt
+│   ├── README.md         # How to run DNA (after Brain/Muscles/Bones)
+│   └── run-dna.ts        # Conversation runner → AGENTS, MEMORY, workspace/memory/
+├── soul/
+│   ├── SOUL_PROMPT.md    # Full Soul (personality architect) prompt
+│   ├── README.md         # How to run Soul (after Brain/Muscles/Bones/DNA)
+│   └── run-soul.ts       # Conversation runner → SOUL.md, IDENTITY.md
+├── eyes/
+│   ├── EYES_PROMPT.md    # Full Eyes (activation architect) prompt
+│   ├── README.md         # How to run Eyes (after Brain/.../Soul)
+│   └── run-eyes.ts       # Conversation runner → HEARTBEAT.md, BOOT.md, AGENTS.md
+├── heartbeat/
+│   ├── HEARTBEAT_PROMPT.md # Full Heartbeat (evolution architect) prompt
+│   ├── README.md           # How to run Heartbeat (after Brain/.../Eyes)
+│   └── run-heartbeat.ts    # Conversation runner → HEARTBEAT, AGENTS, MEMORY, workspace/memory/
+├── nerves/
+│   ├── NERVES_PROMPT.md    # Full Nerves (context efficiency architect) prompt
+│   ├── README.md           # How to run Nerves (after Brain/.../Heartbeat)
+│   └── run-nerves.ts       # Conversation runner + workspace audit → CONTEXT_MANAGEMENT, AGENTS, HEARTBEAT
+├── workspace/          # Brain + Muscles + Bones + DNA + Soul + Eyes + Heartbeat + Nerves (USER, SOUL, AGENTS, TOOLS, HEARTBEAT, BOOT, CONTEXT_MANAGEMENT, skills/, memory/, etc.)
 ├── alpha-research.md   # Agent spec
 ├── market-data.md      # Agent spec
 ├── onchain.md          # Agent spec
 ├── news.md             # Agent spec
 ├── orchestrator.js     # Spawns and merges
-└── README.md           # This file
+└── last-briefing.md    # Merged briefing from orchestrator
 ```
 
 ## Future Enhancements

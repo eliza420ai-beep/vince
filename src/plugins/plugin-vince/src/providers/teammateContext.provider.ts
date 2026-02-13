@@ -9,6 +9,8 @@
  * - USER.md — Who the human is (timezone, preferences, how they work)
  * - SOUL.md — Tone and boundaries for responses
  * - TOOLS.md — External tools and workflows
+ * - AGENTS.md — Optional; operating rules, autonomy, boundaries (OpenClaw parity)
+ * - HEARTBEAT.md — Optional; goals, review rhythm, active projects (OpenClaw parity)
  * - MEMORY/*.md — Optional daily logs (most recent first)
  *
  * IDENTITY.md is not loaded here; agent identity is defined by Character
@@ -22,8 +24,14 @@ import * as fs from "fs";
 import * as path from "path";
 
 const TEAMMATE_DIR = "teammate";
-/** USER, SOUL, TOOLS only. Identity = Character in ElizaOS. */
-const TEAMMATE_FILES = ["USER.md", "SOUL.md", "TOOLS.md"] as const;
+/** USER, SOUL, TOOLS, and optional AGENTS/HEARTBEAT. Identity = Character in ElizaOS. */
+const TEAMMATE_FILES = [
+  "USER.md",
+  "SOUL.md",
+  "TOOLS.md",
+  "AGENTS.md",
+  "HEARTBEAT.md",
+] as const;
 const MEMORY_DIR = "MEMORY";
 const LONG_TERM_FILENAME = "LONG-TERM.md";
 const MAX_DAILY_MEMORY_FILES = 2;
@@ -102,7 +110,7 @@ export const teammateContextProvider: Provider = {
     parts.push(
       "---",
       "## TEAMMATE CONTEXT (loaded every session)",
-      "USER/SOUL/TOOLS/MEMORY below — use this to behave like a teammate who knows the user, not a generic chatbot.",
+      "USER/SOUL/TOOLS/AGENTS/HEARTBEAT/MEMORY below — use this to behave like a teammate who knows the user, not a generic chatbot.",
       "---",
       "",
     );

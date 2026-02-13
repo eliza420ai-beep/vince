@@ -1,0 +1,36 @@
+# OpenClaw 8-Pillar Architecture (VINCE mapping)
+
+This doc maps the OpenClaw model (Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, Nerves) to what lives in VINCE and in this directory.
+
+| Pillar | Role | In VINCE / openclaw-agents |
+|--------|------|----------------------------|
+| **Brain** | Maps the operator | Brain prompt + runner → workspace files (`brain/BRAIN_PROMPT.md`, `brain/run-brain.ts`, output in `workspace/`) |
+| **Muscles (discovery)** | AI system architect | `muscles/MUSCLES_PROMPT.md` + `run-muscles.ts` → TOOLS, AGENTS, MEMORY, HEARTBEAT (model inventory, routing, cost, coordination) |
+| **Muscles (execution)** | Routes AI models | `orchestrator.js` + research agents (alpha, market, onchain, news) |
+| **Bones** | Ingests codebases | `bones/BONES_PROMPT.md` + `run-bones.ts` → `workspace/skills/` (per-repo SKILL.md + codebases index) + TOOLS, AGENTS, MEMORY, HEARTBEAT |
+| **DNA** | Behavioral architect | `dna/DNA_PROMPT.md` + `run-dna.ts` → AGENTS.md, MEMORY.md, workspace/memory/ (decision protocols, risk framework, security config, escalation, uncertainty, autonomy, memory architecture, daily log template) |
+| **Soul** | Personality architect | `soul/SOUL_PROMPT.md` + `run-soul.ts` → SOUL.md, IDENTITY.md (voice, tone, character archetype, emotional texture, humor, context modes, anti-patterns; name, vibe, emoji, self-reference, introductions) |
+| **Eyes** | Activation architect | `eyes/EYES_PROMPT.md` + `run-eyes.ts` → HEARTBEAT.md, BOOT.md, AGENTS.md (monitoring checklist, interval/active hours, boot sequence, triggers, alert thresholds, cron schedule, quiet hours, channel routing, DM policy) |
+| **Heartbeat** | Evolution architect | `heartbeat/HEARTBEAT_PROMPT.md` + `run-heartbeat.ts` → HEARTBEAT.md, AGENTS.md, MEMORY.md, workspace/memory/ (daily rhythm, weekly review, self-improvement, growth metrics, trust escalation; file updates, feedback protocols; curation rhythm, session hygiene, file size limits; daily and weekly review templates) |
+| **Nerves** | Context efficiency architect | `nerves/NERVES_PROMPT.md` + `run-nerves.ts` → CONTEXT_MANAGEMENT.md, AGENTS.md (Context Management section), HEARTBEAT.md (context monitoring checklist); runner injects workspace token audit at start |
+
+## Workspace files (Brain + Muscles + Bones + DNA + Soul + Eyes + Heartbeat + Nerves)
+
+Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, and Nerves all contribute. Brain produces USER, SOUL, IDENTITY and the initial AGENTS/TOOLS/MEMORY/HEARTBEAT. Muscles updates TOOLS, AGENTS, MEMORY, HEARTBEAT with model inventory, routing, and cost. Bones adds `workspace/skills/` (per-repo SKILL.md + codebases index) and merges into TOOLS, AGENTS, MEMORY, HEARTBEAT. DNA updates AGENTS and MEMORY and adds `workspace/memory/` (daily log template). Soul refines SOUL and IDENTITY (Brain may produce initial; Soul deepens). Eyes updates HEARTBEAT and AGENTS and adds BOOT (startup checklist, activation rules). Heartbeat updates HEARTBEAT, AGENTS, and MEMORY and adds/refines `workspace/memory/` (daily log template, weekly review template). Nerves adds **CONTEXT_MANAGEMENT.md** (token audit, context profiles, windowing, budget guardrails, session hygiene) and merges context-management rules into AGENTS and HEARTBEAT. All live under `openclaw-agents/workspace/` (and optionally sync to `knowledge/teammate/` and `~/.openclaw/workspace/`):
+
+- **USER.md** — Who the operator is (identity, cognition, resources, people, communication).
+- **SOUL.md** — Voice, personality, tone; how the AI should feel.
+- **IDENTITY.md** — Agent name, vibe, emoji.
+- **AGENTS.md** — Operating rules, autonomy, what needs approval, boundaries; Eyes adds triggers, cron, quiet hours, channel routing, DM policy; Heartbeat adds file updates, feedback protocols; Nerves adds ## Context Management (token budget, overflow escalation, session clear triggers).
+- **TOOLS.md** — Integrations, platforms, sync rules, model preferences.
+- **MEMORY.md** — Persistent knowledge; context that must not be lost; friction history; Heartbeat adds curation rhythm, session hygiene, file size limits, organization.
+- **HEARTBEAT.md** — Goals, review rhythm, active projects, milestones; Eyes adds monitoring checklist, interval/active hours, silent OK; Heartbeat adds daily rhythm, weekly review, self-improvement, growth metrics, trust escalation; Nerves adds context monitoring (check session token usage, archive bloated memory, clear stale sessions) to the checklist.
+- **BOOT.md** — Startup sequence, notifications, initialization (when gateway restarts); added by Eyes.
+- **CONTEXT_MANAGEMENT.md** — Token audit, context profiles, conversation windowing, tool output compression, budget guardrails, session hygiene; added by Nerves.
+
+See [brain/README.md](brain/README.md), [muscles/README.md](muscles/README.md), [bones/README.md](bones/README.md), [dna/README.md](dna/README.md), [soul/README.md](soul/README.md), [eyes/README.md](eyes/README.md), [heartbeat/README.md](heartbeat/README.md), and [nerves/README.md](nerves/README.md) (run Brain first, then Muscles, then Bones, then DNA, then Soul, then Eyes, then Heartbeat, then Nerves). [Sync](#sync) below for keeping workspace files in sync.
+
+## Sync
+
+- **Repo → OpenClaw:** Copy or symlink `openclaw-agents/workspace/*.md` (or `knowledge/teammate/`) to `~/.openclaw/workspace/` so the OpenClaw CLI/app uses the same operator profile.
+- **OpenClaw → Repo:** If you run OpenClaw’s own Brain/onboarding and get files in `~/.openclaw/workspace/`, copy those into `openclaw-agents/workspace/` or `knowledge/teammate/` so VINCE and the repo stay the single source of truth.
