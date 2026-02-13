@@ -10,13 +10,20 @@ import type { IAgentRuntime } from '@elizaos/core';
 
 describe('getMandoContextForX', () => {
   it('returns null when runtime has no news service and no cache', async () => {
-    const runtime = {
-      getService: vi.fn(() => null),
-      getCache: vi.fn(() => Promise.resolve(undefined)),
-    } as unknown as IAgentRuntime;
+    const orig = process.env.MANDO_SHARED_CACHE_PATH;
+    process.env.MANDO_SHARED_CACHE_PATH = '/tmp/does-not-exist-mando-test-12345.json';
+    try {
+      const runtime = {
+        getService: vi.fn(() => null),
+        getCache: vi.fn(() => Promise.resolve(undefined)),
+      } as unknown as IAgentRuntime;
 
-    const result = await getMandoContextForX(runtime);
-    expect(result).toBeNull();
+      const result = await getMandoContextForX(runtime);
+      expect(result).toBeNull();
+    } finally {
+      if (orig !== undefined) process.env.MANDO_SHARED_CACHE_PATH = orig;
+      else delete process.env.MANDO_SHARED_CACHE_PATH;
+    }
   });
 
   it('returns null when news service has no data (hasData false)', async () => {
@@ -78,12 +85,19 @@ describe('getMandoContextForX', () => {
   });
 
   it('returns null when cache has empty articles', async () => {
-    const runtime = {
-      getService: vi.fn(() => null),
-      getCache: vi.fn(() => Promise.resolve({ articles: [] })),
-    } as unknown as IAgentRuntime;
+    const orig = process.env.MANDO_SHARED_CACHE_PATH;
+    process.env.MANDO_SHARED_CACHE_PATH = '/tmp/does-not-exist-mando-test-12345.json';
+    try {
+      const runtime = {
+        getService: vi.fn(() => null),
+        getCache: vi.fn(() => Promise.resolve({ articles: [] })),
+      } as unknown as IAgentRuntime;
 
-    const result = await getMandoContextForX(runtime);
-    expect(result).toBeNull();
+      const result = await getMandoContextForX(runtime);
+      expect(result).toBeNull();
+    } finally {
+      if (orig !== undefined) process.env.MANDO_SHARED_CACHE_PATH = orig;
+      else delete process.env.MANDO_SHARED_CACHE_PATH;
+    }
   });
 });
