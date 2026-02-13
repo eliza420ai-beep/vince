@@ -33,7 +33,7 @@
 
 ---
 
-## 🆕 What's New in v2.2.0
+## 🆕 What's New in v2.4.0
 
 <table>
 <tr>
