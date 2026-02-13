@@ -135,6 +135,10 @@ export const getActiveMarketsAction: Action = {
           data: { markets: [], count: 0 },
           input: inputParams,
         };
+        callback?.({
+          text: result.text,
+          actions: ["GET_ACTIVE_POLYMARKETS"],
+        });
         return result;
       }
 
@@ -242,6 +246,13 @@ export const getActiveMarketsAction: Action = {
       logger.info(
         `[GET_ACTIVE_POLYMARKETS] Successfully fetched ${marketsWithPrices.length} markets`
       );
+
+      // Send final response to user (without this, the UI only shows the intermediate "Fetching..." message)
+      callback?.({
+        text: result.text,
+        actions: ["GET_ACTIVE_POLYMARKETS"],
+      });
+
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
