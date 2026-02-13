@@ -1670,16 +1670,19 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                           ? `$${(Number(vol) / 1e3).toFixed(0)}K`
                           : `$${Number(vol).toFixed(0)}`
                       : "—";
-                  /** Build Polymarket View URL: prefer event slug+id, then event slug, then market slug, else conditionId (may 404). */
+                  /** Build Polymarket View URL: prefer market slug/conditionId (direct to specific market) over event (parent with all outcomes). */
                   const getPolymarketViewUrl = (m: PM): string => {
+                    if (m.slug != null && m.slug !== "") {
+                      return `https://polymarket.com/market/${m.slug}`;
+                    }
+                    if (m.conditionId != null && m.conditionId !== "") {
+                      return `https://polymarket.com/market/${m.conditionId}`;
+                    }
                     if (m.eventSlug != null && m.eventSlug !== "" && m.eventId != null && m.eventId !== "") {
                       return `https://polymarket.com/event/${m.eventSlug}-${m.eventId}`;
                     }
                     if (m.eventSlug != null && m.eventSlug !== "") {
                       return `https://polymarket.com/event/${m.eventSlug}`;
-                    }
-                    if (m.slug != null && m.slug !== "") {
-                      return `https://polymarket.com/market/${m.slug}`;
                     }
                     return `https://polymarket.com/market/${m.conditionId}`;
                   };
