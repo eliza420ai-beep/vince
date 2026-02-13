@@ -14,6 +14,10 @@ import { correlationAction } from "./actions/correlation.action";
 import { reportingAction } from "./actions/reporting.action";
 import { governanceAction } from "./actions/governance.action";
 import { webhookAction } from "./actions/webhook.action";
+import { openclawGatewayStatusAction } from "./actions/gatewayStatus.action";
+import { openclawSetupGuideAction } from "./actions/setupGuide.action";
+import { openclawContextProvider } from "./providers/openclawContext.provider";
+import { honchoContextProvider } from "./providers/honchoContext.provider";
 import { shouldOpenclawPluginBeInContext } from "../matcher";
 
 export const openclawPlugin: Plugin = {
@@ -50,9 +54,11 @@ export const openclawPlugin: Plugin = {
     reportingAction,
     governanceAction,
     webhookAction,
+    openclawGatewayStatusAction,
+    openclawSetupGuideAction,
   ],
   evaluators: [],
-  providers: [],
+  providers: [openclawContextProvider, honchoContextProvider],
 };
 
 export default openclawPlugin;
@@ -73,5 +79,7 @@ export {
   reportingAction,
   governanceAction,
   webhookAction,
+  openclawGatewayStatusAction,
+  openclawSetupGuideAction,
   shouldOpenclawPluginBeInContext,
 };

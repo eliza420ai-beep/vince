@@ -23,6 +23,7 @@ export { kellyCharacter } from './kelly';
 export { sentinelCharacter } from './sentinel';
 export { echoCharacter } from './echo';
 export { oracleCharacter } from './oracle';
+export { clawtermCharacter, clawtermAgent } from './clawterm';
 
 // Type exports
 export type { Character } from '@elizaos/core';

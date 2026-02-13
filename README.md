@@ -142,6 +142,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [**skills/x-research**](skills/x-research/README.md) | X (Twitter) read-only research · sentiment on X · Cursor/Claude skill + VINCE in-chat |
 | [**LOCALSONLY**](LOCALSONLY.md) | Local inference cluster (EXO) · cost and WHY |
+| [**OPENCLAW_VISION**](docs/OPENCLAW_VISION.md) | First use case (fork vince), ClawdBot → OpenClaw lore, Jan 2024 vision |
 
 ---
 
@@ -641,6 +642,8 @@ Eliza gives us memories, embeddings, evaluators, entities. The paper bot uses th
 ### OpenClaw, Pi, and Eliza + Pi patterns
 
 **OpenClaw** is not an agent framework—it's a wrapper around another agent called **Pi** (a coding agent). It started as a relay for agents before becoming Clawd. The killer combo: Pi + Claude Skills. Most of the rest is adapters.
+
+**Our first use case for OpenClaw** has been to fork this repo ([eliza420ai-beep/vince](https://github.com/eliza420ai-beep/vince)) and improve what we've built—420+ commits and counting. When we called it **ClawdBot** (later **MoltBot**), we meant the local Mac Mini–resident piece that bridges ElizaOS and analog reality (smart home, biometrics, playlists); OpenClaw is the product that evolved from that vision. Full story: [OpenClaw vision and lore](docs/OPENCLAW_VISION.md).
 
 | OpenClaw / Pi | ElizaOS |
 |:---|:---|

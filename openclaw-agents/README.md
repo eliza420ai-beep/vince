@@ -22,6 +22,8 @@ This module adds **OpenClaw sub-agents** to VINCE for specialized, isolated rese
 
 **Hybrid approach:** VINCE handles conversation + orchestration. OpenClaw agents do specialized research in parallel.
 
+**Our first deployment:** Improving the forked VINCE repo ([eliza420ai-beep/vince](https://github.com/eliza420ai-beep/vince)); see [OpenClaw vision and lore](../docs/OPENCLAW_VISION.md) for the backstory and Jan 2024 vision.
+
 ### Eliza plugins inside OpenClaw
 
 The **openclaw-adapter** runs Eliza plugins (e.g. plugin-evm, plugin-solana) inside an OpenClaw agent as tools, hooks, and services—the inverse of this repo’s flow (Eliza spawning OpenClaw). Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins. See [openclaw-adapter](https://github.com/elizaOS/openclaw-adapter) and [knowledge/sentinel-docs/OPENCLAW_ADAPTER.md](../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md) for config and limitations.
@@ -36,6 +38,8 @@ The **openclaw-adapter** runs Eliza plugins (e.g. plugin-evm, plugin-solana) ins
 | **news** | News aggregation, sentiment | `node orchestrator.js news` |
 
 ## Quick Start
+
+See **[HOW-TO-RUN.md](HOW-TO-RUN.md)** for a short checklist (orchestrator + 8-pillar flows).
 
 ```bash
 # Install OpenClaw (if not already)
@@ -119,6 +123,7 @@ Details: [ARCHITECTURE.md](ARCHITECTURE.md#sync).
 ```
 openclaw-agents/
 ├── ARCHITECTURE.md     # 8 pillars + workspace set + sync
+├── HOW-TO-RUN.md       # Checklist: orchestrator + 8-pillar flows
 ├── README.md           # This file
 ├── brain/
 │   ├── BRAIN_PROMPT.md # Full Brain (Jarvis init) prompt
@@ -163,8 +168,6 @@ openclaw-agents/
 
 ## Future Enhancements
 
-- [ ] VINCE plugin integration (import orchestrator)
-- [ ] Real-time streaming results
-- [ ] Cost tracking per agent
-- [ ] Caching layer (avoid repeat API calls)
+- [ ] Real-time streaming results from orchestrator
+- [ ] Cost tracking per agent in orchestrator CLI
 - [ ] Fallback to VINCE native tools if OpenClaw fails

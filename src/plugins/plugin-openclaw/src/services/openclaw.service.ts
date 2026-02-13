@@ -12,13 +12,22 @@
 
 import { logger, ModelType, type IAgentRuntime } from "@elizaos/core";
 import { getOrCreateHyperliquidService } from "../../../plugin-vince/src/services/fallbacks";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "fs";
+import { isGatewayConfigured, runAgent as gatewayRunAgent } from "./gatewayClient.service";
 import path from "path";
 import crypto from "crypto";
 import { EventEmitter } from "events";
 
 const CACHE_DIR = path.resolve(process.cwd(), ".openclaw-cache");
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+/** Path to orchestrator-written briefing (openclaw-agents/last-briefing.md). */
+const LAST_BRIEFING_PATH = path.resolve(process.cwd(), "openclaw-agents", "last-briefing.md");
+const USE_LAST_BRIEFING = process.env.OPENCLAW_USE_LAST_BRIEFING === "true" || process.env.OPENCLAW_USE_LAST_BRIEFING === "1";
+const LAST_BRIEFING_MAX_AGE_MS = Number(process.env.OPENCLAW_LAST_BRIEFING_MAX_AGE_MS) || 60 * 60 * 1000; // 1 hour
+const RESEARCH_VIA_GATEWAY =
+  (process.env.OPENCLAW_RESEARCH_VIA_GATEWAY === "true" || process.env.OPENCLAW_RESEARCH_VIA_GATEWAY === "1") &&
+  isGatewayConfigured();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 5;
 
@@ -381,6 +390,7 @@ Write a brief ${sectionGuide} Write the briefing:`;
 
 /**
  * Execute research with real data and LLM prose. Pass runtime for real pipeline.
+ * When OPENCLAW_RESEARCH_VIA_GATEWAY=true and OPENCLAW_GATEWAY_URL is set, runs via OpenClaw Gateway CLI; otherwise in-process.
  */
 export async function executeAgentWithStreaming(
   agent: string,
@@ -391,6 +401,21 @@ export async function executeAgentWithStreaming(
   onUpdate({ type: "start", agent, message: `Starting ${agent} research for ${tokens}...` });
   await sleep(300);
   onUpdate({ type: "progress", agent, message: "Connecting to data sources...", progress: 20 });
+
+  if (RESEARCH_VIA_GATEWAY) {
+    const task = `Research ${agent} for: ${tokens}. Provide a short briefing.`;
+    onUpdate({ type: "progress", agent, message: "Running via OpenClaw Gateway...", progress: 50 });
+    try {
+      const out = await gatewayRunAgent(task, agent);
+      if (out.ok && out.stdout) {
+        const cost = calculateCost(0, Math.ceil(out.stdout.length / 4));
+        onUpdate({ type: "complete", agent, message: "Research complete!", progress: 100, result: out.stdout });
+        return { result: out.stdout, cost };
+      }
+    } catch (err) {
+      logger.warn({ err, agent, tokens }, "[OpenClawService] Gateway research failed, falling back to in-process");
+    }
+  }
 
   if (runtime) {
     // Return disclaimer for alpha/onchain/news before any API calls. We only have Hyperliquid price + 24h change.
@@ -436,6 +461,7 @@ export async function executeAgentWithStreaming(
 
 /**
  * Execute all agents in parallel with streaming. Pass runtime for real data + LLM prose.
+ * When OPENCLAW_RESEARCH_VIA_GATEWAY=true and OPENCLAW_GATEWAY_URL is set, runs via OpenClaw Gateway; otherwise in-process.
  */
 export async function executeAllAgentsWithStreaming(
   tokens: string,
@@ -448,6 +474,25 @@ export async function executeAllAgentsWithStreaming(
   let totalOutput = 0;
 
   onUpdate({ type: "start", agent: "all", message: `Starting parallel research for ${tokens}...` });
+
+  if (RESEARCH_VIA_GATEWAY) {
+    const task = `Research all (alpha, market, onchain, news) for: ${tokens}. Provide a combined briefing.`;
+    onUpdate({ type: "progress", agent: "all", message: "Running via OpenClaw Gateway...", progress: 50 });
+    try {
+      const out = await gatewayRunAgent(task);
+      if (out.ok && out.stdout) {
+        results.alpha = out.stdout;
+        results.market = "— Combined briefing in Alpha section above.";
+        results.onchain = "— Combined briefing in Alpha section above.";
+        results.news = "— Combined briefing in Alpha section above.";
+        const totalCost = calculateCost(0, Math.ceil(out.stdout.length / 4));
+        onUpdate({ type: "complete", agent: "all", message: "All agents complete!", progress: 100 });
+        return { results, totalCost };
+      }
+    } catch (err) {
+      logger.warn({ err, tokens }, "[OpenClawService] Gateway research (all) failed, falling back to in-process");
+    }
+  }
 
   const promises = agents.map(async (agent, index) => {
     await sleep(index * 200);
@@ -499,6 +544,29 @@ export function getCacheStats(): { size: number; dailyCost: string; rateLimits: 
 }
 
 /**
+ * If OPENCLAW_USE_LAST_BRIEFING is set, read openclaw-agents/last-briefing.md when it exists
+ * and was written within OPENCLAW_LAST_BRIEFING_MAX_AGE_MS (default 1 hour).
+ * Used when agent is "all" to optionally return the orchestrator-written briefing.
+ */
+export function getLastBriefingIfFresh(): { content: string; mtime: number } | null {
+  if (!USE_LAST_BRIEFING || !existsSync(LAST_BRIEFING_PATH)) {
+    return null;
+  }
+  try {
+    const stat = statSync(LAST_BRIEFING_PATH);
+    const age = Date.now() - (stat.mtimeMs ?? stat.mtime.getTime());
+    if (age > LAST_BRIEFING_MAX_AGE_MS) {
+      return null;
+    }
+    const content = readFileSync(LAST_BRIEFING_PATH, "utf-8").trim();
+    const mtime = stat.mtimeMs ?? stat.mtime.getTime();
+    return content ? { content, mtime } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Helper: sleep
  */
 function sleep(ms: number): Promise<void> {
@@ -519,5 +587,6 @@ export default {
   executeAllAgentsWithStreaming,
   clearCache,
   getCacheStats,
+  getLastBriefingIfFresh,
   streamEmitter,
 };

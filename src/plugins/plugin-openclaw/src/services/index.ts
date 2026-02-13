@@ -197,3 +197,21 @@ export {
   formatDeliveryHistory,
   testWebhook,
 } from "./webhook.service";
+
+// OpenClaw Gateway client (health, status, optional runAgent)
+export {
+  isGatewayConfigured,
+  getHealth,
+  getStatus,
+  runAgent,
+  type GatewayHealthResult,
+  type GatewayStatusResult,
+  type RunAgentResult,
+} from "./gatewayClient.service";
+export {
+  isHonchoConfigured,
+  getContextForPeer,
+  appendMessages,
+  type GetContextOptions,
+  type AppendMessagesParams,
+} from "./honchoClient.service";

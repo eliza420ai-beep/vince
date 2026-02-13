@@ -14,6 +14,14 @@ export const openclawKeywordPatterns: PluginKeywordPatterns = {
     "market research",
     "on-chain research",
     "crypto research",
+    // Setup / gateway / status
+    "openclaw setup",
+    "install openclaw",
+    "gateway setup",
+    "gateway status",
+    "gateway health",
+    "claw setup",
+    "openclaw status",
     // Focused user intents
     "research token",
     "analyze token",

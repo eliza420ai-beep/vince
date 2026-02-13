@@ -18,7 +18,9 @@ import {
   formatCost,
   executeAgentWithStreaming,
   executeAllAgentsWithStreaming,
+  getLastBriefingIfFresh,
 } from "../services/openclaw.service";
+import { appendMessages as honchoAppendMessages, isHonchoConfigured } from "../services/honchoClient.service";
 
 interface ResearchActionParams {
   tokens?: string;
@@ -101,8 +103,12 @@ V2 Features:
     },
   },
 
-  validate: async (_runtime: IAgentRuntime, _message: Memory, state?: State): Promise<boolean> => {
-    if (!shouldOpenclawPluginBeInContext(state, _message)) {
+  validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
+    if (runtime.character?.name === "Clawterm") {
+      initCache();
+      return true;
+    }
+    if (!shouldOpenclawPluginBeInContext(state, message)) {
       return false;
     }
     initCache();
@@ -120,8 +126,8 @@ V2 Features:
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
       const params = (composedState?.data?.actionParams || options || {}) as ResearchActionParams;
 
-      const agent = (params.agent || "all").toLowerCase();
-      const tokens = params.tokens || params.query || "SOL BTC ETH";
+      const agent = (params.agent || process.env.OPENCLAW_DEFAULT_AGENT || "all").toLowerCase();
+      const tokens = (params.tokens || params.query || process.env.OPENCLAW_DEFAULT_TOKENS || "SOL BTC ETH").trim();
       const userId = message.content?.id || "unknown";
 
       if (!SUPPORTED_AGENTS.includes(agent)) {
@@ -172,6 +178,37 @@ ${cached.result}
           });
         }
         return { text, success: true, data: { agent, tokens, cached: true, cost: cached.cost } };
+      }
+
+      // Optional: use last-briefing.md from orchestrator when agent is "all" (set OPENCLAW_USE_LAST_BRIEFING=true)
+      if (agent === "all") {
+        const lastBriefing = getLastBriefingIfFresh();
+        if (lastBriefing) {
+          const when = new Date(lastBriefing.mtime).toISOString();
+          const desc = AGENT_DESCRIPTIONS[agent];
+          const text = `${desc.icon} **${desc.name}: ${tokens}** 📁 *From last-briefing.md*
+
+${lastBriefing.content}
+
+---
+📁 *From openclaw-agents/last-briefing.md* (generated ${when}) • ${rateLimit.remaining}/5 req/min
+
+📊 **Daily Usage:** ${formatCost(getDailyCost())}`;
+
+          if (callback) {
+            await callback({
+              text,
+              content: { agent, tokens, fromLastBriefing: true, mtime: lastBriefing.mtime },
+              actions: ["RUN_OPENCLAW_RESEARCH"],
+              source: message.content.source,
+            });
+          }
+          return {
+            text,
+            success: true,
+            data: { agent, tokens, fromLastBriefing: true, mtime: lastBriefing.mtime },
+          };
+        }
       }
 
       // Execute with streaming
@@ -238,6 +275,17 @@ ${results.news || "N/A"}
 
       // Cache the result
       cacheResult(agent, tokens, result, cost);
+
+      // Optional: write research summary to Honcho for persistent user representation
+      if (isHonchoConfigured() && message.roomId && message.entityId) {
+        const briefSummary = result.slice(0, 500);
+        await honchoAppendMessages({
+          sessionId: message.roomId,
+          userPeerId: message.entityId,
+          assistantPeerId: runtime.agentId,
+          assistantContent: "Research result: " + briefSummary,
+        });
+      }
 
       // Final response
       const daily = getDailyCost();

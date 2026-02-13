@@ -18,14 +18,13 @@
  *   openclaw gateway start
  */
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { execSync, spawnSync } from "child_process";
+import { readFileSync, writeFileSync } from "fs";
+import { spawnSync } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENTS_DIR = path.resolve(__dirname, ".");
-const DEFAULT_MODEL = "minimax-portal/MiniMax-M2.1";
 
 // Load agent specs
 const AGENT_SPECS = {
@@ -38,7 +37,7 @@ const AGENT_SPECS = {
 /**
  * Run openclaw CLI command
  */
-function runOpenClaw(args: string[]): string {
+function runOpenClaw(args) {
   try {
     const result = spawnSync("openclaw", args, {
       encoding: "utf-8",
@@ -67,38 +66,54 @@ function checkGateway(): boolean {
 }
 
 /**
- * Spawn agent via CLI and get session key
+ * Spawn agent via OpenClaw CLI and return briefing text.
+ * Uses: openclaw agent --agent <name> --message "<spec + query>"
+ * If --agent <name> is not configured, tries without --agent (default agent).
  */
-async function spawnAgent(name: string, query: string): Promise<string> {
-  const spec = AGENT_SPECS[name as keyof typeof AGENT_SPECS];
+function runAgentViaCLI(name, query) {
+  const spec = AGENT_SPECS[name];
   if (!spec) {
     throw new Error(`Unknown agent: ${name}`);
   }
 
-  const prompt = `${spec}
+  const message = `${spec}
 
 QUERY: ${query}
 
 Provide your findings in the format specified above.`;
 
-  console.log(`🚀 Spawning ${name} agent for: ${query}`);
+  const argsWithAgent = ["agent", "--agent", name, "--message", message];
+  const argsDefault = ["agent", "--message", message];
 
-  // Try to spawn via CLI
-  try {
-    // Note: openclaw CLI doesn't have a direct spawn command
-    // This is a limitation - we'd need to use the SDK directly
-    throw new Error("CLI spawn not available");
-  } catch {
-    // Fallback: return placeholder
-    console.log(`⚠️ Direct spawn unavailable via CLI`);
-    return `manual-${name}-${Date.now()}`;
+  for (const args of [argsWithAgent, argsDefault]) {
+    try {
+      const result = spawnSync("openclaw", args, {
+        encoding: "utf-8",
+        timeout: 120000,
+        maxBuffer: 4 * 1024 * 1024,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      if (result.status === 0 && result.stdout && result.stdout.trim()) {
+        return result.stdout.trim();
+      }
+      if (result.status !== 0 && result.stderr && result.stderr.includes("not found")) {
+        continue;
+      }
+      if (result.status === 0) {
+        return result.stdout?.trim() || "(No output from agent)";
+      }
+    } catch (e) {
+      continue;
+    }
   }
+
+  return null;
 }
 
 /**
  * Format VINCE-compatible briefing
  */
-function formatBriefing(results: Record<string, string>): string {
+function formatBriefing(results) {
   return `
 ═══════════════════════════════════════
    VINCE × OPENCLAW BRIEFING
@@ -141,7 +156,7 @@ Then try again.
   }
 
   try {
-    let results: Record<string, string>;
+    let results;
 
     switch (command) {
       case "alpha":
@@ -149,34 +164,32 @@ Then try again.
       case "onchain":
       case "news": {
         const query = args.join(" ") || "general crypto research";
-        try {
-          await spawnAgent(command, query);
-          results = {
-            alpha: command === "alpha" ? "Agent spawned successfully" : "N/A",
-            market: command === "market" ? "Agent spawned successfully" : "N/A",
-            onchain: command === "onchain" ? "Agent spawned successfully" : "N/A",
-            news: command === "news" ? "Agent spawned successfully" : "N/A",
-          };
-        } catch (e) {
-          results = {
-            alpha: command === "alpha" ? `Failed: ${e}` : "N/A",
-            market: command === "market" ? `Failed: ${e}` : "N/A",
-            onchain: command === "onchain" ? `Failed: ${e}` : "N/A",
-            news: command === "news" ? `Failed: ${e}` : "N/A",
-          };
-        }
+        console.log(`🚀 Running ${command} agent for: ${query}`);
+        const out = runAgentViaCLI(command, query);
+        const single = out || `CLI run failed or agent "${command}" not configured. Use VINCE/plugin-openclaw for in-app research, or configure OpenClaw agents (alpha, market, onchain, news).`;
+        results = {
+          alpha: command === "alpha" ? single : "N/A",
+          market: command === "market" ? single : "N/A",
+          onchain: command === "onchain" ? single : "N/A",
+          news: command === "news" ? single : "N/A",
+        };
         break;
       }
 
       case "all": {
         const tokens = args.join(" ") || "SOL BTC ETH";
         console.log(`🕵️ Running all agents for: ${tokens}`);
-        results = {
-          alpha: "Agent spawned - check VINCE for results",
-          market: "Agent spawned - check VINCE for results",
-          onchain: "Agent spawned - check VINCE for results",
-          news: "Agent spawned - check VINCE for results",
+        const agents = ["alpha", "market", "onchain", "news"];
+        const pairs = agents.map((a) => [a, tokens]);
+        const runOne = ([name, q]) => {
+          const text = runAgentViaCLI(name, q);
+          return { name, text: text || `(Agent ${name}: not configured or no output. Use VINCE/plugin-openclaw for full research.)` };
         };
+        const resolved = await Promise.all(pairs.map((p) => Promise.resolve(runOne(p))));
+        results = { alpha: "N/A", market: "N/A", onchain: "N/A", news: "N/A" };
+        for (const { name, text } of resolved) {
+          results[name] = text;
+        }
         break;
       }
 
