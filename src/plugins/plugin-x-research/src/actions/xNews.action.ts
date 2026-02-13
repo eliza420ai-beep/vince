@@ -19,6 +19,22 @@ import { getMandoContextForX } from '../utils/mandoContext';
 import { ALL_TOPICS } from '../constants/topics';
 import { setLastResearch } from '../store/lastResearchStore';
 
+const X_NEWS_SUMMARY_MAX_CHARS = process.env.X_NEWS_SUMMARY_MAX_CHARS
+  ? parseInt(process.env.X_NEWS_SUMMARY_MAX_CHARS, 10)
+  : 420;
+
+/**
+ * Truncate at word boundary so we don't cut mid-word. Appends '...' when truncated.
+ * Exported for unit tests.
+ */
+export function truncateSummary(summary: string, maxChars: number): string {
+  if (!summary || summary.length <= maxChars) return summary;
+  const slice = summary.slice(0, maxChars);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > 0 ? lastSpace : maxChars;
+  return slice.slice(0, cut).trim() + '...';
+}
+
 export const xNewsAction: Action = {
   name: 'X_NEWS',
   description: 'Get crypto news from X/Twitter News API. Grok-generated summaries with relevance scoring.',
@@ -170,7 +186,7 @@ function formatNewsItem(item: {
 
   let output = `**${item.name}**${tickerStr}\n`;
   output += `${sentimentEmoji} ${capitalize(item.sentiment)} | Relevance: ${item.relevanceScore}\n`;
-  output += `${item.summary.slice(0, 150)}${item.summary.length > 150 ? '...' : ''}\n\n`;
+  output += `${truncateSummary(item.summary, X_NEWS_SUMMARY_MAX_CHARS)}\n\n`;
 
   return output;
 }
