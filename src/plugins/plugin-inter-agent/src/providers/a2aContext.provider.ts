@@ -19,6 +19,20 @@ import {
   logger,
 } from "@elizaos/core";
 import { isHumanMessage, buildStandupContext, getAgentRole } from "../standup/standupReports";
+import {
+  isStandupActive,
+  startStandupSession,
+  markAgentReported,
+  hasAgentReported,
+  getNextUnreportedAgent,
+  haveAllAgentsReported,
+  markWrappingUp,
+  isWrappingUp,
+  endStandupSession,
+  isKellyMessage,
+  touchActivity,
+} from "../standup/standupState";
+import { getStandupResponseDelay } from "../standup/standup.constants";
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
@@ -252,44 +266,75 @@ Address ${humanName} directly. Be useful.
       
       // Kelly (facilitator) can always respond to manage the standup
       if (amFacilitator) {
+        // PREVENT SELF-LOOP: If this message is from Kelly, don't respond to yourself
+        if (isKellyMessage(agentName || "")) {
+          logger.info(`[A2A_CONTEXT] Kelly: Ignoring own message to prevent self-loop`);
+          return `[SYSTEM OVERRIDE] This is your own message. Do NOT respond to yourself. Wait for an agent to report.`;
+        }
+        
+        // Update activity timestamp
+        touchActivity();
+        
         // Check if an agent just reported — auto-progress to next
         const reportingAgent = STANDUP_TURN_ORDER.find((a) => 
           agentName?.toLowerCase() === a
         );
         
         if (reportingAgent && looksLikeReport(messageText)) {
-          // An agent just gave their report — Kelly should call the next one
-          const nextAgent = getNextAgentInOrder(reportingAgent);
+          // Check if already reported (prevent duplicates)
+          if (hasAgentReported(reportingAgent)) {
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} already reported — ignoring duplicate`);
+            return `[SYSTEM OVERRIDE] ${reportingAgent.toUpperCase()} already reported. Do NOT call them again. Wait for the current agent or proceed.`;
+          }
           
-          if (nextAgent) {
-            const nextDisplay = nextAgent.charAt(0).toUpperCase() + nextAgent.slice(1);
-            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — auto-calling ${nextAgent}`);
-            return `
-## AUTO-PROGRESS: Call Next Agent
-
-${reportingAgent.toUpperCase()} just gave their report.
-
-**YOUR ONLY JOB RIGHT NOW:** Call the next agent.
-
-Say EXACTLY: "@${nextDisplay}, go."
-
-Nothing else. No commentary. No summary. Just call them.
-`;
-          } else if (isLastStandupAgent(reportingAgent)) {
-            // Last agent done — wrap up
-            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} was last — triggering wrap-up`);
+          // Mark as reported
+          markAgentReported(reportingAgent);
+          
+          // Check if all done
+          if (haveAllAgentsReported()) {
+            markWrappingUp();
+            logger.info(`[A2A_CONTEXT] Kelly: All agents reported — triggering wrap-up`);
             return `
 ## AUTO-WRAP: Generate Day Report
 
-All agents have reported. ${reportingAgent.toUpperCase()} was the last one.
+All 7 agents have reported. Time to synthesize.
 
 **YOUR ONLY JOB RIGHT NOW:** Generate the Day Report.
 
-Use the STANDUP_FACILITATE action with wrap-up intent.
-Keep the TL;DR to ONE sentence.
-Total report under 300 words.
+Say: "Synthesizing..." then generate a CONCISE Day Report.
+- TL;DR = ONE sentence
+- Max 3 actions with @owners
+- Under 200 words total
 `;
           }
+          
+          // Get next unreported agent
+          const nextAgent = getNextUnreportedAgent();
+          
+          if (nextAgent) {
+            const nextDisplay = nextAgent.charAt(0).toUpperCase() + nextAgent.slice(1);
+            const delay = getStandupResponseDelay();
+            
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — calling ${nextAgent} (delay: ${delay}ms)`);
+            
+            return `
+## AUTO-PROGRESS: Call Next Agent
+
+${reportingAgent.toUpperCase()} just reported. 
+
+**YOUR ONLY JOB:** Call the next agent.
+
+Wait ${delay}ms, then say EXACTLY: "@${nextDisplay}, go."
+
+NOTHING ELSE. No "thanks", no "great report", no commentary.
+Just: "@${nextDisplay}, go."
+`;
+          }
+        }
+        
+        // Check if standup is wrapping up
+        if (isWrappingUp()) {
+          return `[SYSTEM OVERRIDE] Standup is already wrapping up. Do not interrupt. Wait for the Day Report to complete.`;
         }
         
         logger.info(`[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`);
@@ -305,6 +350,7 @@ You are Kelly, facilitating the trading standup.
 - After each report, immediately call the next agent
 - After Sentinel, generate the Day Report
 - NO long intros, NO summaries between agents
+- NEVER respond to your own messages
 
 **Transitions are 3 words max:** "@Eliza, go."
 `;
