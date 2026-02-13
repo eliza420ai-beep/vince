@@ -1,0 +1,53 @@
+{
+  "name": "@elizaos/plugin-discovery",
+  "version": "1.0.0",
+  "description": "Capability discovery and monetized capability queries for elizaOS agents",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "elizaos",
+    "plugin",
+    "discovery",
+    "capabilities",
+    "feature-flags"
+  ],
+  "author": "elizaOS",
+  "license": "MIT",
+  "dependencies": {
+    "@elizaos/core": "1.7.2"
+  },
+  "peerDependencies": {
+    "@elizaos/plugin-attract": "1.7.2",
+    "@elizaos/plugin-commerce": "1.7.2",
+    "@elizaos/plugin-skills": "1.7.2"
+  },
+  "peerDependenciesMeta": {
+    "@elizaos/plugin-attract": {
+      "optional": true
+    },
+    "@elizaos/plugin-commerce": {
+      "optional": true
+    },
+    "@elizaos/plugin-skills": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3",
+    "vitest": "^1.0.4"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}
+
