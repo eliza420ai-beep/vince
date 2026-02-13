@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -48,11 +49,11 @@ export const xNewsAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "What's the crypto news on X?" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "📰 **X News | Crypto**\n\n🔴 **HIGH IMPACT**\n\n1. **BTC ETF Sees Record $1.2B Inflows**\n   📈 Bullish | Relevance: 95\n   BlackRock's IBIT leads with $800M. Grayscale outflows slowing.\n\n2. **SEC Delays ETH ETF Decision**\n   😐 Neutral | Relevance: 88\n   Extended to May. Market expected this.\n\n🟡 **MEDIUM IMPACT**\n\n3. **Solana DEX Volume Hits ATH**\n   📈 Bullish | Relevance: 72\n   Pump.fun and Jupiter driving activity.\n\n4. **Hyperliquid Announces Token Launch**\n   📈 Bullish | Relevance: 85\n   $HYPE airdrop details coming.\n\n_Powered by X News API_",
           action: 'X_NEWS',
@@ -78,7 +79,7 @@ export const xNewsAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<ActionResult | void> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -92,13 +93,13 @@ export const xNewsAction: Action = {
         if (fallback) {
           if (message.roomId) setLastResearch(message.roomId, fallback);
           callback({ text: fallback, action: 'X_NEWS' });
-          return true;
+          return { success: true };
         }
         callback({
           text: "📰 **X News**\n\nNo crypto news found. The News API might not have recent stories or is rate limited.",
           action: 'X_NEWS',
         });
-        return true;
+        return { success: true };
       }
 
       // Group by impact level
@@ -138,7 +139,7 @@ export const xNewsAction: Action = {
         action: 'X_NEWS',
       });
 
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('[X_NEWS] Error:', error);
 
@@ -151,7 +152,7 @@ export const xNewsAction: Action = {
       const fallback = await buildNewsFallback(runtime);
       if (fallback) {
         callback({ text: fallback, action: 'X_NEWS' });
-        return true;
+        return { success: true };
       }
 
       if (isNewsApiUnavailable) {
@@ -166,7 +167,7 @@ export const xNewsAction: Action = {
         });
       }
 
-      return false;
+      return { success: false };
     }
   },
 };
