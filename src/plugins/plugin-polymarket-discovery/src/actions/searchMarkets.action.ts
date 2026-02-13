@@ -216,6 +216,10 @@ export const searchMarketsAction: Action = {
           data: { markets: [], count: 0 },
           input: inputParams,
         };
+        callback?.({
+          text: result.text,
+          actions: ["SEARCH_POLYMARKETS"],
+        });
         return result;
       }
 
@@ -320,6 +324,11 @@ export const searchMarketsAction: Action = {
       };
 
       logger.info(`[SEARCH_POLYMARKETS] Successfully found ${marketsWithPrices.length} markets`);
+      // Send the full search results to the user (early callback only sent "Searching...")
+      callback?.({
+        text: result.text,
+        actions: ["SEARCH_POLYMARKETS"],
+      });
       return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
