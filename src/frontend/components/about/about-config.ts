@@ -650,6 +650,103 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       "Say \"What's CT saying about BTC?\" or \"quick pulse\". For content audit or top posts playbook, ask Eliza.",
   },
 
+  Clawterm: {
+    headline: "OpenClaw research terminal.",
+    intro:
+      "Multi-agent crypto research: alpha (X sentiment, KOL), market (prices, volume, funding, OI), onchain (whale flows, DEX), news. Gateway status, setup guide, watchlist, portfolio, alerts, analytics, insights, backtest, correlation, reporting, governance, webhooks. Lead with the outcome. Benefit-led, no AI-slop. In-process or via Gateway when OPENCLAW_GATEWAY_URL is set.",
+    tags: [
+      { label: "OpenClaw Terminal", withSparkles: true },
+      { label: "Research" },
+      { label: "Gateway Status" },
+      { label: "Setup Guide" },
+      { label: "Watchlist & Portfolio" },
+      { label: "Alerts & Analytics" },
+    ],
+    capabilities: [
+      {
+        title: "Run Research",
+        description:
+          "Alpha (X sentiment, KOL), market (prices, volume, funding, OI), onchain (whale flows, DEX), news, or all in parallel. Default tokens from OPENCLAW_DEFAULT_TOKENS or SOL BTC ETH.",
+      },
+      {
+        title: "Gateway Status",
+        description:
+          "Check OpenClaw Gateway health when OPENCLAW_GATEWAY_URL is set. One-line status.",
+      },
+      {
+        title: "Setup Guide",
+        description:
+          "Step-by-step OpenClaw install and configuration.",
+      },
+      {
+        title: "Watchlist, Portfolio, History",
+        description:
+          "Organization: add tokens, track positions, scheduler.",
+      },
+      {
+        title: "Compare, Alerts, Analytics, Insights",
+        description:
+          "Analytics, alerts, advanced metrics, AI signals, market overview.",
+      },
+      {
+        title: "Backtest, Correlation, Reporting",
+        description:
+          "Strategy backtest, cross-token correlation, professional reports, governance, webhooks.",
+      },
+    ],
+    plugins: [
+      {
+        name: "Plugin-OpenClaw",
+        category: "Research",
+        summary:
+          "Multi-agent research (alpha, market, onchain, news), gateway status, setup guide, watchlist, portfolio, alerts, analytics, insights, backtest, correlation, reporting, governance, webhooks.",
+        points: [
+          "RUN_OPENCLAW_RESEARCH: alpha, market, onchain, news, or all.",
+          "OPENCLAW_GATEWAY_STATUS, OPENCLAW_SETUP_GUIDE.",
+          "In-process or via Gateway when OPENCLAW_GATEWAY_URL is set.",
+        ],
+        example: '"research SOL BTC" or "gateway status" or "openclaw setup"',
+      },
+      {
+        name: "Knowledge",
+        category: "Context",
+        summary:
+          "clawdbot, OPENCLAW_VISION, setup-guides, branding.",
+        points: [
+          "ClawdBot curated follows, OpenClaw practical tips, one-click install plans.",
+          "Vision and lore. Benefit-led, no AI-slop.",
+        ],
+        example: "Answers from clawdbot and OpenClaw vision docs.",
+      },
+      {
+        name: "Powered by ElizaOS",
+        category: "AI Engine",
+        summary:
+          "One voice. Lead with the outcome. Run research or status when asked; report the result directly.",
+        points: [],
+        example: "",
+      },
+      {
+        name: "SQL",
+        category: "Database",
+        summary:
+          "Memories and state.",
+        points: [],
+        example: "",
+      },
+      {
+        name: "Bootstrap",
+        category: "Memory",
+        summary:
+          "Remembers.",
+        points: [],
+        example: "",
+      },
+    ],
+    proTip:
+      "Say 'research SOL BTC', 'gateway status', or 'openclaw setup'. For paper bot or VINCE data, ask VINCE.",
+  },
+
   Oracle: {
     headline: "A palantir into what the market thinks.",
     intro:

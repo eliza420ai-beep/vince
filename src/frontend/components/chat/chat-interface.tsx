@@ -243,6 +243,21 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
     { label: "Categories", message: "What categories are available on polymarket?" },
   ],
+  // Clawterm: OpenClaw research terminal — research (alpha, market, onchain, news), gateway status, setup, watchlist, portfolio, alerts, analytics.
+  clawterm: [
+    { label: "What can you do?", message: "What can you do?" },
+    { label: "Research: SOL BTC", message: "research SOL BTC" },
+    { label: "Research: Alpha", message: "run alpha research for ETH" },
+    { label: "Research: Market", message: "run market research for SOL" },
+    { label: "Research: Onchain", message: "run onchain research for BTC" },
+    { label: "Research: News", message: "run news research" },
+    { label: "Gateway Status", message: "gateway status" },
+    { label: "OpenClaw Setup", message: "openclaw setup" },
+    { label: "Watchlist", message: "show my watchlist" },
+    { label: "Portfolio", message: "show my portfolio" },
+    { label: "Alerts", message: "show my alerts" },
+    { label: "Analytics", message: "analytics" },
+  ],
 };
 
 function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
@@ -262,6 +277,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Core dev and ops only. No trading—ask VINCE or Solus.",
   oracle:
     "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
+  clawterm:
+    "OpenClaw research terminal. For paper bot or VINCE data, ask VINCE.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
@@ -482,6 +499,61 @@ const SENTINEL_CATEGORIES: Record<
     icon: TrendingUp,
     promptToAsk: "trading intel",
     description: "Summary of trading context; execution is VINCE/Solus",
+  },
+};
+
+// Clawterm: OpenClaw research terminal — research, gateway status, setup, watchlist, portfolio, alerts, analytics
+const CLAWTERM_CATEGORIES: Record<
+  string,
+  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+> = {
+  research: {
+    title: "Run Research",
+    icon: Search,
+    promptToAsk: "research SOL BTC",
+    description: "Alpha, market, onchain, news—or all in parallel. Default tokens or specify.",
+  },
+  gateway: {
+    title: "Gateway Status",
+    icon: Zap,
+    promptToAsk: "gateway status",
+    description: "Check OpenClaw Gateway health when OPENCLAW_GATEWAY_URL is set.",
+  },
+  setup: {
+    title: "OpenClaw Setup",
+    icon: BookOpen,
+    promptToAsk: "openclaw setup",
+    description: "Step-by-step install and configuration.",
+  },
+  watchlist: {
+    title: "Watchlist",
+    icon: Activity,
+    promptToAsk: "show my watchlist",
+    description: "Add tokens, track positions, manage list.",
+  },
+  portfolio: {
+    title: "Portfolio",
+    icon: Wallet,
+    promptToAsk: "show my portfolio",
+    description: "Positions, balance, history.",
+  },
+  alerts: {
+    title: "Alerts",
+    icon: Shield,
+    promptToAsk: "show my alerts",
+    description: "Price, sentiment, whale, volume triggers.",
+  },
+  analytics: {
+    title: "Analytics",
+    icon: BarChart2,
+    promptToAsk: "analytics",
+    description: "Compare, trends, risk analysis, stats.",
+  },
+  insights: {
+    title: "Insights",
+    icon: Lightbulb,
+    promptToAsk: "insights",
+    description: "AI signals, market overview, screener.",
   },
 };
 
@@ -1765,6 +1837,45 @@ export function ChatInterface({
                           >
                         ).map((key) => {
                           const item = SENTINEL_CATEGORIES[key];
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => handlePromptClick(item.promptToAsk)}
+                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                            >
+                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                <Icon
+                                  className="size-3 md:size-3.5 text-primary shrink-0"
+                                  strokeWidth={2}
+                                />
+                                <span className="text-foreground">
+                                  {item.title}
+                                </span>
+                              </div>
+                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    )}
+                    {/* OpenClaw Research - Clawterm only: research, gateway, setup, watchlist, portfolio, alerts, analytics */}
+                    {(agent.name || "").toLowerCase().trim() === "clawterm" && (
+                    <div className="mb-4">
+                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                        OpenClaw Research
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                        {(
+                          Object.keys(CLAWTERM_CATEGORIES) as Array<
+                            keyof typeof CLAWTERM_CATEGORIES
+                          >
+                        ).map((key) => {
+                          const item = CLAWTERM_CATEGORIES[key];
                           const Icon = item.icon;
                           return (
                             <button

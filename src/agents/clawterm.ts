@@ -74,6 +74,8 @@ export const clawtermCharacter: Character = {
   },
   knowledge: [
     { directory: "setup-guides", shared: true },
+    { directory: "clawdbot", shared: true },
+    { path: "sentinel-docs/OPENCLAW_VISION.md", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
