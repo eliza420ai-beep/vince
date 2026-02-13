@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { Memory, IAgentRuntime, HandlerCallback } from '@elizaos/core';
+import type { Memory, IAgentRuntime, HandlerCallback, State } from '@elizaos/core';
 
 const mockInitXClient = vi.fn();
 const mockGetXAccountsService = vi.fn();
@@ -48,7 +48,17 @@ vi.mock('../utils/mandoContext', () => ({
 }));
 
 function createMemory(text: string, roomId?: string): Memory {
-  return { content: { text }, userId: 'u1', agentId: 'a1', roomId: roomId ?? 'room-1' } as Memory;
+  return {
+    content: { text },
+    entityId: '00000000-0000-0000-0000-000000000001',
+    userId: 'u1',
+    agentId: '00000000-0000-0000-0000-00000000000a',
+    roomId: roomId ?? 'room-1',
+  } as Memory;
+}
+
+function createState(overrides?: Partial<State>): State {
+  return { values: {}, data: {}, text: '', ...overrides };
 }
 
 function createCallback(): HandlerCallback {
@@ -65,7 +75,7 @@ describe('X_ACCOUNT handler', () => {
   it('calls callback with help when no username', async () => {
     const { xAccountAction } = await import('../actions/xAccount.action');
     const callback = createCallback();
-    await xAccountAction.handler!(mockRuntime, createMemory('Tell me about'), {}, {}, callback as HandlerCallback);
+    await xAccountAction.handler!(mockRuntime, createMemory('Tell me about'), createState(), {}, callback as HandlerCallback);
     expect(callback).toHaveBeenCalledWith(
       expect.objectContaining({
         text: expect.stringContaining('username'),
@@ -85,7 +95,7 @@ describe('X_ACCOUNT handler', () => {
     await xAccountAction.handler!(
       mockRuntime,
       createMemory('Who is @nobody123?'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -121,7 +131,7 @@ describe('X_ACCOUNT handler', () => {
     await xAccountAction.handler!(
       mockRuntime,
       createMemory('Who is @trader1?'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -142,7 +152,7 @@ describe('X_MENTIONS handler', () => {
     await xMentionsAction.handler!(
       mockRuntime,
       createMemory('random message'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -164,7 +174,7 @@ describe('X_MENTIONS handler', () => {
     await xMentionsAction.handler!(
       mockRuntime,
       createMemory('What are people saying to @nonexistent?'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -190,7 +200,7 @@ describe('X_MENTIONS handler', () => {
     await xMentionsAction.handler!(
       mockRuntime,
       createMemory('What are people saying to @trader?'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -214,7 +224,7 @@ describe('X_NEWS handler', () => {
     await xNewsAction.handler!(
       mockRuntime,
       createMemory('crypto news'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -243,7 +253,7 @@ describe('X_NEWS handler', () => {
     await xNewsAction.handler!(
       mockRuntime,
       createMemory('x news', 'room-news'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -268,7 +278,7 @@ describe('X_PULSE handler', () => {
     await xPulseAction.handler!(
       mockRuntime,
       createMemory('x pulse'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -311,7 +321,7 @@ describe('X_PULSE handler', () => {
     await xPulseAction.handler!(
       mockRuntime,
       createMemory('x pulse', 'room-pulse'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -331,7 +341,7 @@ describe('X_THREAD handler', () => {
     await xThreadAction.handler!(
       mockRuntime,
       createMemory('summarize thread'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -353,7 +363,7 @@ describe('X_THREAD handler', () => {
     await xThreadAction.handler!(
       mockRuntime,
       createMemory('https://x.com/user/status/1234567890123'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -385,7 +395,7 @@ describe('X_THREAD handler', () => {
     await xThreadAction.handler!(
       mockRuntime,
       createMemory('https://x.com/author/status/1234567890123'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -405,7 +415,7 @@ describe('X_VIBE handler', () => {
     await xVibeAction.handler!(
       mockRuntime,
       createMemory('what is the vibe'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -442,7 +452,7 @@ describe('X_VIBE handler', () => {
     await xVibeAction.handler!(
       mockRuntime,
       createMemory("What's the vibe on ETH?", 'room-vibe'),
-      {},
+      createState(),
       {},
       callback as HandlerCallback
     );
@@ -466,7 +476,7 @@ describe('X_WATCHLIST handler', () => {
     try {
       const { xWatchlistAction } = await import('../actions/xWatchlist.action');
       const callback = createCallback();
-      await xWatchlistAction.handler!(mockRuntime, createMemory('check my watchlist'), {}, {}, callback as HandlerCallback);
+      await xWatchlistAction.handler!(mockRuntime, createMemory('check my watchlist'), createState(), {}, callback as HandlerCallback);
       expect(callback).toHaveBeenCalledWith(
         expect.objectContaining({
           text: expect.stringContaining('empty'),
@@ -501,7 +511,7 @@ describe('X_WATCHLIST handler', () => {
       await xWatchlistAction.handler!(
         mockRuntime,
         createMemory('check my watchlist'),
-        {},
+        createState(),
         {},
         callback as HandlerCallback
       );
