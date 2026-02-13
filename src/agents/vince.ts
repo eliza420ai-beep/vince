@@ -48,8 +48,6 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
-// OpenClaw integration for multi-agent research
-import { openclawPlugin } from "../plugins/plugin-openclaw/src/index.ts";
 
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
@@ -496,7 +494,6 @@ const buildPlugins = (): Plugin[] =>
     // Discord must be in agent.plugins (here) so the runtime actually loads it and registers the send handler. character.plugins alone is not used for loading.
     ...(vinceHasOwnDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
-    openclawPlugin, // Multi-agent research via OpenClaw (alpha, market, on-chain, news)
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
   ] as Plugin[];
 

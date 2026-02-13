@@ -74,6 +74,14 @@ export const AGENT_ROLES: AgentRole[] = [
     standupParticipant: true,
     canAsk: ["Vince", "Solus", "Eliza", "Kelly", "Otaku"],
   },
+  {
+    name: "Clawterm",
+    role: "AI Terminal",
+    lane: "AI futures, OpenClaw, research agents. X + web search for AI insights. HIP-3 AI assets. Gateway status, setup. For crypto prices/positions—Vince.",
+    discordEnvPrefix: "CLAWTERM_DISCORD",
+    standupParticipant: false,
+    canAsk: ["Vince", "Sentinel", "Eliza"],
+  },
 ];
 
 // North Star Deliverable Types

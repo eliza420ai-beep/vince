@@ -2,6 +2,24 @@
 
 Long-form reference aligned with [docs.openclaw.ai](https://docs.openclaw.ai) and this repo. Use this when you need details on OpenClaw product, Gateway, and how this plugin fits.
 
+## Plugin scope
+
+This plugin is **AI-obsessed with OpenClaw as core expertise**: AI 2027, AGI timelines, research agents, alignment—plus setup, gateway status, openclaw-agents (orchestrator + 8 pillars), workspace sync, tips, use cases. Clawterm is the sole agent that loads it.
+
+## AI focus
+
+[AI 2027](https://ai-2027.com/) describes research agents that "scour the Internet to answer your question." OpenClaw + openclaw-agents enable that today: Gateway connects chat apps to AI agents; orchestrator runs alpha, market, onchain, news. Ask for "AI 2027" or "research agents" to get the full framing. Knowledge: `knowledge/clawterm/AI_2027_SUMMARY.md`.
+
+## Clawterm: X + web search, HIP-3 AI, cost narrative
+
+When `X_BEARER_TOKEN` is set, Clawterm loads **plugin-x-research** and can search X for AI takes, AGI debate, research agents ("search X for …", "what are people saying about …"). When `TAVILY_API_KEY` is set, Clawterm loads **plugin-web-search** for web search on AI topics.
+
+Clawterm is **fully aware of HIP-3 AI-related assets on Hyperliquid**: NVDA, GOOGL, META, OPENAI, ANTHROPIC, SNDK (SanDisk), AMD, MAG7, SEMIS, INFOTECH, ROBOT, etc. See `knowledge/clawterm/HIP3_AI_ASSETS.md`. Ask for "HIP-3 AI assets" or "ai perps on Hyperliquid" to get the full list. For live prices, ask Vince.
+
+**Cost narrative:** Cursor + Claude 4.6 ~$5K/month in tokens. OpenClaw on 2 Mac Studios ($10K each) grinds 24/7 to expand knowledge. Vision: Clawterm = AI meets crypto Bloomberg-style terminal. See `knowledge/clawterm/CLAWTERM_VISION.md`.
+
+**DATA INTEGRITY:** Clawterm never invents data. Gateway status, HIP-3 assets, AI 2027, X search, web search—all from actions. For prices, ask Vince.
+
 ## What is OpenClaw?
 
 OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** process owns all messaging surfaces (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, WebChat, etc.). Control-plane clients (CLI, web UI, macOS app) connect over WebSocket (default `127.0.0.1:18789`). Formerly ClawdBot and MoltBot.
@@ -17,7 +35,7 @@ OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** proc
 OpenClaw can talk to you on any configured chat app. Text is supported everywhere; media and reactions vary by channel.
 
 | Channel | Notes |
-|---------|--------|
+|---------|-------|
 | WhatsApp | Baileys, QR pairing |
 | Telegram | Bot API (grammY), groups |
 | Discord | Bot API + Gateway |
@@ -41,7 +59,7 @@ Details: [Gateway architecture](https://docs.openclaw.ai/concepts/architecture),
 
 OpenClaw exposes first-class agent tools: `exec`, `process`, `web_search`, `web_fetch`, `browser`, `canvas`, `nodes`, `message`, `cron`, `gateway`, and session tools.
 
-- **sessions_list / sessions_history / sessions_send / sessions_spawn / session_status** — List sessions, inspect history, send to another session, or spawn a sub-agent (`sessions_spawn`: `task`, optional `label`, `agentId`, `model`, etc.).
+- **sessions_list / sessions_history / sessions_send / sessions_spawn / session_status** — List sessions, inspect history, send to another session, or spawn a sub-agent.
 - **agent (CLI)** — `openclaw agent --agent <id> --message "..."` runs one agent turn via the Gateway.
 
 Details: [Tools](https://docs.openclaw.ai/tools).
@@ -64,7 +82,7 @@ Full reference: [CLI](https://docs.openclaw.ai/cli).
 
 ## ElizaOS adapter
 
-The **openclaw-adapter** runs ElizaOS plugins *inside* an OpenClaw agent. Actions become tools; providers become hooks. Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins (e.g. plugin-evm, plugin-solana).
+The **openclaw-adapter** runs ElizaOS plugins *inside* an OpenClaw agent. Actions become tools; providers become hooks. Use it when an OpenClaw-based agent should call wallet or connector logic implemented as Eliza plugins.
 
 - Repo: https://github.com/elizaOS/openclaw-adapter  
 - In this repo: [knowledge/sentinel-docs/OPENCLAW_ADAPTER.md](../../knowledge/sentinel-docs/OPENCLAW_ADAPTER.md)  
@@ -74,7 +92,7 @@ The **openclaw-adapter** runs ElizaOS plugins *inside* an OpenClaw agent. Action
 OpenClaw uses a workspace (default `~/.openclaw/workspace/`) with files like USER.md, SOUL.md, AGENTS.md, TOOLS.md, HEARTBEAT.md. In this repo:
 
 - **openclaw-agents/workspace/** — Output of Brain, Muscles, Bones, DNA, Soul, Eyes, Heartbeat, Nerves.
-- **knowledge/teammate/** — VINCE’s teammate provider reads USER, SOUL, TOOLS, AGENTS, HEARTBEAT (and optional MEMORY) from here.
+- **knowledge/teammate/** — VINCE's teammate provider reads USER, SOUL, TOOLS, AGENTS, HEARTBEAT from here.
 
 Keep one source of truth and sync the other:
 
@@ -83,18 +101,11 @@ Keep one source of truth and sync the other:
 
 See [openclaw-agents/ARCHITECTURE.md](../../openclaw-agents/ARCHITECTURE.md) and [HOW-TO-RUN](../../openclaw-agents/HOW-TO-RUN.md).
 
-## This plugin: in-process vs Gateway
+**openclaw-agents (orchestrator + 8 pillars):** From repo root: `node openclaw-agents/orchestrator.js alpha SOL BTC`, `market`, `onchain`, `news`, or `all`. Output saved to `openclaw-agents/last-briefing.md`. Fresh MacBook Pro: Node 22+, `curl -fsSL https://openclaw.ai/install.sh | bash`, `openclaw onboard --install-daemon`, `openclaw gateway start`. Forked VINCE repo: `bun install && bun run build && bun start`.
 
-| Mode | When | Behavior |
-|------|------|----------|
-| **In-process (default)** | No `OPENCLAW_GATEWAY_URL` or research not via Gateway | Research runs inside ElizaOS: LLM + Hyperliquid (market). Alpha/onchain/news return an honest disclaimer unless you add data sources (see DATA_SOURCES_ROADMAP.md). |
-| **Via Gateway** | `OPENCLAW_GATEWAY_URL` set and `OPENCLAW_RESEARCH_VIA_GATEWAY=true` | Plugin can call the Gateway for health/status and optionally run research via `openclaw agent` or Gateway RPC. |
+## This plugin: Gateway status
 
-For in-process research you do not need a running OpenClaw Gateway. For Gateway-backed research you need `openclaw gateway` running and (optionally) agents configured (e.g. alpha, market, onchain, news).
-
-## Optional: Honcho
-
-When `HONCHO_API_KEY` is set, this plugin can inject Honcho memory context (recent conversation and peer representation) and optionally write research summaries to Honcho for persistent user representation. See README Environment table (HONCHO_*).
+When `OPENCLAW_GATEWAY_URL` is set, the plugin uses the OpenClaw Gateway for health/status. Ask for "gateway status" to check connectivity and health. No Gateway is required for the setup guide, tips, use cases, or workspace sync actions.
 
 ## Security
 

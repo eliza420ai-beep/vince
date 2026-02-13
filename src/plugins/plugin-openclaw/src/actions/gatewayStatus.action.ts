@@ -11,7 +11,7 @@ import { getHealth, isGatewayConfigured } from "../services/gatewayClient.servic
 export const openclawGatewayStatusAction: Action = {
   name: "OPENCLAW_GATEWAY_STATUS",
   similes: ["OPENCLAW_STATUS", "GATEWAY_STATUS", "GATEWAY_HEALTH", "OPENCLAW_HEALTH"],
-  description: "Check OpenClaw Gateway health/status. When OPENCLAW_GATEWAY_URL is set, returns one-line status (e.g. Gateway: ok or unreachable). If not set, explains that Gateway URL is optional for in-process research.",
+  description: "Check OpenClaw Gateway health/status. Returns data from OpenClaw Gateway health endpoint when OPENCLAW_GATEWAY_URL is set; otherwise explains that Gateway URL is optional for in-process research.",
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
     const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();

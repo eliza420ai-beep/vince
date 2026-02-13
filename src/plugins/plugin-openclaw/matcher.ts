@@ -2,46 +2,31 @@ import type { Memory, State } from "@elizaos/core";
 import { matchesPluginContext, type PluginKeywordPatterns } from "@/utils/plugin-context-matcher";
 
 /**
- * Keyword patterns for OpenClaw plugin context activation
+ * Keyword patterns for OpenClaw plugin context activation.
+ * AI-obsessed + OpenClaw: AI 2027, AGI, alignment, research agents, setup, gateway.
  */
 export const openclawKeywordPatterns: PluginKeywordPatterns = {
   keywords: [
-    // Brand / explicit references
-    "openclaw",
-    "open claw",
-    "research agent",
-    "alpha research",
-    "market research",
-    "on-chain research",
-    "crypto research",
-    // Setup / gateway / status
-    "openclaw setup",
-    "install openclaw",
-    "gateway setup",
-    "gateway status",
-    "gateway health",
-    "claw setup",
-    "openclaw status",
-    // Focused user intents
-    "research token",
-    "analyze token",
-    "market sentiment",
-    "KOL sentiment",
-    "whale activity",
-    "smart money",
-    "DEX liquidity",
-    "funding rate",
-    "open interest",
-    "crypto news",
-    "token news",
+    "openclaw", "open claw", "claw",
+    "openclaw setup", "install openclaw", "gateway setup", "gateway status", "gateway health",
+    "claw setup", "openclaw status", "openclaw-agents",
+    "clawterm", "clawdbot", "moltbot",
+    "ai 2027", "ai-2027", "agi", "superhuman ai", "takeoff", "alignment", "misalignment",
+    "research agent", "coding agent", "openbrain", "agent-1", "neuralese", "ida",
+    "kokotajlo", "scott alexander", "ai timeline", "ai scenario",
+    "nvda", "googl", "meta", "openai", "anthropic", "sndk", "sandisk", "amd",
+    "mag7", "semis", "infotech", "robot", "spacex", "pltr", "msft", "aapl",
+    "orcl", "intc", "mu",
+    "hip3 ai", "hyperliquid ai", "ai perps", "ai assets",
   ],
   regexPatterns: [
-    /(?:research|analyze)\s+(?:SOL|BTC|ETH|alpha|market)/i,
-    /(?:alpha|market|on-chain|whale)\s+(?:research|analysis|report)/i,
-    /(?:KOL|whale|smart\s+money)\s+(?:activity|tracking|flow)/i,
-    /(?:funding|open\s+interest)\s+(?:rate|data)/i,
-    /(?:DEX|liquidity)\s+(?:pool|volume)/i,
+    /openclaw\s+(?:setup|install|gateway|status)/i,
+    /(?:gateway|claw)\s+(?:setup|status|health)/i,
     /@openclaw/i,
+    /ai\s*2027|ai-2027/i,
+    /agi\s*(?:timeline|forecast)?/i,
+    /(?:superhuman|research)\s*(?:ai|agent)/i,
+    /hip3\s*ai|hyperliquid\s*ai|ai\s*perps|ai\s*assets/i,
   ],
 };
 

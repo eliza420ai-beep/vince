@@ -79,7 +79,7 @@ export const openclawSetupGuideAction: Action = {
   name: "OPENCLAW_SETUP_GUIDE",
   similes: ["OPENCLAW_GUIDE", "OPENCLAW_SETUP", "OPENCLAW_INSTALL", "GATEWAY_SETUP"],
   description:
-    "Return a single, coherent OpenClaw setup guide (install, onboard, gateway, security, plugin env, openclaw-agents, adapter). Use when the user asks how to set up OpenClaw, install OpenClaw, or configure the gateway.",
+    "Return OpenClaw setup guide from docs.openclaw.ai and OPENCLAW_ADAPTER.md (install, onboard, gateway, security, plugin env). Use when the user asks how to set up OpenClaw, install OpenClaw, or configure the gateway.",
   validate: async (runtime: IAgentRuntime, message: Memory, state?: State): Promise<boolean> => {
     if (runtime.character?.name === "Clawterm") return true;
     const text = (message?.content?.text ?? "").toLowerCase() + (state?.text ?? "").toLowerCase();

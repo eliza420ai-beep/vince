@@ -27,7 +27,6 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import { vincePluginNoX } from "../plugins/plugin-vince/src/index.ts";
 import { solusPlugin } from "../plugins/plugin-solus/src/index.ts";
 import { coingeckoPlugin } from "../plugins/plugin-coingecko/src/index.ts";
-import { openclawPlugin } from "../plugins/plugin-openclaw/src/index.ts";
 import {
   CORE_ASSETS,
   HIP3_COMMODITIES,
@@ -375,7 +374,6 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
     ...(solusHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     coingeckoPlugin, // Real-time spot prices for Solus Hypersurface context (BTC, ETH, SOL, HYPE)
-    openclawPlugin, // Multi-agent research: alpha, market, on-chain, news for strike ritual / Echo DD
     solusPlugin, // Hypersurface expertise: provider + strike ritual, explain, position assess, optimal strike
     vincePluginNoX, // Same as VINCE but no X API — only VINCE uses X_BEARER_TOKEN to avoid rate-limit conflict
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
