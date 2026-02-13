@@ -10,6 +10,8 @@
  *
  * Configure via env:
  * - A2A_MAX_EXCHANGES: Max responses to same bot in recent history (default: 3)
+ * - A2A_STANDUP_MAX_EXCHANGES: In standup channels, max exchanges (default: 1)
+ * - A2A_STANDUP_CHANNEL_NAMES: Comma-separated substrings for standup rooms (default: standup,daily-standup)
  * - A2A_LOOKBACK_MESSAGES: How many messages to look back (default: 10)
  * - A2A_ENABLED: Set to "false" to disable this guard (default: true)
  */
@@ -20,6 +22,34 @@ import {
   type Evaluator,
   logger,
 } from "@elizaos/core";
+
+/** Check if room is a standup channel by name */
+async function isStandupRoom(
+  runtime: IAgentRuntime,
+  roomId: string,
+  memory: Memory
+): Promise<boolean> {
+  const room = await runtime.getRoom(roomId);
+  const meta = room?.metadata as Record<string, unknown> | undefined;
+  const roomName = (
+    room?.name ??
+    (typeof meta?.channelName === "string" ? meta.channelName : undefined) ??
+    (typeof meta?.name === "string" ? meta.name : undefined) ??
+    (typeof memory.content?.channelName === "string" ? memory.content.channelName : undefined) ??
+    ""
+  ).trim();
+  const channelNames =
+    (runtime.getSetting("A2A_STANDUP_CHANNEL_NAMES") as string) ||
+    process.env.A2A_STANDUP_CHANNEL_NAMES ||
+    "standup,daily-standup";
+  const parts = channelNames
+    .split(",")
+    .map((s: string) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return (
+    roomName.length > 0 && parts.some((part: string) => roomName.toLowerCase().includes(part))
+  );
+}
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
@@ -117,7 +147,10 @@ export const a2aLoopGuardEvaluator: Evaluator = {
       return { shouldRespond: true, reason: "A2A guard disabled" };
     }
 
-    const maxExchanges = parseInt(process.env.A2A_MAX_EXCHANGES || "3", 10);
+    const inStandup = await isStandupRoom(runtime, memory.roomId, memory);
+    const maxExchanges = inStandup
+      ? parseInt(process.env.A2A_STANDUP_MAX_EXCHANGES || "1", 10)
+      : parseInt(process.env.A2A_MAX_EXCHANGES || "3", 10);
     const lookback = parseInt(process.env.A2A_LOOKBACK_MESSAGES || "10", 10);
     const agentId = runtime.agentId;
     const agentName = runtime.character?.name || "Agent";

@@ -1316,14 +1316,7 @@ export class OtakuMessageService implements IMessageService {
       };
     }
 
-    // 3. Platform mentions and replies: always respond
-    const hasPlatformMention = !!(mentionContext?.isMention || mentionContext?.isReply);
-    if (hasPlatformMention) {
-      const mentionType = mentionContext?.isMention ? 'mention' : 'reply';
-      return { shouldRespond: true, skipEvaluation: true, reason: `platform ${mentionType}` };
-    }
-
-    // 4. Standup channel: only single responder (human) or called agent (agent message) may respond
+    // Compute room name and standup status before mention/reply so standup rules win in standup channels
     const meta = room.metadata as Record<string, unknown> | undefined;
     const roomName = (
       room.name ??
@@ -1344,6 +1337,8 @@ export class OtakuMessageService implements IMessageService {
       roomName.length > 0 &&
       standupParts.some((part: string) => roomName.toLowerCase().includes(part));
 
+    // 3. Standup channel: only single responder (human) or called agent (agent message) may respond.
+    //    Run BEFORE platform mention/reply so reply/mention does not override "called by name" in standup.
     if (isStandupRoom) {
       const KNOWN_AGENTS = [
         'vince',
@@ -1387,7 +1382,7 @@ export class OtakuMessageService implements IMessageService {
         };
       }
 
-      // Agent message in standup: only respond if directly called
+      // Agent message in standup: only respond if directly called (reply/mention does not override)
       const messageText = message.content?.text ?? '';
       const nameLower = myName;
       const isDirectlyCalled =
@@ -1415,6 +1410,13 @@ export class OtakuMessageService implements IMessageService {
           ? 'standup channel, agent message, called by name'
           : 'standup channel, agent message, not called',
       };
+    }
+
+    // 4. Platform mentions and replies: always respond (non-standup rooms only)
+    const hasPlatformMention = !!(mentionContext?.isMention || mentionContext?.isReply);
+    if (hasPlatformMention) {
+      const mentionType = mentionContext?.isMention ? 'mention' : 'reply';
+      return { shouldRespond: true, skipEvaluation: true, reason: `platform ${mentionType}` };
     }
 
     // 5. All other cases: let the LLM decide

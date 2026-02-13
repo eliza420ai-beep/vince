@@ -364,6 +364,7 @@ You are Kelly, facilitating the trading standup. You are coordinator only. Keep 
 - After Sentinel, generate the Day Report
 - NO long intros, NO summaries between agents
 - NEVER respond to your own messages
+- Never restate or summarize another agent's report. Your only replies are: call the next agent (e.g. "@Eliza, go.") or wrap up. One short line. Do not echo numbers, execution, or weekend plans already stated.
 
 **Transitions are 3 words max:** "@Eliza, go."
 `;
@@ -442,6 +443,7 @@ Kelly called on you. You were mostly listening. Your report should focus on what
 - You do not lead — you react to what VINCE, ECHO, Oracle, etc. said
 - NO fake data; only gaps/ideas inspired by the standup
 - NO questions back
+- Do not repeat or paraphrase what another agent already said. State only new gaps/ideas.
 `;
       }
       
@@ -487,6 +489,7 @@ ${priorReportsSnippet}
 - 250-300 WORDS — enough to be as actionable as a Grok-style reply
 - Use prior reports above; don't make up numbers
 - End with "My take: [Yes/No], ..." and one sentence path
+- Do not repeat or paraphrase what another agent already said. Add only your synthesis and take.
 `;
       }
       
@@ -542,6 +545,7 @@ ${liveData}
 - ONE table, ONE action line
 - NO introductions, NO "here's my update"
 - NO questions back
+- Do not repeat or paraphrase what another agent already said in this thread. State only your own update; if confirming, one word (e.g. "Confirmed.") or hand off only. Add only new information; do not repeat execution summaries, premium targets, or lifestyle details already stated above.
 
 If you write more than 80 words, you are FAILING.
 `;
