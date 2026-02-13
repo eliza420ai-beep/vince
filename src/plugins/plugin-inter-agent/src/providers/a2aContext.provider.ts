@@ -18,7 +18,28 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
-import { isHumanMessage, buildStandupContext, getAgentRole } from "../standup/standupReports";
+import { isHumanMessage, buildStandupContext, getAgentRole, AGENT_ROLES, type AgentName } from "../standup/standupReports";
+import {
+  isStandupActive,
+  startStandupSession,
+  markAgentReported,
+  hasAgentReported,
+  getNextUnreportedAgent,
+  haveAllAgentsReported,
+  markWrappingUp,
+  isWrappingUp,
+  endStandupSession,
+  isKellyMessage,
+  touchActivity,
+  getSessionStats,
+} from "../standup/standupState";
+import { getStandupResponseDelay } from "../standup/standup.constants";
+import {
+  getProgressionMessage,
+  checkStandupHealth,
+  getAgentDisplayName,
+} from "../standup/standupOrchestrator";
+import { fetchAgentData } from "../standup/standupDataFetcher";
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
@@ -40,6 +61,27 @@ const STANDUP_TURN_ORDER = [
   "sentinel", // System health
   // Kelly wraps up
 ];
+
+/** Get next agent in standup order */
+function getNextAgentInOrder(currentAgent: string): string | null {
+  const idx = STANDUP_TURN_ORDER.indexOf(currentAgent.toLowerCase());
+  if (idx === -1 || idx === STANDUP_TURN_ORDER.length - 1) {
+    return null;
+  }
+  return STANDUP_TURN_ORDER[idx + 1];
+}
+
+/** Check if agent is the last in standup */
+function isLastStandupAgent(agentName: string): boolean {
+  return agentName.toLowerCase() === STANDUP_TURN_ORDER[STANDUP_TURN_ORDER.length - 1];
+}
+
+/** Check if message looks like a standup report */
+function looksLikeReport(text: string): boolean {
+  const lower = text.toLowerCase();
+  const indicators = ["##", "|", "signal", "bull", "bear", "action", "btc", "sol"];
+  return indicators.filter((i) => lower.includes(i)).length >= 2;
+}
 
 /**
  * Check if this agent is being directly called/mentioned in the message.
@@ -231,24 +273,99 @@ Address ${humanName} directly. Be useful.
       
       // Kelly (facilitator) can always respond to manage the standup
       if (amFacilitator) {
+        // PREVENT SELF-LOOP: If this message is from Kelly, don't respond to yourself
+        if (isKellyMessage(agentName || "")) {
+          logger.info(`[A2A_CONTEXT] Kelly: Ignoring own message to prevent self-loop`);
+          return `[SYSTEM OVERRIDE] This is your own message. Do NOT respond to yourself. Wait for an agent to report.`;
+        }
+        
+        // Update activity timestamp
+        touchActivity();
+        
+        // Check if an agent just reported — auto-progress to next
+        const reportingAgent = STANDUP_TURN_ORDER.find((a) => 
+          agentName?.toLowerCase() === a
+        );
+        
+        if (reportingAgent && looksLikeReport(messageText)) {
+          // Check if already reported (prevent duplicates)
+          if (hasAgentReported(reportingAgent)) {
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} already reported — ignoring duplicate`);
+            return `[SYSTEM OVERRIDE] ${reportingAgent.toUpperCase()} already reported. Do NOT call them again. Wait for the current agent or proceed.`;
+          }
+          
+          // Mark as reported
+          markAgentReported(reportingAgent);
+          
+          // Check if all done
+          if (haveAllAgentsReported()) {
+            markWrappingUp();
+            logger.info(`[A2A_CONTEXT] Kelly: All agents reported — triggering wrap-up`);
+            return `
+## AUTO-WRAP: Generate Day Report
+
+All 7 agents have reported. Time to synthesize.
+
+**YOUR ONLY JOB RIGHT NOW:** Generate the Day Report.
+
+Say: "Synthesizing..." then generate a CONCISE Day Report.
+- TL;DR = ONE sentence
+- Max 3 actions with @owners
+- Under 200 words total
+`;
+          }
+          
+          // Use orchestrator for actual delay + next agent
+          const progression = await getProgressionMessage();
+          
+          if (progression.action === "call_next" && progression.nextAgent) {
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — progression: ${progression.message}`);
+            
+            return `
+## AUTO-PROGRESS: Call Next Agent
+
+${reportingAgent.toUpperCase()} just reported. 
+
+**YOUR ONLY RESPONSE:** "${progression.message}"
+
+Copy that EXACTLY. Nothing else.
+`;
+          }
+          
+          if (progression.action === "skip" && progression.nextAgent) {
+            logger.warn(`[A2A_CONTEXT] Kelly: Skipping stuck agent`);
+            
+            return `
+## SKIP: Agent Timed Out
+
+**YOUR ONLY RESPONSE:** "${progression.message}"
+
+Copy that EXACTLY. The timed-out agent will not report today.
+`;
+          }
+        }
+        
+        // Check if standup is wrapping up
+        if (isWrappingUp()) {
+          return `[SYSTEM OVERRIDE] Standup is already wrapping up. Do not interrupt. Wait for the Day Report to complete.`;
+        }
+        
         logger.info(`[A2A_CONTEXT] ${myName}: Facilitator in standup — may respond`);
         return `
 ## Standup Facilitator Mode
 
 You are Kelly, facilitating the trading standup.
 
-**Your job:**
-- Call on agents ONE AT A TIME (use @AgentName)
-- Keep things moving — if an agent rambles, cut them off
-- After all agents report, synthesize into the Day Report
-- Be BRIEF in transitions: "Thanks VINCE. @Eliza, you're up."
-
 **Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Wrap-up
 
-**Do NOT:**
-- Give long introductions
-- Repeat what agents said
-- Ask open-ended questions to all agents at once
+**Rules:**
+- Call agents ONE AT A TIME: "@AgentName, go."
+- After each report, immediately call the next agent
+- After Sentinel, generate the Day Report
+- NO long intros, NO summaries between agents
+- NEVER respond to your own messages
+
+**Transitions are 3 words max:** "@Eliza, go."
 `;
       }
       
@@ -265,26 +382,81 @@ Action: IGNORE. Do not reply until it's your turn.`;
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
+      
+      // Check if this agent is under construction
+      const roleKey = Object.keys(AGENT_ROLES).find(
+        (k) => k.toLowerCase() === myNameLower
+      ) as AgentName | undefined;
+      const isUnderConstruction = roleKey ? (AGENT_ROLES[roleKey] as { isUnderConstruction?: boolean }).isUnderConstruction : false;
+      
+      // Under construction agents give minimal status update
+      if (isUnderConstruction) {
+        logger.info(`[A2A_CONTEXT] ${myName}: Under construction — minimal response`);
+        
+        // Fetch the status message
+        let statusData = "";
+        try {
+          const data = await fetchAgentData(runtime, myName);
+          if (data) {
+            statusData = data;
+          }
+        } catch (err) {
+          logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+        }
+        
+        return `
+## 🚧 YOUR TURN — Status Update (Under Construction)
+
+Kelly called on you. You are **under construction** — give a BRIEF status.
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+
+**YOUR RESPONSE (copy exactly):**
+
+${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No action items.*`}
+
+**RULES:**
+- MAX 30 WORDS
+- Just acknowledge you're under construction
+- NO fake data, NO promises
+- DO NOT say "happy to help" or offer to do things you can't do
+`;
+      }
+      
+      // Fetch real data for this agent
+      let liveData = "";
+      try {
+        const data = await fetchAgentData(runtime, myName);
+        if (data) {
+          liveData = `\n\n**📊 LIVE DATA (use this):**\n${data}`;
+        }
+      } catch (err) {
+        logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+      }
+      
       return `
 ## 🎯 YOUR TURN — Standup Report
 
-Kelly called on you. Give your standup update NOW.
+Kelly called on you. Report NOW. Be BRIEF.
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
-**Your focus:** ${role?.focus || "Your area of expertise"}
+${liveData}
 
-**FORMAT (be CONCISE):**
-1. **Data/Status:** Key numbers, 2-3 bullet points max
-2. **Signal:** Bull/Bear/Neutral + confidence (High/Med/Low)
-3. **Action:** What should we do? Be specific.
+**FORMAT (EXACTLY THIS):**
 
-**RULES:**
-- MAX 150 words — no essays
-- Numbers > vibes
-- End with a clear recommendation
-- Do NOT ask questions back — just report
+### ${myName} — ${role?.focus || "Update"}
+[Include the table from LIVE DATA above if available]
 
-After you respond, Kelly will call the next agent.
+**Action:** [ONE specific trade recommendation in 10 words or less]
+
+**HARD RULES:**
+- MAXIMUM 80 WORDS TOTAL
+- Use the LIVE DATA above — don't make up numbers
+- ONE table, ONE action line
+- NO introductions, NO "here's my update"
+- NO questions back
+
+If you write more than 80 words, you are FAILING.
 `;
     }
     

@@ -24,6 +24,7 @@ import { saveDayReport, updateDayReportManifest, getRecentReportsContext } from 
 import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from "../standup/actionItemTracker";
 import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
+import { startStandupSession, endStandupSession, getSessionStats } from "../standup/standupState";
 
 /** 
  * Standup order — focused on trading alpha
@@ -282,9 +283,13 @@ ${validationContext}
           });
         }
 
+        // End the standup session
+        endStandupSession();
+        
         logger.info(`[STANDUP_FACILITATE] Day report saved, ${parsedItems.length} action items tracked`);
       } catch (error) {
         logger.error({ error }, "[STANDUP_FACILITATE] Failed to generate Day Report");
+        endStandupSession();
         if (callback) {
           await callback({
             text: "Let me summarize: Check the thread above for action items. @Yves, any decisions you need to make?",
@@ -294,7 +299,9 @@ ${validationContext}
         }
       }
     } else {
-      // Kickoff — include schedule info and pending items
+      // Kickoff — start a new standup session
+      startStandupSession(message.roomId);
+      
       const config = getStandupConfig(runtime);
       const pendingContext = getActionItemsContext();
       
