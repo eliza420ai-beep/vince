@@ -31,8 +31,15 @@ import {
   endStandupSession,
   isKellyMessage,
   touchActivity,
+  getSessionStats,
 } from "../standup/standupState";
 import { getStandupResponseDelay } from "../standup/standup.constants";
+import {
+  getProgressionMessage,
+  checkStandupHealth,
+  getAgentDisplayName,
+} from "../standup/standupOrchestrator";
+import { fetchAgentData } from "../standup/standupDataFetcher";
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
@@ -308,26 +315,32 @@ Say: "Synthesizing..." then generate a CONCISE Day Report.
 `;
           }
           
-          // Get next unreported agent
-          const nextAgent = getNextUnreportedAgent();
+          // Use orchestrator for actual delay + next agent
+          const progression = await getProgressionMessage();
           
-          if (nextAgent) {
-            const nextDisplay = nextAgent.charAt(0).toUpperCase() + nextAgent.slice(1);
-            const delay = getStandupResponseDelay();
-            
-            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — calling ${nextAgent} (delay: ${delay}ms)`);
+          if (progression.action === "call_next" && progression.nextAgent) {
+            logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} reported — progression: ${progression.message}`);
             
             return `
 ## AUTO-PROGRESS: Call Next Agent
 
 ${reportingAgent.toUpperCase()} just reported. 
 
-**YOUR ONLY JOB:** Call the next agent.
+**YOUR ONLY RESPONSE:** "${progression.message}"
 
-Wait ${delay}ms, then say EXACTLY: "@${nextDisplay}, go."
+Copy that EXACTLY. Nothing else.
+`;
+          }
+          
+          if (progression.action === "skip" && progression.nextAgent) {
+            logger.warn(`[A2A_CONTEXT] Kelly: Skipping stuck agent`);
+            
+            return `
+## SKIP: Agent Timed Out
 
-NOTHING ELSE. No "thanks", no "great report", no commentary.
-Just: "@${nextDisplay}, go."
+**YOUR ONLY RESPONSE:** "${progression.message}"
+
+Copy that EXACTLY. The timed-out agent will not report today.
 `;
           }
         }
@@ -369,31 +382,41 @@ Action: IGNORE. Do not reply until it's your turn.`;
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
+      
+      // Fetch real data for this agent
+      let liveData = "";
+      try {
+        const data = await fetchAgentData(runtime, myName);
+        if (data) {
+          liveData = `\n\n**📊 LIVE DATA (use this):**\n${data}`;
+        }
+      } catch (err) {
+        logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
+      }
+      
       return `
 ## 🎯 YOUR TURN — Standup Report
 
 Kelly called on you. Report NOW. Be BRIEF.
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
+${liveData}
 
 **FORMAT (EXACTLY THIS):**
 
 ### ${myName} — ${role?.focus || "Update"}
-| Asset | Signal | Note |
-|-------|--------|------|
-| BTC | Bull/Bear/Flat | [5 words max] |
-| SOL | Bull/Bear/Flat | [5 words max] |
+[Include the table from LIVE DATA above if available]
 
 **Action:** [ONE specific trade recommendation in 10 words or less]
 
 **HARD RULES:**
 - MAXIMUM 80 WORDS TOTAL
+- Use the LIVE DATA above — don't make up numbers
 - ONE table, ONE action line
 - NO introductions, NO "here's my update"
 - NO questions back
-- NO "let me explain" — just DATA
 
-If you write more than 80 words, you are FAILING at your job.
+If you write more than 80 words, you are FAILING.
 `;
     }
     
