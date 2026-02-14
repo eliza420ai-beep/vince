@@ -444,38 +444,6 @@ export class OtakuMessageService implements IMessageService {
         };
       }
 
-      // ── Fast-exit for standup channels: only the facilitator agent processes ──
-      // This prevents PGLite deadlocks from 7+ agents all doing concurrent
-      // ensureAllAgentsInRoom / createMemory writes on the same message.
-      {
-        const standupChannelParts = (process.env.A2A_STANDUP_CHANNEL_NAMES ?? 'standup,daily-standup')
-          .split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean);
-        const room = await runtime.getRoom(message.roomId);
-        const roomNameLower = (room?.name ?? '').toLowerCase();
-        const isStandup = standupChannelParts.some((p: string) => roomNameLower.includes(p));
-        if (isStandup) {
-          const facilitator = (
-            process.env.A2A_STANDUP_SINGLE_RESPONDER?.trim() ||
-            process.env.STANDUP_COORDINATOR_AGENT?.trim() ||
-            'Kelly'
-          ).toLowerCase();
-          const myName = (runtime.character?.name ?? '').toLowerCase();
-          if (myName !== facilitator) {
-            runtime.logger.info(
-              `[OtakuMessageService] Standup fast-exit: ${runtime.character?.name} skipping (only ${facilitator} responds)`
-            );
-            await this.emitRunEnded(runtime, runId, message, startTime, 'standup-skip');
-            return {
-              didRespond: false,
-              responseContent: null,
-              responseMessages: [],
-              state: { values: {}, data: {}, text: '' } as State,
-              mode: 'none',
-            };
-          }
-        }
-      }
-
       runtime.logger.debug(
         `[OtakuMessageService] Processing message: ${truncateToCompleteSentence(message.content.text || '', 50)}...`
       );

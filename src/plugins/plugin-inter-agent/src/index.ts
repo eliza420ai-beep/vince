@@ -15,7 +15,7 @@
  * Set shouldIgnoreBotMessages: false on agents that should respond to other bots.
  */
 
-import type { Plugin } from "@elizaos/core";
+import type { Plugin, UUID } from "@elizaos/core";
 import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
 import { dailyReportAction } from "./actions/dailyReport.action";
@@ -23,6 +23,56 @@ import { standupFacilitatorAction } from "./actions/standupFacilitator.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
+
+/** Standup channel name substrings (from env or default) */
+function getStandupChannelParts(): string[] {
+  return (process.env.A2A_STANDUP_CHANNEL_NAMES ?? "standup,daily-standup")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/** Standup facilitator agent name (lowercase) */
+function getFacilitatorName(): string {
+  return (
+    process.env.A2A_STANDUP_SINGLE_RESPONDER?.trim() ||
+    process.env.STANDUP_COORDINATOR_AGENT?.trim() ||
+    "Kelly"
+  ).toLowerCase();
+}
+
+/**
+ * Mute standup rooms for non-facilitator agents so the bootstrap MUTED check
+ * short-circuits processing. This prevents PGLite deadlocks from 7+ agents
+ * all doing heavy DB writes concurrently on the same Discord message.
+ * Runs 5s after init (deferred so rooms have been synced by Discord plugin).
+ */
+async function muteStandupRoomsForNonFacilitator(runtime: { character?: { name?: string }; agentId: string; getRooms?: (worldId: UUID) => Promise<{ id: UUID; name?: string }[]>; getAllWorlds?: () => Promise<{ id: UUID }[]>; setParticipantUserState?: (roomId: UUID, entityId: UUID, state: "MUTED" | "FOLLOWED" | null) => Promise<void>; getParticipantUserState?: (roomId: UUID, entityId: UUID) => Promise<"MUTED" | "FOLLOWED" | null> }): Promise<void> {
+  const myName = (runtime.character?.name ?? "").toLowerCase();
+  const facilitator = getFacilitatorName();
+  if (myName === facilitator) return; // Facilitator must NOT be muted
+
+  const channelParts = getStandupChannelParts();
+  if (!runtime.getAllWorlds || !runtime.getRooms || !runtime.setParticipantUserState) return;
+
+  try {
+    const worlds = await runtime.getAllWorlds();
+    for (const world of worlds) {
+      const rooms = await runtime.getRooms(world.id);
+      for (const room of rooms) {
+        const roomNameLower = (room.name ?? "").toLowerCase();
+        const isStandup = channelParts.some((p) => roomNameLower.includes(p));
+        if (isStandup) {
+          const currentState = await runtime.getParticipantUserState?.(room.id, runtime.agentId as UUID);
+          if (currentState !== "MUTED") {
+            await runtime.setParticipantUserState(room.id, runtime.agentId as UUID, "MUTED");
+            logger.info(`[ONE_TEAM] Muted standup room "${room.name}" for ${myName} (only ${facilitator} processes)`);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.debug({ err }, "[ONE_TEAM] muteStandupRooms failed (non-fatal)");
+  }
+}
 
 export const interAgentPlugin: Plugin = {
   name: "plugin-inter-agent",
@@ -46,6 +96,16 @@ export const interAgentPlugin: Plugin = {
           logger.error({ err, agent: runtime.character?.name }, "[ONE_TEAM] registerStandupTask failed");
         });
       });
+    }
+
+    // Mute standup rooms for non-facilitator agents (prevents PGLite deadlock).
+    // Deferred 8s so Discord plugin has time to sync rooms/worlds first.
+    if ((runtime.character?.name ?? "").toLowerCase() !== getFacilitatorName()) {
+      setTimeout(() => {
+        muteStandupRoomsForNonFacilitator(runtime as any).catch((err) => {
+          logger.debug({ err }, "[ONE_TEAM] muteStandupRooms deferred failed");
+        });
+      }, 8000);
     }
   },
 };
