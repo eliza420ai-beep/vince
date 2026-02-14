@@ -12,6 +12,7 @@ import {
   type State,
   type HandlerCallback,
   ModelType,
+  logger,
 } from '@elizaos/core';
 import { getXSearchService } from '../services/xSearch.service';
 import { getXSentimentService } from '../services/xSentiment.service';
@@ -20,6 +21,7 @@ import { TOPIC_BY_ID, ALL_TOPICS } from '../constants/topics';
 import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
 import { getMandoContextForX } from '../utils/mandoContext';
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
 
 export const xVibeAction: Action = {
   name: 'X_VIBE',
@@ -145,51 +147,53 @@ export const xVibeAction: Action = {
 
       const mandoContext = await getMandoContextForX(runtime);
 
-      // Build response
-      const emoji = topicSentiment.direction === 'bullish' ? '📈' :
-                    topicSentiment.direction === 'bearish' ? '📉' :
-                    topicSentiment.direction === 'mixed' ? '🔀' : '😐';
-
-      const scoreStr = topicSentiment.weightedScore > 0 
-        ? `+${topicSentiment.weightedScore}` 
+      const scoreStr = topicSentiment.weightedScore > 0
+        ? `+${topicSentiment.weightedScore}`
         : String(topicSentiment.weightedScore);
+      const dataContextLines = [
+        `Topic: ${detectedTopic.name}`,
+        `Direction: ${capitalize(topicSentiment.direction)} (${scoreStr}) | ${topicSentiment.confidence}% confidence`,
+        `Breakdown: Bullish ${topicSentiment.breakdown.bullishCount}, Bearish ${topicSentiment.breakdown.bearishCount}, Neutral ${topicSentiment.breakdown.neutralCount} tweets`,
+        topicSentiment.whaleAlignment !== 0
+          ? `Whale alignment: ${topicSentiment.whaleAlignment > 0 ? '+' : ''}${topicSentiment.whaleAlignment}`
+          : null,
+        topicSentiment.isContrarian && topicSentiment.contrarianNote ? `Contrarian: ${topicSentiment.contrarianNote}` : null,
+        mandoContext?.vibeCheck ? `Today's news: ${mandoContext.vibeCheck}` : null,
+        `Sample size: ${tweets.length} tweets from the last 24h`,
+      ].filter(Boolean) as string[];
+      const dataContext = dataContextLines.join('\n');
 
-      let response = `📊 **${detectedTopic.name} Vibe Check**\n\n`;
-      if (mandoContext?.vibeCheck) {
-        response += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
-        response += `_(Prices: ask VINCE for current levels.)_\n\n`;
-      }
-      response += `${emoji} ${capitalize(topicSentiment.direction)} (${scoreStr}) | ${topicSentiment.confidence}% confidence\n\n`;
-
-      response += `**Breakdown:**\n`;
-      response += `• Bullish: ${topicSentiment.breakdown.bullishCount} tweets\n`;
-      response += `• Bearish: ${topicSentiment.breakdown.bearishCount} tweets\n`;
-      response += `• Neutral: ${topicSentiment.breakdown.neutralCount} tweets\n\n`;
-
-      if (topicSentiment.whaleAlignment !== 0) {
-        const whaleEmoji = topicSentiment.whaleAlignment > 0 ? '🐋📈' : '🐋📉';
-        response += `**Whale alignment:** ${topicSentiment.whaleAlignment > 0 ? '+' : ''}${topicSentiment.whaleAlignment} ${whaleEmoji}\n\n`;
-      }
-
-      if (topicSentiment.isContrarian && topicSentiment.contrarianNote) {
-        response += `${topicSentiment.contrarianNote}\n\n`;
-      }
-
-      response += `_Based on ${tweets.length} tweets from the last 24h_`;
-
-      // Optional: append LLM-generated themes and takeaway (X_PULSE_LLM_NARRATIVE=true)
-      if (process.env.X_PULSE_LLM_NARRATIVE === 'true') {
-        try {
-          const narrativePrompt = `You are summarizing Crypto Twitter sentiment for a trader. Given this vibe check, add 2-3 short sentences only: first "**Themes:**" (main themes in one line), then "**Takeaway:**" (one actionable takeaway). Do not repeat the data above. Output only the two lines, no preamble.\n\nSummary:\n${response}`;
-          const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt: narrativePrompt });
-          const narrative = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
-          const trimmed = narrative.trim();
-          if (trimmed.length > 0) {
-            response += `\n\n${trimmed}`;
-          }
-        } catch {
-          // Skip narrative on LLM failure
+      const narrative = await generateVibeNarrative(runtime, detectedTopic.name, dataContext);
+      let response: string;
+      if (narrative) {
+        response = `📊 **${detectedTopic.name} Vibe Check**\n\n`;
+        if (mandoContext?.vibeCheck) {
+          response += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
+          response += `_(Prices: ask VINCE for current levels.)_\n\n`;
         }
+        response += narrative + `\n\n_Based on ${tweets.length} tweets from the last 24h_`;
+      } else {
+        const emoji = topicSentiment.direction === 'bullish' ? '📈' :
+                      topicSentiment.direction === 'bearish' ? '📉' :
+                      topicSentiment.direction === 'mixed' ? '🔀' : '😐';
+        response = `📊 **${detectedTopic.name} Vibe Check**\n\n`;
+        if (mandoContext?.vibeCheck) {
+          response += `**Today's news:** ${mandoContext.vibeCheck}\n\n`;
+          response += `_(Prices: ask VINCE for current levels.)_\n\n`;
+        }
+        response += `${emoji} ${capitalize(topicSentiment.direction)} (${scoreStr}) | ${topicSentiment.confidence}% confidence\n\n`;
+        response += `**Breakdown:**\n`;
+        response += `• Bullish: ${topicSentiment.breakdown.bullishCount} tweets\n`;
+        response += `• Bearish: ${topicSentiment.breakdown.bearishCount} tweets\n`;
+        response += `• Neutral: ${topicSentiment.breakdown.neutralCount} tweets\n\n`;
+        if (topicSentiment.whaleAlignment !== 0) {
+          const whaleEmoji = topicSentiment.whaleAlignment > 0 ? '🐋📈' : '🐋📉';
+          response += `**Whale alignment:** ${topicSentiment.whaleAlignment > 0 ? '+' : ''}${topicSentiment.whaleAlignment} ${whaleEmoji}\n\n`;
+        }
+        if (topicSentiment.isContrarian && topicSentiment.contrarianNote) {
+          response += `${topicSentiment.contrarianNote}\n\n`;
+        }
+        response += `_Based on ${tweets.length} tweets from the last 24h_`;
       }
 
       if (process.env.X_RESEARCH_SHOW_COST === 'true') {
@@ -216,6 +220,35 @@ export const xVibeAction: Action = {
     }
   },
 };
+
+async function generateVibeNarrative(
+  runtime: IAgentRuntime,
+  topicName: string,
+  dataContext: string
+): Promise<string | null> {
+  const prompt = `You are ECHO, giving a quick vibe check on Crypto Twitter sentiment for ${topicName}. Below are the data points. Turn them into one short ALOHA-style narrative.
+
+Here is the vibe data:
+
+${dataContext}
+
+Write a short narrative (~100-150 words) that: opens with the read on this topic, weaves in where whales stand and any contrarian signal, and ends with one clear take.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the narrative only (no wrapper — start with the narrative itself):`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = String(response).trim();
+    return text.length > 0 ? text : null;
+  } catch (error) {
+    logger.warn({ err: error }, '[X_VIBE] LLM narrative failed');
+    return null;
+  }
+}
 
 function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);

@@ -12,6 +12,8 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
+  ModelType,
+  logger,
 } from '@elizaos/core';
 import { getXNewsService } from '../services/xNews.service';
 import { getXSearchService } from '../services/xSearch.service';
@@ -19,6 +21,7 @@ import { initXClientFromEnv } from '../services/xClient.service';
 import { getMandoContextForX } from '../utils/mandoContext';
 import { ALL_TOPICS } from '../constants/topics';
 import { setLastResearch } from '../store/lastResearchStore';
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
 
 const X_NEWS_SUMMARY_MAX_CHARS = process.env.X_NEWS_SUMMARY_MAX_CHARS
   ? parseInt(process.env.X_NEWS_SUMMARY_MAX_CHARS, 10)
@@ -107,31 +110,44 @@ export const xNewsAction: Action = {
       const mediumImpact = news.filter(n => n.impactLevel === 'medium');
       const lowImpact = news.filter(n => n.impactLevel === 'low');
 
-      // Build response
-      let response = `📰 **X News | Crypto**\n\n`;
+      const allItems = [
+        ...highImpact.slice(0, 3),
+        ...mediumImpact.slice(0, 3),
+        ...(highImpact.length + mediumImpact.length < 4 ? lowImpact.slice(0, 2) : []),
+      ];
+      const dataContext = allItems
+        .map(
+          (item) =>
+            `[${item.impactLevel.toUpperCase()}] ${item.name} | ${item.sentiment} | Relevance: ${item.relevanceScore}\n${truncateSummary(item.summary, 300)}`
+        )
+        .join('\n\n');
 
-      if (highImpact.length > 0) {
-        response += `🔴 **HIGH IMPACT**\n\n`;
-        for (const item of highImpact.slice(0, 3)) {
-          response += formatNewsItem(item);
+      const narrative = await generateNewsNarrative(runtime, dataContext);
+      let response: string;
+      if (narrative) {
+        response = `📰 **X News | Crypto**\n\n${narrative}\n\n_Powered by X News API_`;
+      } else {
+        response = `📰 **X News | Crypto**\n\n`;
+        if (highImpact.length > 0) {
+          response += `🔴 **HIGH IMPACT**\n\n`;
+          for (const item of highImpact.slice(0, 3)) {
+            response += formatNewsItem(item);
+          }
         }
-      }
-
-      if (mediumImpact.length > 0) {
-        response += `🟡 **MEDIUM IMPACT**\n\n`;
-        for (const item of mediumImpact.slice(0, 3)) {
-          response += formatNewsItem(item);
+        if (mediumImpact.length > 0) {
+          response += `🟡 **MEDIUM IMPACT**\n\n`;
+          for (const item of mediumImpact.slice(0, 3)) {
+            response += formatNewsItem(item);
+          }
         }
-      }
-
-      if (lowImpact.length > 0 && highImpact.length + mediumImpact.length < 4) {
-        response += `🟢 **OTHER**\n\n`;
-        for (const item of lowImpact.slice(0, 2)) {
-          response += formatNewsItem(item);
+        if (lowImpact.length > 0 && highImpact.length + mediumImpact.length < 4) {
+          response += `🟢 **OTHER**\n\n`;
+          for (const item of lowImpact.slice(0, 2)) {
+            response += formatNewsItem(item);
+          }
         }
+        response += `\n_Powered by X News API_`;
       }
-
-      response += `\n_Powered by X News API_`;
 
       if (message.roomId) setLastResearch(message.roomId, response);
       callback({
@@ -171,6 +187,34 @@ export const xNewsAction: Action = {
     }
   },
 };
+
+async function generateNewsNarrative(
+  runtime: IAgentRuntime,
+  dataContext: string
+): Promise<string | null> {
+  const prompt = `You are ECHO, summarizing today's crypto news from X for a trader. Below are the news items (impact, title, sentiment, relevance, summary). Turn them into one short ALOHA-style narrative.
+
+Here are the news items:
+
+${dataContext}
+
+Write a short narrative (~120-180 words) that: leads with the big story, then weaves in other highlights, and ends with one clear take.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the narrative only (no "Here is the news" wrapper — start with the narrative itself):`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = String(response).trim();
+    return text.length > 0 ? text : null;
+  } catch (error) {
+    logger.warn({ err: error }, '[X_NEWS] LLM narrative failed');
+    return null;
+  }
+}
 
 function formatNewsItem(item: { 
   name: string; 

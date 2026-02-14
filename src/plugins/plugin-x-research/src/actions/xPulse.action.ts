@@ -19,6 +19,7 @@ import {
   type State,
   type HandlerCallback,
   ModelType,
+  logger,
 } from '@elizaos/core';
 import { getXSearchService } from '../services/xSearch.service';
 import { getXSentimentService } from '../services/xSentiment.service';
@@ -29,6 +30,7 @@ import { ALL_TOPICS, FOCUS_TICKERS } from '../constants/topics';
 import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
 import { getMandoContextForX } from '../utils/mandoContext';
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
 
 const BREAKING_VELOCITY_THRESHOLD = 100; // 100+ likes/hour = breaking
 
@@ -151,8 +153,8 @@ export const xPulseAction: Action = {
       // Check for volume spikes
       const spikes = await searchService.detectVolumeSpikes();
 
-      // Generate the briefing
-      let briefing = await generateBriefing(runtime, {
+      // Build template (data context for LLM and fallback when narrative fails)
+      const templateOutput = await generateBriefing(runtime, {
         sentiment,
         threads,
         breaking,
@@ -163,6 +165,17 @@ export const xPulseAction: Action = {
         mandoContext,
         emptyTopics: emptyTopics.length > 0 ? emptyTopics : undefined,
       });
+
+      const narrative = await generatePulseNarrative(runtime, templateOutput);
+      let briefing: string;
+      if (narrative) {
+        let prefix = '📊 **X Pulse**\n\n';
+        if (quick) prefix += '_Quick pulse — fewer posts._\n\n';
+        if (qualityOnly) prefix += '_Quality/curated mode — whale & alpha accounts only._\n\n';
+        briefing = prefix + narrative + `\n\n_Based on ${allTweets.length} posts from the last 24h_`;
+      } else {
+        briefing = templateOutput;
+      }
 
       if (process.env.X_RESEARCH_SHOW_COST === 'true') {
         briefing += `\n\n${formatCostFooter(allTweets.length)}`;
@@ -233,10 +246,41 @@ function findBreakingContent(tweets: XTweet[]): XBreakingContent[] {
       reason: `${Math.round(t.computed?.velocity ?? 0)} likes/hour`,
       velocity: t.computed?.velocity ?? 0,
       topic: 'crypto',
-      urgency: (t.computed?.velocity ?? 0) > 500 ? 'high' : 
+      urgency: (t.computed?.velocity ?? 0) > 500 ? 'high' :
                (t.computed?.velocity ?? 0) > 200 ? 'medium' : 'low',
     }))
     .sort((a, b) => b.velocity - a.velocity);
+}
+
+async function generatePulseNarrative(
+  runtime: IAgentRuntime,
+  dataContext: string
+): Promise<string | null> {
+  const prompt = `You are ECHO, summarizing Crypto Twitter sentiment for a trader. Below is the pulse data (overall sentiment, by topic, top threads, breaking content, volume spikes, warnings). Turn it into one short ALOHA-style narrative.
+
+Here is the pulse data:
+
+${dataContext}
+
+Write a single narrative (~150-250 words) that:
+1. Opens with the overall vibe — what is CT saying today? Give your gut take.
+2. Weaves in key themes, standout threads or breaking items, and whale/contrarian signals.
+3. Ends with one clear take — what's the read?
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the narrative only (no "Here is the summary" wrapper — start with the narrative itself):`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = String(response).trim();
+    return text.length > 0 ? text : null;
+  } catch (error) {
+    logger.warn({ err: error }, '[X_PULSE] LLM narrative failed');
+    return null;
+  }
 }
 
 async function generateBriefing(
@@ -339,21 +383,6 @@ async function generateBriefing(
   }
 
   output += `_Based on ${sampleSize} posts from the last 24h_`;
-
-  // Optional: append LLM-generated themes and takeaway (X_PULSE_LLM_NARRATIVE=true)
-  if (process.env.X_PULSE_LLM_NARRATIVE === 'true') {
-    try {
-      const narrativePrompt = `You are summarizing Crypto Twitter sentiment for a trader. Given this CT pulse summary, add 2-3 short sentences only: first "**Themes:**" (main themes in one line), then "**Takeaway:**" (one actionable takeaway). Do not repeat the data above. Output only the two lines, no preamble.\n\nSummary:\n${output}`;
-      const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt: narrativePrompt });
-      const narrative = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
-      const trimmed = narrative.trim();
-      if (trimmed.length > 0) {
-        output += `\n\n${trimmed}`;
-      }
-    } catch {
-      // Skip narrative on LLM failure; template output is still useful
-    }
-  }
 
   return output;
 }
