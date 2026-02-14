@@ -23,6 +23,9 @@ OpenClaw is a **self-hosted gateway** that connects chat apps (WhatsApp, Telegra
 - **Wizard:** https://docs.openclaw.ai/start/wizard  
 - **Gateway runbook:** https://docs.openclaw.ai/gateway  
 - **CLI:** https://docs.openclaw.ai/cli  
+- **Releases:** https://github.com/openclaw/openclaw/releases (latest version, changelog)
+- **ClawIndex:** https://clawindex.org/ (ecosystem directory, verified projects, integrations)
+- **steipete (OpenClaw lead):** https://github.com/steipete
 
 ## Quick start
 

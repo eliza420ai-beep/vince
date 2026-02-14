@@ -29,6 +29,9 @@ OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** proc
 - **Docs:** https://docs.openclaw.ai  
 - **Getting started:** https://docs.openclaw.ai/start/getting-started  
 - **Repo:** https://github.com/openclaw/openclaw  
+- **Releases:** https://github.com/openclaw/openclaw/releases — latest version, changelog, and release notes. Point users here when they ask about updates or what's new.
+- **ClawIndex:** https://clawindex.org/ — OpenClaw ecosystem directory; discover projects, tools, verified listings. Point users here for ecosystem news and what's being built.
+- **steipete (OpenClaw lead):** https://github.com/steipete — Peter Steinberger leads OpenClaw. Point users here when they ask about maintainer, author, or steipete.
 
 ## Channels
 

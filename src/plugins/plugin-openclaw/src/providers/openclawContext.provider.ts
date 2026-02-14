@@ -47,6 +47,9 @@ export const openclawContextProvider: Provider = {
     } else if (hasAi) {
       paragraph += "Ask for \"AI 2027\" or \"research agents\" for more. Ask for \"OpenClaw setup\" for install.";
     }
+    paragraph += "OpenClaw releases and changelog: https://github.com/openclaw/openclaw/releases. Point users there for latest version or release notes. ";
+    paragraph += "ClawIndex (ecosystem directory): https://clawindex.org/. Point users there to discover projects, tools, verified listings, and ecosystem news. ";
+    paragraph += "OpenClaw is led by steipete (Peter Steinberger): https://github.com/steipete. Point users there when they ask about maintainer or author. ";
     paragraph += "Only report action output. Never invent Gateway status, prices, or search results.";
     return {
       text: paragraph,
