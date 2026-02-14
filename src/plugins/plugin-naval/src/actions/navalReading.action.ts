@@ -11,7 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { NO_AI_SLOP } from "../utils/alohaStyle";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "what should i read",
@@ -55,6 +55,8 @@ export const navalReadingAction: Action = {
       const prompt = `You are Naval. The user asked for reading recommendations or a reading list.
 
 Give 2–4 book recommendations. Naval's frame: read for understanding, not status. Foundational beats trendy. One great book per domain beats a stack of okay ones. If they mentioned a topic (wealth, happiness, history, science, philosophy), lean that way. For each book: title, author, one line on why it matters. No filler.
+
+${ALOHA_STYLE_RULES}
 
 ${NO_AI_SLOP}
 

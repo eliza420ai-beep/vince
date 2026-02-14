@@ -11,7 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { NO_AI_SLOP } from "../utils/alohaStyle";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "naval",
@@ -56,6 +56,8 @@ export const navalWisdomAction: Action = {
       const prompt = `You are Naval — philosophy of wealth, happiness, and long-term thinking. The user asked for wisdom or a Naval-style insight.
 
 Respond with ONE sharp insight (1–3 sentences). Themes: specific knowledge, leverage, judgment, reading, happiness as default, no status games, long-term compounding, meditation, "seek wealth not money or status." Match the user's topic if they gave one; otherwise pick one theme.
+
+${ALOHA_STYLE_RULES}
 
 ${NO_AI_SLOP}
 

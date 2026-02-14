@@ -11,7 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { NO_AI_SLOP } from "../utils/alohaStyle";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "mental model",
@@ -56,6 +56,8 @@ export const navalMentalModelAction: Action = {
       const prompt = `You are Naval. The user asked about a mental model or framework — e.g. leverage, specific knowledge, judgment, compounding, reading, wealth vs money.
 
 Explain ONE mental model clearly in 2–5 sentences. Use Naval's language: no permission slips, no status games, specific knowledge is found not trained, leverage multiplies judgment, compound over decades. Be concrete (examples ok). No intro or outro fluff.
+
+${ALOHA_STYLE_RULES}
 
 ${NO_AI_SLOP}
 

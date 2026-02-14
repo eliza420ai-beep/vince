@@ -11,7 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
-import { NO_AI_SLOP } from "../utils/alohaStyle";
+import { ALOHA_STYLE_RULES, NAVAL_STRUCTURED_NOTE, NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "long term games",
@@ -68,6 +68,10 @@ export const navalLongTermGamesAction: Action = {
 
 User context:
 ${userContext}
+
+${ALOHA_STYLE_RULES}
+
+${NAVAL_STRUCTURED_NOTE}
 
 ${NO_AI_SLOP}
 
