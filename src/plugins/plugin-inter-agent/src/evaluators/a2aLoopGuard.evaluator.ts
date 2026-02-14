@@ -52,7 +52,7 @@ async function isStandupRoom(
 }
 
 /** Known agent names for A2A detection */
-const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
+const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm"];
 
 /** Check if a message is from a known agent (case-insensitive) */
 function isFromKnownAgent(memory: Memory): boolean {

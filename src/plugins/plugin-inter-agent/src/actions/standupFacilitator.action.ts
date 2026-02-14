@@ -252,17 +252,10 @@ ${validationContext}
         }
       }
     } else {
-      // Guard: refuse to start if a standup is already running
+      // Soft reset: if a previous session is still active, end it so we can start fresh
       if (isStandupActive()) {
-        logger.info("[STANDUP_FACILITATE] A standup is already in progress — skipping kickoff");
-        if (callback) {
-          await callback({
-            text: "A standup is already in progress. Wait for it to finish or ask me to wrap up.",
-            action: "STANDUP_FACILITATE",
-            source: "Kelly",
-          });
-        }
-        return true;
+        logger.warn("[STANDUP_FACILITATE] Previous session still active — ending it to start fresh");
+        endStandupSession();
       }
 
       // Kickoff — start a new standup session

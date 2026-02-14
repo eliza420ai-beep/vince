@@ -41,6 +41,7 @@ import {
 } from "../standup/standupOrchestrator";
 import { fetchAgentData } from "../standup/standupDataFetcher";
 import { ALOHA_STYLE_BLOCK } from "../standup/standupStyle";
+import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
 
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm"];
@@ -343,7 +344,7 @@ ${reportingAgent.toUpperCase()} just reported.
 
 **YOUR ONLY RESPONSE:** "${progression.message}"
 
-Copy that EXACTLY. Nothing else.
+Copy that EXACTLY. Nothing else. Do NOT add commentary, lifestyle tips, summaries, or "recharge" talk. Just call the next agent.
 ` };
           }
           
@@ -363,12 +364,18 @@ Copy that EXACTLY. The timed-out agent will not report today.
         // Fallback: agent message but couldn't resolve reportingAgent
         // Still force progression to next unreported agent so standup doesn't stall
         if (!reportingAgent && messageText.trim().length >= 15) {
+          // Mark the first unreported agent as reported so we make progress
+          const currentUnreported = getNextUnreportedAgent();
+          if (currentUnreported) {
+            markAgentReported(currentUnreported);
+            logger.warn(`[A2A_CONTEXT] Kelly: Could not resolve reporting agent from "${agentName}" — marked ${currentUnreported} as reported`);
+          }
           const nextAgent = getNextUnreportedAgent();
           if (nextAgent) {
             const displayName = getAgentDisplayName(nextAgent);
             const discordId = getStandupDiscordMentionId(nextAgent);
             const callText = discordId ? `<@${discordId}> go.` : `@${displayName}, go.`;
-            logger.warn(`[A2A_CONTEXT] Kelly: Could not resolve reporting agent from "${agentName}" — forcing progression to ${displayName}`);
+            logger.warn(`[A2A_CONTEXT] Kelly: Forcing progression to ${displayName}`);
             return { text: `
 ## AUTO-PROGRESS: Call Next Agent
 
@@ -377,6 +384,20 @@ An agent just reported.
 **YOUR ONLY RESPONSE:** "${callText}"
 
 Copy that EXACTLY. Nothing else. Do not summarize, do not comment, do not add lifestyle tips.
+` };
+          } else if (currentUnreported) {
+            // That was the last agent — wrap up
+            markWrappingUp();
+            logger.info(`[A2A_CONTEXT] Kelly: All agents reported (via fallback) — triggering wrap-up`);
+            return { text: `
+## AUTO-WRAP: Generate Day Report
+
+All ${STANDUP_TURN_ORDER.length} agents have reported. Time to synthesize.
+
+**YOUR ONLY JOB RIGHT NOW:** Generate the Day Report. No lifestyle, no travel. Trading standup only.
+- TL;DR = ONE sentence
+- Max 3 actions with @owners
+- Under 200 words total
 ` };
           }
         }
@@ -390,7 +411,7 @@ Copy that EXACTLY. Nothing else. Do not summarize, do not comment, do not add li
         return { text: `
 ## Standup Facilitator Mode
 
-You are Kelly, facilitating the trading standup. You are coordinator only. Keep every message very short. No commentary, no summaries between agents.
+You are Kelly, facilitating the **trading standup**. You are coordinator only. Keep every message very short. No commentary, no summaries between agents.
 
 **Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Clawterm → Wrap-up
 
@@ -400,10 +421,11 @@ You are Kelly, facilitating the trading standup. You are coordinator only. Keep 
 - After Clawterm, generate the Day Report
 - NO long intros, NO summaries between agents
 - NEVER respond to your own messages
-- Never restate or summarize another agent's report. Your only replies are: call the next agent (e.g. "@Eliza, go.") or wrap up. One short line. Do not echo numbers, execution, or weekend plans already stated.
+- Never restate or summarize another agent's report. Your only replies are: call the next agent (e.g. "@Eliza, go.") or wrap up. One short line.
+- NO lifestyle, travel, dining, wine, wellness, hotels, or "recharge" talk. This is a TRADING standup.
+- Do not echo numbers, execution, or weekend plans already stated.
 
 **Transitions are 3 words max:** "@Eliza, go."
-**Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Clawterm → Wrap-up
 ` };
       }
       
@@ -420,8 +442,42 @@ Action: IGNORE. Do not reply until it's your turn.` };
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
-      const messageText = typeof message.content?.text === "string" ? message.content.text : "";
-      const hasSharedInsights = messageText.includes(SHARED_INSIGHTS_SENTINEL);
+      const msgText = typeof message.content?.text === "string" ? message.content.text : "";
+      let hasSharedInsights = msgText.includes(SHARED_INSIGHTS_SENTINEL);
+      let sharedInsightsContent = hasSharedInsights ? msgText : "";
+
+      // If sentinel not in current message, check recent room messages (manual Discord flow)
+      if (!hasSharedInsights && inStandupChannel) {
+        try {
+          const recentMemories = await runtime.getMemories({
+            roomId: message.roomId,
+            tableName: "messages",
+            count: 15,
+          });
+          const sentinelMsg = recentMemories.find((m) =>
+            String(m.content?.text || "").includes(SHARED_INSIGHTS_SENTINEL)
+          );
+          if (sentinelMsg) {
+            hasSharedInsights = true;
+            sharedInsightsContent = String(sentinelMsg.content?.text || "");
+          }
+        } catch (err) {
+          logger.warn({ err }, "[A2A_CONTEXT] Failed to check recent messages for sentinel");
+        }
+      }
+
+      // Fallback: load shared insights from file if sentinel found but content is empty
+      if (hasSharedInsights && !sharedInsightsContent.trim()) {
+        try {
+          const fromFile = loadSharedDailyInsights();
+          if (fromFile) sharedInsightsContent = fromFile;
+        } catch { /* non-fatal */ }
+      }
+
+      // Build shared context block that will be prepended to synthesis prompts
+      const sharedContext = sharedInsightsContent.trim()
+        ? `\n\n**SHARED DAILY INSIGHTS (read before responding):**\n${sharedInsightsContent.slice(0, 4000)}\n\n`
+        : "";
       
       // Check if this agent is under construction
       const roleKey = Object.keys(AGENT_ROLES).find(
@@ -445,10 +501,10 @@ Action: IGNORE. Do not reply until it's your turn.` };
         }
         
         if (hasSharedInsights) {
-          return { text: `
+          return { text: `${sharedContext}
 ## 🚧 YOUR TURN — Synthesis (Under Construction)
 
-Shared daily insights are above. You are **under construction**. Add one link to another agent's insight if relevant; otherwise one short status. Natural prose, MAX 30 words.
+Shared daily insights are above. You are **under construction**. Add one link to another agent's insight if relevant; otherwise one short status. Natural prose, MAX 30 words. No lifestyle, travel, or wellness content.
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 **Context:** ${statusData || `🚧 ${role?.focus || myName} under construction.`}
 ` };
@@ -469,10 +525,12 @@ Kelly called on you. You are **under construction** — give a brief status in n
       // Eliza: mostly listening; report = knowledge gaps, essay ideas, research for knowledge/
       if (myNameLower === "eliza") {
         if (hasSharedInsights) {
-          return { text: `
-## 🎯 YOUR TURN — Synthesis (Eliza)
+          return { text: `${sharedContext}
+## 🎯 YOUR TURN — Trading Standup Synthesis (Eliza)
 
-Shared daily insights are above. Don't repeat your section. Add: (1) one link between your domain and another agent's insight, (2) one fact-check or clarification if needed, (3) one brainstorm or research idea, (4) one take. ~80 words, natural prose.
+Shared daily insights are above. Do NOT repeat your section. Do NOT echo lifestyle, travel, dining, or wellness content.
+
+Your job: (1) One **knowledge gap** the team should research for better trades. (2) One **content idea** (essay or thread) inspired by today's market data. (3) One **cross-agent link** between what you see and another agent's data. ~80 words, natural prose. No fluff.
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 ` };
         }
@@ -508,15 +566,17 @@ Kelly called on you. You were mostly listening. Write a short day report in natu
         }
         const essentialQ = getEssentialStandupQuestion();
         if (hasSharedInsights) {
-          return { text: `
-## 🎯 YOUR TURN — Synthesis (Solus)
+          return { text: `${sharedContext}
+## 🎯 YOUR TURN — Trading Standup Synthesis (Solus: Options Lead)
 
-Shared daily insights are above. Answer the essential question **using the shared insights**; link to VINCE, Oracle, ECHO where relevant. Don't repeat your section verbatim.
+Shared daily insights are above. Answer the essential question **using the shared insights**; link to VINCE's funding/price, Oracle's odds, ECHO's sentiment. Do NOT repeat your section. Do NOT echo lifestyle, travel, or wellness content.
 ${priorReportsSnippet}
 
 **Essential question:** ${essentialQ}
 
-**You are:** ${myName}${role ? ` (${role.title})` : ""}. Add: one link across agents, one fact-check if needed, clear Yes/No and one sentence path. 250-300 words, ALOHA style.
+**You are:** ${myName}${role ? ` (${role.title})` : ""} — Hypersurface options settle weekly (Friday 08:00 UTC). We do the wheel; we sit in BTC.
+
+**Your answer must include:** (1) Strike/position call for this week's Hypersurface options — specific strike, direction, why. (2) One cross-agent link (VINCE data + Oracle odds + ECHO sentiment). (3) Clear Yes/No on the essential question and one sentence path. 250-300 words, ALOHA style. No lifestyle.
 
 ${ALOHA_STYLE_BLOCK}
 ` };
@@ -572,10 +632,14 @@ ${ALOHA_STYLE_BLOCK}
           : "";
 
       if (hasSharedInsights) {
-        return { text: `
-## 🎯 YOUR TURN — Synthesis (link, fact-check, brainstorm)
+        return { text: `${sharedContext}
+## 🎯 YOUR TURN — Trading Standup (Synthesis)
 
-Shared daily insights are above (from all of us). **Do not repeat your section.** Add: (1) **One link** between your domain and another agent's insight (e.g. "VINCE's funding lines up with Oracle's odds on X"). (2) **One fact-check** or clarification if something looks off. (3) **One brainstorm or risk.** (4) **One actionable take.** Keep it short (~100–150 words). ALOHA style, no bullets.
+Shared daily insights are above. Do NOT repeat your section. Do NOT echo lifestyle, travel, dining, wine, or wellness content — this is a TRADING standup.
+
+Your job: (1) **One CROSS-AGENT LINK** — connect your data to another agent's (e.g. "VINCE's funding rates + Oracle's odds suggest X"). (2) **One TRADE IDEA or RISK** — perps on Hyperliquid, options on Hypersurface, or spot. Be specific: asset, direction, why. (3) **One ACTIONABLE TAKE** — what should the team do today?
+
+Focus on: market data, perps (Hyperliquid), options (Hypersurface), HIP-3, funding rates, sentiment, project updates. No fluff, no lifestyle.
 ${vinceLine}
 ${echoLine}
 ${solusOptionsLine}
@@ -584,7 +648,7 @@ ${clawtermLine}
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 ${liveData}
 
-${ALOHA_STYLE_BLOCK}
+Keep it ~100–150 words. ALOHA style, no bullets.
 ` };
       }
 
