@@ -138,9 +138,11 @@ export const interAgentPlugin: Plugin = {
 
     // Patch messageService for non-facilitator agents: skip standup room
     // messages entirely (prevents PGLite deadlock from 7+ concurrent writes).
+    // For Kelly (facilitator): add timing logs so we can see where processing hangs.
     // Deferred 5s so messageService has been registered by bootstrap.
     // Second attempt at 15s catches late-initializing agents (e.g. VINCE with heavy service init).
-    if ((runtime.character?.name ?? "").toLowerCase() !== getFacilitatorName()) {
+    const myNameLower = (runtime.character?.name ?? "").toLowerCase();
+    if (myNameLower !== getFacilitatorName()) {
       const doPatch = () => {
         try {
           patchMessageServiceForStandupSkip(runtime);
@@ -150,6 +152,42 @@ export const interAgentPlugin: Plugin = {
       };
       setTimeout(doPatch, 5000);
       setTimeout(doPatch, 15000); // safety retry
+    } else {
+      // Kelly: wrap handleMessage with timing logs to diagnose hangs
+      setTimeout(() => {
+        const svc = (runtime as any).messageService;
+        if (!svc || typeof svc.handleMessage !== "function") return;
+        if ((svc.handleMessage as any).__kellyTimingPatched) return;
+        const originalHM = svc.handleMessage.bind(svc);
+        svc.handleMessage = async function kellyTimingWrapper(
+          rt: any, message: any, callback?: any, options?: any,
+        ) {
+          const text = (message?.content?.text ?? "").slice(0, 60);
+          const t0 = Date.now();
+          logger.info(`[KELLY_TIMING] handleMessage START: "${text}"`);
+          try {
+            const result = await Promise.race([
+              originalHM(rt, message, callback, options),
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Kelly handleMessage timeout (120s)")), 120_000),
+              ),
+            ]);
+            logger.info(`[KELLY_TIMING] handleMessage DONE in ${Date.now() - t0}ms`);
+            return result;
+          } catch (err: any) {
+            logger.error(`[KELLY_TIMING] handleMessage FAILED after ${Date.now() - t0}ms: ${err?.message ?? err}`);
+            return {
+              didRespond: false,
+              responseContent: null,
+              responseMessages: [],
+              state: { values: {}, data: {}, text: "" },
+              mode: "none",
+            };
+          }
+        };
+        (svc.handleMessage as any).__kellyTimingPatched = true;
+        logger.info("[ONE_TEAM] Kelly: handleMessage wrapped with timing/timeout (120s)");
+      }, 5000);
     }
   },
 };
