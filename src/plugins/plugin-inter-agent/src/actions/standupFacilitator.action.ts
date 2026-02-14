@@ -198,7 +198,8 @@ ${validationContext}
 }
 
 /**
- * Kickoff path: reset/session start, build shared insights, post kickoff message.
+ * Kickoff path: reset/session start, post kickoff immediately, then build shared insights for round-robin.
+ * Sends the short kickoff to the channel right away so the user sees the standup start (avoids "typing then nothing").
  */
 async function handleKickoff(
   runtime: IAgentRuntime,
@@ -210,6 +211,17 @@ async function handleKickoff(
     await endStandupSession();
   }
   await startStandupSession(message.roomId);
+
+  // Send short kickoff immediately so Discord shows a message (avoids long "typing" then timeout/nothing)
+  const shortKickoff = buildKickoffMessage();
+  if (callback) {
+    await callback({
+      text: shortKickoff,
+      action: "STANDUP_FACILITATE",
+      source: "Kelly",
+    });
+  }
+
   const eliza = getElizaOS(runtime);
   if (eliza?.getAgent) {
     try {
@@ -221,14 +233,7 @@ async function handleKickoff(
   const sharedContent = (await loadSharedDailyInsights())?.trim();
   const kickoffText = sharedContent
     ? buildKickoffWithSharedInsights(sharedContent)
-    : buildKickoffMessage();
-  if (callback) {
-    await callback({
-      text: kickoffText,
-      action: "STANDUP_FACILITATE",
-      source: "Kelly",
-    });
-  }
+    : shortKickoff;
   return { kickoffText, eliza };
 }
 
