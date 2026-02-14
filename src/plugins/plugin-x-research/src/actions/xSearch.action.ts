@@ -2,6 +2,7 @@
  * X Search Action
  *
  * Generic search: "search X for …", "what are people saying about …".
+ * Returns ALOHA-style narrative (themes, standout takes) then optional sample posts.
  * Supports optional from:user, sort, limit, quick mode, quality filter.
  */
 
@@ -11,16 +12,61 @@ import {
   type Memory,
   type State,
   type HandlerCallback,
+  ModelType,
+  logger,
 } from '@elizaos/core';
 import { getXSearchService } from '../services/xSearch.service';
 import { initXClientFromEnv } from '../services/xClient.service';
 import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
+import type { XTweet } from '../types/tweet.types';
 
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 30;
 const QUICK_MAX_RESULTS = 10;
 const QUALITY_MIN_LIKES = 10;
+const SNIPPET_LEN = 120;
+const SAMPLE_POSTS_COUNT = 7;
+
+function formatTweetForContext(t: XTweet): string {
+  const author = t.author?.username ?? 'unknown';
+  const snippet = t.text.length > SNIPPET_LEN ? t.text.slice(0, SNIPPET_LEN) + '…' : t.text.replace(/\n/g, ' ');
+  const likes = t.metrics?.likeCount ?? 0;
+  return `@${author}: ${snippet} (${likes} likes)`;
+}
+
+async function generateNarrative(
+  runtime: IAgentRuntime,
+  query: string,
+  dataContext: string
+): Promise<string | null> {
+  const prompt = `You are summarizing X (Twitter) search results for: "${query}". Below are the posts (author, snippet, likes). Turn them into one short narrative.
+
+Here are the posts:
+
+${dataContext}
+
+Write a single narrative (~150-250 words) that:
+1. Opens with the overall vibe — what are people saying about this topic? Give your gut take.
+2. Weaves in key themes and standout takes. Connect the dots. If something is getting a lot of engagement or one voice stands out, say so.
+3. Ends with a clear take — what's the read?
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the narrative only (no "Here's the summary" wrapper — start with the narrative itself):`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    const text = String(response).trim();
+    return text.length > 0 ? text : null;
+  } catch (error) {
+    logger.warn({ err: error }, '[X_SEARCH] LLM narrative failed');
+    return null;
+  }
+}
 
 export const xSearchAction: Action = {
   name: 'X_SEARCH',
@@ -120,12 +166,29 @@ export const xSearchAction: Action = {
       if (toShow.length === 0) {
         response += 'No matching posts in the last 24h. Try a broader query or remove the from: filter.';
       } else {
-        for (const t of toShow) {
-          const author = t.author?.username ?? 'unknown';
-          const snippet = t.text.slice(0, 120).replace(/\n/g, ' ');
-          const more = t.text.length > 120 ? '…' : '';
-          const likes = t.metrics?.likeCount ?? 0;
-          response += `• **@${author}:** ${snippet}${more} (${likes} likes)\n`;
+        const dataContext = tweets.map(formatTweetForContext).join('\n');
+        const narrative = await generateNarrative(runtime, query, dataContext);
+
+        if (narrative) {
+          response += narrative;
+          const sampleCount = Math.min(SAMPLE_POSTS_COUNT, toShow.length);
+          const samplePosts = toShow.slice(0, sampleCount);
+          response += '\n\n**Sample posts:**\n';
+          for (const t of samplePosts) {
+            const author = t.author?.username ?? 'unknown';
+            const snippet = t.text.slice(0, SNIPPET_LEN).replace(/\n/g, ' ');
+            const more = t.text.length > SNIPPET_LEN ? '…' : '';
+            const likes = t.metrics?.likeCount ?? 0;
+            response += `• **@${author}:** ${snippet}${more} (${likes} likes)\n`;
+          }
+        } else {
+          for (const t of toShow) {
+            const author = t.author?.username ?? 'unknown';
+            const snippet = t.text.slice(0, SNIPPET_LEN).replace(/\n/g, ' ');
+            const more = t.text.length > SNIPPET_LEN ? '…' : '';
+            const likes = t.metrics?.likeCount ?? 0;
+            response += `• **@${author}:** ${snippet}${more} (${likes} likes)\n`;
+          }
         }
       }
 

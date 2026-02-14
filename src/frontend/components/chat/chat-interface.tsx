@@ -258,6 +258,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Use cases", message: "What are OpenClaw use cases?" },
     { label: "HIP-3 AI assets", message: "HIP-3 AI assets on Hyperliquid?" },
     { label: "Search X: AGI", message: "Search X for AGI timeline" },
+    { label: "Search X: OpenClaw", message: "Search X for OpenClaw" },
   ],
 };
 
