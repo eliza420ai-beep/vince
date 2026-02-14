@@ -2,7 +2,7 @@
  * X Search Action
  *
  * Generic search: "search X for …", "what are people saying about …".
- * Returns ALOHA-style narrative (themes, standout takes) then optional sample posts.
+ * Returns ALOHA-style narrative (themes, standout takes).
  * Supports optional from:user, sort, limit, quick mode, quality filter.
  */
 
@@ -27,7 +27,6 @@ const MAX_LIMIT = 30;
 const QUICK_MAX_RESULTS = 10;
 const QUALITY_MIN_LIKES = 10;
 const SNIPPET_LEN = 120;
-const SAMPLE_POSTS_COUNT = 7;
 
 function formatTweetForContext(t: XTweet): string {
   const author = t.author?.username ?? 'unknown';
@@ -171,16 +170,6 @@ export const xSearchAction: Action = {
 
         if (narrative) {
           response += narrative;
-          const sampleCount = Math.min(SAMPLE_POSTS_COUNT, toShow.length);
-          const samplePosts = toShow.slice(0, sampleCount);
-          response += '\n\n**Sample posts:**\n';
-          for (const t of samplePosts) {
-            const author = t.author?.username ?? 'unknown';
-            const snippet = t.text.slice(0, SNIPPET_LEN).replace(/\n/g, ' ');
-            const more = t.text.length > SNIPPET_LEN ? '…' : '';
-            const likes = t.metrics?.likeCount ?? 0;
-            response += `• **@${author}:** ${snippet}${more} (${likes} likes)\n`;
-          }
         } else {
           for (const t of toShow) {
             const author = t.author?.username ?? 'unknown';
