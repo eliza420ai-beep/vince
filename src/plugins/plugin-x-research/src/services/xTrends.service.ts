@@ -9,11 +9,12 @@ import { getXClient, XClientService } from './xClient.service';
 import type { XTrend, TrendingTopicStatus, TrendVolume } from '../types/trends.types';
 import { ALL_TOPICS, TOPIC_BY_ID } from '../constants/topics';
 
-// Keywords to match for crypto/finance trends
+// Keywords to match for crypto/finance trends (incl. tokenized AI / AI infra)
 const CRYPTO_KEYWORDS = [
   'btc', 'bitcoin', 'eth', 'ethereum', 'sol', 'solana', 'crypto',
   'defi', 'nft', 'web3', 'blockchain', 'token', 'coin', 'altcoin',
   'binance', 'coinbase', 'sec', 'etf', 'hype', 'hyperliquid',
+  'bankr', 'bnkr', 'agent token', 'tokenized agent', 'ai infra', 'tokenized ai',
 ];
 
 /**

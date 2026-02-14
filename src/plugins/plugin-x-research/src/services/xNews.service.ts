@@ -8,7 +8,9 @@
 import { getXClient, XClientService } from './xClient.service';
 import type { XNewsItem, XNewsResult, NewsSearchOptions, CryptoNewsOptions } from '../types/news.types';
 import type { XTweet } from '../types/tweet.types';
-import { FOCUS_TICKERS } from '../constants/topics';
+import { FOCUS_TICKERS, AI_INFRA_TICKERS } from '../constants/topics';
+
+const DEFAULT_FOCUS_TICKERS = [...FOCUS_TICKERS, ...AI_INFRA_TICKERS];
 
 // Focus filters for relevance scoring
 const FOCUS_TOPICS = ['Cryptocurrency', 'DeFi', 'NFT', 'AI', 'Blockchain', 'Bitcoin', 'Ethereum'];
@@ -42,7 +44,7 @@ export class XNewsService {
   /**
    * Get news for our focus tickers
    */
-  async getTickerNews(tickers: string[] = FOCUS_TICKERS): Promise<XNewsResult[]> {
+  async getTickerNews(tickers: string[] = DEFAULT_FOCUS_TICKERS): Promise<XNewsResult[]> {
     const query = tickers.map(t => `$${t}`).join(' OR ');
     return this.searchNews(query, { maxResults: 20 });
   }
@@ -53,7 +55,7 @@ export class XNewsService {
   async getCryptoNews(options: CryptoNewsOptions = {}): Promise<XNewsResult[]> {
     const {
       maxResults = 20,
-      focusAssets = FOCUS_TICKERS,
+      focusAssets = DEFAULT_FOCUS_TICKERS,
       includeDefi = true,
       includeNft = false,
     } = options;
@@ -130,10 +132,11 @@ export class XNewsService {
   private calculateRelevance(item: XNewsItem): number {
     let score = 0;
 
-    // Check tickers
+    // Check tickers (focus + AI infra)
     const tickers = item.contexts?.finance?.tickers ?? [];
+    const focusTickersAll = [...FOCUS_TICKERS, ...AI_INFRA_TICKERS];
     for (const ticker of tickers) {
-      if (FOCUS_TICKERS.includes(ticker.toUpperCase())) {
+      if (focusTickersAll.includes(ticker.toUpperCase())) {
         score += 20;
       }
     }

@@ -130,6 +130,15 @@ export const ECOSYSTEM_TOPICS: Topic[] = [
     category: 'ecosystem',
     priority: 'low',
   },
+  {
+    id: 'tokenized_ai',
+    name: 'Tokenized AI / AI infra',
+    searchTerms: ['BANKR', 'BNKR', '$BNKR', 'bankr.bot', 'tokenized AI agent', 'agent token', 'AI infra', 'tokenized agent'],
+    hashtags: ['bankr', 'bnkr', 'tokenizedai', 'agenttoken'],
+    cashtags: ['BNKR'],
+    category: 'ecosystem',
+    priority: 'high',
+  },
 ];
 
 // Meta Topics
@@ -175,3 +184,6 @@ export const TOPIC_BY_ID = Object.fromEntries(
 
 export const FOCUS_TICKERS = ['BTC', 'ETH', 'SOL', 'HYPE'];
 export const FOCUS_CASHTAGS = FOCUS_TICKERS.map(t => `$${t}`);
+
+/** Tokenized AI agents and AI infra (e.g. BANKR/BNKR); included in news and pulse. */
+export const AI_INFRA_TICKERS = ['BNKR'];

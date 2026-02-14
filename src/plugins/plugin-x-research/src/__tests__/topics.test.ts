@@ -7,6 +7,7 @@ import {
   ALL_TOPICS, 
   TOPIC_BY_ID, 
   FOCUS_TICKERS,
+  AI_INFRA_TICKERS,
   CORE_ASSETS,
   TRADING_TOPICS,
   ECOSYSTEM_TOPICS,
@@ -37,6 +38,13 @@ describe('Topics', () => {
     expect(FOCUS_TICKERS).toContain('BTC');
     expect(FOCUS_TICKERS).toContain('ETH');
     expect(FOCUS_TICKERS).toContain('SOL');
+  });
+
+  it('should include tokenized AI / AI infra topic and AI_INFRA_TICKERS', () => {
+    expect(TOPIC_BY_ID['tokenized_ai']).toBeDefined();
+    expect(TOPIC_BY_ID['tokenized_ai'].name).toBe('Tokenized AI / AI infra');
+    expect(AI_INFRA_TICKERS).toBeDefined();
+    expect(AI_INFRA_TICKERS).toContain('BNKR');
   });
 
   it('should have unique topic IDs', () => {

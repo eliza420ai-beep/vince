@@ -10,6 +10,8 @@ ALOHA-style X/Twitter research for crypto sentiment and alpha.
 
 **Clawterm** uses this plugin as the single source for all X-sourced OpenClaw content (news, tips, trending, recommendations) to avoid a second bearer token; plugin-openclaw does not use X.
 
+Tokenized AI agents and AI infra (e.g. BANKR/BNKR) are in scope for pulse, news, search, and trending—when they trend on X, the plugin discovers them.
+
 ## Overview
 
 Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the X/Twitter vibe for our focus areas:
