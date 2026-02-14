@@ -33,39 +33,54 @@
 
 ---
 
-## 🆕 What's New in v2.4.0
+## 🆕 What's New in v2.5.0
+
+We shipped a lot. **Clawterm**, **OpenClaw**, **standups**, and two new DeFi plugins—all in one release.
 
 <table>
 <tr>
 <td width="50%">
 
-**🦞 Sentinel 10x** — World-class core dev
+**🦞 Clawterm & standups**
 
-- **PRD Generator** — Enterprise-grade specs for Cursor/Claude
-- **Project Radar** — Scans plugins, progress, docs, todos
-- **Trading Intelligence** — Paper bot + options expertise
-- **Multi-Agent Vision** — Dream team architecture expert
-- **OpenClaw Expert** — Clawdbot/Milaidy knowledge
-
-*15 actions, 6 services*
+- **Clawterm agent** — Bio, config, day report (`CLAWTERM_DAY_REP`)
+- **Standup facilitator** — Refactored data fetch, clearer lessons & action items
+- **Structured standups** — Twice daily, lessons per agent, #daily-standup summary
 
 </td>
 <td width="50%">
 
-**📚 Eliza V2** — Autonomous research engine
+**🔗 OpenClaw integration**
 
-- **Auto-Research** — Gap analysis + knowledge expansion
-- **Content Production** — Essays, tweets, repurpose
-- **Knowledge Intelligence** — Graph, quality, dedup
-- **Brand Consistency** — Voice profile, style guide
+- **Tests & security** — OpenClaw plugin tests, clarified data sources, security hardening
+- **Knowledge & adapter** — OpenClaw knowledge base, adapter enhancements
+- **Hybrid mode** — VINCE + OpenClaw sub-agents for parallel research
 
-*14 actions, 7 services*
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+**📦 New plugins**
+
+- **@elizaos/plugin-8004** — ERC-8004 (identity/attestation) integration
+- **plugin-defillama** — TVL, yields, protocol discovery (Otaku; no API key)
+
+</td>
+<td width="50%">
+
+**⚡ Core & UX**
+
+- **A2A context** — Richer agent-to-agent context provisioning
+- **Dashboard leader** — Volume-based leaderboard enhancements
+- **Gamification** — Rebels ranking, engagement hooks
+- **Agent branding** — Clearer lanes and voice
 
 </td>
 </tr>
 </table>
 
-**Stats:** 20 plugins · 162 actions · +15,900 lines → [Full changelog](CHANGELOG.md)
+**Stats:** 20+ plugins · 162+ actions · [Full changelog](CHANGELOG.md)
 
 ---
 
@@ -131,6 +146,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 |:---|:---|
 | [**FEATURE-STORE**](docs/FEATURE-STORE.md) | ML & paper bot · feature store |
 | [**MULTI_AGENT**](docs/MULTI_AGENT.md) | ASK_AGENT · standups · one conversation, full team |
+| [**Release v2.5.0**](docs/RELEASE_v2.5.0.md) | What we shipped · Clawterm, OpenClaw, DefiLlama, ERC-8004 |
 | [**SUPABASE_MIGRATION**](docs/SUPABASE_MIGRATION.md) | Production persistence checklist |
 | [**DEPLOY**](docs/DEPLOY.md) | Eliza Cloud · env · troubleshooting |
 | [**DISCORD**](docs/DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |

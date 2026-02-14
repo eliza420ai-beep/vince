@@ -2,6 +2,37 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v2.5.0] - 2026-02-14
+
+### 🦞 Clawterm & standups
+
+- **Clawterm agent** — Bio, configuration, and day report action (`CLAWTERM_DAY_REP`)
+- **Standup facilitator** — Refactored data fetching; clearer lessons, action items, and relationship signals
+- **Structured standups** — Runs twice daily; lessons stored per agent; summary to #daily-standup
+
+### 🔗 OpenClaw integration
+
+- **OpenClaw plugin tests** — Test coverage for adapter and data flow
+- **Data source clarity** — Documented and clarified OpenClaw data sources
+- **Security** — Hardening and security guidance in knowledge
+- **Knowledge base** — OpenClaw-specific knowledge for Sentinel and handoffs
+- **Adapter** — Enhanced OpenClaw adapter for ElizaOS ↔ OpenClaw hybrid mode
+
+### 📦 New plugins
+
+- **@elizaos/plugin-8004** — ERC-8004 (identity/attestation) integration
+- **plugin-defillama** — DeFiLlama integration for Otaku: protocol TVL, yield rates, TVL/yield history; no API key required
+
+### ⚡ Core & UX
+
+- **A2A context** — Enhanced agent-to-agent context provisioning
+- **Dashboard leader** — Volume-based leaderboard and dashboard improvements
+- **Gamification** — Rebels ranking and engagement features
+- **Agent branding** — Clearer agent lanes and voice consistency
+- **plugin-vince** — Various enhancements and stability improvements
+
+---
+
 ## [v2.2.0] - 2026-02-12
 
 ### 🎭 Dream Team Complete — 8 Agents
