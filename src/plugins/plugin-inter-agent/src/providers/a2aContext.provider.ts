@@ -136,7 +136,7 @@ function isFromKnownHuman(memory: Memory, resolvedName?: string): { isHuman: boo
   return { isHuman: false, humanName: null };
 }
 
-/** Check if a message is from a known agent. Always returns canonical lowercase name when possible. */
+/** Check if a message is from a known agent. Always returns canonical lowercase name when possible. v2-entityid */
 function isFromKnownAgent(memory: Memory, resolvedName?: string): { isAgent: boolean; agentName: string | null } {
   const senderName = resolvedName || String(
     memory.content?.name ?? memory.content?.userName ?? (memory.content as any)?._resolvedSenderName ?? ""
