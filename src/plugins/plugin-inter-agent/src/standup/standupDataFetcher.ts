@@ -40,6 +40,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
       getEnrichedContext?: (asset: string) => Promise<{
         currentPrice?: number; priceChange24h?: number; fundingRate?: number;
         longShortRatio?: number; marketRegime?: string; volumeRatio?: number;
+        volume24h?: number;
       } | null>;
     } | null;
 
@@ -51,8 +52,9 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
       const change = ctx.priceChange24h != null ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%` : "";
       const funding = ctx.fundingRate != null ? `F:${(ctx.fundingRate * 100).toFixed(3)}%` : "";
       const ls = ctx.longShortRatio != null ? `L/S:${ctx.longShortRatio.toFixed(2)}` : "";
+      const vol = ctx.volumeRatio != null ? `Vol:${ctx.volumeRatio.toFixed(1)}x` : "";
       const regime = ctx.marketRegime ?? "";
-      rows.push(`| ${asset} | ${price} ${change} | ${funding} ${ls} | ${regime} |`);
+      rows.push(`| ${asset} | ${price} ${change} | ${funding} ${ls} ${vol} | ${regime} |`);
     }
     if (rows.length > 0) {
       lines.push(`| Asset | Price | Funding/LS | Regime |\n|-------|-------|-----------|--------|\n${rows.join("\n")}`);
