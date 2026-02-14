@@ -116,9 +116,9 @@ function isDirectlyAddressed(agentName: string, messageText: string): boolean {
 }
 
 /** Check if message is from a known human */
-function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string | null } {
-  const senderName = String(
-    memory.content?.name ?? memory.content?.userName ?? ""
+function isFromKnownHuman(memory: Memory, resolvedName?: string): { isHuman: boolean; humanName: string | null } {
+  const senderName = resolvedName || String(
+    memory.content?.name ?? memory.content?.userName ?? (memory.content as any)?._resolvedSenderName ?? ""
   ).toLowerCase();
 
   const knownHumans = getKnownHumans();
@@ -137,9 +137,9 @@ function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string
 }
 
 /** Check if a message is from a known agent. Always returns canonical lowercase name when possible. */
-function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string | null } {
-  const senderName = String(
-    memory.content?.name ?? memory.content?.userName ?? ""
+function isFromKnownAgent(memory: Memory, resolvedName?: string): { isAgent: boolean; agentName: string | null } {
+  const senderName = resolvedName || String(
+    memory.content?.name ?? memory.content?.userName ?? (memory.content as any)?._resolvedSenderName ?? ""
   ).toLowerCase();
 
   logger.debug(`[A2A_DETECT] senderName="${senderName}", agentId=${memory.agentId ?? "none"}, isBot=${(memory.content?.metadata as Record<string, unknown> | undefined)?.isBot ?? "unset"}`);
@@ -147,8 +147,7 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
   // Check 0: known humans are never agents — so kickoff/priority block can run (standup channel)
   const knownHumans = getKnownHumans();
   const isKnownHumanName = senderName && knownHumans.some((h) => senderName === h || senderName.includes(h));
-  // Use console.log to bypass log filter suppression
-  console.log(`[A2A_DETECT] Check0: senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, match=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`);
+  console.log(`[A2A_DETECT] senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, match=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`);
   if (isKnownHumanName) {
     return { isAgent: false, agentName: null };
   }
@@ -274,8 +273,22 @@ export const a2aContextProvider: Provider = {
     const myName = runtime.character?.name || "Agent";
     const myNameLower = myName.toLowerCase();
     const messageText = message.content?.text || "";
-    const senderNameDebug = String(message.content?.name ?? message.content?.userName ?? "???").toLowerCase();
-    console.log(`[A2A_PROVIDER_ENTRY] agent=${myName}, sender="${senderNameDebug}", text="${messageText.slice(0,40)}", agentId=${message.agentId ?? "none"}`);
+    // Resolve sender name: content.name/userName are often empty for Discord messages.
+    // Fall back to looking up the entity by entityId to get the real name.
+    let resolvedSenderName = String(message.content?.name ?? message.content?.userName ?? "").toLowerCase();
+    if (!resolvedSenderName && message.entityId) {
+      try {
+        const senderEntity = await runtime.getEntityById(message.entityId);
+        if (senderEntity?.names?.length) {
+          resolvedSenderName = senderEntity.names[0].toLowerCase();
+        }
+      } catch { /* non-fatal */ }
+    }
+    // Inject resolved name into message so isFromKnownAgent/isFromKnownHuman can use it
+    if (resolvedSenderName && !message.content?.name) {
+      if (!message.content) (message as any).content = {};
+      (message.content as any)._resolvedSenderName = resolvedSenderName;
+    }
     
     // Check room type
     const room = await runtime.getRoom(message.roomId);
@@ -283,12 +296,11 @@ export const a2aContextProvider: Provider = {
     const inStandupChannel = isStandupRoom(roomName);
     
     // Check agent FIRST so bot messages don't get swallowed by isFromKnownHuman
-    const { isAgent, agentName } = isFromKnownAgent(message);
-    console.log(`[A2A_PROVIDER_CLASSIFY] isAgent=${isAgent}, agentName=${agentName}, inStandup=${inStandupChannel}`);
+    const { isAgent, agentName } = isFromKnownAgent(message, resolvedSenderName);
 
     // Check if this is from a HUMAN (only when not already identified as an agent)
     if (!isAgent) {
-      const { isHuman, humanName } = isFromKnownHuman(message);
+      const { isHuman, humanName } = isFromKnownHuman(message, resolvedSenderName);
       if (isHuman) {
         // In standup channels only the facilitator responds to humans (rate limit)
         if (inStandupChannel) {
