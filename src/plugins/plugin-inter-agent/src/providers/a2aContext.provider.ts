@@ -147,7 +147,8 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
   // Check 0: known humans are never agents — so kickoff/priority block can run (standup channel)
   const knownHumans = getKnownHumans();
   const isKnownHumanName = senderName && knownHumans.some((h) => senderName === h || senderName.includes(h));
-  logger.info(`[A2A_DETECT] Check0: senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, isKnownHuman=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`);
+  // Use console.log to bypass log filter suppression
+  console.log(`[A2A_DETECT] Check0: senderName="${senderName}", knownHumans=${JSON.stringify(knownHumans)}, match=${isKnownHumanName}, agentId=${memory.agentId ?? "none"}`);
   if (isKnownHumanName) {
     return { isAgent: false, agentName: null };
   }
