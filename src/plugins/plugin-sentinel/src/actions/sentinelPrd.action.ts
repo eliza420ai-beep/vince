@@ -78,9 +78,8 @@ export const sentinelPrdAction: Action = {
       if (wantsListPRDs(userText)) {
         const prds = listPRDs();
         if (prds.length === 0) {
-          await callback({
-            text: "📋 **No PRDs found**\n\nGenerate one with: *\"PRD for <feature description>\"*",
-          });
+          const msg = "📋 **No PRDs found**\n\nGenerate one with: *\"PRD for <feature description>\"*";
+          await callback({ text: "Quick answer—\n\n" + msg });
           return { success: true };
         }
 
@@ -88,9 +87,8 @@ export const sentinelPrdAction: Action = {
           `${i + 1}. **${p.filename}** — ${p.created.toISOString().slice(0, 10)}`
         ).join("\n");
 
-        await callback({
-          text: `📋 **Recent PRDs (${prds.length} total)**\n\n${list}\n\n*Generate a new one with: \"PRD for <feature>\"*`,
-        });
+        const listText = `📋 **Recent PRDs (${prds.length} total)**\n\n${list}\n\n*Generate a new one with: \"PRD for <feature>\"*`;
+        await callback({ text: "Here are recent PRDs—\n\n" + listText });
         return { success: true };
       }
 
@@ -131,16 +129,15 @@ export const sentinelPrdAction: Action = {
           ? `\n\n**Suggestions based on project state:**\n${suggestions.map((s, i) => `${i + 1}. "${s}"`).join("\n")}`
           : "";
 
-        await callback({
-          text: `📋 **What should I write a PRD for?**
+        const askText = `📋 **What should I write a PRD for?**
 
 Give me a feature description and I'll generate a world-class PRD.
 
 **Examples:**
 • "PRD for adding a leaderboard endpoint to plugin-vince"
 • "PRD for refactoring the options action"
-• "PRD for implementing X sentiment caching"${suggestionText}`,
-        });
+• "PRD for implementing X sentiment caching"${suggestionText}`;
+        await callback({ text: "Here's what I need—\n\n" + askText });
         return { success: true };
       }
 
@@ -206,9 +203,7 @@ Respond in this exact JSON format:
         // Fallback: generate PRD from raw request
         const prd = generatePRDFromRequest(featureRequest);
         const savedPath = savePRD(prd);
-        
-        await callback({
-          text: `📋 **PRD Generated: ${prd.title}**
+        const prdBody = `📋 **PRD Generated: ${prd.title}**
 
 **ID:** ${prd.id}
 **Priority:** ${prd.priority} | **Effort:** ${prd.effort}
@@ -216,17 +211,15 @@ Respond in this exact JSON format:
 
 ---
 
-${prd.markdown.slice(0, 3000)}${prd.markdown.length > 3000 ? "\n\n*[truncated — see full PRD at path above]*" : ""}`,
-        });
+${prd.markdown.slice(0, 3000)}${prd.markdown.length > 3000 ? "\n\n*[truncated — see full PRD at path above]*" : ""}`;
+        await callback({ text: "Here's your PRD—\n\n" + prdBody });
         return { success: true };
       }
 
       // Generate the full PRD
       const prd = generatePRD(prdInput);
       const savedPath = savePRD(prd);
-      
-      await callback({
-        text: `📋 **PRD Generated: ${prd.title}**
+      const prdText = `📋 **PRD Generated: ${prd.title}**
 
 **ID:** ${prd.id}
 **Priority:** ${prd.priority} | **Effort:** ${prd.effort}
@@ -239,8 +232,8 @@ ${prd.markdown.slice(0, 3500)}${prd.markdown.length > 3500 ? "\n\n*[truncated �
 
 ---
 
-**Next:** Open the PRD in Cursor and let Claude Code implement it. Keep the architecture as good as it gets.`,
-      });
+**Next:** Open the PRD in Cursor and let Claude Code implement it. Keep the architecture as good as it gets.`;
+      await callback({ text: "Here's your PRD—\n\n" + prdText });
       
       return { success: true };
     } catch (error) {
@@ -254,18 +247,18 @@ ${prd.markdown.slice(0, 3500)}${prd.markdown.length > 3500 ? "\n\n*[truncated �
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "PRD for adding a leaderboard endpoint" } },
+      { name: "{{user}}", content: { text: "PRD for adding a leaderboard endpoint" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "📋 **PRD Generated: Add Leaderboard Endpoint**\n\n**ID:** PRD-20260211-X7KP\n**Priority:** P1 | **Effort:** M\n**Target:** plugin-vince\n\n[Full PRD content...]",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "List recent PRDs" } },
+      { name: "{{user}}", content: { text: "List recent PRDs" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "📋 **Recent PRDs (3 total)**\n\n1. **2026-02-11-prd-leaderboard-endpoint.md** — 2026-02-11\n2. **2026-02-10-prd-whale-tracking.md** — 2026-02-10",
         },

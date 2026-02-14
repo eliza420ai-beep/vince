@@ -65,7 +65,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here's a doc-improvement pass—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_DOC_IMPROVE] Failed:", error);
@@ -78,9 +79,9 @@ Context:\n${contextBlock}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Improve our docs and consolidate progress." } },
+      { name: "{{user}}", content: { text: "Improve our docs and consolidate progress." } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "1) Run scripts/sync-sentinel-docs.sh to refresh sentinel-docs and PROGRESS-CONSOLIDATED. 2) README: add Sentinel to agents table. 3) internal-docs: link FEATURE-STORE in KNOWLEDGE-QUALITY-GUIDE. 4) Progress: keep three progress.txt; sync consolidated view weekly. Refs: sentinel-docs/README.md.",
         },

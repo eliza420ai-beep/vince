@@ -46,7 +46,8 @@ export const sentinelInvestorReportAction: Action = {
     logger.debug("[SENTINEL_INVESTOR_REPORT] Action fired");
     try {
       const block = await generateInvestorBlock(runtime, message);
-      await callback({ text: block });
+      const out = "Here's the investor snapshot—\n\n" + block;
+      await callback({ text: out });
       return { success: true, text: block };
     } catch (error) {
       logger.error("[SENTINEL_INVESTOR_REPORT] Failed:", error);
@@ -64,11 +65,11 @@ export const sentinelInvestorReportAction: Action = {
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "Give me the investor update" },
       },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "Burn: [run rate]. Cost: tokens (Usage tab), LLM, Cursor, data APIs per TREASURY. Paper bot: See Leaderboard → Trading Bot tab. Priorities: [one line].",
         },

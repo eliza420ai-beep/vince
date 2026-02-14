@@ -59,7 +59,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here are suggested settings—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SETTINGS_SUGGEST] Failed:", error);
@@ -72,9 +73,9 @@ Context:\n${contextBlock}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Best settings for Discord and Supabase?" } },
+      { name: "{{user}}", content: { text: "Best settings for Discord and Supabase?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "Discord: channel names with daily, news, research, sentinel, ops get pushes. Supabase: SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL for feature-store dual-write. Refs: FEATURE-STORE.md, DEPLOY.md.",
         },

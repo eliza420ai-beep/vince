@@ -294,7 +294,8 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
       
       response += `\n---\n*Ask about specific topics: "a2a policy", "standup config", "dream team", "option c discord", "feedback flow", "dev worker"*`;
       
-      await callback({ text: response });
+      const out = "Here's the multi-agent picture—\n\n" + response;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_MULTI_AGENT] Failed:", error);
@@ -307,27 +308,27 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Tell me about the multi-agent architecture" } },
+      { name: "{{user}}", content: { text: "Tell me about the multi-agent architecture" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "🏗️ **Multi-Agent Architecture**\n\n**North Star:** *A Discord where your agents talk to you and each other...*\n\n**Dream Team:** Eliza, VINCE, Solus, Otaku, Kelly, Sentinel\n\n**Key Concepts:**\n• ASK_AGENT, Option C Discord, Standups, Feedback Flow...",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do I set up standups?" } },
+      { name: "{{user}}", content: { text: "How do I set up standups?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "📅 **Standup Configuration**\n\n```bash\nSTANDUP_ENABLED=true\nSTANDUP_COORDINATOR_AGENT=Kelly\n...\n```",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "What's the dream team?" } },
+      { name: "{{user}}", content: { text: "What's the dream team?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "👥 **The Dream Team**\n\n| Agent | Role | Lane |\n|-------|------|------|\n| Eliza | CEO | Knowledge, research... |",
         },

@@ -307,7 +307,8 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
         recordSuggestion(line, "ship-priority");
       }
       
-      await callback({ text: response });
+      const out = "Here's what to ship—\n\n" + response;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SHIP] Failed:", error);
@@ -320,9 +321,9 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What should we ship?" } },
+      { name: "{{user}}", content: { text: "What should we ship?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: `🚀 **Ship Priorities**
 
@@ -339,9 +340,9 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "impact score: add a leaderboard for paper trading results" } },
+      { name: "{{user}}", content: { text: "impact score: add a leaderboard for paper trading results" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: `📊 **Impact Score: "add a leaderboard for paper trading results"**
 

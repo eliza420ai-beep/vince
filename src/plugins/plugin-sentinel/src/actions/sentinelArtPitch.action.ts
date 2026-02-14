@@ -73,7 +73,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here's a gen-art pitch—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_ART_PITCH] Failed:", error);
@@ -87,11 +88,11 @@ Context:\n${contextBlock}`;
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "Give me a gen art idea in XCOPY style." },
       },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "1) Glitch/motion loop with parameterized intensity (XCOPY vibe)—we could use for a single-edition generative piece. 2) On-chain trait derivation from seed (Ringers-style)—elizaOS examples/art has NFT flow we could adapt. 3) Ingest examples/art for exact patterns. Refs: elizaOS/examples/art, XCOPY.",
         },

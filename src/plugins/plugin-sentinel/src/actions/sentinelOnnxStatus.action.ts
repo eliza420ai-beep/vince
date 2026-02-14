@@ -61,7 +61,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here's the ONNX and feature-store status—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_ONNX_STATUS] Failed:", error);
@@ -74,9 +75,9 @@ Context:\n${contextBlock}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What is the ONNX and feature store status?" } },
+      { name: "{{user}}", content: { text: "What is the ONNX and feature store status?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "Feature store: jsonl + PGLite/Postgres; optional Supabase for 500+ query. ONNX: 90+ rows then train_models.py. Next step: if 90+ rows run train_models.py; else enable Supabase dual-write and collect more trades. Refs: FEATURE-STORE.md, ONNX.md.",
         },

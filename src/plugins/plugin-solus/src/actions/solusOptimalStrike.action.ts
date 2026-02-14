@@ -77,7 +77,8 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim(), actions: ["SOLUS_OPTIMAL_STRIKE"] });
+      const out = "Here's the strike call—\n\n" + text.trim();
+      await callback({ text: out, actions: ["SOLUS_OPTIMAL_STRIKE"] });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_OPTIMAL_STRIKE] Failed:", error);
@@ -91,11 +92,11 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "What's the optimal strike for BTC covered calls this week?" },
       },
       {
-        name: "Solus",
+        name: "{{agent}}",
         content: {
           text: "Need VINCE's options view — say 'options' to him and paste it here. With that I'll give you OTM %, strike, and invalidation.",
           actions: ["SOLUS_OPTIMAL_STRIKE"],

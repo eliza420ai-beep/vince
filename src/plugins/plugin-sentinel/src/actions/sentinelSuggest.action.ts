@@ -389,7 +389,8 @@ One paragraph only, no preamble:`;
       
       response += `\n---\n*For a full PRD: "PRD for <feature>". For a task brief: "brief for Claude to <task>".*`;
       
-      await callback({ text: response });
+      const out = "Here are my suggestions—\n\n" + response;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
@@ -403,27 +404,27 @@ One paragraph only, no preamble:`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What should we improve next?" } },
+      { name: "{{user}}", content: { text: "What should we improve next?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "🎯 **Sentinel Suggestions** (Impact-Scored)\n\n*North star: 24/7 market research is TOP PRIORITY.*\n\n**Top Priorities:**\n\n1. 🔥 **Improve plugin-vince health** (Score: 65)\n   Add tests, improve services...\n\n2. 🟢 **Set up openclaw** (Score: 45)\n   24/7 knowledge ingestion...",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Task brief for Claude to refactor options action" } },
+      { name: "{{user}}", content: { text: "Task brief for Claude to refactor options action" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "📝 **Task Brief for Claude Code**\n\n```\nTask: Refactor options action...\n```\n\n*Paste this into Cursor.*",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do I set up openclaw for knowledge research?" } },
+      { name: "{{user}}", content: { text: "How do I set up openclaw for knowledge research?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "🤖 **openclaw Knowledge Research Setup**\n\n**Purpose:** 24/7 knowledge ingestion without X API cost...",
         },

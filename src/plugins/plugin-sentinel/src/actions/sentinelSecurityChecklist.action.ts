@@ -63,11 +63,11 @@ Context:\n${contextBlock}`;
         ? response
         : (response as { text?: string })?.text ?? String(response)
       ).trim();
-      await callback({
-        text: text.endsWith("full list.")
-          ? text
-          : `${text}\n\nCheck SECURITY-HYGIENE in knowledge (sentinel-docs) for the full list.`,
-      });
+      const body = text.endsWith("full list.")
+        ? text
+        : `${text}\n\nCheck SECURITY-HYGIENE in knowledge (sentinel-docs) for the full list.`;
+      const out = "Here's the security checklist—\n\n" + body;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SECURITY_CHECKLIST] Failed:", error);
@@ -81,11 +81,11 @@ Context:\n${contextBlock}`;
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "What's our security checklist?" },
       },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "• No keys in repo; use .env. • Rotate keys if exposed. • Deploy/DB/API keys: document who. Check SECURITY-HYGIENE in knowledge for the full list.",
         },

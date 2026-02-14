@@ -79,7 +79,8 @@ Reply with assessment and one call only.`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim(), actions: ["SOLUS_POSITION_ASSESS"] });
+      const out = "Here's the position assessment—\n\n" + text.trim();
+      await callback({ text: out, actions: ["SOLUS_POSITION_ASSESS"] });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_POSITION_ASSESS] Failed:", error);
@@ -93,13 +94,13 @@ Reply with assessment and one call only.`;
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: {
           text: "We bought $70K secured puts on Hypersurface, expiry next Friday, premium $3800, $150K USDT0. Assess.",
         },
       },
       {
-        name: "Solus",
+        name: "{{agent}}",
         content: {
           text: "$70K notional CSPs, $3,800 premium (~2.5% on collateral). If spot stays above strike through Friday 08:00 UTC, you keep premium and puts expire worthless. What's your strike? With that I'll give invalidation and hold/roll/adjust.",
           actions: ["SOLUS_POSITION_ASSESS"],

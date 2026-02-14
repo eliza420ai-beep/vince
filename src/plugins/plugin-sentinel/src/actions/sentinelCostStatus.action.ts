@@ -72,7 +72,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here's the cost picture—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_COST_STATUS] Failed:", error);
@@ -86,11 +87,11 @@ Context:\n${contextBlock}`;
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "What's our burn? Are we on track for breakeven?" },
       },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "Usage tab shows token usage and estimated cost (set VINCE_USAGE_COST_PER_1K_TOKENS). TREASURY cost breakdown: TEXT_SMALL for simple tasks, TEXT_LARGE for complex; Cursor Max; Nansen 100 credits, Sanbase 1K/mo, CoinGlass. Bottom line: cover API + Cursor + data API; target 100K/year. Watch burn rate.",
         },

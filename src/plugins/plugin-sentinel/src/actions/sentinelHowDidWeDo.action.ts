@@ -63,7 +63,8 @@ Context:\n${contextBlock}`;
         ? response
         : (response as { text?: string })?.text ?? String(response)
       ).trim();
-      await callback({ text });
+      const out = "Here's how we did—\n\n" + text;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_HOW_DID_WE_DO] Failed:", error);
@@ -77,11 +78,11 @@ Context:\n${contextBlock}`;
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "How did we do this week?" },
       },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "Cost vs budget: [from TREASURY]. Paper bot: Leaderboard → Trading Bot. Usage: Leaderboard → Usage. Takeaway: [one line].",
         },

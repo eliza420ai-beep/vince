@@ -272,7 +272,8 @@ ${formatEV("BTC", 105000, example)}
           response += `**Quick Wins:**\n${health.suggestions.map(s => `• ${s}`).join("\n")}`;
         }
         
-        await callback({ text: response });
+        const out1 = "Here's the trading intel—\n\n" + response;
+        await callback({ text: out1 });
         return { success: true };
       }
 
@@ -298,7 +299,8 @@ ${formatEV("BTC", 105000, example)}
       
       response += `---\n*Ask about: "signal sources", "feature store", "ml training", "hypersurface", "ev framework", "improve the algo"*`;
       
-      await callback({ text: response });
+      const out = "Here's the trading intel—\n\n" + response;
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_TRADING_INTEL] Failed:", error);
@@ -311,18 +313,18 @@ ${formatEV("BTC", 105000, example)}
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Tell me about the signal sources in the paper trading bot" } },
+      { name: "{{user}}", content: { text: "Tell me about the signal sources in the paper trading bot" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "📡 **Signal Aggregator (20 sources)**\n\n**Free Sources:**\n• CoinGlass (1.0x): Funding, L/S, OI...\n\n**API Key Required:**\n• XSentiment (X_BEARER_TOKEN)...",
         },
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How can we improve the algo?" } },
+      { name: "{{user}}", content: { text: "How can we improve the algo?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "🔧 **Trading System Improvements**\n\n**Paper Trading Bot:**\n1. Add more signal sources\n2. Tune weights after 90+ trades\n...\n\n**Options Strategy:**\n1. Implement persistent memory\n2. Add EV calibration...",
         },

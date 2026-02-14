@@ -61,7 +61,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here are concrete gems from elizaOS examples we could use here—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_ART_GEMS] Failed:", error);
@@ -74,9 +75,9 @@ Context:\n${contextBlock}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What can we take from elizaOS examples art?" } },
+      { name: "{{user}}", content: { text: "What can we take from elizaOS examples art?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "1) NFT flow pattern in examples/art — we could use for ART asset handling. 2) Generative prompt pattern — we could use for lifestyle/creative outputs. 3) Ingest examples/art into knowledge for exact file refs. Refs: elizaOS/examples/art.",
         },

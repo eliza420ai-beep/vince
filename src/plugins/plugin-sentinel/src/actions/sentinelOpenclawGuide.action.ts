@@ -63,7 +63,8 @@ Context:\n${contextBlock}`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim() });
+      const out = "Here's how to spin up OpenClaw for knowledge research—\n\n" + text.trim();
+      await callback({ text: out });
       return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_OPENCLAW_GUIDE] Failed:", error);
@@ -83,9 +84,9 @@ Context:\n${contextBlock}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "How do we spin up OpenClaw for knowledge research?" } },
+      { name: "{{user}}", content: { text: "How do we spin up OpenClaw for knowledge research?" } },
       {
-        name: "Sentinel",
+        name: "{{agent}}",
         content: {
           text: "OpenClaw knowledge research: 1) Get X API Bearer Token from developer.x.com, 2) Set X_BEARER_TOKEN in env, 3) Create daily cron with targeted searches (5-6 queries), 4) Save to knowledge/research-daily/. Next step: set up X API app and add credits with a spending limit.",
         },

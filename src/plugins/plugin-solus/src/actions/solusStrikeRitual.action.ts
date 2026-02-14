@@ -68,7 +68,8 @@ Reply with the checklist and one next step only.`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim(), actions: ["SOLUS_STRIKE_RITUAL"] });
+      const out = "Here's the strike ritual—\n\n" + text.trim();
+      await callback({ text: out, actions: ["SOLUS_STRIKE_RITUAL"] });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_STRIKE_RITUAL] Failed:", error);
@@ -81,9 +82,9 @@ Reply with the checklist and one next step only.`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Walk me through strike ritual" } },
+      { name: "{{user}}", content: { text: "Walk me through strike ritual" } },
       {
-        name: "Solus",
+        name: "{{agent}}",
         content: {
           text: "Friday ritual: (1) Get VINCE's options view — say 'options' to him, paste here. (2) Pick asset. (3) CC vs CSP. (4) Strike and invalidation. Next: paste his view and I'll give you size and strike.",
           actions: ["SOLUS_STRIKE_RITUAL"],

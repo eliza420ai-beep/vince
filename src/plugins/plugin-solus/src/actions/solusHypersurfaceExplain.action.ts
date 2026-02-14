@@ -75,7 +75,8 @@ Reply with the explanation only.`;
         typeof response === "string"
           ? response
           : (response as { text?: string })?.text ?? String(response);
-      await callback({ text: text.trim(), actions: ["SOLUS_HYPERSURFACE_EXPLAIN"] });
+      const out = "Here's how Hypersurface works—\n\n" + text.trim();
+      await callback({ text: out, actions: ["SOLUS_HYPERSURFACE_EXPLAIN"] });
       return { success: true };
     } catch (error) {
       logger.error("[SOLUS_HYPERSURFACE_EXPLAIN] Failed:", error);
@@ -88,9 +89,9 @@ Reply with the explanation only.`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "How does Hypersurface work?" } },
+      { name: "{{user}}", content: { text: "How does Hypersurface work?" } },
       {
-        name: "Solus",
+        name: "{{agent}}",
         content: {
           text: "Hypersurface is where we execute—weekly options, Friday 08:00 UTC. Covered calls: own asset, sell call, earn premium; above strike = assigned. Secured puts: hold stablecoins, sell put, earn premium; below strike = assigned (premium reduces cost basis). For live data, say 'options' to VINCE and paste here.",
           actions: ["SOLUS_HYPERSURFACE_EXPLAIN"],
