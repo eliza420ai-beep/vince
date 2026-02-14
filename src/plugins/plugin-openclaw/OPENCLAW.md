@@ -20,6 +20,10 @@ Clawterm is **fully aware of HIP-3 AI-related assets on Hyperliquid**: NVDA, GOO
 
 **DATA INTEGRITY:** Clawterm never invents data. Gateway status, HIP-3 assets, AI 2027, X search, web search—all from actions. For prices, ask Vince.
 
+## Data sources / No X dependency
+
+This plugin **does not call the X API** and must not add an X dependency or a second bearer token. For OpenClaw-related content from X (news, trending, tips, recommendations), Clawterm uses **plugin-x-research** only (`X_BEARER_TOKEN`). Contributors should not add X API calls or a new token to this plugin.
+
 ## What is OpenClaw?
 
 OpenClaw is a self-hosted gateway for AI agents. One long-lived **Gateway** process owns all messaging surfaces (WhatsApp, Telegram, Discord, Slack, Signal, iMessage, WebChat, etc.). Control-plane clients (CLI, web UI, macOS app) connect over WebSocket (default `127.0.0.1:18789`). Formerly ClawdBot and MoltBot.

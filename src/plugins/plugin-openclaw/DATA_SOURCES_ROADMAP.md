@@ -28,6 +28,8 @@ This doc describes what is needed to **get real data** for those three sections 
 - **A. Call X research from OpenClaw:** When `agent === "alpha"` and runtime has `VINCE_X_RESEARCH_SERVICE`, call the same search/briefing path that VINCE uses (e.g. search X for `"$SYMBOL"` or `"#SYMBOL"`), get back **text + optional sample tweets**. Pass that **only** as `dataContext` for the alpha section and keep the prompt: “Summarize the following CT/X content; do not add claims that aren’t in the data.”
 - **B. Shared helper:** Extract a small helper (e.g. `searchXForToken(symbol): Promise<string>`) used by both plugin-vince and plugin-openclaw so alpha always uses the same X data pipeline.
 
+**Single-token rule:** Any future "call X research from OpenClaw" (e.g. for orchestrator alpha) must use the **same** X path as plugin-x-research (shared helper or runtime service), not a separate X client or token. One `X_BEARER_TOKEN` remains the single source of truth; plugin-openclaw must not introduce a second bearer token.
+
 **Env:** `X_BEARER_TOKEN` (and optionally `X_BEARER_TOKEN_SENTIMENT` for rate-limit separation). Solus uses `vincePluginNoX` (no X) so Solus’s OpenClaw would only have alpha data when you explicitly wire an X-capable runtime or server-side call.
 
 ---

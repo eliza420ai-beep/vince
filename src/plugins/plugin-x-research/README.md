@@ -8,6 +8,8 @@ ALOHA-style X/Twitter research for crypto sentiment and alpha.
 > - **VINCE** (CDO) = Objective data (prices, options, perps, funding)
 > - **ECHO** (CSO) = Subjective sentiment (CT vibes, social alpha)
 
+**Clawterm** uses this plugin as the single source for all X-sourced OpenClaw content (news, tips, trending, recommendations) to avoid a second bearer token; plugin-openclaw does not use X.
+
 ## Overview
 
 Just like `VINCE_ALOHA` gives you the daily market vibe, `X_PULSE` gives you the X/Twitter vibe for our focus areas:
