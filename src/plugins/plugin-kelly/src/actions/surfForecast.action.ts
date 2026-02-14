@@ -96,8 +96,9 @@ export const kellySurfForecastAction: Action = {
         lines.push("Rain or storm expected — consider indoor options or surfer yoga instead.");
       }
 
+      const out = "Here's the surf forecast—\n\n" + lines.join(" ");
       await callback({
-        text: lines.join(" "),
+        text: out,
         actions: ["KELLY_SURF_FORECAST"],
       });
 
@@ -113,9 +114,9 @@ export const kellySurfForecastAction: Action = {
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "How's the surf in Biarritz?" } },
+      { name: "{{user}}", content: { text: "How's the surf in Biarritz?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_SURF_FORECAST for wave height, period, direction, sea temp.",
           actions: ["KELLY_SURF_FORECAST"],
@@ -123,9 +124,9 @@ export const kellySurfForecastAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Surf forecast for today" } },
+      { name: "{{user}}", content: { text: "Surf forecast for today" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_SURF_FORECAST for Biarritz surf conditions.",
           actions: ["KELLY_SURF_FORECAST"],

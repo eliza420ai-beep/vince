@@ -36,9 +36,9 @@ export const contentAuditAction: Action = {
 
   examples: [
     [
-      { name: '{{user1}}', content: { text: 'Analyze my top posts @myhandle' } },
+      { name: '{{user}}', content: { text: 'Analyze my top posts @myhandle' } },
       {
-        name: '{{agentName}}',
+        name: '{{agent}}',
         content: {
           text: '**Content playbook for @myhandle**\n\n**Hooks that work**\n• Open with a specific credential tied to the topic\n• Name the broken system the reader is stuck in\n\n**Topics that land**\n• ...',
           action: 'CONTENT_AUDIT',
@@ -106,7 +106,8 @@ export const contentAuditAction: Action = {
       const responseText = `**Content playbook for @${username}**\n\n${playbook.trim()}`;
       if (message.roomId) setLastResearch(message.roomId, responseText);
 
-      callback({ text: responseText, action: 'CONTENT_AUDIT' });
+      const out = "Here's the content playbook—\n\n" + responseText;
+      callback({ text: out, action: 'CONTENT_AUDIT' });
       return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);

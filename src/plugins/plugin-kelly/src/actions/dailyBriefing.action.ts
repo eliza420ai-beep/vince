@@ -405,8 +405,9 @@ export const kellyDailyBriefingAction: Action = {
         KELLY_FOOTER,
       ].join("\n");
 
+      const out = "Here's your day—\n\n" + output;
       await callback({
-        text: output,
+        text: out,
         actions: ["KELLY_DAILY_BRIEFING"],
       });
 
@@ -422,9 +423,9 @@ export const kellyDailyBriefingAction: Action = {
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What should I do today?" } },
+      { name: "{{user}}", content: { text: "What should I do today?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use the daily lifestyle briefing—it's day-aware and pulls from curated places open today (dining, hotels, health). I'll run it for you.",
           actions: ["KELLY_DAILY_BRIEFING"],
@@ -432,9 +433,9 @@ export const kellyDailyBriefingAction: Action = {
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Where's good for lunch today?" } },
+      { name: "{{user}}", content: { text: "Where's good for lunch today?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "The daily briefing has today's curated spots—I'll run it so you get places that are open.",
           actions: ["KELLY_DAILY_BRIEFING"],

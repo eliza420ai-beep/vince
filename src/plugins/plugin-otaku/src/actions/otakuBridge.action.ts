@@ -99,11 +99,11 @@ export const otakuBridgeAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Bridge 0.1 ETH from Base to Arbitrum" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Bridge Quote:**\n- Send: 0.1 ETH on Base\n- Receive: ~0.0995 ETH on Arbitrum\n- Fee: ~$0.50\n- Time: ~2 minutes\n\nType \"confirm\" to proceed.",
           actions: ["OTAKU_BRIDGE"],
@@ -186,8 +186,9 @@ export const otakuBridgeAction: Action = {
         try {
           const result = await relayService.executeBridge(pendingBridge);
           if (result.success) {
+            const bridgeOut = `✅ Bridge initiated!\n\nTX: ${result.txHash}\nEstimated arrival: ${result.estimatedTime || "2-5 minutes"}\n\nUse "bridge status" to check progress.`;
             await callback?.({
-              text: `✅ Bridge initiated!\n\nTX: ${result.txHash}\nEstimated arrival: ${result.estimatedTime || "2-5 minutes"}\n\nUse "bridge status" to check progress.`,
+              text: "Here's the bridge status—\n\n" + bridgeOut,
             });
             return { success: true };
           }
@@ -207,8 +208,9 @@ export const otakuBridgeAction: Action = {
           });
 
           if (result.status === "completed") {
+            const bridgeOut = `✅ Bridge initiated!\n\n${result.response}\n\nTX: ${result.transactions?.[0]?.hash || "pending"}`;
             await callback?.({
-              text: `✅ Bridge initiated!\n\n${result.response}\n\nTX: ${result.transactions?.[0]?.hash || "pending"}`,
+              text: "Here's the bridge status—\n\n" + bridgeOut,
             });
             return { success: true };
           } else {

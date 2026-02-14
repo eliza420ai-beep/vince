@@ -298,7 +298,7 @@ Uses VINCE's market research to prioritize content production.`,
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "connect trends" },
       },
       {
@@ -394,7 +394,8 @@ Uses VINCE's market research to prioritize content production.`,
 
     response += `\n---\n📁 Report cached at \`${path.relative(process.cwd(), TRENDS_CACHE)}\``;
 
-    callback?.({ text: response });
+    const out = "Here's the trend connection—\n\n" + response;
+    callback?.({ text: out });
     logger.info(`[Trend Connection] Found ${connections.length} connections, ${gaps.length} gaps`);
     
     return true;

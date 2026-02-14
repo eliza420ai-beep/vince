@@ -35,11 +35,11 @@ export const otakuBalanceAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "What's my balance?" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Wallet Balances:**\n- 0.5 ETH (~$1,000)\n- 250 USDC (~$250)\n- 0.1 WBTC (~$4,200)\n\n**Total:** ~$5,450",
           actions: ["OTAKU_BALANCE"],
@@ -48,11 +48,11 @@ export const otakuBalanceAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "How much ETH do I have?" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "You have **0.5 ETH** (~$1,000) on Base.",
           actions: ["OTAKU_BALANCE"],
@@ -185,8 +185,9 @@ export const otakuBalanceAction: Action = {
     if (specificToken && displayBalances.length === 1) {
       const b = displayBalances[0];
       const usd = b.usdValue ? ` (~$${b.usdValue.toLocaleString()})` : "";
+      const line = `You have **${b.balance} ${b.token}**${usd} on ${b.chain}.`;
       await callback?.({
-        text: `You have **${b.balance} ${b.token}**${usd} on ${b.chain}.`,
+        text: "Here's your balance—\n\n" + line,
       });
     } else {
       const lines = ["**Wallet Balances:**"];
@@ -210,7 +211,8 @@ export const otakuBalanceAction: Action = {
         lines.push(`**Total:** ~$${totalUsd.toLocaleString()}`);
       }
 
-      await callback?.({ text: lines.join("\n") });
+      const out = "Here's your balance—\n\n" + lines.join("\n");
+      await callback?.({ text: out });
     }
 
     return { success: true };

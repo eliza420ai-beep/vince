@@ -126,11 +126,11 @@ export const otakuDcaAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "DCA $500 into ETH over 30 days" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**DCA Schedule Summary:**\n- Total: $500 USDC\n- Into: ETH\n- Orders: 30 × $16.67\n- Frequency: daily\n- Chain: base\n\nDCA will automatically execute 30 swaps.\n\nType \"confirm\" to start DCA.",
           actions: ["OTAKU_DCA"],
@@ -139,11 +139,11 @@ export const otakuDcaAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Set up weekly DCA of $100 into BTC" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**DCA Schedule Summary:**\n- Total: $3000 USDC\n- Into: BTC\n- Orders: 30 × $100\n- Frequency: weekly\n- Chain: base\n\nDCA will automatically execute 30 swaps over ~7 months.\n\nType \"confirm\" to start DCA.",
           actions: ["OTAKU_DCA"],
@@ -222,8 +222,9 @@ export const otakuDcaAction: Action = {
       const result = await otakuSvc.createDca(pendingDca);
 
       if (result.success) {
+        const dcaOut = `✅ DCA schedule created!\n\n${result.response ?? ""}\n\nSchedule ID: ${result.orderId ?? "active"}`;
         await callback?.({
-          text: `✅ DCA schedule created!\n\n${result.response ?? ""}\n\nSchedule ID: ${result.orderId ?? "active"}`,
+          text: "Here's the DCA schedule—\n\n" + dcaOut,
         });
         return { success: true };
       } else {

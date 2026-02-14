@@ -323,7 +323,7 @@ Use this for systematic knowledge expansion over time.`,
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "audit knowledge" },
       },
       {
@@ -354,7 +354,7 @@ Use this for systematic knowledge expansion over time.`,
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "fill gaps" },
       },
       {
@@ -409,13 +409,15 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
       case "audit": {
         const { gaps, coverage } = auditKnowledge();
         const report = formatAuditReport(gaps, coverage);
-        callback?.({ text: report });
+        const out = "Here's the knowledge audit—\n\n" + report;
+        callback?.({ text: out });
         return true;
       }
 
       case "agenda": {
         const summary = getAgendaSummary();
-        callback?.({ text: summary });
+        const out = "Here's the research agenda—\n\n" + summary;
+        callback?.({ text: out });
         return true;
       }
 
@@ -457,14 +459,16 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
         }
         
         response += `Run \`next topics\` to see the full queue, or \`research session\` to start.`;
-        callback?.({ text: response });
+        const gapsOut = "Here's the gap analysis—\n\n" + response;
+        callback?.({ text: gapsOut });
         return true;
       }
 
       case "next": {
         const topics = getNextTopics(5);
         const report = formatNextTopics(topics);
-        callback?.({ text: report });
+        const out = "Here are the next topics—\n\n" + report;
+        callback?.({ text: out });
         return true;
       }
 
@@ -490,9 +494,8 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
             filesAdded: result.filesCreated,
           });
           
-          callback?.({
-            text: `✅ **Research Complete: ${arg}**\n\n${result.summary}\n\n**Next steps:**\n• Review and expand the stub at \`${result.filesCreated[0]}\`\n• Use UPLOAD to add related content\n• Run \`next topics\` to continue research`,
-          });
+          const topicOut = `✅ **Research Complete: ${arg}**\n\n${result.summary}\n\n**Next steps:**\n• Review and expand the stub at \`${result.filesCreated[0]}\`\n• Use UPLOAD to add related content\n• Run \`next topics\` to continue research`;
+          callback?.({ text: "Here's the research result—\n\n" + topicOut });
         } else {
           updateTopicStatus(topic.id, "blocked");
           callback?.({ text: `❌ Research failed for "${arg}". Try again later.` });
@@ -547,7 +550,8 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
         response += `• ${filesCreated.length} files created\n\n`;
         response += `Review the stubs in \`knowledge/\` and expand with UPLOAD.`;
         
-        callback?.({ text: response });
+        const sessionOut = "Here's the research session—\n\n" + response;
+        callback?.({ text: sessionOut });
         return true;
       }
     }

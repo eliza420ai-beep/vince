@@ -346,8 +346,9 @@ Analyzes the knowledge base and suggests:
       const formatted = formatSuggestions(allSuggestions, categories, existingTopics);
 
       if (callback) {
+        const out = "Here are topic suggestions—\n\n" + formatted;
         await callback({
-          text: formatted,
+          text: out,
           actions: ["SUGGEST_TOPICS"],
         });
       }
@@ -365,9 +366,9 @@ Analyzes the knowledge base and suggests:
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "suggest topics" } },
+      { name: "{{user}}", content: { text: "suggest topics" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "💡 **Topic Suggestions**\n\n**📭 Fill Knowledge Gaps:**...",
           actions: ["SUGGEST_TOPICS"],
@@ -375,9 +376,9 @@ Analyzes the knowledge base and suggests:
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "what should I write about" } },
+      { name: "{{user}}", content: { text: "what should I write about" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "💡 **Topic Suggestions**\n\n**📈 Trend-Aware:**...",
           actions: ["SUGGEST_TOPICS"],

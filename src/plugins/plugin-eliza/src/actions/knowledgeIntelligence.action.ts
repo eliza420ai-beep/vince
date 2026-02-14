@@ -295,7 +295,7 @@ Combines Auto-Monitor, Knowledge Graph, Deduplication, and Source Quality servic
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "knowledge intel" },
       },
       {
@@ -307,7 +307,7 @@ Combines Auto-Monitor, Knowledge Graph, Deduplication, and Source Quality servic
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "find duplicates" },
       },
       {
@@ -394,7 +394,8 @@ Combines Auto-Monitor, Knowledge Graph, Deduplication, and Source Quality servic
         break;
     }
 
-    callback?.({ text: response });
+    const out = "Here's the knowledge intel—\n\n" + response;
+    callback?.({ text: out });
     return true;
   },
 };

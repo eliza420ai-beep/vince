@@ -578,8 +578,7 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
           const truncationWarning = wordCount > 0 && wordCount < LOW_WORD_COUNT_WARN_THRESHOLD
             ? `\n\n⚠️ **Only ${wordCount} words were received.** If you pasted a long article, split into 2–3 messages and say \`upload that\` to combine.`
             : "";
-          await callback({
-            text: `✅ **Knowledge Uploaded!**
+          const uploadOut = `✅ **Knowledge Uploaded!**
 
 **Title**: ${title}
 **Category**: \`${fileResult.file.category}\`
@@ -587,7 +586,10 @@ Use this for expanding the knowledge corpus with research, articles, videos, and
 **Word Count**: ${wordCount}
 **Processing Time**: ${processingTime}ms
 
-Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${ELIZA_FOOTER}`,
+Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${truncationWarning}${ELIZA_FOOTER}`;
+          const out = "Here's the upload—\n\n" + uploadOut;
+          await callback({
+            text: out,
             actions: ["UPLOAD"],
             success: true,
           });
@@ -613,8 +615,8 @@ Saved to \`knowledge/${fileResult.file.category}/${fileResult.file.filename}\`${
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "upload: Bitcoin's halving cycle typically creates a supply shock 12-18 months after the event." } },
-      { name: "Eliza", content: { text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle...\n**Category**: `bitcoin-maxi`\n**File**: `eliza-upload-bitcoin-halving-cycle.md`\n\nSaved to `knowledge/bitcoin-maxi/eliza-upload-bitcoin-halving-cycle.md`" + ELIZA_FOOTER, actions: ["UPLOAD"] } },
+      { name: "{{user}}", content: { text: "upload: Bitcoin's halving cycle typically creates a supply shock 12-18 months after the event." } },
+      { name: "{{agent}}", content: { text: "✅ **Knowledge Uploaded!**\n\n**Title**: Bitcoin's halving cycle...\n**Category**: `bitcoin-maxi`\n**File**: `eliza-upload-bitcoin-halving-cycle.md`\n\nSaved to `knowledge/bitcoin-maxi/eliza-upload-bitcoin-halving-cycle.md`" + ELIZA_FOOTER, actions: ["UPLOAD"] } },
     ],
   ],
 };

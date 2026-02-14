@@ -430,7 +430,7 @@ Use this before publishing to ensure premium quality.`,
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: {
           text: `polish this: We're excited to announce our revolutionary new feature that leverages cutting-edge technology to provide users with a comprehensive trading experience.`,
         },
@@ -571,7 +571,8 @@ Transform generic copy into premium, brand-elevating content.
       response = response.replace("**Polish Report**", `**Polish Report: ${filename}**`);
     }
 
-    callback?.({ text: response });
+    const out = "Here's the polish report—\n\n" + response;
+    callback?.({ text: out });
     return true;
   },
 };

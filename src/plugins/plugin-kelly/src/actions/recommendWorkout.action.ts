@@ -90,8 +90,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
+      const fallback =
+        "Today: gym or mobility (gym season). Pool when it's pool season. Check swimming-daily-winter-pools for palace pool reopen dates.";
+      const out = text ? "Here's a workout for today—\n\n" + text : fallback;
       await callback({
-        text: text || "Today: gym or mobility (gym season). Pool when it’s pool season. Check swimming-daily-winter-pools for palace pool reopen dates.",
+        text: out,
         actions: ["KELLY_RECOMMEND_WORKOUT"],
       });
     } catch (error) {
@@ -105,9 +108,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Recommend a workout for today" } },
+      { name: "{{user}}", content: { text: "Recommend a workout for today" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Gym session this morning—strength or mobility. Pool season starts in April; until then indoor training or palace pool once they reopen (Palais Feb 12, Caudalie Feb 5).",
           actions: ["KELLY_RECOMMEND_WORKOUT"],

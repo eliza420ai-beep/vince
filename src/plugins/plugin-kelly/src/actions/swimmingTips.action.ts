@@ -88,10 +88,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
+      const fallback =
+        "For your daily 1000m: warm up 100–200 easy, then build. In winter use indoor palace pools (Palais, Caudalie, Eugenie)—see swimming-daily-winter-pools for reopen dates. Add a short yoga flow for shoulders and hips (yoga-vinyasa-surfers-swimmers). See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail.";
+      const out = text ? "Here are some swimming tips—\n\n" + text : fallback;
       await callback({
-        text:
-          text ||
-          "For your daily 1000m: warm up 100–200 easy, then build. In winter use indoor palace pools (Palais, Caudalie, Eugenie)—see swimming-daily-winter-pools for reopen dates. Add a short yoga flow for shoulders and hips (yoga-vinyasa-surfers-swimmers). See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail.",
+        text: out,
         actions: ["KELLY_SWIMMING_TIPS"],
       });
     } catch (error) {
@@ -105,9 +106,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Tips for my daily 1000m" } },
+      { name: "{{user}}", content: { text: "Tips for my daily 1000m" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Warm up 100–200 easy, then build. In winter use the indoor pools from the-good-life (swimming-daily-winter-pools)—Palais, Caudalie, Eugenie close/reopen dates so you can plan. Add a short yoga flow (yoga-vinyasa-surfers-swimmers) for shoulders and hips. See swimming-daily-winter-pools and yoga-vinyasa-surfers-swimmers for detail.",
           actions: ["KELLY_SWIMMING_TIPS"],

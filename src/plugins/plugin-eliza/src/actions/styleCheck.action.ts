@@ -242,7 +242,7 @@ Returns a score (0-100) and detailed violation report.`,
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "style check" },
       },
       {
@@ -254,7 +254,7 @@ Returns a score (0-100) and detailed violation report.`,
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "style guide" },
       },
       {
@@ -266,7 +266,7 @@ Returns a score (0-100) and detailed violation report.`,
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "auto-fix style drafts/my-essay.md" },
       },
       {
@@ -302,13 +302,13 @@ Returns a score (0-100) and detailed violation report.`,
     switch (command) {
       case "guide": {
         const summary = getStyleGuideSummary();
-        callback?.({ text: summary });
+        callback?.({ text: "Here's the style guide—\n\n" + summary });
         return true;
       }
       
       case "rules": {
         const rules = formatRules();
-        callback?.({ text: rules });
+        callback?.({ text: "Here are the style rules—\n\n" + rules });
         return true;
       }
       
@@ -404,8 +404,8 @@ Returns a score (0-100) and detailed violation report.`,
         // Run check
         const result = checkStyle(content);
         const response = formatResult(result, filename);
-        
-        callback?.({ text: response });
+        const out = "Here's the style check—\n\n" + response;
+        callback?.({ text: out });
         return true;
       }
     }

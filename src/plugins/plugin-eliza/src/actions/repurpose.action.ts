@@ -311,8 +311,7 @@ ${sourceContent}`;
       }
 
       if (callback) {
-        await callback({
-          text: `✅ **Repurposed to ${targetFormat}**
+        const repurposeOut = `✅ **Repurposed to ${targetFormat}**
 
 **Saved:** \`${savedPath}\`
 
@@ -325,7 +324,10 @@ ${displayContent}
 **Next:**
 • Edit in \`${savedPath}\`
 • Repurpose again: "turn this into [format]"
-• Different hooks: "give me 5 hooks for this"`,
+• Different hooks: "give me 5 hooks for this"`;
+        const out = "Here's the repurposed content—\n\n" + repurposeOut;
+        await callback({
+          text: out,
           actions: ["REPURPOSE"],
         });
       }
@@ -342,9 +344,9 @@ ${displayContent}
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "turn that essay into a thread" } },
+      { name: "{{user}}", content: { text: "turn that essay into a thread" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "🔄 **Repurposing content**\n\n**To:** thread...",
           actions: ["REPURPOSE"],
@@ -352,9 +354,9 @@ ${displayContent}
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "expand this into an essay" } },
+      { name: "{{user}}", content: { text: "expand this into an essay" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "🔄 **Repurposing content**\n\n**To:** essay...",
           actions: ["REPURPOSE"],

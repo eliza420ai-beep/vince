@@ -100,11 +100,11 @@ export const otakuStopLossAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Set stop-loss at $1800 and take-profit at $2200 for 1 ETH" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Stop-Loss/Take-Profit Order:**\n- Token: 1 ETH\n- Stop-Loss: $1,800 (↓10%)\n- Take-Profit: $2,200 (↑10%)\n\nType \"confirm\" to place orders.",
           actions: ["OTAKU_STOP_LOSS"],
@@ -113,11 +113,11 @@ export const otakuStopLossAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Trailing stop 5% on my ETH position" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Trailing Stop Order:**\n- Token: ETH\n- Trail: 5% below highest price\n\nType \"confirm\" to activate.",
           actions: ["OTAKU_STOP_LOSS"],
@@ -231,8 +231,9 @@ export const otakuStopLossAction: Action = {
         }
       }
 
+      const out = "Here are the order results—\n\n" + results.join("\n\n");
       await callback?.({
-        text: results.join("\n\n"),
+        text: out,
       });
       return { success: true };
     }

@@ -276,7 +276,7 @@ Briefs are saved to knowledge/briefs/ for reference.`,
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "research brief on AI agents" },
       },
       {
@@ -288,7 +288,7 @@ Briefs are saved to knowledge/briefs/ for reference.`,
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "list briefs" },
       },
       {
@@ -400,7 +400,8 @@ ${brief.gaps.length > 0 ? `\n**Knowledge Gaps:**\n${brief.gaps.map(g => `⚠️ 
 ---
 📁 Saved to: \`${path.relative(process.cwd(), savedPath).replace(".json", ".md")}\``;
 
-    callback?.({ text: response });
+    const out = "Here's the research brief—\n\n" + response;
+    callback?.({ text: out });
     logger.info(`[Research Brief] Generated brief ${brief.id} with ${brief.sources.length} sources`);
     
     return true;

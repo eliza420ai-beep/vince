@@ -92,8 +92,11 @@ Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. $
       const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
       const text = String(response).trim();
 
+      const out = text
+        ? "Here's your itinerary—\n\n" + text
+        : "I couldn't build a full itinerary from my knowledge for that request. Check MICHELIN Guide or James Edition and I can still suggest a few picks.";
       await callback({
-        text: text || "I couldn't build a full itinerary from my knowledge for that request. Check MICHELIN Guide or James Edition and I can still suggest a few picks.",
+        text: out,
         actions: ["KELLY_ITINERARY"],
       });
 
@@ -109,9 +112,9 @@ Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. $
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Plan me 2 days in Bordeaux" } },
+      { name: "{{user}}", content: { text: "Plan me 2 days in Bordeaux" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_ITINERARY for a structured multi-day plan from the-good-life.",
           actions: ["KELLY_ITINERARY"],
@@ -119,9 +122,9 @@ Output only the itinerary, no XML or preamble. Voice: avoid jargon and filler. $
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Weekend in Paris with great food" } },
+      { name: "{{user}}", content: { text: "Weekend in Paris with great food" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_ITINERARY for a weekend plan.",
           actions: ["KELLY_ITINERARY"],

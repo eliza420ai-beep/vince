@@ -104,11 +104,11 @@ export const otakuLimitOrderAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Set a limit order to buy ETH at $3000" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Limit Order Summary:**\n- Buy: ETH\n- Price: $3000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when ETH reaches $3000.\n\nType \"confirm\" to place order.",
           actions: ["OTAKU_LIMIT_ORDER"],
@@ -117,11 +117,11 @@ export const otakuLimitOrderAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Sell 0.5 ETH if it hits $4000" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Limit Order Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Limit Price: $4000\n- Chain: base\n- Expires: 24 hours\n\nOrder will execute when price reaches $4000.\n\nType \"confirm\" to place order.",
           actions: ["OTAKU_LIMIT_ORDER"],
@@ -200,8 +200,9 @@ export const otakuLimitOrderAction: Action = {
       const result = await otakuSvc.createLimitOrder(pendingOrder);
 
       if (result.success) {
+        const orderOut = `✅ Limit order created!\n\n${result.response ?? ""}\n\nOrder ID: ${result.orderId ?? "pending"}`;
         await callback?.({
-          text: `✅ Limit order created!\n\n${result.response ?? ""}\n\nOrder ID: ${result.orderId ?? "pending"}`,
+          text: "Here's the order—\n\n" + orderOut,
         });
         return { success: true };
       } else {

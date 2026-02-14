@@ -258,8 +258,7 @@ Requirements:
       const displayContent = formatTweetForDisplay(content.trim(), format);
 
       if (callback) {
-        await callback({
-          text: `✅ **Tweet Draft${format === "batch" ? "s" : ""} Ready**
+        const draftOut = `✅ **Tweet Draft${format === "batch" ? "s" : ""} Ready**
 
 **Topic:** ${topic}
 **Format:** ${format}
@@ -274,7 +273,10 @@ ${displayContent}
 **Next steps:**
 • Copy and post to [${X_HANDLE}](${X_URL})
 • Want variations? Ask for a different angle.
-• Want a thread? Say "write a thread on ${topic}"`,
+• Want a thread? Say "write a thread on ${topic}"`;
+        const out = "Here are your tweet drafts—\n\n" + draftOut;
+        await callback({
+          text: out,
           actions: ["DRAFT_TWEETS"],
         });
       }
@@ -292,11 +294,11 @@ ${displayContent}
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "draft a tweet about Bitcoin ETF flows" },
       },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "🐦 **Drafting tweet**\n\n**Topic:** Bitcoin ETF flows...",
           actions: ["DRAFT_TWEETS"],
@@ -305,11 +307,11 @@ ${displayContent}
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "write a thread on why most traders fail" },
       },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "🐦 **Drafting thread**\n\n**Topic:** why most traders fail...",
           actions: ["DRAFT_TWEETS"],
@@ -318,11 +320,11 @@ ${displayContent}
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "suggest batch of tweets about lifestyle optimization" },
       },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "🐦 **Drafting tweet batch**\n\n**Topic:** lifestyle optimization...",
           actions: ["DRAFT_TWEETS"],

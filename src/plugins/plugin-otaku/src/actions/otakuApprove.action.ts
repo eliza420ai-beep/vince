@@ -104,11 +104,11 @@ export const otakuApproveAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Approve USDC for Uniswap" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Token Approval:**\n- Token: USDC\n- Spender: Uniswap V3 Router\n- Amount: Unlimited\n\n⚠️ This grants spending permission.\n\nType \"confirm\" to approve.",
           actions: ["OTAKU_APPROVE"],
@@ -117,11 +117,11 @@ export const otakuApproveAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Revoke USDC approval for 1inch" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Revoke Approval:**\n- Token: USDC\n- Spender: 1inch Router\n\nThis will remove spending permission.\n\nType \"confirm\" to revoke.",
           actions: ["OTAKU_APPROVE"],
@@ -177,14 +177,15 @@ export const otakuApproveAction: Action = {
     // Handle "check" intent
     if (request.intent === "check") {
       // Would need to query token contract for allowances
+      const checkOut = [
+        `**${request.token} Approvals:**`,
+        "",
+        "⚠️ Full approval checking requires indexer integration.",
+        "For now, check on Etherscan/Basescan:",
+        `https://basescan.org/tokenapprovalchecker`,
+      ].join("\n");
       await callback?.({
-        text: [
-          `**${request.token} Approvals:**`,
-          "",
-          "⚠️ Full approval checking requires indexer integration.",
-          "For now, check on Etherscan/Basescan:",
-          `https://basescan.org/tokenapprovalchecker`,
-        ].join("\n"),
+        text: "Here are your approvals—\n\n" + checkOut,
       });
       return { success: true };
     }
@@ -239,14 +240,15 @@ export const otakuApproveAction: Action = {
 
         if (result?.success || result?.txHash || result?.hash) {
           const action = pendingApproval.intent === "approve" ? "Approved" : "Revoked";
+          const approveOut = [
+            `✅ ${action}!`,
+            "",
+            `**Token:** ${pendingApproval.token}`,
+            `**Spender:** ${pendingApproval.spender?.slice(0, 10)}...`,
+            result.txHash || result.hash ? `**TX:** ${(result.txHash || result.hash).slice(0, 20)}...` : "",
+          ].join("\n");
           await callback?.({
-            text: [
-              `✅ ${action}!`,
-              "",
-              `**Token:** ${pendingApproval.token}`,
-              `**Spender:** ${pendingApproval.spender?.slice(0, 10)}...`,
-              result.txHash || result.hash ? `**TX:** ${(result.txHash || result.hash).slice(0, 20)}...` : "",
-            ].join("\n"),
+            text: "Here's the approval status—\n\n" + approveOut,
           });
           return { success: true };
         }

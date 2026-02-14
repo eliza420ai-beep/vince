@@ -129,11 +129,11 @@ export const otakuNftMintAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Mint 1 NFT from 0x1234..." },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**NFT Mint:**\n- Contract: 0x1234...\n- Quantity: 1\n- Price: Free mint\n\nType \"confirm\" to mint.",
           actions: ["OTAKU_NFT_MINT"],
@@ -142,11 +142,11 @@ export const otakuNftMintAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Generate an AI art piece of a cyberpunk cat and mint it" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Gen Art + Mint:**\n- Prompt: \"cyberpunk cat\"\n- Creator: Sentinel (CTO)\n- Minter: Otaku (you)\n\nI'll ask Sentinel to generate the art, then mint it. Type \"confirm\" to proceed.",
           actions: ["OTAKU_NFT_MINT"],
@@ -283,15 +283,16 @@ export const otakuNftMintAction: Action = {
         }
 
         if (result?.hash || result?.txHash) {
+          const mintOut = [
+            `✅ Minted ${pendingMint.quantity} NFT(s)!`,
+            "",
+            `**Contract:** ${pendingMint.contractAddress?.slice(0, 20)}...`,
+            `**TX:** ${(result.hash || result.txHash).slice(0, 20)}...`,
+            "",
+            "Check your wallet for the new NFT(s).",
+          ].join("\n");
           await callback?.({
-            text: [
-              `✅ Minted ${pendingMint.quantity} NFT(s)!`,
-              "",
-              `**Contract:** ${pendingMint.contractAddress?.slice(0, 20)}...`,
-              `**TX:** ${(result.hash || result.txHash).slice(0, 20)}...`,
-              "",
-              "Check your wallet for the new NFT(s).",
-            ].join("\n"),
+            text: "Here's the mint result—\n\n" + mintOut,
           });
           return { success: true };
         }

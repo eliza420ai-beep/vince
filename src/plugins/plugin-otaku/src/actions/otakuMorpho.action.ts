@@ -101,11 +101,11 @@ export const otakuMorphoAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Supply 100 USDC to Morpho" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Morpho Supply:**\n- Deposit: 100 USDC\n- Vault: Moonwell USDC\n- Est. APY: ~5.2%\n\nType \"confirm\" to deposit.",
           actions: ["OTAKU_MORPHO"],
@@ -114,11 +114,11 @@ export const otakuMorphoAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Withdraw 50 USDC from Morpho" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Morpho Withdrawal:**\n- Withdraw: 50 USDC\n- From: Moonwell USDC vault\n\nType \"confirm\" to withdraw.",
           actions: ["OTAKU_MORPHO"],
@@ -216,14 +216,15 @@ export const otakuMorphoAction: Action = {
           });
 
           if (result?.success || result?.txHash) {
+            const morphoLines = [
+              `✅ ${pendingMorpho.intent === "supply" ? "Deposit" : "Withdrawal"} complete!`,
+              "",
+              `**Amount:** ${pendingMorpho.amount} ${pendingMorpho.asset}`,
+              `**Vault:** ${pendingMorpho.vault}`,
+              result.txHash ? `**TX:** ${result.txHash.slice(0, 20)}...` : "",
+            ].join("\n");
             await callback?.({
-              text: [
-                `✅ ${pendingMorpho.intent === "supply" ? "Deposit" : "Withdrawal"} complete!`,
-                "",
-                `**Amount:** ${pendingMorpho.amount} ${pendingMorpho.asset}`,
-                `**Vault:** ${pendingMorpho.vault}`,
-                result.txHash ? `**TX:** ${result.txHash.slice(0, 20)}...` : "",
-              ].join("\n"),
+              text: "Here's the Morpho result—\n\n" + morphoLines,
             });
             return { success: true };
           }
@@ -241,8 +242,9 @@ export const otakuMorphoAction: Action = {
         );
 
         if (actionResult) {
+          const fallbackText = `✅ ${pendingMorpho.intent === "supply" ? "Deposit" : "Withdrawal"} submitted to Morpho!`;
           await callback?.({
-            text: `✅ ${pendingMorpho.intent === "supply" ? "Deposit" : "Withdrawal"} submitted to Morpho!`,
+            text: "Here's the Morpho result—\n\n" + fallbackText,
           });
           return { success: true };
         }

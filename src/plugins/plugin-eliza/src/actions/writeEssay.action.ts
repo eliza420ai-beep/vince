@@ -265,9 +265,7 @@ Start with the title (# Title) and subtitle, then the essay.`;
       const wordCount = essay.split(/\s+/).filter((w) => w.length > 0).length;
 
       if (callback) {
-        // Send the essay
-        await callback({
-          text: `✅ **Essay Draft Complete**
+        const essayOut = `✅ **Essay Draft Complete**
 
 **Title:** ${title}
 **Style:** ${style}
@@ -283,10 +281,12 @@ ${essay}
 **Next steps:**
 • Review and edit in \`${filepath}\`
 • Publish to [Ikigai Studio Substack](${SUBSTACK_URL})
-• Want changes? Tell me what to adjust.`,
+• Want changes? Tell me what to adjust.`;
+        const out = "Here's your essay draft—\n\n" + essayOut;
+        await callback({
+          text: out,
           actions: ["WRITE_ESSAY"],
-        },
-        );
+        });
       }
     } catch (error) {
       logger.error({ error }, "[WRITE_ESSAY] Error");
@@ -302,11 +302,11 @@ ${essay}
   examples: [
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "write an essay about the Bitcoin halving cycle" },
       },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "✍️ **Drafting deep-dive essay**\n\n**Topic:** Bitcoin halving cycle...",
           actions: ["WRITE_ESSAY"],
@@ -315,11 +315,11 @@ ${essay}
     ],
     [
       {
-        name: "{{user1}}",
+        name: "{{user}}",
         content: { text: "draft a contrarian substack on why most traders fail" },
       },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "✍️ **Drafting contrarian essay**\n\n**Topic:** why most traders fail...",
           actions: ["WRITE_ESSAY"],

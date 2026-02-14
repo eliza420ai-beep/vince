@@ -263,8 +263,9 @@ TRIGGERS:
       const formatted = formatReport(report);
 
       if (callback) {
+        const out = "Here's the knowledge status—\n\n" + formatted;
         await callback({
-          text: formatted,
+          text: out,
           actions: ["KNOWLEDGE_STATUS"],
         });
       }
@@ -281,9 +282,9 @@ TRIGGERS:
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "knowledge status" } },
+      { name: "{{user}}", content: { text: "knowledge status" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "📚 **Knowledge Base Status**\n\n**Overview:**\n• Total Files: 245\n• Total Words: ~180k...",
           actions: ["KNOWLEDGE_STATUS"],

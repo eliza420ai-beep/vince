@@ -113,10 +113,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
+      const out = text
+        ? "Here's an experience for you—\n\n" + text
+        : "I don't have enough in the-good-life for that experience right now. Check MICHELIN Guide or James Edition.";
       await callback({
-        text:
-          text ||
-          "I don't have enough in the-good-life for that experience right now. Check MICHELIN Guide or James Edition.",
+        text: out,
         actions: ["KELLY_RECOMMEND_EXPERIENCE"],
       });
 
@@ -132,9 +133,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Recommend a wine tasting experience near Bordeaux" } },
+      { name: "{{user}}", content: { text: "Recommend a wine tasting experience near Bordeaux" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_EXPERIENCE for one best pick and one alternative from the-good-life.",
           actions: ["KELLY_RECOMMEND_EXPERIENCE"],
@@ -142,9 +143,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Something special to do this weekend—spa or cooking?" } },
+      { name: "{{user}}", content: { text: "Something special to do this weekend—spa or cooking?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_EXPERIENCE for one experience pick and one alternative.",
           actions: ["KELLY_RECOMMEND_EXPERIENCE"],

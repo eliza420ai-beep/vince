@@ -441,8 +441,9 @@ ${content.slice(0, 12000)}
     fs.writeFileSync(filePath, fileContent, "utf-8");
 
     if (callback) {
+      const michelinOut = `Added **${extract.name}** (${cityDisplay}) to \`${MICHELIN_DISPLAY_PATH}/${fileName}\`.`;
       await callback({
-        text: `Added **${extract.name}** (${cityDisplay}) to \`${MICHELIN_DISPLAY_PATH}/${fileName}\`.`,
+        text: "Here's the update—\n\n" + michelinOut,
         actions: ["ADD_MICHELIN_RESTAURANT"],
       });
     }

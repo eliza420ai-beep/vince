@@ -266,8 +266,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
         text = `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`;
       }
 
+      const out = text
+        ? "Here's a place for you—\n\n" + text
+        : `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`;
       await callback({
-        text: text || `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`,
+        text: out,
         actions: ["KELLY_RECOMMEND_PLACE"],
       });
 
@@ -300,9 +303,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Recommend a hotel in Bordeaux" } },
+      { name: "{{user}}", content: { text: "Recommend a hotel in Bordeaux" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_PLACE for one best pick and one alternative from the-good-life.",
           actions: ["KELLY_RECOMMEND_PLACE"],
@@ -310,9 +313,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Where to eat in Paris?" } },
+      { name: "{{user}}", content: { text: "Where to eat in Paris?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_PLACE for one restaurant pick and one alternative.",
           actions: ["KELLY_RECOMMEND_PLACE"],

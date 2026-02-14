@@ -106,8 +106,11 @@ Output only the recommendation text, no XML or extra commentary. Voice: avoid ja
         logger.debug("[KELLY_RECOMMEND_WINE] Used fallback (empty response)");
       }
 
+      const out = text
+        ? "Here's a wine pick—\n\n" + text
+        : "I don't have a specific wine pick for that in my knowledge—tell me the dish or occasion and I'll try again.";
       await callback({
-        text: text || "I don't have a specific wine pick for that in my knowledge—tell me the dish or occasion and I'll try again.",
+        text: out,
         actions: ["KELLY_RECOMMEND_WINE"],
       });
 
@@ -134,9 +137,9 @@ Output only the recommendation text, no XML or extra commentary. Voice: avoid ja
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "Recommend a wine for tonight" } },
+      { name: "{{user}}", content: { text: "Recommend a wine for tonight" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_WINE for one pick and one alternative, default French wine (and Champagne).",
           actions: ["KELLY_RECOMMEND_WINE"],
@@ -144,9 +147,9 @@ Output only the recommendation text, no XML or extra commentary. Voice: avoid ja
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "What wine with lamb?" } },
+      { name: "{{user}}", content: { text: "What wine with lamb?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "Use KELLY_RECOMMEND_WINE for pairing with tasting note and service.",
           actions: ["KELLY_RECOMMEND_WINE"],

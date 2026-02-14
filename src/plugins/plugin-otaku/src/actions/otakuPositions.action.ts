@@ -34,11 +34,11 @@ export const otakuPositionsAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Show my positions" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Portfolio:**\n- 2.5 ETH (~$6,625)\n- 1,500 USDC\n- 0.1 BTC (~$4,200)\n\n**Active Orders:**\n- Limit: Buy ETH at $2,500 (pending)\n- DCA: $500 → ETH over 30 days (10/30 complete)\n\nTotal Value: ~$12,325",
           actions: ["OTAKU_POSITIONS"],
@@ -47,11 +47,11 @@ export const otakuPositionsAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "What are my active orders?" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Active Orders:**\n\n1. **Limit Order** #abc123\n   - Sell 0.5 ETH for USDC at $3,500\n   - Status: Pending\n   - Expires: 18h remaining\n\n2. **DCA** #def456\n   - $1,000 USDC → ETH (daily)\n   - Progress: 15/30 orders (50%)\n   - Next execution: ~2h",
           actions: ["OTAKU_POSITIONS"],
@@ -145,8 +145,9 @@ export const otakuPositionsAction: Action = {
         ? `\n**Total Value:** ~$${parseFloat(result.totalUsdValue).toLocaleString()}`
         : "";
 
+      const out = "Here are your positions—\n\n" + [...positionLines, ...orderLines, totalLine].join("\n");
       await callback?.({
-        text: [...positionLines, ...orderLines, totalLine].join("\n"),
+        text: out,
       });
 
       return { success: true };

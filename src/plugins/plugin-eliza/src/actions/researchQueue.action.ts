@@ -204,8 +204,10 @@ Use this to batch up content for later ingestion.`,
         lower.includes("research queue")
       ) {
         if (callback) {
+          const queueText = formatQueue(queue);
+          const out = "Here's the research queue—\n\n" + queueText;
           await callback({
-            text: formatQueue(queue),
+            text: out,
             actions: ["RESEARCH_QUEUE"],
           });
         }
@@ -394,8 +396,10 @@ Use this to batch up content for later ingestion.`,
 
       // Default: show queue
       if (callback) {
+        const queueText = formatQueue(queue);
+        const out = "Here's the research queue—\n\n" + queueText;
         await callback({
-          text: formatQueue(queue),
+          text: out,
           actions: ["RESEARCH_QUEUE"],
         });
       }
@@ -413,9 +417,9 @@ Use this to batch up content for later ingestion.`,
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "queue add https://youtube.com/watch?v=xyz" } },
+      { name: "{{user}}", content: { text: "queue add https://youtube.com/watch?v=xyz" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "✅ **Added to queue**\n\n**Type:** youtube...",
           actions: ["RESEARCH_QUEUE"],
@@ -423,9 +427,9 @@ Use this to batch up content for later ingestion.`,
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "show research queue" } },
+      { name: "{{user}}", content: { text: "show research queue" } },
       {
-        name: "Eliza",
+        name: "{{agent}}",
         content: {
           text: "📋 **Research Queue**\n\n**Pending (3):**...",
           actions: ["RESEARCH_QUEUE"],

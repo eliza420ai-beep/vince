@@ -97,11 +97,11 @@ export const otakuSwapAction: Action = {
   examples: [
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Swap 0.5 ETH to USDC on Base" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Swap Summary:**\n- Sell: 0.5 ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType \"confirm\" to proceed.",
           actions: ["OTAKU_SWAP"],
@@ -110,11 +110,11 @@ export const otakuSwapAction: Action = {
     ],
     [
       {
-        name: "{{name1}}",
+        name: "{{user}}",
         content: { text: "Swap $100 worth of ETH to USDC" },
       },
       {
-        name: "Otaku",
+        name: "{{agent}}",
         content: {
           text: "**Swap Summary:**\n- Sell: $100 worth of ETH\n- Buy: USDC\n- Chain: base\n- Slippage: 0.5%\n\n⚠️ This swap is IRREVERSIBLE.\n\nType \"confirm\" to proceed.",
           actions: ["OTAKU_SWAP"],
@@ -202,8 +202,9 @@ export const otakuSwapAction: Action = {
       const result = await otakuSvc.executeSwap(pendingSwap);
 
       if (result.success) {
+        const swapOut = `✅ Swap complete!\n\n${result.response ?? ""}\n\nTX: ${result.txHash ?? "pending"}`;
         await callback?.({
-          text: `✅ Swap complete!\n\n${result.response ?? ""}\n\nTX: ${result.txHash ?? "pending"}`,
+          text: "Here's the swap result—\n\n" + swapOut,
         });
         return { success: true };
       } else {

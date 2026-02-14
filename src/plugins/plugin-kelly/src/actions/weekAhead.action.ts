@@ -117,8 +117,11 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
       const text = String(response).trim();
 
+      const out = text
+        ? "Here's the week ahead—\n\n" + text
+        : "This week: check curated-open-schedule for restaurants by day and hotels by season; Wednesday is the best midweek escape day.";
       await callback({
-        text: text || "This week: check curated-open-schedule for restaurants by day and hotels by season; Wednesday is the best midweek escape day.",
+        text: out,
         actions: ["KELLY_WEEK_AHEAD"],
       });
     } catch (error) {
@@ -132,9 +135,9 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}`;
 
   examples: [
     [
-      { name: "{{user1}}", content: { text: "What's the week ahead?" } },
+      { name: "{{user}}", content: { text: "What's the week ahead?" } },
       {
-        name: "Kelly",
+        name: "{{agent}}",
         content: {
           text: "**Wed:** Midweek escape—Relais de la Poste + lunch at Côté Quillier. **Thu:** Maison Devaux or Auberge du Lavoir for gastronomic lunch. **Fri:** Gastronomic lunch to close the week; dinner at home. **Wellness:** Pool session (pool season) or gym + mobility (gym season). One palace stay this week if you can—Palais or Caudalie once they reopen.",
           actions: ["KELLY_WEEK_AHEAD"],
