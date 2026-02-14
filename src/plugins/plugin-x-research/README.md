@@ -109,6 +109,12 @@ Top Threads:
 _Based on 847 posts from the last 24h_
 ```
 
+### Clawterm day report (CLAWTERM_DAY_REPORT)
+
+Full day report on OpenClaw/AI/AGI: "what's hot today", "full day report", "openclaw news today". Sourced from **X** (search for OpenClaw + AGI/AI research agents) and optional **web** (Tavily when `TAVILY_API_KEY` is set). Output is a single ALOHA-style narrative (friend-over-coffee, no bullets, ~200–300 words) consistent with Vince's ALOHA briefing. Requires `X_BEARER_TOKEN` and/or `TAVILY_API_KEY`; if neither is set, the action tells the user to set at least one.
+
+**Triggers:** "what's hot", "what's hot today", "day report", "full day report", "openclaw news today", "openclaw vibe", "clawterm day report"
+
 ### X_VIBE
 
 Quick sentiment check for a single topic.

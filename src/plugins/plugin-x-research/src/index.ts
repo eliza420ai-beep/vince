@@ -28,6 +28,7 @@ import {
   xWatchlistAction,
   xSaveResearchAction,
   xSearchAction,
+  clawtermDayReportAction,
 } from './actions';
 
 export const xResearchPlugin: Plugin = {
@@ -44,6 +45,7 @@ export const xResearchPlugin: Plugin = {
     xWatchlistAction,
     xSaveResearchAction,
     xSearchAction,
+    clawtermDayReportAction,
   ],
 
   // Providers can be used by other plugins (e.g., VINCE ALOHA)

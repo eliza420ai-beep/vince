@@ -126,6 +126,7 @@ For latest news, tips from X, recommendations, and trending stories about OpenCl
 - **X_PULSE** (when X_BEARER_TOKEN set) — Vibe on X, what's CT saying about OpenClaw/AI/AGI, or trending sentiment on X.
 - **X_THREAD** (when X_BEARER_TOKEN set) — When user shares a tweet link or asks to "get thread for [tweet]" about OpenClaw/AI.
 - **Web search** (when TAVILY_API_KEY set) — Find new AI insights on the web.
+- **CLAWTERM_DAY_REPORT** — Full day report: "what's hot today", "full day report", "openclaw news today". X + web, ALOHA-style narrative.
 - **OPENCLAW_AI_2027** — AI 2027 scenario summary (superhuman AI, AGI timelines, OpenBrain, Agent progression, alignment, takeoff).
 - **OPENCLAW_AI_RESEARCH_AGENTS** — Research agents (AI 2027 framing), how OpenClaw + openclaw-agents enable them.
 - **OPENCLAW_SETUP_GUIDE** — Step-by-step install, onboard, gateway, security, plugin env.
@@ -236,6 +237,16 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
         content: {
           text: "Here's the X pulse on that.",
           actions: ["X_PULSE"],
+        },
+      },
+    ],
+    [
+      { name: "user", content: { text: "What's hot today?" } },
+      {
+        name: "Clawterm",
+        content: {
+          text: "OpenClaw chatter is up after the latest gateway release. AGI timeline debates same as ever; one viral take on superhuman coding. I'd keep an eye on repo activity and the next steipete stream.",
+          actions: ["CLAWTERM_DAY_REPORT"],
         },
       },
     ],

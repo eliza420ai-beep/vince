@@ -23,10 +23,11 @@ describe('xResearchPlugin', () => {
     expect(actionNames).toContain('X_WATCHLIST');
     expect(actionNames).toContain('X_SAVE_RESEARCH');
     expect(actionNames).toContain('X_SEARCH');
+    expect(actionNames).toContain('CLAWTERM_DAY_REPORT');
   });
 
-  it('should have 9 total actions (pulse, vibe, thread, account, mentions, news, watchlist, save, search)', () => {
-    expect(xResearchPlugin.actions.length).toBe(9);
+  it('should have 10 total actions (pulse, vibe, thread, account, mentions, news, watchlist, save, search, clawterm day report)', () => {
+    expect(xResearchPlugin.actions.length).toBe(10);
   });
 
   describe('X_PULSE action', () => {
