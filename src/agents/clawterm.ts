@@ -310,6 +310,26 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
       },
     ],
     [
+      { name: "user", content: { text: "OpenClaw use cases?" } },
+      {
+        name: "Clawterm",
+        content: {
+          text: "Here are OpenClaw use cases.",
+          actions: ["OPENCLAW_USE_CASES"],
+        },
+      },
+    ],
+    [
+      { name: "user", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
+      {
+        name: "Clawterm",
+        content: {
+          text: "Here are HIP-3 AI-related assets.",
+          actions: ["OPENCLAW_HIP3_AI_ASSETS"],
+        },
+      },
+    ],
+    [
       { name: "user", content: { text: "openclaw version?" } },
       {
         name: "Clawterm",

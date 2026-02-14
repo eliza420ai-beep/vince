@@ -132,6 +132,7 @@
     "test": "bun run test:install && bun run test:component && bun run test:e2e",
     "test:coverage": "bun run test:install && bun test --coverage",
     "test:watch": "bun run test:install && bun test --watch",
+    "test:openclaw": "bun test src/plugins/plugin-openclaw",
     "test:install": "node scripts/install-test-deps.js",
     "format": "prettier --write ./src",
     "format:check": "prettier --check ./src",
