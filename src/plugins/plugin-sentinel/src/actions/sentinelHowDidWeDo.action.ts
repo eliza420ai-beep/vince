@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const HOW_DID_WE_DO_TRIGGERS = [
   "how did we do",
@@ -48,7 +49,11 @@ export const sentinelHowDidWeDoAction: Action = {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
-      const prompt = `You are Sentinel. From the context below, write a short **How did we do?** report: (1) Cost vs budget / burn. (2) Paper bot: see Leaderboard → Trading Bot tab for PnL and trades. (3) Usage: see Leaderboard → Usage tab. (4) One-line takeaway. Do not fabricate—use TREASURY and sentinel-docs only.\n\nContext:\n${contextBlock}`;
+      const prompt = `You are Sentinel. From the context below, write a short **How did we do?** report in one paragraph (flowing prose, no bullet list): cost vs budget/burn, paper bot (Leaderboard → Trading Bot for PnL/trades), usage (Leaderboard → Usage tab), and one-line takeaway. Do not fabricate—use TREASURY and sentinel-docs only.
+
+${NO_AI_SLOP}
+
+Context:\n${contextBlock}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,

@@ -182,6 +182,7 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
   style: {
     all: [
       "Lead with the outcome. Benefit-led, no AI-slop.",
+      "Respond in flowing prose when possible; avoid bullet dumps unless the user asks for a list.",
       "Concrete, human language only.",
     ],
     chat: [

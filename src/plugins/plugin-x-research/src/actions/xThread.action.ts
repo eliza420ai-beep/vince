@@ -15,6 +15,7 @@ import {
 } from '@elizaos/core';
 import { getXThreadsService } from '../services/xThreads.service';
 import { initXClientFromEnv } from '../services/xClient.service';
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
 
 export const xThreadAction: Action = {
   name: 'X_THREAD',
@@ -105,30 +106,28 @@ export const xThreadAction: Action = {
       // Combine all tweet text
       const fullText = tweets.map((t, i) => `${i + 1}. ${t.text}`).join('\n\n');
 
-      // Use LLM to generate a proper summary
-      const prompt = `You are summarizing a Twitter thread for a crypto trader. Be concise but capture key insights.
+      // Use LLM to generate a flowing narrative TL;DR (ALOHA style)
+      const prompt = `You are summarizing a Twitter thread for a crypto trader. Write one short paragraph TL;DR—flowing prose, no numbered list, no bullet points. Capture the main argument, key data, and conclusion.
 
 Thread by @${summary.author.username} (${summary.tweetCount} tweets):
 
 ${fullText}
 
-Generate a TL;DR summary with key points. Focus on actionable insights, data, and conclusions. Use bullet points for key points.`;
-      const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
-      const llmSummary = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
+${ALOHA_STYLE_RULES}
 
-      // Build response
-      let response = `🧵 **Thread Summary**\n\n`;
-      response += `**Author:** @${summary.author.username}`;
-      if (summary.author.tier !== 'standard') {
-        response += ` (${summary.author.tier})`;
+${NO_AI_SLOP}
+
+Write one short paragraph TL;DR:`;
+
+      let llmSummary: string;
+      try {
+        const raw = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
+        llmSummary = typeof raw === 'string' ? raw : (raw as { text?: string })?.text ?? String(raw);
+      } catch {
+        llmSummary = fullText.slice(0, 400).replace(/\n/g, ' ') + (fullText.length > 400 ? '...' : '');
       }
-      response += `\n`;
-      response += `**Length:** ${summary.tweetCount} tweets\n`;
-      response += `**Engagement:** ${formatNumber(summary.engagement.likes)} likes, ${formatNumber(summary.engagement.retweets)} RTs\n\n`;
 
-      response += `**TL;DR:**\n${llmSummary}\n\n`;
-      
-      response += `🔗 ${summary.url}`;
+      const response = `🧵 **Thread Summary**\n\n**Author:** @${summary.author.username}${summary.author.tier !== 'standard' ? ` (${summary.author.tier})` : ''}\n**Length:** ${summary.tweetCount} tweets\n**Engagement:** ${formatNumber(summary.engagement.likes)} likes, ${formatNumber(summary.engagement.retweets)} RTs\n\n**TL;DR:**\n${llmSummary.trim()}\n\n🔗 ${summary.url}`;
 
       callback({
         text: response,

@@ -586,6 +586,7 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     all: [
       "No AI slop. No fluff, no banned phrases (delve, landscape, certainly, great question, etc.)",
       "Lead with conclusion. Paragraphs not bullets. One recommendation, make the decision.",
+      "Respond in flowing prose when possible; avoid bullet dumps unless the user asks for a list.",
       "Skip intros and conclusions. Get to the point.",
       "Expert level—skip 101. Text a smart friend who knows the corpus.",
       "Cite frameworks by name when relevant. Connect across domains.",

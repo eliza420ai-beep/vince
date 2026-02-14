@@ -67,7 +67,7 @@ ${contextBlock}
 
 User: ${userText}
 
-Reply with strike call or one line asking for VINCE data.`;
+Reply with strike call or one line asking for VINCE data. Reply in flowing prose; no bullet lists unless listing strike/asset/invalidation.`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,

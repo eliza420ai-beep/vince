@@ -15,7 +15,7 @@ import type {
   State,
   HandlerCallback,
 } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
 import type { VincePaperTradingService } from "../services/vincePaperTrading.service";
 import type { VincePositionManagerService } from "../services/vincePositionManager.service";
 import type { VinceTradeJournalService } from "../services/vinceTradeJournal.service";
@@ -24,6 +24,100 @@ import type { VinceRiskManagerService } from "../services/vinceRiskManager.servi
 import type { VinceGoalTrackerService } from "../services/goalTracker.service";
 import { formatPnL, formatPct, formatUsd } from "../utils/tradeExplainer";
 import { BOT_FOOTER } from "../constants/botFormat";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+
+function formatDuration(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  const hours = Math.floor(minutes / 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes % 60}m`;
+  }
+  return `${minutes}m`;
+}
+
+/** Build a short data context string for the narrative LLM */
+function buildBotStatusDataContext(params: {
+  status: { isPaused: boolean; pauseReason?: string };
+  portfolio: {
+    totalValue: number;
+    returnPct: number;
+    balance: number;
+    realizedPnl: number;
+    unrealizedPnl: number;
+    tradeCount: number;
+    winRate: number;
+    maxDrawdownPct: number;
+  };
+  positions: Array<{
+    direction: string;
+    asset: string;
+    entryPrice: number;
+    sizeUsd: number;
+    leverage: number;
+    openedAt: number;
+    unrealizedPnl: number;
+    unrealizedPnlPct: number;
+    stopLossPrice: number;
+    takeProfitPrices: number[];
+  }>;
+  sessionLabel: string;
+  dataSourcesCount: string;
+}): string {
+  const { status, portfolio, positions, sessionLabel, dataSourcesCount } =
+    params;
+  const lines: string[] = [];
+  lines.push(
+    `Status: ${status.isPaused ? "PAUSED" : "ACTIVE"}${status.pauseReason ? ` (${status.pauseReason})` : ""}`,
+  );
+  lines.push(`Session: ${sessionLabel}`);
+  lines.push(`Data: ${dataSourcesCount}`);
+  lines.push(
+    `Portfolio: $${portfolio.totalValue.toLocaleString()} (${portfolio.returnPct >= 0 ? "+" : ""}${portfolio.returnPct.toFixed(2)}%), balance $${portfolio.balance.toLocaleString()}`,
+  );
+  lines.push(
+    `P&L: Realized ${formatPnL(portfolio.realizedPnl)}, Unrealized ${formatPnL(portfolio.unrealizedPnl)}`,
+  );
+  lines.push(
+    `Trades: ${portfolio.tradeCount}, win rate ${portfolio.winRate.toFixed(1)}%${portfolio.maxDrawdownPct > 0 ? `, max DD ${portfolio.maxDrawdownPct.toFixed(2)}%` : ""}`,
+  );
+  if (positions.length > 0) {
+    lines.push("Open positions:");
+    for (const pos of positions) {
+      lines.push(
+        `  ${pos.direction.toUpperCase()} ${pos.asset} @ $${pos.entryPrice.toLocaleString()}, ${formatUsd(pos.sizeUsd)}, ${pos.leverage}x, ${formatDuration(Date.now() - pos.openedAt)}, P&L ${formatPnL(pos.unrealizedPnl)}`,
+      );
+    }
+  } else {
+    lines.push("Open positions: none");
+  }
+  return lines.join("\n");
+}
+
+async function generateBotStatusNarrative(
+  runtime: IAgentRuntime,
+  dataContext: string,
+): Promise<string> {
+  const prompt = `You are VINCE, giving a quick paper trading bot status. The user wants to know how the bot is doing in plain language.
+
+Data:
+${dataContext}
+
+Write one short paragraph (3–5 sentences) that summarizes: whether the bot is active or paused, how the portfolio and P&L look, and what positions we have (or that we're flat). Sound like you're texting a trading buddy, not reading a dashboard.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the paragraph:`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    return String(response).trim();
+  } catch (err) {
+    logger.warn("[VINCE_BOT_STATUS] Narrative generation failed, using structured output");
+    throw err;
+  }
+}
 
 export const vinceBotStatusAction: Action = {
   name: "VINCE_BOT_STATUS",
@@ -250,10 +344,37 @@ export const vinceBotStatusAction: Action = {
         }
       }
 
-      lines.push(BOT_FOOTER);
+      const sessionLabel = riskManager
+        ? (() => {
+            const session = riskManager.getTradingSession();
+            const icon =
+              session.isOverlap ? "overlap" : session.session === "asian" ? "asian" : session.session === "off-hours" ? "off-hours" : "US";
+            return `${icon} · ${session.description}`;
+          })()
+        : "—";
+      const dataSourcesCount = signalStatus?.dataSources
+        ? `${signalStatus.dataSources.filter((d) => d.available).length}/${signalStatus.dataSources.length} sources`
+        : "—";
+
+      const dataContext = buildBotStatusDataContext({
+        status,
+        portfolio,
+        positions,
+        sessionLabel,
+        dataSourcesCount,
+      });
+
+      let text: string;
+      try {
+        const narrative = await generateBotStatusNarrative(runtime, dataContext);
+        text = narrative + "\n" + BOT_FOOTER;
+      } catch {
+        lines.push(BOT_FOOTER);
+        text = lines.join("\n");
+      }
 
       await callback({
-        text: lines.join("\n"),
+        text,
         actions: ["VINCE_BOT_STATUS"],
       });
     } catch (error) {
@@ -278,12 +399,3 @@ export const vinceBotStatusAction: Action = {
     ],
   ],
 };
-
-function formatDuration(ms: number): string {
-  const minutes = Math.floor(ms / 60000);
-  const hours = Math.floor(minutes / 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m`;
-  }
-  return `${minutes}m`;
-}

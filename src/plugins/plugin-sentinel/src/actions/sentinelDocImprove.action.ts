@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "improve docs",
@@ -51,10 +52,9 @@ export const sentinelDocImproveAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const prompt = `You are Sentinel. You use all .md in knowledge (internal-docs, sentinel-docs, teammate) and are responsible for keeping docs improved and consolidating progress. The user asked about improving docs or consolidating progress.
 
-Using the context below (which includes PROGRESS-CONSOLIDATED, sentinel-docs README, internal-docs, and other knowledge), output a short prioritized list:
-1) Concrete doc improvements: which file, what to add/change (one line per item). Prefer README, CLAUDE.md, FEATURE-STORE, DEPLOY, internal-docs, plugin READMEs.
-2) Progress consolidation: suggest edits to PROGRESS-CONSOLIDATED or the three source progress.txt files (src/plugins/plugin-vince/progress.txt, src/plugins/plugin-kelly/progress.txt, src/frontend/progress.txt); or suggest a single source of truth. Remind to run scripts/sync-sentinel-docs.sh after updating progress.
-Number each item; one line per item with a short ref. No preamble—just the list.
+Using the context below (PROGRESS-CONSOLIDATED, sentinel-docs README, internal-docs), write one short paragraph summarizing the main doc improvements and progress consolidation steps (flowing prose). Then add a short numbered list: which file, what to add/change (one line per item). Prefer README, CLAUDE.md, FEATURE-STORE, DEPLOY. Remind to run scripts/sync-sentinel-docs.sh after updating progress.
+
+${NO_AI_SLOP}
 
 Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {

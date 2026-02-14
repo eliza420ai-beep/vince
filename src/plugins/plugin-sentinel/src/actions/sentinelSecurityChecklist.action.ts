@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const SECURITY_TRIGGERS = [
   "security checklist",
@@ -48,7 +49,11 @@ export const sentinelSecurityChecklistAction: Action = {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
-      const prompt = `You are Sentinel. From the context below (especially SECURITY-HYGIENE), produce a short security checklist: env/secrets (no keys in repo, use .env, rotation), who can do what (deploy, DB, API keys). Keep it to 4–6 bullets. End with: "Check SECURITY-HYGIENE in knowledge (sentinel-docs) for the full list." Do not invent—use only the provided context.\n\nContext:\n${contextBlock}`;
+      const prompt = `You are Sentinel. From the context below (especially SECURITY-HYGIENE), produce a short security summary in 2–3 flowing sentences: env/secrets (no keys in repo, use .env, rotation), who can do what (deploy, DB, API keys). No bullet dump—write prose. End with: "Check SECURITY-HYGIENE in knowledge (sentinel-docs) for the full list." Do not invent—use only the provided context.
+
+${NO_AI_SLOP}
+
+Context:\n${contextBlock}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,

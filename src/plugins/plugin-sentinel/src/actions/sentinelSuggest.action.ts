@@ -245,7 +245,7 @@ export const sentinelSuggestAction: Action = {
         );
         
         await callback({
-          text: `📝 **Task Brief for Claude Code**\n\n\`\`\`\n${brief}\n\`\`\`\n\n*Paste this into Cursor or the Claude Code controller.*`,
+          text: `📝 **Task Brief for Claude Code**\n\nHere's a task brief you can paste into Cursor or the Claude Code controller.\n\n\`\`\`\n${brief}\n\`\`\``,
         });
         return { success: true };
       }

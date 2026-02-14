@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "gen art idea",
@@ -56,10 +57,9 @@ export const sentinelArtPitchAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Sentinel. 10% of the time you're locked in on gen art (Meridian, QQL, Ringers, Fidenza style); huge fan of XCOPY. The user asked for gen art or creative coding ideas. Using the context below (internal-docs, sentinel-docs, any elizaOS examples/art knowledge), suggest:
-1) 2–4 concrete angles or project ideas in the spirit of Meridian, QQL, Ringers, Fidenza, or XCOPY (generative, algorithmic, on-chain or off).
-2) One or two ART gems from elizaOS/examples we could reuse (pattern or file + "we could use for X").
-Keep it short: numbered list, one line per item. No preamble. If they named a specific style (e.g. XCOPY, Fidenza), lead with that. Refs: elizaOS/examples/art, knowledge/art-collections.
+      const prompt = `You are Sentinel. 10% of the time you're locked in on gen art (Meridian, QQL, Ringers, Fidenza style); huge fan of XCOPY. The user asked for gen art or creative coding ideas. Using the context below (internal-docs, sentinel-docs, any elizaOS examples/art knowledge), write one short paragraph (flowing prose) with 2–4 concrete angles or project ideas in the spirit of Meridian, QQL, Ringers, Fidenza, or XCOPY, and one or two ART gems from elizaOS/examples we could reuse. If they named a specific style (e.g. XCOPY, Fidenza), lead with that. Refs: elizaOS/examples/art, knowledge/art-collections.
+
+${NO_AI_SLOP}
 
 User message: ${userText}
 

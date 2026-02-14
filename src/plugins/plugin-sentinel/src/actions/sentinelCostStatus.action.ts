@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const COST_TRIGGERS = [
   "burn rate",
@@ -57,7 +58,11 @@ export const sentinelCostStatusAction: Action = {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
-      const prompt = `You are Sentinel, the cost steward. Using ONLY the context below (TREASURY.md and cost breakdown), summarize project costs in one short paragraph or bullet list. Include: (1) token usage—Leaderboard → Usage tab, run_event logs, VINCE_USAGE_COST_PER_1K_TOKENS for estimated cost; (2) which LLM for what (TEXT_SMALL for simple, TEXT_LARGE for complex) and that we use cheaper models for simple tasks; (3) Cursor Max cost; (4) data API tiers (Nansen 100 credits, Sanbase 1K/mo, CoinGlass, etc.); (5) bottom line: breakeven, 100K/year target, and that we always watch burn rate. Do not fabricate—reference Usage tab and TREASURY. End with a one-line reminder to watch burn rate and target 100K.\n\nContext:\n${contextBlock}`;
+      const prompt = `You are Sentinel, the cost steward. Using ONLY the context below (TREASURY.md and cost breakdown), summarize project costs in one short paragraph (flowing prose, no bullet list). Include: token usage (Leaderboard → Usage tab, VINCE_USAGE_COST_PER_1K_TOKENS), which LLM for what (TEXT_SMALL vs TEXT_LARGE), Cursor Max cost, data API tiers (Nansen, Sanbase, CoinGlass), and bottom line: breakeven, 100K/year target, watch burn rate. Do not fabricate—reference Usage tab and TREASURY. End with one sentence: watch burn rate and target 100K.
+
+${NO_AI_SLOP}
+
+Context:\n${contextBlock}`;
 
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {
         prompt,

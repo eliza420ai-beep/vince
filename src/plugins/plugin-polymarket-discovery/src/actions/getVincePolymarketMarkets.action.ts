@@ -13,8 +13,10 @@ import {
   type HandlerCallback,
   type ActionResult,
   logger,
+  ModelType,
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
 import {
   VINCE_POLYMARKET_PREFERRED_TAG_SLUGS,
@@ -47,6 +49,43 @@ function getSlugsByGroup(group: GroupFilter): string[] {
     if (g === group) slugs.add(slug);
   }
   return [...slugs];
+}
+
+type MarketSummary = { question: string; volume?: string };
+
+async function generatePolymarketNarrative(
+  runtime: IAgentRuntime,
+  markets: MarketSummary[],
+  group: GroupFilter,
+): Promise<string> {
+  const dataContext = markets
+    .slice(0, 12)
+    .map((m, i) => `${i + 1}. ${m.question}${m.volume ? ` (Vol: $${m.volume})` : ""}`)
+    .join("\n");
+
+  const prompt = `You are Oracle, summarizing VINCE-priority Polymarket markets for a trader. The user wants to know what prediction markets matter for us (crypto, finance, macro) in plain language.
+
+Group: ${group}
+Markets (${markets.length} total):
+${dataContext}
+
+Write 1–2 short paragraphs: what's in focus right now, why these markets matter for the paper bot and Hypersurface strikes, and any standout questions. Sound like you're telling a teammate what to watch.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write 1–2 paragraphs:`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    return String(response).trim();
+  } catch (err) {
+    logger.warn(
+      "[GET_VINCE_POLYMARKET_MARKETS] Narrative generation failed, using list",
+    );
+    throw err;
+  }
 }
 
 export const getVincePolymarketMarketsAction: Action = {
@@ -175,27 +214,36 @@ export const getVincePolymarketMarketsAction: Action = {
         return result;
       }
 
-      let text = ` **VINCE-priority Polymarket markets** (${group})\n\n`;
-      text += `Found ${markets.length} markets:\n\n`;
-
+      let listPart = "";
       markets.forEach((market, index) => {
-        text += `**${index + 1}. ${market.question}**\n`;
+        listPart += `**${index + 1}. ${market.question}**\n`;
         if (market.volume) {
           const vol = parseFloat(market.volume);
           if (!isNaN(vol)) {
-            text += `   Volume: $${vol.toLocaleString()}\n`;
+            listPart += `   Volume: $${vol.toLocaleString()}\n`;
           }
         }
-        text += `   condition_id: \`${market.conditionId}\`\n`;
+        listPart += `   condition_id: \`${market.conditionId}\`\n`;
         const tokens = market.tokens ?? [];
         const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
         const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-        if (yesToken) text += `   yes_token_id: \`${yesToken.token_id}\`\n`;
-        if (noToken) text += `   no_token_id: \`${noToken.token_id}\`\n`;
-        text += "\n";
+        if (yesToken) listPart += `   yes_token_id: \`${yesToken.token_id}\`\n`;
+        if (noToken) listPart += `   no_token_id: \`${noToken.token_id}\`\n`;
+        listPart += "\n";
       });
+      listPart += "_Use GET_POLYMARKET_DETAIL with condition_id or GET_POLYMARKET_ORDERBOOK with token_id for more._";
 
-      text += "_Use GET_POLYMARKET_DETAIL with condition_id or GET_POLYMARKET_ORDERBOOK with token_id for more._";
+      let text: string;
+      try {
+        const narrative = await generatePolymarketNarrative(
+          runtime,
+          markets.map((m) => ({ question: m.question, volume: m.volume })),
+          group,
+        );
+        text = `${narrative}\n\n**Focus markets** (${group}, ${markets.length}):\n\n${listPart}`;
+      } catch {
+        text = ` **VINCE-priority Polymarket markets** (${group})\n\nFound ${markets.length} markets:\n\n${listPart}`;
+      }
 
       const result: GetVincePolymarketMarketsActionResult = {
         text,

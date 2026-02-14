@@ -58,7 +58,7 @@ export const solusHypersurfaceExplainAction: Action = {
       const contextBlock = typeof state.text === "string" ? state.text : "";
       const userText = (message.content?.text ?? "").trim();
 
-      const prompt = `You are Solus, the on-chain options expert. The user wants an explanation of Hypersurface. We don't have funding/IV/sentiment; for where price lands by Friday, that's VINCE or pasted context. Using the context below, explain in plain language: expiry (Friday 08:00 UTC), covered calls vs cash-secured puts, the wheel, and early exercise. Keep it short and benefit-led. End with: for live IV and strike data (and for a pulse on where price lands by Friday), say "options" to VINCE and paste his answer here for the strike call.
+      const prompt = `You are Solus, the on-chain options expert. The user wants an explanation of Hypersurface. We don't have funding/IV/sentiment; for where price lands by Friday, that's VINCE or pasted context. Using the context below, explain in plain language: expiry (Friday 08:00 UTC), covered calls vs cash-secured puts, the wheel, and early exercise. Keep it short and benefit-led. End with: for live IV and strike data (and for a pulse on where price lands by Friday), say "options" to VINCE and paste his answer here for the strike call. Reply in flowing prose; no bullet lists.
 
 Context:
 ${contextBlock}

@@ -16,8 +16,9 @@ import type {
   State,
   HandlerCallback,
 } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
 import type { VinceNFTFloorService } from "../services/nftFloor.service";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
 /**
  * Collection context from knowledge base - stories and why each matters
@@ -81,6 +82,78 @@ const COLLECTION_CONTEXT: Record<
       "Tier 1.5, could reach full blue chip. Watch for undervaluation.",
   },
 };
+
+type FloorSummary = {
+  name: string;
+  slug: string;
+  floorPrice: number;
+  gaps: { to2nd: number };
+  floorThicknessScore: number;
+};
+
+function buildNftFloorDataContext(params: {
+  opportunities: FloorSummary[];
+  thickFloors: FloorSummary[];
+  collectionCount: number;
+}): string {
+  const { opportunities, thickFloors, collectionCount } = params;
+  const lines: string[] = [];
+  lines.push(`Tracking ${collectionCount} collections.`);
+  if (opportunities.length === 0) {
+    lines.push(
+      "No thin floor opportunities right now. All tracked collections have thick floors.",
+    );
+    if (thickFloors.length > 0) {
+      lines.push(
+        `Thick floors (no alert): ${thickFloors.map((c) => c.name).join(", ")}`,
+      );
+    }
+  } else {
+    lines.push(`${opportunities.length} thin floor opportunities:`);
+    for (const c of opportunities) {
+      const gapPct =
+        c.floorPrice > 0
+          ? ((c.gaps.to2nd / c.floorPrice) * 100).toFixed(0)
+          : "0";
+      const ctx = COLLECTION_CONTEXT[c.slug];
+      lines.push(
+        `- ${c.name}: ${c.floorPrice.toFixed(2)} ETH, ${gapPct}% gap to next listing${ctx ? `. ${ctx.story} ${ctx.whyItMatters}` : ""}`,
+      );
+    }
+  }
+  return lines.join("\n");
+}
+
+async function generateNftFloorNarrative(
+  runtime: IAgentRuntime,
+  dataContext: string,
+): Promise<string> {
+  const prompt = `You are VINCE, giving a quick take on NFT floor opportunities. The user wants to know where the thin floors are (or that there are none) in plain language.
+
+Data:
+${dataContext}
+
+Write one short paragraph (3–5 sentences). If there are thin floor opportunities, weave in the collection names and why they matter. If there are none, say so and when to check back. Sound like you're texting a collector friend.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Write the paragraph:`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    return String(response).trim();
+  } catch (err) {
+    logger.warn(
+      "[VINCE_NFT_FLOOR] Narrative generation failed, using structured output",
+    );
+    throw err;
+  }
+}
+
+const NFT_FLOOR_FOOTER =
+  "\n---\n*Commands: OPTIONS, PERPS, NEWS, MEMES, AIRDROPS, LIFESTYLE, NFT, INTEL, BOT, UPLOAD*";
 
 export const vinceNftFloorAction: Action = {
   name: "VINCE_NFT_FLOOR",
@@ -224,8 +297,25 @@ export const vinceNftFloorAction: Action = {
         );
       }
 
+      const dataContext = buildNftFloorDataContext({
+        opportunities,
+        thickFloors,
+        collectionCount: status.collectionCount,
+      });
+
+      let text: string;
+      try {
+        const narrative = await generateNftFloorNarrative(
+          runtime,
+          dataContext,
+        );
+        text = narrative + NFT_FLOOR_FOOTER;
+      } catch {
+        text = sections.join("\n");
+      }
+
       await callback({
-        text: sections.join("\n"),
+        text,
         actions: ["VINCE_NFT_FLOOR"],
       });
     } catch (error) {

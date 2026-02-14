@@ -11,6 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const INVESTOR_TRIGGERS = [
   "investor update",
@@ -83,7 +84,11 @@ export async function generateInvestorBlock(
 ): Promise<string> {
   const state = await runtime.composeState(message);
   const contextBlock = typeof state.text === "string" ? state.text : "";
-  const prompt = `You are Sentinel. From the context below, write a short **investor update** (4–6 lines): (1) Burn / run rate. (2) Cost summary (tokens, LLM, Cursor, data APIs). (3) Paper bot: state "See Leaderboard → Trading Bot tab" for PnL/trades. (4) One-line priorities for the week. Do not fabricate—use TREASURY and sentinel-docs only.\n\nContext:\n${contextBlock}`;
+  const prompt = `You are Sentinel. From the context below, write a short **investor update** in one paragraph (4–6 sentences, flowing prose, no bullet list): burn/run rate, cost summary (tokens, LLM, Cursor, data APIs), paper bot (say "See Leaderboard → Trading Bot tab" for PnL/trades), and one-line priorities for the week. Do not fabricate—use TREASURY and sentinel-docs only.
+
+${NO_AI_SLOP}
+
+Context:\n${contextBlock}`;
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   return (typeof response === "string"
     ? response

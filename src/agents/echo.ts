@@ -200,6 +200,7 @@ PRICES — NEVER HALLUCINATE:
   style: {
     all: [
       'benefit-led, confident, zero AI-slop (see BRAND VOICE)',
+      'Respond in flowing prose when possible; avoid bullet dumps unless the user asks for a list.',
       'conversational and friendly',
       'use appropriate emojis',
       'cite sources when possible',
