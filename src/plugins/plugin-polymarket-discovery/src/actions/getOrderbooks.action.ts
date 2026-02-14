@@ -96,10 +96,10 @@ export const getOrderbooksAction: Action = {
       };
       const invalidTokens = tokenIds.filter((id) => !isValidTokenId(id));
       if (invalidTokens.length > 0) {
-        const errorMsg = `Invalid token ID format: ${invalidTokens[0]}`;
+        const errorMsg = "Invalid token ID format in one or more tokens (expected large numeric or hex 0x...)";
         logger.error(`[GET_POLYMARKET_ORDERBOOKS] ${errorMsg}`);
         const errorResult: GetOrderbooksActionResult = {
-          text: ` ${errorMsg}. Token IDs must be large numeric strings or hex strings starting with 0x.`,
+          text: ` ${errorMsg}. Get token IDs from market detail or search results.`,
           success: false,
           error: "invalid_token_ids",
           input: { token_ids: tokenIds },
@@ -140,12 +140,11 @@ export const getOrderbooksAction: Action = {
       logger.info(`[GET_POLYMARKET_ORDERBOOKS] Fetching ${tokenIds.length} orderbooks`);
       const orderbooks = await service.getOrderbooks(tokenIds);
 
-      // Format response
-      let text = ` **Orderbooks Summary (${orderbooks.length} tokens)**\n\n`;
+      // Format response (no token_id in user-facing text; kept in result.data)
+      let text = ` **Orderbooks** (${orderbooks.length})\n\n`;
 
-      // Summary table
       orderbooks.forEach((ob, i) => {
-        text += `**${i + 1}. Token ${ob.token_id.slice(0, 8)}...${ob.token_id.slice(-6)}**\n`;
+        text += `**${i + 1}. Orderbook ${i + 1}**\n`;
 
         if (ob.best_bid && ob.best_ask) {
           text += `   Bid/Ask: ${(parseFloat(ob.best_bid) * 100).toFixed(1)}% / ${(parseFloat(ob.best_ask) * 100).toFixed(1)}%`;
@@ -157,25 +156,20 @@ export const getOrderbooksAction: Action = {
         text += `   Depth: ${ob.bids.length} bids, ${ob.asks.length} asks\n\n`;
       });
 
-      // Liquidity analysis
       const liquidBooks = orderbooks.filter((ob) => ob.best_bid && ob.best_ask);
       if (liquidBooks.length > 0) {
-        text += `**Liquidity Analysis:**\n`;
-        text += `   Markets with liquidity: ${liquidBooks.length}/${orderbooks.length}\n`;
+        text += `**Liquidity:** ${liquidBooks.length}/${orderbooks.length} with liquidity.\n`;
 
-        // Find tightest spread
-        const tightest = liquidBooks.reduce((min, ob) => {
-          const spread = parseFloat(ob.spread!);
-          return spread < parseFloat(min.spread!) ? ob : min;
-        });
-        text += `   Tightest spread: ${(parseFloat(tightest.spread!) * 100).toFixed(2)}% (Token ...${tightest.token_id.slice(-6)})\n`;
-
-        // Find widest spread
-        const widest = liquidBooks.reduce((max, ob) => {
-          const spread = parseFloat(ob.spread!);
-          return spread > parseFloat(max.spread!) ? ob : max;
-        });
-        text += `   Widest spread: ${(parseFloat(widest.spread!) * 100).toFixed(2)}% (Token ...${widest.token_id.slice(-6)})\n`;
+        const tightest = liquidBooks.reduce((min, ob) =>
+          parseFloat(ob.spread!) < parseFloat(min.spread!) ? ob : min
+        );
+        const widest = liquidBooks.reduce((max, ob) =>
+          parseFloat(ob.spread!) > parseFloat(max.spread!) ? ob : max
+        );
+        const tightestIdx = orderbooks.indexOf(tightest) + 1;
+        const widestIdx = orderbooks.indexOf(widest) + 1;
+        text += `   Tightest spread: ${(parseFloat(tightest.spread!) * 100).toFixed(2)}% (orderbook ${tightestIdx})\n`;
+        text += `   Widest spread: ${(parseFloat(widest.spread!) * 100).toFixed(2)}% (orderbook ${widestIdx})\n`;
       }
 
       const result: GetOrderbooksActionResult = {

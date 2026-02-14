@@ -116,7 +116,7 @@ export const getTopHoldersAction: Action = {
 
       if (holders.length === 0) {
         const result: GetTopHoldersActionResult = {
-          text: ` No top holders found for market ${conditionId}.`,
+          text: ` No top holders found for this market.`,
           success: true,
           data: { holders: [], count: 0 },
           input: inputParams,
@@ -124,8 +124,8 @@ export const getTopHoldersAction: Action = {
         return result;
       }
 
-      // Format response
-      let text = ` **Top Holders for Market ${conditionId.slice(0, 10)}...${conditionId.slice(-8)}**\n\n`;
+      // Format response (no conditionId in user-facing text; kept in result.data)
+      let text = ` **Top holders for this market**\n\n`;
       text += `Found ${holders.length} top holder${holders.length > 1 ? "s" : ""}:\n\n`;
 
       // Group by outcome
@@ -174,6 +174,7 @@ export const getTopHoldersAction: Action = {
         text,
         success: true,
         data: {
+          condition_id: conditionId,
           holders: holders.map((h) => ({
             address: h.address,
             outcome: h.outcome,

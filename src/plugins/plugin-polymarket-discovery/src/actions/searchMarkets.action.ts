@@ -248,14 +248,13 @@ export const searchMarketsAction: Action = {
         return { market, prices };
       });
 
-      // Format response
+      // Format response (ALOHA: benefit-led, no condition_id/token_id in text)
       const searchDesc = query
         ? `"${query}"`
         : category
           ? `category "${category}"`
           : "your search";
-      let text = ` **Polymarket Search Results**\n\n`;
-      text += `Found ${marketsWithPrices.length} markets for ${searchDesc}:\n\n`;
+      let text = ` Here’s what turned up for ${searchDesc}—${marketsWithPrices.length} markets:\n\n`;
 
       marketsWithPrices.forEach(({ market, prices }, index) => {
         text += `**${index + 1}. ${market.question}**\n`;

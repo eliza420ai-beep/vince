@@ -227,10 +227,10 @@ export const getMarketPriceHistoryAction: Action = {
       const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = `Invalid condition ID format: ${conditionId}`;
+        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_PRICE_HISTORY] ${errorMsg}`);
         const errorResult: ActionResult = {
-          text: `${errorMsg}. Expected hex string starting with 0x (40-70 chars).`,
+          text: `${errorMsg}. Please provide a valid market condition ID.`,
           success: false,
           error: "invalid_condition_id",
         };
@@ -356,7 +356,7 @@ export const getMarketPriceHistoryAction: Action = {
       const startDate = new Date(statistics.start_timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const endDate = new Date(statistics.end_timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       
-      const text = `Price History: ${historyData.market_question || conditionId} (${outcome})
+      const text = `Price History: ${historyData.market_question || "this market"} (${outcome})
 Period: ${startDate} → ${endDate} (${interval})
 Start: ${(statistics.start_price * 100).toFixed(1)}% | Current: ${(statistics.end_price * 100).toFixed(1)}% | Change: ${changeSign}${statistics.price_change_percent.toFixed(1)}% ${trendArrow}
 Range: ${(statistics.low_price * 100).toFixed(1)}%-${(statistics.high_price * 100).toFixed(1)}% | Avg: ${(statistics.avg_price * 100).toFixed(1)}%`;

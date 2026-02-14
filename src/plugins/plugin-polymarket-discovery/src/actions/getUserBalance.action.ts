@@ -139,10 +139,10 @@ export const getUserBalanceAction: Action = {
       const realizedPnl = parseFloat(balance.realized_pnl);
       const unrealizedPnl = parseFloat(balance.unrealized_pnl);
 
-      // Format response
-      let text = ` **Polymarket Balance for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}**\n\n`;
+      // Format response (ALOHA: benefit-led, no raw IDs)
+      let text = ` Here’s the portfolio snapshot for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}.\n\n`;
 
-      text += `**Portfolio Summary:**\n`;
+      text += `**Portfolio:**\n`;
       text += `   Total Value: $${totalValue.toFixed(2)}\n`;
       text += `   Available USDC: $${availableBalance.toFixed(2)}\n`;
       text += `   In Positions: $${positionsValue.toFixed(2)}\n\n`;
@@ -155,7 +155,8 @@ export const getUserBalanceAction: Action = {
 
       text += `   Realized: ${realizedSign}$${realizedPnl.toFixed(2)}\n`;
       text += `   Unrealized: ${unrealizedSign}$${unrealizedPnl.toFixed(2)}\n`;
-      text += `   Total: ${totalSign}$${totalPnl.toFixed(2)}\n`;
+      text += `   Total: ${totalSign}$${totalPnl.toFixed(2)}\n\n`;
+      text += `_Want positions or trade history for this wallet? Just ask._`;
 
       const result: GetUserBalanceActionResult = {
         text,

@@ -160,10 +160,6 @@ export const getEventsAction: Action = {
           text += `   Tags: ${event.tags.map(t => t.label).join(", ")}\n`;
         }
 
-        if (event.id) {
-          text += `   ID: ${event.id}\n`;
-        }
-
         if (event.slug) {
           text += `   Slug: ${event.slug}\n`;
         }
@@ -171,7 +167,7 @@ export const getEventsAction: Action = {
         text += "\n";
       });
 
-      text += "_Use GET_POLYMARKET_EVENT_DETAIL to see all markets for a specific event._";
+      text += "_Want to see markets for an event? Ask for that event by name or slug._";
 
       const result: GetEventsActionResult = {
         text,

@@ -99,7 +99,7 @@ export const getSpreadsAction: Action = {
 
       const topSpreads = sortedSpreads.slice(0, 10);
       topSpreads.forEach((spread, index) => {
-        const question = spread.question || `Market ${spread.condition_id.slice(0, 8)}...`;
+        const question = spread.question || "This market";
         const spreadPct = parseFloat(spread.spread_percentage).toFixed(2);
         const bestBid = (parseFloat(spread.best_bid) * 100).toFixed(1);
         const bestAsk = (parseFloat(spread.best_ask) * 100).toFixed(1);

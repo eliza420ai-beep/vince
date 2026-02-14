@@ -85,14 +85,14 @@ export const getOpenInterestAction: Action = {
         maximumFractionDigits: 0,
       });
 
-      let text = ` **Polymarket Open Interest**\n\n`;
-      text += `**Total Value Locked:** ${formattedValue}\n`;
+      let text = ` Here’s total value locked and how many markets have open positions.\n\n`;
+      text += `**Total value locked:** ${formattedValue}\n`;
 
       if (openInterest.markets_count !== undefined) {
-        text += `**Active Markets:** ${openInterest.markets_count.toLocaleString()}\n`;
+        text += `**Active markets:** ${openInterest.markets_count.toLocaleString()}\n`;
       }
 
-      text += `\n_Open interest represents the total value of all outstanding positions across Polymarket._`;
+      text += `\n_Open interest is the total value of outstanding positions. Want detail on a market? Say which one._`;
 
       const result: GetOpenInterestActionResult = {
         text,

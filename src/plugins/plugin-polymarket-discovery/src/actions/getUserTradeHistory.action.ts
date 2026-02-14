@@ -160,9 +160,8 @@ export const getUserTradeHistoryAction: Action = {
         return result;
       }
 
-      // Format response
-      let text = ` **Polymarket Trade History for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}**\n\n`;
-      text += `Found ${trades.length} recent trade${trades.length > 1 ? "s" : ""}:\n\n`;
+      // Format response (no tx hash in user-facing text; kept in result.data)
+      let text = ` Here’s the recent trade history for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}—${trades.length} trade${trades.length > 1 ? "s" : ""}:\n\n`;
 
       trades.forEach((trade: Trade, index: number) => {
         const date = new Date(trade.timestamp * 1000);
@@ -177,12 +176,9 @@ export const getUserTradeHistoryAction: Action = {
         text += `   Total: $${total.toFixed(2)}\n`;
         text += `   Date: ${date.toLocaleString()}\n`;
 
-        if (trade.transaction_hash) {
-          text += `   Tx: \`${trade.transaction_hash.slice(0, 10)}...${trade.transaction_hash.slice(-8)}\`\n`;
-        }
-
         text += "\n";
       });
+
 
       // Calculate summary stats
       const buyTrades = trades.filter((t: Trade) => t.side === "BUY");
@@ -194,7 +190,8 @@ export const getUserTradeHistoryAction: Action = {
       text += `**Summary:**\n`;
       text += `   Buy Trades: ${buyTrades.length}\n`;
       text += `   Sell Trades: ${sellTrades.length}\n`;
-      text += `   Total Volume: $${totalVolume.toFixed(2)}\n`;
+      text += `   Total Volume: $${totalVolume.toFixed(2)}\n\n`;
+      text += `_Tx hashes are in the data if you need to look one up._`;
 
       const result: GetUserTradeHistoryActionResult = {
         text,

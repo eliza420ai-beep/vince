@@ -85,12 +85,11 @@ export const getLiveVolumeAction: Action = {
         maximumFractionDigits: 0,
       });
 
-      let text = ` **Polymarket Live Volume (24h)**\n\n`;
-      text += `**Total 24h Volume:** ${formattedVolume}\n`;
+      let text = ` Here’s where the action is—24h volume across Polymarket.\n\n`;
+      text += `**Total 24h volume:** ${formattedVolume}\n`;
 
-      // Add top markets if available
       if (volumeData.markets && volumeData.markets.length > 0) {
-        text += `\n**Top Markets by Volume:**\n\n`;
+        text += `\n**Top markets by volume:**\n\n`;
         const topMarkets = volumeData.markets
           .slice(0, 5) // Show top 5
           .map((market, index) => {
@@ -105,9 +104,10 @@ export const getLiveVolumeAction: Action = {
             return `${index + 1}. ${question} - ${formattedMarketVolume}`;
           });
         text += topMarkets.join("\n");
+        text += `\n\n_Want detail or live odds on a top market? Say which one._`;
+      } else {
+        text += `\n_Volume is total trading activity over the last 24 hours._`;
       }
-
-      text += `\n\n_Volume represents total trading activity over the last 24 hours._`;
 
       const result: GetLiveVolumeActionResult = {
         text,

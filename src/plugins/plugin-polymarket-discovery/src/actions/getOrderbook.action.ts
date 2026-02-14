@@ -99,10 +99,10 @@ export const getOrderbookAction: Action = {
       const isHexFormat = /^0x[a-fA-F0-9]+$/.test(tokenId);
       
       if (!isDecimalFormat && !isHexFormat) {
-        const errorMsg = `Invalid token ID format: ${tokenId}`;
+        const errorMsg = "Invalid token ID format (expected large numeric or hex 0x...)";
         logger.error(`[GET_POLYMARKET_ORDERBOOK] ${errorMsg}`);
         const errorResult: GetOrderbookActionResult = {
-          text: ` ${errorMsg}. Expected a large numeric string or hex string starting with 0x.`,
+          text: ` ${errorMsg}. Please provide a valid token ID from market detail or search.`,
           success: false,
           error: "invalid_token_id",
           input: { token_id: tokenId },
@@ -156,9 +156,8 @@ export const getOrderbookAction: Action = {
       logger.info(`[GET_POLYMARKET_ORDERBOOK] Fetching orderbook for ${tokenId}${side ? ` (${side} side)` : ""}`);
       const orderbook = await service.getOrderbook(tokenId, side);
 
-      // Format response
-      let text = ` **Orderbook Summary**\n\n`;
-      text += `**Token ID:** ${orderbook.token_id.slice(0, 10)}...${orderbook.token_id.slice(-8)}\n\n`;
+      // Format response (no token_id in user-facing text; kept in result.data)
+      let text = ` **Orderbook**\n\n`;
 
       if (orderbook.best_bid && orderbook.best_ask) {
         text += `**Best Prices:**\n`;

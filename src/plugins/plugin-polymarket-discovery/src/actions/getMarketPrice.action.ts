@@ -115,10 +115,10 @@ export const getMarketPriceAction: Action = {
       const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = `Invalid condition ID format: ${conditionId}`;
+        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_PRICE] ${errorMsg}`);
         const errorResult: GetMarketPriceActionResult = {
-          text: `${errorMsg}. Expected hex string starting with 0x (40-70 chars).`,
+          text: ` ${errorMsg}. Please provide a valid market condition ID.`,
           success: false,
           error: "invalid_condition_id",
           input: { conditionId },

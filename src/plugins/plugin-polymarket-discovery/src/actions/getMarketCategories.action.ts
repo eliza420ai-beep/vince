@@ -113,15 +113,14 @@ export const getMarketCategoriesAction: Action = {
         return result;
       }
 
-      // Format response
-      let text = ` **Polymarket Categories**\n\n`;
-      text += `Found ${categories.length} categories:\n\n`;
+      // Format response (ALOHA-friendly: benefit-led, no raw IDs)
+      let text = ` Here’s how Polymarket is organized right now—${categories.length} categories:\n\n`;
 
       categories.forEach((category, index) => {
         text += `${index + 1}. **${category.name}** (${category.count} markets)\n`;
       });
 
-      text += `\n_Use SEARCH_POLYMARKETS with a category to find markets in that category._`;
+      text += `\n_Browse by category to find markets, or ask for a specific category._`;
 
       const result: GetMarketCategoriesActionResult = {
         text,

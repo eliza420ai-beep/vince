@@ -150,14 +150,13 @@ export const getEventDetailAction: Action = {
               text += `   Volume: $${volumeNum.toLocaleString()}\n`;
             }
           }
-          text += `   Condition ID: ${market.conditionId}\n`;
           text += "\n";
         });
       } else {
         text += "_No markets found for this event._\n\n";
       }
 
-      text += "_Use GET_POLYMARKET_DETAIL to get detailed information about a specific market._";
+      text += "_Want detail or live odds for a market? Say which one._";
 
       const result: GetEventDetailActionResult = {
         text,

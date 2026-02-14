@@ -119,10 +119,10 @@ export const getMarketDetailAction: Action = {
       const isValidLength = conditionId.length >= 40 && conditionId.length <= 70;
 
       if (!isValidHex || !isValidLength) {
-        const errorMsg = `Invalid condition ID format: ${conditionId}. Expected hex string starting with 0x (40-70 chars)`;
+        const errorMsg = "Invalid condition ID format (expected hex 0x..., 40-70 chars)";
         logger.error(`[GET_POLYMARKET_DETAIL] ${errorMsg}`);
         const errorResult: GetMarketDetailActionResult = {
-          text: ` ${errorMsg}`,
+          text: ` ${errorMsg}. Please provide a valid market condition ID.`,
           success: false,
           error: "invalid_condition_id",
           input: { conditionId },
@@ -215,22 +215,11 @@ export const getMarketDetailAction: Action = {
         text += `\n**Tags:** ${market.tags.join(", ")}\n`;
       }
 
-      text += `\n**Market ID:** \`${conditionId}\``;
+      text += `\n_I can get orderbook depth for this market if you want._`;
 
-      // Extract and display token IDs for orderbook queries
       const tokens = market.tokens || [];
       const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
       const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-
-      if (yesToken || noToken) {
-        text += `\n\n**Tradeable Token IDs** (use with GET_POLYMARKET_ORDERBOOK):\n`;
-        if (yesToken) {
-          text += `   YES Token: \`${yesToken.token_id}\`\n`;
-        }
-        if (noToken) {
-          text += `   NO Token: \`${noToken.token_id}\`\n`;
-        }
-      }
 
       const result: GetMarketDetailActionResult = {
         text,

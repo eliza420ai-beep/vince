@@ -171,7 +171,6 @@ export const getUserPositionsAction: Action = {
         const pnlPercent = position.percentPnl?.toFixed(2) || "0.00";
         text += `   PnL: ${pnlSign}$${pnl.toFixed(2)} (${pnlSign}${pnlPercent}%)\n`;
 
-        text += `   Condition ID: \`${position.conditionId}\`\n`;
         text += "\n";
       });
 

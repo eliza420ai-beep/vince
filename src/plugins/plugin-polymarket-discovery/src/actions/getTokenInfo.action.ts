@@ -140,7 +140,6 @@ export const getTokenInfoAction: Action = {
 
       let text = ` **${market.question}**\n\n`;
       text += `**Market**\n`;
-      text += `Condition ID: \`${market.condition_id ?? market.conditionId}\`\n`;
       if (market.end_date_iso ?? market.endDateIso) {
         text += `End: ${market.end_date_iso ?? market.endDateIso}\n`;
       }

@@ -143,9 +143,8 @@ export const getUserActivityAction: Action = {
         return result;
       }
 
-      // Format response
-      let text = ` **Polymarket Activity for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}**\n\n`;
-      text += `Found ${activity.length} transaction${activity.length > 1 ? "s" : ""}:\n\n`;
+      // Format response (no tx hash in user-facing text; kept in result.data)
+      let text = ` Here’s the activity for ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}—${activity.length} transaction${activity.length > 1 ? "s" : ""}:\n\n`;
 
       // Count by type
       const typeCounts = {
@@ -180,14 +179,14 @@ export const getUserActivityAction: Action = {
         }
 
         text += `   Status: ${entry.status}\n`;
-        text += `   Tx: \`${entry.transaction_hash.slice(0, 10)}...${entry.transaction_hash.slice(-8)}\`\n`;
         text += "\n";
       });
 
       text += `**Summary:**\n`;
       text += `   Total Transactions: ${activity.length}\n`;
       text += `   Deposits: ${typeCounts.DEPOSIT} | Withdrawals: ${typeCounts.WITHDRAWAL}\n`;
-      text += `   Trades: ${typeCounts.TRADE} | Redemptions: ${typeCounts.REDEMPTION}\n`;
+      text += `   Trades: ${typeCounts.TRADE} | Redemptions: ${typeCounts.REDEMPTION}\n\n`;
+      text += `_Tx hashes are in the data if you need to look one up._`;
 
       const result: GetUserActivityActionResult = {
         text,

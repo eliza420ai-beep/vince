@@ -178,7 +178,7 @@ export const getVincePolymarketMarketsAction: Action = {
           text: ` ${errorMsg}`,
           content: { error: "service_unavailable", details: errorMsg },
         });
-        return { success: false, error: new Error(errorMsg), input: inputParams };
+        return { success: false, error: new Error(errorMsg), input: inputParams } as GetVincePolymarketMarketsActionResult;
       }
 
       callback?.({ text: " Fetching VINCE-priority Polymarket markets..." });
