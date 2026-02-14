@@ -274,6 +274,8 @@ export const a2aContextProvider: Provider = {
     const myName = runtime.character?.name || "Agent";
     const myNameLower = myName.toLowerCase();
     const messageText = message.content?.text || "";
+    const senderNameDebug = String(message.content?.name ?? message.content?.userName ?? "???").toLowerCase();
+    console.log(`[A2A_PROVIDER_ENTRY] agent=${myName}, sender="${senderNameDebug}", text="${messageText.slice(0,40)}", agentId=${message.agentId ?? "none"}`);
     
     // Check room type
     const room = await runtime.getRoom(message.roomId);
@@ -282,6 +284,7 @@ export const a2aContextProvider: Provider = {
     
     // Check agent FIRST so bot messages don't get swallowed by isFromKnownHuman
     const { isAgent, agentName } = isFromKnownAgent(message);
+    console.log(`[A2A_PROVIDER_CLASSIFY] isAgent=${isAgent}, agentName=${agentName}, inStandup=${inStandupChannel}`);
 
     // Check if this is from a HUMAN (only when not already identified as an agent)
     if (!isAgent) {
