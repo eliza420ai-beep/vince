@@ -30,8 +30,9 @@ export const openclawGatewayStatusAction: Action = {
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
     if (!isGatewayConfigured()) {
-      const text =
+      const msg =
         "Gateway URL is not set. Set OPENCLAW_GATEWAY_URL to check Gateway status. For in-process research you don't need a Gateway.";
+      const text = "Quick answer—\n\n" + msg;
       if (callback) await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
       return { success: true, text };
     }
@@ -39,14 +40,15 @@ export const openclawGatewayStatusAction: Action = {
     const line = health.ok
       ? "Gateway: ok."
       : `Gateway: ${health.status} — ${health.message ?? "Is \`openclaw gateway\` running?"} Check that \`openclaw gateway\` is running and OPENCLAW_GATEWAY_URL is correct.`;
-    if (callback) await callback({ text: line, actions: ["OPENCLAW_GATEWAY_STATUS"] });
-    return { success: true, text: line };
+    const text = "Here's the gateway status—\n\n" + line;
+    if (callback) await callback({ text, actions: ["OPENCLAW_GATEWAY_STATUS"] });
+    return { success: true, text };
   },
   examples: [
     [
-      { name: "user", content: { text: "Is the OpenClaw gateway running?" } },
+      { name: "{{user}}", content: { text: "Is the OpenClaw gateway running?" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: "Gateway: ok.",
           actions: ["OPENCLAW_GATEWAY_STATUS"],
@@ -54,9 +56,9 @@ export const openclawGatewayStatusAction: Action = {
       },
     ],
     [
-      { name: "user", content: { text: "openclaw status" } },
+      { name: "{{user}}", content: { text: "openclaw status" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: "Gateway: unreachable — fetch failed. Is `openclaw gateway` running?",
           actions: ["OPENCLAW_GATEWAY_STATUS"],

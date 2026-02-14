@@ -78,14 +78,16 @@ export const openclawSecurityGuideAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_SECURITY_GUIDE_MD, actions: ["OPENCLAW_SECURITY_GUIDE"] });
-    return { success: true, text: OPENCLAW_SECURITY_GUIDE_MD };
+    const intro = "Here's the OpenClaw security picture—";
+    const out = intro + "\n\n" + OPENCLAW_SECURITY_GUIDE_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_SECURITY_GUIDE"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "OpenClaw security guide" } },
+      { name: "{{user}}", content: { text: "OpenClaw security guide" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: OPENCLAW_SECURITY_GUIDE_MD.slice(0, 500) + "...",
           actions: ["OPENCLAW_SECURITY_GUIDE"],
@@ -93,9 +95,9 @@ export const openclawSecurityGuideAction: Action = {
       },
     ],
     [
-      { name: "user", content: { text: "How do I secure OpenClaw against prompt injection?" } },
+      { name: "{{user}}", content: { text: "How do I secure OpenClaw against prompt injection?" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: OPENCLAW_SECURITY_GUIDE_MD.slice(0, 500) + "...",
           actions: ["OPENCLAW_SECURITY_GUIDE"],

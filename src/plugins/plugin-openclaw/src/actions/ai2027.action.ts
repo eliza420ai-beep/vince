@@ -65,17 +65,19 @@ export const openclawAi2027Action: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: AI_2027_MD, actions: ["OPENCLAW_AI_2027"] });
-    return { success: true, text: AI_2027_MD };
+    const intro = "Here's the AI 2027 / AGI timeline view—";
+    const out = intro + "\n\n" + AI_2027_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_AI_2027"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "What's AI 2027?" } },
-      { name: "assistant", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
+      { name: "{{user}}", content: { text: "What's AI 2027?" } },
+      { name: "{{agent}}", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
     ],
     [
-      { name: "user", content: { text: "Tell me about the AGI timeline" } },
-      { name: "assistant", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
+      { name: "{{user}}", content: { text: "Tell me about the AGI timeline" } },
+      { name: "{{agent}}", content: { text: AI_2027_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_2027"] } },
     ],
   ],
 };

@@ -70,17 +70,19 @@ export const openclawHip3AiAssetsAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: HIP3_AI_ASSETS_MD, actions: ["OPENCLAW_HIP3_AI_ASSETS"] });
-    return { success: true, text: HIP3_AI_ASSETS_MD };
+    const intro = "Here are the HIP-3 AI assets on Hyperliquid—";
+    const out = intro + "\n\n" + HIP3_AI_ASSETS_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_HIP3_AI_ASSETS"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
-      { name: "assistant", content: { text: HIP3_AI_ASSETS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
+      { name: "{{user}}", content: { text: "HIP-3 AI assets on Hyperliquid?" } },
+      { name: "{{agent}}", content: { text: HIP3_AI_ASSETS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
     ],
     [
-      { name: "user", content: { text: "Can I trade OPENAI perps?" } },
-      { name: "assistant", content: { text: "Yes. OPENAI is on vntl dex as vntl:OPENAI. Full list: ...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
+      { name: "{{user}}", content: { text: "Can I trade OPENAI perps?" } },
+      { name: "{{agent}}", content: { text: "Yes. OPENAI is on vntl dex as vntl:OPENAI. Full list: ...", actions: ["OPENCLAW_HIP3_AI_ASSETS"] } },
     ],
   ],
 };

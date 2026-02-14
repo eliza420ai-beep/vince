@@ -64,17 +64,19 @@ export const openclawAiResearchAgentsAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: AI_RESEARCH_AGENTS_MD, actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] });
-    return { success: true, text: AI_RESEARCH_AGENTS_MD };
+    const intro = "Here's how OpenClaw fits with AI research agents—";
+    const out = intro + "\n\n" + AI_RESEARCH_AGENTS_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "What are research agents?" } },
-      { name: "assistant", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
+      { name: "{{user}}", content: { text: "What are research agents?" } },
+      { name: "{{agent}}", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
     ],
     [
-      { name: "user", content: { text: "How does OpenClaw relate to AI agents?" } },
-      { name: "assistant", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
+      { name: "{{user}}", content: { text: "How does OpenClaw relate to AI agents?" } },
+      { name: "{{agent}}", content: { text: AI_RESEARCH_AGENTS_MD.slice(0, 500) + "...", actions: ["OPENCLAW_AI_RESEARCH_AGENTS"] } },
     ],
   ],
 };

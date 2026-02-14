@@ -105,14 +105,16 @@ export const openclawSetupGuideAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_SETUP_GUIDE_MD, actions: ["OPENCLAW_SETUP_GUIDE"] });
-    return { success: true, text: OPENCLAW_SETUP_GUIDE_MD };
+    const intro = "Here's how to get OpenClaw running—";
+    const out = intro + "\n\n" + OPENCLAW_SETUP_GUIDE_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_SETUP_GUIDE"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "How do I set up OpenClaw?" } },
+      { name: "{{user}}", content: { text: "How do I set up OpenClaw?" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: OPENCLAW_SETUP_GUIDE_MD.slice(0, 500) + "...",
           actions: ["OPENCLAW_SETUP_GUIDE"],
@@ -120,9 +122,9 @@ export const openclawSetupGuideAction: Action = {
       },
     ],
     [
-      { name: "user", content: { text: "OpenClaw setup guide" } },
+      { name: "{{user}}", content: { text: "OpenClaw setup guide" } },
       {
-        name: "assistant",
+        name: "{{agent}}",
         content: {
           text: OPENCLAW_SETUP_GUIDE_MD.slice(0, 500) + "...",
           actions: ["OPENCLAW_SETUP_GUIDE"],

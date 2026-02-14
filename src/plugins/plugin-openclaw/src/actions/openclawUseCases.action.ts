@@ -64,17 +64,19 @@ export const openclawUseCasesAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_USE_CASES_MD, actions: ["OPENCLAW_USE_CASES"] });
-    return { success: true, text: OPENCLAW_USE_CASES_MD };
+    const intro = "Here's what OpenClaw is best for—";
+    const out = intro + "\n\n" + OPENCLAW_USE_CASES_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_USE_CASES"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "What are OpenClaw use cases?" } },
-      { name: "assistant", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
+      { name: "{{user}}", content: { text: "What are OpenClaw use cases?" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
     ],
     [
-      { name: "user", content: { text: "What is OpenClaw best for?" } },
-      { name: "assistant", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
+      { name: "{{user}}", content: { text: "What is OpenClaw best for?" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_USE_CASES_MD.slice(0, 400) + "...", actions: ["OPENCLAW_USE_CASES"] } },
     ],
   ],
 };

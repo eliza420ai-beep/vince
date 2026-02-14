@@ -78,17 +78,19 @@ export const openclawAgentsGuideAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_AGENTS_GUIDE_MD, actions: ["OPENCLAW_AGENTS_GUIDE"] });
-    return { success: true, text: OPENCLAW_AGENTS_GUIDE_MD };
+    const intro = "Here's how OpenClaw agents and the orchestrator work—";
+    const out = intro + "\n\n" + OPENCLAW_AGENTS_GUIDE_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_AGENTS_GUIDE"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "Tell me about openclaw agents" } },
-      { name: "assistant", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
+      { name: "{{user}}", content: { text: "Tell me about openclaw agents" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
     ],
     [
-      { name: "user", content: { text: "How do I run the orchestrator?" } },
-      { name: "assistant", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
+      { name: "{{user}}", content: { text: "How do I run the orchestrator?" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_AGENTS_GUIDE_MD.slice(0, 400) + "...", actions: ["OPENCLAW_AGENTS_GUIDE"] } },
     ],
   ],
 };

@@ -53,17 +53,19 @@ export const openclawTipsAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_TIPS_MD, actions: ["OPENCLAW_TIPS"] });
-    return { success: true, text: OPENCLAW_TIPS_MD };
+    const intro = "Here are practical OpenClaw tips—";
+    const out = intro + "\n\n" + OPENCLAW_TIPS_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_TIPS"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "Tips for OpenClaw?" } },
-      { name: "assistant", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
+      { name: "{{user}}", content: { text: "Tips for OpenClaw?" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
     ],
     [
-      { name: "user", content: { text: "Fresh MacBook Pro setup for OpenClaw" } },
-      { name: "assistant", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
+      { name: "{{user}}", content: { text: "Fresh MacBook Pro setup for OpenClaw" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_TIPS_MD.slice(0, 400) + "...", actions: ["OPENCLAW_TIPS"] } },
     ],
   ],
 };

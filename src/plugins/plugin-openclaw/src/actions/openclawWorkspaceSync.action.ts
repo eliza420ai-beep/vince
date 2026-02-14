@@ -73,17 +73,19 @@ export const openclawWorkspaceSyncAction: Action = {
     _options: unknown,
     callback?: HandlerCallback,
   ): Promise<ActionResult> => {
-    if (callback) await callback({ text: OPENCLAW_WORKSPACE_SYNC_MD, actions: ["OPENCLAW_WORKSPACE_SYNC"] });
-    return { success: true, text: OPENCLAW_WORKSPACE_SYNC_MD };
+    const intro = "Here's how to sync your workspace with OpenClaw—";
+    const out = intro + "\n\n" + OPENCLAW_WORKSPACE_SYNC_MD;
+    if (callback) await callback({ text: out, actions: ["OPENCLAW_WORKSPACE_SYNC"] });
+    return { success: true, text: out };
   },
   examples: [
     [
-      { name: "user", content: { text: "How do I sync workspace?" } },
-      { name: "assistant", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
+      { name: "{{user}}", content: { text: "How do I sync workspace?" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
     ],
     [
-      { name: "user", content: { text: "workspace sync openclaw" } },
-      { name: "assistant", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
+      { name: "{{user}}", content: { text: "workspace sync openclaw" } },
+      { name: "{{agent}}", content: { text: OPENCLAW_WORKSPACE_SYNC_MD.slice(0, 400) + "...", actions: ["OPENCLAW_WORKSPACE_SYNC"] } },
     ],
   ],
 };
