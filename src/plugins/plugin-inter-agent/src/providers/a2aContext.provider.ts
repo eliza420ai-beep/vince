@@ -44,7 +44,7 @@ import { ALOHA_STYLE_BLOCK } from "../standup/standupStyle";
 import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
 
 /** Known agent names for A2A detection */
-const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm"];
+const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm", "naval"];
 
 /** Human names to recognize (co-founders, team members) */
 const KNOWN_HUMANS = ["yves", "ikigai"];
@@ -706,6 +706,12 @@ ${ALOHA_STYLE_BLOCK}
     
     if (!isAgent) {
       // Not from an agent or human we recognize — treat as normal
+      return { text: "" };
+    }
+
+    // Unknown sender (e.g. Direct/API with no display name): don't apply exchange limit — we can't assume it's another agent
+    if (agentName === "unknown-agent" || agentName === "unknown-bot") {
+      logger.debug(`[A2A_CONTEXT] ${myName}: Message from ${agentName} — no exchange limit applied`);
       return { text: "" };
     }
 
