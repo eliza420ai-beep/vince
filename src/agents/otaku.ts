@@ -19,7 +19,7 @@ import { etherscanPlugin } from "../plugins/plugin-etherscan/src/index.ts";
 import { meePlugin } from "../plugins/plugin-biconomy/src/index.ts";
 import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
-import { erc8004Plugin } from "../plugins/plugin-erc8004/src/index.ts";
+import { erc8004Plugin } from "@elizaos/plugin-8004";
 
 const hasCdp =
   !!(
@@ -27,6 +27,12 @@ const hasCdp =
     process.env.CDP_API_KEY_SECRET?.trim() &&
     process.env.CDP_WALLET_SECRET?.trim()
   );
+
+// ERC-8004: on-chain agent identity & reputation (read-only without keys)
+const hasErc8004Contract = !!process.env.ERC8004_CONTRACT_ADDRESS?.trim();
+const hasErc8004Write =
+  hasErc8004Contract &&
+  !!(process.env.ERC8004_PRIVATE_KEY?.trim() || process.env.EVM_PRIVATE_KEY?.trim());
 
 const otakuHasDiscord =
   !!(process.env.OTAKU_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
@@ -74,6 +80,14 @@ export const otakuCharacter: Character = {
         ...(process.env.BANKR_ORDER_URL?.trim() && { BANKR_ORDER_URL: process.env.BANKR_ORDER_URL }),
       }),
       ...(hasBiconomyKey && { BICONOMY_API_KEY: process.env.BICONOMY_API_KEY }),
+      ...(hasErc8004Contract && {
+        ERC8004_CONTRACT_ADDRESS: process.env.ERC8004_CONTRACT_ADDRESS,
+        ...(process.env.ERC8004_PRIVATE_KEY?.trim() && {
+          ERC8004_PRIVATE_KEY: process.env.ERC8004_PRIVATE_KEY,
+        }),
+        ...(process.env.ERC8004_RPC_URL?.trim() && { ERC8004_RPC_URL: process.env.ERC8004_RPC_URL }),
+        ...(process.env.ERC8004_CHAIN_ID?.trim() && { ERC8004_CHAIN_ID: process.env.ERC8004_CHAIN_ID }),
+      }),
     },
     /**
      * Discord A2A: Otaku responds to bot messages for multi-agent standup.
@@ -184,6 +198,8 @@ ${hasCdp ? `
 When CDP is configured, **DEPLOY_TOKEN** deploys a token on Base via the Clanker protocol (name, symbol, optional image/vanity); use it for direct Base token deploys, or use **BANKR_AGENT_PROMPT** for Bankr-hosted launch (Base or Solana).` : ""}
 
 **DefiLlama (protocol TVL and yields):** Use for TVL comparison, protocol lookup, history, and yield discovery. **GET_PROTOCOL_TVL** — current TVL by protocol name/symbol (e.g. Aave, Curve, Morpho). **GET_PROTOCOL_SLUG** — resolve name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. **GET_PROTOCOL_TVL_HISTORY** — historical TVL for a protocol (optional chain, days, compact). **GET_CHAIN_TVL_HISTORY** — historical TVL for a chain (optional filter e.g. staking). **GET_YIELD_RATES** — APY/yield by protocol, token, and/or chain (e.g. "USDC yields on Base", "Aave USDC"). **GET_YIELD_HISTORY** — historical APY for a specific pool (protocol + token, optional chain).
+
+**ERC-8004 (on-chain agent identity & reputation):** Providers inject your registration and reputation status automatically. Actions: **REGISTER_AGENT_ERC8004** — register on-chain identity (requires private key). **CHECK_REPUTATION_ERC8004** — query your or another agent's reputation (read-only). **ENDORSE_AGENT_ERC8004** — endorse another agent (add reputation points; requires private key). **PENALIZE_AGENT_ERC8004** — penalize an agent (reduce reputation; requires private key). **ADD_REGISTRY_ERC8004** — add a new ERC-8004 registry. **REMOVE_REGISTRY_ERC8004** — remove a non-default registry. **LIST_REGISTRIES_ERC8004** — list configured registries. Use for: "register me on the blockchain", "what is my reputation?", "endorse agent-123 with 10 points", "list all registries". Read-only works without keys; write operations need ERC8004_CONTRACT_ADDRESS + ERC8004_PRIVATE_KEY (or EVM_PRIVATE_KEY fallback).
 
 **Nansen MCP tools (NOT actions):** Primary engine for market diagnostics. Do NOT put Nansen tool names (token_discovery_screener, token_flows, etc.) or CALL_MCP_TOOL or READ_MCP_RESOURCE in the <actions> field — those are not available. <actions> must only contain ElizaOS action names from the Available actions list (e.g. REPLY, WEB_SEARCH, BANKR_AGENT_PROMPT, ASK_AGENT). For Nansen-style questions, use REPLY (and WEB_SEARCH when appropriate) and answer from knowledge or suggest the user check Nansen directly. Nansen tools (for reference only; not callable as actions here):
 - general_search: resolve tokens/entities/domains
@@ -496,7 +512,24 @@ const initOtaku = async (runtime: IAgentRuntime) => {
     logger.info("[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps");
   }
   logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL, slug search, TVL/chain history, yield rates and history");
-  
+
+  // ERC-8004 on-chain identity & reputation
+  if (hasErc8004Contract) {
+    if (hasErc8004Write) {
+      logger.info(
+        "[Otaku] ERC-8004 plugin enabled — on-chain identity, reputation, endorse/penalize (write mode)"
+      );
+    } else {
+      logger.info(
+        "[Otaku] ERC-8004 plugin enabled — reputation queries and registration status (read-only; set ERC8004_PRIVATE_KEY for write)"
+      );
+    }
+  } else {
+    logger.debug(
+      "[Otaku] ERC-8004 plugin loaded — set ERC8004_CONTRACT_ADDRESS to enable on-chain identity/reputation"
+    );
+  }
+
   // x402 payment protocol status
   if (x402Enabled && x402PayTo) {
     const network = process.env.X402_NETWORK || "base-sepolia";

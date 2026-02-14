@@ -16,3 +16,9 @@ declare module "@elizaos/plugin-discovery" {
   export default discoveryPlugin;
   export { discoveryPlugin };
 }
+
+declare module "@elizaos/plugin-8004" {
+  import type { Plugin } from "@elizaos/core";
+  export const erc8004Plugin: Plugin;
+  export default erc8004Plugin;
+}
