@@ -273,21 +273,25 @@ export const a2aContextProvider: Provider = {
     const myName = runtime.character?.name || "Agent";
     const myNameLower = myName.toLowerCase();
     const messageText = message.content?.text || "";
-    // Resolve sender name: content.name/userName are often empty for Discord messages.
-    // Fall back to looking up the entity by entityId to get the real name.
+    // Resolve sender identity: content.name/userName are often empty for Discord messages.
+    // Instead, check if entityId matches any known agent ID — if not, it's a human.
     let resolvedSenderName = String(message.content?.name ?? message.content?.userName ?? "").toLowerCase();
+    let senderIsDefinitelyHuman = false;
     if (!resolvedSenderName && message.entityId) {
-      try {
-        const senderEntity = await runtime.getEntityById(message.entityId);
-        if (senderEntity?.names?.length) {
-          resolvedSenderName = senderEntity.names[0].toLowerCase();
-        }
-      } catch { /* non-fatal */ }
-    }
-    // Inject resolved name into message so isFromKnownAgent/isFromKnownHuman can use it
-    if (resolvedSenderName && !message.content?.name) {
-      if (!message.content) (message as any).content = {};
-      (message.content as any)._resolvedSenderName = resolvedSenderName;
+      // Check if sender entityId matches any agent — if not, treat as human
+      const eliza = (runtime as any).elizaOS;
+      const allAgents = eliza?.getAgents?.() as { agentId: string; character?: { name?: string } }[] | undefined;
+      const agentIds = new Set<string>(allAgents?.map((a) => a.agentId) ?? []);
+      agentIds.add(runtime.agentId); // include self
+      if (!agentIds.has(message.entityId)) {
+        senderIsDefinitelyHuman = true;
+        // Try to get name from entity DB
+        try {
+          const senderEntity = await runtime.getEntityById(message.entityId);
+          resolvedSenderName = (senderEntity?.names?.[0] ?? "").toLowerCase();
+        } catch { /* non-fatal */ }
+        if (!resolvedSenderName) resolvedSenderName = "human";
+      }
     }
     
     // Check room type
@@ -295,12 +299,24 @@ export const a2aContextProvider: Provider = {
     const roomName = room?.name ?? "";
     const inStandupChannel = isStandupRoom(roomName);
     
-    // Check agent FIRST so bot messages don't get swallowed by isFromKnownHuman
-    const { isAgent, agentName } = isFromKnownAgent(message, resolvedSenderName);
+    // Classify sender: use entityId-based detection first (reliable), then fall back to name-based
+    let isAgent: boolean;
+    let agentName: string | null;
+    if (senderIsDefinitelyHuman) {
+      isAgent = false;
+      agentName = null;
+    } else {
+      const result = isFromKnownAgent(message, resolvedSenderName);
+      isAgent = result.isAgent;
+      agentName = result.agentName;
+    }
+    console.log(`[A2A_CLASSIFY] sender="${resolvedSenderName}", entityId=${message.entityId}, definitelyHuman=${senderIsDefinitelyHuman}, isAgent=${isAgent}, inStandup=${inStandupChannel}`);
 
     // Check if this is from a HUMAN (only when not already identified as an agent)
     if (!isAgent) {
-      const { isHuman, humanName } = isFromKnownHuman(message, resolvedSenderName);
+      // If entityId-based detection says human, trust it even if name is unknown
+      const isHuman = senderIsDefinitelyHuman || isFromKnownHuman(message, resolvedSenderName).isHuman;
+      const humanName = resolvedSenderName || isFromKnownHuman(message, resolvedSenderName).humanName || "Human";
       if (isHuman) {
         // In standup channels only the facilitator responds to humans (rate limit)
         if (inStandupChannel) {
