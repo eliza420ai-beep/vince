@@ -2,95 +2,217 @@
  * Standup Data Fetcher
  *
  * Fetches REAL data for each agent's standup report.
- * This ensures reports contain actual numbers, not placeholders.
+ * Each fetcher runs on that agent's runtime so it has access to the agent's services.
+ * The shared daily insights doc is built from these fetchers.
+ *
+ * Data ownership (no overlaps):
+ * - VINCE: ALL market/trading data (enriched context, funding, L/S, regime, Fear/Greed,
+ *          HIP-3, signals, Deribit DVOL, Binance top traders, paper bot, goals, MandoMinutes)
+ * - ECHO: CT/X sentiment (actual tweets)
+ * - Oracle: Polymarket prediction markets
+ * - Solus: directive referencing VINCE's data (no own price fetch)
+ * - Sentinel: git log, PRDs, ProjectRadar, macro news (Tavily)
+ * - Eliza: recent facts from memory
+ * - Clawterm: OpenClaw/AGI X + web
+ * - Otaku: under construction
  */
 
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { type IAgentRuntime, logger } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
+import { getRecentCodeContext } from "./standup.context";
 
 /** Asset list for trading standup */
 const STANDUP_ASSETS = ["BTC", "SOL", "HYPE"];
 
-/**
- * Fetch market data for VINCE's report
- */
+const X_SNIPPET_LEN = 120;
+
+// ═══════════════════════════════════════════════════════════════════════
+// VINCE: enriched context + 9 data sources
+// ═══════════════════════════════════════════════════════════════════════
+
 export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
+  const lines: string[] = [];
   try {
-    // Try to get VINCE services
+    // 1. Enriched context per asset (price + funding + L/S + regime bundled)
     const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
-      getPrice?: (asset: string) => Promise<number | null>;
-      get24hChange?: (asset: string) => Promise<number | null>;
-    } | null;
-
-    const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
-      getFundingRate?: (asset: string) => Promise<number | null>;
-      getOpenInterestChange?: (asset: string) => Promise<number | null>;
-    } | null;
-
-    const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
-      getStats?: () => Promise<{ wins: number; losses: number; pnl: number } | null>;
+      getEnrichedContext?: (asset: string) => Promise<{
+        currentPrice?: number; priceChange24h?: number; fundingRate?: number;
+        longShortRatio?: number; marketRegime?: string; volumeRatio?: number;
+      } | null>;
     } | null;
 
     const rows: string[] = [];
-    
     for (const asset of STANDUP_ASSETS) {
-      const price = await marketData?.getPrice?.(asset) ?? null;
-      const change = await marketData?.get24hChange?.(asset) ?? null;
-      const funding = await coinglass?.getFundingRate?.(asset) ?? null;
-      
-      // Determine signal based on funding
-      let signal = "🟡";
-      if (funding !== null) {
-        if (funding > 0.01) signal = "🔴"; // Crowded long
-        else if (funding < -0.01) signal = "🟢"; // Crowded short
-      }
-      
-      const priceStr = price ? `$${price.toLocaleString()}` : "N/A";
-      const changeStr = change !== null ? `${change >= 0 ? "+" : ""}${change.toFixed(1)}%` : "N/A";
-      const fundingStr = funding !== null ? `${(funding * 100).toFixed(3)}%` : "N/A";
-      
-      rows.push(`| ${asset} | ${priceStr} | ${changeStr} | ${fundingStr} | ${signal} |`);
+      const ctx = await marketData?.getEnrichedContext?.(asset).catch(() => null) ?? null;
+      if (!ctx) { rows.push(`| ${asset} | N/A | — | — |`); continue; }
+      const price = ctx.currentPrice ? `$${ctx.currentPrice.toLocaleString()}` : "N/A";
+      const change = ctx.priceChange24h != null ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%` : "";
+      const funding = ctx.fundingRate != null ? `F:${(ctx.fundingRate * 100).toFixed(3)}%` : "";
+      const ls = ctx.longShortRatio != null ? `L/S:${ctx.longShortRatio.toFixed(2)}` : "";
+      const regime = ctx.marketRegime ?? "";
+      rows.push(`| ${asset} | ${price} ${change} | ${funding} ${ls} | ${regime} |`);
+    }
+    if (rows.length > 0) {
+      lines.push(`| Asset | Price | Funding/LS | Regime |\n|-------|-------|-----------|--------|\n${rows.join("\n")}`);
     }
 
-    // Paper bot stats
-    const stats = await paperBot?.getStats?.();
-    const botLine = stats 
+    // 2. Fear & Greed
+    const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
+      getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
+    } | null;
+    const fg = await coinglass?.getFearGreed?.().catch(() => null) ?? null;
+    if (fg) lines.push(`**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})`);
+
+    // 3. HIP-3 pulse
+    const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as {
+      getHIP3Pulse?: () => Promise<{ tldr: string } | null>;
+    } | null;
+    const hip3Data = await hip3?.getHIP3Pulse?.().catch(() => null) ?? null;
+    if (hip3Data?.tldr) lines.push(`**HIP-3:** ${hip3Data.tldr}`);
+
+    // 4. Signal aggregator (overall signal strength from 20+ sources)
+    const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
+      aggregateSignals?: (asset: string) => Promise<{ direction?: string; confidence?: number; sources?: number } | null>;
+    } | null;
+    const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null) ?? null;
+    if (btcSignal?.direction) lines.push(`**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)`);
+
+    // 5. Deribit DVOL + best covered calls (Solus reads this from shared insights)
+    const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
+      getDVOL?: (currency: string) => Promise<{ dvol: number } | null>;
+      getBestCoveredCalls?: (currency: string) => Promise<Array<{ strike: number; premium: number; expiry: string }> | null>;
+    } | null;
+    const dvol = await deribit?.getDVOL?.("BTC").catch(() => null) ?? null;
+    const bestCalls = await deribit?.getBestCoveredCalls?.("BTC").catch(() => null) ?? null;
+    if (dvol?.dvol != null) {
+      let deribitLine = `**BTC DVOL:** ${dvol.dvol.toFixed(1)}`;
+      if (bestCalls?.[0]) {
+        const top = bestCalls[0];
+        deribitLine += ` | Best CC: $${top.strike} (${top.premium?.toFixed(2)} prem, ${top.expiry})`;
+      }
+      lines.push(deribitLine);
+    }
+
+    // 6. Binance top trader positions
+    const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
+      getTopTraderPositions?: (asset: string) => Promise<{ longPercent: number; shortPercent: number } | null>;
+    } | null;
+    const topTraders = await binance?.getTopTraderPositions?.("BTC").catch(() => null) ?? null;
+    if (topTraders) lines.push(`**Top traders (BTC):** ${topTraders.longPercent?.toFixed(0)}% long / ${topTraders.shortPercent?.toFixed(0)}% short`);
+
+    // 7. Paper bot: stats + open positions
+    const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
+      getStats?: () => Promise<{ wins: number; losses: number; pnl: number } | null>;
+    } | null;
+    const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
+      getStatus?: () => Promise<{ openPositions?: number; pendingEntries?: number } | null>;
+    } | null;
+    const stats = await paperBot?.getStats?.().catch(() => null) ?? null;
+    const botStatus = await paperTrading?.getStatus?.().catch(() => null) ?? null;
+    let botLine = stats
       ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
       : "**Paper bot:** No data";
+    if (botStatus) botLine += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
+    lines.push(botLine);
 
-    return `
-| Asset | Price | 24h | Funding | Signal |
-|-------|-------|-----|---------|--------|
-${rows.join("\n")}
+    // 8. Goal tracker
+    const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
+      getDailyProgress?: () => Promise<{ pnlToday?: number; target?: number; pctComplete?: number } | null>;
+    } | null;
+    const goalData = await goals?.getDailyProgress?.().catch(() => null) ?? null;
+    if (goalData?.target) lines.push(`**Daily goal:** $${goalData.pnlToday?.toFixed(0) ?? 0}/$${goalData.target} (${goalData.pctComplete?.toFixed(0) ?? 0}%)`);
 
-${botLine}
-`.trim();
+    // 9. MandoMinutes headlines (essential news context for the team)
+    const newsSvc = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
+      refreshData?: (force?: boolean) => Promise<void>;
+      getTopHeadlines?: (limit: number) => Array<{ title: string; sentiment: string; impact: string }>;
+      getVibeCheck?: () => string;
+      getTLDR?: () => string;
+      getOverallSentiment?: () => { sentiment: string; confidence: number };
+    } | null;
+    if (newsSvc) {
+      try {
+        await newsSvc.refreshData?.();
+        const vibeCheck = newsSvc.getVibeCheck?.() ?? "";
+        const tldr = newsSvc.getTLDR?.() ?? "";
+        const sentiment = newsSvc.getOverallSentiment?.();
+        const headlines = newsSvc.getTopHeadlines?.(5) ?? [];
+        const headlineLines = headlines.map((h) => {
+          const dot = h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪";
+          return `${dot} ${h.title.slice(0, 80)}`;
+        });
+        const newsBlock = [
+          vibeCheck ? `**MandoMinutes:** ${vibeCheck}` : "",
+          sentiment ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)` : "",
+          tldr ? `TLDR: ${tldr}` : "",
+          headlineLines.length > 0 ? `Headlines:\n${headlineLines.join("\n")}` : "",
+        ].filter(Boolean).join("\n");
+        if (newsBlock) lines.push(newsBlock);
+      } catch { /* non-fatal */ }
+    }
+
+    return lines.join("\n\n");
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] Failed to fetch VINCE data");
     return "*(Live data unavailable)*";
   }
 }
 
-/**
- * Fetch sentiment data for ECHO's report
- * ECHO uses plugin-x-research, not plugin-vince. The fetcher returns a prompt
- * that primes ECHO to run X_PULSE during its standup turn; ECHO uses that output.
- */
-export async function fetchEchoData(_runtime: IAgentRuntime): Promise<string> {
-  return `**CT sentiment (X insights)** — Run X_PULSE for current Crypto Twitter sentiment and summarize the result here.
-- Lead with overall vibe (bullish/bearish/neutral) and key narratives.
-- Mention any contrarian warnings if sentiment is extreme.
-- If X API is unavailable, say so plainly — do not invent status.`;
+// ═══════════════════════════════════════════════════════════════════════
+// ECHO: real CT sentiment from X (actual tweets, not a placeholder)
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function fetchEchoData(runtime: IAgentRuntime): Promise<string> {
+  try {
+    const xSearchMod = await import(
+      /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
+    ).catch(() => import("../../../plugin-x-research/src/services/xSearch.service"));
+    const xClientMod = await import(
+      /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xClient.service.js"
+    ).catch(() => import("../../../plugin-x-research/src/services/xClient.service"));
+
+    const initXClientFromEnv = xClientMod.initXClientFromEnv as (r: IAgentRuntime) => void;
+    const getXSearchService = xSearchMod.getXSearchService as () => {
+      searchQuery: (opts: {
+        query: string; maxResults?: number; hoursBack?: number; cacheTtlMs?: number;
+      }) => Promise<Array<{ text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>>;
+    };
+
+    initXClientFromEnv(runtime);
+    const svc = getXSearchService();
+
+    const tweets = await svc.searchQuery({
+      query: "BTC crypto market sentiment",
+      maxResults: 10,
+      hoursBack: 24,
+      cacheTtlMs: 30 * 60 * 1000,
+    });
+
+    if (!tweets?.length) return "**CT sentiment:** No X data (check X_BEARER_TOKEN).";
+
+    const tweetLines = tweets.slice(0, 8).map((t) => {
+      const handle = t.author?.username ?? "anon";
+      const snippet = t.text?.length > X_SNIPPET_LEN ? t.text.slice(0, X_SNIPPET_LEN) + "…" : (t.text ?? "");
+      return `@${handle}: ${snippet} (${t.metrics?.likeCount ?? 0} likes)`;
+    });
+
+    return `**CT sentiment (${tweets.length} posts, last 24h):**\n${tweetLines.join("\n")}`;
+  } catch (err) {
+    logger.warn({ err }, "[STANDUP_DATA] fetchEchoData: X unavailable");
+    return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
+  }
 }
 
-/**
- * Fetch prediction market data for Oracle's report.
- * Uses PolymarketService.getMarketsByPreferredTags and getPricesFromMarketPayload (Gamma-derived for standup; CLOB via GET_POLYMARKET_PRICE in chat).
- */
+// ═══════════════════════════════════════════════════════════════════════
+// Oracle: Polymarket priority markets (already real data, keep as-is)
+// ═══════════════════════════════════════════════════════════════════════
+
 export async function fetchOracleData(runtime: IAgentRuntime): Promise<string> {
   try {
     const service = runtime.getService(
-      PolymarketService.serviceType
+      PolymarketService.serviceType,
     ) as InstanceType<typeof PolymarketService> | null;
 
     if (!service) {
@@ -127,10 +249,95 @@ Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
   }
 }
 
-/**
- * Fetch wallet data for Otaku's report
- * NOTE: Otaku is under construction - no wallet configured yet
- */
+// ═══════════════════════════════════════════════════════════════════════
+// Solus: directive referencing VINCE's data (no own price fetch)
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
+  return `**Options context (use VINCE's data from shared insights above):**
+Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
+Read Oracle's section for: Polymarket odds that inform confidence.
+
+**Your job:** Propose a specific BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
+State: strike price, direction (above/below), premium target, invalidation level.
+Reference VINCE's DVOL, funding, and regime. Reference Oracle's odds.`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Sentinel: real git log + PRD scan + ProjectRadar + macro news (Tavily)
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+
+  // 1. Real git log
+  try {
+    const gitLog = getRecentCodeContext(10);
+    sections.push(gitLog);
+  } catch { sections.push("Git log: unavailable."); }
+
+  // 2. PRD scan
+  try {
+    const prdDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables", "prds");
+    if (fs.existsSync(prdDir)) {
+      const files = fs.readdirSync(prdDir).filter((f) => f.endsWith(".md")).sort().reverse().slice(0, 3);
+      if (files.length > 0) sections.push(`**Recent PRDs:** ${files.join(", ")}`);
+    }
+  } catch { /* non-fatal */ }
+
+  // 3. ProjectRadar (if Sentinel has the service)
+  const radar = runtime.getService("PROJECT_RADAR_SERVICE") as {
+    getProjectHealth?: () => Promise<{ status?: string; blockers?: string[] } | null>;
+    getOpenTODOs?: () => Promise<string[] | null>;
+  } | null;
+  if (radar) {
+    try {
+      const health = await radar.getProjectHealth?.().catch(() => null) ?? null;
+      const todos = await radar.getOpenTODOs?.().catch(() => null) ?? null;
+      if (health?.status) sections.push(`**Project:** ${health.status}${health.blockers?.length ? ` | Blockers: ${health.blockers.slice(0, 2).join(", ")}` : ""}`);
+      if (todos?.length) sections.push(`**TODOs:** ${todos.slice(0, 3).join("; ")}`);
+    } catch { /* non-fatal */ }
+  }
+
+  // 4. Macro news via Tavily
+  try {
+    const tavilyMod = await import(
+      /* webpackIgnore: true */ "../../../plugin-x-research/src/utils/tavilySearch.js"
+    ).catch(() => import("../../../plugin-x-research/src/utils/tavilySearch"));
+    const tavilySearch = tavilyMod.tavilySearch as (query: string, r?: IAgentRuntime, maxResults?: number) => Promise<string[]>;
+    const snippets = await tavilySearch("crypto regulation Fed interest rates macro news today", runtime, 3);
+    if (snippets?.length > 0) sections.push(`**Macro news:**\n${snippets.join("\n")}`);
+  } catch { /* Tavily not available */ }
+
+  sections.push("**Your job:** What shipped, what's next, one architecture item, and flag any macro news that affects our trades.");
+  return sections.join("\n\n");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Eliza: recent facts from memory
+// ═══════════════════════════════════════════════════════════════════════
+
+export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
+  const sections: string[] = [];
+  try {
+    const facts = await runtime.getMemories({ tableName: "facts", count: 8, unique: true });
+    const factLines = facts
+      .filter((f) => f.content?.text)
+      .slice(0, 5)
+      .map((f) => `- ${String(f.content.text).slice(0, 120)}`);
+    if (factLines.length > 0) sections.push(`**Recent facts in memory (${factLines.length}):**\n${factLines.join("\n")}`);
+    else sections.push("**Recent facts:** None stored yet.");
+  } catch {
+    sections.push("**Facts:** Query failed.");
+  }
+  sections.push("**Your job:** One knowledge gap for better trades, one content idea (essay/thread) from today's data, one cross-agent link.");
+  return sections.join("\n\n");
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Otaku: under construction (keep as-is)
+// ═══════════════════════════════════════════════════════════════════════
+
 export async function fetchOtakuData(_runtime: IAgentRuntime): Promise<string> {
   return `You are the agent with wallet (Bankr, Coinbase) and DeFi skills; currently under construction — no execution yet.
 
@@ -140,40 +347,13 @@ Observing team reports — no execution capability yet.
 *Watching for: DeFi opportunities to act on once wallet is live.*`;
 }
 
-/**
- * Fetch system data for Sentinel's report
- * Prompt Sentinel to report what's next in coding and what's been pushed to the repo.
- */
-export async function fetchSentinelData(_runtime: IAgentRuntime): Promise<string> {
-  return `**What's next in coding:** (what still needs to be done)
-**What's been pushed to the repo:** (recent commits/PRs)
+// ═══════════════════════════════════════════════════════════════════════
+// Clawterm: OpenClaw/AGI X + web (keep existing, already real data)
+// ═══════════════════════════════════════════════════════════════════════
 
-Use your knowledge of PRDs, progress, and recent work. If no recent pushes, say "Nothing new."
-
-| System | Status | Note |
-|--------|--------|------|
-| Agents | 🟢 | All responsive |
-| APIs | 🟢 | Connected |
-
-**Alerts:** None`;
-}
-
-/**
- * Fetch data for Solus's standup report (options expert)
- */
-export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
-  return `**Options expert:** Lead with strike/position call or Hypersurface-relevant action.
-Use spot + mechanics from context. Invalidation and hold/roll/adjust in one line. Minimal coordination chat.`;
-}
-
-const X_SNIPPET_LEN = 120;
 const CLAWTERM_X_MAX = 10;
 const CLAWTERM_HOURS_BACK = 24;
 
-/**
- * Fetch OpenClaw/AI/AGI context for Clawterm's standup report.
- * Uses plugin-x-research (X search + Tavily) when available; otherwise returns fallback.
- */
 export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string> {
   try {
     const xSearchMod = await import(
@@ -194,18 +374,8 @@ export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string>
     const searchService = getXSearchService();
 
     const [openclawTweets, agiTweets] = await Promise.all([
-      searchService.searchQuery({
-        query: "OpenClaw",
-        maxResults: CLAWTERM_X_MAX,
-        hoursBack: CLAWTERM_HOURS_BACK,
-        cacheTtlMs: 60 * 60 * 1000,
-      }),
-      searchService.searchQuery({
-        query: "AGI AI research agents",
-        maxResults: CLAWTERM_X_MAX,
-        hoursBack: CLAWTERM_HOURS_BACK,
-        cacheTtlMs: 60 * 60 * 1000,
-      }),
+      searchService.searchQuery({ query: "OpenClaw", maxResults: CLAWTERM_X_MAX, hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 }),
+      searchService.searchQuery({ query: "AGI AI research agents", maxResults: CLAWTERM_X_MAX, hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 }),
     ]);
 
     const combined = [...openclawTweets, ...agiTweets];
@@ -235,15 +405,16 @@ export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string>
   }
 }
 
-/**
- * Fetch data for a specific agent
- */
+// ═══════════════════════════════════════════════════════════════════════
+// Router: fetch data for a specific agent by name
+// ═══════════════════════════════════════════════════════════════════════
+
 export async function fetchAgentData(
   runtime: IAgentRuntime,
-  agentName: string
+  agentName: string,
 ): Promise<string | null> {
   const normalized = agentName.toLowerCase();
-  
+
   switch (normalized) {
     case "vince":
       return fetchVinceData(runtime);
@@ -259,7 +430,9 @@ export async function fetchAgentData(
       return fetchSentinelData(runtime);
     case "clawterm":
       return fetchClawtermData(runtime);
+    case "eliza":
+      return fetchElizaData(runtime);
     default:
-      return null; // Eliza doesn't have a specific data fetcher
+      return null;
   }
 }

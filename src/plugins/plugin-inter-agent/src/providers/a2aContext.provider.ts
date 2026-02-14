@@ -135,6 +135,8 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
     memory.content?.name ?? memory.content?.userName ?? ""
   ).toLowerCase();
 
+  logger.debug(`[A2A_DETECT] senderName="${senderName}", agentId=${memory.agentId ?? "none"}, isBot=${(memory.content?.metadata as Record<string, unknown> | undefined)?.isBot ?? "unset"}`);
+
   // Check 1: substring match against known agents — return canonical name
   for (const agent of KNOWN_AGENTS) {
     if (senderName.includes(agent)) {
@@ -151,6 +153,18 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
       }
     }
     return { isAgent: true, agentName: senderName || "unknown-bot" };
+  }
+
+  // Check 3: agentId set — ElizaOS sets this on memories from agent runtimes
+  if (memory.agentId) {
+    // Try to resolve canonical name from senderName
+    for (const agent of KNOWN_AGENTS) {
+      if (senderName.includes(agent)) {
+        return { isAgent: true, agentName: agent };
+      }
+    }
+    logger.debug(`[A2A_DETECT] agentId present but name unresolved — treating as agent (senderName="${senderName}")`);
+    return { isAgent: true, agentName: senderName || "unknown-agent" };
   }
 
   return { isAgent: false, agentName: null };
@@ -616,7 +630,7 @@ ${ALOHA_STYLE_BLOCK}
           : "";
       const vinceLine =
         myNameLower === "vince"
-          ? "\n**You have the most accurate data and recent news.** Live data (prices, funding, paper bot W/L and PnL) must drive your report. Report paper trading bot results for perps on Hyperliquid. Use LIVE DATA only.\n"
+          ? "\n**You have the most accurate data and recent news.** Live data (prices, funding, paper bot W/L and PnL) must drive your report. Report paper trading bot results for perps on Hyperliquid. Use LIVE DATA only.\n**CRITICAL:** This is a NEW standup. Do NOT say 'already complete' or 'already reported.' Report fresh data NOW.\n"
           : "";
       const echoLine =
         myNameLower === "echo"
@@ -634,6 +648,8 @@ ${ALOHA_STYLE_BLOCK}
       if (hasSharedInsights) {
         return { text: `${sharedContext}
 ## 🎯 YOUR TURN — Trading Standup (Synthesis)
+
+**CRITICAL:** This is a NEW standup. Ignore any prior standup results in your memory. Report fresh data NOW. Do not say "already complete" or "already reported." Every standup is independent.
 
 Shared daily insights are above. Do NOT repeat your section. Do NOT echo lifestyle, travel, dining, wine, or wellness content — this is a TRADING standup.
 
@@ -655,7 +671,9 @@ Keep it ~100–150 words. ALOHA style, no bullets.
       return { text: `
 ## 🎯 YOUR TURN — Standup Day Report (ALOHA style)
 
-Kelly called on you. Write your standup report as a **short day report in ALOHA style**: one flowing narrative, no mandatory tables or bullet lists. Use the LIVE DATA below to be specific. End with one clear action or take. ~200-300 words max.
+**CRITICAL:** This is a NEW standup. Ignore any prior standup results in your memory. Report fresh data NOW. Do not say "already complete" or "already reported." Every standup is independent.
+
+Kelly called on you. Write your standup report as a **short day report in ALOHA style**: one flowing narrative, no mandatory tables or bullet lists. Use the LIVE DATA below to be specific. End with one clear action or take. ~200-300 words max. No lifestyle, travel, dining, or wellness content.
 ${vinceLine}
 ${echoLine}
 ${solusOptionsLine}

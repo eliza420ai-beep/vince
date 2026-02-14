@@ -135,7 +135,13 @@ export async function buildAndSaveSharedDailyInsights(
     logger.debug("[Standup] No getAgent — skip shared insights pre-write");
     return;
   }
-  const agents = eliza.getAgents();
+  let agents: { agentId: string; character?: { name?: string } }[];
+  try {
+    agents = eliza.getAgents();
+  } catch (err) {
+    logger.warn({ err }, "[Standup] eliza.getAgents() failed — skip shared insights");
+    return;
+  }
   const byName = new Map<string, { agentId: string; displayName: string }>();
   for (const a of agents) {
     const name = a?.character?.name?.trim();
@@ -436,7 +442,7 @@ export async function createActionItemTasks(
  * Push standup summary to Discord/Slack/Telegram channels whose name contains "standup" or "daily-standup".
  * Create #daily-standup and keep all team agents in that channel for "one team, one dream."
  */
-async function pushStandupSummaryToChannels(
+export async function pushStandupSummaryToChannels(
   runtime: IAgentRuntime,
   summary: string,
 ): Promise<number> {
@@ -681,6 +687,38 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           logger.warn({ err: dayReportErr }, "[Standup] Day Report generation failed; continuing with summary only");
         }
         const dateStr = new Date().toISOString().slice(0, 10);
+
+        // Token estimation (~4 chars per token)
+        const estimateTokens = (text: string) => Math.ceil((text?.length ?? 0) / 4);
+        let totalInputTokens = estimateTokens(kickoffText);
+        for (let i = 0; i < replies.length; i++) {
+          const priorLen = kickoffText.length + replies.slice(0, i).reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
+          totalInputTokens += estimateTokens(Math.min(priorLen, 48000).toString().length > 0 ? transcript.slice(0, priorLen) : transcript);
+        }
+        const totalOutputTokens = replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200; // 1200 = Day Report cap
+        const totalEstimatedTokens = totalInputTokens + totalOutputTokens;
+        const costPer1K = parseFloat(process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006");
+        const estimatedCost = (totalEstimatedTokens / 1000) * costPer1K;
+        logger.info(`[Standup] Token estimate: ~${totalEstimatedTokens} tokens (~$${estimatedCost.toFixed(3)})`);
+
+        // Persist metrics to JSONL
+        try {
+          const metricsDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables");
+          if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
+          const metricsLine = JSON.stringify({
+            date: dateStr,
+            type: "scheduled",
+            agentCount: replies.length,
+            totalEstimatedTokens,
+            estimatedCost: parseFloat(estimatedCost.toFixed(4)),
+            crossAgentLinks,
+            actionItems: parsed.actionItems.length,
+            lessons: Object.keys(parsed.lessonsByAgentName).length,
+            disagreements: parsed.disagreements.length,
+          });
+          fs.appendFileSync(path.join(metricsDir, "standup-metrics.jsonl"), metricsLine + "\n");
+        } catch { /* non-fatal */ }
+
         const summaryLines = [
           `**Standup ${dateStr}** (one team, one dream)`,
           `• ${replies.length} agents spoke`,
@@ -689,6 +727,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           `• Action items: ${parsed.actionItems.length}${deliverableCount > 0 ? ` (${deliverableCount} deliverables — will be posted when ready)` : ""}`,
           dayReportPath ? `• Day Report: \`${dayReportPath}\`` : "",
           parsed.disagreements.length > 0 ? `• Disagreements noted: ${parsed.disagreements.length}` : "",
+          `• Tokens: ~${totalEstimatedTokens} (~$${estimatedCost.toFixed(3)})`,
           "",
           transcript.slice(-2000),
         ].filter(Boolean);

@@ -20,7 +20,7 @@ import {
   ModelType,
 } from "@elizaos/core";
 import { AGENT_ROLES, formatReportDate, getDayOfWeek } from "../standup/standupReports";
-import { saveDayReport, updateDayReportManifest, getRecentReportsContext } from "../standup/dayReportPersistence";
+import { getRecentReportsContext } from "../standup/dayReportPersistence";
 import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from "../standup/actionItemTracker";
 import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
@@ -28,8 +28,16 @@ import { startStandupSession, endStandupSession, getSessionStats, isStandupActiv
 import { STANDUP_REPORT_ORDER, isStandupKickoffRequest } from "../standup/standup.constants";
 import { buildDayReportPrompt } from "../standup/standupDayReport";
 import { getElizaOS } from "../types";
-import { buildAndSaveSharedDailyInsights, persistStandupLessons, persistStandupDisagreements, createActionItemTasks } from "../standup/standup.tasks";
-import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
+import {
+  buildAndSaveSharedDailyInsights,
+  persistStandupLessons,
+  persistStandupDisagreements,
+  createActionItemTasks,
+  ensureStandupWorldAndRoom,
+  runStandupRoundRobin,
+  pushStandupSummaryToChannels,
+} from "../standup/standup.tasks";
+import { loadSharedDailyInsights, saveDayReport, updateDayReportManifest } from "../standup/dayReportPersistence";
 import { buildKickoffWithSharedInsights } from "../standup/standup.context";
 import { parseStandupTranscript, countCrossAgentLinks } from "../standup/standup.parse";
 
@@ -252,19 +260,20 @@ ${validationContext}
         }
       }
     } else {
-      // Soft reset: if a previous session is still active, end it so we can start fresh
+      // ═══════════════════════════════════════════════════════════════════════
+      // HYBRID STANDUP: code-driven round-robin + live Discord posts
+      // Each agent is called internally via handleMessage (reliable),
+      // and each reply is pushed to #daily-standup in real time (visible).
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // Step 1: Soft reset and session start
       if (isStandupActive()) {
         logger.warn("[STANDUP_FACILITATE] Previous session still active — ending it to start fresh");
         endStandupSession();
       }
-
-      // Kickoff — start a new standup session
       startStandupSession(message.roomId);
 
-      const config = getStandupConfig(runtime);
-      const pendingContext = getActionItemsContext();
-
-      let kickoffText: string;
+      // Step 2: Build shared insights and kickoff
       const eliza = getElizaOS(runtime);
       if (eliza?.getAgent) {
         try {
@@ -274,22 +283,11 @@ ${validationContext}
         }
       }
       const sharedContent = loadSharedDailyInsights()?.trim();
-      if (sharedContent) {
-        kickoffText = buildKickoffWithSharedInsights(sharedContent);
-      } else {
-        kickoffText = buildKickoffMessage();
-      }
+      const kickoffText = sharedContent
+        ? buildKickoffWithSharedInsights(sharedContent)
+        : buildKickoffMessage();
 
-      if (config.enabled) {
-        kickoffText += `\n\n*⏰ Auto-standup: ${formatSchedule(config.schedule)}*`;
-      }
-      
-      // Add pending items reminder
-      const pendingMatch = pendingContext.match(/Pending \((\d+)\)/);
-      if (pendingMatch && parseInt(pendingMatch[1]) > 0) {
-        kickoffText += `\n\n*📋 ${pendingMatch[1]} pending action items from previous standups*`;
-      }
-
+      // Step 3: Post kickoff to Discord
       if (callback) {
         await callback({
           text: kickoffText,
@@ -297,6 +295,123 @@ ${validationContext}
           source: "Kelly",
         });
       }
+
+      // Step 4: Run code-driven round-robin internally + push each reply to Discord
+      if (eliza?.handleMessage) {
+        try {
+          const { roomId: standupRoomId, facilitatorEntityId } =
+            await ensureStandupWorldAndRoom(runtime);
+          const { transcript, replies } = await runStandupRoundRobin(
+            runtime,
+            standupRoomId,
+            facilitatorEntityId,
+            kickoffText,
+          );
+
+          // Step 5: Push each agent's reply to Discord in real time
+          for (const r of replies) {
+            await pushStandupSummaryToChannels(
+              runtime,
+              `**${r.agentName}:**\n${r.text}`,
+            );
+          }
+
+          // Step 6: Generate Day Report from transcript
+          let dayReportPath: string | null = null;
+          try {
+            const dayReportPrompt = buildDayReportPrompt(transcript);
+            const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
+              prompt: dayReportPrompt,
+              maxTokens: 1200,
+              temperature: 0.7,
+            });
+            const reportText = String(dayReport).trim();
+            dayReportPath = saveDayReport(reportText);
+            if (dayReportPath) {
+              const tldrMatch = reportText.match(/### TL;DR\n([^\n#]+)/);
+              updateDayReportManifest(
+                dayReportPath,
+                tldrMatch?.[1]?.trim() || "Day report generated",
+              );
+            }
+
+            // Step 7: Push Day Report to Discord
+            const savedNote = dayReportPath ? `\n\n*Saved to ${dayReportPath}*` : "";
+            await pushStandupSummaryToChannels(runtime, reportText + savedNote);
+          } catch (dayReportErr) {
+            logger.warn({ err: dayReportErr }, "[STANDUP_FACILITATE] Day Report generation failed");
+          }
+
+          // Step 8: Persist to DB (same as scheduled standup)
+          try {
+            const parsed = await parseStandupTranscript(runtime, transcript);
+            const crossAgentLinks = countCrossAgentLinks(transcript);
+            if (crossAgentLinks > 0) {
+              logger.info(`[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s)`);
+            }
+            await persistStandupLessons(runtime, message.roomId, parsed.lessonsByAgentName);
+            await persistStandupDisagreements(runtime, parsed.disagreements);
+            await createActionItemTasks(
+              runtime,
+              parsed.actionItems,
+              message.roomId,
+              message.entityId,
+            );
+            // Token estimation
+            const estimateTokens = (text: string) => Math.ceil((text?.length ?? 0) / 4);
+            let totalInputTokens = estimateTokens(kickoffText);
+            for (let i = 0; i < replies.length; i++) {
+              const priorLen = kickoffText.length + replies.slice(0, i).reduce((s, r) => s + r.text.length + r.agentName.length + 5, 0);
+              totalInputTokens += estimateTokens(transcript.slice(0, Math.min(priorLen, 48000)));
+            }
+            const totalOutputTokens = replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200;
+            const totalEstimatedTokens = totalInputTokens + totalOutputTokens;
+            const costPer1K = parseFloat(process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006");
+            const estimatedCost = (totalEstimatedTokens / 1000) * costPer1K;
+            logger.info(`[STANDUP_FACILITATE] Token estimate: ~${totalEstimatedTokens} tokens (~$${estimatedCost.toFixed(3)})`);
+
+            // Persist metrics to JSONL
+            try {
+              const fs = await import("node:fs");
+              const pathMod = await import("node:path");
+              const metricsDir = pathMod.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables");
+              if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
+              const dateStr = new Date().toISOString().slice(0, 10);
+              const metricsLine = JSON.stringify({
+                date: dateStr,
+                type: "hybrid",
+                agentCount: replies.length,
+                totalEstimatedTokens,
+                estimatedCost: parseFloat(estimatedCost.toFixed(4)),
+                crossAgentLinks,
+                actionItems: parsed.actionItems.length,
+                lessons: Object.keys(parsed.lessonsByAgentName).length,
+                disagreements: parsed.disagreements.length,
+              });
+              fs.appendFileSync(pathMod.join(metricsDir, "standup-metrics.jsonl"), metricsLine + "\n");
+            } catch { /* non-fatal */ }
+
+            logger.info(
+              `[STANDUP_FACILITATE] Hybrid standup complete: ${replies.length} agents, ${parsed.actionItems.length} action items`,
+            );
+          } catch (persistErr) {
+            logger.warn({ err: persistErr }, "[STANDUP_FACILITATE] DB persistence failed (non-fatal)");
+          }
+        } catch (roundRobinErr) {
+          logger.error({ err: roundRobinErr }, "[STANDUP_FACILITATE] Round-robin failed");
+          if (callback) {
+            await callback({
+              text: "Standup round-robin failed. Check logs for details.",
+              action: "STANDUP_FACILITATE",
+              source: "Kelly",
+            });
+          }
+        }
+      } else {
+        logger.warn("[STANDUP_FACILITATE] No elizaOS — kickoff posted but agents must self-organize");
+      }
+
+      endStandupSession();
     }
 
     return true;

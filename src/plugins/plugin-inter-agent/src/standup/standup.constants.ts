@@ -149,7 +149,7 @@ export const SHARED_INSIGHTS_SENTINEL = "*Above: shared daily insights*";
 /**
  * Phrases that indicate the user wants to start/kick off a standup.
  * Used by STANDUP_FACILITATE action and A2A context so Kelly runs standup instead of a lifestyle reply.
- * Includes "stand up" (two words) so "let's do a daily stand up" matches.
+ * Only multi-word phrases — bare "standup" / "stand up" removed because they match agent status messages like "standup already complete".
  */
 export const STANDUP_KICKOFF_PHRASES = [
   "start standup",
@@ -159,20 +159,25 @@ export const STANDUP_KICKOFF_PHRASES = [
   "daily stand up",
   "morning standup",
   "let's do standup",
+  "let's do a standup",
   "let's do a stand up",
+  "do a standup",
   "do a stand up",
   "do the standup",
   "run standup",
   "run the standup",
   "team standup",
   "standup time",
-  "stand up",
   "facilitate standup",
 ] as const;
+
+/** Words near "standup" that indicate a status report, not a kickoff request. */
+const STANDUP_NEGATIVE_WORDS = ["already", "complete", "done", "finished", "locked", "delivered"];
 
 /**
  * Returns true if the message is asking to start/kick off a standup.
  * Normalizes text (collapse spaces, "stand up" -> "standup") so "let's do a daily stand up kelly" matches.
+ * Returns false for status messages like "standup already complete" or "standup done".
  */
 export function isStandupKickoffRequest(text: string): boolean {
   if (!text?.trim()) return false;
@@ -180,6 +185,10 @@ export function isStandupKickoffRequest(text: string): boolean {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .replace(/\bstand up\b/g, "standup");
+  // Reject status messages: "standup already complete", "standup done", etc.
+  if (STANDUP_NEGATIVE_WORDS.some((w) => normalized.includes(w) && normalized.includes("standup"))) {
+    return false;
+  }
   return STANDUP_KICKOFF_PHRASES.some((phrase) => {
     const phraseNorm = phrase.replace(/\s+/g, " ").replace(/\bstand up\b/g, "standup");
     return normalized.includes(phraseNorm);
