@@ -1,16 +1,20 @@
 /**
  * Standup State Manager
- * 
+ *
  * Tracks the current standup session to prevent:
  * - Duplicate agent calls
  * - Kelly self-loops
  * - Calling agents out of order
- * 
- * State resets after standup completes or times out.
+ *
+ * State is persisted to standup-session.json so it survives process restart.
+ * On start we restore from file if present and not timed out; otherwise start fresh.
  */
 
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import { logger } from "@elizaos/core";
-import { STANDUP_REPORT_ORDER } from "./standup.constants";
+import { STANDUP_REPORT_ORDER, getStandupSessionTimeoutMs, getStandupInactivityTimeoutMs } from "./standup.constants";
+import { withLock } from "./fileLock";
 
 /** Standup turn order (lowercase); derived dynamically from canonical STANDUP_REPORT_ORDER */
 const STANDUP_ORDER: readonly string[] = STANDUP_REPORT_ORDER.map((n) => n.toLowerCase());
@@ -26,28 +30,99 @@ interface StandupSession {
   isWrappingUp: boolean;
 }
 
-/** In-memory standup state (resets on restart) */
+/** Persisted shape (reportedAgents as array for JSON) */
+interface PersistedSession {
+  startedAt: number;
+  roomId: string;
+  currentAgent: StandupAgent | null;
+  reportedAgents: string[];
+  lastActivityAt: number;
+  isWrappingUp: boolean;
+}
+
+/** In-memory standup state; also persisted to file for restart recovery */
 let currentSession: StandupSession | null = null;
 
-/** Session timeout: 30 minutes */
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
-
-/** Inactivity timeout: 5 minutes (skip agent if no response) */
-const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000;
+function getSessionFilePath(): string {
+  const dir =
+    process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
+    path.join(process.cwd(), "standup-deliverables");
+  return path.join(dir, "standup-session.json");
+}
 
 /**
- * Start a new standup session
+ * Load session from disk. Returns null if file missing, invalid, or timed out.
  */
-export function startStandupSession(roomId: string): void {
-  currentSession = {
-    startedAt: Date.now(),
-    roomId,
-    currentAgent: STANDUP_ORDER[0] ?? "vince", // First agent
-    reportedAgents: new Set(),
-    lastActivityAt: Date.now(),
-    isWrappingUp: false,
-  };
-  logger.info(`[STANDUP_STATE] Session started in room ${roomId}`);
+async function loadPersistedSession(): Promise<StandupSession | null> {
+  const filepath = getSessionFilePath();
+  try {
+    const raw = await fs.readFile(filepath, "utf-8");
+    const data = JSON.parse(raw) as PersistedSession;
+    if (!data || typeof data.startedAt !== "number" || !data.roomId) return null;
+    const now = Date.now();
+    if (now - data.startedAt > getStandupSessionTimeoutMs()) return null;
+    const session: StandupSession = {
+      startedAt: data.startedAt,
+      roomId: data.roomId,
+      currentAgent: data.currentAgent ?? null,
+      reportedAgents: new Set(Array.isArray(data.reportedAgents) ? data.reportedAgents : []),
+      lastActivityAt: typeof data.lastActivityAt === "number" ? data.lastActivityAt : data.startedAt,
+      isWrappingUp: Boolean(data.isWrappingUp),
+    };
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist current session to disk (or delete file if no session). Call withLock for safe write.
+ */
+async function persistSession(): Promise<void> {
+  const filepath = getSessionFilePath();
+  await withLock(filepath, async () => {
+    if (!currentSession) {
+      try {
+        await fs.unlink(filepath);
+      } catch {
+        // ignore if file does not exist
+      }
+      return;
+    }
+    const dir = path.dirname(filepath);
+    await fs.mkdir(dir, { recursive: true });
+    const payload: PersistedSession = {
+      startedAt: currentSession.startedAt,
+      roomId: currentSession.roomId,
+      currentAgent: currentSession.currentAgent,
+      reportedAgents: [...currentSession.reportedAgents],
+      lastActivityAt: currentSession.lastActivityAt,
+      isWrappingUp: currentSession.isWrappingUp,
+    };
+    await fs.writeFile(filepath, JSON.stringify(payload, null, 2), "utf-8");
+  });
+}
+
+/**
+ * Start a new standup session (or restore from persisted state if same room and not timed out).
+ */
+export async function startStandupSession(roomId: string): Promise<void> {
+  const restored = await loadPersistedSession();
+  if (restored && restored.roomId === roomId) {
+    currentSession = restored;
+    logger.info(`[STANDUP_STATE] Session restored in room ${roomId} (${currentSession.reportedAgents.size} already reported)`);
+  } else {
+    currentSession = {
+      startedAt: Date.now(),
+      roomId,
+      currentAgent: STANDUP_ORDER[0] ?? "vince",
+      reportedAgents: new Set(),
+      lastActivityAt: Date.now(),
+      isWrappingUp: false,
+    };
+    logger.info(`[STANDUP_STATE] Session started in room ${roomId}`);
+  }
+  await persistSession();
 }
 
 /**
@@ -58,8 +133,8 @@ export function isStandupActive(roomId?: string): boolean {
   
   // Check for timeout
   const now = Date.now();
-  if (now - currentSession.startedAt > SESSION_TIMEOUT_MS) {
-    logger.info("[STANDUP_STATE] Session timed out (30 min)");
+  if (now - currentSession.startedAt > getStandupSessionTimeoutMs()) {
+    logger.info("[STANDUP_STATE] Session timed out");
     currentSession = null;
     return false;
   }
@@ -79,7 +154,7 @@ export function isStandupActive(roomId?: string): boolean {
 export function isStandupRunning(): boolean {
   if (!currentSession) return false;
   const now = Date.now();
-  if (now - currentSession.startedAt > SESSION_TIMEOUT_MS) {
+  if (now - currentSession.startedAt > getStandupSessionTimeoutMs()) {
     currentSession = null;
     return false;
   }
@@ -91,12 +166,13 @@ export function isStandupRunning(): boolean {
  */
 export function markAgentReported(agentName: string): void {
   if (!currentSession) return;
-  
+
   const normalized = agentName.toLowerCase();
   if (STANDUP_ORDER.includes(normalized)) {
     currentSession.reportedAgents.add(normalized);
     currentSession.lastActivityAt = Date.now();
     logger.info(`[STANDUP_STATE] ${agentName} marked as reported (${currentSession.reportedAgents.size}/${STANDUP_ORDER.length})`);
+    void persistSession();
   }
 }
 
@@ -138,7 +214,7 @@ export function shouldSkipCurrentAgent(): boolean {
   if (!currentSession) return false;
   
   const timeSinceActivity = Date.now() - currentSession.lastActivityAt;
-  return timeSinceActivity > INACTIVITY_TIMEOUT_MS;
+  return timeSinceActivity > getStandupInactivityTimeoutMs();
 }
 
 /**
@@ -156,6 +232,7 @@ export function markWrappingUp(): void {
   if (!currentSession) return;
   currentSession.isWrappingUp = true;
   logger.info("[STANDUP_STATE] Standup wrapping up");
+  void persistSession();
 }
 
 /**
@@ -166,14 +243,15 @@ export function isWrappingUp(): boolean {
 }
 
 /**
- * End the standup session
+ * End the standup session and clear persisted state.
  */
-export function endStandupSession(): void {
+export async function endStandupSession(): Promise<void> {
   if (currentSession) {
     const duration = Math.round((Date.now() - currentSession.startedAt) / 1000);
     logger.info(`[STANDUP_STATE] Session ended after ${duration}s, ${currentSession.reportedAgents.size} agents reported`);
   }
   currentSession = null;
+  await persistSession();
 }
 
 /**
@@ -202,6 +280,7 @@ export function getSessionStats(): {
 export function touchActivity(): void {
   if (currentSession) {
     currentSession.lastActivityAt = Date.now();
+    void persistSession();
   }
 }
 

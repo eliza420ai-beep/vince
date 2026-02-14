@@ -4,7 +4,7 @@
  * Only the coordinator runtime (e.g. Sentinel) registers and runs this task.
  */
 
-import { type IAgentRuntime, type UUID, logger, ChannelType, ModelType } from "@elizaos/core";
+import { type IAgentRuntime, type UUID, logger, ChannelType } from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { v4 as uuidv4 } from "uuid";
@@ -15,21 +15,23 @@ import {
   STANDUP_INTERVAL_MS,
   TASK_NAME,
   STANDUP_ACTION_ITEM_TASK_NAME,
+  STANDUP_RALPH_LOOP_TASK_NAME,
+  getStandupRalphIntervalMs,
   STANDUP_REPORT_ORDER,
   isStandupTime,
   getStandupHours,
+  getStandupAgentTurnTimeoutMs,
 } from "./standup.constants";
 import { buildShortStandupKickoff } from "./standup.context";
 import { parseStandupTranscript, countCrossAgentLinks, type StandupActionItem } from "./standup.parse";
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
-import { buildDayReportPrompt } from "./standupDayReport";
-import {
-  saveDayReport,
-  updateDayReportManifest,
-  saveSharedDailyInsights,
-  loadSharedDailyInsights,
-} from "./dayReportPersistence";
+import { generateAndSaveDayReport } from "./standupDayReport";
+import { getPendingActionItems, updateActionItem } from "./actionItemTracker";
+import type { ActionItem } from "./actionItemTracker";
+import { verifyActionItem } from "./standupVerifier";
+import { appendLearning } from "./standupLearnings";
+import { saveSharedDailyInsights, loadSharedDailyInsights } from "./dayReportPersistence";
 import { fetchAgentData } from "./standupDataFetcher";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning } from "./standupState";
@@ -118,7 +120,6 @@ export async function ensureStandupWorldAndRoom(
   return { worldId, roomId, facilitatorEntityId };
 }
 
-const STANDUP_TURN_TIMEOUT_MS = 90_000;
 const MAX_TRANSCRIPT_CHARS = 12_000;
 
 /**
@@ -174,7 +175,7 @@ export async function buildAndSaveSharedDailyInsights(
     }
   }
   const content = sections.join("\n");
-  saveSharedDailyInsights(content);
+  await saveSharedDailyInsights(content);
 }
 
 function extractReplyFromResponse(resp: unknown): string | null {
@@ -218,7 +219,7 @@ async function runOneStandupTurn(
       if (settled) return;
       settled = true;
       resolve(null);
-    }, STANDUP_TURN_TIMEOUT_MS);
+    }, getStandupAgentTurnTimeoutMs());
     const opts = {
       onResponse: (resp: unknown) => {
         const text = extractReplyFromResponse(resp);
@@ -511,6 +512,111 @@ export async function pushStandupSummaryToChannels(
   return sent;
 }
 
+/** When true (default), use Ralph loop only; do not create per-item queue tasks. Set STANDUP_USE_RALPH_LOOP=false for legacy. */
+export function useRalphLoop(): boolean {
+  return process.env.STANDUP_USE_RALPH_LOOP !== "false";
+}
+
+/** Infer remind vs build from action item what. */
+function isRemindType(item: ActionItem): boolean {
+  const w = (item.what || "").toLowerCase();
+  return /remind|ping|follow up|check in|nudge|touch base/.test(w);
+}
+
+/** Map file-store ActionItem to StandupActionItem for executeBuildActionItem / remind. */
+function toStandupActionItem(item: ActionItem): StandupActionItem {
+  return {
+    assigneeAgentName: item.owner,
+    description: item.what,
+    type: isRemindType(item) ? "remind" : "build",
+  };
+}
+
+/**
+ * Ralph loop worker: process one pending action item per run (priority order), execute, verify, update, log learning.
+ */
+function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
+  runtime.registerTaskWorker({
+    name: STANDUP_RALPH_LOOP_TASK_NAME,
+    validate: async () => true,
+    execute: async (rt: IAgentRuntime) => {
+      if (process.env.STANDUP_ENABLED !== "true") return;
+
+      const pending = await getPendingActionItems();
+      if (pending.length === 0) return;
+
+      const sorted = [...pending].sort((a, b) => {
+        const pa = a.priority ?? 999;
+        const pb = b.priority ?? 999;
+        if (pa !== pb) return pa - pb;
+        return (a.createdAt || "").localeCompare(b.createdAt || "");
+      });
+      const item = sorted[0];
+      if (!item?.id) return;
+
+      await updateActionItem(item.id, { status: "in_progress" });
+
+      const standupItem = toStandupActionItem(item);
+      let result: { path?: string; message?: string } | null = null;
+      let outcome = "";
+
+      try {
+        if (standupItem.type === "remind") {
+          const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
+          const eliza = getElizaOS(rt);
+          if (eliza?.getAgents && eliza?.handleMessage) {
+            const agents = eliza.getAgents();
+            const agent = agents.find(
+              (a) => (a?.character?.name ?? "").trim().toLowerCase() === (item.owner || "").trim().toLowerCase(),
+            );
+            if (agent?.agentId) {
+              const msg = {
+                id: uuidv4(),
+                entityId: facilitatorEntityId,
+                roomId,
+                content: { text: `[Standup action item] ${item.what}`, source: STANDUP_SOURCE },
+                createdAt: Date.now(),
+              };
+              await eliza.handleMessage(agent.agentId, msg);
+              result = { message: "remind sent" };
+              outcome = `Reminder sent to @${item.owner}`;
+            }
+          }
+          if (!result) {
+            result = { message: "remind skipped (no agent)" };
+            outcome = "Remind skipped: assignee agent not found";
+          }
+        } else {
+          result = await executeBuildActionItem(rt, standupItem);
+          if (result?.path) outcome = result.path;
+          else if (result?.message) outcome = result.message;
+          else outcome = "No deliverable produced";
+        }
+
+        const verify = await verifyActionItem(rt, item, result);
+        if (verify.ok) {
+          await updateActionItem(item.id, { status: "done", outcome });
+        } else {
+          await updateActionItem(item.id, { status: "failed", outcome: verify.message || outcome });
+          outcome = verify.message || outcome;
+        }
+        await appendLearning(item, outcome);
+        if (result?.path || result?.message) {
+          const line = result.path
+            ? `Standup deliverable: ${item.what.slice(0, 60)}… → \`${result.path}\` (${item.owner})`
+            : `Standup deliverable: ${result.message} (${item.owner})`;
+          await pushStandupSummaryToChannels(rt, line);
+        }
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        logger.warn({ err, itemId: item.id }, "[Standup] Ralph loop execution failed");
+        await updateActionItem(item.id, { status: "failed", outcome: errMsg });
+        await appendLearning(item, errMsg);
+      }
+    },
+  });
+}
+
 /**
  * Register the standup action-item worker: build → executeBuildActionItem + notify; remind → handleMessage to assignee.
  */
@@ -583,6 +689,7 @@ let lastStandupHour: number | null = null;
  */
 export async function registerStandupTask(runtime: IAgentRuntime): Promise<void> {
   registerStandupActionItemWorker(runtime);
+  registerStandupRalphLoopWorker(runtime);
   runtime.registerTaskWorker({
     name: TASK_NAME,
     validate: async () => true,
@@ -616,7 +723,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         if (eliza?.getAgent) {
           await buildAndSaveSharedDailyInsights(rt, eliza);
         }
-        const sharedContent = loadSharedDailyInsights()?.trim();
+        const sharedContent = (await loadSharedDailyInsights())?.trim();
         const kickoffText = sharedContent
           ? buildKickoffWithSharedInsights(sharedContent)
           : buildShortStandupKickoff();
@@ -652,12 +759,14 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           logger.info(`[Standup] North star: ${crossAgentLinks} cross-agent link(s) detected`);
         }
         await persistStandupLessons(rt, roomId, parsed.lessonsByAgentName);
-        await createActionItemTasks(
-          rt,
-          parsed.actionItems,
-          roomId,
-          facilitatorEntityId,
-        );
+        if (!useRalphLoop()) {
+          await createActionItemTasks(
+            rt,
+            parsed.actionItems,
+            roomId,
+            facilitatorEntityId,
+          );
+        }
         await persistStandupDisagreements(rt, parsed.disagreements);
         const buildCount = parsed.actionItems.filter((i) => i.type === "build").length;
         const northStarCount = parsed.actionItems.filter((i) => isNorthStarType(i.type)).length;
@@ -669,18 +778,9 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         await persistStandupSuggestions(parsed.suggestions);
         let dayReportPath: string | null = null;
         try {
-          const dayReportPrompt = buildDayReportPrompt(transcript);
-          const dayReport = await rt.useModel(ModelType.TEXT_LARGE, {
-            prompt: dayReportPrompt,
-            maxTokens: 1200,
-            temperature: 0.7,
-          });
-          const reportText = String(dayReport).trim();
-          dayReportPath = saveDayReport(reportText);
+          const { savedPath } = await generateAndSaveDayReport(rt, transcript);
+          dayReportPath = savedPath;
           if (dayReportPath) {
-            const tldrMatch = reportText.match(/### TL;DR\n([^\n#]+)/);
-            const summary = tldrMatch ? tldrMatch[1].trim() : "Day report generated";
-            updateDayReportManifest(dayReportPath, summary);
             logger.info(`[Standup] Day Report saved to ${dayReportPath}`);
           }
         } catch (dayReportErr) {
@@ -754,6 +854,19 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
     metadata: {
       updatedAt: Date.now(),
       updateInterval: Number.isFinite(intervalMs) ? intervalMs : STANDUP_INTERVAL_MS,
+    },
+  });
+
+  const ralphIntervalMs = getStandupRalphIntervalMs();
+  await runtime.createTask({
+    name: STANDUP_RALPH_LOOP_TASK_NAME,
+    description: "Ralph loop: process next standup action item from file store (priority order).",
+    roomId: taskWorldId,
+    worldId: taskWorldId,
+    tags: ["queue", "repeat", "standup"],
+    metadata: {
+      updatedAt: Date.now(),
+      updateInterval: ralphIntervalMs,
     },
   });
 

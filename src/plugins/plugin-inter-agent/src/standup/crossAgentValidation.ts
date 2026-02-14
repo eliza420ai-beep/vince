@@ -9,6 +9,7 @@
  */
 
 import { logger } from "@elizaos/core";
+import { getStandupTrackedAssets, getStandupHumanName } from "./standup.constants";
 
 /** Signal direction */
 export type SignalDirection = "bullish" | "bearish" | "neutral";
@@ -123,41 +124,48 @@ export function validateSignals(signals: AgentSignal[], asset: string): Validati
  * Validate all core assets
  */
 export function validateAllAssets(signals: AgentSignal[]): ValidationResult[] {
-  const assets = ["BTC", "SOL", "HYPE"];
+  const assets = getStandupTrackedAssets();
   return assets.map((asset) => validateSignals(signals, asset));
 }
 
+/** Sentiment keywords and emoji in order of strength (later = overrides earlier in same segment) */
+const SENTIMENT_PATTERN = /(bullish|bearish|neutral|🟢|🔴|🟡)/gi;
+
 /**
- * Extract signals from agent reports
+ * Extract signals from agent reports.
+ * Scans a window after each asset name for sentiment keywords; uses the *last* match in that window
+ * so phrases like "BTC funding rate is neutral but trending bullish" yield bullish.
  */
 export function extractSignalsFromReport(agentName: string, report: string): AgentSignal[] {
   const signals: AgentSignal[] = [];
-  const assets = ["BTC", "SOL", "HYPE"];
+  const assets = getStandupTrackedAssets();
 
   for (const asset of assets) {
-    // Look for signal indicators in the report
-    const assetRegex = new RegExp(`${asset}[\\s\\S]{0,100}(bullish|bearish|neutral|🟢|🔴|🟡)`, "i");
-    const match = report.match(assetRegex);
+    const assetRegex = new RegExp(`${asset}[\\s\\S]{0,200}`, "i");
+    const segmentMatch = report.match(assetRegex);
+    if (!segmentMatch) continue;
 
-    if (match) {
-      let direction: SignalDirection = "neutral";
-      const indicator = match[1].toLowerCase();
+    const segment = segmentMatch[0];
+    const allMatches = [...segment.matchAll(SENTIMENT_PATTERN)];
+    if (allMatches.length === 0) continue;
 
-      if (indicator === "bullish" || indicator === "🟢") {
-        direction = "bullish";
-      } else if (indicator === "bearish" || indicator === "🔴") {
-        direction = "bearish";
-      }
-
-      signals.push({
-        agent: agentName,
-        asset,
-        direction,
-        confidence: "medium", // Default, could be parsed from report
-        reasoning: match[0].slice(0, 100),
-        source: "report",
-      });
+    // Use last occurrence so "neutral but trending bullish" → bullish
+    const lastIndicator = allMatches[allMatches.length - 1][1].toLowerCase();
+    let direction: SignalDirection = "neutral";
+    if (lastIndicator === "bullish" || lastIndicator === "🟢") {
+      direction = "bullish";
+    } else if (lastIndicator === "bearish" || lastIndicator === "🔴") {
+      direction = "bearish";
     }
+
+    signals.push({
+      agent: agentName,
+      asset,
+      direction,
+      confidence: "medium",
+      reasoning: segment.slice(0, 120),
+      source: "report",
+    });
   }
 
   return signals;
@@ -229,7 +237,7 @@ export function buildValidationContext(signals: AgentSignal[]): string {
     for (const d of divergent) {
       context += `- **${d.asset}**: ${d.recommendation}\n`;
     }
-    context += `\n*Divergent signals should be flagged for Yves review.*\n`;
+    context += `\n*Divergent signals should be flagged for ${getStandupHumanName()} review.*\n`;
   }
 
   if (aligned.length > 0) {

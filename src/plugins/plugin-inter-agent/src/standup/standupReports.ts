@@ -6,6 +6,7 @@
  */
 
 import { type IAgentRuntime, type Memory, logger } from "@elizaos/core";
+import { getStandupHumanName } from "./standup.constants";
 
 /**
  * Agent roles and their report focus areas
@@ -212,7 +213,7 @@ export function isHumanMessage(memory: Memory): boolean {
 export function buildStandupContext(
   agentName: string,
   isHumanPresent: boolean,
-  humanName: string = "Yves"
+  humanName: string = getStandupHumanName()
 ): string {
   const role = getAgentRole(agentName);
   if (!role) return "";

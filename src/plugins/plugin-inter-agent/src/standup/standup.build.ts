@@ -5,9 +5,10 @@
  */
 
 import { type IAgentRuntime, logger, ModelType } from "@elizaos/core";
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { StandupActionItem, StandupActionItemType } from "./standup.parse";
+import { withLock } from "./fileLock";
 
 const MILAIDY_STANDUP_ACTION_PATH = "/api/standup-action";
 const DEFAULT_DELIVERABLES_DIR = "standup-deliverables";
@@ -99,7 +100,7 @@ async function fallbackCodeGen(
 
   const dir = getDeliverablesDir();
   try {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    await fs.mkdir(dir, { recursive: true });
   } catch (e) {
     logger.warn({ err: e, dir }, "[Standup] Could not create deliverables dir");
     return null;
@@ -126,18 +127,22 @@ Requirements: one file, runnable or composable (function or small module). Keep 
 
     const filename = sanitizeFilename(description, assigneeAgentName);
     const filepath = path.join(dir, filename);
-    fs.writeFileSync(filepath, code, "utf-8");
+    await fs.writeFile(filepath, code, "utf-8");
 
     const manifestPath = path.join(dir, MANIFEST_FILENAME);
     const manifestLine = `| ${new Date().toISOString().slice(0, 10)} | ${assigneeAgentName} | ${description.slice(0, 60)}... | \`${filename}\` |\n`;
-    if (!fs.existsSync(manifestPath)) {
-      fs.writeFileSync(
-        manifestPath,
-        "| Date | Assignee | Description | File |\n|------|----------|-------------|------|\n",
-        "utf-8",
-      );
-    }
-    fs.appendFileSync(manifestPath, manifestLine, "utf-8");
+    await withLock(manifestPath, async () => {
+      try {
+        await fs.access(manifestPath);
+      } catch {
+        await fs.writeFile(
+          manifestPath,
+          "| Date | Assignee | Description | File |\n|------|----------|-------------|------|\n",
+          "utf-8",
+        );
+      }
+      await fs.appendFile(manifestPath, manifestLine, "utf-8");
+    });
 
     logger.info(`[Standup] Wrote deliverable ${filepath}`);
     return { path: filepath, message: `Deliverable: ${filename}` };
@@ -181,8 +186,7 @@ function northStarFilename(type: StandupActionItemType, description: string, ass
   const date = new Date().toISOString().slice(0, 10);
   const slug = slugFromDescription(description);
   const assigneeSafe = (assignee || "agent").replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
-  const ext = type === "tweets" ? "md" : "md";
-  return `${date}-${assigneeSafe}-${slug}.${ext}`;
+  return `${date}-${assigneeSafe}-${slug}.md`;
 }
 
 const NORTH_STAR_PROMPTS: Record<
@@ -225,7 +229,7 @@ export async function executeNorthStarDeliverable(
   const dir = path.join(baseDir, subdir);
 
   try {
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    await fs.mkdir(dir, { recursive: true });
   } catch (e) {
     logger.warn({ err: e, dir }, "[Standup] Could not create north-star subdir");
     return null;
@@ -250,18 +254,22 @@ export async function executeNorthStarDeliverable(
 
     const filename = northStarFilename(type, description, assignee);
     const filepath = path.join(dir, filename);
-    fs.writeFileSync(filepath, content, "utf-8");
+    await fs.writeFile(filepath, content, "utf-8");
 
     const manifestPath = path.join(baseDir, MANIFEST_FILENAME);
     const manifestLine = `| ${new Date().toISOString().slice(0, 10)} | ${assignee} | [${type}] ${description.slice(0, 50)}... | \`${subdir}/${filename}\` |\n`;
-    if (!fs.existsSync(manifestPath)) {
-      fs.writeFileSync(
-        manifestPath,
-        "| Date | Assignee | Description | File |\n|------|----------|-------------|------|\n",
-        "utf-8",
-      );
-    }
-    fs.appendFileSync(manifestPath, manifestLine, "utf-8");
+    await withLock(manifestPath, async () => {
+      try {
+        await fs.access(manifestPath);
+      } catch {
+        await fs.writeFile(
+          manifestPath,
+          "| Date | Assignee | Description | File |\n|------|----------|-------------|------|\n",
+          "utf-8",
+        );
+      }
+      await fs.appendFile(manifestPath, manifestLine, "utf-8");
+    });
 
     logger.info(`[Standup] Wrote north-star deliverable ${filepath}`);
     return { path: filepath, message: `North-star (${type}): ${filename}` };

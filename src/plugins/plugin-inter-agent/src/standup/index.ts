@@ -60,10 +60,21 @@ export {
   updateDayReportManifest,
 } from "./dayReportPersistence";
 
+// Standup Planner (prioritize action items for Ralph loop)
+export { prioritizeActionItems } from "./standupPlanner";
+
+// Standup Verifier (verify deliverable before marking done)
+export { verifyActionItem } from "./standupVerifier";
+export type { VerifyResult } from "./standupVerifier";
+
+// Standup Learnings (what we learned log)
+export { appendLearning } from "./standupLearnings";
+
 // Action Item Tracking
 export {
   addActionItem,
   updateActionItem,
+  updateActionItemPriorities,
   getActionItemsByStatus,
   getPendingActionItems,
   getTodayActionItems,

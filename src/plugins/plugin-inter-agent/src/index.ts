@@ -1,13 +1,18 @@
 /**
- * Plugin Inter-Agent — Lets agents ask other agents and report back.
- * Action: ASK_AGENT (ask Vince, Kelly, Solus, Sentinel, Eliza, Otaku and relay the answer).
- * Optional: 2x/day standup (STANDUP_ENABLED=true; STANDUP_COORDINATOR_AGENT defaults to Kelly).
+ * Plugin Inter-Agent — Multi-agent coordination for VINCE.
  *
- * A2A Loop Guard: Enables symmetric agent-to-agent Discord chat with loop prevention.
+ * Actions:
+ * - ASK_AGENT: Ask another agent (Vince, Kelly, Solus, Sentinel, Eliza, Otaku) and relay the answer.
+ * - STANDUP_FACILITATE: Kelly kicks off / wraps up standup; round-robin reports; Day Report + action items.
+ * - DAILY_REPORT: On-demand daily report (standup-style synthesis).
+ *
+ * Standup (STANDUP_ENABLED=true): Kelly coordinates; turn order VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel.
+ * Day Report is generated from transcript (TL;DR, essential question, signals, WHAT/HOW/WHY/OWNER table).
+ * Action items from the report are stored in standup-deliverables/action-items.json, prioritized by a planner,
+ * and processed one-at-a-time by the Ralph loop (execute → verify → update status → append learnings).
+ *
+ * A2A Loop Guard: Symmetric agent-to-agent chat with loop prevention (A2A_LOOP_GUARD evaluator).
  * Set shouldIgnoreBotMessages: false on agents that should respond to other bots.
- * The A2A_LOOP_GUARD evaluator prevents infinite ping-pong by:
- * - Limiting max exchanges per conversation (A2A_MAX_EXCHANGES, default 3)
- * - Detecting reply chains to own messages
  */
 
 import type { Plugin } from "@elizaos/core";
@@ -22,7 +27,7 @@ import { isStandupCoordinator, registerStandupTask } from "./standup";
 export const interAgentPlugin: Plugin = {
   name: "plugin-inter-agent",
   description:
-    "Multi-agent standup system: Kelly facilitates, agents report, produces actionable Day Report. One team, one dream.",
+    "Multi-agent coordination: ASK_AGENT (ask any agent, relay answer), Kelly-facilitated standups with Day Report, action item backlog, and Ralph loop (execute → verify → learn). One team, one dream.",
 
   actions: [askAgentAction, dailyReportAction, standupFacilitatorAction],
   evaluators: [a2aLoopGuardEvaluator],
@@ -30,12 +35,17 @@ export const interAgentPlugin: Plugin = {
 
   init: async (_config, runtime) => {
     const hasElizaOS = !!(runtime as { elizaOS?: unknown }).elizaOS;
-    logger.info("[ONE_TEAM] elizaOS on runtime", {
-      agent: runtime.character?.name,
-      hasElizaOS,
-    });
+    logger.info(
+      { agent: runtime.character?.name, hasElizaOS },
+      "[ONE_TEAM] elizaOS on runtime",
+    );
     if (isStandupCoordinator(runtime)) {
-      await registerStandupTask(runtime);
+      // Defer so runtime.db is available (plugin-sql registers it during init; we run after other plugins).
+      setImmediate(() => {
+        registerStandupTask(runtime).catch((err) => {
+          logger.error({ err, agent: runtime.character?.name }, "[ONE_TEAM] registerStandupTask failed");
+        });
+      });
     }
   },
 };

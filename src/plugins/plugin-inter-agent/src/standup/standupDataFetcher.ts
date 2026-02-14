@@ -22,11 +22,7 @@ import * as path from "node:path";
 import { type IAgentRuntime, logger } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
 import { getRecentCodeContext } from "./standup.context";
-
-/** Asset list for trading standup */
-const STANDUP_ASSETS = ["BTC", "SOL", "HYPE"];
-
-const X_SNIPPET_LEN = 120;
+import { getStandupTrackedAssets, getStandupSnippetLen } from "./standup.constants";
 
 // ═══════════════════════════════════════════════════════════════════════
 // VINCE: enriched context + 9 data sources
@@ -45,7 +41,7 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     } | null;
 
     const rows: string[] = [];
-    for (const asset of STANDUP_ASSETS) {
+    for (const asset of getStandupTrackedAssets()) {
       const ctx = await marketData?.getEnrichedContext?.(asset).catch(() => null) ?? null;
       if (!ctx) { rows.push(`| ${asset} | N/A | — | — |`); continue; }
       const price = ctx.currentPrice ? `$${ctx.currentPrice.toLocaleString()}` : "N/A";
@@ -196,7 +192,8 @@ export async function fetchEchoData(runtime: IAgentRuntime): Promise<string> {
 
     const tweetLines = tweets.slice(0, 8).map((t) => {
       const handle = t.author?.username ?? "anon";
-      const snippet = t.text?.length > X_SNIPPET_LEN ? t.text.slice(0, X_SNIPPET_LEN) + "…" : (t.text ?? "");
+      const len = getStandupSnippetLen();
+      const snippet = t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
       return `@${handle}: ${snippet} (${t.metrics?.likeCount ?? 0} likes)`;
     });
 
@@ -274,9 +271,11 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
 
   // 1. Real git log
   try {
-    const gitLog = getRecentCodeContext(10);
+    const gitLog = await getRecentCodeContext(10);
     sections.push(gitLog);
-  } catch { sections.push("Git log: unavailable."); }
+  } catch {
+    sections.push("Git log: unavailable.");
+  }
 
   // 2. PRD scan
   try {
@@ -326,7 +325,7 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     const factLines = facts
       .filter((f) => f.content?.text)
       .slice(0, 5)
-      .map((f) => `- ${String(f.content.text).slice(0, 120)}`);
+      .map((f) => `- ${String(f.content.text).slice(0, getStandupSnippetLen())}`);
     if (factLines.length > 0) sections.push(`**Recent facts in memory (${factLines.length}):**\n${factLines.join("\n")}`);
     else sections.push("**Recent facts:** None stored yet.");
   } catch {
@@ -386,7 +385,8 @@ export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string>
 
     const formatOne = (t: { text: string; author?: { username?: string }; metrics?: { likeCount?: number } }) => {
       const handle = t.author?.username ?? "unknown";
-      const snippet = t.text.length > X_SNIPPET_LEN ? t.text.slice(0, X_SNIPPET_LEN) + "…" : t.text;
+      const snippetLen = getStandupSnippetLen();
+      const snippet = t.text.length > snippetLen ? t.text.slice(0, snippetLen) + "…" : t.text;
       const likes = t.metrics?.likeCount ?? 0;
       return `@${handle}: ${snippet} (${likes} likes)`;
     };

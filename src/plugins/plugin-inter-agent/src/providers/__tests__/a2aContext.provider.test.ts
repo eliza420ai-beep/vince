@@ -41,11 +41,15 @@ describe("A2A Context Provider", () => {
     ...overrides,
   });
 
+  const getText = (result: unknown): string =>
+    typeof result === "string" ? result : (result as { text?: string })?.text ?? "";
+
   beforeEach(() => {
     delete process.env.A2A_MAX_EXCHANGES;
     delete process.env.A2A_LOOKBACK_MESSAGES;
     delete process.env.A2A_STANDUP_SINGLE_RESPONDER;
     delete process.env.A2A_STANDUP_CHANNEL_NAMES;
+    delete process.env.A2A_KNOWN_HUMANS;
   });
 
   afterEach(() => {
@@ -53,18 +57,21 @@ describe("A2A Context Provider", () => {
     delete process.env.A2A_LOOKBACK_MESSAGES;
     delete process.env.A2A_STANDUP_SINGLE_RESPONDER;
     delete process.env.A2A_STANDUP_CHANNEL_NAMES;
+    delete process.env.A2A_KNOWN_HUMANS;
   });
 
   it("returns human priority context for non-agent non-bot messages", async () => {
     const runtime = createMockRuntime();
+    // No agentId so provider treats as human; use known human name for HUMAN MESSAGE block
     const memory = createMockMemory({
-      content: { text: "Hello", name: "random-human" },
+      content: { text: "Hello", name: "livethelifetv" },
+      agentId: undefined as unknown as UUID,
     });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    // Non-agent, non-bot messages are treated as human users and get priority
-    expect(result).toContain("HUMAN MESSAGE");
-    expect(result).toContain("PRIORITY RESPONSE");
+    const text = getText(result);
+    expect(text).toContain("HUMAN MESSAGE");
+    expect(text).toContain("PRIORITY RESPONSE");
   });
 
   it("returns context for agent messages", async () => {
@@ -74,8 +81,9 @@ describe("A2A Context Provider", () => {
     });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("Agent-to-Agent");
-    expect(result).toContain("vince");
+    const text = getText(result);
+    expect(text).toContain("Agent-to-Agent");
+    expect(text).toContain("vince");
   });
 
   it("hard stops when max exchanges reached", async () => {
@@ -94,8 +102,9 @@ describe("A2A Context Provider", () => {
     const memory = createMockMemory({ content: { name: "vince", text: "great" } });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("SYSTEM OVERRIDE");
-    expect(result).toContain("IGNORE");
+    const text = getText(result);
+    expect(text).toContain("SYSTEM OVERRIDE");
+    expect(text).toContain("IGNORE");
   });
 
   it("warns on last exchange", async () => {
@@ -111,8 +120,9 @@ describe("A2A Context Provider", () => {
     const memory = createMockMemory({ content: { name: "vince", text: "how are you" } });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("LAST reply");
-    expect(result).toContain("catch you later");
+    const text = getText(result);
+    expect(text).toContain("LAST reply");
+    expect(text).toContain("catch you later");
   });
 
   it("allows response when under max exchanges", async () => {
@@ -127,8 +137,9 @@ describe("A2A Context Provider", () => {
     const memory = createMockMemory({ content: { name: "vince", text: "how are you" } });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("may respond");
-    expect(result).not.toContain("DO NOT RESPOND");
+    const text = getText(result);
+    expect(text).toContain("may respond");
+    expect(text).not.toContain("DO NOT RESPOND");
   });
 
   it("detects known agents", async () => {
@@ -140,7 +151,8 @@ describe("A2A Context Provider", () => {
       });
 
       const result = await a2aContextProvider.get(runtime, memory);
-      expect(result).toContain("Agent-to-Agent");
+      const text = getText(result);
+      expect(text).toContain("Agent-to-Agent");
     }
   });
 
@@ -155,7 +167,9 @@ describe("A2A Context Provider", () => {
     });
 
     const result = await a2aContextProvider.get(runtime, memory);
-    expect(result).toContain("Agent-to-Agent");
+    const text = getText(result);
+    // Bots are treated as agents; unknown-bot hits the empty return (no exchange limit applied)
+    expect(text).toBe("");
   });
 
   describe("standup single-responder", () => {
@@ -165,13 +179,15 @@ describe("A2A Context Provider", () => {
         roomName: "daily-standup",
       });
       const memory = createMockMemory({
-        content: { text: "What's the TLDR?", name: "yves" },
+        content: { text: "What's the TLDR?", name: "livethelifetv" },
+        agentId: undefined as unknown as UUID,
       });
 
       const result = await a2aContextProvider.get(runtime, memory);
-      expect(result).toContain("HUMAN MESSAGE");
-      expect(result).toContain("PRIORITY RESPONSE");
-      expect(result).not.toContain("IGNORE");
+      const text = getText(result);
+      expect(text).toContain("HUMAN MESSAGE");
+      expect(text).toContain("PRIORITY RESPONSE");
+      expect(text).not.toContain("IGNORE");
     });
 
     it("human in standup room: non-facilitator gets IGNORE", async () => {
@@ -180,14 +196,16 @@ describe("A2A Context Provider", () => {
         roomName: "daily-standup",
       });
       const memory = createMockMemory({
-        content: { text: "What's the TLDR?", name: "yves" },
+        content: { text: "What's the TLDR?", name: "livethelifetv" },
+        agentId: undefined as unknown as UUID,
       });
 
       const result = await a2aContextProvider.get(runtime, memory);
-      expect(result).toContain("IGNORE");
-      expect(result).toContain("Do not reply");
-      expect(result).toContain("standup facilitator");
-      expect(result).not.toContain("PRIORITY RESPONSE");
+      const text = getText(result);
+      expect(text).toContain("IGNORE");
+      expect(text).toContain("Do not reply");
+      expect(text).toContain("Kelly");
+      expect(text).not.toContain("PRIORITY RESPONSE");
     });
 
     it("human in non-standup room: all agents get PRIORITY RESPONSE", async () => {
@@ -196,13 +214,15 @@ describe("A2A Context Provider", () => {
         roomName: "general",
       });
       const memory = createMockMemory({
-        content: { text: "Hey", name: "yves" },
+        content: { text: "Hey", name: "livethelifetv" },
+        agentId: undefined as unknown as UUID,
       });
 
       const result = await a2aContextProvider.get(runtime, memory);
-      expect(result).toContain("HUMAN MESSAGE");
-      expect(result).toContain("PRIORITY RESPONSE");
-      expect(result).not.toContain("IGNORE");
+      const text = getText(result);
+      expect(text).toContain("HUMAN MESSAGE");
+      expect(text).toContain("PRIORITY RESPONSE");
+      expect(text).not.toContain("IGNORE");
     });
   });
 });

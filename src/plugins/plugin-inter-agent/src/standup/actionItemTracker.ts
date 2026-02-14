@@ -5,11 +5,13 @@
  * Enables accountability: did we do what we said we'd do?
  *
  * Storage: standup-deliverables/action-items.json
+ * Uses async fs and file locking for safe concurrent access.
  */
 
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { logger } from "@elizaos/core";
+import { withLock } from "./fileLock";
 
 /** Action item status */
 export type ActionItemStatus = "new" | "in_progress" | "done" | "cancelled" | "failed";
@@ -27,6 +29,8 @@ export interface ActionItem {
   owner: string;
   urgency: ActionItemUrgency;
   status: ActionItemStatus;
+  /** 1 = highest priority; lower number = do first. Set by planner. */
+  priority?: number;
   outcome?: string;
   pnl?: number;
   createdAt: string;
@@ -48,51 +52,51 @@ function getActionItemsPath(): string {
 }
 
 /** Load action items from disk */
-function loadStore(): ActionItemStore {
+async function loadStore(): Promise<ActionItemStore> {
   try {
     const filepath = getActionItemsPath();
-    
-    if (!fs.existsSync(filepath)) {
+    try {
+      const content = await fs.readFile(filepath, "utf-8");
+      return JSON.parse(content) as ActionItemStore;
+    } catch {
       return { items: [], lastUpdated: new Date().toISOString() };
     }
-
-    const content = fs.readFileSync(filepath, "utf-8");
-    return JSON.parse(content);
   } catch (err) {
     logger.warn({ err }, "[ActionItems] Failed to load store, starting fresh");
     return { items: [], lastUpdated: new Date().toISOString() };
   }
 }
 
-/** Save action items to disk */
-function saveStore(store: ActionItemStore): void {
-  try {
-    const filepath = getActionItemsPath();
-    const dir = path.dirname(filepath);
-    
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    store.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(filepath, JSON.stringify(store, null, 2), "utf-8");
-    logger.info(`[ActionItems] Saved ${store.items.length} items`);
-  } catch (err) {
-    logger.error({ err }, "[ActionItems] Failed to save store");
-  }
+/** Write store to disk (call only while holding lock or when no concurrency) */
+async function writeStoreUnlocked(store: ActionItemStore): Promise<void> {
+  const filepath = getActionItemsPath();
+  const dir = path.dirname(filepath);
+  await fs.mkdir(dir, { recursive: true });
+  store.lastUpdated = new Date().toISOString();
+  await fs.writeFile(filepath, JSON.stringify(store, null, 2), "utf-8");
 }
 
-/** Generate a unique ID */
+/** Save action items to disk with lock */
+async function saveStore(store: ActionItemStore): Promise<void> {
+  const filepath = getActionItemsPath();
+  await withLock(filepath, () => writeStoreUnlocked(store));
+  logger.info(`[ActionItems] Saved ${store.items.length} items`);
+}
+
+/** Generate a unique ID (crypto.randomUUID for collision safety) */
 function generateId(): string {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return `ai-${crypto.randomUUID()}`;
+  }
   return `ai-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /**
  * Add a new action item
  */
-export function addActionItem(item: Omit<ActionItem, "id" | "status" | "createdAt" | "updatedAt">): ActionItem {
-  const store = loadStore();
-  
+export async function addActionItem(item: Omit<ActionItem, "id" | "status" | "createdAt" | "updatedAt">): Promise<ActionItem> {
+  const store = await loadStore();
+
   const newItem: ActionItem = {
     ...item,
     id: generateId(),
@@ -102,62 +106,88 @@ export function addActionItem(item: Omit<ActionItem, "id" | "status" | "createdA
   };
 
   store.items.push(newItem);
-  saveStore(store);
+  await saveStore(store);
 
   logger.info(`[ActionItems] Added: ${newItem.what} (${newItem.owner})`);
   return newItem;
 }
 
 /**
- * Update an action item's status
+ * Update an action item (status, outcome, priority, etc.)
  */
-export function updateActionItem(
+export async function updateActionItem(
   id: string,
-  updates: Partial<Pick<ActionItem, "status" | "outcome" | "pnl">>
-): ActionItem | null {
-  const store = loadStore();
-  const index = store.items.findIndex((item) => item.id === id);
+  updates: Partial<Pick<ActionItem, "status" | "outcome" | "pnl" | "priority" | "completedAt">>
+): Promise<ActionItem | null> {
+  const filepath = getActionItemsPath();
+  let result: ActionItem | null = null;
+  await withLock(filepath, async () => {
+    const store = await loadStore();
+    const index = store.items.findIndex((item) => item.id === id);
 
-  if (index === -1) {
-    logger.warn(`[ActionItems] Item not found: ${id}`);
-    return null;
-  }
+    if (index === -1) {
+      logger.warn(`[ActionItems] Item not found: ${id}`);
+      return;
+    }
 
-  store.items[index] = {
-    ...store.items[index],
-    ...updates,
-    updatedAt: new Date().toISOString(),
-    ...(updates.status === "done" || updates.status === "failed" || updates.status === "cancelled"
-      ? { completedAt: new Date().toISOString() }
-      : {}),
-  };
+    store.items[index] = {
+      ...store.items[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+      ...(updates.status === "done" || updates.status === "failed" || updates.status === "cancelled"
+        ? { completedAt: new Date().toISOString() }
+        : {}),
+    };
+    result = store.items[index];
+    await writeStoreUnlocked(store);
+  });
+  if (result) logger.info(`[ActionItems] Updated ${id}: ${updates.status ?? "fields"}`);
+  return result;
+}
 
-  saveStore(store);
-  logger.info(`[ActionItems] Updated ${id}: ${updates.status}`);
-  return store.items[index];
+/**
+ * Batch-update priorities for action items (e.g. after planner run).
+ */
+export async function updateActionItemPriorities(
+  updates: Array<{ id: string; priority: number }>
+): Promise<void> {
+  if (updates.length === 0) return;
+  const filepath = getActionItemsPath();
+  await withLock(filepath, async () => {
+    const store = await loadStore();
+    const now = new Date().toISOString();
+    for (const { id, priority } of updates) {
+      const index = store.items.findIndex((item) => item.id === id);
+      if (index !== -1) {
+        store.items[index] = { ...store.items[index], priority, updatedAt: now };
+      }
+    }
+    await writeStoreUnlocked(store);
+  });
+  logger.info(`[ActionItems] Updated priorities for ${updates.length} items`);
 }
 
 /**
  * Get action items by status
  */
-export function getActionItemsByStatus(status: ActionItemStatus): ActionItem[] {
-  const store = loadStore();
+export async function getActionItemsByStatus(status: ActionItemStatus): Promise<ActionItem[]> {
+  const store = await loadStore();
   return store.items.filter((item) => item.status === status);
 }
 
 /**
  * Get pending action items (new or in_progress)
  */
-export function getPendingActionItems(): ActionItem[] {
-  const store = loadStore();
+export async function getPendingActionItems(): Promise<ActionItem[]> {
+  const store = await loadStore();
   return store.items.filter((item) => item.status === "new" || item.status === "in_progress");
 }
 
 /**
  * Get action items for today
  */
-export function getTodayActionItems(): ActionItem[] {
-  const store = loadStore();
+export async function getTodayActionItems(): Promise<ActionItem[]> {
+  const store = await loadStore();
   const today = new Date().toISOString().slice(0, 10);
   return store.items.filter((item) => item.date === today);
 }
@@ -165,8 +195,8 @@ export function getTodayActionItems(): ActionItem[] {
 /**
  * Get recent completed action items with outcomes
  */
-export function getRecentCompletedItems(days: number = 7): ActionItem[] {
-  const store = loadStore();
+export async function getRecentCompletedItems(days: number = 7): Promise<ActionItem[]> {
+  const store = await loadStore();
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
 
@@ -179,8 +209,8 @@ export function getRecentCompletedItems(days: number = 7): ActionItem[] {
 /**
  * Calculate win rate from completed items
  */
-export function calculateWinRate(): { wins: number; losses: number; rate: number } {
-  const store = loadStore();
+export async function calculateWinRate(): Promise<{ wins: number; losses: number; rate: number }> {
+  const store = await loadStore();
   const completed = store.items.filter((item) => item.status === "done" && item.pnl !== undefined);
 
   const wins = completed.filter((item) => (item.pnl || 0) > 0).length;
@@ -225,7 +255,7 @@ export function parseActionItemsFromReport(report: string, date: string): Partia
 
   // Look for action plan table
   const tableMatch = report.match(/\|\s*WHAT\s*\|\s*HOW\s*\|\s*WHY\s*\|\s*OWNER[\s\S]*?\n([\s\S]*?)(?=\n\n|\n#|$)/i);
-  
+
   if (!tableMatch) return items;
 
   const rows = tableMatch[1].split("\n").filter((row) => row.trim().startsWith("|"));
@@ -253,9 +283,9 @@ export function parseActionItemsFromReport(report: string, date: string): Partia
 /**
  * Get action items context for standup
  */
-export function getActionItemsContext(): string {
-  const pending = getPendingActionItems();
-  const winRate = calculateWinRate();
+export async function getActionItemsContext(): Promise<string> {
+  const pending = await getPendingActionItems();
+  const winRate = await calculateWinRate();
 
   let context = "## Action Items Status\n\n";
 

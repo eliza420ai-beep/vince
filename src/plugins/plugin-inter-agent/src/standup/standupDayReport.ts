@@ -1,11 +1,15 @@
 /**
  * Shared Day Report prompt and generation.
- * Used by STANDUP_FACILITATE (manual wrap-up) and by the scheduled standup task.
+ * Used by STANDUP_FACILITATE (manual wrap-up and round-robin) and by the scheduled standup task.
  */
 
+import type { IAgentRuntime } from "@elizaos/core";
+import { ModelType } from "@elizaos/core";
 import { getEssentialStandupQuestion } from "./standup.constants";
 import { formatReportDate } from "./standupReports";
 import { ALOHA_STYLE_BLOCK } from "./standupStyle";
+import { saveDayReport, updateDayReportManifest } from "./dayReportPersistence";
+import { parseActionItemsFromReport, addActionItem, type ActionItem } from "./actionItemTracker";
 
 /**
  * Build the core Day Report prompt from conversation context.
@@ -51,4 +55,54 @@ RULES:
 - Max 3 actions, each with @Owner
 - No fluff, no "consider", no "monitor" — specific trades only
 - Total output under 350 words`;
+}
+
+export interface GenerateDayReportOptions {
+  /** Extra prompt content (e.g. action items context, recent reports, validation). */
+  extraPrompt?: string;
+}
+
+export interface GenerateDayReportResult {
+  reportText: string;
+  savedPath: string | null;
+  parsedItems: Partial<ActionItem>[];
+}
+
+/**
+ * Generate Day Report from transcript/context, save to disk, update manifest, and track action items.
+ * Single place for Day Report generation used by wrap-up and round-robin.
+ */
+export async function generateAndSaveDayReport(
+  runtime: IAgentRuntime,
+  transcriptOrContext: string,
+  options?: GenerateDayReportOptions,
+): Promise<GenerateDayReportResult> {
+  const prompt =
+    buildDayReportPrompt(transcriptOrContext) + (options?.extraPrompt ? `\n\n${options.extraPrompt}` : "");
+  const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
+    prompt,
+    maxTokens: 1200,
+    temperature: 0.7,
+  });
+  const reportText = String(dayReport).trim();
+  const savedPath = await saveDayReport(reportText);
+  if (savedPath) {
+    const tldrMatch = reportText.match(/### TL;DR\n([^\n#]+)/);
+    await updateDayReportManifest(savedPath, tldrMatch?.[1]?.trim() || "Day report generated");
+  }
+  const date = formatReportDate();
+  const parsedItems = parseActionItemsFromReport(reportText, date);
+  for (const item of parsedItems) {
+    if (item.what && item.owner) {
+      await addActionItem({
+        date,
+        what: item.what,
+        how: item.how ?? "",
+        why: item.why ?? "",
+        owner: item.owner,
+        urgency: (item.urgency as ActionItem["urgency"]) ?? "today",
+      });
+    }
+  }
+  return { reportText, savedPath, parsedItems };
 }

@@ -4,19 +4,26 @@
  */
 
 import { type IAgentRuntime, logger } from "@elizaos/core";
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL } from "./standup.constants";
 
+const execAsync = promisify(exec);
 const STANDUP_REPO_ROOT = typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
+const GIT_TIMEOUT_MS = 5000;
 
-/** Get recent git commits (oneline) from repo root. Returns placeholder on error. */
-export function getRecentCodeContext(maxLines = 20): string {
+/**
+ * Get recent git commits (oneline) from repo root. Returns placeholder on error or timeout.
+ * Uses async exec with a 5s timeout; handles non-git repos and empty repos.
+ */
+export async function getRecentCodeContext(maxLines = 20): Promise<string> {
   try {
-    const out = execSync(`git log -n ${maxLines} --oneline`, {
+    const { stdout } = await execAsync(`git log -n ${maxLines} --oneline`, {
       encoding: "utf-8",
       cwd: STANDUP_REPO_ROOT,
+      timeout: GIT_TIMEOUT_MS,
     });
-    const lines = (out || "").trim().split("\n").filter(Boolean);
+    const lines = (stdout || "").trim().split("\n").filter(Boolean);
     if (lines.length === 0) return "Recent code: (no commits or not a git repo).";
     return "Recent code (git log --oneline):\n" + lines.join("\n");
   } catch (err) {
@@ -27,10 +34,11 @@ export function getRecentCodeContext(maxLines = 20): string {
 
 /**
  * Build crypto performance summary for standup.
- * Placeholder for now; can be wired to Vince daily report or a shared provider later.
+ * Crypto context is supplied by VINCE data in the standup (market snapshot, signals, etc.);
+ * this is a sentinel so callers know to use that data rather than a separate summary here.
  */
 export async function getCryptoContext(_runtime: IAgentRuntime): Promise<string> {
-  return "Crypto: [Vince daily summary to be wired; use VINCE_GM or daily report for now.]";
+  return "(Crypto context: see VINCE data in standup.)";
 }
 
 /**
@@ -68,7 +76,7 @@ export function buildKickoffWithSharedInsights(sharedContent: string): string {
 export async function buildStandupKickoffText(runtime: IAgentRuntime): Promise<string> {
   const date = new Date().toISOString().slice(0, 10);
   const crypto = await getCryptoContext(runtime);
-  const code = getRecentCodeContext(15);
+  const code = await getRecentCodeContext(15);
   return [
     `Standup ${date}.`,
     "",

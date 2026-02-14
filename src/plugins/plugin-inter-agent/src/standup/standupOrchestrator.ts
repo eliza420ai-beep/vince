@@ -23,22 +23,18 @@ import {
   touchActivity,
   getSessionStats,
 } from "./standupState";
-import { getStandupResponseDelay, getStandupDiscordMentionId } from "./standup.constants";
+import {
+  getStandupResponseDelay,
+  getStandupDiscordMentionId,
+  getStandupSkipTimeoutMs,
+  STANDUP_REPORT_ORDER,
+} from "./standup.constants";
 
-/** Standup turn order with display names */
-const AGENT_ORDER: Array<{ id: string; display: string }> = [
-  { id: "vince", display: "VINCE" },
-  { id: "eliza", display: "Eliza" },
-  { id: "echo", display: "ECHO" },
-  { id: "oracle", display: "Oracle" },
-  { id: "solus", display: "Solus" },
-  { id: "otaku", display: "Otaku" },
-  { id: "sentinel", display: "Sentinel" },
-  { id: "clawterm", display: "Clawterm" },
-];
-
-/** Skip timeout: 3 minutes of no response = skip */
-const SKIP_TIMEOUT_MS = 3 * 60 * 1000;
+/** Standup turn order with display names; derived from STANDUP_REPORT_ORDER (single source of truth). */
+const AGENT_ORDER: Array<{ id: string; display: string }> = STANDUP_REPORT_ORDER.map((name) => ({
+  id: name.toLowerCase(),
+  display: name,
+}));
 
 /** Max standup duration: 20 minutes */
 const MAX_STANDUP_DURATION_MS = 20 * 60 * 1000;
@@ -50,9 +46,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Get the display name for an agent
- */
+/** Returns the display name for an agent (e.g. "vince" → "VINCE"); falls back to agentId if unknown. */
 export function getAgentDisplayName(agentId: string): string {
   const agent = AGENT_ORDER.find((a) => a.id === agentId.toLowerCase());
   return agent?.display || agentId;
@@ -86,9 +80,9 @@ export async function getProgressionMessage(): Promise<{
     };
   }
 
-  // Check for stuck agent (no activity for SKIP_TIMEOUT_MS)
+  // Check for stuck agent (no activity for skip timeout)
   const timeSinceActivity = getTimeSinceLastActivity();
-  if (timeSinceActivity > SKIP_TIMEOUT_MS) {
+  if (timeSinceActivity > getStandupSkipTimeoutMs()) {
     const stuckAgent = getNextUnreportedAgent();
     if (stuckAgent) {
       // Mark as reported (skipped) and move on
@@ -164,7 +158,7 @@ export function checkStandupHealth(): {
 
   // Check for stuck agent
   const timeSinceActivity = getTimeSinceLastActivity();
-  if (timeSinceActivity > SKIP_TIMEOUT_MS) {
+  if (timeSinceActivity > getStandupSkipTimeoutMs()) {
     issues.push(`No activity for ${Math.round(timeSinceActivity / 1000)}s`);
   }
 

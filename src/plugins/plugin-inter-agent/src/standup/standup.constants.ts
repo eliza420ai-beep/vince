@@ -32,8 +32,66 @@ export function getStandupResponseDelay(): number {
   return isNaN(delay) ? 2000 : delay;
 }
 
+/** Session timeout (ms). Env: STANDUP_SESSION_TIMEOUT_MS. Default: 30 min. */
+export function getStandupSessionTimeoutMs(): number {
+  const v = parseInt(process.env.STANDUP_SESSION_TIMEOUT_MS || String(30 * 60 * 1000), 10);
+  return isNaN(v) || v < 60_000 ? 30 * 60 * 1000 : v;
+}
+
+/** Inactivity timeout (ms); skip agent if no response. Env: STANDUP_INACTIVITY_TIMEOUT_MS. Default: 5 min. */
+export function getStandupInactivityTimeoutMs(): number {
+  const v = parseInt(process.env.STANDUP_INACTIVITY_TIMEOUT_MS || String(5 * 60 * 1000), 10);
+  return isNaN(v) || v < 10_000 ? 5 * 60 * 1000 : v;
+}
+
+/** Skip timeout (ms) for stuck agent; should align with inactivity. Env: STANDUP_SKIP_TIMEOUT_MS. Default: same as inactivity. */
+export function getStandupSkipTimeoutMs(): number {
+  const v = process.env.STANDUP_SKIP_TIMEOUT_MS?.trim();
+  if (v) {
+    const n = parseInt(v, 10);
+    if (!isNaN(n) && n >= 0) return n;
+  }
+  return getStandupInactivityTimeoutMs();
+}
+
+/** Tracked assets for cross-agent validation. Env: STANDUP_TRACKED_ASSETS (comma-separated). Default: BTC,SOL,HYPE. */
+export function getStandupTrackedAssets(): string[] {
+  const raw = process.env.STANDUP_TRACKED_ASSETS?.trim();
+  if (!raw) return ["BTC", "SOL", "HYPE"];
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+/** Max snippet length for X/tweet context. Env: STANDUP_SNIPPET_LEN. Default: 120. */
+export function getStandupSnippetLen(): number {
+  const v = parseInt(process.env.STANDUP_SNIPPET_LEN || "120", 10);
+  return isNaN(v) || v < 20 ? 120 : v;
+}
+
+/** Human display name in standup (prompts, review). Env: STANDUP_HUMAN_NAME. Default: livethelifetv. */
+export function getStandupHumanName(): string {
+  return process.env.STANDUP_HUMAN_NAME?.trim() || "livethelifetv";
+}
+
+/** Discord user ID for the human (for @mention pings). Env: STANDUP_HUMAN_DISCORD_ID. Default: 711974052322869322 (livethelifetv). */
+export function getStandupHumanDiscordId(): string {
+  return process.env.STANDUP_HUMAN_DISCORD_ID?.trim() || "711974052322869322";
+}
+
+/** Agent turn timeout (ms) for round-robin. Env: STANDUP_AGENT_TURN_TIMEOUT_MS. Default: 90s. */
+export function getStandupAgentTurnTimeoutMs(): number {
+  const v = parseInt(process.env.STANDUP_AGENT_TURN_TIMEOUT_MS || "90000", 10);
+  return isNaN(v) || v < 5000 ? 90_000 : v;
+}
+
 export const TASK_NAME = "AGENT_STANDUP";
 export const STANDUP_ACTION_ITEM_TASK_NAME = "STANDUP_ACTION_ITEM";
+export const STANDUP_RALPH_LOOP_TASK_NAME = "STANDUP_RALPH_LOOP";
+
+/** Ralph loop interval (ms). Env: STANDUP_RALPH_INTERVAL_MS. Default: 5 min. */
+export function getStandupRalphIntervalMs(): number {
+  const v = parseInt(process.env.STANDUP_RALPH_INTERVAL_MS || String(5 * 60 * 1000), 10);
+  return Number.isFinite(v) && v >= 60_000 ? v : 5 * 60 * 1000;
+}
 
 /** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. */
 export const STANDUP_REPORT_ORDER = [

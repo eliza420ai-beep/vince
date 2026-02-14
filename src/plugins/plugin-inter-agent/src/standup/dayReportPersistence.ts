@@ -3,11 +3,13 @@
  *
  * Saves day reports to files for history and accountability.
  * Location: standup-deliverables/day-reports/YYYY-MM-DD-day-report.md
+ * Uses async fs; manifest updates use file locking.
  */
 
-import * as fs from "node:fs";
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { logger } from "@elizaos/core";
+import { withLock } from "./fileLock";
 
 /** Get the deliverables directory */
 function getDeliverablesDir(): string {
@@ -44,11 +46,13 @@ export function getSharedInsightsPath(date?: Date): string {
  * Save shared daily insights to disk (pre-standup artifact).
  * Location: standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md
  */
-export function saveSharedDailyInsights(content: string, date?: Date): string | null {
+export async function saveSharedDailyInsights(content: string, date?: Date): Promise<string | null> {
   try {
     const dir = getSharedInsightsDir();
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    try {
+      await fs.access(dir);
+    } catch {
+      await fs.mkdir(dir, { recursive: true });
       logger.info(`[SharedInsights] Created directory: ${dir}`);
     }
     const filepath = getSharedInsightsPath(date);
@@ -59,7 +63,7 @@ type: shared-daily-insights
 ---
 
 `;
-    fs.writeFileSync(filepath, metadata + content, "utf-8");
+    await fs.writeFile(filepath, metadata + content, "utf-8");
     logger.info(`[SharedInsights] Saved to ${filepath}`);
     return filepath;
   } catch (err) {
@@ -71,11 +75,14 @@ type: shared-daily-insights
 /**
  * Load shared daily insights from disk. Returns null if file missing.
  */
-export function loadSharedDailyInsights(date?: Date): string | null {
+export async function loadSharedDailyInsights(date?: Date): Promise<string | null> {
   try {
     const filepath = getSharedInsightsPath(date);
-    if (!fs.existsSync(filepath)) return null;
-    return fs.readFileSync(filepath, "utf-8");
+    try {
+      return await fs.readFile(filepath, "utf-8");
+    } catch {
+      return null;
+    }
   } catch (err) {
     logger.warn({ err }, "[SharedInsights] Failed to load shared daily insights");
     return null;
@@ -97,19 +104,17 @@ export function getDayReportPath(date?: Date): string {
 /**
  * Save a day report to disk
  */
-export function saveDayReport(content: string, date?: Date): string | null {
+export async function saveDayReport(content: string, date?: Date): Promise<string | null> {
   try {
     const dir = getDayReportsDir();
-    
-    // Ensure directory exists
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    try {
+      await fs.access(dir);
+    } catch {
+      await fs.mkdir(dir, { recursive: true });
       logger.info(`[DayReport] Created directory: ${dir}`);
     }
 
     const filepath = getDayReportPath(date);
-    
-    // Add metadata header
     const metadata = `---
 date: ${(date || new Date()).toISOString()}
 type: day-report
@@ -117,10 +122,8 @@ generated: automated-standup
 ---
 
 `;
-    
-    fs.writeFileSync(filepath, metadata + content, "utf-8");
+    await fs.writeFile(filepath, metadata + content, "utf-8");
     logger.info(`[DayReport] Saved to ${filepath}`);
-    
     return filepath;
   } catch (err) {
     logger.error({ err }, "[DayReport] Failed to save day report");
@@ -131,15 +134,14 @@ generated: automated-standup
 /**
  * Load a day report from disk
  */
-export function loadDayReport(date?: Date): string | null {
+export async function loadDayReport(date?: Date): Promise<string | null> {
   try {
     const filepath = getDayReportPath(date);
-    
-    if (!fs.existsSync(filepath)) {
+    try {
+      return await fs.readFile(filepath, "utf-8");
+    } catch {
       return null;
     }
-
-    return fs.readFileSync(filepath, "utf-8");
   } catch (err) {
     logger.error({ err }, "[DayReport] Failed to load day report");
     return null;
@@ -149,21 +151,20 @@ export function loadDayReport(date?: Date): string | null {
 /**
  * List all day reports
  */
-export function listDayReports(limit: number = 30): string[] {
+export async function listDayReports(limit: number = 30): Promise<string[]> {
   try {
     const dir = getDayReportsDir();
-    
-    if (!fs.existsSync(dir)) {
+    try {
+      const files = await fs.readdir(dir);
+      return files
+        .filter((f) => f.endsWith("-day-report.md"))
+        .sort()
+        .reverse()
+        .slice(0, limit)
+        .map((f) => path.join(dir, f));
+    } catch {
       return [];
     }
-
-    const files = fs.readdirSync(dir)
-      .filter((f) => f.endsWith("-day-report.md"))
-      .sort()
-      .reverse()
-      .slice(0, limit);
-
-    return files.map((f) => path.join(dir, f));
   } catch (err) {
     logger.error({ err }, "[DayReport] Failed to list day reports");
     return [];
@@ -173,25 +174,22 @@ export function listDayReports(limit: number = 30): string[] {
 /**
  * Get recent day reports content (for context)
  */
-export function getRecentReportsContext(days: number = 3): string {
-  const reports = listDayReports(days);
-  
+export async function getRecentReportsContext(days: number = 3): Promise<string> {
+  const reports = await listDayReports(days);
+
   if (reports.length === 0) {
     return "*No previous day reports found*";
   }
 
   const summaries: string[] = [];
-  
+
   for (const filepath of reports) {
     try {
-      const content = fs.readFileSync(filepath, "utf-8");
+      const content = await fs.readFile(filepath, "utf-8");
       const filename = path.basename(filepath);
       const date = filename.replace("-day-report.md", "");
-      
-      // Extract TL;DR if present
       const tldrMatch = content.match(/### TL;DR\n([^\n#]+)/);
       const tldr = tldrMatch ? tldrMatch[1].trim() : "No summary";
-      
       summaries.push(`**${date}**: ${tldr}`);
     } catch {
       // Skip files we can't read
@@ -202,25 +200,28 @@ export function getRecentReportsContext(days: number = 3): string {
 }
 
 /**
- * Append to the day report manifest
+ * Append to the day report manifest (uses lock)
  */
-export function updateDayReportManifest(filepath: string, summary: string): void {
+export async function updateDayReportManifest(filepath: string, summary: string): Promise<void> {
+  const manifestPath = path.join(getDeliverablesDir(), "day-reports-manifest.md");
   try {
-    const manifestPath = path.join(getDeliverablesDir(), "day-reports-manifest.md");
-    const date = new Date().toISOString().slice(0, 10);
-    const entry = `| ${date} | ${summary.slice(0, 80)} | [View](${path.relative(getDeliverablesDir(), filepath)}) |\n`;
+    await withLock(manifestPath, async () => {
+      const date = new Date().toISOString().slice(0, 10);
+      const entry = `| ${date} | ${summary.slice(0, 80)} | [View](${path.relative(getDeliverablesDir(), filepath)}) |\n`;
 
-    // Create manifest if it doesn't exist
-    if (!fs.existsSync(manifestPath)) {
-      const header = `# Day Reports Manifest
+      let header = `# Day Reports Manifest
 
 | Date | Summary | Link |
 |------|---------|------|
 `;
-      fs.writeFileSync(manifestPath, header, "utf-8");
-    }
-
-    fs.appendFileSync(manifestPath, entry, "utf-8");
+      try {
+        await fs.readFile(manifestPath, "utf-8");
+      } catch {
+        await fs.mkdir(path.dirname(manifestPath), { recursive: true });
+        await fs.writeFile(manifestPath, header, "utf-8");
+      }
+      await fs.appendFile(manifestPath, entry, "utf-8");
+    });
     logger.info(`[DayReport] Updated manifest`);
   } catch (err) {
     logger.warn({ err }, "[DayReport] Failed to update manifest");

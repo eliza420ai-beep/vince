@@ -46,8 +46,14 @@ import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
 /** Known agent names for A2A detection */
 const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm", "naval"];
 
-/** Human names to recognize (co-founders, team members) */
-const KNOWN_HUMANS = ["yves", "ikigai"];
+/** Human names/usernames to recognize (Discord username, co-founders). Env: A2A_KNOWN_HUMANS (comma-separated). Default: livethelifetv,ikigai. */
+function getKnownHumans(): string[] {
+  const raw = process.env.A2A_KNOWN_HUMANS?.trim();
+  if (raw) {
+    return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  }
+  return ["livethelifetv", "ikigai"];
+}
 
 /** 
  * Standup turn order — agents respond ONE AT A TIME in this sequence.
@@ -115,7 +121,8 @@ function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string
     memory.content?.name ?? memory.content?.userName ?? ""
   ).toLowerCase();
 
-  for (const human of KNOWN_HUMANS) {
+  const knownHumans = getKnownHumans();
+  for (const human of knownHumans) {
     if (senderName.includes(human)) {
       return { isHuman: true, humanName: human.charAt(0).toUpperCase() + human.slice(1) };
     }
@@ -499,7 +506,7 @@ Action: IGNORE. Do not reply until it's your turn.` };
       // Fallback: load shared insights from file if sentinel found but content is empty
       if (hasSharedInsights && !sharedInsightsContent.trim()) {
         try {
-          const fromFile = loadSharedDailyInsights();
+          const fromFile = await loadSharedDailyInsights();
           if (fromFile) sharedInsightsContent = fromFile;
         } catch { /* non-fatal */ }
       }

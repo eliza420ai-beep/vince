@@ -1,11 +1,11 @@
 /**
- * Tests for standup.tasks (round-robin order)
+ * Tests for standup.tasks (round-robin order, useRalphLoop).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
-import { runStandupRoundRobin } from "../standup.tasks";
+import { runStandupRoundRobin, useRalphLoop } from "../standup.tasks";
 import { STANDUP_REPORT_ORDER } from "../standup.constants";
 
 function createMockRuntimeWithElizaOS(agentsInWrongOrder: { agentId: string; character: { name: string } }[]) {
@@ -40,6 +40,7 @@ describe("standup.tasks", () => {
         "Oracle",
         "Otaku",
         "Sentinel",
+        "Clawterm",
       ];
       const agentsInWrongOrder = wrongOrder.map((name) => ({
         agentId: `id-${name.toLowerCase()}`,
@@ -61,6 +62,30 @@ describe("standup.tasks", () => {
       const expectedOrder = [...STANDUP_REPORT_ORDER];
       expect(replyNames).toEqual(expectedOrder);
       expect(replies.every((r) => r.text === "reply")).toBe(true);
+    });
+  });
+
+  describe("useRalphLoop", () => {
+    const key = "STANDUP_USE_RALPH_LOOP";
+
+    afterEach(() => {
+      delete process.env[key];
+    });
+
+    it("returns true when env unset (default)", () => {
+      expect(useRalphLoop()).toBe(true);
+    });
+
+    it("returns true when env is not 'false'", () => {
+      process.env[key] = "true";
+      expect(useRalphLoop()).toBe(true);
+      process.env[key] = "1";
+      expect(useRalphLoop()).toBe(true);
+    });
+
+    it("returns false when env is 'false'", () => {
+      process.env[key] = "false";
+      expect(useRalphLoop()).toBe(false);
     });
   });
 });

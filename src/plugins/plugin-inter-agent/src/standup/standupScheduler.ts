@@ -2,7 +2,7 @@
  * Standup Scheduler
  *
  * Automatically triggers standups at scheduled times.
- * Can run with or without Yves present.
+ * Can run with or without the human (livethelifetv) present.
  *
  * Config via env:
  * - STANDUP_SCHEDULE: Cron expression (default: "0 8 * * *" = 8 AM UTC daily)
@@ -11,6 +11,7 @@
  */
 
 import { type IAgentRuntime, logger } from "@elizaos/core";
+import { getStandupHumanName } from "./standup.constants";
 
 /** Default schedule: 8 AM UTC daily */
 const DEFAULT_SCHEDULE = "0 8 * * *";
@@ -38,15 +39,25 @@ export function getNextStandupTime(schedule: string = DEFAULT_SCHEDULE): Date {
   return next;
 }
 
-/** Check if it's time for standup */
+/**
+ * Check if it's time for standup.
+ * Uses a ±1 minute window so triggers are not missed when the check interval doesn't align with the exact minute.
+ */
 export function isStandupTime(schedule: string = DEFAULT_SCHEDULE): boolean {
   const parts = schedule.split(" ");
   if (parts.length !== 5) return false;
 
   const [minute, hour] = parts.map((p) => parseInt(p, 10));
-  const now = new Date();
+  if (isNaN(minute) || isNaN(hour)) return false;
 
-  return now.getUTCHours() === hour && now.getUTCMinutes() === minute;
+  const now = new Date();
+  const currentHour = now.getUTCHours();
+  const currentMinute = now.getUTCMinutes();
+
+  if (currentHour !== hour) return false;
+  const minMinute = Math.max(0, minute - 1);
+  const maxMinute = Math.min(59, minute + 1);
+  return currentMinute >= minMinute && currentMinute <= maxMinute;
 }
 
 /** Get standup config from runtime */
@@ -95,7 +106,7 @@ export function buildAutoStandupKickoff(): string {
 
 ---
 
-This standup was triggered automatically. Yves may or may not join.
+This standup was triggered automatically. ${getStandupHumanName()} may or may not join.
 
 **Rules for autonomous mode:**
 - HIGH confidence actions: proceed without approval

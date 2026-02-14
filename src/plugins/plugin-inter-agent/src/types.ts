@@ -5,11 +5,13 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 
+/** Minimal agent info returned by the registry. */
 export interface ElizaOSAgentInfo {
   agentId: string;
   character?: { name?: string };
 }
 
+/** In-process agent registry: list agents and send messages to a target agent. */
 export interface IElizaOSRegistry {
   getAgents(): ElizaOSAgentInfo[];
   getAgent?(id: string): IAgentRuntime | undefined;
@@ -26,9 +28,9 @@ export interface IElizaOSRegistry {
 }
 
 /**
- * Get the in-process elizaOS registry from a runtime, if present.
+ * Returns the in-process elizaOS registry from a runtime, if present.
  * Use this instead of inline casts in ASK_AGENT and standup code.
- * (We cast to a minimal shape to avoid conflicting with core's IAgentRuntime.elizaOS type.)
+ * When absent, ASK_AGENT and standup flows fall back to the job API or skip cross-agent calls.
  */
 export function getElizaOS(runtime: IAgentRuntime): IElizaOSRegistry | undefined {
   return (runtime as { elizaOS?: IElizaOSRegistry }).elizaOS;

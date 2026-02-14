@@ -1,8 +1,10 @@
 /**
  * Parse standup transcript: extract action items, lessons per agent, and disagreements.
+ * Uses Zod schema validation and a single retry on parse/LLM failure.
  */
 
 import { type IAgentRuntime, logger, ModelType } from "@elizaos/core";
+import { z } from "zod";
 
 export type StandupActionItemType =
   | "build"
@@ -28,6 +30,38 @@ export interface ParsedStandup {
   suggestions?: string[];
 }
 
+const VALID_ACTION_ITEM_TYPES: StandupActionItemType[] = [
+  "build",
+  "remind",
+  "essay",
+  "tweets",
+  "x_article",
+  "trades",
+  "good_life",
+  "prd",
+  "integration_instructions",
+];
+
+const StandupActionItemSchema = z.object({
+  assigneeAgentName: z.string().default(""),
+  description: z.string().default(""),
+  type: z.string().optional(),
+});
+
+const ParsedStandupSchema = z.object({
+  actionItems: z.array(StandupActionItemSchema).default([]),
+  lessonsByAgentName: z.record(z.string(), z.string()).default({}),
+  disagreements: z.array(z.object({ agentA: z.string(), agentB: z.string() })).default([]),
+  suggestions: z.array(z.string()).optional().default([]),
+});
+
+function getTranscriptLimit(): number {
+  const raw = process.env.STANDUP_TRANSCRIPT_LIMIT?.trim();
+  if (!raw) return 8000;
+  const n = parseInt(raw, 10);
+  return Number.isNaN(n) || n < 500 ? 8000 : Math.min(n, 100_000);
+}
+
 const PARSE_PROMPT = `You are parsing a standup transcript between AI agents. Extract the following in valid JSON only, no markdown or explanation.
 
 Output format (strict JSON):
@@ -47,53 +81,61 @@ Rules:
 - If nothing to extract, use empty arrays/object.
 - Output only the JSON object.`;
 
+const EMPTY_PARSED: ParsedStandup = {
+  actionItems: [],
+  lessonsByAgentName: {},
+  disagreements: [],
+  suggestions: [],
+};
+
+function normalizeParsed(parsed: z.infer<typeof ParsedStandupSchema>): ParsedStandup {
+  return {
+    actionItems: parsed.actionItems.map((item) => ({
+      assigneeAgentName: item.assigneeAgentName ?? "",
+      description: item.description ?? "",
+      type: VALID_ACTION_ITEM_TYPES.includes(item.type as StandupActionItemType)
+        ? (item.type as StandupActionItemType)
+        : item.type === "build"
+          ? "build"
+          : "remind",
+    })),
+    lessonsByAgentName: parsed.lessonsByAgentName ?? {},
+    disagreements: parsed.disagreements ?? [],
+    suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+  };
+}
+
 /**
  * Call LLM to parse transcript into action items, lessons per agent, and disagreements.
+ * Validates response with Zod schema; retries once on parse or validation failure.
  */
 export async function parseStandupTranscript(
   runtime: IAgentRuntime,
   transcript: string,
 ): Promise<ParsedStandup> {
-  const prompt = `${PARSE_PROMPT}\n\nTranscript:\n${transcript.slice(-8000)}`;
-  try {
+  const limit = getTranscriptLimit();
+  const truncated = transcript.slice(-limit);
+  const prompt = `${PARSE_PROMPT}\n\nTranscript:\n${truncated}`;
+
+  const attempt = async (): Promise<ParsedStandup> => {
     const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
     const raw = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
     const jsonStr = raw.replace(/^[\s\S]*?(\{[\s\S]*\})[\s\S]*$/m, "$1").trim();
-    const parsed = JSON.parse(jsonStr) as ParsedStandup;
-    if (!parsed.actionItems) parsed.actionItems = [];
-    const validTypes: StandupActionItemType[] = [
-      "build",
-      "remind",
-      "essay",
-      "tweets",
-      "x_article",
-      "trades",
-      "good_life",
-      "prd",
-      "integration_instructions",
-    ];
-    parsed.actionItems = parsed.actionItems.map((item) => ({
-      assigneeAgentName: item.assigneeAgentName ?? "",
-      description: item.description ?? "",
-      type: validTypes.includes(item.type as StandupActionItemType)
-        ? (item.type as StandupActionItemType)
-        : item.type === "build"
-          ? "build"
-          : "remind",
-    }));
-    if (!parsed.lessonsByAgentName || typeof parsed.lessonsByAgentName !== "object")
-      parsed.lessonsByAgentName = {};
-    if (!parsed.disagreements) parsed.disagreements = [];
-    if (!Array.isArray(parsed.suggestions)) parsed.suggestions = [];
-    return parsed;
+    const parsedUnknown = JSON.parse(jsonStr) as unknown;
+    const parsed = ParsedStandupSchema.parse(parsedUnknown);
+    return normalizeParsed(parsed);
+  };
+
+  try {
+    return await attempt();
   } catch (err) {
-    logger.warn({ err }, "[Standup] parseStandupTranscript failed");
-    return {
-      actionItems: [],
-      lessonsByAgentName: {},
-      disagreements: [],
-      suggestions: [],
-    };
+    logger.warn({ err }, "[Standup] parseStandupTranscript failed, retrying once");
+    try {
+      return await attempt();
+    } catch (retryErr) {
+      logger.warn({ err: retryErr }, "[Standup] parseStandupTranscript retry failed");
+      return { ...EMPTY_PARSED };
+    }
   }
 }
 
