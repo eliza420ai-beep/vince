@@ -214,24 +214,17 @@ export const getVincePolymarketMarketsAction: Action = {
         return result;
       }
 
-      let listPart = "";
-      markets.forEach((market, index) => {
-        listPart += `**${index + 1}. ${market.question}**\n`;
-        if (market.volume) {
-          const vol = parseFloat(market.volume);
-          if (!isNaN(vol)) {
-            listPart += `   Volume: $${vol.toLocaleString()}\n`;
+      // Clean list for chat: question + volume only (IDs stay in result.data for follow-up actions)
+      const listPart = markets
+        .map((market, index) => {
+          let line = `**${index + 1}. ${market.question}**`;
+          if (market.volume) {
+            const vol = parseFloat(market.volume);
+            if (!isNaN(vol)) line += ` · $${vol.toLocaleString()} vol`;
           }
-        }
-        listPart += `   condition_id: \`${market.conditionId}\`\n`;
-        const tokens = market.tokens ?? [];
-        const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-        const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-        if (yesToken) listPart += `   yes_token_id: \`${yesToken.token_id}\`\n`;
-        if (noToken) listPart += `   no_token_id: \`${noToken.token_id}\`\n`;
-        listPart += "\n";
-      });
-      listPart += "_Use GET_POLYMARKET_DETAIL with condition_id or GET_POLYMARKET_ORDERBOOK with token_id for more._";
+          return line;
+        })
+        .join("\n\n");
 
       let text: string;
       try {
@@ -240,9 +233,9 @@ export const getVincePolymarketMarketsAction: Action = {
           markets.map((m) => ({ question: m.question, volume: m.volume })),
           group,
         );
-        text = `${narrative}\n\n**Focus markets** (${group}, ${markets.length}):\n\n${listPart}`;
+        text = `${narrative}\n\n**Focus markets** (${group}, ${markets.length}):\n\n${listPart}\n\n_Want live odds or detail on one? Say which market._`;
       } catch {
-        text = ` **VINCE-priority Polymarket markets** (${group})\n\nFound ${markets.length} markets:\n\n${listPart}`;
+        text = ` **VINCE-priority Polymarket markets** (${group})\n\n${listPart}\n\n_Want live odds or detail on one? Say which market._`;
       }
 
       const result: GetVincePolymarketMarketsActionResult = {

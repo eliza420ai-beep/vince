@@ -1,7 +1,8 @@
 /**
  * GET_ACTIVE_POLYMARKETS Action
  *
- * Fetches trending/active prediction markets from Polymarket
+ * Fetches trending/active prediction markets from Polymarket.
+ * Response: ALOHA-style narrative lead-in + clean list (no raw IDs in chat).
  */
 
 import {
@@ -12,10 +13,12 @@ import {
   type HandlerCallback,
   type ActionResult,
   logger,
+  ModelType,
 } from "@elizaos/core";
 import { PolymarketService } from "../services/polymarket.service";
 import type { PolymarketMarket } from "../types";
 import { shouldPolymarketPluginBeInContext } from "../../matcher";
+import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
 
 interface GetActiveMarketsParams {
   limit?: string | number;
@@ -26,6 +29,45 @@ type GetActiveMarketsInput = {
 };
 
 type GetActiveMarketsActionResult = ActionResult & { input: GetActiveMarketsInput };
+
+type MarketWithPrices = {
+  market: PolymarketMarket;
+  prices: {
+    yes_price_formatted: string;
+    no_price_formatted: string;
+    [k: string]: unknown;
+  };
+};
+
+/** One or two short ALOHA-style paragraphs on what's trending; no raw IDs, no bullet dumps. */
+async function generateActiveMarketsNarrative(
+  runtime: IAgentRuntime,
+  marketsWithPrices: MarketWithPrices[],
+): Promise<string> {
+  const lines = marketsWithPrices.slice(0, 10).map(({ market, prices }, i) => {
+    const vol = market.volume ? ` · $${parseFloat(market.volume).toLocaleString()} vol` : "";
+    return `${i + 1}. ${market.question} — YES ${prices.yes_price_formatted} / NO ${prices.no_price_formatted}${vol}`;
+  });
+  const prompt = `You are Oracle, the prediction-markets specialist. The user asked what's trending on Polymarket. Here are the active markets and current odds:
+
+${lines.join("\n")}
+
+Write 1–2 short paragraphs: what's hot right now, what stands out, and why it might matter. Sound like you're telling a smart friend over coffee—no bullet lists, no condition_id or token IDs, no "Here are the results." Just flowing take.
+
+${ALOHA_STYLE_RULES}
+
+${NO_AI_SLOP}
+
+Reply with 1–2 paragraphs only:`;
+
+  try {
+    const response = await runtime.useModel(ModelType.TEXT_LARGE, { prompt });
+    return String(response).trim();
+  } catch (err) {
+    logger.warn("[GET_ACTIVE_POLYMARKETS] Narrative generation failed, using list only");
+    return "";
+  }
+}
 
 export const getActiveMarketsAction: Action = {
   name: "GET_ACTIVE_POLYMARKETS",
@@ -175,46 +217,23 @@ export const getActiveMarketsAction: Action = {
         })
       );
 
-      // Format response
-      let text = ` **Active Polymarket Predictions**\n\n`;
-      text += `Found ${marketsWithPrices.length} active markets:\n\n`;
+      // Narrative lead-in (ALOHA style); fallback to minimal header if LLM fails
+      let narrative = await generateActiveMarketsNarrative(runtime, marketsWithPrices);
+      if (!narrative.trim()) {
+        narrative = `Here’s what’s active on Polymarket right now—${marketsWithPrices.length} markets with live odds.`;
+      }
 
-      marketsWithPrices.forEach(({ market, prices }, index) => {
-        text += `**${index + 1}. ${market.question}**\n`;
-        text += `   YES: ${prices.yes_price_formatted} | NO: ${prices.no_price_formatted}\n`;
-
-        if (market.category) {
-          text += `   Category: ${market.category}\n`;
-        }
-
+      // Clean list for chat: question, odds, volume only (no condition_id / token_id)
+      const listLines = marketsWithPrices.map(({ market, prices }, index) => {
+        let line = `**${index + 1}. ${market.question}**\n   YES ${prices.yes_price_formatted} · NO ${prices.no_price_formatted}`;
         if (market.volume) {
-          const volumeNum = parseFloat(market.volume);
-          if (!isNaN(volumeNum)) {
-            text += `   Volume: $${volumeNum.toLocaleString()}\n`;
-          }
+          const vol = parseFloat(market.volume);
+          if (!isNaN(vol)) line += ` · $${vol.toLocaleString()} vol`;
         }
-
-        // Include condition_id so the LLM can reference it for GET_POLYMARKET_DETAIL
-        if (market.condition_id) {
-          text += `   condition_id: \`${market.condition_id}\`\n`;
-        }
-
-        // Include token_ids if available for direct orderbook queries
-        const tokens = market.tokens || [];
-        const yesToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "yes");
-        const noToken = tokens.find((t: any) => t.outcome?.toLowerCase() === "no");
-        if (yesToken) {
-          text += `   yes_token_id: \`${yesToken.token_id}\`\n`;
-        }
-        if (noToken) {
-          text += `   no_token_id: \`${noToken.token_id}\`\n`;
-        }
-
-        text += "\n";
+        return line;
       });
 
-      text +=
-        "_Use GET_POLYMARKET_DETAIL with condition_id for full info, or GET_POLYMARKET_ORDERBOOK with token_id for orderbook depth._";
+      const text = `${narrative}\n\n${listLines.join("\n\n")}\n\n_Want live odds or detail on one? Say which market._`;
 
       const result: GetActiveMarketsActionResult = {
         text,
