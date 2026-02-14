@@ -33,7 +33,7 @@ import {
   touchActivity,
   getSessionStats,
 } from "../standup/standupState";
-import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL, isStandupKickoffRequest } from "../standup/standup.constants";
+import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL, isStandupKickoffRequest, getStandupDiscordMentionId } from "../standup/standup.constants";
 import {
   getProgressionMessage,
   checkStandupHealth,
@@ -128,21 +128,27 @@ function isFromKnownHuman(memory: Memory): { isHuman: boolean; humanName: string
   return { isHuman: false, humanName: null };
 }
 
-/** Check if a message is from a known agent */
+/** Check if a message is from a known agent. Always returns canonical lowercase name when possible. */
 function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string | null } {
   const senderName = String(
     memory.content?.name ?? memory.content?.userName ?? ""
   ).toLowerCase();
 
+  // Check 1: substring match against known agents — return canonical name
   for (const agent of KNOWN_AGENTS) {
     if (senderName.includes(agent)) {
       return { isAgent: true, agentName: agent };
     }
   }
 
-  // Check metadata for bot flag
+  // Check 2: bot flag — try to resolve to a canonical agent name first
   const metadata = memory.content?.metadata as Record<string, unknown> | undefined;
   if (metadata?.isBot === true || metadata?.fromBot === true) {
+    for (const agent of KNOWN_AGENTS) {
+      if (senderName.includes(agent)) {
+        return { isAgent: true, agentName: agent };
+      }
+    }
     return { isAgent: true, agentName: senderName || "unknown-bot" };
   }
 
@@ -227,28 +233,32 @@ export const a2aContextProvider: Provider = {
     const roomName = room?.name ?? "";
     const inStandupChannel = isStandupRoom(roomName);
     
-    // Check if this is from a HUMAN (highest priority!)
-    const { isHuman, humanName } = isFromKnownHuman(message);
-    if (isHuman) {
-      // In standup channels only the facilitator responds to humans (rate limit)
-      if (inStandupChannel) {
-        const singleResponder = getStandupSingleResponder();
-        const amFacilitator =
-          myNameLower === singleResponder.toLowerCase();
-        if (!amFacilitator) {
-          logger.info(
-            `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
-          );
-          return { text: `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.` };
+    // Check agent FIRST so bot messages don't get swallowed by isFromKnownHuman
+    const { isAgent, agentName } = isFromKnownAgent(message);
+
+    // Check if this is from a HUMAN (only when not already identified as an agent)
+    if (!isAgent) {
+      const { isHuman, humanName } = isFromKnownHuman(message);
+      if (isHuman) {
+        // In standup channels only the facilitator responds to humans (rate limit)
+        if (inStandupChannel) {
+          const singleResponder = getStandupSingleResponder();
+          const amFacilitator =
+            myNameLower === singleResponder.toLowerCase();
+          if (!amFacilitator) {
+            logger.info(
+              `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
+            );
+            return { text: `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.` };
+          }
+          if (amFacilitator && isStandupKickoffRequest(messageText)) {
+            logger.info(`[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`);
+            return { text: `The human is asking to **start the daily standup**. You MUST use action **STANDUP_FACILITATE**. Post the short standup kickoff (Standup date, @VINCE go). Do NOT give a lifestyle, wellness, or general reply. Do not suggest Saturday Recharge, wine, or travel.` };
+          }
         }
-        if (amFacilitator && isStandupKickoffRequest(messageText)) {
-          logger.info(`[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`);
-          return { text: `The human is asking to **start the daily standup**. You MUST use action **STANDUP_FACILITATE**. Post the short standup kickoff (Standup date, @VINCE go). Do NOT give a lifestyle, wellness, or general reply. Do not suggest Saturday Recharge, wine, or travel.` };
-        }
-      }
-      logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
-      const role = getAgentRole(myName);
-      return { text: `
+        logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
+        const role = getAgentRole(myName);
+        return { text: `
 ## ⭐ HUMAN MESSAGE — PRIORITY RESPONSE
 
 **${humanName}** (Co-Founder) is speaking to you directly.
@@ -263,9 +273,8 @@ export const a2aContextProvider: Provider = {
 You are ${myName}${role ? ` (${role.title} - ${role.focus})` : ""}.
 Address ${humanName} directly. Be useful.
 ` };
+      }
     }
-
-    const { isAgent, agentName } = isFromKnownAgent(message);
     
     // ═══════════════════════════════════════════════════════════════════════
     // STANDUP TURN-BASED LOGIC: Only respond when directly called
@@ -286,8 +295,9 @@ Address ${humanName} directly. Be useful.
         touchActivity();
         
         // Check if an agent just reported — auto-progress to next
+        const agentNameLower = agentName?.toLowerCase() ?? "";
         const reportingAgent = STANDUP_TURN_ORDER.find((a) =>
-          agentName?.toLowerCase() === a
+          a === agentNameLower || agentNameLower.includes(a)
         );
         const isReport =
           looksLikeReport(messageText) || (!!reportingAgent && messageText.trim().length >= 15);
@@ -349,7 +359,28 @@ Copy that EXACTLY. The timed-out agent will not report today.
 ` };
           }
         }
-        
+
+        // Fallback: agent message but couldn't resolve reportingAgent
+        // Still force progression to next unreported agent so standup doesn't stall
+        if (!reportingAgent && messageText.trim().length >= 15) {
+          const nextAgent = getNextUnreportedAgent();
+          if (nextAgent) {
+            const displayName = getAgentDisplayName(nextAgent);
+            const discordId = getStandupDiscordMentionId(nextAgent);
+            const callText = discordId ? `<@${discordId}> go.` : `@${displayName}, go.`;
+            logger.warn(`[A2A_CONTEXT] Kelly: Could not resolve reporting agent from "${agentName}" — forcing progression to ${displayName}`);
+            return { text: `
+## AUTO-PROGRESS: Call Next Agent
+
+An agent just reported.
+
+**YOUR ONLY RESPONSE:** "${callText}"
+
+Copy that EXACTLY. Nothing else. Do not summarize, do not comment, do not add lifestyle tips.
+` };
+          }
+        }
+
         // Check if standup is wrapping up
         if (isWrappingUp()) {
           return { text: `[SYSTEM OVERRIDE] Standup is already wrapping up. Do not interrupt. Wait for the Day Report to complete.` };
@@ -361,12 +392,12 @@ Copy that EXACTLY. The timed-out agent will not report today.
 
 You are Kelly, facilitating the trading standup. You are coordinator only. Keep every message very short. No commentary, no summaries between agents.
 
-**Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Wrap-up
+**Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Clawterm → Wrap-up
 
 **Rules:**
 - Call agents ONE AT A TIME: "@AgentName, go."
 - After each report, immediately call the next agent
-- After Sentinel, generate the Day Report
+- After Clawterm, generate the Day Report
 - NO long intros, NO summaries between agents
 - NEVER respond to your own messages
 - Never restate or summarize another agent's report. Your only replies are: call the next agent (e.g. "@Eliza, go.") or wrap up. One short line. Do not echo numbers, execution, or weekend plans already stated.
