@@ -136,11 +136,16 @@ export async function buildAndSaveSharedDailyInsights(
     logger.debug("[Standup] No getAgent — skip shared insights pre-write");
     return;
   }
+  if (typeof eliza.getAgents !== "function") {
+    logger.debug("[Standup] No getAgents — skip shared insights pre-write");
+    return;
+  }
   let agents: { agentId: string; character?: { name?: string } }[];
   try {
-    agents = eliza.getAgents();
+    const raw = eliza.getAgents();
+    agents = Array.isArray(raw) ? raw : [];
   } catch (err) {
-    logger.warn({ err }, "[Standup] eliza.getAgents() failed — skip shared insights");
+    logger.warn({ err }, "[Standup] eliza.getAgents() failed — skip shared insights (if err mentions 'runtimes', check each agent has its own Discord app in .env, e.g. CLAWTERM_DISCORD_* not SENTINEL_*)");
     return;
   }
   const byName = new Map<string, { agentId: string; displayName: string }>();
