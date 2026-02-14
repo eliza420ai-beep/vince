@@ -121,6 +121,60 @@ Day reports are written to `{STANDUP_DELIVERABLES_DIR}/day-reports/YYYY-MM-DD-da
 
 ---
 
+## Manual standup trigger: implementation notes
+
+The following fixes were applied so that a human saying *"let's do a new standup kelly"* in `#daily-standup` reliably triggers Kelly to run **STANDUP_FACILITATE** (kickoff → round-robin → Day Report). Documented for maintainers and debugging.
+
+### 1. PGLite deadlock (only Kelly processes standup messages)
+
+**Problem:** When a message hits `#daily-standup`, every agent (VINCE, Eliza, Kelly, etc.) receives it. Each runs `processMessage`: `createMemory`, `ensureAllAgentsInRoom`, `ensureMessageSendersInRoom`. With 7+ agents doing concurrent DB writes against a single PGLite instance, they deadlock — all show "typing", none complete.
+
+**Fix:** In plugin `init`, non-facilitator agents get a **monkey-patch** on `runtime.messageService.handleMessage`. The patched handler checks if the message's room is a standup channel (by name); if yes, it returns immediately with a no-op result (no DB access). Only Kelly (unpatched) processes. Deferred 5s and 15s so `messageService` is registered; idempotent so double-patch is safe.
+
+**Logs:** `[ONE_TEAM] Standup skip: vince dropping message in standup room (only kelly processes)`.
+
+### 2. shouldRespond: force respond in standup channel (Kelly)
+
+**Problem:** The core's `shouldRespond()` treats GROUP channels without an @mention as "needs LLM evaluation". That evaluation uses a minimal `composeState` (no A2A_CONTEXT), so the LLM returns IGNORE/NONE. Kelly never reaches the full response flow.
+
+**Fix:** Kelly's `handleMessage` is wrapped (deferred 5s after init). For messages in a standup channel, the wrapper sets `message.content.mentionContext.isMention = true`. The core then skips LLM evaluation and responds. Full `composeState` (including A2A_CONTEXT) runs, so Kelly sees "force STANDUP_FACILITATE" when appropriate.
+
+**Logs:** `[KELLY_STANDUP] Injected isMention for standup message: "let's do a new standup kelly"`.
+
+### 3. Human vs agent: entity-ID–based detection
+
+**Problem:** Discord often leaves `message.content.name` and `message.content.userName` empty. The A2A provider used these for "known human" detection; with `senderName=""`, the message was classified as "unknown-agent" (because `message.agentId` is set to the receiving agent). The "force STANDUP_FACILITATE" branch never ran.
+
+**Fix:** Before name-based checks, the provider asks whether `message.entityId` is in the set of all **agent IDs** (`runtime.elizaOS.getAgents()` + self). If it is **not** an agent ID, the sender is treated as **human** (`senderIsDefinitelyHuman = true`). Optional: resolve display name via `runtime.getEntityById(message.entityId)` for logs. Known humans list (`A2A_KNOWN_HUMANS`) remains for name-based priority when names are present.
+
+**Logs:** `[A2A_CLASSIFY] sender="livethelifetv", definitelyHuman=true, isAgent=false, inStandup=true` then `[A2A_CONTEXT] Kelly: Human asked to start standup — force STANDUP_FACILITATE`.
+
+### 4. Kickoff sent immediately (no hang on shared insights)
+
+**Problem:** `handleKickoff` used to call `buildAndSaveSharedDailyInsights` before `callback(kickoffText)`. That call can be slow or fail; Discord showed "Kelly is typing..." with no message.
+
+**Fix:** Send the **short** kickoff (`buildKickoffMessage()`) via callback **immediately** after `startStandupSession()`. Then run `buildAndSaveSharedDailyInsights` and build the richer kickoff text for round-robin context only.
+
+### 5. A2A prompt for standup kickoff
+
+The provider returns a strong instruction when a human asks to start the standup: *"You MUST use action **STANDUP_FACILITATE** and NO other action. Do NOT output conversational text — the action will post the kickoff. Output only: &lt;actions&gt;STANDUP_FACILITATE&lt;/actions&gt; with minimal or no &lt;text&gt;."* This reduces the chance the LLM chooses REPLY instead.
+
+### 6. Kelly timeout wrapper
+
+Kelly's `handleMessage` wrapper applies a timeout so a stuck run fails visibly. **In standup channels** the timeout is the full **session timeout** (`STANDUP_SESSION_TIMEOUT_MS`, default 30 min) so the full round-robin + Day Report can complete. **In other channels** it stays 120s so Kelly doesn't hang indefinitely. On timeout it returns a no-op result and logs `[KELLY_STANDUP] handleMessage FAILED after ... ms`.
+
+### Summary
+
+| Layer | Issue | Fix |
+|-------|--------|-----|
+| Concurrency | All agents process → PGLite deadlock | Non-Kelly agents: patched handleMessage skips standup room messages |
+| Core shouldRespond | GROUP + no mention → LLM eval → IGNORE | Kelly: inject isMention for standup channel messages |
+| A2A classification | Empty sender name → treated as agent | Entity-ID check: not in agent set → human |
+| Kickoff timing | Shared insights before callback → typing forever | Send short kickoff first, then build shared insights |
+| LLM choice | REPLY instead of STANDUP_FACILITATE | Strong A2A prompt + STANDUP_FACILITATE-only instruction |
+
+---
+
 ## A2A: Loop guard and context provider
 
 Two pieces work together to control agent-to-agent chat:

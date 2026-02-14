@@ -23,6 +23,7 @@ import { standupFacilitatorAction } from "./actions/standupFacilitator.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
+import { getStandupSessionTimeoutMs } from "./standup/standup.constants";
 
 /** Standup channel name substrings (from env or default) */
 function getStandupChannelParts(): string[] {
@@ -188,11 +189,15 @@ export const interAgentPlugin: Plugin = {
             }
           }
           const t0 = Date.now();
+          // Standup flow = kickoff + round-robin (8 agents × up to 90s) + Day Report; 120s was killing it
+          const timeoutMs = roomId && standupRoomCacheKelly.get(roomId)
+            ? getStandupSessionTimeoutMs()
+            : 120_000;
           try {
             const result = await Promise.race([
               originalHM(rt, message, callback, options),
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Kelly handleMessage timeout (120s)")), 120_000),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error(`Kelly handleMessage timeout (${timeoutMs / 1000}s)`)), timeoutMs),
               ),
             ]);
             logger.info(`[KELLY_STANDUP] handleMessage DONE in ${Date.now() - t0}ms`);
@@ -209,7 +214,7 @@ export const interAgentPlugin: Plugin = {
           }
         };
         (svc.handleMessage as any).__kellyStandupPatched = true;
-        logger.info("[ONE_TEAM] Kelly: standup isMention injection + timeout (120s) active");
+        logger.info("[ONE_TEAM] Kelly: standup isMention injection + timeout (standup=session, else 120s) active");
       }, 5000);
     }
   },
