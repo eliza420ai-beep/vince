@@ -153,18 +153,41 @@ export const interAgentPlugin: Plugin = {
       setTimeout(doPatch, 5000);
       setTimeout(doPatch, 15000); // safety retry
     } else {
-      // Kelly: wrap handleMessage with timing logs to diagnose hangs
+      // Kelly (facilitator): wrap handleMessage so that standup-channel messages
+      // get mentionContext.isMention = true. Without this, the core's shouldRespond
+      // sends GROUP messages to LLM evaluation (which doesn't see A2A_CONTEXT and
+      // returns IGNORE). With isMention the core skips LLM eval and responds directly.
+      const channelParts = getStandupChannelParts();
+      const standupRoomCacheKelly = new Map<string, boolean>();
       setTimeout(() => {
         const svc = (runtime as any).messageService;
         if (!svc || typeof svc.handleMessage !== "function") return;
-        if ((svc.handleMessage as any).__kellyTimingPatched) return;
+        if ((svc.handleMessage as any).__kellyStandupPatched) return;
         const originalHM = svc.handleMessage.bind(svc);
-        svc.handleMessage = async function kellyTimingWrapper(
+        svc.handleMessage = async function kellyStandupWrapper(
           rt: any, message: any, callback?: any, options?: any,
         ) {
-          const text = (message?.content?.text ?? "").slice(0, 60);
+          // Check if this is a standup channel — if so, force isMention so shouldRespond returns true
+          const roomId = message?.roomId as string | undefined;
+          if (roomId) {
+            let isStandup = standupRoomCacheKelly.get(roomId);
+            if (isStandup === undefined) {
+              try {
+                const room = await rt.getRoom(roomId);
+                const roomNameLower = (room?.name ?? "").toLowerCase();
+                isStandup = channelParts.some((p: string) => roomNameLower.includes(p));
+              } catch { isStandup = false; }
+              standupRoomCacheKelly.set(roomId, isStandup);
+            }
+            if (isStandup) {
+              // Inject isMention so core's shouldRespond returns { shouldRespond: true, skipEvaluation: true }
+              if (!message.content) message.content = {};
+              if (!message.content.mentionContext) message.content.mentionContext = {};
+              message.content.mentionContext.isMention = true;
+              logger.info(`[KELLY_STANDUP] Injected isMention for standup message: "${(message?.content?.text ?? "").slice(0, 50)}"`);
+            }
+          }
           const t0 = Date.now();
-          logger.info(`[KELLY_TIMING] handleMessage START: "${text}"`);
           try {
             const result = await Promise.race([
               originalHM(rt, message, callback, options),
@@ -172,10 +195,10 @@ export const interAgentPlugin: Plugin = {
                 setTimeout(() => reject(new Error("Kelly handleMessage timeout (120s)")), 120_000),
               ),
             ]);
-            logger.info(`[KELLY_TIMING] handleMessage DONE in ${Date.now() - t0}ms`);
+            logger.info(`[KELLY_STANDUP] handleMessage DONE in ${Date.now() - t0}ms`);
             return result;
           } catch (err: any) {
-            logger.error(`[KELLY_TIMING] handleMessage FAILED after ${Date.now() - t0}ms: ${err?.message ?? err}`);
+            logger.error(`[KELLY_STANDUP] handleMessage FAILED after ${Date.now() - t0}ms: ${err?.message ?? err}`);
             return {
               didRespond: false,
               responseContent: null,
@@ -185,8 +208,8 @@ export const interAgentPlugin: Plugin = {
             };
           }
         };
-        (svc.handleMessage as any).__kellyTimingPatched = true;
-        logger.info("[ONE_TEAM] Kelly: handleMessage wrapped with timing/timeout (120s)");
+        (svc.handleMessage as any).__kellyStandupPatched = true;
+        logger.info("[ONE_TEAM] Kelly: standup isMention injection + timeout (120s) active");
       }, 5000);
     }
   },
