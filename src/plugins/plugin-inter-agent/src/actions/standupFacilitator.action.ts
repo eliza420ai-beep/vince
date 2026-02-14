@@ -27,6 +27,10 @@ import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
 import { startStandupSession, endStandupSession, getSessionStats } from "../standup/standupState";
 import { STANDUP_REPORT_ORDER, isStandupKickoffRequest } from "../standup/standup.constants";
 import { buildDayReportPrompt } from "../standup/standupDayReport";
+import { getElizaOS } from "../types";
+import { buildAndSaveSharedDailyInsights } from "../standup/standup.tasks";
+import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
+import { buildKickoffWithSharedInsights } from "../standup/standup.context";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
 const STANDUP_FOCUS = {
@@ -232,12 +236,26 @@ ${validationContext}
     } else {
       // Kickoff — start a new standup session
       startStandupSession(message.roomId);
-      
+
       const config = getStandupConfig(runtime);
       const pendingContext = getActionItemsContext();
-      
-      let kickoffText = buildKickoffMessage();
-      
+
+      let kickoffText: string;
+      const eliza = getElizaOS(runtime);
+      if (eliza?.getAgent) {
+        try {
+          await buildAndSaveSharedDailyInsights(runtime, eliza);
+        } catch (err) {
+          logger.warn({ err }, "[STANDUP_FACILITATE] buildAndSaveSharedDailyInsights failed; using short kickoff");
+        }
+      }
+      const sharedContent = loadSharedDailyInsights()?.trim();
+      if (sharedContent) {
+        kickoffText = buildKickoffWithSharedInsights(sharedContent);
+      } else {
+        kickoffText = buildKickoffMessage();
+      }
+
       if (config.enabled) {
         kickoffText += `\n\n*⏰ Auto-standup: ${formatSchedule(config.schedule)}*`;
       }

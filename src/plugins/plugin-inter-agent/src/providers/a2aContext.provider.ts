@@ -81,7 +81,7 @@ function isLastStandupAgent(agentName: string): boolean {
 /** Check if message looks like a standup report */
 function looksLikeReport(text: string): boolean {
   const lower = text.toLowerCase();
-  const indicators = ["##", "|", "signal", "bull", "bear", "action", "btc", "sol"];
+  const indicators = ["##", "|", "signal", "bull", "bear", "action", "btc", "sol", "funding", "divergence", "report", "standup"];
   return indicators.filter((i) => lower.includes(i)).length >= 2;
 }
 
@@ -286,11 +286,13 @@ Address ${humanName} directly. Be useful.
         touchActivity();
         
         // Check if an agent just reported — auto-progress to next
-        const reportingAgent = STANDUP_TURN_ORDER.find((a) => 
+        const reportingAgent = STANDUP_TURN_ORDER.find((a) =>
           agentName?.toLowerCase() === a
         );
-        
-        if (reportingAgent && looksLikeReport(messageText)) {
+        const isReport =
+          looksLikeReport(messageText) || (!!reportingAgent && messageText.trim().length >= 15);
+
+        if (reportingAgent && isReport) {
           // Check if already reported (prevent duplicates)
           if (hasAgentReported(reportingAgent)) {
             logger.info(`[A2A_CONTEXT] Kelly: ${reportingAgent} already reported — ignoring duplicate`);
