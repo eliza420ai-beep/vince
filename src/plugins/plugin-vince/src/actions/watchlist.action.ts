@@ -17,12 +17,13 @@ import type {
   State,
   HandlerCallback,
 } from "@elizaos/core";
-import { logger } from "@elizaos/core";
+import { logger, ModelType } from "@elizaos/core";
 import type {
   VinceWatchlistService,
   WatchlistToken,
 } from "../services/watchlist.service";
 import type { VinceDexScreenerService } from "../services/dexscreener.service";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 // ==========================================
 // Parse Commands
@@ -334,10 +335,27 @@ export const vinceWatchlistAction: Action = {
             return;
           }
 
+          // Optional ALOHA-style narrative lead-in (fallback to none on failure)
+          let narrativeLead = "";
+          try {
+            const highN = tokens.filter((t) => t.priority === "high").length;
+            const medN = tokens.filter((t) => t.priority === "medium").length;
+            const lowN = tokens.filter((t) => t.priority === "low").length;
+            const summary = `${tokens.length} tokens (${highN} high, ${medN} medium, ${lowN} low priority)`;
+            const narrativeResp = await runtime.useModel(ModelType.TEXT_SMALL, {
+              prompt: `You are VINCE. The user asked for their watchlist. In one short flowing sentence (no bullets), set the scene: they have ${summary}. Be direct and human. ${NO_AI_SLOP}\nOne sentence only:`,
+            });
+            const narrativeText = typeof narrativeResp === "string" ? narrativeResp : (narrativeResp as { text?: string })?.text ?? "";
+            if (narrativeText?.trim()) narrativeLead = narrativeText.trim() + "\n\n";
+          } catch {
+            // fallback: no narrative
+          }
+
           const lines: string[] = [
+            narrativeLead ? narrativeLead : "",
             `📋 **Watchlist** (${tokens.length} tokens)`,
             "",
-          ];
+          ].filter(Boolean);
 
           // Group by priority
           const highPriority = tokens.filter((t) => t.priority === "high");

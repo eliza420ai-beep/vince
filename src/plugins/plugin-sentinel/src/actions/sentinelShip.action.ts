@@ -21,6 +21,7 @@ import type {
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 import { scanProject, getProjectSummary, type ProjectState } from "../services/projectRadar.service";
 import {
   autoScore,
@@ -186,17 +187,17 @@ ${context}
 ${ragContext.slice(0, 2000)}
 
 **OUTPUT RULES:**
-- Max 5 suggestions, numbered
-- Each suggestion: one line with specific action, owner/plugin, and why it matters
-- USE THE PRIORITIES AND TODOS FROM THE DOCS — don't invent new ideas when docs have clear priorities
-- If something is blocked, suggest how to unblock it specifically
-- Reference the source doc when relevant (e.g. "per TREASURY.md", "from lessons.md")
-- No fluff, no preamble — just the prioritized list
+- Write in flowing prose for the summary; if you list priorities, keep the list short (max 5) and follow with one sentence on the top pick.
+- Each suggestion: specific action, owner/plugin, and why it matters.
+- USE THE PRIORITIES AND TODOS FROM THE DOCS — don't invent new ideas when docs have clear priorities.
+- If something is blocked, suggest how to unblock it specifically. Reference the source doc when relevant (e.g. "per TREASURY.md").
 - End with "🎯 Top pick: [your #1 and ONE sentence why]"
+
+${NO_AI_SLOP}
 
 **User question:** ${userContext}
 
-Output the prioritized ship list:`;
+Output the ship priorities (flowing prose, then short list + top pick):`;
 
   const response = await runtime.useModel(ModelType.TEXT_SMALL, { prompt });
   const text = typeof response === "string" ? response : (response as any)?.text ?? String(response);

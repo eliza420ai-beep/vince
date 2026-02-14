@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "art gems",
@@ -47,10 +48,9 @@ export const sentinelArtGemsAction: Action = {
     try {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
-      const prompt = `You are Sentinel. The user asked for art gems or reusable patterns from elizaOS examples (especially art). Using the context below (internal-docs, any ingested elizaOS/examples/art knowledge), and your knowledge of github.com/elizaOS/examples (especially the art folder), list 3–5 concrete gems:
-- Each gem: pattern or file name + "we could use for X here" (e.g. NFT flow, generative UI, asset handling).
-- If context has no art examples, use general elizaOS examples patterns (actions, providers, art-related repos) and suggest 3–5 with one line each.
-Number each item. No preamble—just the numbered list. Refs: elizaOS/examples, elizaOS/examples/art.
+      const prompt = `You are Sentinel. The user asked for art gems or reusable patterns from elizaOS examples (especially art). Using the context below (internal-docs, any ingested elizaOS/examples/art knowledge), and your knowledge of github.com/elizaOS/examples (especially the art folder), write one short paragraph (flowing prose) with 3–5 concrete gems: for each, name the pattern or file and how we could use it here (e.g. NFT flow, generative UI, asset handling). If context has no art examples, use general elizaOS examples patterns. Refs: elizaOS/examples, elizaOS/examples/art.
+
+${NO_AI_SLOP}
 
 Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {

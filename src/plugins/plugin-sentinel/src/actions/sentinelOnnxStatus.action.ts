@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "onnx status",
@@ -47,11 +48,9 @@ export const sentinelOnnxStatusAction: Action = {
     try {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
-      const prompt = `You are Sentinel. The user asked about ONNX status, feature store, or ML pipeline. Using the context below (internal-docs, FEATURE-STORE.md, ONNX.md, WORTH_IT_PROOF.md), output:
-1) Feature-store state: where data lives (local jsonl .elizadb/vince-paper-bot/features/, PGLite/Postgres plugin_vince.paper_bot_features, optional Supabase vince_paper_bot_features).
-2) ONNX training readiness: e.g. 90+ rows recommended for training; if Supabase/key not set, mention enabling dual-write.
-3) One-line next step: e.g. Run train_models.py, Set SUPABASE_SERVICE_ROLE_KEY and restart, or Add more paper trades to reach 90+ rows.
-Keep it to a short paragraph or 3 bullet points. No preamble.
+      const prompt = `You are Sentinel. The user asked about ONNX status, feature store, or ML pipeline. Using the context below (internal-docs, FEATURE-STORE.md, ONNX.md, WORTH_IT_PROOF.md), write one short paragraph (flowing prose, no bullet list). Cover: where the feature store lives (local jsonl, PGLite/Postgres plugin_vince.paper_bot_features, optional Supabase), ONNX training readiness (90+ rows; mention enabling dual-write if Supabase/key not set), and one clear next step (e.g. run train_models.py, set SUPABASE_SERVICE_ROLE_KEY, or add more paper trades). No preamble.
+
+${NO_AI_SLOP}
 
 Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {

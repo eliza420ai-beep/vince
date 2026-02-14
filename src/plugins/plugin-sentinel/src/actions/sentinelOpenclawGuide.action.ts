@@ -10,6 +10,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const TRIGGERS = [
   "openclaw",
@@ -49,22 +50,9 @@ export const sentinelOpenclawGuideAction: Action = {
     try {
       const state = await runtime.composeState(message);
       const contextBlock = typeof state.text === "string" ? state.text : "";
-      const prompt = `You are Sentinel. The user asked about spinning up OpenClaw for knowledge research. Output a short actionable guide using ONLY the official X API (pay-as-you-go, TOS compliant):
+      const prompt = `You are Sentinel. The user asked about spinning up OpenClaw for knowledge research. Reply in flowing prose where possible; avoid bullet dumps unless listing steps or config. Using ONLY the official X API (pay-as-you-go, TOS compliant), cover: set up X API (developer.x.com, Bearer Token, credits); set X_BEARER_TOKEN in env; daily cron with 5-6 targeted searches (ElizaOS, "$BTC alpha", "AI agents crypto"); x-research skill or VINCE_X_RESEARCH; save to knowledge/research-daily/. Do NOT mention Birdy, scraping, or TOS-violating methods. End with one concrete next step.
 
-1) Set up X API: developer.x.com → create app → get Bearer Token → add credits with spending limit
-2) Configure OpenClaw: set X_BEARER_TOKEN in env
-3) Create daily cron job with targeted searches (5-6 queries max to control costs):
-   - "ElizaOS" ecosystem news
-   - "$BTC alpha -is:retweet" high-signal threads
-   - "AI agents crypto" developments
-4) Use x-research skill or VINCE_X_RESEARCH action
-5) Save results to knowledge/research-daily/
-
-IMPORTANT: Do NOT mention Birdy, scraping, or any TOS-violating methods. Official X API only.
-
-One concrete next step for the user.
-
-Keep it to a few short paragraphs or a numbered list. No preamble—just the guide.
+${NO_AI_SLOP}
 
 Context:\n${contextBlock}`;
       const response = await runtime.useModel(ModelType.TEXT_SMALL, {

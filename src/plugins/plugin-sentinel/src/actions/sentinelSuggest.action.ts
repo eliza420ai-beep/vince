@@ -40,6 +40,7 @@ import {
   getOpenclawResearchSetup,
   getIntegrationPatterns,
 } from "../services/openclawKnowledge.service";
+import { NO_AI_SLOP } from "../utils/alohaStyle";
 
 const SUGGEST_TRIGGERS = [
   "suggest",
@@ -319,8 +320,30 @@ ${patternsText}
       // Get OpenClaw suggestions based on context
       const openclawSuggestions = suggestOpenClawUsage(userText);
       
+      // Optional narrative lead (ALOHA-style): one paragraph then details
+      let narrativeLead = "";
+      try {
+        const topTitles = ranked.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}: ${r.description.slice(0, 80)}${r.description.length > 80 ? "…" : ""}`).join("\n");
+        const stateLine = `${projectState.plugins.length} plugins, ${projectState.inProgress.length} in progress, ${projectState.blocked.length} blocked, ${projectState.allTodos.filter(t => t.priority === "high").length} high-priority TODOs`;
+        const narrativePrompt = `You are Sentinel. Given these impact-ranked priorities and project state, write one short narrative paragraph (flowing prose, no bullet list) that tells the user what to focus on and why. North star: 24/7 market research is top priority; OpenClaw matters a lot. Sound like a sharp colleague, not a report.
+
+Top priorities:\n${topTitles}
+
+Project state: ${stateLine}
+
+${NO_AI_SLOP}
+
+One paragraph only, no preamble:`;
+        const narrativeResp = await runtime.useModel(ModelType.TEXT_SMALL, { prompt: narrativePrompt });
+        const narrativeText = typeof narrativeResp === "string" ? narrativeResp : (narrativeResp as { text?: string })?.text ?? "";
+        if (narrativeText?.trim()) narrativeLead = narrativeText.trim() + "\n\n";
+      } catch (_) {
+        // fallback: no narrative, keep existing structure
+      }
+      
       // Build the response
       let response = `🎯 **Sentinel Suggestions** (Impact-Scored)\n\n`;
+      if (narrativeLead) response += narrativeLead;
       response += `*North star: 24/7 market research is TOP PRIORITY. OpenClaw matters A LOT.*\n\n`;
       
       // Top 5 suggestions with scores

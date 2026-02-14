@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -30,11 +31,11 @@ export const xThreadAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "Summarize this thread: https://x.com/crediblecrypto/status/1234567890" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "🧵 **Thread Summary**\n\n**Author:** @crediblecrypto (whale)\n**Length:** 12 tweets\n**Engagement:** 2.3k likes, 450 RTs\n\n**TL;DR:**\nCredible argues we're in a supply shock setup for BTC. Key points:\n\n1. ETF inflows outpacing miner supply 3:1\n2. Exchange reserves at 5-year lows\n3. Long-term holder supply at ATH\n4. Retail hasn't arrived yet (Google Trends)\n\n**Conclusion:** \"This is the most asymmetric setup since 2020. The math doesn't lie.\"\n\n🔗 https://x.com/crediblecrypto/status/1234567890",
           action: 'X_THREAD',
@@ -59,7 +60,7 @@ export const xThreadAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -76,7 +77,7 @@ export const xThreadAction: Action = {
           text: "I need a tweet URL or ID to fetch the thread. Example:\n`Summarize this thread: https://x.com/user/status/123456789`",
           action: 'X_THREAD',
         });
-        return true;
+        return { success: true };
       }
 
       const threadsService = getXThreadsService();
@@ -89,7 +90,7 @@ export const xThreadAction: Action = {
           text: "Couldn't fetch the thread. The tweet might be deleted, protected, or the API is rate limited.",
           action: 'X_THREAD',
         });
-        return true;
+        return { success: true };
       }
 
       // Get thread summary
@@ -100,7 +101,7 @@ export const xThreadAction: Action = {
           text: "Couldn't summarize the thread.",
           action: 'X_THREAD',
         });
-        return true;
+        return { success: true };
       }
 
       // Combine all tweet text
@@ -134,7 +135,7 @@ Write one short paragraph TL;DR:`;
         action: 'X_THREAD',
       });
 
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('[X_THREAD] Error:', error);
       
@@ -144,7 +145,7 @@ Write one short paragraph TL;DR:`;
         action: 'X_THREAD',
       });
       
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

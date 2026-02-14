@@ -270,6 +270,19 @@ export const vinceAlertsAction: Action = {
 
           const lines: string[] = [];
 
+          // Optional narrative lead-in (ALOHA-style one-liner)
+          if (summary.unread > 0) {
+            const lead =
+              summary.unread === 1
+                ? "You have 1 unread alert. Here's what's worth a look.\n\n"
+                : `You have ${summary.unread} unread alerts. Here's what's worth a look.\n\n`;
+            lines.push(lead);
+          } else if (summary.total > 0) {
+            lines.push(
+              `You have ${summary.total} alert${summary.total === 1 ? "" : "s"}, all read.\n\n`,
+            );
+          }
+
           // Header with summary
           if (summary.unread > 0) {
             lines.push(`🔔 **${summary.unread} Unread Alerts**`);
