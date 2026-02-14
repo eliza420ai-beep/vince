@@ -52,9 +52,18 @@ function patchMessageServiceForStandupSkip(runtime: any): void {
   const facilitator = getFacilitatorName();
   if (myName === facilitator) return; // Kelly must NOT be patched
 
-  const svc = runtime.messageService;
+  const svc = (runtime as any).messageService;
   if (!svc || typeof svc.handleMessage !== "function") {
-    logger.debug("[ONE_TEAM] No messageService.handleMessage to patch for " + myName);
+    logger.warn("[ONE_TEAM] No messageService.handleMessage to patch for " + myName + " — will retry");
+    // Retry after 5s (messageService may not be registered yet)
+    setTimeout(() => {
+      try { patchMessageServiceForStandupSkip(runtime); } catch { /* give up */ }
+    }, 5000);
+    return;
+  }
+
+  // Idempotent: skip if already patched
+  if ((svc.handleMessage as any).__standupPatched) {
     return;
   }
 
@@ -98,6 +107,7 @@ function patchMessageServiceForStandupSkip(runtime: any): void {
     }
     return original(rt, message, callback, options);
   };
+  (svc.handleMessage as any).__standupPatched = true;
 
   logger.info(`[ONE_TEAM] Patched messageService for ${myName} — standup messages skip processing`);
 }
@@ -128,15 +138,18 @@ export const interAgentPlugin: Plugin = {
 
     // Patch messageService for non-facilitator agents: skip standup room
     // messages entirely (prevents PGLite deadlock from 7+ concurrent writes).
-    // Deferred 3s so messageService has been registered by bootstrap.
+    // Deferred 5s so messageService has been registered by bootstrap.
+    // Second attempt at 15s catches late-initializing agents (e.g. VINCE with heavy service init).
     if ((runtime.character?.name ?? "").toLowerCase() !== getFacilitatorName()) {
-      setTimeout(() => {
+      const doPatch = () => {
         try {
           patchMessageServiceForStandupSkip(runtime);
         } catch (err) {
           logger.debug({ err }, "[ONE_TEAM] patchMessageService failed");
         }
-      }, 3000);
+      };
+      setTimeout(doPatch, 5000);
+      setTimeout(doPatch, 15000); // safety retry
     }
   },
 };
