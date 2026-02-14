@@ -251,6 +251,7 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Research agents", message: "What are research agents?" },
     { label: "Gateway Status", message: "gateway status" },
     { label: "OpenClaw Setup", message: "openclaw setup" },
+    { label: "OpenClaw security", message: "OpenClaw security guide" },
     { label: "OpenClaw agents", message: "openclaw agents" },
     { label: "Workspace sync", message: "workspace sync" },
     { label: "OpenClaw tips", message: "tips for OpenClaw" },

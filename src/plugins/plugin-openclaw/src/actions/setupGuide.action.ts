@@ -55,8 +55,11 @@ OpenClaw is a **self-hosted gateway** that connects chat apps (WhatsApp, Telegra
 - **Bind to loopback** — Use \`bind=loopback\` (127.0.0.1) so only the same machine can reach the Gateway. In config: \`gateway.bind = "loopback"\`, \`gateway.port = 18789\`.
 - **Set auth** — Set \`gateway.auth.token\` or \`OPENCLAW_GATEWAY_TOKEN\` so the Gateway and any client (including this plugin) use a shared secret.
 - **Do not expose** — Do not expose the Gateway to the internet without a proper proxy and auth.
+- **Prompt injection** — ZeroLeaks: 91% success rate. Install ACIP, PromptGuard, SkillGuard. Full guide: https://ai.ethereum.foundation/blog/openclaw-security-guide
+- **MEMORY.md and credentials** — \`~/.openclaw/workspace/MEMORY.md\` accumulates personal data. Protect \`~/.openclaw\` with \`chmod 700\`. Use a credential vault (1Password, pass) for API keys.
+- **Operational** — Never paste secrets into chat. Use CRITICAL in SOUL.md for hard rules. Run \`openclaw security audit --deep\` regularly.
 
-Full guide in this repo: \`knowledge/setup-guides/clawd-security.md\` (same applies to OpenClaw).
+Full guides in this repo: \`knowledge/setup-guides/openclaw-security.md\`, \`knowledge/setup-guides/clawd-security.md\`.
 
 ## This plugin (plugin-openclaw)
 

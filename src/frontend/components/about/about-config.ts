@@ -679,6 +679,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "Step-by-step install, onboard, gateway, security, plugin env. OPENCLAW_SETUP_GUIDE.",
       },
       {
+        title: "OpenClaw Security",
+        description:
+          "Prompt injection hardening, ACIP/PromptGuard/SkillGuard, MEMORY.md protection, EF dAI guide. OPENCLAW_SECURITY_GUIDE.",
+      },
+      {
         title: "Gateway Status",
         description:
           "Check Gateway health when OPENCLAW_GATEWAY_URL is set. OPENCLAW_GATEWAY_STATUS.",
@@ -712,10 +717,10 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "AI 2027, research agents, setup guide, gateway status, openclaw-agents, tips, use cases, workspace sync, HIP-3 AI assets.",
         points: [
           "OPENCLAW_AI_2027, OPENCLAW_AI_RESEARCH_AGENTS.",
-          "OPENCLAW_SETUP_GUIDE, OPENCLAW_GATEWAY_STATUS, OPENCLAW_AGENTS_GUIDE.",
+          "OPENCLAW_SETUP_GUIDE, OPENCLAW_SECURITY_GUIDE, OPENCLAW_GATEWAY_STATUS, OPENCLAW_AGENTS_GUIDE.",
           "OPENCLAW_TIPS, OPENCLAW_USE_CASES, OPENCLAW_WORKSPACE_SYNC, OPENCLAW_HIP3_AI_ASSETS.",
         ],
-        example: '"What\'s AI 2027?" or "gateway status" or "openclaw setup"',
+        example: '"What\'s AI 2027?" or "gateway status" or "openclaw setup" or "openclaw security"',
       },
       {
         name: "X Research",
@@ -772,7 +777,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      "Say 'What\'s AI 2027?', 'gateway status', 'openclaw setup', 'openclaw agents', or 'workspace sync'. For crypto research, prices, watchlist, portfolio—ask VINCE.",
+      "Say 'What\'s AI 2027?', 'gateway status', 'openclaw setup', 'openclaw security', 'openclaw agents', or 'workspace sync'. For crypto research, prices, watchlist, portfolio—ask VINCE.",
   },
 
   Oracle: {

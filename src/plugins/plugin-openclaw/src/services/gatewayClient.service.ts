@@ -12,6 +12,27 @@ const GATEWAY_CLI_TIMEOUT_MS = 120_000;
 
 const DEFAULT_GATEWAY_URL = "http://127.0.0.1:18789";
 
+/** Hostnames considered safe (loopback/localhost). */
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
+
+/**
+ * Returns true if the URL points to loopback or localhost.
+ * Accepts http://127.0.0.1:*, http://localhost:*, http://[::1]:*.
+ */
+function isUrlLoopbackOrLocalhost(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    return LOOPBACK_HOSTS.has(host) || host === "[::1]";
+  } catch {
+    return false;
+  }
+}
+
+function allowRemoteGateway(): boolean {
+  return process.env.OPENCLAW_ALLOW_REMOTE_GATEWAY === "true";
+}
+
 export interface GatewayHealthResult {
   ok: boolean;
   status: string;
@@ -68,9 +89,25 @@ async function fetchHealthOnce(
  * GET health from Gateway. Tries {url}/ then {url}/health.
  * Uses OPENCLAW_GATEWAY_TOKEN in Authorization header if set.
  * Retries once after HEALTH_RETRY_DELAY_MS on failure (e.g. slow Gateway).
+ * Refuses to connect to remote URLs unless OPENCLAW_ALLOW_REMOTE_GATEWAY=true.
  */
 export async function getHealth(): Promise<GatewayHealthResult> {
   const base = getBaseUrl().replace(/\/$/, "");
+  if (!isUrlLoopbackOrLocalhost(base)) {
+    if (!allowRemoteGateway()) {
+      logger?.warn?.(
+        { url: base },
+        "OpenClaw Gateway URL is not loopback/localhost. Refusing to connect. Set OPENCLAW_ALLOW_REMOTE_GATEWAY=true to override.",
+      );
+      return {
+        ok: false,
+        status: "blocked",
+        message:
+          "OPENCLAW_GATEWAY_URL points to a remote host. For security, the plugin refuses to connect unless OPENCLAW_ALLOW_REMOTE_GATEWAY=true. Prefer loopback (http://127.0.0.1:18789).",
+      };
+    }
+    logger?.warn?.({ url: base }, "Connecting to remote OpenClaw Gateway (OPENCLAW_ALLOW_REMOTE_GATEWAY=true).");
+  }
   const token = getToken();
   const headers: Record<string, string> = {
     "Accept": "application/json, text/plain, */*",

@@ -18,11 +18,12 @@ OpenClaw is a **self-hosted gateway** that connects chat apps (WhatsApp, Telegra
 1. **AI 2027** — Scenario summary (superhuman AI, AGI timelines, OpenBrain, Agent progression, alignment, takeoff).
 2. **Research agents** — AI 2027 framing + how OpenClaw + openclaw-agents enable them.
 3. **Setup guide** — Ask for "OpenClaw setup" or "OpenClaw setup guide" for step-by-step install.
-4. **Gateway status** — When `OPENCLAW_GATEWAY_URL` is set, ask for "gateway status" to check health.
-5. **OpenClaw-agents guide** — Orchestrator, 8 pillars, HOW-TO-RUN.
-6. **Tips** — Fresh Mac setup, tips.
-7. **Use cases** — Research agents (AI 2027 style), fork VINCE, bio-digital hub.
-8. **Workspace sync** — Sync workspace files between repo and OpenClaw.
+4. **Security guide** — Ask for "OpenClaw security" for prompt injection hardening, ACIP/PromptGuard/SkillGuard, MEMORY.md protection.
+5. **Gateway status** — When `OPENCLAW_GATEWAY_URL` is set, ask for "gateway status" to check health.
+6. **OpenClaw-agents guide** — Orchestrator, 8 pillars, HOW-TO-RUN.
+7. **Tips** — Fresh Mac setup, tips.
+8. **Use cases** — Research agents (AI 2027 style), fork VINCE, bio-digital hub.
+9. **Workspace sync** — Sync workspace files between repo and OpenClaw.
 
 Clawterm is the sole agent that loads this plugin. AI-obsessed, OpenClaw expert.
 
@@ -49,8 +50,9 @@ See [Onboarding overview](https://docs.openclaw.ai/start/onboarding-overview) an
 - **Bind to loopback** — Use `bind=loopback` (127.0.0.1) so only the same machine can reach the Gateway.
 - **Set auth** — Configure `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN`.
 - **Do not expose** — Do not expose the Gateway to the internet without a proper proxy and auth.
+- **Prompt injection** — ZeroLeaks: 91% success rate. Install ACIP, PromptGuard, SkillGuard. Full guide: [Ethereum Foundation dAI blog](https://ai.ethereum.foundation/blog/openclaw-security-guide).
 
-Full guide: [Clawdbot Security Guide](../../knowledge/setup-guides/clawd-security.md). Runbook: [Gateway](https://docs.openclaw.ai/gateway).
+Full guides: [openclaw-security.md](../../knowledge/setup-guides/openclaw-security.md), [clawd-security.md](../../knowledge/setup-guides/clawd-security.md). Runbook: [Gateway](https://docs.openclaw.ai/gateway).
 
 ## References
 
@@ -67,6 +69,7 @@ See also [OPENCLAW.md](OPENCLAW.md) in this directory for a longer reference.
 | OPENCLAW_AI_2027 | AI 2027 scenario summary (AGI timelines, OpenBrain, alignment, takeoff) |
 | OPENCLAW_AI_RESEARCH_AGENTS | Research agents (AI 2027 framing), how OpenClaw enables them |
 | OPENCLAW_SETUP_GUIDE | Step-by-step install and configuration |
+| OPENCLAW_SECURITY_GUIDE | Security: prompt injection, ACIP/PromptGuard/SkillGuard, MEMORY.md, EF dAI guide |
 | OPENCLAW_GATEWAY_STATUS | Gateway health and status (when URL set) |
 | OPENCLAW_AGENTS_GUIDE | Orchestrator, 8 pillars, HOW-TO-RUN |
 | OPENCLAW_TIPS | Fresh Mac setup, tips |
@@ -83,6 +86,7 @@ src/plugins/plugin-openclaw/
 │   │   ├── ai2027.action.ts
 │   │   ├── aiResearchAgents.action.ts
 │   │   ├── setupGuide.action.ts
+│   │   ├── openclawSecurityGuide.action.ts
 │   │   ├── gatewayStatus.action.ts
 │   │   ├── openclawAgentsGuide.action.ts
 │   │   ├── openclawTips.action.ts
@@ -100,6 +104,6 @@ src/plugins/plugin-openclaw/
 
 ## Stats
 
-- **8 actions**
+- **9 actions**
 - **1 service** (gatewayClient)
 - **1 provider** (openclawContext)

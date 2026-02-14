@@ -112,5 +112,7 @@ When `OPENCLAW_GATEWAY_URL` is set, the plugin uses the OpenClaw Gateway for hea
 
 ## Security
 
-- Bind Gateway to loopback (127.0.0.1). Set `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN`. Do not expose the Gateway to the internet without proper auth and network controls.
-- Full guide: [knowledge/setup-guides/clawd-security.md](../../knowledge/setup-guides/clawd-security.md).
+- **Bind Gateway to loopback** (127.0.0.1). Set `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN`. Do not expose the Gateway to the internet without proper auth and network controls.
+- **Prompt injection** — ZeroLeaks: 91% success rate. Install ACIP, PromptGuard, SkillGuard. Full guide: [Ethereum Foundation dAI blog](https://ai.ethereum.foundation/blog/openclaw-security-guide).
+- **MEMORY.md** — `~/.openclaw/workspace/MEMORY.md` accumulates personal data; protect `~/.openclaw` with `chmod 700`.
+- Full guides: [knowledge/setup-guides/openclaw-security.md](../../knowledge/setup-guides/openclaw-security.md), [clawd-security.md](../../knowledge/setup-guides/clawd-security.md).

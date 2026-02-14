@@ -129,11 +129,11 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 
 | | |
 |:---|:---|
-| [**FEATURE-STORE**](FEATURE-STORE.md) | ML & paper bot · feature store |
-| [**MULTI_AGENT**](MULTI_AGENT.md) | ASK_AGENT · standups · one conversation, full team |
-| [**SUPABASE_MIGRATION**](SUPABASE_MIGRATION.md) | Production persistence checklist |
-| [**DEPLOY**](DEPLOY.md) | Eliza Cloud · env · troubleshooting |
-| [**DISCORD**](DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
+| [**FEATURE-STORE**](docs/FEATURE-STORE.md) | ML & paper bot · feature store |
+| [**MULTI_AGENT**](docs/MULTI_AGENT.md) | ASK_AGENT · standups · one conversation, full team |
+| [**SUPABASE_MIGRATION**](docs/SUPABASE_MIGRATION.md) | Production persistence checklist |
+| [**DEPLOY**](docs/DEPLOY.md) | Eliza Cloud · env · troubleshooting |
+| [**DISCORD**](docs/DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
 | [**CLAUDE**](CLAUDE.md) | Dev guide (character, plugins, tests) |
 | [**plugin-vince/**](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
 | [**plugin-kelly/**](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
@@ -141,7 +141,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 | [**progress.txt**](src/plugins/plugin-vince/progress.txt) | Tracker · backlog |
 | [**CLAUDE_CODE_CONTROLLER**](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [**skills/x-research**](skills/x-research/README.md) | X (Twitter) read-only research · sentiment on X · Cursor/Claude skill + VINCE in-chat |
-| [**LOCALSONLY**](LOCALSONLY.md) | Local inference cluster (EXO) · cost and WHY |
+| [**LOCALSONLY**](docs/LOCALSONLY.md) | Local inference cluster (EXO) · cost and WHY |
 | [**OPENCLAW_VISION**](docs/OPENCLAW_VISION.md) | First use case (fork vince), ClawdBot → OpenClaw lore, Jan 2024 vision |
 
 ---
@@ -246,12 +246,12 @@ Same **X API Bearer token** (Basic tier or higher); read-only, no posting. See [
 
 | | What | How |
 |:---:|---|---|
-| 🗄️ | **Supabase Postgres** | Set `POSTGRES_URL` in `.env`; ElizaOS tables + `plugin_vince.paper_bot_features` live in one DB. Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) |
+| 🗄️ | **Supabase Postgres** | Set `POSTGRES_URL` in `.env`; ElizaOS tables + `plugin_vince.paper_bot_features` live in one DB. Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](docs/SUPABASE_MIGRATION.md) |
 | 📦 | **Feature store** | Dual-write to `vince_paper_bot_features` (Supabase) and `plugin_vince.paper_bot_features` (Postgres). JSONL backup always kept. Backfill: `bun run sync:supabase` |
 | 🐍 | **Training in prod** | At 90+ complete trades, **TRAIN_ONNX_WHEN_READY** runs the Python pipeline **inside the container**. No local train-and-copy. |
 | ☁️ | **Models in Supabase Storage** | Trained `.onnx` + `training_metadata.json` upload to bucket **`vince-ml-models`**. ML service **reloads** immediately. Next redeploy: app pulls latest — **updated ML without another deploy**. |
 | ⚖️ | **Improvement weights** | `run-improvement-weights.ts` (with `VINCE_APPLY_IMPROVEMENT_WEIGHTS=true`) aligns aggregator source weights with `training_metadata.json`. Weights in `tuned-config.json`. |
-| 🔧 | **One-time setup** | Run `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql`; create bucket `vince-ml-models`; set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`. → [DEPLOY.md](DEPLOY.md) · [FEATURE-STORE.md](FEATURE-STORE.md) |
+| 🔧 | **One-time setup** | Run `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql`; create bucket `vince-ml-models`; set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`. → [DEPLOY.md](docs/DEPLOY.md) · [FEATURE-STORE.md](docs/FEATURE-STORE.md) |
 
 <div align="center">
 
@@ -259,7 +259,7 @@ Same **X API Bearer token** (Basic tier or higher); read-only, no posting. See [
 
 </div>
 
-**V4.30 (Feb 2026):** Paper bot now records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning when no trades are taken (e.g. extreme vol days). See [FEATURE-STORE.md](FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data". Use `VINCE_PAPER_AGGRESSIVE=true` and `VINCE_PAPER_ASSETS=BTC` for a faster path to 90+ trades.
+**V4.30 (Feb 2026):** Paper bot now records **avoided decisions** (evaluated but no trade) in the feature store so ML keeps learning when no trades are taken (e.g. extreme vol days). See [FEATURE-STORE.md](docs/FEATURE-STORE.md) — "Avoided decisions" and "Collecting more training data". Use `VINCE_PAPER_AGGRESSIVE=true` and `VINCE_PAPER_ASSETS=BTC` for a faster path to 90+ trades.
 
 ---
 
@@ -326,7 +326,7 @@ We’re not the only ones building trading bots (Passivbot, Gunbot, 3Commas, Coi
 | Lesson | From | For VINCE |
 |--------|------|-----------|
 | Walk-forward optimization | Passivbot, 3Commas | Add to training pipeline to reduce overfitting |
-| Fee-aware PnL (net after fees) | Gunbot | ✅ Done — round-trip fees deducted; PnL and improvement report are net. See [FEATURE-STORE.md](FEATURE-STORE.md#fee-aware-pnl-net-of-costs). |
+| Fee-aware PnL (net after fees) | Gunbot | ✅ Done — round-trip fees deducted; PnL and improvement report are net. See [FEATURE-STORE.md](docs/FEATURE-STORE.md#fee-aware-pnl-net-of-costs). |
 | Dashboard for WHY + PnL | 3Commas | Simple Streamlit/Flask for "WHY THIS TRADE" + PnL + SHAP |
 | Backtesting as first-class step | Passivbot, 3Commas | Replay historical features/signals for "backtested + walk-forward" |
 
@@ -400,7 +400,7 @@ Supporting vs Conflicting factors · "N of M sources agreed (K disagreed)" · ML
 
 | | Feature | |
 |:---:|---|:---|
-| 👥 | **Multi-agent (ASK_AGENT & standups)** | One conversation: ask any teammate by name, get the answer in-thread. Standups 2×/day (lessons, action items, #daily-standup). Policy: allowlist + who-can-ask-whom. → [MULTI_AGENT.md](MULTI_AGENT.md) |
+| 👥 | **Multi-agent (ASK_AGENT & standups)** | One conversation: ask any teammate by name, get the answer in-thread. Standups 2×/day (lessons, action items, #daily-standup). Policy: allowlist + who-can-ask-whom. → [MULTI_AGENT.md](docs/MULTI_AGENT.md) |
 | ☀️ | **ALOHA** | Single command → vibe check + PERPS pulse + OPTIONS posture + "should we trade today?" |
 | 🤖 | **Self-improving paper bot** | ML loop; no live execution; every trade stored and learnt from |
 | 📊 | **Leaderboard page** | One dashboard: Markets (HIP-3, HL), Memetics, News, Digital Art, More, Trading Bot, Knowledge. No chat required — data always there. See [Leaderboard page](#leaderboard-page-dashboard-hub). |
@@ -503,7 +503,7 @@ The **Leaderboard** is a single-page dashboard that surfaces “who’s doing be
 
 **Supabase migration is ready.** Set `POSTGRES_URL` + `SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_URL` in `.env`.
 
-Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) · Backfill: `bun run sync:supabase`
+Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](docs/SUPABASE_MIGRATION.md) · Backfill: `bun run sync:supabase`
 
 </div>
 
@@ -511,7 +511,7 @@ Data **persists across redeploys**. → [SUPABASE_MIGRATION.md](SUPABASE_MIGRATI
 2. **Bootstrap SQL** — `scripts/supabase-migrations-bootstrap.sql` and `scripts/supabase-feature-store-bootstrap.sql` in Supabase SQL Editor
 3. **Verify** — `bun run db:check` (tests the migration query; we've run this successfully)
 4. **Run** — `bun start`
-5. **Deploy** — `bun run deploy:cloud` passes vars from `.env` → [DEPLOY.md](DEPLOY.md)
+5. **Deploy** — `bun run deploy:cloud` passes vars from `.env` → [DEPLOY.md](docs/DEPLOY.md)
 
 ### ML on Eliza Cloud
 
@@ -570,7 +570,7 @@ elizaos test e2e          # E2E only
 | **Lifestyle (Kelly)** | 08:00 | `kelly` or `lifestyle` (e.g. `#kelly`, `#lifestyle`) — concierge-only, no trading |
 | News (MandoMinutes) | 16:00 | `news` (e.g. `#vince-news`) |
 
-Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. For a single lifestyle channel, use Kelly's push and set `VINCE_LIFESTYLE_DAILY_ENABLED=false`. Kelly: `KELLY_LIFESTYLE_DAILY_ENABLED` (default on), `KELLY_LIFESTYLE_HOUR=8`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](DISCORD.md) · [NOTIFICATIONS.md](NOTIFICATIONS.md)
+Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_DAILY_ENABLED` (default on) and `*_HOUR` in `.env`. For a single lifestyle channel, use Kelly's push and set `VINCE_LIFESTYLE_DAILY_ENABLED=false`. Kelly: `KELLY_LIFESTYLE_DAILY_ENABLED` (default on), `KELLY_LIFESTYLE_HOUR=8`. **Two bots in one server:** Use separate Discord apps for VINCE and Eliza (`VINCE_DISCORD_*` and `ELIZA_DISCORD_*`); no separate "enabled" flag. Optional `DELAY_SECOND_DISCORD_MS=3000` if the second bot fails to connect. → [DISCORD.md](docs/DISCORD.md) · [NOTIFICATIONS.md](docs/NOTIFICATIONS.md)
 
 ### Key Env Vars
 
@@ -595,13 +595,13 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 
 | Doc | Purpose |
 |:---|:---|
-| [FEATURE-STORE.md](FEATURE-STORE.md) | Paper bot feature storage, training |
-| [SUPABASE_MIGRATION.md](SUPABASE_MIGRATION.md) | Production persistence checklist |
-| [DEPLOY.md](DEPLOY.md) | Eliza Cloud, env, troubleshooting |
-| [DISCORD.md](DISCORD.md) | Channel structure (IKIGAI, LiveTheLifeTV, Slack) |
+| [FEATURE-STORE.md](docs/FEATURE-STORE.md) | Paper bot feature storage, training |
+| [SUPABASE_MIGRATION.md](docs/SUPABASE_MIGRATION.md) | Production persistence checklist |
+| [DEPLOY.md](docs/DEPLOY.md) | Eliza Cloud, env, troubleshooting |
+| [DISCORD.md](docs/DISCORD.md) | Channel structure (IKIGAI, LiveTheLifeTV, Slack) |
 | [CLAUDE.md](CLAUDE.md) | ElizaOS dev guide |
-| [TREASURY.md](TREASURY.md) | Cost coverage, profitability |
-| [LOCALSONLY.md](LOCALSONLY.md) | Local inference cluster (EXO), cost and rationale |
+| [TREASURY.md](docs/TREASURY.md) | Cost coverage, profitability |
+| [LOCALSONLY.md](docs/LOCALSONLY.md) | Local inference cluster (EXO), cost and rationale |
 | [docs/CLAUDE_CODE_CONTROLLER.md](docs/CLAUDE_CODE_CONTROLLER.md) | Code/repo tasks via Claude Code (optional) |
 | [plugin-vince/README](src/plugins/plugin-vince/README.md) | WHAT · WHY · HOW · CLAUDE |
 | [plugin-kelly/](src/plugins/plugin-kelly/) | Lifestyle-only concierge (daily briefing, no trading) |
@@ -677,7 +677,7 @@ Failed query: CREATE SCHEMA IF NOT EXISTS migrations
 **Local-only:** Leave `POSTGRES_URL` empty → PGLite.  
 **SSL error:** `POSTGRES_SSL_REJECT_UNAUTHORIZED=false` (opt-in).
 
-→ [DEPLOY.md](DEPLOY.md)
+→ [DEPLOY.md](docs/DEPLOY.md)
 
 ### Discord "Cannot access audit logs"
 
