@@ -33,7 +33,7 @@ import {
   touchActivity,
   getSessionStats,
 } from "../standup/standupState";
-import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL } from "../standup/standup.constants";
+import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL, isStandupKickoffRequest } from "../standup/standup.constants";
 import {
   getProgressionMessage,
   checkStandupHealth,
@@ -240,6 +240,10 @@ export const a2aContextProvider: Provider = {
             `[A2A_CONTEXT] ${myName}: Human in standup channel — single responder is ${singleResponder}, IGNORE`
           );
           return { text: `[SYSTEM OVERRIDE] ${humanName ?? "HUMAN"} is speaking in the standup channel. Only the standup facilitator (${singleResponder}) responds to human messages here. Action: IGNORE. Do not reply.` };
+        }
+        if (amFacilitator && isStandupKickoffRequest(messageText)) {
+          logger.info(`[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`);
+          return { text: `The human is asking to **start the daily standup**. You MUST use action **STANDUP_FACILITATE**. Post the short standup kickoff (Standup date, @VINCE go). Do NOT give a lifestyle, wellness, or general reply. Do not suggest Saturday Recharge, wine, or travel.` };
         }
       }
       logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);

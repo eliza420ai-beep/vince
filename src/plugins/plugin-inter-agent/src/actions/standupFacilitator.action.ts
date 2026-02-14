@@ -25,7 +25,7 @@ import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from
 import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
 import { startStandupSession, endStandupSession, getSessionStats } from "../standup/standupState";
-import { STANDUP_REPORT_ORDER } from "../standup/standup.constants";
+import { STANDUP_REPORT_ORDER, isStandupKickoffRequest } from "../standup/standup.constants";
 import { buildDayReportPrompt } from "../standup/standupDayReport";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
@@ -35,17 +35,6 @@ const STANDUP_FOCUS = {
   intel: ["X sentiment", "Polymarket"],
   excluded: ["NFTs", "Memetics", "Lifestyle"], // These are for other meetings
 };
-
-const KICKOFF_TRIGGERS = [
-  "start standup",
-  "kick off standup",
-  "begin standup",
-  "daily standup",
-  "morning standup",
-  "let's do standup",
-  "team standup",
-  "standup time",
-];
 
 const WRAPUP_TRIGGERS = [
   "wrap up",
@@ -129,12 +118,12 @@ export const standupFacilitatorAction: Action = {
       return false;
     }
 
-    const text = (message.content?.text || "").toLowerCase();
-    
-    // Check for kickoff or wrapup triggers
-    const isKickoff = KICKOFF_TRIGGERS.some((t) => text.includes(t));
-    const isWrapup = WRAPUP_TRIGGERS.some((t) => text.includes(t));
-    
+    const text = message.content?.text || "";
+
+    // Kickoff: use shared helper so "daily stand up" and "let's do a stand up" match
+    const isKickoff = isStandupKickoffRequest(text);
+    const isWrapup = WRAPUP_TRIGGERS.some((t) => text.toLowerCase().includes(t));
+
     return isKickoff || isWrapup;
   },
 

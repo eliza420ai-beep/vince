@@ -9,7 +9,7 @@
  * Default: 09:00 UTC daily (morning standup)
  */
 
-import type { UUID } from "@elizaos/core";
+import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { createUniqueUuid } from "@elizaos/core";
 
 export const STANDUP_WORLD_SERVER_ID = "standup-world";
@@ -81,17 +81,17 @@ export const ESSENTIAL_STANDUP_QUESTION =
   "Based on current market sentiment, do you think BTC will be above $70K by next Friday?";
 
 /** Resolve standup world ID for the coordinator runtime (deterministic). */
-export function getStandupWorldId(runtime: { agentId: UUID }): UUID {
+export function getStandupWorldId(runtime: IAgentRuntime): UUID {
   return createUniqueUuid(runtime, STANDUP_WORLD_SERVER_ID) as UUID;
 }
 
 /** Resolve standup room ID for the coordinator runtime (deterministic). */
-export function getStandupRoomId(runtime: { agentId: UUID }): UUID {
+export function getStandupRoomId(runtime: IAgentRuntime): UUID {
   return createUniqueUuid(runtime, STANDUP_ROOM_CHANNEL_ID) as UUID;
 }
 
 /** Resolve facilitator entity ID (who "posts" the kickoff message). */
-export function getStandupFacilitatorId(runtime: { agentId: UUID }): UUID {
+export function getStandupFacilitatorId(runtime: IAgentRuntime): UUID {
   return createUniqueUuid(runtime, STANDUP_FACILITATOR_ID_SEED) as UUID;
 }
 
@@ -145,3 +145,43 @@ export function getStandupDiscordMentionId(agentId: string): string | null {
 
 /** Sentinel line in kickoff when shared daily insights are present. a2aContext uses this to switch to synthesis turn. */
 export const SHARED_INSIGHTS_SENTINEL = "*Above: shared daily insights*";
+
+/**
+ * Phrases that indicate the user wants to start/kick off a standup.
+ * Used by STANDUP_FACILITATE action and A2A context so Kelly runs standup instead of a lifestyle reply.
+ * Includes "stand up" (two words) so "let's do a daily stand up" matches.
+ */
+export const STANDUP_KICKOFF_PHRASES = [
+  "start standup",
+  "kick off standup",
+  "begin standup",
+  "daily standup",
+  "daily stand up",
+  "morning standup",
+  "let's do standup",
+  "let's do a stand up",
+  "do a stand up",
+  "do the standup",
+  "run standup",
+  "run the standup",
+  "team standup",
+  "standup time",
+  "stand up",
+  "facilitate standup",
+] as const;
+
+/**
+ * Returns true if the message is asking to start/kick off a standup.
+ * Normalizes text (collapse spaces, "stand up" -> "standup") so "let's do a daily stand up kelly" matches.
+ */
+export function isStandupKickoffRequest(text: string): boolean {
+  if (!text?.trim()) return false;
+  const normalized = text
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\bstand up\b/g, "standup");
+  return STANDUP_KICKOFF_PHRASES.some((phrase) => {
+    const phraseNorm = phrase.replace(/\s+/g, " ").replace(/\bstand up\b/g, "standup");
+    return normalized.includes(phraseNorm);
+  });
+}
