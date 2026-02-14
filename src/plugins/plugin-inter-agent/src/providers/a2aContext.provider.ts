@@ -186,6 +186,22 @@ function isStandupRoom(roomName: string | undefined): boolean {
   return getStandupChannelParts().some((part) => normalized.includes(part));
 }
 
+/** Knowledge channel name substrings (from A2A_KNOWLEDGE_CHANNEL_NAMES or default) — UPLOAD / knowledge expansion always allowed */
+function getKnowledgeChannelParts(): string[] {
+  const raw = process.env.A2A_KNOWLEDGE_CHANNEL_NAMES ?? "knowledge";
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** Check if room is a knowledge channel (no A2A exchange limit — UPLOAD always allowed) */
+function isKnowledgeRoom(roomName: string | undefined): boolean {
+  if (!roomName) return false;
+  const normalized = roomName.toLowerCase();
+  return getKnowledgeChannelParts().some((part) => normalized.includes(part));
+}
+
 /** Agent name allowed to respond to human messages in standup (single responder) */
 function getStandupSingleResponder(): string {
   return (
@@ -691,6 +707,16 @@ ${ALOHA_STYLE_BLOCK}
     if (!isAgent) {
       // Not from an agent or human we recognize — treat as normal
       return { text: "" };
+    }
+
+    // Knowledge channel: never apply A2A exchange limit — UPLOAD and knowledge expansion always allowed
+    if (isKnowledgeRoom(roomName)) {
+      logger.info(`[A2A_CONTEXT] ${myName}: Knowledge channel — no exchange limit; UPLOAD allowed`);
+      return { text: `
+## Knowledge channel
+
+You are in the **knowledge** channel. You may respond and use **UPLOAD** to add documents or content to the knowledge base. No exchange limit here — always process UPLOAD and knowledge expansion when requested.
+` };
     }
 
     // In standup use stricter cap (default 1); otherwise A2A_MAX_EXCHANGES (default 2)

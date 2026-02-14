@@ -23,25 +23,54 @@ import {
   logger,
 } from "@elizaos/core";
 
-/** Check if room is a standup channel by name */
-async function isStandupRoom(
+/** Get room name from room + memory */
+async function getRoomName(
   runtime: IAgentRuntime,
   roomId: string,
   memory: Memory
-): Promise<boolean> {
+): Promise<string> {
   const room = await runtime.getRoom(roomId);
   const meta = room?.metadata as Record<string, unknown> | undefined;
-  const roomName = (
+  return (
     room?.name ??
     (typeof meta?.channelName === "string" ? meta.channelName : undefined) ??
     (typeof meta?.name === "string" ? meta.name : undefined) ??
     (typeof memory.content?.channelName === "string" ? memory.content.channelName : undefined) ??
     ""
   ).trim();
+}
+
+/** Check if room is a standup channel by name */
+async function isStandupRoom(
+  runtime: IAgentRuntime,
+  roomId: string,
+  memory: Memory
+): Promise<boolean> {
+  const roomName = await getRoomName(runtime, roomId, memory);
   const channelNames =
     (runtime.getSetting("A2A_STANDUP_CHANNEL_NAMES") as string) ||
     process.env.A2A_STANDUP_CHANNEL_NAMES ||
     "standup,daily-standup";
+  const parts = channelNames
+    .split(",")
+    .map((s: string) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return (
+    roomName.length > 0 && parts.some((part: string) => roomName.toLowerCase().includes(part))
+  );
+}
+
+/** Check if room is a knowledge channel (UPLOAD always allowed — no exchange limit) */
+async function isKnowledgeRoom(
+  runtime: IAgentRuntime,
+  roomId: string,
+  memory: Memory
+): Promise<boolean> {
+  const roomName = await getRoomName(runtime, roomId, memory);
+  const channelNames =
+    (runtime.getSetting("A2A_KNOWLEDGE_CHANNEL_NAMES") as string) ||
+    process.env.A2A_KNOWLEDGE_CHANNEL_NAMES ||
+    "knowledge";
   const parts = channelNames
     .split(",")
     .map((s: string) => s.trim().toLowerCase())
@@ -145,6 +174,11 @@ export const a2aLoopGuardEvaluator: Evaluator = {
     const enabled = process.env.A2A_ENABLED !== "false";
     if (!enabled) {
       return { shouldRespond: true, reason: "A2A guard disabled" };
+    }
+
+    // Knowledge channel: no exchange limit — UPLOAD and knowledge expansion always allowed
+    if (await isKnowledgeRoom(runtime, memory.roomId, memory)) {
+      return { shouldRespond: true, reason: "Knowledge channel — no exchange limit" };
     }
 
     const inStandup = await isStandupRoom(runtime, memory.roomId, memory);
