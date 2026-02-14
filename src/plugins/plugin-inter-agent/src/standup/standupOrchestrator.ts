@@ -23,7 +23,7 @@ import {
   touchActivity,
   getSessionStats,
 } from "./standupState";
-import { getStandupResponseDelay } from "./standup.constants";
+import { getStandupResponseDelay, getStandupDiscordMentionId } from "./standup.constants";
 
 /** Standup turn order with display names */
 const AGENT_ORDER: Array<{ id: string; display: string }> = [
@@ -34,6 +34,7 @@ const AGENT_ORDER: Array<{ id: string; display: string }> = [
   { id: "solus", display: "Solus" },
   { id: "otaku", display: "Otaku" },
   { id: "sentinel", display: "Sentinel" },
+  { id: "clawterm", display: "Clawterm" },
 ];
 
 /** Skip timeout: 3 minutes of no response = skip */
@@ -96,9 +97,11 @@ export async function getProgressionMessage(): Promise<{
       
       const nextAgent = getNextUnreportedAgent();
       if (nextAgent) {
+        const discordId = getStandupDiscordMentionId(nextAgent);
         const nextDisplay = getAgentDisplayName(nextAgent);
+        const callMsg = discordId ? `<@${discordId}> go.` : `@${nextDisplay}, go.`;
         return {
-          message: `⚠️ ${getAgentDisplayName(stuckAgent)} timed out. @${nextDisplay}, go.`,
+          message: `⚠️ ${getAgentDisplayName(stuckAgent)} timed out. ${callMsg}`,
           action: "skip",
           nextAgent,
         };
@@ -129,9 +132,11 @@ export async function getProgressionMessage(): Promise<{
     await sleep(delay);
   }
 
+  const discordId = getStandupDiscordMentionId(nextAgent);
   const nextDisplay = getAgentDisplayName(nextAgent);
+  const message = discordId ? `<@${discordId}> go.` : `@${nextDisplay}, go.`;
   return {
-    message: `@${nextDisplay}, go.`,
+    message,
     action: "call_next",
     nextAgent,
   };
@@ -200,9 +205,12 @@ export function formatHealthReport(): string {
 }
 
 /**
- * Build the agent call message with proper formatting
+ * Build the agent call message with proper formatting.
+ * Uses Discord mention <@ID> when getStandupDiscordMentionId(agentId) is set.
  */
 export function buildAgentCallMessage(agentId: string): string {
+  const discordId = getStandupDiscordMentionId(agentId);
+  if (discordId) return `<@${discordId}> go.`;
   const display = getAgentDisplayName(agentId);
   return `@${display}, go.`;
 }
@@ -215,14 +223,16 @@ export function buildWrapUpMessage(): string {
 }
 
 /**
- * Build the skip message for a timed-out agent
+ * Build the skip message for a timed-out agent.
+ * Uses Discord mention for next agent when configured.
  */
 export function buildSkipMessage(skippedAgent: string, nextAgent: string | null): string {
   const skippedDisplay = getAgentDisplayName(skippedAgent);
   
   if (nextAgent) {
-    const nextDisplay = getAgentDisplayName(nextAgent);
-    return `⚠️ ${skippedDisplay} timed out (3 min). Skipping. @${nextDisplay}, go.`;
+    const discordId = getStandupDiscordMentionId(nextAgent);
+    const callMsg = discordId ? `<@${discordId}> go.` : `@${getAgentDisplayName(nextAgent)}, go.`;
+    return `⚠️ ${skippedDisplay} timed out (3 min). Skipping. ${callMsg}`;
   } else {
     return `⚠️ ${skippedDisplay} timed out (3 min). That was the last agent. Generating Day Report...`;
   }

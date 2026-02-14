@@ -19,6 +19,8 @@ Standup is turn-based. **Kelly** kicks off and acts only as coordinator (very sh
 
 The **Day Report** includes: **Essential question**, **Solus's call** (Above/Below/Uncertain + one sentence), TL;DR, signals table, and actions. Full behavior and quality bar are documented in `standup-deliverables/prds/2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md` (§ Daily Standup: Agent Roles and Quality Bar).
 
+**Shared daily insights and north star:** For the **scheduled** standup, a shared daily insights file is written **before** the meeting to `standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md` (one section per agent). The kickoff includes this document so the conversation is **synthesis-first**: each agent adds links across domains, fact-checks, brainstorms, and one take instead of repeating their section. North star = shared knowledge > sum of individual silos. Manual standup keeps the current flow. See [docs/MULTI_AGENT.md](../../../docs/MULTI_AGENT.md) § Standup: shared daily insights and north star.
+
 **Essential question** is configurable via `ESSENTIAL_STANDUP_BTC_LEVEL` (e.g. `70000`); default text: "Based on current market sentiment, do you think BTC will be above $70K by next Friday?"
 
 ### Standup schedule and env

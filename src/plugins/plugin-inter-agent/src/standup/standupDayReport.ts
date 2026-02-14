@@ -5,52 +5,50 @@
 
 import { getEssentialStandupQuestion } from "./standup.constants";
 import { formatReportDate } from "./standupReports";
+import { ALOHA_STYLE_BLOCK } from "./standupStyle";
 
 /**
  * Build the core Day Report prompt from conversation context.
- * Single source of truth for the Day Report format (essential question, Solus's call, TL;DR, Signals, Actions).
+ * Single source of truth for the Day Report format. Opens with ALOHA-style narrative, then structured block.
  */
 export function buildDayReportPrompt(conversationContext: string): string {
   const essentialQ = getEssentialStandupQuestion();
-  return `You are Kelly. Synthesize the standup into a CONCISE Day Report.
+  return `You are Kelly. Synthesize the standup into a Day Report. Write like a smart friend over coffee — one flowing narrative first, then a short structured block.
 
 CONVERSATION:
 ${conversationContext}
 
-OUTPUT FORMAT (follow EXACTLY):
+${ALOHA_STYLE_BLOCK}
 
-## 📋 Day Report — ${formatReportDate()}
+OUTPUT STRUCTURE:
 
-**Essential question:** ${essentialQ}
+1) OPENING NARRATIVE (ALOHA style, ~150–200 words)
+   One flowing paragraph that synthesizes what the team said and leads to a clear take. No bullet lists in this paragraph. No "In conclusion" or "Overall". Take positions. Use the conversation above to be specific (VINCE's data, Solus's call, Oracle's odds, etc.). This is the main value of the report — readable, impactful, human.
 
-**Solus's call:** [Above/Below/Uncertain] — [one sentence from Solus's answer, e.g. "No — chop or downside in $60K–$70K range next week."]
+2) STRUCTURED BLOCK (keep short)
+   ## 📋 Day Report — ${formatReportDate()}
 
-**TL;DR:** [ONE sentence: Asset + Direction + Action. Example: "BTC neutral, SOL bullish — size SOL long at $198."]
+   **Essential question:** ${essentialQ}
 
-### Signals
-| Asset | Call | Confidence | Key Data |
-|-------|------|------------|----------|
-| BTC | Bull/Bear/Flat | H/M/L | [one metric] |
-| SOL | Bull/Bear/Flat | H/M/L | [one metric] |
-| HYPE | Bull/Bear/Flat | H/M/L | [one metric] |
+   **Solus's call:** [Above/Below/Uncertain] — [one sentence from Solus's answer]
 
-### Actions
-1. **[ACTION]** — @Owner — [specific entry/size/invalidation]
-2. **[ACTION]** — @Owner — [specific entry/size/invalidation]
-3. **[ACTION]** — @Owner — [specific entry/size/invalidation]
+   **TL;DR:** [ONE sentence: Asset + Direction + Action]
 
-### Decisions (Yves review if not HIGH confidence)
-- [ ] [Decision] — Confidence: H/M/L
+   ### Actions (max 3, each with @Owner)
+   1. **[ACTION]** — @Owner — [specific entry/size/invalidation]
+   2. **[ACTION]** — @Owner — [specific entry/size/invalidation]
+   3. **[ACTION]** — @Owner — [specific entry/size/invalidation]
 
-### Risks
-[One line or "Clear"]
+   ### Risks
+   [One line or "Clear"]
 
----
-*Ship it.*
+   ---
+   *Ship it.*
 
 RULES:
-- TL;DR = ONE sentence, no more
+- Opening narrative = flowing prose only, ~150–200 words, no bullets there
+- TL;DR = ONE sentence
 - Max 3 actions, each with @Owner
 - No fluff, no "consider", no "monitor" — specific trades only
-- Total output under 300 words`;
+- Total output under 350 words`;
 }

@@ -23,6 +23,65 @@ function getDayReportsDir(): string {
   return path.join(getDeliverablesDir(), "day-reports");
 }
 
+/** Get the daily insights directory (shared pre-standup artifact) */
+export function getSharedInsightsDir(): string {
+  return path.join(getDeliverablesDir(), "daily-insights");
+}
+
+/** Generate filename for shared daily insights */
+function getSharedInsightsFilename(date?: Date): string {
+  const d = date || new Date();
+  const dateStr = d.toISOString().slice(0, 10);
+  return `${dateStr}-shared-insights.md`;
+}
+
+/** Get full path for shared daily insights */
+export function getSharedInsightsPath(date?: Date): string {
+  return path.join(getSharedInsightsDir(), getSharedInsightsFilename(date));
+}
+
+/**
+ * Save shared daily insights to disk (pre-standup artifact).
+ * Location: standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md
+ */
+export function saveSharedDailyInsights(content: string, date?: Date): string | null {
+  try {
+    const dir = getSharedInsightsDir();
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      logger.info(`[SharedInsights] Created directory: ${dir}`);
+    }
+    const filepath = getSharedInsightsPath(date);
+    const d = date || new Date();
+    const metadata = `---
+date: ${d.toISOString()}
+type: shared-daily-insights
+---
+
+`;
+    fs.writeFileSync(filepath, metadata + content, "utf-8");
+    logger.info(`[SharedInsights] Saved to ${filepath}`);
+    return filepath;
+  } catch (err) {
+    logger.error({ err }, "[SharedInsights] Failed to save shared daily insights");
+    return null;
+  }
+}
+
+/**
+ * Load shared daily insights from disk. Returns null if file missing.
+ */
+export function loadSharedDailyInsights(date?: Date): string | null {
+  try {
+    const filepath = getSharedInsightsPath(date);
+    if (!fs.existsSync(filepath)) return null;
+    return fs.readFileSync(filepath, "utf-8");
+  } catch (err) {
+    logger.warn({ err }, "[SharedInsights] Failed to load shared daily insights");
+    return null;
+  }
+}
+
 /** Generate filename for a day report */
 export function getDayReportFilename(date?: Date): string {
   const d = date || new Date();

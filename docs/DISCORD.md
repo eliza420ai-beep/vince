@@ -107,8 +107,30 @@ Invite each bot **only** to its category channels plus `#daily-standup`. Do not 
 | **Sentinel** | CTO category channels (`meet_sentinel`, `sentinel_ops`, etc.) + `#daily-standup` |
 | **Echo** | Echo channels (if any) + `#daily-standup` |
 | **Oracle** | Oracle channels (if any) + `#daily-standup` |
+| **Clawterm** | Clawterm/AI Terminal channels (if any) + `#daily-standup` |
 
-**Example:** Solus should be in `#meet_solus`, `#plan_100k`, `#daily-standup`—not `#vince-daily-reports`. If Solus is invited to `#vince-daily-reports`, he receives every VINCE push and runs validation (even though he exits before the LLM).
+**Example:** Solus should be in `#meet_solus`, `#plan_100k`, `#daily-standup`—not `#vince-daily-reports`.
+
+### Clawterm in standup
+
+To have **Clawterm** join the daily standup (OpenClaw & AI/AGI report):
+
+1. **Create a Discord application for Clawterm** in the [Discord Developer Portal](https://discord.com/developers/applications) (same as for VINCE, Eliza, etc.). Each agent must have a **distinct** Application ID.
+2. **Invite the Clawterm bot** to the server and to `#daily-standup` (and any Clawterm-specific channels).
+3. **Set env vars** so Clawterm loads the Discord plugin:
+   - `CLAWTERM_DISCORD_APPLICATION_ID` — Clawterm app’s Application ID
+   - `CLAWTERM_DISCORD_API_TOKEN` — Clawterm app’s Bot token
+
+Startup validation will fail if two agents share the same Application ID. Ensure Clawterm’s app is unique.
+
+### Optional: Discord mention IDs for standup turn-taking
+
+When Kelly posts “next agent” in `#daily-standup`, only that agent’s bot should reply. By default the message is `@AgentName, go.` and only the agent whose name appears in the message replies (via `isDirectlyAddressed`). To use **Discord user mentions** so only the mentioned bot gets a notification:
+
+- **Single env (all agents):** `A2A_STANDUP_DISCORD_MENTION_IDS` — comma-separated `AgentName:DiscordBotUserId` (e.g. `VINCE:123456,Eliza:789012,Clawterm:345678`) or JSON `{"vince":"123456","eliza":"789012"}`.
+- **Per-agent env:** `VINCE_DISCORD_BOT_USER_ID`, `ELIZA_DISCORD_BOT_USER_ID`, `CLAWTERM_DISCORD_BOT_USER_ID`, etc. (the **bot’s Discord user ID**, not the Application ID).
+
+When set, the progression and kickoff messages use `<@BOT_USER_ID> go.` instead of `@AgentName, go.` so only that bot is mentioned. If not set, behavior is unchanged (`@AgentName, go.`). If Solus is invited to `#vince-daily-reports`, he receives every VINCE push and runs validation (even though he exits before the LLM).
 
 **Optional:** Add `allowedChannelIds` per agent in `character.settings.discord` when the ElizaOS Discord plugin supports it, for application-level filtering in addition to the invite list.
 

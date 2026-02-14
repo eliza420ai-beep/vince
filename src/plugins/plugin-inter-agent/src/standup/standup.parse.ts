@@ -96,3 +96,31 @@ export async function parseStandupTranscript(
     };
   }
 }
+
+/** Agent names we look for in cross-agent linking. */
+const CROSS_AGENT_NAMES =
+  /\b(VINCE|Eliza|ECHO|Oracle|Solus|Otaku|Sentinel|Clawterm|Kelly)\b/g;
+
+/** Phrases that indicate linking across agents. */
+const LINKING_PHRASES =
+  /aligns?\s+with|contradicts|builds\s+on|lines?\s+up\s+with|which\s+aligns|'s\s+(data|funding|odds|view|take)|links?\s+to|relates?\s+to|connects?\s+to|fact-?check|agrees?\s+with|disagrees?\s+with/gi;
+
+/**
+ * Heuristic count of cross-agent links in the transcript (north star KPI).
+ * Splits into sentence-like segments and counts those containing both an agent reference and a linking phrase.
+ */
+export function countCrossAgentLinks(transcript: string): number {
+  if (!transcript?.trim()) return 0;
+  const segments = transcript.split(/\n\n+|[.!?]\s+/);
+  let count = 0;
+  for (const seg of segments) {
+    const s = seg.trim();
+    if (s.length < 20) continue;
+    const hasAgent = CROSS_AGENT_NAMES.test(s);
+    CROSS_AGENT_NAMES.lastIndex = 0;
+    const hasLinking = LINKING_PHRASES.test(s);
+    LINKING_PHRASES.lastIndex = 0;
+    if (hasAgent && hasLinking) count += 1;
+  }
+  return count;
+}

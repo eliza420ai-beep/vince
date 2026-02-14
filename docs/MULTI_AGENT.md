@@ -145,6 +145,16 @@ When enabled, agents meet **twice per day** in a dedicated standup without you i
 - **Relationships:** When the transcript parser detects a disagreement between two agents, both directions (A→B and B→A) are updated with `metadata.opinion` (decreased) and `metadata.disagreements` (incremented). No DB schema change; uses existing `createRelationship` / `updateRelationship`.
 - **Discord #daily-standup:** After each standup, the coordinator pushes a summary (reply count, lessons, action items, last 2k chars of transcript) to every channel whose name contains `daily-standup` or `standup`. Create a **#daily-standup** channel, invite the coordinator bot (Kelly), and keep all team agents in that channel for "one team, one dream."
 
+### Standup: shared daily insights and north star
+
+The **north star** for standup is: *shared knowledge of the team is greater than the sum of each agent's individual knowledge*. To get there, the **scheduled** standup is **synthesis-first**: linking across domains, fact-checking, and actionable synthesis instead of each agent reporting their data in isolation.
+
+- **Shared daily insights:** Before the meeting, the coordinator writes a **shared daily insights** file that merges each agent's live data (same sources as today's fetch) into one document—one section per agent (e.g. `## VINCE`, `## Eliza`, …). Path: **`standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md`** (same root as Day Reports; see `STANDUP_DELIVERABLES_DIR`).
+- **Kickoff:** The first message in the room **includes** that shared document plus a short instruction: *"Above: shared daily insights. Link, fact-check, brainstorm — then we get to the Day Report. Standup {date}. @VINCE, go."*
+- **Turn semantics:** When the shared-insights sentinel is present, each agent's turn is **not** "report your data" but: add (1) one **link** between your domain and another agent's insight, (2) one **fact-check** or clarification if needed, (3) one **brainstorm or risk**, (4) one **actionable take**. So the conversation is linking/fact-check/brainstorm first; the Day Report is then built from this richer transcript.
+- **Manual standup:** Unchanged unless "gather insights" is added later; manual standup uses the current flow (short kickoff, report-your-data turns).
+- **North star KPI (informational):** After standup, the transcript is scanned for cross-agent links (e.g. an agent mentioning another by name and a linking phrase like "aligns with", "Oracle's data"). The count is logged (`[Standup] North star: N cross-agent link(s) detected`) and optionally included in the pushed summary. Non-blocking; for visibility into whether standups are improving on the 1+1=3 goal.
+
 ### Standup tuning
 
 To reduce token burn and rate limits in #daily-standup, the following behavior and env are used:

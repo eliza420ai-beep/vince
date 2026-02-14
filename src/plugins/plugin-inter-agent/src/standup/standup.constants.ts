@@ -44,6 +44,7 @@ export const STANDUP_REPORT_ORDER = [
   "Solus",
   "Otaku",
   "Sentinel",
+  "Clawterm",
 ] as const;
 
 /** Get configured standup hours (UTC). Returns array of hours [0-23]. */
@@ -100,3 +101,47 @@ export function isStandupCoordinator(runtime: { character?: { name?: string } })
   const name = runtime.character?.name?.trim();
   return enabled && !!name && name === coordinatorName;
 }
+
+/** Optional: Discord bot user IDs for standup turn-taking. When set, progression message uses <@ID> so only that bot is notified. */
+let _mentionIdsMap: Map<string, string> | null = null;
+
+function parseStandupDiscordMentionIds(): Map<string, string> {
+  if (_mentionIdsMap !== null) return _mentionIdsMap;
+  const map = new Map<string, string>();
+  const raw = process.env.A2A_STANDUP_DISCORD_MENTION_IDS?.trim();
+  if (raw) {
+    try {
+      if (raw.startsWith("{")) {
+        const obj = JSON.parse(raw) as Record<string, string>;
+        for (const [name, id] of Object.entries(obj)) {
+          if (id?.trim()) map.set(name.toLowerCase(), id.trim());
+        }
+      } else {
+        for (const part of raw.split(",")) {
+          const [name, id] = part.split(":").map((s) => s?.trim());
+          if (name && id) map.set(name.toLowerCase(), id);
+        }
+      }
+    } catch {
+      // ignore parse errors
+    }
+  }
+  _mentionIdsMap = map;
+  return map;
+}
+
+/**
+ * Get Discord bot user ID for an agent (lowercase id e.g. "vince", "clawterm").
+ * Checks A2A_STANDUP_DISCORD_MENTION_IDS first, then per-agent env e.g. VINCE_DISCORD_BOT_USER_ID, CLAWTERM_DISCORD_BOT_USER_ID.
+ */
+export function getStandupDiscordMentionId(agentId: string): string | null {
+  const key = agentId.toLowerCase();
+  const fromMap = parseStandupDiscordMentionIds().get(key);
+  if (fromMap) return fromMap;
+  const envKey = `${agentId.toUpperCase()}_DISCORD_BOT_USER_ID`;
+  const fromEnv = process.env[envKey]?.trim();
+  return fromEnv || null;
+}
+
+/** Sentinel line in kickoff when shared daily insights are present. a2aContext uses this to switch to synthesis turn. */
+export const SHARED_INSIGHTS_SENTINEL = "*Above: shared daily insights*";

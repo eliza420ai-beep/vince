@@ -5,6 +5,7 @@
 
 import { type IAgentRuntime, logger } from "@elizaos/core";
 import { execSync } from "node:child_process";
+import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL } from "./standup.constants";
 
 const STANDUP_REPO_ROOT = typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
 
@@ -34,11 +35,31 @@ export async function getCryptoContext(_runtime: IAgentRuntime): Promise<string>
 
 /**
  * Short Kelly-style kickoff for scheduled standup (PRD: coordinator keeps it very short).
- * One line: date + first call. Use in standup task; keep buildStandupKickoffText for manual/long context.
+ * One line: date + first call. Uses Discord mention for VINCE when A2A_STANDUP_DISCORD_MENTION_IDS or VINCE_DISCORD_BOT_USER_ID is set.
  */
 export function buildShortStandupKickoff(): string {
   const date = new Date().toISOString().slice(0, 10);
-  return `Standup ${date}. @VINCE, go.`;
+  const vinceMentionId = getStandupDiscordMentionId("vince");
+  const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
+  return `Standup ${date}. ${call}`;
+}
+
+/**
+ * Kickoff when shared daily insights were pre-written. Prepends shared content and sentinel so standup is synthesis-first (link, fact-check, brainstorm).
+ */
+export function buildKickoffWithSharedInsights(sharedContent: string): string {
+  const date = new Date().toISOString().slice(0, 10);
+  const vinceMentionId = getStandupDiscordMentionId("vince");
+  const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
+  return (
+    sharedContent.trim() +
+    "\n\n---\n\n" +
+    SHARED_INSIGHTS_SENTINEL +
+    " Link, fact-check, brainstorm — then we get to the Day Report.\n\nStandup " +
+    date +
+    ". " +
+    call
+  );
 }
 
 /**

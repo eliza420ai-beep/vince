@@ -20,13 +20,23 @@ import {
   getStandupHours,
 } from "./standup.constants";
 import { buildShortStandupKickoff } from "./standup.context";
-import { parseStandupTranscript, type StandupActionItem } from "./standup.parse";
+import { parseStandupTranscript, countCrossAgentLinks, type StandupActionItem } from "./standup.parse";
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
 import { buildDayReportPrompt } from "./standupDayReport";
-import { saveDayReport, updateDayReportManifest } from "./dayReportPersistence";
+import {
+  saveDayReport,
+  updateDayReportManifest,
+  saveSharedDailyInsights,
+  loadSharedDailyInsights,
+} from "./dayReportPersistence";
+import { fetchAgentData } from "./standupDataFetcher";
+import { buildKickoffWithSharedInsights } from "./standup.context";
 
 const STANDUP_SOURCE = "standup";
+
+/** Max chars per agent in shared insights doc so total stays ~6k and fits in transcript. */
+const SHARED_INSIGHTS_PER_AGENT_CAP = 600;
 
 /** Channel name keywords for Discord push (one team, one dream). Create #daily-standup and invite the coordinator (Kelly). */
 const STANDUP_CHANNEL_NAME_PARTS = ["standup", "daily-standup"];
@@ -109,6 +119,56 @@ export async function ensureStandupWorldAndRoom(
 
 const STANDUP_TURN_TIMEOUT_MS = 90_000;
 const MAX_TRANSCRIPT_CHARS = 12_000;
+
+/**
+ * Build shared daily insights from each agent's data and save to daily-insights/YYYY-MM-DD-shared-insights.md.
+ * Each agent's data is fetched from that agent's runtime (so services like VINCE_MARKET_DATA_SERVICE are available).
+ * Per-agent section capped so total doc stays ~6k and fits in transcript.
+ */
+export async function buildAndSaveSharedDailyInsights(
+  runtime: IAgentRuntime,
+  eliza: IElizaOSRegistry,
+): Promise<void> {
+  const getAgent = eliza.getAgent;
+  if (!getAgent) {
+    logger.debug("[Standup] No getAgent — skip shared insights pre-write");
+    return;
+  }
+  const agents = eliza.getAgents();
+  const byName = new Map<string, { agentId: string; displayName: string }>();
+  for (const a of agents) {
+    const name = a?.character?.name?.trim();
+    if (name && a?.agentId) byName.set(name.toLowerCase(), { agentId: a.agentId, displayName: a.character?.name ?? name });
+  }
+  const sections: string[] = [];
+  const date = new Date().toISOString().slice(0, 10);
+  sections.push(`# Shared Daily Insights — ${date}\n`);
+  for (const displayName of STANDUP_REPORT_ORDER) {
+    const entry = byName.get(displayName.toLowerCase());
+    if (!entry) {
+      sections.push(`## ${displayName}\n(no agent in registry)\n`);
+      continue;
+    }
+    const agentRuntime = getAgent(entry.agentId);
+    if (!agentRuntime) {
+      sections.push(`## ${displayName}\n(no runtime)\n`);
+      continue;
+    }
+    try {
+      let data = await fetchAgentData(agentRuntime, entry.displayName);
+      if (!data) data = "(no data)";
+      if (data.length > SHARED_INSIGHTS_PER_AGENT_CAP) {
+        data = data.slice(0, SHARED_INSIGHTS_PER_AGENT_CAP) + "…";
+      }
+      sections.push(`## ${displayName}\n${data}\n`);
+    } catch (err) {
+      logger.warn({ err, agent: displayName }, "[Standup] fetchAgentData failed for shared insights");
+      sections.push(`## ${displayName}\n(fetch failed)\n`);
+    }
+  }
+  const content = sections.join("\n");
+  saveSharedDailyInsights(content);
+}
 
 function extractReplyFromResponse(resp: unknown): string | null {
   if (!resp || typeof resp !== "object") return null;
@@ -539,7 +599,14 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
       logger.info(`[Standup] 🎬 Starting scheduled standup (${currentHour}:00 UTC)...`);
       try {
         const { roomId, facilitatorEntityId } = await ensureStandupWorldAndRoom(rt);
-        const kickoffText = buildShortStandupKickoff();
+        const eliza = getElizaOS(rt);
+        if (eliza?.getAgent) {
+          await buildAndSaveSharedDailyInsights(rt, eliza);
+        }
+        const sharedContent = loadSharedDailyInsights()?.trim();
+        const kickoffText = sharedContent
+          ? buildKickoffWithSharedInsights(sharedContent)
+          : buildShortStandupKickoff();
         const kickoffMemory = {
           id: uuidv4() as UUID,
           entityId: facilitatorEntityId,
@@ -567,6 +634,10 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           await rt.createMemory(replyMemory, "messages");
         }
         const parsed = await parseStandupTranscript(rt, transcript);
+        const crossAgentLinks = countCrossAgentLinks(transcript);
+        if (crossAgentLinks > 0) {
+          logger.info(`[Standup] North star: ${crossAgentLinks} cross-agent link(s) detected`);
+        }
         await persistStandupLessons(rt, roomId, parsed.lessonsByAgentName);
         await createActionItemTasks(
           rt,
@@ -606,6 +677,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
         const summaryLines = [
           `**Standup ${dateStr}** (one team, one dream)`,
           `• ${replies.length} agents spoke`,
+          crossAgentLinks > 0 ? `• ${crossAgentLinks} cross-agent link(s)` : "",
           `• Lessons: ${Object.keys(parsed.lessonsByAgentName).length}`,
           `• Action items: ${parsed.actionItems.length}${deliverableCount > 0 ? ` (${deliverableCount} deliverables — will be posted when ready)` : ""}`,
           dayReportPath ? `• Day Report: \`${dayReportPath}\`` : "",

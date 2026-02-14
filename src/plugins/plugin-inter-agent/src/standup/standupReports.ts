@@ -53,6 +53,11 @@ export const AGENT_ROLES = {
     focus: "Ops & Infrastructure",
     reportSections: ["system_status", "cost_tracking", "security_alerts", "pending_updates"],
   },
+  Clawterm: {
+    title: "AI Terminal",
+    focus: "OpenClaw & AI/AGI",
+    reportSections: ["openclaw_ai_news", "x_web_sentiment", "gateway_status"],
+  },
 } as const;
 
 export type AgentName = keyof typeof AGENT_ROLES;
@@ -147,6 +152,10 @@ Observing team reports — no execution capability yet.
 | APIs | 🟢/🟡/🔴 |
 
 **Action:** [One tech recommendation]`,
+
+  Clawterm: `## Clawterm — AI Terminal — {{date}}
+
+Use the LIVE DATA below (X + web for OpenClaw/AI/AGI). Write one short ALOHA-style narrative: what's happening in OpenClaw and AI, key X/web sentiment, gateway status, and one clear take. No bullet dumps — flowing prose. End with one action or recommendation.`,
 };
 
 /**

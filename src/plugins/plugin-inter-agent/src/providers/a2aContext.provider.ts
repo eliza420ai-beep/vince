@@ -33,16 +33,17 @@ import {
   touchActivity,
   getSessionStats,
 } from "../standup/standupState";
-import { getStandupResponseDelay, getEssentialStandupQuestion } from "../standup/standup.constants";
+import { getStandupResponseDelay, getEssentialStandupQuestion, SHARED_INSIGHTS_SENTINEL } from "../standup/standup.constants";
 import {
   getProgressionMessage,
   checkStandupHealth,
   getAgentDisplayName,
 } from "../standup/standupOrchestrator";
 import { fetchAgentData } from "../standup/standupDataFetcher";
+import { ALOHA_STYLE_BLOCK } from "../standup/standupStyle";
 
 /** Known agent names for A2A detection */
-const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle"];
+const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "echo", "oracle", "clawterm"];
 
 /** Human names to recognize (co-founders, team members) */
 const KNOWN_HUMANS = ["yves", "ikigai"];
@@ -59,6 +60,7 @@ const STANDUP_TURN_ORDER = [
   "solus",    // Risk/sizing
   "otaku",    // Execution status
   "sentinel", // System health
+  "clawterm", // OpenClaw & AI/AGI
   // Kelly wraps up
 ];
 
@@ -364,6 +366,7 @@ You are Kelly, facilitating the trading standup. You are coordinator only. Keep 
 - Never restate or summarize another agent's report. Your only replies are: call the next agent (e.g. "@Eliza, go.") or wrap up. One short line. Do not echo numbers, execution, or weekend plans already stated.
 
 **Transitions are 3 words max:** "@Eliza, go."
+**Turn order:** VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel → Clawterm → Wrap-up
 ` };
       }
       
@@ -380,6 +383,8 @@ Action: IGNORE. Do not reply until it's your turn.` };
       // I was directly called — it's my turn!
       logger.info(`[A2A_CONTEXT] ✅ ${myName}: Called in standup — responding`);
       const role = getAgentRole(myName);
+      const messageText = typeof message.content?.text === "string" ? message.content.text : "";
+      const hasSharedInsights = messageText.includes(SHARED_INSIGHTS_SENTINEL);
       
       // Check if this agent is under construction
       const roleKey = Object.keys(AGENT_ROLES).find(
@@ -402,45 +407,46 @@ Action: IGNORE. Do not reply until it's your turn.` };
           logger.warn({ err }, `[A2A_CONTEXT] Failed to fetch data for ${myName}`);
         }
         
+        if (hasSharedInsights) {
+          return { text: `
+## 🚧 YOUR TURN — Synthesis (Under Construction)
+
+Shared daily insights are above. You are **under construction**. Add one link to another agent's insight if relevant; otherwise one short status. Natural prose, MAX 30 words.
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+**Context:** ${statusData || `🚧 ${role?.focus || myName} under construction.`}
+` };
+        }
         return { text: `
 ## 🚧 YOUR TURN — Status Update (Under Construction)
 
-Kelly called on you. You are **under construction** — give a BRIEF status.
+Kelly called on you. You are **under construction** — give a brief status in natural prose (no bullet dumps).
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 
-**YOUR RESPONSE (copy exactly):**
+**Context:** ${statusData || `🚧 ${role?.focus || myName} under construction. No action items.`}
 
-${statusData || `🚧 **${role?.focus || myName} under construction.**\n\n*No action items.*`}
-
-**RULES:**
-- MAX 30 WORDS
-- Just acknowledge you're under construction
-- NO fake data, NO promises
-- DO NOT say "happy to help" or offer to do things you can't do
+**RULES:** MAX 30 words. One short sentence or two. Acknowledge you're under construction. No fake data, no promises. Do not say "happy to help" or offer to do things you can't do. Write like a human, not a template.
 ` };
       }
       
       // Eliza: mostly listening; report = knowledge gaps, essay ideas, research for knowledge/
       if (myNameLower === "eliza") {
+        if (hasSharedInsights) {
+          return { text: `
+## 🎯 YOUR TURN — Synthesis (Eliza)
+
+Shared daily insights are above. Don't repeat your section. Add: (1) one link between your domain and another agent's insight, (2) one fact-check or clarification if needed, (3) one brainstorm or research idea, (4) one take. ~80 words, natural prose.
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+` };
+        }
         return { text: `
 ## 🎯 YOUR TURN — Standup Report (Eliza: Listening Mode)
 
-Kelly called on you. You were mostly listening. Your report should focus on what you heard and what it inspires.
+Kelly called on you. You were mostly listening. Write a short day report in natural prose: what you heard and what it inspires (knowledge gaps, one essay idea for Ikigai Studio Substack, research to add to knowledge/). No bullet lists — flowing sentences.
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 
-**Your report must include (brief bullets):**
-- **Knowledge gaps spotted:** [What we don't know yet that would help]
-- **Essay idea (Ikigai Studio Substack):** [One topic worth a long-form piece]
-- **Research to upload to knowledge/:** [What to ingest or research and add to knowledge base]
-
-**RULES:**
-- MAXIMUM 80 WORDS TOTAL
-- You do not lead — you react to what VINCE, ECHO, Oracle, etc. said
-- NO fake data; only gaps/ideas inspired by the standup
-- NO questions back
-- Do not repeat or paraphrase what another agent already said. State only new gaps/ideas.
+**RULES:** MAXIMUM 80 words. Natural prose only — no bullet dumps, no AI-slop (leverage, delve, actionable, etc.). You react to what VINCE, ECHO, Oracle, etc. said. No fake data; only gaps/ideas inspired by the standup. No questions back. Do not repeat what another agent already said.
 ` };
       }
       
@@ -464,6 +470,20 @@ Kelly called on you. You were mostly listening. Your report should focus on what
           logger.warn({ err }, "[A2A_CONTEXT] Failed to get prior reports for Solus");
         }
         const essentialQ = getEssentialStandupQuestion();
+        if (hasSharedInsights) {
+          return { text: `
+## 🎯 YOUR TURN — Synthesis (Solus)
+
+Shared daily insights are above. Answer the essential question **using the shared insights**; link to VINCE, Oracle, ECHO where relevant. Don't repeat your section verbatim.
+${priorReportsSnippet}
+
+**Essential question:** ${essentialQ}
+
+**You are:** ${myName}${role ? ` (${role.title})` : ""}. Add: one link across agents, one fact-check if needed, clear Yes/No and one sentence path. 250-300 words, ALOHA style.
+
+${ALOHA_STYLE_BLOCK}
+` };
+        }
         return { text: `
 ## 🎯 YOUR TURN — Standup Report (Solus: Options Lead)
 
@@ -474,19 +494,11 @@ ${priorReportsSnippet}
 
 **You are:** ${myName}${role ? ` (${role.title})` : ""} — Hypersurface options settle weekly (Friday 08:00 UTC). We do the wheel; we sit in BTC. Use data + sentiment + news to choose optimal strike for BTC covered calls.
 
-**Your answer must include (Grok-style):**
-- Current data (price, Fear & Greed)
-- X sentiment and Polymarket/options expiry if available
-- Macro/volatility (e.g. liquidations, Fed, tech selloffs) if relevant
-- On-chain/contrarian (e.g. MVRV, base-building, cost floor) if relevant
-- **Clear Yes/No** (e.g. "No, I don't think BTC will be above $70K by next Friday")
-- Short-term path and caveats in 1-2 sentences
+**Your answer must include (in flowing prose, ALOHA-style):** Current data (price, Fear & Greed); X sentiment and Polymarket/options expiry if available; macro/volatility if relevant; on-chain/contrarian if relevant; a clear Yes/No (e.g. "No, I don't think BTC will be above $70K by next Friday"); short-term path and caveats in 1-2 sentences.
 
-**RULES:**
-- 250-300 WORDS — enough to be as actionable as a Grok-style reply
-- Use prior reports above; don't make up numbers
-- End with "My take: [Yes/No], ..." and one sentence path
-- Do not repeat or paraphrase what another agent already said. Add only your synthesis and take.
+**RULES:** 250-300 words. Write like a smart friend over coffee — narrative, no bullet dumps. Use prior reports above; don't make up numbers. End with "My take: [Yes/No], ..." and one sentence path. Do not repeat what another agent already said. Add only your synthesis and take.
+
+${ALOHA_STYLE_BLOCK}
 ` };
       }
       
@@ -517,34 +529,43 @@ ${priorReportsSnippet}
         myNameLower === "sentinel"
           ? "\n**Report what's next in coding and what has been pushed to the repo.**\n"
           : "";
+      const clawtermLine =
+        myNameLower === "clawterm"
+          ? "\n**Report OpenClaw/AI/AGI: X and web sentiment, gateway status, one clear take.** Use LIVE DATA above.\n"
+          : "";
 
-      return { text: `
-## 🎯 YOUR TURN — Standup Report
+      if (hasSharedInsights) {
+        return { text: `
+## 🎯 YOUR TURN — Synthesis (link, fact-check, brainstorm)
 
-Kelly called on you. Report NOW. Be BRIEF.
+Shared daily insights are above (from all of us). **Do not repeat your section.** Add: (1) **One link** between your domain and another agent's insight (e.g. "VINCE's funding lines up with Oracle's odds on X"). (2) **One fact-check** or clarification if something looks off. (3) **One brainstorm or risk.** (4) **One actionable take.** Keep it short (~100–150 words). ALOHA style, no bullets.
 ${vinceLine}
 ${echoLine}
 ${solusOptionsLine}
 ${sentinelLine}
+${clawtermLine}
 **You are:** ${myName}${role ? ` (${role.title})` : ""}
 ${liveData}
 
-**FORMAT (EXACTLY THIS):**
+${ALOHA_STYLE_BLOCK}
+` };
+      }
 
-### ${myName} — ${role?.focus || "Update"}
-[Include the table from LIVE DATA above if available]
+      return { text: `
+## 🎯 YOUR TURN — Standup Day Report (ALOHA style)
 
-**Action:** [ONE specific trade recommendation in 10 words or less]
+Kelly called on you. Write your standup report as a **short day report in ALOHA style**: one flowing narrative, no mandatory tables or bullet lists. Use the LIVE DATA below to be specific. End with one clear action or take. ~200-300 words max.
+${vinceLine}
+${echoLine}
+${solusOptionsLine}
+${sentinelLine}
+${clawtermLine}
+**You are:** ${myName}${role ? ` (${role.title})` : ""}
+${liveData}
 
-**HARD RULES:**
-- MAXIMUM 80 WORDS TOTAL
-- Use the LIVE DATA above — don't make up numbers
-- ONE table, ONE action line
-- NO introductions, NO "here's my update"
-- NO questions back
-- Do not repeat or paraphrase what another agent already said in this thread. State only your own update; if confirming, one word (e.g. "Confirmed.") or hand off only. Add only new information; do not repeat execution summaries, premium targets, or lifestyle details already stated above.
+${ALOHA_STYLE_BLOCK}
 
-If you write more than 80 words, you are FAILING.
+**HARD RULES:** Use the LIVE DATA above — don't make up numbers. No "here's my update" or formal intros. No questions back. Do not repeat what another agent already said. Add only your own update; if confirming, one word (e.g. "Confirmed.") or hand off only. Keep to ~200-300 words.
 ` };
     }
     
