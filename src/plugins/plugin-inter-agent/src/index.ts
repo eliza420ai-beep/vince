@@ -23,7 +23,7 @@ import { standupFacilitatorAction } from "./actions/standupFacilitator.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
-import { getStandupSessionTimeoutMs } from "./standup/standup.constants";
+import { getStandupSessionTimeoutMs, isStandupKickoffRequest } from "./standup/standup.constants";
 
 /** Standup channel name substrings (from env or default) */
 function getStandupChannelParts(): string[] {
@@ -185,7 +185,15 @@ export const interAgentPlugin: Plugin = {
               if (!message.content) message.content = {};
               if (!message.content.mentionContext) message.content.mentionContext = {};
               message.content.mentionContext.isMention = true;
-              logger.info(`[KELLY_STANDUP] Injected isMention for standup message: "${(message?.content?.text ?? "").slice(0, 50)}"`);
+              const rawText = (message?.content?.text ?? "").trim();
+              if (rawText && isStandupKickoffRequest(rawText)) {
+                // Replace user text with a direct imperative so the LLM doesn't reason about "weekend" / "18th request" and output REPLY
+                (message.content as any)._originalStandupText = rawText;
+                message.content.text = "Run the daily standup now. Use only action STANDUP_FACILITATE. Do not use REPLY.";
+                logger.info(`[KELLY_STANDUP] Standup kickoff: overriding message text so LLM outputs STANDUP_FACILITATE`);
+              } else {
+                logger.info(`[KELLY_STANDUP] Injected isMention for standup message: "${rawText.slice(0, 50)}"`);
+              }
             }
           }
           const t0 = Date.now();

@@ -331,7 +331,7 @@ export const a2aContextProvider: Provider = {
           }
           if (amFacilitator && isStandupKickoffRequest(messageText)) {
             logger.info(`[A2A_CONTEXT] ${myName}: Human asked to start standup — force STANDUP_FACILITATE`);
-            return { text: `[STANDUP KICKOFF] The human asked to start the standup. You MUST use action **STANDUP_FACILITATE** and NO other action. Do NOT output conversational text — the action will post the kickoff. Do NOT use REPLY. Output only: <actions>STANDUP_FACILITATE</actions> with minimal or no <text>.` };
+            return { text: `[STANDUP KICKOFF — SYSTEM] Regardless of time of day, day of week, or how many times they asked: the user explicitly requested a standup. You MUST use action STANDUP_FACILITATE and NO other action. Do NOT use REPLY. Do NOT output conversational text — the action will post the kickoff. Output only: <actions>STANDUP_FACILITATE</actions> with minimal or no <text>.` };
           }
         }
         logger.info(`[A2A_CONTEXT] ⭐ ${myName}: Message from HUMAN (${humanName}) — priority response`);
