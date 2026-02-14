@@ -852,6 +852,118 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       "Ask \"What Polymarket markets matter for us?\" or \"Show our focus markets\". For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
   },
 
+  Naval: {
+    headline: "Rip apart your career. Rebuild from leverage and specific knowledge.",
+    intro:
+      "Like having the AngelList founder in your ear. Naval runs 13 career-audit prompts: specific knowledge, leverage (code/media/labor/capital), long-term games, productize yourself, accountability vs authenticity, reading for understanding, expected value, credibility vs status, wealth creation vs capture, escape competition, retirement test, build in public, narrow niche. Paste your context—background, opportunity, decision, skills—and get a ruthless take. No trading, no execution. Philosophy and frameworks only.",
+    tags: [
+      { label: "Philosophy", withSparkles: true },
+      { label: "13 Prompts" },
+      { label: "Specific Knowledge" },
+      { label: "Leverage" },
+      { label: "Career Audit" },
+      { label: "No Trading" },
+    ],
+    capabilities: [
+      {
+        title: "Specific Knowledge Audit",
+        description:
+          "What only you can do; can't be trained, from experience, do for free, where you're authentic. Be ruthless.",
+      },
+      {
+        title: "Leverage Identification",
+        description:
+          "Code, media, labor, capital—do you have it? How to acquire in 6 months? Rank by ease to scale.",
+      },
+      {
+        title: "Long-Term Games",
+        description:
+          "Is this opportunity compounding? Long-term people? What compounds in 5 years? Pass/fail.",
+      },
+      {
+        title: "Productize Yourself",
+        description:
+          "12-month roadmap: build (1–3), sell (4–6), scale (7–9), outcome (10–12). Sell + build = unstoppable.",
+      },
+      {
+        title: "Accountability vs Authenticity",
+        description:
+          "Authentic or for show? Willing to be publicly accountable? What if no one was watching?",
+      },
+      {
+        title: "Reading for Understanding",
+        description:
+          "Extract 3 mental models from a book, apply to your problem, should you finish, what to read next.",
+      },
+      {
+        title: "Expected Value",
+        description:
+          "Best case, worst case, probability per option. Highest EV or reject all. If you can't decide, the answer is no.",
+      },
+      {
+        title: "Credibility vs Status",
+        description:
+          "Audit last 6 months: building credibility or chasing status? What to kill, what to double down on.",
+      },
+      {
+        title: "Wealth Creation vs Capture",
+        description:
+          "Creating new value (positive sum) or capturing existing (zero sum)? If pure capture, what would creation look like?",
+      },
+      {
+        title: "Escape Competition",
+        description:
+          "Find 2–3 skill intersections: top 10% each, unique combo, demand. What would you call yourself?",
+      },
+      {
+        title: "Retirement Cope",
+        description:
+          "Retirement = today is complete in itself. Love it or leading somewhere? Would you do it if wealthy?",
+      },
+      {
+        title: "Build in Public",
+        description:
+          "Should you build publicly? Accountability if it fails, leverage from being public. What to share weekly.",
+      },
+      {
+        title: "Narrow Niche",
+        description:
+          "Narrow until you're the obvious choice. I'm the only person who [X] for [Y]. Why too narrow is good.",
+      },
+    ],
+    plugins: [
+      {
+        name: "Plugin-Naval",
+        category: "Philosophy & Career",
+        summary:
+          "13 career-audit prompts: specific knowledge, leverage, long-term games, productize yourself, accountability, reading for understanding, expected value, credibility vs status, wealth creation vs capture, escape competition, retirement test, build in public, narrow niche. Plus wisdom, mental models, book recs.",
+        points: [
+          "Paste your context; get Naval's take. Ruthless and concrete.",
+          "Knowledge: naval, the-good-life, teammate.",
+        ],
+        example: '"specific knowledge audit" then paste your background, or "expected value" then paste decision and options',
+      },
+      {
+        name: "Powered by ElizaOS",
+        category: "AI Engine",
+        summary:
+          "One voice. Naval's frame: no status games, specific knowledge, compound over decades.",
+        points: [],
+        example: "",
+      },
+      {
+        name: "Bootstrap",
+        category: "Memory",
+        summary:
+          "Remembers context.",
+        points: [],
+        example: "",
+      },
+    ],
+    proTip:
+      "Click a quick action or say the prompt name (e.g. specific knowledge audit, leverage identification), then paste your context in the same or next message.",
+  },
+
   Eliza: {
     headline: "24/7 research & knowledge expansion.",
     intro:

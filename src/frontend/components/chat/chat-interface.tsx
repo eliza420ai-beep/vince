@@ -243,6 +243,23 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
     { label: "Categories", message: "What categories are available on polymarket?" },
   ],
+  // Naval: 13 career-audit prompts. Paste context after clicking (or in same message).
+  naval: [
+    { label: "What can you do?", message: "What can you do?" },
+    { label: "Specific Knowledge Audit", message: "specific knowledge audit" },
+    { label: "Leverage ID", message: "leverage identification" },
+    { label: "Long-Term Games", message: "long term games" },
+    { label: "Productize Yourself", message: "productize myself" },
+    { label: "Accountability vs Authenticity", message: "accountability authenticity" },
+    { label: "Reading for Understanding", message: "reading for understanding" },
+    { label: "Expected Value", message: "expected value" },
+    { label: "Credibility vs Status", message: "credibility vs status" },
+    { label: "Wealth Creation vs Capture", message: "wealth creation capture" },
+    { label: "Escape Competition", message: "escape competition" },
+    { label: "Retirement Test", message: "retirement cope" },
+    { label: "Build in Public", message: "build in public" },
+    { label: "Narrow Niche", message: "narrow niche" },
+  ],
   // Clawterm: AI terminal, OpenClaw expert — AI 2027, AGI, setup, gateway, openclaw-agents, tips, use cases, HIP-3 AI assets. For crypto data—VINCE.
   clawterm: [
     { label: "What can you do?", message: "What can you do?" },
@@ -281,6 +298,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
   clawterm:
     "AI terminal, OpenClaw expert. For crypto research, prices, watchlist, portfolio—ask VINCE.",
+  naval:
+    "Philosophy and career audits only. Paste your context after the prompt. No trading—ask VINCE or Solus.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)

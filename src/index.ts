@@ -37,6 +37,7 @@ import { kellyAgent } from "./agents/kelly.ts";
 import { sentinelAgent } from "./agents/sentinel.ts";
 import { echoAgent } from "./agents/echo.ts";
 import { oracleAgent } from "./agents/oracle.ts";
+import { navalAgent } from "./agents/naval.ts";
 import { clawtermAgent } from "./agents/clawterm.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
 import { interAgentPlugin } from "./plugins/plugin-inter-agent/src/index.ts";
@@ -91,6 +92,11 @@ addIfDiscordEnabled(
   "Oracle",
   !!(process.env.ORACLE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
   process.env.ORACLE_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+);
+addIfDiscordEnabled(
+  "Naval",
+  !!(process.env.NAVAL_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
+  process.env.NAVAL_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Clawterm",
@@ -152,6 +158,10 @@ const project: Project = {
       plugins: [logFilterPlugin, interAgentPlugin, ...(oracleAgent.plugins ?? [])],
     },
     {
+      ...navalAgent,
+      plugins: [logFilterPlugin, interAgentPlugin, ...(navalAgent.plugins ?? [])],
+    },
+    {
       ...clawtermAgent,
       plugins: [logFilterPlugin, interAgentPlugin, ...(clawtermAgent.plugins ?? [])],
     },
@@ -166,6 +176,7 @@ export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
 export { echoAgent } from "./agents/echo.ts";
 export { oracleAgent } from "./agents/oracle.ts";
+export { navalAgent } from "./agents/naval.ts";
 export { clawtermAgent } from "./agents/clawterm.ts";
 export { character } from "./agents/eliza.ts";
 export default project;

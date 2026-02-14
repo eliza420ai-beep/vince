@@ -23,6 +23,7 @@ export { kellyCharacter } from './kelly';
 export { sentinelCharacter } from './sentinel';
 export { echoCharacter } from './echo';
 export { oracleCharacter } from './oracle';
+export { navalCharacter } from './naval';
 export { clawtermCharacter, clawtermAgent } from './clawterm';
 
 // Type exports
