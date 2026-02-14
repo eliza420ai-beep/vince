@@ -32,6 +32,7 @@ import {
 } from "./dayReportPersistence";
 import { fetchAgentData } from "./standupDataFetcher";
 import { buildKickoffWithSharedInsights } from "./standup.context";
+import { isStandupRunning } from "./standupState";
 
 const STANDUP_SOURCE = "standup";
 
@@ -293,7 +294,7 @@ export async function runStandupRoundRobin(
 /**
  * Persist lessons to each agent's memory (facts table).
  */
-async function persistStandupLessons(
+export async function persistStandupLessons(
   runtime: IAgentRuntime,
   roomId: UUID,
   lessonsByAgentName: Record<string, string>,
@@ -334,7 +335,7 @@ const OPINION_DECAY = 0.1;
  * Update inter-agent relationship opinion when disagreements are detected.
  * For each pair (A,B), both A→B and B→A get metadata.opinion decreased and metadata.disagreements incremented.
  */
-async function persistStandupDisagreements(
+export async function persistStandupDisagreements(
   runtime: IAgentRuntime,
   disagreements: { agentA: string; agentB: string }[],
 ): Promise<void> {
@@ -406,7 +407,7 @@ function persistStandupSuggestions(suggestions: string[] | undefined): void {
 /**
  * Create one-time tasks for each action item; worker sends reminder (remind) or runs build (build).
  */
-async function createActionItemTasks(
+export async function createActionItemTasks(
   runtime: IAgentRuntime,
   actionItems: StandupActionItem[],
   roomId: UUID,
@@ -592,6 +593,12 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
       // Prevent duplicate runs in the same hour
       if (lastStandupHour === currentHour) {
         logger.debug(`[Standup] Already ran standup at ${currentHour}:00 UTC this hour, skipping`);
+        return;
+      }
+
+      // Skip if a manual standup is already running
+      if (isStandupRunning()) {
+        logger.info("[Standup] Manual standup in progress — skipping scheduled run");
         return;
       }
 

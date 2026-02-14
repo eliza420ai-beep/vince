@@ -24,13 +24,14 @@ import { saveDayReport, updateDayReportManifest, getRecentReportsContext } from 
 import { getActionItemsContext, parseActionItemsFromReport, addActionItem } from "../standup/actionItemTracker";
 import { extractSignalsFromReport, validateAllAssets, buildValidationContext, type AgentSignal } from "../standup/crossAgentValidation";
 import { getStandupConfig, formatSchedule } from "../standup/standupScheduler";
-import { startStandupSession, endStandupSession, getSessionStats } from "../standup/standupState";
+import { startStandupSession, endStandupSession, getSessionStats, isStandupActive } from "../standup/standupState";
 import { STANDUP_REPORT_ORDER, isStandupKickoffRequest } from "../standup/standup.constants";
 import { buildDayReportPrompt } from "../standup/standupDayReport";
 import { getElizaOS } from "../types";
-import { buildAndSaveSharedDailyInsights } from "../standup/standup.tasks";
+import { buildAndSaveSharedDailyInsights, persistStandupLessons, persistStandupDisagreements, createActionItemTasks } from "../standup/standup.tasks";
 import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
 import { buildKickoffWithSharedInsights } from "../standup/standup.context";
+import { parseStandupTranscript, countCrossAgentLinks } from "../standup/standup.parse";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
 const STANDUP_FOCUS = {
@@ -218,6 +219,23 @@ ${validationContext}
           });
         }
 
+        // Persist to DB: parse transcript for lessons, disagreements, action item tasks, cross-agent links
+        try {
+          const parsed = await parseStandupTranscript(runtime, contextStr);
+          const crossAgentLinks = countCrossAgentLinks(contextStr);
+          if (crossAgentLinks > 0) {
+            logger.info(`[STANDUP_FACILITATE] North star: ${crossAgentLinks} cross-agent link(s) detected`);
+          }
+          await persistStandupLessons(runtime, message.roomId, parsed.lessonsByAgentName);
+          await persistStandupDisagreements(runtime, parsed.disagreements);
+          await createActionItemTasks(runtime, parsed.actionItems, message.roomId, message.entityId);
+          logger.info(
+            `[STANDUP_FACILITATE] DB persistence: ${Object.keys(parsed.lessonsByAgentName).length} lessons, ${parsed.actionItems.length} action items, ${parsed.disagreements.length} disagreements`,
+          );
+        } catch (persistErr) {
+          logger.warn({ err: persistErr }, "[STANDUP_FACILITATE] DB persistence failed (non-fatal)");
+        }
+
         // End the standup session
         endStandupSession();
         
@@ -234,6 +252,19 @@ ${validationContext}
         }
       }
     } else {
+      // Guard: refuse to start if a standup is already running
+      if (isStandupActive()) {
+        logger.info("[STANDUP_FACILITATE] A standup is already in progress — skipping kickoff");
+        if (callback) {
+          await callback({
+            text: "A standup is already in progress. Wait for it to finish or ask me to wrap up.",
+            action: "STANDUP_FACILITATE",
+            source: "Kelly",
+          });
+        }
+        return true;
+      }
+
       // Kickoff — start a new standup session
       startStandupSession(message.roomId);
 

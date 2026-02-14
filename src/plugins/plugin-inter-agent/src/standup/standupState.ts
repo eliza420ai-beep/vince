@@ -12,18 +12,10 @@
 import { logger } from "@elizaos/core";
 import { STANDUP_REPORT_ORDER } from "./standup.constants";
 
-/** Standup turn order (lowercase); derived from canonical STANDUP_REPORT_ORDER */
-const STANDUP_ORDER = STANDUP_REPORT_ORDER.map((n) => n.toLowerCase()) as readonly [
-  "vince",
-  "eliza",
-  "echo",
-  "oracle",
-  "solus",
-  "otaku",
-  "sentinel",
-];
+/** Standup turn order (lowercase); derived dynamically from canonical STANDUP_REPORT_ORDER */
+const STANDUP_ORDER: readonly string[] = STANDUP_REPORT_ORDER.map((n) => n.toLowerCase());
 
-type StandupAgent = (typeof STANDUP_ORDER)[number];
+type StandupAgent = string;
 
 interface StandupSession {
   startedAt: number;
@@ -50,7 +42,7 @@ export function startStandupSession(roomId: string): void {
   currentSession = {
     startedAt: Date.now(),
     roomId,
-    currentAgent: "vince", // First agent
+    currentAgent: STANDUP_ORDER[0] ?? "vince", // First agent
     reportedAgents: new Set(),
     lastActivityAt: Date.now(),
     isWrappingUp: false,
@@ -81,12 +73,26 @@ export function isStandupActive(roomId?: string): boolean {
 }
 
 /**
+ * Check if any standup is currently running (regardless of room).
+ * Used as a collision guard between manual and scheduled standups.
+ */
+export function isStandupRunning(): boolean {
+  if (!currentSession) return false;
+  const now = Date.now();
+  if (now - currentSession.startedAt > SESSION_TIMEOUT_MS) {
+    currentSession = null;
+    return false;
+  }
+  return true;
+}
+
+/**
  * Mark an agent as having reported
  */
 export function markAgentReported(agentName: string): void {
   if (!currentSession) return;
   
-  const normalized = agentName.toLowerCase() as StandupAgent;
+  const normalized = agentName.toLowerCase();
   if (STANDUP_ORDER.includes(normalized)) {
     currentSession.reportedAgents.add(normalized);
     currentSession.lastActivityAt = Date.now();
@@ -99,7 +105,7 @@ export function markAgentReported(agentName: string): void {
  */
 export function hasAgentReported(agentName: string): boolean {
   if (!currentSession) return false;
-  const normalized = agentName.toLowerCase() as StandupAgent;
+  const normalized = agentName.toLowerCase();
   return currentSession.reportedAgents.has(normalized);
 }
 

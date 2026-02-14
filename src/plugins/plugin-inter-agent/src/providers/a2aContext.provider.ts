@@ -309,7 +309,7 @@ Address ${humanName} directly. Be useful.
             return { text: `
 ## AUTO-WRAP: Generate Day Report
 
-All 7 agents have reported. Time to synthesize.
+All ${STANDUP_TURN_ORDER.length} agents have reported. Time to synthesize.
 
 **YOUR ONLY JOB RIGHT NOW:** Generate the Day Report.
 
