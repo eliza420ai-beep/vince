@@ -243,6 +243,15 @@ export interface MoreLeaderboardSection {
     tokens: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[];
     creditRemaining: number | null;
   } | null;
+  volumeInsights: {
+    assets: Array<{
+      asset: string;
+      volumeRatio: number | null;
+      volume24h: number | null;
+      volume24hFormatted: string | null;
+      interpretation: string; // "spike" | "elevated" | "normal" | "low" | "dead_session"
+    }>;
+  } | null;
 }
 
 export interface LeaderboardsResponse {
@@ -886,7 +895,7 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
     getCreditUsage?: () => { remaining: number };
   } | null;
 
-  const [fearGreedData, btcDvol, ethDvol, btcCtx, ethCtx, crossVenueData, oiCapData, binanceIntelData, coinglassExtData, sanbaseBtcData, sanbaseEthData, nansenData] = await Promise.all([
+  const [fearGreedData, btcDvol, ethDvol, btcCtx, ethCtx, crossVenueData, oiCapData, binanceIntelData, coinglassExtData, sanbaseBtcData, sanbaseEthData, nansenData, volumeData] = await Promise.all([
     safe("FearGreed", async () => {
       const cg = coinglass?.getFearGreed?.() ?? null;
       if (cg) return cg;
@@ -932,6 +941,20 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
       const tokens = await nansen?.getHotMemeTokens?.() ?? [];
       const credits = nansen?.getCreditUsage?.();
       return { tokens, creditRemaining: credits?.remaining ?? null };
+    }),
+    safe("VolumeInsights", async () => {
+      const md = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
+        getEnrichedContext?: (asset: string) => Promise<{ volumeRatio?: number; volume24h?: number } | null>;
+      } | null;
+      if (!md?.getEnrichedContext) return null;
+      const volAssets = ["BTC", "ETH", "SOL", "HYPE"];
+      const results = await Promise.all(
+        volAssets.map(async (asset) => {
+          const ctx = await md.getEnrichedContext!(asset).catch(() => null);
+          return ctx ? { asset, volumeRatio: ctx.volumeRatio ?? null, volume24h: ctx.volume24h ?? null } : null;
+        }),
+      );
+      return results.filter(Boolean) as Array<{ asset: string; volumeRatio: number | null; volume24h: number | null }>;
     }),
   ]);
 
@@ -1068,6 +1091,27 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
       }
     : null;
 
+  const volumeInsights = Array.isArray(volumeData) && volumeData.length > 0
+    ? {
+        assets: volumeData.map((v: { asset: string; volumeRatio: number | null; volume24h: number | null }) => {
+          let interpretation = "normal";
+          if (v.volumeRatio != null) {
+            if (v.volumeRatio >= 2.0) interpretation = "spike";
+            else if (v.volumeRatio >= 1.5) interpretation = "elevated";
+            else if (v.volumeRatio < 0.5) interpretation = "dead_session";
+            else if (v.volumeRatio < 0.8) interpretation = "low";
+          }
+          return {
+            asset: v.asset,
+            volumeRatio: v.volumeRatio,
+            volume24h: v.volume24h,
+            volume24hFormatted: v.volume24h ? formatVol(v.volume24h) : null,
+            interpretation,
+          };
+        }),
+      }
+    : null;
+
   return {
     fearGreed,
     options,
@@ -1081,6 +1125,7 @@ async function buildMoreSection(runtime: IAgentRuntime): Promise<MoreLeaderboard
     deribitSkew,
     sanbaseOnChain,
     nansenSmartMoney,
+    volumeInsights,
   };
 }
 
