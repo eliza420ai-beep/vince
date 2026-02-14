@@ -144,6 +144,12 @@ function isFromKnownAgent(memory: Memory): { isAgent: boolean; agentName: string
 
   logger.debug(`[A2A_DETECT] senderName="${senderName}", agentId=${memory.agentId ?? "none"}, isBot=${(memory.content?.metadata as Record<string, unknown> | undefined)?.isBot ?? "unset"}`);
 
+  // Check 0: known humans are never agents — so kickoff/priority block can run (standup channel)
+  const knownHumans = getKnownHumans();
+  if (senderName && knownHumans.some((h) => senderName === h || senderName.includes(h))) {
+    return { isAgent: false, agentName: null };
+  }
+
   // Check 1: substring match against known agents — return canonical name
   for (const agent of KNOWN_AGENTS) {
     if (senderName.includes(agent)) {

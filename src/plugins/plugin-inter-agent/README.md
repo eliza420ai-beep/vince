@@ -87,7 +87,7 @@ When **STANDUP_USE_RALPH_LOOP** is `false`, the plugin creates one ElizaOS queue
 |-----|--------|--------------|
 | `STANDUP_ENABLED` | — | Set to `"true"` to enable standup. |
 | `STANDUP_COORDINATOR_AGENT` | `Kelly` | Agent that registers the task and facilitates. |
-| `STANDUP_UTC_HOURS` | `9` | Comma-separated UTC hours (e.g. `"9"` = 09:00 daily, `"9,21"` = twice daily). |
+| `STANDUP_UTC_HOURS` | `9` | Comma-separated UTC hours (e.g. `"9"` = 09:00 daily, `"9,21"` = twice daily). **Runs every day including weekend** — no weekday-only filter. |
 | `STANDUP_INTERVAL_MS` | `3600000` | Interval (ms) between schedule checks for the main standup task (1h). |
 | `STANDUP_SCHEDULE` | `0 8 * * *` | Cron expression for scheduler (minute hour * * *). Used when STANDUP_AUTO_START is true. |
 | `STANDUP_AUTO_START` | `false` | Set to `"true"` to enable cron-style auto kickoff at STANDUP_SCHEDULE. |
@@ -116,6 +116,8 @@ Day reports are written to `{STANDUP_DELIVERABLES_DIR}/day-reports/YYYY-MM-DD-da
 **Deliverables layout:** Under `STANDUP_DELIVERABLES_DIR`: `day-reports/`, `action-items.json`, `standup-learnings.md`, `daily-insights/` (shared pre-standup), `prds/` (PRDs from Sentinel), `essays/`, `integration-instructions/` (Milaidy/OpenClaw etc.). North-star build outputs go under this tree.
 
 **Optional schedule (cron-style):** Besides `STANDUP_UTC_HOURS` + `STANDUP_INTERVAL_MS`, you can use **STANDUP_SCHEDULE** (cron, e.g. `0 8 * * *` = 8 AM UTC daily), **STANDUP_AUTO_START** (`true` to enable), and **STANDUP_TIMEZONE** (default `UTC`). The scheduler uses a ±1 minute window so triggers are not missed.
+
+**Testing a standup:** In Discord (or your standup channel), the human (e.g. livethelifetv) can trigger manually: *"let's do a new standup kelly"* or *"day report"* / *"wrap up"*. Kelly should reply with STANDUP_FACILITATE: kickoff, round-robin (VINCE → Eliza → … → Clawterm), then Day Report + action items. Check: (1) only Kelly responds to the human in the standup channel (single-responder), (2) Day Report appears in `standup-deliverables/day-reports/YYYY-MM-DD-day-report.md`, (3) action items in `action-items.json` and Ralph loop processes them when enabled.
 
 ---
 

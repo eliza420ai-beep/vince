@@ -218,6 +218,7 @@ export const STANDUP_KICKOFF_PHRASES = [
   "morning standup",
   "let's do standup",
   "let's do a standup",
+  "let's do a new standup",
   "let's do a stand up",
   "do a standup",
   "do a stand up",
@@ -227,6 +228,7 @@ export const STANDUP_KICKOFF_PHRASES = [
   "team standup",
   "standup time",
   "facilitate standup",
+  "new standup",
 ] as const;
 
 /** Words near "standup" that indicate a status report, not a kickoff request. */
