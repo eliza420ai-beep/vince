@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -40,8 +41,8 @@ export const xSaveResearchAction: Action = {
 
   examples: [
     [
-      { user: '{{user1}}', content: { text: 'Save that' } },
-      { user: '{{agentName}}', content: { text: 'Saved to skills/x-research/data/drafts/research-2025-02-12-1430.md', action: 'X_SAVE_RESEARCH' } },
+      { name: '{{user1}}', content: { text: 'Save that' } },
+      { name: '{{agentName}}', content: { text: 'Saved to skills/x-research/data/drafts/research-2025-02-12-1430.md', action: 'X_SAVE_RESEARCH' } },
     ],
   ],
 
@@ -57,14 +58,14 @@ export const xSaveResearchAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const roomId = message.roomId;
     if (!roomId) {
       callback({
         text: "Couldn't determine room; try running a pulse or vibe first, then say \"save that\".",
         action: 'X_SAVE_RESEARCH',
       });
-      return true;
+      return { success: true };
     }
 
     const text = getLastResearch(roomId);
@@ -73,7 +74,7 @@ export const xSaveResearchAction: Action = {
         text: "Nothing to save — run an X pulse, vibe, or news first, then say \"save that\" within a few minutes.",
         action: 'X_SAVE_RESEARCH',
       });
-      return true;
+      return { success: true };
     }
 
     try {
@@ -85,14 +86,14 @@ export const xSaveResearchAction: Action = {
         text: `Saved to \`${filepath}\`.`,
         action: 'X_SAVE_RESEARCH',
       });
-      return true;
+      return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       callback({
         text: `Failed to save: ${errMsg}`,
         action: 'X_SAVE_RESEARCH',
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

@@ -13,6 +13,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -154,7 +155,7 @@ export const otakuStopLossAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
     const request = parseStopLossRequest(text);
@@ -170,7 +171,7 @@ export const otakuStopLossAction: Action = {
           "Example: \"Set stop-loss at $1800 and take-profit at $2200 for 1 ETH\"",
         ].join("\n"),
       });
-      return false;
+      return { success: false, error: new Error("Could not parse stop-loss request") };
     }
 
     // Check if confirmation
@@ -233,7 +234,7 @@ export const otakuStopLossAction: Action = {
       await callback?.({
         text: results.join("\n\n"),
       });
-      return true;
+      return { success: true };
     }
 
     // Get current price for context
@@ -283,7 +284,7 @@ export const otakuStopLossAction: Action = {
 
     logger.info(`[OTAKU_STOP_LOSS] Pending: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

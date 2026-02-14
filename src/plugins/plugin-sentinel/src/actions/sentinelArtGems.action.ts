@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -43,7 +44,7 @@ export const sentinelArtGemsAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_ART_GEMS] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -61,13 +62,13 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_ART_GEMS] Failed:", error);
       await callback({
         text: "Art gems (elizaOS/examples/art): 1) Check the art folder for NFT/generative patterns. 2) Reuse action/provider structure for our ART lane. 3) Ingest examples/art into knowledge for concrete file refs. Refs: github.com/elizaOS/examples, internal-docs.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

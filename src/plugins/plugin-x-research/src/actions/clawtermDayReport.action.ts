@@ -9,6 +9,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -139,11 +140,11 @@ export const clawtermDayReportAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "What's hot today?" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "OpenClaw chatter is up after the latest gateway release — a few builders are threading how they're running agents locally. AGI timeline debates same as ever; one viral take on superhuman coding by EOY. On X it's mostly steady. I'd keep an eye on the repo activity and the next steipete stream.",
           action: 'CLAWTERM_DAY_REPORT',
@@ -161,7 +162,7 @@ export const clawtermDayReportAction: Action = {
     _state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const hasX = !!getXBearerToken(runtime);
     const hasTavily = !!(runtime.getSetting?.('TAVILY_API_KEY') || process.env.TAVILY_API_KEY);
 
@@ -170,7 +171,7 @@ export const clawtermDayReportAction: Action = {
         text: "Set X_BEARER_TOKEN for an X-sourced report. Web-only report is possible if TAVILY_API_KEY is set.",
         action: 'CLAWTERM_DAY_REPORT',
       });
-      return true;
+      return { success: true };
     }
 
     const date = new Date().toLocaleDateString('en-US', {
@@ -190,6 +191,6 @@ export const clawtermDayReportAction: Action = {
       text: report,
       action: 'CLAWTERM_DAY_REPORT',
     });
-    return true;
+    return { success: true };
   },
 };

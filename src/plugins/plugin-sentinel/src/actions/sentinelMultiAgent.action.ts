@@ -17,6 +17,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -82,7 +83,7 @@ export const sentinelMultiAgentAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_MULTI_AGENT] Action fired");
 
     try {
@@ -118,7 +119,7 @@ ${roles.map(r => `• **${r.name}** can ask: ${r.canAsk.join(", ")}`).join("\n")
 
 *One team, one dream — they talk to each other.*`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("standup") && (lower.includes("config") || lower.includes("setup") || lower.includes("how"))) {
@@ -131,7 +132,7 @@ ${config}
 
 **The North Star:** Agents meet autonomously 2×/day, discuss crypto + code + ideas, produce action items and lessons learned. You see the summary in #daily-standup. *Feels alive.*`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("dream team") || lower.includes("agent roles") || lower.includes("who does what")) {
@@ -154,7 +155,7 @@ ${roles.map(r => `| **${r.name}** | ${r.role} | ${r.lane} |`).join("\n")}
 
 *Clear lanes, no overlap. One team, one dream.*`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("deliverable") || lower.includes("north star deliverable")) {
@@ -176,7 +177,7 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
 
 *Success = these seven (now eight with eliza_task).*`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("option c") || lower.includes("discord setup")) {
@@ -202,7 +203,7 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
 
 **Why it matters:** Distinct agent identities. Users know who they're talking to. *Feels genuinely alive.*`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("feedback flow") || lower.includes("testing feedback")) {
@@ -223,7 +224,7 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
 
 **Status:** Documented in MULTI_AGENT.md, ready for implementation.`,
         });
-        return true;
+        return { success: true };
       }
 
       if (lower.includes("dev worker") || lower.includes("milaidy") && lower.includes("implement")) {
@@ -251,7 +252,7 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
 
 **Recommendation:** Ship feedback flow first. Add dev worker when PRD backlog grows.`,
         });
-        return true;
+        return { success: true };
       }
 
       // General multi-agent overview
@@ -294,13 +295,13 @@ PRD written → Agent reads it → Implements → Opens PR → Human reviews
       response += `\n---\n*Ask about specific topics: "a2a policy", "standup config", "dream team", "option c discord", "feedback flow", "dev worker"*`;
       
       await callback({ text: response });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_MULTI_AGENT] Failed:", error);
       await callback({
         text: "Failed to provide multi-agent guidance. Check MULTI_AGENT.md for the full architecture vision.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

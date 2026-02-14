@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -43,7 +44,7 @@ export const sentinelOnnxStatusAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_ONNX_STATUS] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -61,13 +62,13 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_ONNX_STATUS] Failed:", error);
       await callback({
         text: "Feature store: local jsonl in .elizadb/vince-paper-bot/features/; PGLite/Postgres table plugin_vince.paper_bot_features; optional Supabase vince_paper_bot_features (SUPABASE_SERVICE_ROLE_KEY). ONNX: 90+ rows then run train_models.py. Refs: FEATURE-STORE.md, ONNX.md.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

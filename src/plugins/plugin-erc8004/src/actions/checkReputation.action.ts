@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -55,14 +56,14 @@ export const erc8004ReputationAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const erc8004 = runtime.getService("erc8004") as ERC8004Service;
 
     if (!erc8004) {
       await callback?.({
         text: "ERC-8004 service not available.",
       });
-      return false;
+      return { success: false, error: new Error("ERC-8004 service not available") };
     }
 
     // Extract agent ID from message
@@ -79,7 +80,7 @@ export const erc8004ReputationAction: Action = {
         await callback?.({
           text: "Please specify an agent ID (e.g., \"reputation for agent #42\") or register first.",
         });
-        return false;
+        return { success: false, error: new Error("Agent ID required") };
       }
       agentId = ownId;
     }
@@ -90,7 +91,7 @@ export const erc8004ReputationAction: Action = {
       await callback?.({
         text: `Could not find reputation for agent #${agentId}. The agent may not be registered or have no ratings yet.`,
       });
-      return false;
+      return { success: false, error: new Error("Reputation not found") };
     }
 
     const scoreEmoji =
@@ -116,7 +117,7 @@ export const erc8004ReputationAction: Action = {
     }
 
     await callback?.({ text: lines.join("\n") });
-    return true;
+    return { success: true };
   },
 };
 

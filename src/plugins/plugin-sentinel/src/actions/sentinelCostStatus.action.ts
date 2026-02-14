@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -52,7 +53,7 @@ export const sentinelCostStatusAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_COST_STATUS] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -72,13 +73,13 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_COST_STATUS] Failed:", error);
       await callback({
         text: "Cost summary couldn't be generated. Check Leaderboard → Usage and TREASURY.md (cost breakdown section) for token usage, LLM choice, Cursor, data API tiers, breakeven, and 100K target. Always watch burn rate.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

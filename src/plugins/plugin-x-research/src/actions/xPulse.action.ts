@@ -14,6 +14,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -49,11 +50,11 @@ export const xPulseAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "What's CT saying about BTC today?" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "📊 **X Pulse** | BTC\n\n📈 Overall: Bullish (+42)\n\nCT is cautiously optimistic today. ETF inflows continue to dominate the conversation — @CryptoHayes posted a thread on the \"supply shock\" thesis that's getting serious traction (2.3k likes in 2 hours).\n\n**Top Thread:**\n🧵 @crediblecrypto on why this rally is different (technical breakdown)\n\n**Breaking:**\n🔥 @lookonchain flagged a large BTC transfer to Coinbase — could be profit-taking\n\n**Whale alignment:** +38 (whales agree with retail)\n\nNo contrarian warnings — sentiment is elevated but not extreme.",
           action: 'X_PULSE',
@@ -62,11 +63,11 @@ export const xPulseAction: Action = {
     ],
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "Give me the X vibe check" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "📊 **X Pulse**\n\n😐 Overall: Neutral (-5)\n\nMixed signals today. BTC 📈 slightly bullish, ETH 📉 facing L2 fee complaints, SOL 🔀 meme season fatigue.\n\n**Key Threads:**\n• @Tetranode on DeFi yields post-points meta\n• @DegenSpartan calling this a \"mid-curve trap\"\n\n**Volume Spike:**\n⚡ 3x normal volume on \"SEC\" — likely Gensler news\n\n**⚠️ Warning:**\nExtreme bearish sentiment on regulatory topics (-72). Historically, peak fear = buying opportunity.",
           action: 'X_PULSE',
@@ -94,7 +95,7 @@ export const xPulseAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       // Initialize client
       initXClientFromEnv(runtime);
@@ -138,7 +139,7 @@ export const xPulseAction: Action = {
           ? "📊 **X Pulse**\n\nNo recent tweets from quality/whale accounts in this window. Try full pulse or a different time."
           : "📊 **X Pulse**\n\nNo recent data available. X API might be rate limited or no matching content found.";
         callback({ text: noDataMsg, action: 'X_PULSE' });
-        return true;
+        return { success: true };
       }
 
       // Analyze sentiment
@@ -187,7 +188,7 @@ export const xPulseAction: Action = {
         action: 'X_PULSE',
       });
 
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('[X_PULSE] Error:', error);
       
@@ -205,7 +206,7 @@ export const xPulseAction: Action = {
         });
       }
       
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

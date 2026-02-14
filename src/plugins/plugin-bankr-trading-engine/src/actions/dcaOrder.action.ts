@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -164,7 +165,7 @@ export const dcaOrderAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const lower = text.toLowerCase();
     
@@ -202,12 +203,12 @@ export const dcaOrderAction: Action = {
           ].join("\n"),
         });
         
-        return true;
+        return { success: true };
       } catch (err) {
         await callback?.({
           text: `❌ Failed to create DCA order: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return false;
+        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
       }
     }
     
@@ -227,7 +228,7 @@ export const dcaOrderAction: Action = {
           "• DCA $2000 into ETH over 30 days",
         ].join("\n"),
       });
-      return false;
+      return { success: false, error: new Error("Could not parse DCA request") };
     }
     
     const perBuyAmount = (parseFloat(request.totalAmount) / request.executionCount).toFixed(2);
@@ -258,7 +259,7 @@ export const dcaOrderAction: Action = {
     // Store pending DCA in state (would need state management)
     logger.info(`[OTAKU_DCA] Pending: ${JSON.stringify(request)}`);
     
-    return true;
+    return { success: true };
   },
 };
 

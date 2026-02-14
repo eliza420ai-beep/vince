@@ -14,6 +14,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -229,7 +230,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const userText = (message.content?.text ?? "").trim();
     
     logger.info("[SENTINEL_SHIP] Analyzing project for ship priorities");
@@ -239,7 +240,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       if (isRadarOnly(userText)) {
         const summary = getProjectSummary();
         await callback({ text: summary });
-        return true;
+        return { success: true };
       }
       
       // Handle impact score request
@@ -251,7 +252,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
           await callback({
             text: "Please provide an idea to score:\n`impact score <your idea here>`",
           });
-          return true;
+          return { success: true };
         }
         
         const workItem: WorkItem = {
@@ -269,7 +270,7 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
         await callback({
           text: `📊 **Impact Score: "${idea.slice(0, 50)}${idea.length > 50 ? "..." : ""}"**\n\n${formatted}`,
         });
-        return true;
+        return { success: true };
       }
       
       // Full ship priorities
@@ -307,13 +308,13 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       }
       
       await callback({ text: response });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SHIP] Failed:", error);
       await callback({
         text: "Couldn't analyze ship priorities. Try `project radar` for a state overview, or ask about a specific area.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

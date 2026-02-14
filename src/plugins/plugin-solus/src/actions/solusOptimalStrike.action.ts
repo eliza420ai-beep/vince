@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -53,7 +54,7 @@ export const solusOptimalStrikeAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_OPTIMAL_STRIKE] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -77,13 +78,13 @@ Reply with strike call or one line asking for VINCE data. Reply in flowing prose
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim(), actions: ["SOLUS_OPTIMAL_STRIKE"] });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SOLUS_OPTIMAL_STRIKE] Failed:", error);
       await callback({
         text: "We don't have a pulse on where price lands by Friday—say 'options' to VINCE, paste his output here, and I'll give you the strike call (asset, OTM %, size/skip, invalidation).",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

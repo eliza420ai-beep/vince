@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -55,7 +56,7 @@ export const solusPositionAssessAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_POSITION_ASSESS] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -79,13 +80,13 @@ Reply with assessment and one call only.`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim(), actions: ["SOLUS_POSITION_ASSESS"] });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SOLUS_POSITION_ASSESS] Failed:", error);
       await callback({
         text: "Paste your position details: strike, notional, premium, collateral, expiry. Then I'll give you invalidation and hold/roll/adjust.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

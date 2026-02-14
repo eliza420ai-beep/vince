@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -43,7 +44,7 @@ export const sentinelSettingsSuggestAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_SETTINGS_SUGGEST] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -59,13 +60,13 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SETTINGS_SUGGEST] Failed:", error);
       await callback({
         text: "Settings: 1) Env: SUPABASE_SERVICE_ROLE_KEY and SUPABASE_URL for ML. 2) Channels: daily, news, research, sentinel, ops. 3) Feature-store: dual-write to Supabase vince_paper_bot_features. 4) ONNX: 90+ rows then train_models.py. 5) Claude Code: paste task briefs with architecture rules. Refs: FEATURE-STORE.md, DEPLOY.md.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

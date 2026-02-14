@@ -27,6 +27,89 @@ const X_NEWS_SUMMARY_MAX_CHARS = process.env.X_NEWS_SUMMARY_MAX_CHARS
   ? parseInt(process.env.X_NEWS_SUMMARY_MAX_CHARS, 10)
   : 420;
 
+const HYPERLIQUID_INFO_URL = 'https://api.hyperliquid.xyz/info';
+const COINGECKO_PRICE_URL =
+  'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd';
+
+const LIVE_SYMBOLS = ['BTC', 'ETH', 'SOL'] as const;
+
+function formatPrice(symbol: string, price: number): string {
+  if (symbol === 'BTC' && price >= 1000) return `BTC $${(price / 1000).toFixed(1)}k`;
+  if (symbol === 'ETH' && price >= 100) return `ETH $${price.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+  return `${symbol} $${price.toFixed(0)}`;
+}
+
+/**
+ * Fetch live BTC, ETH, SOL from Hyperliquid (mark prices). On failure, fall back to CoinGecko.
+ * Returns a one-line string for appending to the digest; null if both sources fail.
+ */
+async function getLivePriceLine(): Promise<string | null> {
+  const fromHyperliquid = await getLivePriceLineFromHyperliquid();
+  if (fromHyperliquid) return fromHyperliquid;
+  return getLivePriceLineFromCoinGecko();
+}
+
+async function getLivePriceLineFromHyperliquid(): Promise<string | null> {
+  try {
+    const res = await fetch(HYPERLIQUID_INFO_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as unknown;
+    if (!Array.isArray(data) || data.length < 2) return null;
+    const [meta, assetCtxs] = data as [
+      { universe?: { name: string }[] },
+      { markPx?: string; midPx?: string }[],
+    ];
+    const universe = meta?.universe;
+    if (!Array.isArray(universe) || !Array.isArray(assetCtxs)) return null;
+    const parts: string[] = [];
+    for (const symbol of LIVE_SYMBOLS) {
+      const idx = universe.findIndex((u) => (u?.name ?? '').toUpperCase() === symbol);
+      if (idx < 0 || idx >= assetCtxs.length) continue;
+      const ctx = assetCtxs[idx];
+      const pxStr = ctx?.markPx ?? ctx?.midPx;
+      if (pxStr == null || pxStr === '') continue;
+      const price = parseFloat(String(pxStr));
+      if (!Number.isFinite(price) || price <= 0) continue;
+      parts.push(formatPrice(symbol, price));
+    }
+    if (parts.length === 0) return null;
+    return `**Live (HL):** ${parts.join(' · ')}`;
+  } catch {
+    return null;
+  }
+}
+
+async function getLivePriceLineFromCoinGecko(): Promise<string | null> {
+  try {
+    const res = await fetch(COINGECKO_PRICE_URL, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      bitcoin?: { usd?: number };
+      ethereum?: { usd?: number };
+      solana?: { usd?: number };
+    };
+    const btc = data.bitcoin?.usd;
+    const eth = data.ethereum?.usd;
+    const sol = data.solana?.usd;
+    if (btc == null && eth == null && sol == null) return null;
+    const parts: string[] = [];
+    if (typeof btc === 'number') parts.push(formatPrice('BTC', btc));
+    if (typeof eth === 'number') parts.push(formatPrice('ETH', eth));
+    if (typeof sol === 'number') parts.push(formatPrice('SOL', sol));
+    if (parts.length === 0) return null;
+    return `**Live:** ${parts.join(' · ')}`;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Truncate at word boundary so we don't cut mid-word. Appends '...' when truncated.
  * Exported for unit tests.
@@ -94,8 +177,10 @@ export const xNewsAction: Action = {
       if (news.length === 0) {
         const fallback = await buildNewsFallback(runtime);
         if (fallback) {
-          if (message.roomId) setLastResearch(message.roomId, fallback);
-          callback({ text: fallback, action: 'X_NEWS' });
+          const liveLine = await getLivePriceLine();
+          const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
+          if (message.roomId) setLastResearch(message.roomId, text);
+          callback({ text, action: 'X_NEWS' });
           return { success: true };
         }
         callback({
@@ -149,6 +234,14 @@ export const xNewsAction: Action = {
         response += `\n_Powered by X News API_`;
       }
 
+      const liveLine = await getLivePriceLine();
+      if (liveLine) {
+        response = response.replace(
+          '\n\n_Powered by X News API_',
+          `\n\n${liveLine}\n\n_Powered by X News API_`,
+        );
+      }
+
       if (message.roomId) setLastResearch(message.roomId, response);
       callback({
         text: response,
@@ -167,7 +260,9 @@ export const xNewsAction: Action = {
 
       const fallback = await buildNewsFallback(runtime);
       if (fallback) {
-        callback({ text: fallback, action: 'X_NEWS' });
+        const liveLine = await getLivePriceLine();
+        const text = liveLine ? `${fallback}\n\n${liveLine}` : fallback;
+        callback({ text, action: 'X_NEWS' });
         return { success: true };
       }
 

@@ -14,6 +14,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -67,7 +68,7 @@ export const sentinelPrdAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_PRD] Action fired");
 
     try {
@@ -80,7 +81,7 @@ export const sentinelPrdAction: Action = {
           await callback({
             text: "📋 **No PRDs found**\n\nGenerate one with: *\"PRD for <feature description>\"*",
           });
-          return true;
+          return { success: true };
         }
 
         const list = prds.slice(0, 10).map((p, i) => 
@@ -90,7 +91,7 @@ export const sentinelPrdAction: Action = {
         await callback({
           text: `📋 **Recent PRDs (${prds.length} total)**\n\n${list}\n\n*Generate a new one with: \"PRD for <feature>\"*`,
         });
-        return true;
+        return { success: true };
       }
 
       // Extract the feature request from user text
@@ -140,7 +141,7 @@ Give me a feature description and I'll generate a world-class PRD.
 • "PRD for refactoring the options action"
 • "PRD for implementing X sentiment caching"${suggestionText}`,
         });
-        return true;
+        return { success: true };
       }
 
       // Get project state for context
@@ -217,7 +218,7 @@ Respond in this exact JSON format:
 
 ${prd.markdown.slice(0, 3000)}${prd.markdown.length > 3000 ? "\n\n*[truncated — see full PRD at path above]*" : ""}`,
         });
-        return true;
+        return { success: true };
       }
 
       // Generate the full PRD
@@ -241,13 +242,13 @@ ${prd.markdown.slice(0, 3500)}${prd.markdown.length > 3500 ? "\n\n*[truncated �
 **Next:** Open the PRD in Cursor and let Claude Code implement it. Keep the architecture as good as it gets.`,
       });
       
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_PRD] Failed:", error);
       await callback({
         text: "Failed to generate PRD. Try again with a clearer feature description, e.g. *\"PRD for adding whale tracking to plugin-vince\"*",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

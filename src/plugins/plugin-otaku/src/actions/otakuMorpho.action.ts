@@ -10,6 +10,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -148,7 +149,7 @@ export const otakuMorphoAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
     const request = parseMorphoRequest(text);
@@ -164,7 +165,7 @@ export const otakuMorphoAction: Action = {
           '- "Withdraw 50 USDC from Morpho vault"',
         ].join("\n"),
       });
-      return false;
+      return { success: false, error: new Error("Could not parse Morpho request") };
     }
 
     // Check if confirmation
@@ -186,7 +187,7 @@ export const otakuMorphoAction: Action = {
         await callback?.({
           text: "Morpho service not available. Check plugin configuration.",
         });
-        return false;
+        return { success: false, error: new Error("Morpho service not available") };
       }
 
       await callback?.({
@@ -224,7 +225,7 @@ export const otakuMorphoAction: Action = {
                 result.txHash ? `**TX:** ${result.txHash.slice(0, 20)}...` : "",
               ].join("\n"),
             });
-            return true;
+            return { success: true };
           }
         }
 
@@ -243,7 +244,7 @@ export const otakuMorphoAction: Action = {
           await callback?.({
             text: `✅ ${pendingMorpho.intent === "supply" ? "Deposit" : "Withdrawal"} submitted to Morpho!`,
           });
-          return true;
+          return { success: true };
         }
 
         throw new Error("No response from Morpho");
@@ -251,7 +252,7 @@ export const otakuMorphoAction: Action = {
         await callback?.({
           text: `❌ Morpho ${pendingMorpho.intent} failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return false;
+        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
       }
     }
 
@@ -292,7 +293,7 @@ export const otakuMorphoAction: Action = {
 
     logger.info(`[OTAKU_MORPHO] Pending: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

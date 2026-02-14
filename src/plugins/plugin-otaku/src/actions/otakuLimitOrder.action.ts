@@ -10,6 +10,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -155,7 +156,7 @@ export const otakuLimitOrderAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
@@ -163,7 +164,7 @@ export const otakuLimitOrderAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return false;
+      return { success: false, error: new Error("Otaku service not available") };
     }
 
     // Parse limit order request
@@ -172,7 +173,7 @@ export const otakuLimitOrderAction: Action = {
       await callback?.({
         text: "I couldn't parse the limit order details. Please specify:\n- Action (buy/sell)\n- Amount\n- Token\n- Price\n\nExamples:\n- \"Buy 100 USDC worth of ETH at $3000\"\n- \"Sell 0.5 ETH at $4000\"\n- \"Set limit order: sell 1 ETH for USDC at $3500\"",
       });
-      return false;
+      return { success: false, error: new Error("Could not parse limit order") };
     }
 
     // Add chain and expiration if specified
@@ -202,12 +203,12 @@ export const otakuLimitOrderAction: Action = {
         await callback?.({
           text: `✅ Limit order created!\n\n${result.response ?? ""}\n\nOrder ID: ${result.orderId ?? "pending"}`,
         });
-        return true;
+        return { success: true };
       } else {
         await callback?.({
           text: `❌ Order creation failed: ${result.error}`,
         });
-        return false;
+        return { success: false, error: new Error(result.error ?? "Order creation failed") };
       }
     }
 
@@ -219,7 +220,7 @@ export const otakuLimitOrderAction: Action = {
 
     logger.info(`[OTAKU_LIMIT_ORDER] Pending order: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

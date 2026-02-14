@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -45,7 +46,7 @@ export const sentinelDocImproveAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_DOC_IMPROVE] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -65,13 +66,13 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_DOC_IMPROVE] Failed:", error);
       await callback({
         text: "Doc improvements: 1) Run scripts/sync-sentinel-docs.sh to refresh knowledge/sentinel-docs and PROGRESS-CONSOLIDATED. 2) Update README/CLAUDE.md if Sentinel or new actions are missing. 3) Consolidate: keep plugin-vince, plugin-kelly, frontend progress.txt as sources; PROGRESS-CONSOLIDATED is the merged view—sync after edits. Refs: knowledge/sentinel-docs/README.md.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

@@ -12,6 +12,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -146,7 +147,7 @@ export const standupFacilitatorAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = (message.content?.text || "").toLowerCase();
     const isWrapup = WRAPUP_TRIGGERS.some((t) => text.includes(t));
 
@@ -414,7 +415,7 @@ ${validationContext}
       endStandupSession();
     }
 
-    return true;
+    return { success: true };
   },
 
   examples: [

@@ -6,6 +6,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -88,7 +89,7 @@ export const otakuBalanceAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
     // Check if asking about specific token
@@ -162,7 +163,7 @@ export const otakuBalanceAction: Action = {
       await callback?.({
         text: "I couldn't fetch your balances. Please check CDP or BANKR configuration.",
       });
-      return false;
+      return { success: false, error: new Error("Could not fetch balances") };
     }
 
     // Filter if specific token requested
@@ -174,7 +175,7 @@ export const otakuBalanceAction: Action = {
       await callback?.({
         text: `You don't have any ${specificToken} in your wallet.`,
       });
-      return true;
+      return { success: true };
     }
 
     // Calculate total
@@ -212,7 +213,7 @@ export const otakuBalanceAction: Action = {
       await callback?.({ text: lines.join("\n") });
     }
 
-    return true;
+    return { success: true };
   },
 };
 

@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -45,7 +46,7 @@ export const sentinelOpenclawGuideAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_OPENCLAW_GUIDE] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -63,7 +64,7 @@ Context:\n${contextBlock}`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim() });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_OPENCLAW_GUIDE] Failed:", error);
       await callback({
@@ -76,7 +77,7 @@ Context:\n${contextBlock}`;
 
 **Next step:** Get your X_BEARER_TOKEN from developer.x.com and set spending limit.`,
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

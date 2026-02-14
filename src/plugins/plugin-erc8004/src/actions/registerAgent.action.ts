@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -59,21 +60,21 @@ export const erc8004RegisterAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const erc8004 = runtime.getService("erc8004") as ERC8004Service;
 
     if (!erc8004) {
       await callback?.({
         text: "ERC-8004 service not available. Check plugin configuration.",
       });
-      return false;
+      return { success: false, error: new Error("ERC-8004 service not available") };
     }
 
     if (!erc8004.canWrite()) {
       await callback?.({
         text: "Cannot register: wallet not configured. Set ERC8004_PRIVATE_KEY or CDP_WALLET_SECRET.",
       });
-      return false;
+      return { success: false, error: new Error("Wallet not configured") };
     }
 
     // Get agent info from runtime
@@ -128,12 +129,12 @@ export const erc8004RegisterAction: Action = {
           `Your agent identity is now discoverable on-chain.`,
         ].join("\n"),
       });
-      return true;
+      return { success: true };
     } else {
       await callback?.({
         text: `❌ Registration failed: ${result.error}`,
       });
-      return false;
+      return { success: false, error: new Error(result.error ?? "Registration failed") };
     }
   },
 };

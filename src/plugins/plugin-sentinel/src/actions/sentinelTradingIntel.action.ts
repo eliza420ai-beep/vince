@@ -17,6 +17,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -89,7 +90,7 @@ export const sentinelTradingIntelAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_TRADING_INTEL] Action fired");
 
     try {
@@ -122,7 +123,7 @@ ${keyRequired.map(s => `• **${s.name}** (${s.keyEnv}): ${s.description}`).join
 • Ensure services are returning data for your assets
 • Check thresholds in SIGNAL_SOURCES.md`,
         });
-        return true;
+        return { success: true };
       }
 
       // Feature store query
@@ -148,7 +149,7 @@ Records no-trade evaluations with same features but \`avoided: { reason }\` — 
 • Run \`train_models.py\` → ONNX export
 • Models in \`.elizadb/vince-paper-bot/models/\` or Supabase bucket`,
         });
-        return true;
+        return { success: true };
       }
 
       // ML/ONNX query
@@ -178,7 +179,7 @@ VINCE_PAPER_ASSETS=BTC       # Focus one asset
 SUPABASE_SERVICE_ROLE_KEY=...  # Persist features
 \`\`\``,
         });
-        return true;
+        return { success: true };
       }
 
       // Hypersurface/options query
@@ -208,7 +209,7 @@ ${ritual.map(s => `${s.step}. ${s.actor}: ${s.action}`).join("\n")}
 
 *Solus owns Hypersurface. VINCE provides IV/data.*`,
         });
-        return true;
+        return { success: true };
       }
 
       // EV framework query
@@ -242,14 +243,14 @@ ${formatEV("BTC", 105000, example)}
 • \`track_record.json\` — wins, losses, EV calibration
 • \`patterns.json\` — signal reliability, regime history`,
         });
-        return true;
+        return { success: true };
       }
 
       // Data pipeline query
       if (lower.includes("data pipeline") || lower.includes("data flow")) {
         const overview = getDataPipelineOverview();
         await callback({ text: overview });
-        return true;
+        return { success: true };
       }
 
       // Improvements query
@@ -272,7 +273,7 @@ ${formatEV("BTC", 105000, example)}
         }
         
         await callback({ text: response });
-        return true;
+        return { success: true };
       }
 
       // General overview
@@ -298,13 +299,13 @@ ${formatEV("BTC", 105000, example)}
       response += `---\n*Ask about: "signal sources", "feature store", "ml training", "hypersurface", "ev framework", "improve the algo"*`;
       
       await callback({ text: response });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_TRADING_INTEL] Failed:", error);
       await callback({
         text: "Failed to provide trading intelligence. Check SIGNAL_SOURCES.md and FEATURE-STORE.md for documentation.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

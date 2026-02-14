@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -56,11 +57,11 @@ export const xMentionsAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: 'What are people saying to @RaoulGMI?' },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: '**@RaoulGMI Mentions Check**\n\n**Recent vibe:** Mixed but respectful engagement.\n\n**Common themes:**\n• Macro takes and recession calls\n• Crypto cycle / altseason timing\n• Real Vision content feedback\n\n**Sentiment breakdown:**\n✅ Supportive: ~60%\n🤔 Questioning: ~30%\n❌ Critical: ~10%\n\n**Notable:** High-quality replies; whale accounts still engaging positively.',
           action: 'X_MENTIONS',
@@ -83,7 +84,7 @@ export const xMentionsAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
       const text = message.content?.text ?? '';
@@ -93,7 +94,7 @@ export const xMentionsAction: Action = {
           text: 'I need a username to check mentions. Example: "What are people saying to @username?"',
           action: 'X_MENTIONS',
         });
-        return true;
+        return { success: true };
       }
       const username = match[1];
       const client = getXClient();
@@ -104,7 +105,7 @@ export const xMentionsAction: Action = {
           text: `Couldn't find @${username}. The account may not exist or be protected.`,
           action: 'X_MENTIONS',
         });
-        return true;
+        return { success: true };
       }
 
       const startTime = new Date(Date.now() - START_TIME_DAYS_AGO * 24 * 60 * 60 * 1000).toISOString();
@@ -118,7 +119,7 @@ export const xMentionsAction: Action = {
           text: `**@${username} Mentions Check**\n\nNo recent mentions in the last ${START_TIME_DAYS_AGO} days. They may have low visibility or the API window has no data.`,
           action: 'X_MENTIONS',
         });
-        return true;
+        return { success: true };
       }
 
       const bySentiment = { supportive: 0, questioning: 0, critical: 0, neutral: 0 };
@@ -184,7 +185,7 @@ export const xMentionsAction: Action = {
         text: response,
         action: 'X_MENTIONS',
       });
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('[X_MENTIONS] Error:', error);
       const err = error instanceof Error ? error.message : String(error);
@@ -192,7 +193,7 @@ export const xMentionsAction: Action = {
         text: `**Mentions Check**\n\n❌ Error: ${err}`,
         action: 'X_MENTIONS',
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

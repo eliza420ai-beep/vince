@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -175,7 +176,7 @@ export const otakuNftMintAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
     const request = parseMintRequest(text);
@@ -194,7 +195,7 @@ export const otakuNftMintAction: Action = {
           '- "Generate an AI art piece of a sunset and mint it"',
         ].join("\n"),
       });
-      return false;
+      return { success: false, error: new Error("Could not parse mint request") };
     }
 
     // Check if confirmation
@@ -231,13 +232,13 @@ export const otakuNftMintAction: Action = {
             await callback?.({
               text: "Sentinel is working on the art. I'll notify you when it's ready to mint.",
             });
-            return true;
+            return { success: true };
           }
         } catch (err) {
           await callback?.({
             text: `❌ Gen art creation failed: ${err instanceof Error ? err.message : String(err)}\n\nTry asking Sentinel directly, then come back to mint.`,
           });
-          return false;
+          return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
         }
       }
 
@@ -251,7 +252,7 @@ export const otakuNftMintAction: Action = {
         await callback?.({
           text: "CDP service not available for minting.",
         });
-        return false;
+        return { success: false, error: new Error("CDP service not available") };
       }
 
       await callback?.({
@@ -292,7 +293,7 @@ export const otakuNftMintAction: Action = {
               "Check your wallet for the new NFT(s).",
             ].join("\n"),
           });
-          return true;
+          return { success: true };
         }
 
         throw new Error("Mint transaction failed");
@@ -300,7 +301,7 @@ export const otakuNftMintAction: Action = {
         await callback?.({
           text: `❌ Mint failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return false;
+        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
       }
     }
 
@@ -335,7 +336,7 @@ export const otakuNftMintAction: Action = {
 
     logger.info(`[OTAKU_NFT_MINT] Pending: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

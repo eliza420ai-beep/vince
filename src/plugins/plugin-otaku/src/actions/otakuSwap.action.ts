@@ -10,6 +10,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -150,7 +151,7 @@ export const otakuSwapAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
@@ -158,7 +159,7 @@ export const otakuSwapAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return false;
+      return { success: false, error: new Error("Otaku service not available") };
     }
 
     // Parse swap request
@@ -167,7 +168,7 @@ export const otakuSwapAction: Action = {
       await callback?.({
         text: "I couldn't parse the swap details. Please specify:\n- Amount (e.g., 0.5 or $100)\n- Sell token (e.g., ETH)\n- Buy token (e.g., USDC)\n\nExample: \"swap 0.5 ETH to USDC on Base\"",
       });
-      return false;
+      return { success: false, error: new Error("Could not parse swap request") };
     }
 
     // Add chain if specified
@@ -178,7 +179,7 @@ export const otakuSwapAction: Action = {
       await callback?.({
         text: `I see you want to swap ${request.sellToken} to ${request.buyToken}. How much ${request.sellToken} do you want to swap?`,
       });
-      return true;
+      return { success: true };
     }
 
     // Check if this is a confirmation
@@ -204,12 +205,12 @@ export const otakuSwapAction: Action = {
         await callback?.({
           text: `✅ Swap complete!\n\n${result.response ?? ""}\n\nTX: ${result.txHash ?? "pending"}`,
         });
-        return true;
+        return { success: true };
       } else {
         await callback?.({
           text: `❌ Swap failed: ${result.error}`,
         });
-        return false;
+        return { success: false, error: new Error(result.error ?? "Swap failed") };
       }
     }
 
@@ -223,7 +224,7 @@ export const otakuSwapAction: Action = {
     // For now, the confirmation flow relies on BANKR_AGENT_PROMPT
     logger.info(`[OTAKU_SWAP] Pending swap: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

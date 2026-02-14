@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -152,7 +153,7 @@ export const otakuApproveAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
     const request = parseApproveRequest(text);
@@ -170,7 +171,7 @@ export const otakuApproveAction: Action = {
           '- "Check my USDC approvals"',
         ].join("\n"),
       });
-      return false;
+      return { success: false, error: new Error("Could not parse approval request") };
     }
 
     // Handle "check" intent
@@ -185,7 +186,7 @@ export const otakuApproveAction: Action = {
           `https://basescan.org/tokenapprovalchecker`,
         ].join("\n"),
       });
-      return true;
+      return { success: true };
     }
 
     // Check if confirmation
@@ -206,7 +207,7 @@ export const otakuApproveAction: Action = {
         await callback?.({
           text: "CDP service not available for approval operations.",
         });
-        return false;
+        return { success: false, error: new Error("CDP service not available") };
       }
 
       await callback?.({
@@ -247,7 +248,7 @@ export const otakuApproveAction: Action = {
               result.txHash || result.hash ? `**TX:** ${(result.txHash || result.hash).slice(0, 20)}...` : "",
             ].join("\n"),
           });
-          return true;
+          return { success: true };
         }
 
         throw new Error("Transaction failed");
@@ -255,7 +256,7 @@ export const otakuApproveAction: Action = {
         await callback?.({
           text: `❌ ${pendingApproval.intent === "approve" ? "Approval" : "Revocation"} failed: ${err instanceof Error ? err.message : String(err)}`,
         });
-        return false;
+        return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
       }
     }
 
@@ -275,7 +276,7 @@ export const otakuApproveAction: Action = {
           `Or provide a contract address (0x...).`,
         ].join("\n"),
       });
-      return true;
+      return { success: true };
     }
 
     // Build confirmation message
@@ -306,7 +307,7 @@ export const otakuApproveAction: Action = {
 
     logger.info(`[OTAKU_APPROVE] Pending: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

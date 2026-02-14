@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -141,7 +142,7 @@ export const otakuBridgeAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
     // Parse bridge request
@@ -150,7 +151,7 @@ export const otakuBridgeAction: Action = {
       await callback?.({
         text: "I couldn't parse the bridge details. Please specify:\n- Amount and token (e.g., 0.1 ETH)\n- Source chain (e.g., from Base)\n- Destination chain (e.g., to Arbitrum)\n\nExample: \"bridge 0.1 ETH from Base to Arbitrum\"",
       });
-      return false;
+      return { success: false, error: new Error("Could not parse bridge request") };
     }
 
     // Check if this is a confirmation
@@ -188,7 +189,7 @@ export const otakuBridgeAction: Action = {
             await callback?.({
               text: `✅ Bridge initiated!\n\nTX: ${result.txHash}\nEstimated arrival: ${result.estimatedTime || "2-5 minutes"}\n\nUse "bridge status" to check progress.`,
             });
-            return true;
+            return { success: true };
           }
         } catch (err) {
           logger.debug(`[OTAKU] Relay bridge failed, trying BANKR: ${err}`);
@@ -209,25 +210,25 @@ export const otakuBridgeAction: Action = {
             await callback?.({
               text: `✅ Bridge initiated!\n\n${result.response}\n\nTX: ${result.transactions?.[0]?.hash || "pending"}`,
             });
-            return true;
+            return { success: true };
           } else {
             await callback?.({
               text: `❌ Bridge failed: ${result.error || "Unknown error"}`,
             });
-            return false;
+            return { success: false, error: new Error(result.error ?? "Bridge failed") };
           }
         } catch (err) {
           await callback?.({
             text: `❌ Bridge failed: ${err instanceof Error ? err.message : String(err)}`,
           });
-          return false;
+          return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
         }
       }
 
       await callback?.({
         text: "❌ No bridge service available. Check Relay or BANKR configuration.",
       });
-      return false;
+      return { success: false, error: new Error("No bridge service available") };
     }
 
     // Get quote
@@ -272,7 +273,7 @@ export const otakuBridgeAction: Action = {
 
     logger.info(`[OTAKU_BRIDGE] Pending bridge: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

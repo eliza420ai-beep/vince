@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -43,7 +44,7 @@ export const sentinelHowDidWeDoAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_HOW_DID_WE_DO] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -63,13 +64,13 @@ Context:\n${contextBlock}`;
         : (response as { text?: string })?.text ?? String(response)
       ).trim();
       await callback({ text });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_HOW_DID_WE_DO] Failed:", error);
       await callback({
         text: "Report couldn't be generated. Check TREASURY for cost vs budget; Leaderboard → Trading Bot for paper PnL; Leaderboard → Usage for usage. Ask for cost status for details.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

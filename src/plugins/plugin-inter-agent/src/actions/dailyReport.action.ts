@@ -9,6 +9,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -147,7 +148,7 @@ export const dailyReportAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const agentName = runtime.character?.name || "Agent";
     const role = getAgentRole(agentName);
 
@@ -187,7 +188,7 @@ export const dailyReportAction: Action = {
       }
 
       logger.info(`[DAILY_REPORT] ${agentName} report generated (${report.length} chars)`);
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error({ error, agentName }, "[DAILY_REPORT] Failed to generate report");
 
@@ -199,7 +200,7 @@ export const dailyReportAction: Action = {
           source: agentName,
         });
       }
-      return true;
+      return { success: true };
     }
   },
 

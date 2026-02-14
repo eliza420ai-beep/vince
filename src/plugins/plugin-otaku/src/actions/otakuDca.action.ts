@@ -10,6 +10,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -178,7 +179,7 @@ export const otakuDcaAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
@@ -186,7 +187,7 @@ export const otakuDcaAction: Action = {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return false;
+      return { success: false, error: new Error("Otaku service not available") };
     }
 
     // Parse DCA request
@@ -195,7 +196,7 @@ export const otakuDcaAction: Action = {
       await callback?.({
         text: "I couldn't parse the DCA details. Please specify:\n- Total amount (e.g., $500 or 500 USDC)\n- Target token (e.g., ETH, BTC)\n- Duration or interval\n\nExamples:\n- \"DCA $500 into ETH over 30 days\"\n- \"DCA $100 into BTC every week\"\n- \"Set up daily DCA of $50 into ETH\"",
       });
-      return false;
+      return { success: false, error: new Error("Could not parse DCA request") };
     }
 
     // Add chain if specified
@@ -224,12 +225,12 @@ export const otakuDcaAction: Action = {
         await callback?.({
           text: `✅ DCA schedule created!\n\n${result.response ?? ""}\n\nSchedule ID: ${result.orderId ?? "active"}`,
         });
-        return true;
+        return { success: true };
       } else {
         await callback?.({
           text: `❌ DCA creation failed: ${result.error}`,
         });
-        return false;
+        return { success: false, error: new Error(result.error ?? "DCA creation failed") };
       }
     }
 
@@ -241,7 +242,7 @@ export const otakuDcaAction: Action = {
 
     logger.info(`[OTAKU_DCA] Pending DCA: ${JSON.stringify(request)}`);
 
-    return true;
+    return { success: true };
   },
 };
 

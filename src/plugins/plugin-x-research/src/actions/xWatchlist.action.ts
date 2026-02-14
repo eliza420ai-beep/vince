@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -65,11 +66,11 @@ export const xWatchlistAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: 'Check my X watchlist' },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: '📋 **X Watchlist**\n\n**@user1** (note)\n  • Tweet text…\n    42 likes\n\n**@user2**\n  • Another tweet…\n    12 likes',
           action: 'X_WATCHLIST',
@@ -97,7 +98,7 @@ export const xWatchlistAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
       const accounts = loadWatchlist();
@@ -106,7 +107,7 @@ export const xWatchlistAction: Action = {
           text: "📋 **X Watchlist**\n\nWatchlist is empty or not found. Add accounts via CLI:\n`cd skills/x-research && bun run x-search.ts watchlist add <username>`",
           action: 'X_WATCHLIST',
         });
-        return true;
+        return { success: true };
       }
 
       const accountsService = getXAccountsService();
@@ -145,7 +146,7 @@ export const xWatchlistAction: Action = {
         text: body,
         action: 'X_WATCHLIST',
       });
-      return true;
+      return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes('X_BEARER_TOKEN')) {
@@ -159,7 +160,7 @@ export const xWatchlistAction: Action = {
           action: 'X_WATCHLIST',
         });
       }
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -51,7 +52,7 @@ export const solusHypersurfaceExplainAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_HYPERSURFACE_EXPLAIN] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -75,13 +76,13 @@ Reply with the explanation only.`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim(), actions: ["SOLUS_HYPERSURFACE_EXPLAIN"] });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SOLUS_HYPERSURFACE_EXPLAIN] Failed:", error);
       await callback({
         text: "Hypersurface: weekly options, Friday 08:00 UTC. Covered calls = own asset, sell call, premium; above strike you're assigned. Secured puts = hold stablecoins, sell put, premium; below strike you're assigned (premium cuts cost basis). Wheel: CC → assigned → CSP → assigned → repeat. For live IV and strikes, say 'options' to VINCE and paste here.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

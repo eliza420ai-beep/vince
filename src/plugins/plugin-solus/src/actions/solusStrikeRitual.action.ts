@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -44,7 +45,7 @@ export const solusStrikeRitualAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SOLUS_STRIKE_RITUAL] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -68,13 +69,13 @@ Reply with the checklist and one next step only.`;
           ? response
           : (response as { text?: string })?.text ?? String(response);
       await callback({ text: text.trim(), actions: ["SOLUS_STRIKE_RITUAL"] });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SOLUS_STRIKE_RITUAL] Failed:", error);
       await callback({
         text: "Strike ritual: (1) Say 'options' to VINCE and paste his view here. (2) Pick asset — BTC, ETH, SOL, HYPE. (3) CC or CSP. (4) Strike width and invalidation. Paste VINCE's output and I'll give you the call.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

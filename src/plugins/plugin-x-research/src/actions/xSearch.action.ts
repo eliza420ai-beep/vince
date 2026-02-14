@@ -8,6 +8,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -77,11 +78,11 @@ export const xSearchAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: 'Search X for BNKR' },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "**X Search: BNKR**\n\n• @user1: BNKR looking strong… (42 likes)\n• @user2: Accumulating here… (28 likes)\n\n_Based on 10 posts from the last 24h_",
           action: 'X_SEARCH',
@@ -90,11 +91,11 @@ export const xSearchAction: Action = {
     ],
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: 'What are people saying about Opus 4.6?' },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "**X Search: Opus 4.6**\n\n• @dev: Just tried the new model… (120 likes)\n\n_Based on 10 posts from the last 24h_",
           action: 'X_SEARCH',
@@ -123,7 +124,7 @@ export const xSearchAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -137,7 +138,7 @@ export const xSearchAction: Action = {
           text: "I need a search query. Example: \"Search X for BNKR\" or \"What are people saying about ETH?\"",
           action: 'X_SEARCH',
         });
-        return true;
+        return { success: true };
       }
 
       const fromUser = extractFromUser(text);
@@ -192,7 +193,7 @@ export const xSearchAction: Action = {
         text: response,
         action: 'X_SEARCH',
       });
-      return true;
+      return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       if (errMsg.includes('X_BEARER_TOKEN')) {
@@ -206,7 +207,7 @@ export const xSearchAction: Action = {
           action: 'X_SEARCH',
         });
       }
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

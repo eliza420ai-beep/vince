@@ -4,6 +4,7 @@
 
 import type {
   Action,
+  ActionResult,
   IAgentRuntime,
   Memory,
   State,
@@ -43,7 +44,7 @@ export const sentinelSecurityChecklistAction: Action = {
     _state: State,
     _options: unknown,
     callback: HandlerCallback,
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     logger.debug("[SENTINEL_SECURITY_CHECKLIST] Action fired");
     try {
       const state = await runtime.composeState(message);
@@ -67,13 +68,13 @@ Context:\n${contextBlock}`;
           ? text
           : `${text}\n\nCheck SECURITY-HYGIENE in knowledge (sentinel-docs) for the full list.`,
       });
-      return true;
+      return { success: true };
     } catch (error) {
       logger.error("[SENTINEL_SECURITY_CHECKLIST] Failed:", error);
       await callback({
         text: "Security checklist couldn't be generated. Check knowledge/sentinel-docs/SECURITY-HYGIENE.md for env, secrets, and who can do what.",
       });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 

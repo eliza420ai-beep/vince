@@ -11,6 +11,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -35,9 +36,9 @@ export const contentAuditAction: Action = {
 
   examples: [
     [
-      { user: '{{user1}}', content: { text: 'Analyze my top posts @myhandle' } },
+      { name: '{{user1}}', content: { text: 'Analyze my top posts @myhandle' } },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: '**Content playbook for @myhandle**\n\n**Hooks that work**\n• Open with a specific credential tied to the topic\n• Name the broken system the reader is stuck in\n\n**Topics that land**\n• ...',
           action: 'CONTENT_AUDIT',
@@ -62,7 +63,7 @@ export const contentAuditAction: Action = {
     _state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -73,7 +74,7 @@ export const contentAuditAction: Action = {
           text: 'I need an @username to run a content audit. Example: "Analyze my top posts @yourhandle"',
           action: 'CONTENT_AUDIT',
         });
-        return true;
+        return { success: true };
       }
 
       const username = usernameMatch[1];
@@ -85,7 +86,7 @@ export const contentAuditAction: Action = {
           text: `Need at least ${MIN_TWEETS_FOR_AUDIT} posts to run a useful audit. @${username} has only ${tweets.length} (excl. replies/RTs).`,
           action: 'CONTENT_AUDIT',
         });
-        return true;
+        return { success: true };
       }
 
       const tweetInputs = tweets.map((t: XTweet) => ({
@@ -106,7 +107,7 @@ export const contentAuditAction: Action = {
       if (message.roomId) setLastResearch(message.roomId, responseText);
 
       callback({ text: responseText, action: 'CONTENT_AUDIT' });
-      return true;
+      return { success: true };
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       const isTokenError = errMsg.includes('X_BEARER_TOKEN') || errMsg.includes('ELIZA_X_BEARER');
@@ -126,7 +127,7 @@ export const contentAuditAction: Action = {
         text = `**Content audit** — Error: ${errMsg}`;
       }
       callback({ text, action: 'CONTENT_AUDIT' });
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };

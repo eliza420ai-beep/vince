@@ -9,6 +9,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -89,14 +90,14 @@ export const otakuPositionsAction: Action = {
     state?: State,
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     const otakuSvc = runtime.getService("otaku") as OtakuService;
 
     if (!otakuSvc) {
       await callback?.({
         text: "Otaku service not available. Please check configuration.",
       });
-      return false;
+      return { success: false, error: new Error("Otaku service not available") };
     }
 
     await callback?.({
@@ -148,14 +149,14 @@ export const otakuPositionsAction: Action = {
         text: [...positionLines, ...orderLines, totalLine].join("\n"),
       });
 
-      return true;
+      return { success: true };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.error(`[OTAKU_POSITIONS] Failed: ${msg}`);
       await callback?.({
         text: `Failed to fetch positions: ${msg}`,
       });
-      return false;
+      return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
     }
   },
 };

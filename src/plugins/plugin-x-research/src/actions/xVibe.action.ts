@@ -7,6 +7,7 @@
 
 import {
   type Action,
+  type ActionResult,
   type IAgentRuntime,
   type Memory,
   type State,
@@ -36,11 +37,11 @@ export const xVibeAction: Action = {
   examples: [
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "What's the vibe on ETH?" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "📊 **ETH Vibe Check**\n\n📉 Bearish (-28) | 65% confidence\n\n**Breakdown:**\n• Bullish: 23 tweets\n• Bearish: 47 tweets\n• Neutral: 30 tweets\n\n**Whale alignment:** +12 (whales slightly more bullish than retail)\n\nMain topics: L2 fees, gas costs, ETH/BTC ratio weakness\n\n_Based on 100 tweets from the last 24h_",
           action: 'X_VIBE',
@@ -49,11 +50,11 @@ export const xVibeAction: Action = {
     ],
     [
       {
-        user: '{{user1}}',
+        name: '{{user1}}',
         content: { text: "SOL sentiment check" },
       },
       {
-        user: '{{agentName}}',
+        name: '{{agentName}}',
         content: {
           text: "📊 **SOL Vibe Check**\n\n📈 Bullish (+52) | 72% confidence\n\n**Breakdown:**\n• Bullish: 68 tweets\n• Bearish: 18 tweets\n• Neutral: 14 tweets\n\n**Whale alignment:** +48 (whales agree)\n\nMeme season narrative still strong. Pump.fun activity high.\n\n_Based on 100 tweets from the last 24h_",
           action: 'X_VIBE',
@@ -84,7 +85,7 @@ export const xVibeAction: Action = {
     state: State,
     _options: Record<string, unknown>,
     callback: HandlerCallback
-  ): Promise<boolean> => {
+  ): Promise<void | ActionResult> => {
     try {
       initXClientFromEnv(runtime);
 
@@ -109,7 +110,7 @@ export const xVibeAction: Action = {
           text: "I couldn't identify the topic. Try asking about BTC, ETH, SOL, or other crypto topics.",
           action: 'X_VIBE',
         });
-        return true;
+        return { success: true };
       }
 
       const searchService = getXSearchService();
@@ -131,7 +132,7 @@ export const xVibeAction: Action = {
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNo recent tweets found. X API might be rate limited.`,
           action: 'X_VIBE',
         });
-        return true;
+        return { success: true };
       }
 
       // Analyze sentiment
@@ -142,7 +143,7 @@ export const xVibeAction: Action = {
           text: `📊 **${detectedTopic.name} Vibe Check**\n\nNot enough data to determine sentiment.`,
           action: 'X_VIBE',
         });
-        return true;
+        return { success: true };
       }
 
       const mandoContext = await getMandoContextForX(runtime);
@@ -206,7 +207,7 @@ export const xVibeAction: Action = {
         action: 'X_VIBE',
       });
 
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('[X_VIBE] Error:', error);
       
@@ -216,7 +217,7 @@ export const xVibeAction: Action = {
         action: 'X_VIBE',
       });
       
-      return false;
+      return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },
 };
