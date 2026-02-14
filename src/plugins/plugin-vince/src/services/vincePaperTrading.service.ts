@@ -64,6 +64,7 @@ import {
   getBookImbalanceRejection,
   getAdjustedConfidence,
   type ExtendedSnapshot,
+  type MarketContext,
 } from "../utils/extendedSnapshotLogic";
 
 // ==========================================
@@ -645,9 +646,15 @@ export class VincePaperTradingService extends Service {
     return order;
   }
 
-  private calculateSlippage(sizeUsd: number): number {
-    // Base slippage + size impact
-    let slippageBps = SLIPPAGE.BASE_BPS;
+  private calculateSlippage(sizeUsd: number, bidAskSpread?: number | null): number {
+    // Dynamic slippage: use actual bid-ask spread when available, fallback to static base
+    let slippageBps: number;
+    if (bidAskSpread != null && bidAskSpread > 0) {
+      // Half-spread as base slippage (in bps)
+      slippageBps = (bidAskSpread / 2) * 10000;
+    } else {
+      slippageBps = SLIPPAGE.BASE_BPS;
+    }
 
     // Add size impact (2 bps per $10k)
     slippageBps +=
@@ -786,18 +793,45 @@ export class VincePaperTradingService extends Service {
         }
         let fundingRate = 0;
         let volumeRatio = 1.0;
+        const mktCtx: MarketContext = {};
         if (marketData) {
           try {
             const ctx = await marketData.getEnrichedContext(asset);
             fundingRate = ctx?.fundingRate ?? 0;
             volumeRatio = ctx?.volumeRatio ?? 1.0;
+            mktCtx.volumeRatio = volumeRatio;
+            mktCtx.priceChange24h = ctx?.priceChange24h ?? 0;
+            mktCtx.currentPrice = ctx?.currentPrice ?? 0;
+            mktCtx.dailyOpenPrice = (ctx as { dailyOpenPrice?: number })?.dailyOpenPrice ?? undefined;
           } catch (_) {}
         }
+        // Fetch OI change from CoinGlass
+        const coinglass = this.runtime.getService("VINCE_COINGLASS_SERVICE") as {
+          getOpenInterest?: (asset: string) => { change24h: number | null } | null;
+          getFearGreed?: () => { value: number; classification: string } | null;
+        } | null;
+        try {
+          const oi = coinglass?.getOpenInterest?.(asset);
+          mktCtx.oiChange24h = oi?.change24h ?? undefined;
+        } catch { /* non-fatal */ }
+        // Fetch Fear/Greed (used for both confidence and sizing below)
+        let fearGreedValue: number | undefined;
+        try {
+          const fg = coinglass?.getFearGreed?.();
+          fearGreedValue = fg?.value ?? undefined;
+          mktCtx.fearGreedValue = fearGreedValue;
+        } catch { /* non-fatal */ }
+        // Fetch RSI
+        try {
+          const rsi = await (marketData as { estimateRSI?: (asset: string) => Promise<number | null> })?.estimateRSI?.(asset);
+          mktCtx.rsi = rsi ?? undefined;
+        } catch { /* non-fatal */ }
         const adjustedConfidence = getAdjustedConfidence(
           { direction: signal.direction, confidence: signal.confidence },
           extendedSnapshot,
           fundingRate,
           volumeRatio,
+          mktCtx,
         );
         if (
           adjustedConfidence > signal.confidence &&
@@ -969,6 +1003,41 @@ export class VincePaperTradingService extends Service {
             logger.debug(
               `[VincePaperTrading] ${asset} low volume ${volumeRatio.toFixed(2)}x (<0.8): size reduced 20%`,
             );
+          }
+        }
+
+        // Fear/Greed contrarian sizing: size up on extreme fear (buy fear), size down on extreme greed (crowded)
+        if (fearGreedValue != null && signal.direction !== "neutral") {
+          if (fearGreedValue < 20 && signal.direction === "long") {
+            baseSizeUsd *= 1.3;
+            logger.debug(`[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + long: size +30% (contrarian)`);
+          } else if (fearGreedValue < 35 && signal.direction === "long") {
+            baseSizeUsd *= 1.15;
+            logger.debug(`[VincePaperTrading] ${asset} fear (${fearGreedValue}) + long: size +15%`);
+          } else if (fearGreedValue > 80 && signal.direction === "long") {
+            baseSizeUsd *= 0.7;
+            logger.debug(`[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + long: size -30% (crowded)`);
+          } else if (fearGreedValue > 80 && signal.direction === "short") {
+            baseSizeUsd *= 1.2;
+            logger.debug(`[VincePaperTrading] ${asset} extreme greed (${fearGreedValue}) + short: size +20% (contrarian)`);
+          } else if (fearGreedValue < 20 && signal.direction === "short") {
+            baseSizeUsd *= 0.7;
+            logger.debug(`[VincePaperTrading] ${asset} extreme fear (${fearGreedValue}) + short: size -30% (contrarian)`);
+          }
+        }
+
+        // Session open timing: reduce size in first 30 min of major sessions (fakeout risk)
+        {
+          const now = new Date();
+          const h = now.getUTCHours();
+          const m = now.getUTCMinutes();
+          const isNearSessionOpen =
+            (h === 0 && m < 30) ||  // Asia open
+            (h === 7 && m < 30) ||  // EU open
+            (h === 13 && m < 30);   // US pre-open
+          if (isNearSessionOpen) {
+            baseSizeUsd *= 0.8;
+            logger.debug(`[VincePaperTrading] ${asset} near session open (${h}:${m.toString().padStart(2, "0")} UTC): size -20% (fakeout risk)`);
           }
         }
 
@@ -1448,6 +1517,69 @@ export class VincePaperTradingService extends Service {
         direction === "long"
           ? entryPrice - stopLossDistance
           : entryPrice + stopLossDistance;
+    }
+
+    // Options OI-based TP/SL adjustment (BTC/ETH only)
+    // High put OI below spot = support → tighten SL (don't set beyond support)
+    // High call OI above spot = resistance → set TP near resistance
+    if (asset === "BTC" || asset === "ETH") {
+      try {
+        const deribitSvc = this.runtime.getService("VINCE_DERIBIT_SERVICE") as {
+          getOptionsContext?: (currency: string) => Promise<{
+            strikes?: Array<{ strike: number; putOI?: number; callOI?: number }>;
+          } | null>;
+        } | null;
+        const optCtx = await deribitSvc?.getOptionsContext?.(asset).catch(() => null);
+        if (optCtx?.strikes?.length) {
+          // Find highest put OI strike below entry (support)
+          const putSupport = optCtx.strikes
+            .filter((s) => s.strike < entryPrice && (s.putOI ?? 0) > 0)
+            .sort((a, b) => (b.putOI ?? 0) - (a.putOI ?? 0))[0];
+          // Find highest call OI strike above entry (resistance)
+          const callResistance = optCtx.strikes
+            .filter((s) => s.strike > entryPrice && (s.callOI ?? 0) > 0)
+            .sort((a, b) => (b.callOI ?? 0) - (a.callOI ?? 0))[0];
+
+          if (direction === "long" && putSupport) {
+            // Don't set SL too far beyond put support (it's a floor)
+            const supportSL = putSupport.strike * 0.99; // 1% below support
+            if (supportSL > stopLossPrice && supportSL < entryPrice) {
+              logger.debug(
+                `[VincePaperTrading] ${asset} options OI: put support at $${putSupport.strike}, tightening SL from $${stopLossPrice.toFixed(0)} to $${supportSL.toFixed(0)}`,
+              );
+              stopLossPrice = supportSL;
+            }
+          }
+          if (direction === "long" && callResistance && takeProfitPrices.length > 0) {
+            // Set first TP near call resistance (gamma wall)
+            const resistanceTP = callResistance.strike * 0.995; // Just below resistance
+            if (resistanceTP < takeProfitPrices[0] && resistanceTP > entryPrice) {
+              logger.debug(
+                `[VincePaperTrading] ${asset} options OI: call resistance at $${callResistance.strike}, adjusting TP1 from $${takeProfitPrices[0].toFixed(0)} to $${resistanceTP.toFixed(0)}`,
+              );
+              takeProfitPrices[0] = resistanceTP;
+            }
+          }
+          if (direction === "short" && callResistance) {
+            const resistanceSL = callResistance.strike * 1.01;
+            if (resistanceSL < stopLossPrice && resistanceSL > entryPrice) {
+              logger.debug(
+                `[VincePaperTrading] ${asset} options OI: call resistance at $${callResistance.strike}, tightening SL from $${stopLossPrice.toFixed(0)} to $${resistanceSL.toFixed(0)}`,
+              );
+              stopLossPrice = resistanceSL;
+            }
+          }
+          if (direction === "short" && putSupport && takeProfitPrices.length > 0) {
+            const supportTP = putSupport.strike * 1.005;
+            if (supportTP > takeProfitPrices[0] && supportTP < entryPrice) {
+              logger.debug(
+                `[VincePaperTrading] ${asset} options OI: put support at $${putSupport.strike}, adjusting TP1 from $${takeProfitPrices[0].toFixed(0)} to $${supportTP.toFixed(0)}`,
+              );
+              takeProfitPrices[0] = supportTP;
+            }
+          }
+        }
+      } catch { /* non-fatal: options OI not available */ }
     }
 
     // Contributing source names for bandit outcome feedback (weight optimization)
@@ -1953,6 +2085,10 @@ export class VincePaperTradingService extends Service {
         );
         if (ctx?.currentPrice) {
           positionManager.updateMarkPrice(position.asset, ctx.currentPrice);
+          // Pass volumeRatio to position for volume-aware trailing stops
+          if (ctx.volumeRatio != null) {
+            (position as { _volumeRatio?: number })._volumeRatio = ctx.volumeRatio;
+          }
         }
       } catch (error) {
         // Silent fail for price updates

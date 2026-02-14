@@ -546,10 +546,22 @@ export class VincePositionManagerService extends Service {
     }
 
     // Update trailing stop if already activated (only moves in profit direction)
+    // Volume-aware: widen on spikes (momentum), tighten on low volume (fading)
     if (position.trailingStopActivated && position.trailingStopPrice) {
-      const trailingDistancePct = position.entryATRPct
+      let trailingDistancePct = position.entryATRPct
         ? position.entryATRPct * 1.5
         : riskPct * 1.5;
+
+      // Volume-aware adjustment: get volumeRatio from market data if available
+      const volumeRatio = (position as { _volumeRatio?: number })._volumeRatio;
+      if (volumeRatio != null && volumeRatio > 0) {
+        if (volumeRatio >= 2.0) {
+          trailingDistancePct *= 1.2; // Widen 20%: momentum accelerating, give room
+        } else if (volumeRatio < 0.5) {
+          trailingDistancePct *= 0.7; // Tighten 30%: momentum fading, lock profits
+        }
+      }
+
       const trailingDistance = markPrice * (trailingDistancePct / 100);
 
       if (position.direction === "long") {

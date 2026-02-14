@@ -99,19 +99,93 @@ export function getVolumeConfidenceAdjustment(volumeRatio: number): number {
 }
 
 /**
- * Combined confidence after SMA20, funding reversal, and volume boosts. Capped at MAX_CONFIDENCE.
+ * OI change as momentum confirmation.
+ * Rising OI + price moving with direction = new money confirming. Declining OI = unwinding.
+ */
+export function getOIChangeConfidenceAdjustment(
+  direction: "long" | "short" | "neutral",
+  oiChange24h: number | null,
+  priceChange24h: number,
+): number {
+  if (direction === "neutral" || oiChange24h == null) return 0;
+  // Rising OI + aligned price move = confirmation
+  if (oiChange24h > 3 && direction === "long" && priceChange24h > 0) return CONFIDENCE_BOOST;
+  if (oiChange24h > 3 && direction === "short" && priceChange24h < 0) return CONFIDENCE_BOOST;
+  // Declining OI = positions unwinding, moves less likely to stick
+  if (oiChange24h < -5) return -CONFIDENCE_BOOST;
+  return 0;
+}
+
+/**
+ * Price vs daily open for intraday bias.
+ * Trading with the intraday trend (above/below daily open) is higher conviction.
+ */
+export function getDailyOpenConfidenceAdjustment(
+  direction: "long" | "short" | "neutral",
+  currentPrice: number,
+  dailyOpenPrice: number | null,
+): number {
+  if (direction === "neutral" || dailyOpenPrice == null || dailyOpenPrice <= 0) return 0;
+  const aboveOpen = currentPrice > dailyOpenPrice;
+  if (direction === "long" && aboveOpen) return 3;
+  if (direction === "short" && !aboveOpen) return 3;
+  if (direction === "long" && !aboveOpen) return -3;
+  if (direction === "short" && aboveOpen) return -3;
+  return 0;
+}
+
+/**
+ * RSI overbought/oversold adjustment.
+ * Going long when overbought or short when oversold = exhaustion risk (penalty).
+ * Going short when overbought or long when oversold = mean-reversion (boost).
+ */
+export function getRSIConfidenceAdjustment(
+  direction: "long" | "short" | "neutral",
+  rsi: number | null,
+): number {
+  if (direction === "neutral" || rsi == null) return 0;
+  if (rsi > 75 && direction === "long") return -CONFIDENCE_BOOST; // overbought + long = exhaustion risk
+  if (rsi < 25 && direction === "short") return -CONFIDENCE_BOOST; // oversold + short = exhaustion risk
+  if (rsi > 75 && direction === "short") return 3; // overbought + short = mean-reversion
+  if (rsi < 25 && direction === "long") return 3; // oversold + long = mean-reversion
+  return 0;
+}
+
+/**
+ * Additional market context for confidence adjustments.
+ * Passed alongside ExtendedSnapshot to getAdjustedConfidence.
+ */
+export interface MarketContext {
+  volumeRatio?: number;
+  oiChange24h?: number;
+  priceChange24h?: number;
+  currentPrice?: number;
+  dailyOpenPrice?: number;
+  rsi?: number;
+  fearGreedValue?: number;
+}
+
+/**
+ * Combined confidence after all adjustments. Capped at 0-100.
+ * Adjustments: SMA20, funding reversal, volume, OI change, daily open, RSI.
  */
 export function getAdjustedConfidence(
   signal: SignalDirection,
   snapshot: ExtendedSnapshot | null,
   fundingRate: number,
   volumeRatio?: number,
+  marketCtx?: MarketContext,
 ): number {
   let c = signal.confidence;
   c += getSma20ConfidenceBoost(signal, snapshot);
   c += getFundingReversalConfidenceBoost(snapshot, fundingRate);
   if (volumeRatio != null && volumeRatio > 0) {
     c += getVolumeConfidenceAdjustment(volumeRatio);
+  }
+  if (marketCtx) {
+    c += getOIChangeConfidenceAdjustment(signal.direction, marketCtx.oiChange24h ?? null, marketCtx.priceChange24h ?? 0);
+    c += getDailyOpenConfidenceAdjustment(signal.direction, marketCtx.currentPrice ?? 0, marketCtx.dailyOpenPrice ?? null);
+    c += getRSIConfidenceAdjustment(signal.direction, marketCtx.rsi ?? null);
   }
   return Math.min(MAX_CONFIDENCE, Math.max(0, c));
 }

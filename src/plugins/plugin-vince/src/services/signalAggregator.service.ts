@@ -1684,6 +1684,40 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
+    // Cross-Exchange Funding Conviction Boost
+    // Large HL-vs-CEX funding spread confirms crowding on HL
+    // =========================================
+    try {
+      const binanceService = this.runtime.getService(
+        "VINCE_BINANCE_SERVICE",
+      ) as { getIntelligence?: (asset: string) => Promise<{ crossExchangeFunding?: { spread?: number } | null }> } | null;
+      if (binanceService?.getIntelligence && direction !== "neutral") {
+        const intel = await withTimeout(
+          SOURCE_FETCH_TIMEOUT_MS,
+          "CrossExFunding",
+          binanceService.getIntelligence(asset),
+        );
+        const spread = intel?.crossExchangeFunding?.spread;
+        if (spread != null && Math.abs(spread) > 0.0003) {
+          // Spread > 0 means HL funding higher than CEX (longs crowded on HL)
+          // Spread < 0 means HL funding lower (shorts crowded on HL)
+          if (spread > 0 && direction === "short") {
+            volumeMultiplier *= 1.1; // Confirms contrarian short (longs crowded)
+            allFactors.push(`Cross-exchange funding spread confirms short (HL longs crowded, spread: ${(spread * 100).toFixed(3)}%)`);
+          } else if (spread < 0 && direction === "long") {
+            volumeMultiplier *= 1.1; // Confirms contrarian long (shorts crowded)
+            allFactors.push(`Cross-exchange funding spread confirms long (HL shorts crowded, spread: ${(spread * 100).toFixed(3)}%)`);
+          } else if (spread > 0 && direction === "long") {
+            volumeMultiplier *= 0.95; // Slight penalty: going with the crowd on HL
+            allFactors.push(`Cross-exchange funding spread: HL longs crowded (spread: ${(spread * 100).toFixed(3)}%)`);
+          }
+        }
+      }
+    } catch (e) {
+      logger.debug(`[VinceSignalAggregator] Cross-exchange funding check failed: ${e}`);
+    }
+
+    // =========================================
     // Signal Combo Detection (Cross-Correlation)
     // High-conviction patterns from multiple independent sources
     // =========================================
