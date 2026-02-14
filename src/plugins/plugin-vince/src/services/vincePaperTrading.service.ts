@@ -797,6 +797,7 @@ export class VincePaperTradingService extends Service {
           { direction: signal.direction, confidence: signal.confidence },
           extendedSnapshot,
           fundingRate,
+          volumeRatio,
         );
         if (
           adjustedConfidence > signal.confidence &&
@@ -941,12 +942,34 @@ export class VincePaperTradingService extends Service {
           }
         }
 
-        // Volume gate: reduce size when 24h volume is very low vs recent average (dead session)
-        if (volumeRatio > 0 && volumeRatio < 0.5) {
-          baseSizeUsd = baseSizeUsd * 0.5;
-          logger.debug(
-            `[VincePaperTrading] ${asset} volume ratio ${volumeRatio.toFixed(2)} (<0.5): size reduced 50%`,
-          );
+        // Volume-based sizing: scale position size based on volume ratio vs 7-day average
+        // - Spike (>= 2.0x): moves stick, boost size +20% (confirming momentum)
+        // - Elevated (>= 1.5x): above average, slight boost +10%
+        // - Normal (0.8-1.5x): no adjustment
+        // - Low (< 0.8x): below average, reduce size 20% (lower conviction)
+        // - Dead session (< 0.5x): fakeouts likely, reduce size 50%
+        if (volumeRatio > 0) {
+          if (volumeRatio >= 2.0) {
+            baseSizeUsd = baseSizeUsd * 1.2;
+            logger.debug(
+              `[VincePaperTrading] ${asset} volume spike ${volumeRatio.toFixed(2)}x (>=2.0): size boosted +20%`,
+            );
+          } else if (volumeRatio >= 1.5) {
+            baseSizeUsd = baseSizeUsd * 1.1;
+            logger.debug(
+              `[VincePaperTrading] ${asset} volume elevated ${volumeRatio.toFixed(2)}x (>=1.5): size boosted +10%`,
+            );
+          } else if (volumeRatio < 0.5) {
+            baseSizeUsd = baseSizeUsd * 0.5;
+            logger.debug(
+              `[VincePaperTrading] ${asset} dead session ${volumeRatio.toFixed(2)}x (<0.5): size reduced 50%`,
+            );
+          } else if (volumeRatio < 0.8) {
+            baseSizeUsd = baseSizeUsd * 0.8;
+            logger.debug(
+              `[VincePaperTrading] ${asset} low volume ${volumeRatio.toFixed(2)}x (<0.8): size reduced 20%`,
+            );
+          }
         }
 
         // Apply session-based sizing (from time modifiers)

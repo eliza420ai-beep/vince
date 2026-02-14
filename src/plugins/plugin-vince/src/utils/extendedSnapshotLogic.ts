@@ -83,15 +83,35 @@ export function getFundingReversalConfidenceBoost(
 }
 
 /**
- * Combined confidence after SMA20 and funding reversal boosts. Capped at MAX_CONFIDENCE.
+ * Confidence boost/penalty based on volume ratio vs 7-day average.
+ * High volume confirms momentum; low volume suggests fakeouts.
+ * - Spike (>= 2.0x): +5 confidence (moves stick)
+ * - Elevated (>= 1.5x): +3 confidence
+ * - Low (< 0.5x): -5 confidence (dead session, fakeouts likely)
+ * - Low (< 0.8x): -3 confidence
+ */
+export function getVolumeConfidenceAdjustment(volumeRatio: number): number {
+  if (volumeRatio >= 2.0) return CONFIDENCE_BOOST; // +5
+  if (volumeRatio >= 1.5) return 3;
+  if (volumeRatio < 0.5) return -CONFIDENCE_BOOST; // -5
+  if (volumeRatio < 0.8) return -3;
+  return 0;
+}
+
+/**
+ * Combined confidence after SMA20, funding reversal, and volume boosts. Capped at MAX_CONFIDENCE.
  */
 export function getAdjustedConfidence(
   signal: SignalDirection,
   snapshot: ExtendedSnapshot | null,
   fundingRate: number,
+  volumeRatio?: number,
 ): number {
   let c = signal.confidence;
   c += getSma20ConfidenceBoost(signal, snapshot);
   c += getFundingReversalConfidenceBoost(snapshot, fundingRate);
-  return Math.min(MAX_CONFIDENCE, c);
+  if (volumeRatio != null && volumeRatio > 0) {
+    c += getVolumeConfidenceAdjustment(volumeRatio);
+  }
+  return Math.min(MAX_CONFIDENCE, Math.max(0, c));
 }
