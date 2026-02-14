@@ -40,38 +40,66 @@ function getFacilitatorName(): string {
 }
 
 /**
- * Mute standup rooms for non-facilitator agents so the bootstrap MUTED check
- * short-circuits processing. This prevents PGLite deadlocks from 7+ agents
- * all doing heavy DB writes concurrently on the same Discord message.
- * Runs 5s after init (deferred so rooms have been synced by Discord plugin).
+ * Monkey-patch the runtime's messageService.handleMessage so non-facilitator
+ * agents short-circuit BEFORE any DB access (createMemory / ensureAllAgentsInRoom).
+ * This prevents PGLite deadlocks from 7+ agents all doing concurrent writes.
+ *
+ * The bootstrap's OtakuMessageService is loaded from an npm dist we can't edit,
+ * so this wrapper intercepts at the JS object level.
  */
-async function muteStandupRoomsForNonFacilitator(runtime: { character?: { name?: string }; agentId: string; getRooms?: (worldId: UUID) => Promise<{ id: UUID; name?: string }[]>; getAllWorlds?: () => Promise<{ id: UUID }[]>; setParticipantUserState?: (roomId: UUID, entityId: UUID, state: "MUTED" | "FOLLOWED" | null) => Promise<void>; getParticipantUserState?: (roomId: UUID, entityId: UUID) => Promise<"MUTED" | "FOLLOWED" | null> }): Promise<void> {
+function patchMessageServiceForStandupSkip(runtime: any): void {
   const myName = (runtime.character?.name ?? "").toLowerCase();
   const facilitator = getFacilitatorName();
-  if (myName === facilitator) return; // Facilitator must NOT be muted
+  if (myName === facilitator) return; // Kelly must NOT be patched
+
+  const svc = runtime.messageService;
+  if (!svc || typeof svc.handleMessage !== "function") {
+    logger.debug("[ONE_TEAM] No messageService.handleMessage to patch for " + myName);
+    return;
+  }
 
   const channelParts = getStandupChannelParts();
-  if (!runtime.getAllWorlds || !runtime.getRooms || !runtime.setParticipantUserState) return;
 
-  try {
-    const worlds = await runtime.getAllWorlds();
-    for (const world of worlds) {
-      const rooms = await runtime.getRooms(world.id);
-      for (const room of rooms) {
-        const roomNameLower = (room.name ?? "").toLowerCase();
-        const isStandup = channelParts.some((p) => roomNameLower.includes(p));
-        if (isStandup) {
-          const currentState = await runtime.getParticipantUserState?.(room.id, runtime.agentId as UUID);
-          if (currentState !== "MUTED") {
-            await runtime.setParticipantUserState(room.id, runtime.agentId as UUID, "MUTED");
-            logger.info(`[ONE_TEAM] Muted standup room "${room.name}" for ${myName} (only ${facilitator} processes)`);
-          }
+  // Cache roomId → isStandup so we don't call getRoom for every message
+  const standupRoomCache = new Map<string, boolean>();
+
+  const original = svc.handleMessage.bind(svc);
+  svc.handleMessage = async function patchedHandleMessage(
+    rt: any,
+    message: any,
+    callback?: any,
+    options?: any,
+  ) {
+    const roomId = message?.roomId as string | undefined;
+    if (roomId) {
+      let isStandup = standupRoomCache.get(roomId);
+      if (isStandup === undefined) {
+        try {
+          const room = await rt.getRoom(roomId);
+          const roomNameLower = (room?.name ?? "").toLowerCase();
+          isStandup = channelParts.some((p: string) => roomNameLower.includes(p));
+        } catch {
+          isStandup = false;
         }
+        standupRoomCache.set(roomId, isStandup);
+      }
+      if (isStandup) {
+        logger.info(
+          `[ONE_TEAM] Standup skip: ${myName} dropping message in standup room (only ${facilitator} processes)`,
+        );
+        return {
+          didRespond: false,
+          responseContent: null,
+          responseMessages: [],
+          state: { values: {}, data: {}, text: "" },
+          mode: "none",
+        };
       }
     }
-  } catch (err) {
-    logger.debug({ err }, "[ONE_TEAM] muteStandupRooms failed (non-fatal)");
-  }
+    return original(rt, message, callback, options);
+  };
+
+  logger.info(`[ONE_TEAM] Patched messageService for ${myName} — standup messages skip processing`);
 }
 
 export const interAgentPlugin: Plugin = {
@@ -98,14 +126,17 @@ export const interAgentPlugin: Plugin = {
       });
     }
 
-    // Mute standup rooms for non-facilitator agents (prevents PGLite deadlock).
-    // Deferred 8s so Discord plugin has time to sync rooms/worlds first.
+    // Patch messageService for non-facilitator agents: skip standup room
+    // messages entirely (prevents PGLite deadlock from 7+ concurrent writes).
+    // Deferred 3s so messageService has been registered by bootstrap.
     if ((runtime.character?.name ?? "").toLowerCase() !== getFacilitatorName()) {
       setTimeout(() => {
-        muteStandupRoomsForNonFacilitator(runtime as any).catch((err) => {
-          logger.debug({ err }, "[ONE_TEAM] muteStandupRooms deferred failed");
-        });
-      }, 8000);
+        try {
+          patchMessageServiceForStandupSkip(runtime);
+        } catch (err) {
+          logger.debug({ err }, "[ONE_TEAM] patchMessageService failed");
+        }
+      }, 3000);
     }
   },
 };
