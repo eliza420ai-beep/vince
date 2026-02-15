@@ -53,7 +53,18 @@ export const otakuCharacter: Character = {
     ...(x402Enabled ? ["@elizaos/plugin-x402"] : []),
   ],
   knowledge: [
-    { directory: "bankr", shared: false },
+    // Otaku = COO: DeFi ops, wallet, swaps, BANKR, on-chain execution
+    { directory: "bankr", shared: false },                  // primary: BANKR executor
+    { directory: "defi-metrics", shared: true },            // protocol evaluation for ops
+    { directory: "solana", shared: true },                  // Solana DeFi ops
+    { directory: "stablecoins", shared: true },             // stablecoin swaps, yield routing
+    { directory: "security", shared: true },                // smart contract safety for ops
+    { directory: "privacy", shared: true },                 // privacy-preserving txns
+    { directory: "chain-abstraction", shared: true },       // cross-chain UX, bridging
+    { directory: "restaking", shared: true },               // restaking ops, AVS management
+    { directory: "mev", shared: true },                     // MEV awareness for execution
+    { directory: "airdrops", shared: true },                // airdrop farming ops
+    { directory: "rwa", shared: true },                     // RWA token ops
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],

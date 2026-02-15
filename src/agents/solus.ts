@@ -98,8 +98,15 @@ export const solusCharacter: Character = {
     vince_paper_assets: process.env.SOLUS_PAPER_ASSETS || CORE_ASSETS.join(","),
   },
   knowledge: [
-    { directory: "internal-docs", shared: true },
-    { directory: "options", shared: true },
+    // Solus = CFO: trading execution, options, risk management, portfolio
+    { directory: "options", shared: true },                 // primary: wheel, strikes, Greeks
+    { directory: "perps-trading", shared: true },           // perps mechanics for hedging
+    { directory: "trading", shared: true },                 // general trading frameworks
+    { directory: "defi-metrics", shared: true },            // yield strategies, TVL context
+    { directory: "stablecoins", shared: true },             // stable yields, collateral
+    { directory: "mev", shared: true },                     // execution risk awareness
+    { directory: "internal-docs", shared: true },           // Grok daily, treasury
+    { directory: "research-daily", shared: true },          // daily market context
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],

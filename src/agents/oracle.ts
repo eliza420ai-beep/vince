@@ -76,7 +76,14 @@ export const oracleCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
+    // Oracle = CPO: prediction markets, probability assessment, macro context
     { path: "teammate/POLYMARKET_PRIORITY_MARKETS.md", shared: false },
+    { directory: "macro-economy", shared: true },           // macro scenarios for predictions
+    { directory: "regulation", shared: true },              // regulatory outcome predictions
+    { directory: "stocks", shared: true },                  // equity/sector predictions
+    { directory: "bitcoin-maxi", shared: true },            // BTC price prediction context
+    { directory: "commodities", shared: true },             // commodity scenario planning
+    { directory: "research-daily", shared: true },          // daily intel for prediction context
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],

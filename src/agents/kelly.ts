@@ -96,8 +96,13 @@ export const kellyCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
-    { directory: "the-good-life", shared: true },
-    { directory: "kelly-btc", shared: false },
+    // Kelly = CVO: lifestyle, standup facilitator, team coordination
+    { directory: "the-good-life", shared: true },           // primary: hotels, wine, dining
+    { directory: "kelly-btc", shared: false },              // Satoshi's knowledge (private)
+    { directory: "art-collections", shared: true },         // NFT art, culture
+    { directory: "naval", shared: true },                   // wealth/happiness philosophy
+    { directory: "substack-essays", shared: true },         // long-form lifestyle takes
+    { directory: "teammate", shared: true },                // standup system (facilitator role)
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
