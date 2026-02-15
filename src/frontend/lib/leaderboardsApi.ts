@@ -193,6 +193,16 @@ export interface MoreLeaderboardSection {
     tokens: { symbol: string; chain: string; netFlow: number; buyVolume: number; priceChange24h: number }[];
     creditRemaining: number | null;
   } | null;
+  /** 24h volume vs 7d average (BTC, ETH, SOL, HYPE). Same logic as paper bot sizing. */
+  volumeInsights: {
+    assets: Array<{
+      asset: string;
+      volumeRatio: number | null;
+      volume24h: number | null;
+      volume24hFormatted: string | null;
+      interpretation: "spike" | "elevated" | "normal" | "low" | "dead_session";
+    }>;
+  } | null;
 }
 
 export interface LeaderboardsResponse {

@@ -40,6 +40,13 @@ One Gateway connects WhatsApp, Telegram, Discord, Slack, Signal, iMessage, WebCh
 ## 5. ElizaOS ↔ OpenClaw interop
 
 The **openclaw-adapter** runs Eliza plugins (e.g. plugin-evm, plugin-solana) *inside* an OpenClaw agent. Same plugin codebase powers both Eliza (VINCE) and OpenClaw. Use when an OpenClaw-based agent needs wallet or connector logic. See \`knowledge/sentinel-docs/OPENCLAW_ADAPTER.md\`.
+
+## 6. Personal productivity and fun
+
+- **Shopping support** — Go farther than GPT agent mode for research and comparison.
+- **Research, GitHub, content trackers** — Keep up with news and interests.
+- **Debug and change app UI** from another device while you use the app.
+- **Chat, ask questions, customize, play, learn, have fun.** See \`knowledge/clawdbot/openclaw-practical-tips.md\` for more "what I do with it" examples.
 `;
 
 export const openclawUseCasesAction: Action = {

@@ -2246,7 +2246,7 @@ export class VinceSignalAggregatorService extends Service {
     const signals = Array.from(this.signalCache.values());
     const lastUpdate = Math.max(...signals.map((s) => s.timestamp), 0);
 
-    // Check which data sources are available (15 total)
+    // Check which data sources are available (16 total; VolumeRatio = sizing only, not direction)
     // Note: Hyperliquid and Deribit always available via fallback services
     const sanbaseService = this.runtime.getService(
       "VINCE_SANBASE_SERVICE",
@@ -2304,6 +2304,10 @@ export class VinceSignalAggregatorService extends Service {
       { name: "CrossVenueFunding", available: !!hyperliquidService },
       { name: "DeribitPutCallRatio", available: !!deribitPluginService },
       { name: "DeribitDVOL", available: !!deribitPluginService },
+      {
+        name: "VolumeRatio",
+        available: !!this.runtime.getService("VINCE_MARKET_DATA_SERVICE"),
+      },
     ];
 
     return {

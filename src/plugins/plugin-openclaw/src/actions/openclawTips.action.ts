@@ -29,6 +29,13 @@ const OPENCLAW_TIPS_MD = `# OpenClaw tips and tricks
 - **Workspace sync** — After each run, copy \`openclaw-agents/workspace/*.md\` to \`knowledge/teammate/\` for VINCE and to \`~/.openclaw/workspace/\` for OpenClaw CLI.
 - **Orchestrator vs plugin** — Use orchestrator for CLI research (\`node openclaw-agents/orchestrator.js all SOL BTC\`). Use plugin-openclaw in VINCE for in-app research. Set \`OPENCLAW_USE_LAST_BRIEFING=true\` to serve last-briefing when fresh.
 - **Bind loopback** — Never expose Gateway. Use \`bind=loopback\` (127.0.0.1).
+
+## Operator setup (Discord, heartbeats, config, RAG)
+
+- **Discord** — Use channels for system prompts and cron output; threads as sessions; Voice groups for a dynamic statusline.
+- **Heartbeats** — Use a cheap, fast model (e.g. MiniMax-M2.5, Haiku, GLM). Don't spam; every heartbeat that touches the outside world is cost and risk.
+- **Config and chat, not coding** — Use a coding agent for code; use OpenClaw for config and chat. Track changes with git. TTS/STT (e.g. ElevenLabs + Parakeet) saves time.
+- **RAG your data** — Ingest X, GitHub, etc.; ask "what did I tweet 3 days ago?", "how much did I spend in January?"; track side projects. See \`knowledge/clawdbot/openclaw-practical-tips.md\` for the full narrative.
 `;
 
 export const openclawTipsAction: Action = {

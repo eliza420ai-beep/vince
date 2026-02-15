@@ -68,6 +68,7 @@ const HARDWARE_POWER_MONTHLY = 40; // ~2 Mac Studios under load, $0.12/kWh
 const SIGNAL_SOURCE_DISPLAY_NAMES: Record<string, string> = {
   XSentiment: "X (Twitter) sentiment",
   NewsSentiment: "News sentiment",
+  VolumeRatio: "Volume (24h vs 7d avg)",
 };
 function signalSourceDisplayName(name: string): string {
   return SIGNAL_SOURCE_DISPLAY_NAMES[name] ?? name;
@@ -1306,6 +1307,62 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     </DashboardCard>
                   )}
 
+                  {/* Volume insights (24h vs 7d avg — same signal paper bot uses for sizing) */}
+                  {leaderboardsData.more.volumeInsights && (leaderboardsData.more.volumeInsights.assets?.length ?? 0) > 0 && (
+                    <DashboardCard title="Volume (24h vs 7d avg)" className="lg:col-span-2">
+                      <div className="space-y-4">
+                        <div className="rounded-lg bg-muted/40 border border-border/50 p-4 text-sm text-muted-foreground space-y-2">
+                          <p className="font-medium text-foreground">Why volume matters</p>
+                          <p>
+                            Volume confirms whether price moves are backed by real flow or just thin, noisy action. High volume vs the 7-day average suggests conviction and momentum; low or &quot;dead&quot; volume often means fakeouts and whipsaws. The paper bot uses this ratio to size positions: it increases size when volume confirms the move and reduces size when volume is weak so we don’t trade full size in unreliable conditions.
+                          </p>
+                          <p className="pt-1 text-xs">
+                            <strong>Bot sizing:</strong> Spike (≥2×) +20% · Elevated (≥1.5×) +10% · Normal (0.8–1.5×) no change · Low (&lt;0.8×) −20% · Dead (&lt;0.5×) −50%
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border">
+                                <th className="text-left py-2 font-medium">Asset</th>
+                                <th className="text-right py-2 font-medium">24h vol</th>
+                                <th className="text-right py-2 font-medium">Ratio</th>
+                                <th className="text-right py-2 font-medium">Interpretation</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {leaderboardsData.more.volumeInsights.assets.map((a) => {
+                                const interp = a.interpretation;
+                                const badgeClass =
+                                  interp === "spike"
+                                    ? "text-green-600 dark:text-green-400 font-medium"
+                                    : interp === "elevated"
+                                      ? "text-green-600/80 dark:text-green-400/80"
+                                      : interp === "dead_session"
+                                        ? "text-amber-600 dark:text-amber-400 font-medium"
+                                        : interp === "low"
+                                          ? "text-amber-600/80 dark:text-amber-400/80"
+                                          : "text-muted-foreground";
+                                return (
+                                  <tr key={a.asset} className="border-b border-border/50">
+                                    <td className="py-1.5 font-medium">{a.asset}</td>
+                                    <td className="py-1.5 text-right font-mono tabular-nums">{a.volume24hFormatted ?? "—"}</td>
+                                    <td className="py-1.5 text-right font-mono tabular-nums">
+                                      {a.volumeRatio != null ? `${a.volumeRatio.toFixed(2)}×` : "—"}
+                                    </td>
+                                    <td className={`py-1.5 text-right capitalize ${badgeClass}`}>
+                                      {interp.replace("_", " ")}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </DashboardCard>
+                  )}
+
                   {/* Cross-venue funding */}
                   {leaderboardsData.more.crossVenue && (leaderboardsData.more.crossVenue.assets?.length ?? 0) > 0 && (
                     <DashboardCard title="Cross-venue funding" className="lg:col-span-2">
@@ -1535,6 +1592,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
 
                 {!leaderboardsData.more.fearGreed &&
                   !leaderboardsData.more.options &&
+                  !leaderboardsData.more.volumeInsights &&
                   !leaderboardsData.more.crossVenue &&
                   !leaderboardsData.more.oiCap &&
                   !leaderboardsData.more.alerts &&
@@ -2275,7 +2333,10 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground pt-1">
-                        Same X signal as the News tab &quot;X (Twitter) vibe check&quot;. X contributes when confidence ≥ 40%; weight 0.5×. Richer vibe in chat: ask ECHO for &quot;X pulse&quot; or &quot;CT vibe&quot;.
+                        <strong>X:</strong> Same as News tab &quot;X (Twitter) vibe check&quot;. Contributes when confidence ≥ 40%; weight 0.5×. Richer vibe in chat: ask ECHO for &quot;X pulse&quot; or &quot;CT vibe&quot;.
+                      </p>
+                      <p className="text-xs text-muted-foreground pt-1">
+                        <strong>Volume (24h vs 7d avg):</strong> Used for position sizing only (not direction). Spike/elevated → size up; low/dead → size down. See More tab for live ratios.
                       </p>
                       {(paperData.recentClosedTrades?.length ?? 0) > 0 && (() => {
                         const closed = paperData.recentClosedTrades ?? [];

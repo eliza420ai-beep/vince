@@ -114,6 +114,17 @@ See [openclaw-agents/ARCHITECTURE.md](../../openclaw-agents/ARCHITECTURE.md) and
 
 When `OPENCLAW_GATEWAY_URL` is set, the plugin uses the OpenClaw Gateway for health/status. Ask for "gateway status" to check connectivity and health. No Gateway is required for the setup guide, tips, use cases, or workspace sync actions.
 
+## Operator setups (real-world tips)
+
+From people running OpenClaw day to day (see **knowledge/clawdbot/openclaw-practical-tips.md** for the full narrative):
+
+- **Discord as org layer** — Channels for system prompts and cron output; threads as sessions; Voice groups for a dynamic statusline.
+- **Heartbeats** — Use a cheap, fast instruction-follower (e.g. MiniMax-M2.5, Haiku, GLM). Don’t spam; every heartbeat that touches the outside world is a cost and risk.
+- **Config and chat, not coding** — Use a coding agent (e.g. Codex) for code; use OpenClaw for config updates and chat. Track all changes with git. TTS/STT (e.g. ElevenLabs + Parakeet) reduces typing.
+- **RAG your data** — Ingest X, GitHub, etc.; ask “what did I tweet 3 days ago?”, “how much did I spend in January?”; track side projects to prioritize.
+
+Use cases that come up: shopping support, research/GitHub/content trackers, debugging and changing app UI from another device, and chat/learn/play.
+
 ## Security
 
 - **Bind Gateway to loopback** (127.0.0.1). Set `gateway.auth.token` or `OPENCLAW_GATEWAY_TOKEN`. Do not expose the Gateway to the internet without proper auth and network controls.
