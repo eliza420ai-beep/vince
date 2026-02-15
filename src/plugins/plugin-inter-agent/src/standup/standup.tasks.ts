@@ -674,7 +674,7 @@ export async function pushStandupSummaryToChannels(
   logger.info(
     {
       targetCount: targets.length,
-      targets: targets.map((t) => ({ roomId: t.roomId, source: t.source, name: t.name })),
+      targets: targets.map((t) => ({ roomId: t.roomId, source: t.source, name: t.name, channelId: t.channelId })),
     },
     "[Standup] Push targets resolved",
   );

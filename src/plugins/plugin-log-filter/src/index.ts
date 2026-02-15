@@ -12,16 +12,25 @@
 import type { Plugin, IAgentRuntime, TargetInfo, Content } from "@elizaos/core";
 import { logger as coreLogger } from "@elizaos/core";
 
-/** Register a no-op Discord send handler so the runtime always has a handler for source "discord".
+/** Register a deferred Discord send handler so the runtime always has a handler for source "discord".
  * Core looks up sendHandlers.get(target.source) — if nothing is registered it logs "Send handler not found".
- * We register first (log filter runs before other plugins); @elizaos/plugin-discord overwrites with the real handler when it loads.
- * This fixes "Send handler not found (handlerSource=discord)" when Discord is in character.plugins but the service never registers (e.g. same app ID as Eliza).
+ *
+ * ElizaOS 1.x has a bug in registerService: it calls `serviceDef.constructor.registerSendHandlers`
+ * instead of `serviceDef.registerSendHandlers`, so the real Discord handler is never registered.
+ * This deferred handler works around that: at call time it looks up the Discord service instance
+ * and forwards to handleSendMessage, so messages actually reach Discord.
  */
-function registerNoOpDiscordHandler(runtime: IAgentRuntime): void {
+function registerDeferredDiscordHandler(runtime: IAgentRuntime): void {
   if (typeof runtime.registerSendHandler !== "function") return;
-  const noOp = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
+  const deferred = async (rt: IAgentRuntime, target: TargetInfo, content: Content) => {
+    const svc = rt.getService("discord") as { handleSendMessage?: (r: IAgentRuntime, t: TargetInfo, c: Content) => Promise<void> } | null;
+    if (svc && typeof svc.handleSendMessage === "function") {
+      await svc.handleSendMessage(rt, target, content);
+    }
+    // else: Discord service not available — silently skip (same as old no-op)
+  };
   for (const key of ["discord", "Discord", "DISCORD"]) {
-    runtime.registerSendHandler(key, noOp);
+    runtime.registerSendHandler(key, deferred);
   }
 }
 
@@ -342,7 +351,7 @@ export const logFilterPlugin: Plugin = {
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
     // Register no-op Discord send handler first so core never logs "Send handler not found (handlerSource=discord)"
-    registerNoOpDiscordHandler(runtime);
+    registerDeferredDiscordHandler(runtime);
 
     // Patch global core logger once (used by code that imports logger from @elizaos/core)
     if (!isPatched) {
