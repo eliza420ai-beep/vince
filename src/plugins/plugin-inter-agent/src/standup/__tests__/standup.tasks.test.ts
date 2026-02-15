@@ -8,7 +8,19 @@ import { v4 as uuidv4 } from "uuid";
 import { runStandupRoundRobin, useRalphLoop } from "../standup.tasks";
 import { STANDUP_REPORT_ORDER } from "../standup.constants";
 
+function createMockAgentRuntime(agentId: string, name: string) {
+  return {
+    agentId,
+    character: { name, system: "" },
+    useModel: async () => "reply",
+  };
+}
+
 function createMockRuntimeWithElizaOS(agentsInWrongOrder: { agentId: string; character: { name: string } }[]) {
+  const agentRuntimes = new Map(
+    agentsInWrongOrder.map((a) => [a.agentId, createMockAgentRuntime(a.agentId, a.character.name)])
+  );
+  const getAgent = (agentId: string) => agentRuntimes.get(agentId) ?? null;
   const handleMessage = async (
     _agentId: string,
     _msg: unknown,
@@ -18,6 +30,7 @@ function createMockRuntimeWithElizaOS(agentsInWrongOrder: { agentId: string; cha
   };
   const elizaOS = {
     getAgents: () => [...agentsInWrongOrder],
+    getAgent,
     handleMessage,
   };
   const runtime = {

@@ -99,14 +99,9 @@ function patchMessageServiceForStandupSkip(runtime: any): void {
         // Only block external (Discord) messages that would cause PGLite deadlocks.
         const msgSource = (message?.content?.source ?? "").toLowerCase();
         if (msgSource === "standup") {
-          // Inject isMention so the bootstrap's shouldRespond skips LLM evaluation
-          // and responds directly (same technique used for Kelly's standup patch).
-          // Without this, shouldRespond sends GROUP messages to LLM eval which returns IGNORE.
-          if (!message.content) message.content = {};
-          if (!message.content.mentionContext) message.content.mentionContext = {};
-          message.content.mentionContext.isMention = true;
+          // Round-robin now uses direct useModel; this path is fallback only. Pass through.
           logger.info(
-            `[ONE_TEAM] Standup passthrough: ${myName} processing coordinator round-robin message (isMention injected)`,
+            `[ONE_TEAM] Standup passthrough: ${myName} processing coordinator round-robin message`,
           );
         } else {
           logger.info(
@@ -144,16 +139,6 @@ export const interAgentPlugin: Plugin = {
       { agent: runtime.character?.name, hasElizaOS },
       "[ONE_TEAM] elizaOS on runtime",
     );
-
-    // Register "standup" as an always-respond source so the bootstrap's shouldRespond
-    // bypasses LLM evaluation for standup round-robin messages. Without this, agents
-    // in a GROUP-type room with source "standup" fall to LLM eval which returns IGNORE.
-    const existing = String(runtime.getSetting("ALWAYS_RESPOND_SOURCES") ?? "");
-    if (!existing.toLowerCase().includes("standup")) {
-      const updated = existing ? `${existing},standup` : "standup";
-      runtime.setSetting("ALWAYS_RESPOND_SOURCES", updated);
-      logger.info({ agent: runtime.character?.name }, `[ONE_TEAM] Added "standup" to ALWAYS_RESPOND_SOURCES`);
-    }
 
     if (isStandupCoordinator(runtime)) {
       // Defer so runtime.db is available (plugin-sql registers it during init; we run after other plugins).

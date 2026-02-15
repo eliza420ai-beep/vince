@@ -4,7 +4,7 @@
  * Only the coordinator runtime (e.g. Sentinel) registers and runs this task.
  */
 
-import { type IAgentRuntime, type UUID, logger, ChannelType } from "@elizaos/core";
+import { type IAgentRuntime, type UUID, logger, ChannelType, ModelType } from "@elizaos/core";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { v4 as uuidv4 } from "uuid";
@@ -34,7 +34,7 @@ import { verifyActionItem } from "./standupVerifier";
 import { appendLearning } from "./standupLearnings";
 import { saveSharedDailyInsights, loadSharedDailyInsights } from "./dayReportPersistence";
 import { fetchAgentData, extractKeyEventsFromVinceData } from "./standupDataFetcher";
-import { AGENT_ROLES } from "./standupReports";
+import { AGENT_ROLES, getReportTemplate, formatReportDate } from "./standupReports";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning, markAgentReported } from "./standupState";
 import { validatePredictions } from "./predictionTracker";
@@ -253,7 +253,8 @@ function extractReplyFromResponse(resp: unknown): string | null {
 }
 
 /**
- * Run one agent's turn: send transcript as the "user" message, get reply text.
+ * Run one agent's turn: use direct runtime.useModel to bypass shouldRespond/IGNORE,
+ * fallback to handleMessage if getAgent or useModel unavailable.
  */
 async function runOneStandupTurn(
   runtime: IAgentRuntime,
@@ -268,8 +269,32 @@ async function runOneStandupTurn(
     transcript.length > MAX_TRANSCRIPT_CHARS
       ? transcript.slice(-MAX_TRANSCRIPT_CHARS)
       : transcript;
-  // Directly address the agent by name so the bootstrap shouldRespond check
-  // recognizes this message is for them (prevents IGNORE/NONE decisions).
+
+  // Direct path: bypass handleMessage / shouldRespond / IGNORE
+  const getAgent = eliza.getAgent?.bind?.(eliza) ?? eliza.getAgent;
+  const agentRuntime = getAgent?.(agentId);
+  if (agentRuntime?.useModel) {
+    try {
+      const template =
+        (getReportTemplate(agentName) || "").replace(/\{\{date\}\}/g, formatReportDate());
+      const systemPrompt = agentRuntime.character?.system || "";
+      const prompt = `You are ${agentName}. ${systemPrompt}\n\n${template}\n\nContext:\n${truncated}\n\nReport now. Concise.`;
+      const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
+        prompt,
+        maxTokens: 800,
+        temperature: 0.7,
+      });
+      const text = String(resp ?? "").trim();
+      return text || null;
+    } catch (err) {
+      logger.warn(
+        { err, agentName },
+        "[Standup] Direct useModel failed; falling back to handleMessage.",
+      );
+    }
+  }
+
+  // Fallback: handleMessage path
   const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
   const roleHint = agentRole ? ` (${agentRole.focus})` : "";
   const directAddress = `@${agentName}${roleHint}, it's your turn. Report your domain data for the standup. Keep it concise.\n\n`;
@@ -280,10 +305,6 @@ async function runOneStandupTurn(
     content: {
       text: directAddress + truncated,
       source: STANDUP_SOURCE,
-      // Inject mentionContext so bootstrap's shouldRespond skips LLM evaluation
-      // and responds directly. The patch on messageService can't detect the standup
-      // room from the target agent's DB (per-agent PGLite), so we set it here.
-      mentionContext: { isMention: true },
     },
     createdAt: Date.now(),
   };
