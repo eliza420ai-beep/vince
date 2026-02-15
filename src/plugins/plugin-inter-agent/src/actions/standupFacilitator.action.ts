@@ -40,7 +40,7 @@ import {
   useRalphLoop,
 } from "../standup/standup.tasks";
 import { loadSharedDailyInsights } from "../standup/dayReportPersistence";
-import { buildKickoffWithSharedInsights } from "../standup/standup.context";
+import { buildKickoffWithSharedInsights, buildKickoffWithRoles } from "../standup/standup.context";
 import { parseStandupTranscript, countCrossAgentLinks } from "../standup/standup.parse";
 
 /** Focus areas for this standup (not lifestyle/NFTs/memes) */
@@ -233,7 +233,7 @@ async function handleKickoff(
   const sharedContent = (await loadSharedDailyInsights())?.trim();
   const kickoffText = sharedContent
     ? await buildKickoffWithSharedInsights(sharedContent)
-    : shortKickoff;
+    : buildKickoffWithRoles();
   return { kickoffText, eliza };
 }
 

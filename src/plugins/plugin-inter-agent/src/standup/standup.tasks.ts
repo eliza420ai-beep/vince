@@ -35,7 +35,7 @@ import { appendLearning } from "./standupLearnings";
 import { saveSharedDailyInsights, loadSharedDailyInsights } from "./dayReportPersistence";
 import { fetchAgentData, extractKeyEventsFromVinceData } from "./standupDataFetcher";
 import { buildKickoffWithSharedInsights } from "./standup.context";
-import { isStandupRunning } from "./standupState";
+import { isStandupRunning, markAgentReported } from "./standupState";
 import { validatePredictions } from "./predictionTracker";
 
 const STANDUP_SOURCE = "standup";
@@ -163,12 +163,6 @@ export async function buildAndSaveSharedDailyInsights(
     logger.debug("[Standup] No getAgents — skip shared insights pre-write");
     return;
   }
-  // Core's getAgents() does Array.from(this.runtimes.values()) — if eliza is a stub or binding is wrong, this.runtimes is undefined
-  const elizaAny = eliza as { runtimes?: Map<unknown, unknown> };
-  if (!elizaAny.runtimes || typeof elizaAny.runtimes.values !== "function") {
-    logger.debug("[Standup] Registry has no runtimes (in-process registry not fully attached) — skip shared insights");
-    return;
-  }
   let agents: { agentId: string; character?: { name?: string } }[];
   try {
     const raw = eliza.getAgents.call(eliza);
@@ -232,6 +226,9 @@ function extractReplyFromResponse(resp: unknown): string | null {
   const out = text.trim() ? text.trim() : null;
   if (!out && (obj?.thought || obj?.text !== undefined)) {
     logger.debug({ thoughtLen: (obj.thought ?? "").length, textLen: (obj.text ?? "").length }, "[Standup] extractReplyFromResponse: got response but no usable text/thought");
+  }
+  if (out && out.length < 100) {
+    logger.debug({ len: out.length, preview: out.slice(0, 80) }, "[Standup] extractReplyFromResponse: short reply (possibly canned)");
   }
   return out;
 }
@@ -340,7 +337,10 @@ export async function runStandupRoundRobin(
       const structuredSignals = reply ? parseStructuredBlockFromText(reply) ?? undefined : undefined;
       const line = reply ? `${agentName}: ${reply}` : `${agentName}: (no reply)`;
       transcript += `\n\n${line}`;
-      if (reply) replies.push({ agentId, agentName, text: reply, structuredSignals });
+      if (reply) {
+        replies.push({ agentId, agentName, text: reply, structuredSignals });
+        markAgentReported(agentName);
+      }
       logger.info(`[Standup] ${agentName} replied (${reply?.length ?? 0} chars).`);
     } catch (err) {
       logger.warn({ err, agentName }, "[Standup] Turn failed");

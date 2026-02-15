@@ -6,7 +6,8 @@
 import { type IAgentRuntime, logger } from "@elizaos/core";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL } from "./standup.constants";
+import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL, STANDUP_REPORT_ORDER } from "./standup.constants";
+import { AGENT_ROLES } from "./standupReports";
 import { formatPredictionScoreboard } from "./predictionTracker";
 
 const execAsync = promisify(exec);
@@ -51,6 +52,32 @@ export function buildShortStandupKickoff(): string {
   const vinceMentionId = getStandupDiscordMentionId("vince");
   const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
   return `Standup ${date}. ${call}`;
+}
+
+/**
+ * Kickoff when shared insights failed — include agent role instructions so agents know what to report.
+ * Used as fallback when buildAndSaveSharedDailyInsights fails.
+ */
+export function buildKickoffWithRoles(): string {
+  const date = new Date().toISOString().slice(0, 10);
+  const day = new Date().toLocaleDateString("en-US", { weekday: "long" });
+  const vinceMentionId = getStandupDiscordMentionId("vince");
+  const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, market data — go.";
+  const roleLines: string[] = [];
+  for (const name of STANDUP_REPORT_ORDER) {
+    const role = AGENT_ROLES[name as keyof typeof AGENT_ROLES];
+    if (role && !("isStandupFacilitator" in role && role.isStandupFacilitator)) {
+      roleLines.push(`- **${name}**: ${role.focus}`);
+    }
+  }
+  return `## Standup ${date} (${day})
+
+BTC · SOL · HYPE · HIP-3 — Numbers only, no fluff.
+
+**Report focus:**
+${roleLines.join("\n")}
+
+${call}`;
 }
 
 /**
