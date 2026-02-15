@@ -99,8 +99,14 @@ function patchMessageServiceForStandupSkip(runtime: any): void {
         // Only block external (Discord) messages that would cause PGLite deadlocks.
         const msgSource = (message?.content?.source ?? "").toLowerCase();
         if (msgSource === "standup") {
+          // Inject isMention so the bootstrap's shouldRespond skips LLM evaluation
+          // and responds directly (same technique used for Kelly's standup patch).
+          // Without this, shouldRespond sends GROUP messages to LLM eval which returns IGNORE.
+          if (!message.content) message.content = {};
+          if (!message.content.mentionContext) message.content.mentionContext = {};
+          message.content.mentionContext.isMention = true;
           logger.info(
-            `[ONE_TEAM] Standup passthrough: ${myName} processing coordinator round-robin message`,
+            `[ONE_TEAM] Standup passthrough: ${myName} processing coordinator round-robin message (isMention injected)`,
           );
         } else {
           logger.info(
