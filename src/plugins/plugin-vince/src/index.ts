@@ -589,19 +589,14 @@ export const vincePlugin: Plugin = {
 
   // Plugin initialization with live market data dashboard (VINCE only — Eliza also loads this plugin)
   init: async (config: Record<string, string>, runtime: IAgentRuntime) => {
-    // Register a deferred Discord send handler. ElizaOS 1.x has a bug: registerService calls
-    // serviceDef.constructor.registerSendHandlers (→ Function.registerSendHandlers → undefined)
-    // instead of serviceDef.registerSendHandlers, so the real Discord handler is never registered.
-    // This deferred handler looks up the Discord service at call time and forwards the message.
+    // Register a no-op for "discord" so core doesn't log "Send handler not found".
+    // NOTE: ElizaOS 1.x has a framework bug where the real Discord handler is never registered.
+    // Do NOT replace with a deferred handler — it causes VinceNotificationService to blast all rooms.
+    // The standup push calls the Discord service directly instead (see pushStandupSummaryToChannels).
     if (typeof runtime.registerSendHandler === "function") {
-      const deferredDiscord = async (rt: IAgentRuntime, target: TargetInfo, content: Content) => {
-        const svc = rt.getService("discord") as { handleSendMessage?: (r: IAgentRuntime, t: TargetInfo, c: Content) => Promise<void> } | null;
-        if (svc && typeof svc.handleSendMessage === "function") {
-          await svc.handleSendMessage(rt, target, content);
-        }
-      };
+      const noOpDiscordHandler = async (_r: IAgentRuntime, _t: TargetInfo, _c: Content) => {};
       for (const key of ["discord", "Discord", "DISCORD"]) {
-        runtime.registerSendHandler(key, deferredDiscord);
+        runtime.registerSendHandler(key, noOpDiscordHandler);
       }
     }
 

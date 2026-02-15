@@ -679,9 +679,25 @@ export async function pushStandupSummaryToChannels(
     "[Standup] Push targets resolved",
   );
 
+  // ElizaOS 1.x framework bug: registerService calls serviceDef.constructor.registerSendHandlers
+  // instead of serviceDef.registerSendHandlers, so the real Discord send handler is never registered.
+  // We bypass sendMessageToTarget and call the Discord service's handleSendMessage directly.
+  const discordSvc = runtime.getService("discord") as {
+    handleSendMessage?: (r: IAgentRuntime, t: { source: string; roomId?: UUID; channelId?: string; serverId?: string | null }, c: { text: string }) => Promise<void>;
+  } | null;
+
+  const sendToTarget = async (
+    target: PushTarget,
+    content: { text: string },
+  ): Promise<void> => {
+    if (target.source === "discord" && discordSvc && typeof discordSvc.handleSendMessage === "function") {
+      await discordSvc.handleSendMessage(runtime, target, content);
+    } else {
+      await runtime.sendMessageToTarget(target, content);
+    }
+  };
+
   const chunks = chunkForDiscord(summary);
-  const isNoSendHandler = (e: unknown): boolean =>
-    String(e).includes("No send handler") || String(e).includes("Send handler not found");
   const delayMs = 500;
 
   let sent = 0;
@@ -689,7 +705,7 @@ export async function pushStandupSummaryToChannels(
     try {
       for (let i = 0; i < chunks.length; i++) {
         if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
-        await runtime.sendMessageToTarget(target, { text: chunks[i] });
+        await sendToTarget(target, { text: chunks[i] });
       }
       sent++;
       if (chunks.length > 1) {
@@ -699,19 +715,17 @@ export async function pushStandupSummaryToChannels(
         );
       }
     } catch (e) {
-      if (!isNoSendHandler(e)) {
-        logger.warn(
-          {
-            roomId: target.roomId,
-            source: target.source,
-            channelId: target.channelId,
-            summaryLength: summary.length,
-            chunkCount: chunks.length,
-            err: e,
-          },
-          "[Standup] Push to channel failed",
-        );
-      }
+      logger.warn(
+        {
+          roomId: target.roomId,
+          source: target.source,
+          channelId: target.channelId,
+          summaryLength: summary.length,
+          chunkCount: chunks.length,
+          err: e,
+        },
+        "[Standup] Push to channel failed",
+      );
     }
   }
   if (sent > 0) {
