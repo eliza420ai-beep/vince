@@ -63,6 +63,30 @@ export const AGENT_ROLES = {
 
 export type AgentName = keyof typeof AGENT_ROLES;
 
+/** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. */
+export const STRUCTURED_SIGNAL_INSTRUCTION = `
+
+End with a fenced JSON block so the team can parse signals. Use this exact format (no other keys):
+\`\`\`json
+{"signals":[{"asset":"BTC","direction":"bullish","confidence_pct":70},{"asset":"SOL","direction":"neutral","confidence_pct":50}]}
+\`\`\`
+- asset: one of BTC, SOL, HYPE (or other tracked asset)
+- direction: "bullish" | "bearish" | "neutral"
+- confidence_pct: 0-100 (optional)`;
+
+/** For Solus only: structured call block for prediction tracking. */
+export const STRUCTURED_CALL_INSTRUCTION = `
+
+End with a fenced JSON block for your call (required):
+\`\`\`json
+{"call":{"asset":"BTC","direction":"above","strike":70000,"confidence_pct":70,"expiry":"2026-02-21T08:00:00Z","invalidation":68000}}
+\`\`\`
+- direction: "above" | "below"
+- strike: number (e.g. 70000)
+- confidence_pct: 0-100
+- expiry: ISO date when option settles
+- invalidation: price level that invalidates the thesis (optional)`;
+
 /**
  * Report template for each agent
  */
@@ -85,7 +109,8 @@ export const REPORT_TEMPLATES: Record<AgentName, string> = {
 
 **BTC focus:** [Key level or setup for Hypersurface strike selection]
 **Paper bot:** XW/XL | PnL: $X
-**Action:** [One specific trade signal]`,
+**Action:** [One specific trade signal]
+${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   ECHO: `## ECHO — CT Sentiment (X insights) — {{date}}
 
@@ -99,7 +124,8 @@ Show insights from X (plugin-x-research): sentiment, key voices, narrative.
 **Narrative:** [What's driving CT today in one sentence]
 **Contrarian?** [Yes/No — if extreme, flag it]
 
-**Action:** [One sentiment-based trade implication]`,
+**Action:** [One sentiment-based trade implication]
+${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Oracle: `## Oracle — {{date}}
 
@@ -108,7 +134,8 @@ Use the LIVE DATA below (Priority markets table). Report one line per market or 
 | Priority market | YES% | condition_id |
 (Use LIVE DATA table from fetcher)
 
-**Action:** [One prediction-market implication for paper bot or Hypersurface strike — 10 words or less]`,
+**Action:** [One prediction-market implication for paper bot or Hypersurface strike — 10 words or less]
+${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Solus: `## Solus — Hypersurface — {{date}}
 
@@ -122,7 +149,10 @@ Answer the essential question (e.g. "Will BTC be above $70K by next Friday?") in
 **Weekly View:** Bull/Bear/Neutral — [why in 10 words]
 **Invalidation:** [specific level or event]
 
-**My take:** [Yes/No] — [one sentence path]. Then **Action:** [Size/Skip + strike recommendation]`,
+**My take:** [Yes/No] — [one sentence path]. Then **Action:** [Size/Skip + strike recommendation]
+
+Your last 5 calls are in the standup context above (Prediction scoreboard). Adjust your confidence calibration accordingly.
+${STRUCTURED_CALL_INSTRUCTION}`,
 
   Otaku: `## Otaku — {{date}}
 

@@ -7,6 +7,7 @@ import { type IAgentRuntime, logger } from "@elizaos/core";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { getStandupDiscordMentionId, SHARED_INSIGHTS_SENTINEL } from "./standup.constants";
+import { formatPredictionScoreboard } from "./predictionTracker";
 
 const execAsync = promisify(exec);
 const STANDUP_REPO_ROOT = typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
@@ -53,13 +54,22 @@ export function buildShortStandupKickoff(): string {
 }
 
 /**
- * Kickoff when shared daily insights were pre-written. Prepends shared content and sentinel so standup is synthesis-first (link, fact-check, brainstorm).
+ * Kickoff when shared daily insights were pre-written. Prepends prediction scoreboard and shared content.
+ * Synthesis-first: link, fact-check, brainstorm — then Day Report.
  */
-export function buildKickoffWithSharedInsights(sharedContent: string): string {
+export async function buildKickoffWithSharedInsights(sharedContent: string): Promise<string> {
   const date = new Date().toISOString().slice(0, 10);
   const vinceMentionId = getStandupDiscordMentionId("vince");
   const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
+  let scoreboard = "";
+  try {
+    scoreboard = await formatPredictionScoreboard(10);
+  } catch {
+    scoreboard = "## Prediction scoreboard\n(Unavailable)";
+  }
   return (
+    scoreboard +
+    "\n\n---\n\n" +
     sharedContent.trim() +
     "\n\n---\n\n" +
     SHARED_INSIGHTS_SENTINEL +

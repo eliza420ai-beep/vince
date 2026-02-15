@@ -232,7 +232,7 @@ async function handleKickoff(
   }
   const sharedContent = (await loadSharedDailyInsights())?.trim();
   const kickoffText = sharedContent
-    ? buildKickoffWithSharedInsights(sharedContent)
+    ? await buildKickoffWithSharedInsights(sharedContent)
     : shortKickoff;
   return { kickoffText, eliza };
 }
@@ -264,7 +264,9 @@ async function handleRoundRobin(
       await pushStandupSummaryToChannels(runtime, `**${r.agentName}:**\n${r.text}`);
     }
     try {
-      const { reportText, savedPath } = await generateAndSaveDayReport(runtime, transcript);
+      const { reportText, savedPath } = await generateAndSaveDayReport(runtime, transcript, {
+        replies: replies.map((r) => ({ agentName: r.agentName, structuredSignals: r.structuredSignals })),
+      });
       try {
         const todayItems = await getTodayActionItems();
         const prioritized = prioritizeActionItems(todayItems);

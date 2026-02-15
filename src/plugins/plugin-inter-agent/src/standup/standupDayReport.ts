@@ -10,6 +10,8 @@ import { formatReportDate } from "./standupReports";
 import { ALOHA_STYLE_BLOCK } from "./standupStyle";
 import { saveDayReport, updateDayReportManifest } from "./dayReportPersistence";
 import { parseActionItemsFromReport, addActionItem, type ActionItem } from "./actionItemTracker";
+import type { ParsedStructuredBlock } from "./crossAgentValidation";
+import { predictionFromStructuredCall, savePrediction, loadPredictions, getAccuracyStats } from "./predictionTracker";
 
 /**
  * Build the core Day Report prompt from conversation context.
@@ -60,6 +62,8 @@ RULES:
 export interface GenerateDayReportOptions {
   /** Extra prompt content (e.g. action items context, recent reports, validation). */
   extraPrompt?: string;
+  /** Round-robin replies with optional structured signals; used to extract Solus call for prediction tracker. */
+  replies?: { agentName: string; structuredSignals?: ParsedStructuredBlock }[];
 }
 
 export interface GenerateDayReportResult {
@@ -77,8 +81,21 @@ export async function generateAndSaveDayReport(
   transcriptOrContext: string,
   options?: GenerateDayReportOptions,
 ): Promise<GenerateDayReportResult> {
+  let accuracyPrompt = "";
+  try {
+    const predictions = await loadPredictions();
+    const stats = getAccuracyStats(predictions, 10);
+    if (stats.total > 0) {
+      accuracyPrompt = `\n\nHistorical accuracy: ${stats.accuracyPct}%. If accuracy is below 50%, note that the team should be more conservative in confidence levels.`;
+      if (stats.lastMiss) accuracyPrompt += ` Last miss: ${stats.lastMiss}.`;
+    }
+  } catch {
+    /* non-fatal */
+  }
   const prompt =
-    buildDayReportPrompt(transcriptOrContext) + (options?.extraPrompt ? `\n\n${options.extraPrompt}` : "");
+    buildDayReportPrompt(transcriptOrContext) +
+    (options?.extraPrompt ? `\n\n${options.extraPrompt}` : "") +
+    accuracyPrompt;
   const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt,
     maxTokens: 1200,
@@ -102,6 +119,17 @@ export async function generateAndSaveDayReport(
         owner: item.owner,
         urgency: (item.urgency as ActionItem["urgency"]) ?? "today",
       });
+    }
+  }
+  if (options?.replies) {
+    const solusReply = options.replies.find((r) => r.agentName.toLowerCase() === "solus");
+    const input = solusReply?.structuredSignals ? predictionFromStructuredCall(solusReply.structuredSignals, date) : null;
+    if (input) {
+      try {
+        await savePrediction(input);
+      } catch (e) {
+        // non-fatal
+      }
     }
   }
   return { reportText, savedPath, parsedItems };

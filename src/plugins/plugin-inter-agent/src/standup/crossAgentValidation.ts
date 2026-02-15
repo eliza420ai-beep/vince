@@ -131,25 +131,130 @@ export function validateAllAssets(signals: AgentSignal[]): ValidationResult[] {
 /** Sentiment keywords and emoji in order of strength (later = overrides earlier in same segment) */
 const SENTIMENT_PATTERN = /(bullish|bearish|neutral|🟢|🔴|🟡)/gi;
 
+/** Parsed structured block from agent reply (signals array and/or Solus call). */
+export interface ParsedStructuredBlock {
+  signals?: Array<{ asset?: string; direction?: string; confidence_pct?: number }>;
+  call?: {
+    asset?: string;
+    direction?: string;
+    strike?: number;
+    confidence_pct?: number;
+    expiry?: string;
+    invalidation?: number;
+  };
+}
+
+/** Extract fenced JSON block from text. Returns null if not found or invalid. */
+export function parseStructuredBlockFromText(text: string): ParsedStructuredBlock | null {
+  if (!text || typeof text !== "string") return null;
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (!match) return null;
+  try {
+    const parsed = JSON.parse(match[1].trim()) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== "object") return null;
+    const out: ParsedStructuredBlock = {};
+    if (Array.isArray(parsed.signals)) {
+      out.signals = parsed.signals.filter(
+        (s): s is { asset?: string; direction?: string; confidence_pct?: number } =>
+          s != null && typeof s === "object",
+      );
+    }
+    if (parsed.call != null && typeof parsed.call === "object") {
+      const c = parsed.call as Record<string, unknown>;
+      out.call = {
+        asset: typeof c.asset === "string" ? c.asset : undefined,
+        direction: typeof c.direction === "string" ? c.direction : undefined,
+        strike: typeof c.strike === "number" ? c.strike : undefined,
+        confidence_pct: typeof c.confidence_pct === "number" ? c.confidence_pct : undefined,
+        expiry: typeof c.expiry === "string" ? c.expiry : undefined,
+        invalidation: typeof c.invalidation === "number" ? c.invalidation : undefined,
+      };
+    }
+    return out.signals?.length || out.call ? out : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Map confidence_pct to ConfidenceLevel. */
+function confidencePctToLevel(pct: number | undefined): ConfidenceLevel {
+  if (pct == null || isNaN(pct)) return "medium";
+  if (pct >= 70) return "high";
+  if (pct >= 40) return "medium";
+  return "low";
+}
+
+/** Extract AgentSignal[] from a parsed structured block (signals array or call). */
+export function extractSignalsFromStructured(
+  agentName: string,
+  parsed: ParsedStructuredBlock,
+): AgentSignal[] {
+  const result: AgentSignal[] = [];
+  if (parsed.signals?.length) {
+    for (const s of parsed.signals) {
+      const asset = (s.asset ?? "").trim().toUpperCase();
+      if (!asset) continue;
+      let direction: SignalDirection = "neutral";
+      const d = (s.direction ?? "").toLowerCase();
+      if (d === "bullish") direction = "bullish";
+      else if (d === "bearish") direction = "bearish";
+      result.push({
+        agent: agentName,
+        asset,
+        direction,
+        confidence: confidencePctToLevel(s.confidence_pct),
+        reasoning: `structured (${s.confidence_pct ?? "—"}%)`,
+        source: "structured",
+      });
+    }
+  }
+  if (parsed.call?.asset) {
+    const c = parsed.call;
+    const direction: SignalDirection = (c.direction ?? "").toLowerCase() === "above" ? "bullish" : (c.direction ?? "").toLowerCase() === "below" ? "bearish" : "neutral";
+    result.push({
+      agent: agentName,
+      asset: c.asset.trim().toUpperCase(),
+      direction,
+      confidence: confidencePctToLevel(c.confidence_pct),
+      reasoning: `call strike ${c.strike ?? "—"} (${c.confidence_pct ?? "—"}%)`,
+      source: "structured",
+    });
+  }
+  return result;
+}
+
+/** Get the segment of transcript for a given agent (text after "AgentName:" until next agent or end). */
+function getAgentSegmentFromTranscript(transcript: string, agentName: string): string {
+  const escaped = agentName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`${escaped}\\s*:\\s*([\\s\\S]*?)(?=\\n\\n[A-Z][a-zA-Z]+\\s*:|$)`, "i");
+  const m = transcript.match(re);
+  return (m?.[1] ?? transcript).trim();
+}
+
 /**
  * Extract signals from agent reports.
- * Scans a window after each asset name for sentiment keywords; uses the *last* match in that window
- * so phrases like "BTC funding rate is neutral but trending bullish" yield bullish.
+ * Tries structured JSON block first (from template); falls back to regex scan.
  */
 export function extractSignalsFromReport(agentName: string, report: string): AgentSignal[] {
+  const segment = getAgentSegmentFromTranscript(report, agentName);
+  const parsed = parseStructuredBlockFromText(segment);
+  if (parsed) {
+    const structuredSignals = extractSignalsFromStructured(agentName, parsed);
+    if (structuredSignals.length > 0) return structuredSignals;
+  }
+
   const signals: AgentSignal[] = [];
   const assets = getStandupTrackedAssets();
 
   for (const asset of assets) {
     const assetRegex = new RegExp(`${asset}[\\s\\S]{0,200}`, "i");
-    const segmentMatch = report.match(assetRegex);
+    const segmentMatch = segment.match(assetRegex);
     if (!segmentMatch) continue;
 
-    const segment = segmentMatch[0];
-    const allMatches = [...segment.matchAll(SENTIMENT_PATTERN)];
+    const seg = segmentMatch[0];
+    const allMatches = [...seg.matchAll(SENTIMENT_PATTERN)];
     if (allMatches.length === 0) continue;
 
-    // Use last occurrence so "neutral but trending bullish" → bullish
     const lastIndicator = allMatches[allMatches.length - 1][1].toLowerCase();
     let direction: SignalDirection = "neutral";
     if (lastIndicator === "bullish" || lastIndicator === "🟢") {
@@ -163,7 +268,7 @@ export function extractSignalsFromReport(agentName: string, report: string): Age
       asset,
       direction,
       confidence: "medium",
-      reasoning: segment.slice(0, 120),
+      reasoning: seg.slice(0, 120),
       source: "report",
     });
   }

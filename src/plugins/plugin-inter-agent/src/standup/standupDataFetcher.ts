@@ -23,6 +23,35 @@ import { type IAgentRuntime, logger } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
 import { getRecentCodeContext } from "./standup.context";
 import { getStandupTrackedAssets, getStandupSnippetLen } from "./standup.constants";
+import { loadDayReport, loadSharedDailyInsights } from "./dayReportPersistence";
+
+/** Extract key events from VINCE's shared insights text for dynamic ECHO/Clawterm queries (e.g. "SOL funding flipped", "BTC +5%"). */
+export function extractKeyEventsFromVinceData(vinceText: string): string[] {
+  const hints: string[] = [];
+  if (!vinceText || typeof vinceText !== "string") return hints;
+  const assets = getStandupTrackedAssets();
+  const lower = vinceText.toLowerCase();
+  for (const asset of assets) {
+    const assetLower = asset.toLowerCase();
+    if (lower.includes(`${assetLower}`)) {
+      const fundingMatch = vinceText.match(new RegExp(`${asset}[^|]*F:(-?[\\d.]+)%`, "i"));
+      if (fundingMatch) {
+        const rate = parseFloat(fundingMatch[1]);
+        if (rate < -0.01) hints.push(`${asset} funding negative`);
+        else if (rate > 0.02) hints.push(`${asset} funding high`);
+      }
+      const changeMatch = vinceText.match(new RegExp(`${asset}[^|]*([+-][\\d.]+)%`, "i"));
+      if (changeMatch) {
+        const pct = parseFloat(changeMatch[1]);
+        if (Math.abs(pct) >= 5) hints.push(`${asset} ${pct >= 0 ? "+" : ""}${pct}% 24h`);
+      }
+    }
+  }
+  if (lower.includes("volume") && (lower.includes("spike") || lower.includes("2x") || lower.includes("3x"))) {
+    hints.push("volume spike");
+  }
+  return [...new Set(hints)].slice(0, 5);
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // VINCE: enriched context + 9 data sources
@@ -159,10 +188,14 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ECHO: real CT sentiment from X (actual tweets, not a placeholder)
+// ECHO: real CT sentiment from X (actual tweets, not a placeholder).
+// When contextHints from VINCE are provided, builds 2-3 targeted queries.
 // ═══════════════════════════════════════════════════════════════════════
 
-export async function fetchEchoData(runtime: IAgentRuntime): Promise<string> {
+export async function fetchEchoData(
+  runtime: IAgentRuntime,
+  contextHints?: string[],
+): Promise<string> {
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
@@ -181,23 +214,56 @@ export async function fetchEchoData(runtime: IAgentRuntime): Promise<string> {
     initXClientFromEnv(runtime);
     const svc = getXSearchService();
 
-    const tweets = await svc.searchQuery({
-      query: "BTC crypto market sentiment",
-      maxResults: 10,
-      hoursBack: 24,
-      cacheTtlMs: 30 * 60 * 1000,
-    });
+    const hoursBack = 24;
+    const cacheTtlMs = 30 * 60 * 1000;
+    const opts = { hoursBack, cacheTtlMs };
 
-    if (!tweets?.length) return "**CT sentiment:** No X data (check X_BEARER_TOKEN).";
+    const queries: string[] = [];
+    if (contextHints?.length) {
+      const firstHint = contextHints[0];
+      if (firstHint && /^(BTC|SOL|ETH|HYPE|HIP)/i.test(firstHint)) {
+        const asset = firstHint.split(/\s/)[0];
+        queries.push(`${asset} crypto sentiment`);
+      }
+      if (contextHints.some((h) => h.toLowerCase().includes("volume"))) {
+        queries.push("crypto volume sentiment");
+      }
+    }
+    queries.push("BTC crypto market sentiment");
+    const secondAsset = getStandupTrackedAssets()[1];
+    if (secondAsset && secondAsset !== "BTC" && queries.length < 3) {
+      queries.push(`${secondAsset} crypto sentiment`);
+    }
+    const uniqueQueries = [...new Set(queries)].slice(0, 3);
 
-    const tweetLines = tweets.slice(0, 8).map((t) => {
+    const allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }> = [];
+    const seen = new Set<string>();
+    for (const query of uniqueQueries) {
+      const tweets = await svc.searchQuery({
+        ...opts,
+        query,
+        maxResults: 5,
+      });
+      for (const t of tweets ?? []) {
+        const key = t.id ?? t.text?.slice(0, 50) ?? "";
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          allTweets.push(t);
+        }
+      }
+    }
+
+    if (!allTweets.length) return "**CT sentiment:** No X data (check X_BEARER_TOKEN).";
+
+    const tweetLines = allTweets.slice(0, 10).map((t) => {
       const handle = t.author?.username ?? "anon";
       const len = getStandupSnippetLen();
       const snippet = t.text?.length > len ? t.text.slice(0, len) + "…" : (t.text ?? "");
       return `@${handle}: ${snippet} (${t.metrics?.likeCount ?? 0} likes)`;
     });
 
-    return `**CT sentiment (${tweets.length} posts, last 24h):**\n${tweetLines.join("\n")}`;
+    const queryNote = uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
+    return `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] fetchEchoData: X unavailable");
     return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
@@ -315,11 +381,51 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Eliza: recent facts from memory
+// Eliza: delta reporter — yesterday vs today, plus facts
 // ═══════════════════════════════════════════════════════════════════════
+
+/** Build delta summary: yesterday's Day Report vs today's shared insights. */
+async function buildDeltaReport(): Promise<string> {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayReport = await loadDayReport(yesterday);
+  const todayInsights = await loadSharedDailyInsights(); // today
+  const lines: string[] = [];
+  if (yesterdayReport) {
+    const solusMatch = yesterdayReport.match(/\*\*Solus'?s call:?\*\*\s*\[?([^\]]*)\]?\s*[—\-]\s*([^\n*]+)/i);
+    if (solusMatch) {
+      lines.push(`**Yesterday:** Solus's call: ${solusMatch[1].trim()} — ${solusMatch[2].trim().slice(0, 120)}`);
+    }
+    const tldrMatch = yesterdayReport.match(/\*\*TL;DR:?\*\*\s*([^\n#]+)/);
+    if (tldrMatch) lines.push(`**Yesterday TL;DR:** ${tldrMatch[1].trim().slice(0, 100)}`);
+  } else {
+    lines.push("**Yesterday:** No day report found (first run or missing file).");
+  }
+  if (todayInsights) {
+    const vinceBlock = todayInsights.match(/## VINCE[\s\S]*?(?=## |$)/i);
+    if (vinceBlock) {
+      const firstTable = vinceBlock[0].match(/\|[^\n]+\|\n\|[^\n]+\|\n([\s\S]*?)(?=\n\n|\n\*\*|$)/);
+      if (firstTable) lines.push(`**Today (from shared insights):** ${firstTable[1].replace(/\n/g, " ").slice(0, 200)}`);
+      else lines.push("**Today:** Shared insights available (see full doc).");
+    } else {
+      lines.push("**Today:** Shared insights available.");
+    }
+  } else {
+    lines.push("**Today:** Shared insights not yet built.");
+  }
+  lines.push("**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.");
+  return lines.join("\n\n");
+}
 
 export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   const sections: string[] = [];
+  try {
+    const delta = await buildDeltaReport();
+    sections.push(delta);
+  } catch (e) {
+    logger.warn({ err: e }, "[STANDUP_DATA] fetchElizaData: delta build failed");
+    sections.push("**Delta:** Could not load yesterday vs today; report from memory only.");
+  }
   try {
     const facts = await runtime.getMemories({ tableName: "facts", count: 8, unique: true });
     const factLines = facts
@@ -331,7 +437,6 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   } catch {
     sections.push("**Facts:** Query failed.");
   }
-  sections.push("**Your job:** One knowledge gap for better trades, one content idea (essay/thread) from today's data, one cross-agent link.");
   return sections.join("\n\n");
 }
 
@@ -349,13 +454,16 @@ Observing team reports — no execution capability yet.
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Clawterm: OpenClaw/AGI X + web (keep existing, already real data)
+// Clawterm: OpenClaw/AGI X + web. When contextHints provided, adds targeted query.
 // ═══════════════════════════════════════════════════════════════════════
 
 const CLAWTERM_X_MAX = 10;
 const CLAWTERM_HOURS_BACK = 24;
 
-export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string> {
+export async function fetchClawtermData(
+  runtime: IAgentRuntime,
+  contextHints?: string[],
+): Promise<string> {
   try {
     const xSearchMod = await import(
       /* webpackIgnore: true */ "../../../plugin-x-research/src/services/xSearch.service.js"
@@ -374,12 +482,19 @@ export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string>
     initXClientFromEnv(runtime);
     const searchService = getXSearchService();
 
-    const [openclawTweets, agiTweets] = await Promise.all([
-      searchService.searchQuery({ query: "OpenClaw", maxResults: CLAWTERM_X_MAX, hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 }),
-      searchService.searchQuery({ query: "AGI AI research agents", maxResults: CLAWTERM_X_MAX, hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 }),
-    ]);
-
-    const combined = [...openclawTweets, ...agiTweets];
+    const cacheOpts = { hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 };
+    const queries: string[] = ["OpenClaw", "AGI AI research agents"];
+    if (contextHints?.length) {
+      const first = contextHints[0];
+      if (first && /^(BTC|SOL|ETH|HYPE)/i.test(first.split(/\s/)[0])) {
+        queries.push(`${first.split(/\s/)[0]} AI agents crypto`);
+      }
+    }
+    const tweetPromises = queries.slice(0, 3).map((q) =>
+      searchService.searchQuery({ ...cacheOpts, query: q, maxResults: CLAWTERM_X_MAX }),
+    );
+    const results = await Promise.all(tweetPromises);
+    const combined = results.flat();
     const byId = new Map(combined.map((t) => [t.id, t]));
     const deduped = Array.from(byId.values()).slice(0, 15);
 
@@ -414,6 +529,7 @@ export async function fetchClawtermData(runtime: IAgentRuntime): Promise<string>
 export async function fetchAgentData(
   runtime: IAgentRuntime,
   agentName: string,
+  contextHints?: string[],
 ): Promise<string | null> {
   const normalized = agentName.toLowerCase();
 
@@ -421,7 +537,7 @@ export async function fetchAgentData(
     case "vince":
       return fetchVinceData(runtime);
     case "echo":
-      return fetchEchoData(runtime);
+      return fetchEchoData(runtime, contextHints);
     case "oracle":
       return fetchOracleData(runtime);
     case "solus":
@@ -431,7 +547,7 @@ export async function fetchAgentData(
     case "sentinel":
       return fetchSentinelData(runtime);
     case "clawterm":
-      return fetchClawtermData(runtime);
+      return fetchClawtermData(runtime, contextHints);
     case "eliza":
       return fetchElizaData(runtime);
     default:

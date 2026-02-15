@@ -94,16 +94,26 @@ function patchMessageServiceForStandupSkip(runtime: any): void {
         standupRoomCache.set(roomId, isStandup);
       }
       if (isStandup) {
-        logger.info(
-          `[ONE_TEAM] Standup skip: ${myName} dropping message in standup room (only ${facilitator} processes)`,
-        );
-        return {
-          didRespond: false,
-          responseContent: null,
-          responseMessages: [],
-          state: { values: {}, data: {}, text: "" },
-          mode: "none",
-        };
+        // Allow round-robin messages from the coordinator (source: "standup") — these
+        // are sent via eliza.handleMessage and must reach the agent so it can reply.
+        // Only block external (Discord) messages that would cause PGLite deadlocks.
+        const msgSource = (message?.content?.source ?? "").toLowerCase();
+        if (msgSource === "standup") {
+          logger.info(
+            `[ONE_TEAM] Standup passthrough: ${myName} processing coordinator round-robin message`,
+          );
+        } else {
+          logger.info(
+            `[ONE_TEAM] Standup skip: ${myName} dropping external message in standup room (only ${facilitator} processes external)`,
+          );
+          return {
+            didRespond: false,
+            responseContent: null,
+            responseMessages: [],
+            state: { values: {}, data: {}, text: "" },
+            mode: "none",
+          };
+        }
       }
     }
     return original(rt, message, callback, options);
