@@ -277,7 +277,22 @@ async function handleRoundRobin(
         logger.warn({ err: plannerErr }, "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)");
       }
       const savedNote = savedPath ? `\n\n*Saved to ${savedPath}*` : "";
-      await pushStandupSummaryToChannels(runtime, reportText + savedNote);
+      try {
+        const pushed = await pushStandupSummaryToChannels(runtime, reportText + savedNote, {
+          preferredRoomId: message.roomId,
+        });
+        if (pushed === 0) {
+          logger.warn(
+            { roomId: message.roomId },
+            "[STANDUP_FACILITATE] Day Report push: no channels received (check standup channel name and Discord connection)",
+          );
+        }
+      } catch (pushErr) {
+        logger.error(
+          { err: pushErr, roomId: message.roomId },
+          "[STANDUP_FACILITATE] Day Report push to Discord failed",
+        );
+      }
     } catch (dayReportErr) {
       logger.warn({ err: dayReportErr }, "[STANDUP_FACILITATE] Day Report generation failed");
     }

@@ -69,6 +69,41 @@ function getSharedInsightsCapForAgent(displayName: string): number {
 const STANDUP_CHANNEL_NAME_PARTS = ["standup", "daily-standup"];
 const PUSH_SOURCES = ["discord", "slack", "telegram"] as const;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
+/** Discord message limit 2000; use 1900 for safe margin. */
+const DISCORD_MAX_MESSAGE_CHARS = 1900;
+
+type PushTarget = {
+  source: string;
+  roomId?: UUID;
+  channelId?: string;
+  serverId?: string;
+  name?: string;
+};
+
+function chunkForDiscord(text: string): string[] {
+  if (!text?.trim()) return [];
+  if (text.length <= DISCORD_MAX_MESSAGE_CHARS) return [text];
+  const chunks: string[] = [];
+  let remaining = text;
+  while (remaining.length > 0) {
+    if (remaining.length <= DISCORD_MAX_MESSAGE_CHARS) {
+      chunks.push(remaining);
+      break;
+    }
+    const slice = remaining.slice(0, DISCORD_MAX_MESSAGE_CHARS);
+    const lastNewline = slice.lastIndexOf("\n");
+    const lastSpace = slice.lastIndexOf(" ");
+    const splitAt =
+      lastNewline >= DISCORD_MAX_MESSAGE_CHARS / 2
+        ? lastNewline + 1
+        : lastSpace >= DISCORD_MAX_MESSAGE_CHARS / 2
+          ? lastSpace + 1
+          : DISCORD_MAX_MESSAGE_CHARS;
+    chunks.push(remaining.slice(0, splitAt));
+    remaining = remaining.slice(splitAt).trimStart();
+  }
+  return chunks;
+}
 
 export interface StandupRoomResult {
   worldId: UUID;
@@ -546,73 +581,145 @@ export async function createActionItemTasks(
 /**
  * Push standup summary to Discord/Slack/Telegram channels whose name contains "standup" or "daily-standup".
  * Create #daily-standup and keep all team agents in that channel for "one team, one dream."
+ * Chunks text when exceeding Discord 2000-char limit. Uses preferredRoomId (e.g. message.roomId) when provided.
  */
 export async function pushStandupSummaryToChannels(
   runtime: IAgentRuntime,
   summary: string,
+  options?: { preferredRoomId?: UUID },
 ): Promise<number> {
   if (!summary?.trim()) return 0;
   const nameMatches = (room: { name?: string }): boolean => {
     const name = (room.name ?? "").toLowerCase();
     return STANDUP_CHANNEL_NAME_PARTS.some((part) => name.includes(part));
   };
-  const targets: Array<{
-    source: string;
-    roomId?: UUID;
-    channelId?: string;
-    serverId?: string;
-  }> = [];
+  const seenRoomIds = new Set<string>();
+  const addTarget = (room: { id?: UUID; source?: string; channelId?: string; name?: string }) => {
+    const rid = room.id as string | undefined;
+    if (!rid || seenRoomIds.has(rid)) return;
+    const src = (room.source ?? "").toLowerCase();
+    if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) return;
+    seenRoomIds.add(rid);
+    targets.push({
+      source: src,
+      roomId: room.id as UUID,
+      channelId: room.channelId,
+      serverId:
+        (room as { messageServerId?: string }).messageServerId ??
+        (room as { serverId?: string }).serverId,
+      name: room.name,
+    });
+  };
+
+  const targets: PushTarget[] = [];
+  let worldCount = 0;
+  let totalRoomCount = 0;
+  let matchedByName = 0;
+
   try {
     const worlds = await runtime.getAllWorlds();
+    worldCount = worlds.length;
     for (const world of worlds) {
       const rooms = await runtime.getRooms(world.id);
       for (const room of rooms) {
+        totalRoomCount++;
         const src = (room.source ?? "").toLowerCase();
         if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) continue;
         if (!room.id) continue;
-        if (!nameMatches(room)) continue;
-        targets.push({
-          source: (room.source ?? "").toLowerCase(),
-          roomId: room.id,
-          channelId: room.channelId,
-          serverId:
-            (room as { messageServerId?: string }).messageServerId ??
-            (room as { serverId?: string }).serverId,
-        });
+        if (nameMatches(room)) {
+          matchedByName++;
+          addTarget(room);
+        }
       }
     }
     if (worlds.length === 0) {
       const fallbackRooms = await runtime.getRooms(ZERO_UUID);
       for (const room of fallbackRooms) {
+        totalRoomCount++;
         const src = (room.source ?? "").toLowerCase();
         if (!PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) continue;
-        if (!nameMatches(room)) continue;
-        targets.push({
-          source: (room.source ?? "").toLowerCase(),
-          roomId: room.id,
-          channelId: room.channelId,
-          serverId:
-            (room as { messageServerId?: string }).messageServerId ??
-            (room as { serverId?: string }).serverId,
-        });
+        if (nameMatches(room)) {
+          matchedByName++;
+          addTarget(room);
+        }
+      }
+    }
+
+    if (options?.preferredRoomId && !seenRoomIds.has(options.preferredRoomId)) {
+      const prefRoom = await runtime.getRoom(options.preferredRoomId);
+      if (prefRoom) {
+        const src = (prefRoom.source ?? "").toLowerCase();
+        if (PUSH_SOURCES.includes(src as (typeof PUSH_SOURCES)[number])) {
+          addTarget(prefRoom);
+          logger.info(
+            { roomId: options.preferredRoomId, source: src, name: prefRoom.name },
+            "[Standup] Added preferred room to push targets",
+          );
+        }
       }
     }
   } catch (err) {
     logger.debug("[Standup] Could not get rooms for push:", err);
     return 0;
   }
+
+  if (targets.length === 0) {
+    logger.warn(
+      { worldCount, totalRoomCount, matchedByName },
+      "[Standup] No push targets found (standup/daily-standup channels with discord/slack/telegram)",
+    );
+    return 0;
+  }
+
+  logger.info(
+    {
+      targetCount: targets.length,
+      targets: targets.map((t) => ({ roomId: t.roomId, source: t.source, name: t.name })),
+    },
+    "[Standup] Push targets resolved",
+  );
+
+  const chunks = chunkForDiscord(summary);
   const isNoSendHandler = (e: unknown): boolean =>
     String(e).includes("No send handler") || String(e).includes("Send handler not found");
+  const delayMs = 500;
+
   let sent = 0;
   for (const target of targets) {
     try {
-      await runtime.sendMessageToTarget(target, { text: summary });
+      for (let i = 0; i < chunks.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
+        await runtime.sendMessageToTarget(target, { text: chunks[i] });
+      }
       sent++;
+      if (chunks.length > 1) {
+        logger.info(
+          { roomId: target.roomId, source: target.source, name: target.name, chunkCount: chunks.length },
+          "[Standup] Pushed chunked summary to target",
+        );
+      }
     } catch (e) {
-      if (!isNoSendHandler(e)) logger.warn("[Standup] Push to channel failed:", e);
+      if (!isNoSendHandler(e)) {
+        logger.warn(
+          {
+            roomId: target.roomId,
+            source: target.source,
+            channelId: target.channelId,
+            summaryLength: summary.length,
+            chunkCount: chunks.length,
+            err: e,
+          },
+          "[Standup] Push to channel failed",
+        );
+      }
     }
   }
-  if (sent > 0) logger.info(`[Standup] Pushed summary to ${sent} channel(s).`);
+  if (sent > 0) {
+    logger.info(
+      { sent, chunkCount: chunks.length },
+      `[Standup] Pushed summary to ${sent} channel(s)`,
+    );
+  }
   return sent;
 }
 
