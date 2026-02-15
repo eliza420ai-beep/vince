@@ -277,7 +277,14 @@ async function runOneStandupTurn(
     id: uuidv4(),
     entityId: facilitatorEntityId,
     roomId,
-    content: { text: directAddress + truncated, source: STANDUP_SOURCE },
+    content: {
+      text: directAddress + truncated,
+      source: STANDUP_SOURCE,
+      // Inject mentionContext so bootstrap's shouldRespond skips LLM evaluation
+      // and responds directly. The patch on messageService can't detect the standup
+      // room from the target agent's DB (per-agent PGLite), so we set it here.
+      mentionContext: { isMention: true },
+    },
     createdAt: Date.now(),
   };
   return new Promise<string | null>((resolve, reject) => {
