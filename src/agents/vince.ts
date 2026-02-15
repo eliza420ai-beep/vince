@@ -100,6 +100,7 @@ export const vinceCharacter: Character = {
     vince_paper_assets: process.env.VINCE_PAPER_ASSETS || "BTC,ETH,SOL,HYPE",
   },
   knowledge: [
+    // VINCE = CDO: objective data — options, perps, prices, market intelligence
     // Teammate (USER, SOUL, TOOLS, MEMORY) is provider-only — not in knowledge to avoid RAG duplication
     { directory: "options", shared: true },
     { directory: "perps-trading", shared: true },
@@ -124,6 +125,10 @@ export const vinceCharacter: Character = {
     { directory: "prompt-templates", shared: true },
     { directory: "setup-guides", shared: true },
     { directory: "internal-docs", shared: true },
+    { directory: "ai-crypto", shared: true },
+    { directory: "bitcoin-l2", shared: true },
+    { directory: "trading", shared: true },
+    { directory: "research-daily", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],

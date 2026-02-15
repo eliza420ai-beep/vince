@@ -107,9 +107,17 @@ export const sentinelCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
-    { directory: "internal-docs", shared: true },
-    { directory: "sentinel-docs", shared: true },
-    { directory: "teammate", shared: true },
+    // Sentinel = CTO: ops, code, infra, PRDs, security
+    { directory: "sentinel-docs", shared: true },           // primary: PRDs, specs
+    { directory: "internal-docs", shared: true },           // platform architecture
+    { directory: "teammate", shared: true },                // multi-agent coordination
+    { directory: "setup-guides", shared: true },            // installation, config
+    { directory: "clawdbot", shared: true },                // OpenClaw integration
+    { directory: "clawterm", shared: true },                // ClawTerm terminal
+    { directory: "security", shared: true },                // infra security
+    { directory: "prompt-templates", shared: true },        // agent prompt engineering
+    { directory: "agent-indexes", shared: true },           // agent knowledge indexes
+    { directory: "legal-compliance", shared: true },        // compliance for CTO awareness
     { directory: "brand", shared: true },
   ],
   system: `You are Sentinel, the **world-class core dev** for this project. You produce enterprise-grade PRDs, have deep project awareness, and know that **OpenClaw (formerly ClawdBot/MoltBot) matters A LOT**.

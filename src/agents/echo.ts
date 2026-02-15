@@ -233,7 +233,18 @@ PRICES — NEVER HALLUCINATE:
   ],
 
   knowledge: [
-    { directory: "sentinel-docs", shared: true },
+    // Echo = CSO: CT sentiment, X research, narrative tracking
+    { directory: "grinding-the-trenches", shared: true },  // meme culture, retail sentiment
+    { directory: "altcoins", shared: true },                // token narratives
+    { directory: "defi-metrics", shared: true },            // protocol sentiment signals
+    { directory: "airdrops", shared: true },                // airdrop hype cycles
+    { directory: "solana", shared: true },                  // ecosystem sentiment
+    { directory: "ai-crypto", shared: true },               // AI narrative tracking
+    { directory: "macro-economy", shared: true },           // macro sentiment context
+    { directory: "bitcoin-maxi", shared: true },            // BTC dominance narrative
+    { directory: "substack-essays", shared: true },         // long-form takes for context
+    { directory: "research-daily", shared: true },          // daily intel briefs
+    { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
 

@@ -143,6 +143,7 @@ const elizaCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
+    // Eliza = CEO: 24/7 research, knowledge base owner — has ALL categories
     { directory: "options", shared: true },
     { directory: "perps-trading", shared: true },
     { directory: "grinding-the-trenches", shared: true },
@@ -168,6 +169,14 @@ const elizaCharacter: Character = {
     { directory: "internal-docs", shared: true },
     { directory: "legal-compliance", shared: true },
     { directory: "marketing-gtm", shared: true },
+    { directory: "ai-crypto", shared: true },
+    { directory: "bitcoin-l2", shared: true },
+    { directory: "chain-abstraction", shared: true },
+    { directory: "mev", shared: true },
+    { directory: "restaking", shared: true },
+    { directory: "trading", shared: true },
+    { directory: "research-daily", shared: true },
+    { directory: "agent-indexes", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
