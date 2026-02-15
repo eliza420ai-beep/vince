@@ -41,6 +41,15 @@ vault/
 4. Use `01-todos/inbox.md`, `active.md`, and `arxiv.md` for tasks.
 5. For full setup, skills (e.g. /digest, /meeting-summary), Obsidian + Dataview, and automation (digest-watcher, crontab), see the [full gist](https://gist.github.com/naushadzaman/164e85ec3557dc70392249e548b423e9).
 
+## Standup integration
+
+Standup output lives in **`standup-deliverables/`** at the repo root (day-reports, predictions.json, action-items.json, daily-insights). To keep the vault in the loop:
+
+- **Sync script (recommended):** Run `bun run vault:standup` to push the latest standup summary and accuracy into `vault/06-meetings/standup-YYYY-MM-DD.md` and optionally append a line to `vault/03-resources/standup-accuracy-log.md`.
+- **Manual:** Copy TL;DR and scoreboard from the day report or predictions into a note in `06-meetings/` or `03-resources/`.
+
+See `vault/02-projects/vince/CLAUDE.md` for the "After standup" checklist.
+
 ## Full reference
 
 The gist contains the complete Knowledge Vault README: minimal setup commands, 8 skills reference, Obsidian integration, automation scripts, and sync strategy. Use it as the canonical long-form guide.
