@@ -853,95 +853,100 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   },
 
   Naval: {
-    headline: "Rip apart your career. Rebuild from leverage and specific knowledge.",
+    headline: "Frameworks for the trenches. No hype. Thesis first. Push not pull.",
     intro:
-      "Like having the AngelList founder in your ear. Naval runs 13 career-audit prompts: specific knowledge, leverage (code/media/labor/capital), long-term games, productize yourself, accountability vs authenticity, reading for understanding, expected value, credibility vs status, wealth creation vs capture, escape competition, retirement test, build in public, narrow niche. Paste your context—background, opportunity, decision, skills—and get a ruthless take. No trading, no execution. Philosophy and frameworks only.",
+      "Philosophy of wealth, happiness, and long-term thinking—aligned with how we run: push not pull, one team one dream, thesis before execution, signal not hype. Naval runs 38 prompts: project-focused (push not pull, one command, size/skip/watch, why this trade, one terminal, agents as leverage, paper before live, touch grass, cover costs then profit) plus sovereignty, thesis first, signal not hype, and classic career audits (specific knowledge, leverage, expected value, long-term games). Paste your context and get a direct take. No trading, no execution—frameworks only.",
     tags: [
       { label: "Philosophy", withSparkles: true },
-      { label: "13 Prompts" },
-      { label: "Specific Knowledge" },
-      { label: "Leverage" },
-      { label: "Career Audit" },
+      { label: "Push Not Pull" },
+      { label: "Thesis First" },
+      { label: "Signal Not Hype" },
+      { label: "One Team One Dream" },
       { label: "No Trading" },
     ],
     capabilities: [
       {
+        title: "Push Not Pull",
+        description:
+          "Get fed what you need; stop checking. One digest or one command so you stay in the game without 12h on screens.",
+      },
+      {
+        title: "One Team One Dream",
+        description:
+          "Clear lanes: data, plan, call, lifestyle, infra. One lane to assign or automate so the team compounds.",
+      },
+      {
+        title: "Thesis First",
+        description:
+          "Underwrite your thesis before you execute. One step to write or sharpen it before the next move.",
+      },
+      {
+        title: "Signal Not Hype",
+        description:
+          "Battle-tested signal from the trenches. No hype, no shilling, no timing the market. One shift and one rule.",
+      },
+      {
+        title: "Paper Before Live",
+        description:
+          "Paper trade, learn, then optional real money. Don't bet the farm. One step and one rule for when to go live.",
+      },
+      {
+        title: "One Command",
+        description:
+          "One command gives you the full picture: vibe, perps, options, trade today? No ten tabs.",
+      },
+      {
+        title: "Size / Skip / Watch",
+        description:
+          "Every decision is one of three: size the position, skip, or watch. One clear move, no maybe.",
+      },
+      {
+        title: "Why This Trade",
+        description:
+          "Know why you're in and when you're wrong. One-line why, one-line invalidation. No black box.",
+      },
+      {
+        title: "One Terminal",
+        description:
+          "One place for intel. Stop fragmenting across 20 tools. One source of truth.",
+      },
+      {
+        title: "Agents as Leverage",
+        description:
+          "Agents do the job without you. One job to assign; you read the result. More output per unit of your time.",
+      },
+      {
+        title: "Touch Grass",
+        description:
+          "Live well so you don't burn out. One rule for when to step away and one ritual that isn't another screen.",
+      },
+      {
+        title: "Cover Costs Then Profit",
+        description:
+          "Cover costs, then profitability. No endless burn. One number to know and one rule.",
+      },
+      {
         title: "Specific Knowledge Audit",
         description:
-          "What only you can do; can't be trained, from experience, do for free, where you're authentic. Be ruthless.",
-      },
-      {
-        title: "Leverage Identification",
-        description:
-          "Code, media, labor, capital—do you have it? How to acquire in 6 months? Rank by ease to scale.",
-      },
-      {
-        title: "Long-Term Games",
-        description:
-          "Is this opportunity compounding? Long-term people? What compounds in 5 years? Pass/fail.",
-      },
-      {
-        title: "Productize Yourself",
-        description:
-          "12-month roadmap: build (1–3), sell (4–6), scale (7–9), outcome (10–12). Sell + build = unstoppable.",
-      },
-      {
-        title: "Accountability vs Authenticity",
-        description:
-          "Authentic or for show? Willing to be publicly accountable? What if no one was watching?",
-      },
-      {
-        title: "Reading for Understanding",
-        description:
-          "Extract 3 mental models from a book, apply to your problem, should you finish, what to read next.",
+          "What only you can do; can't be trained, from experience. Be ruthless. (Classic audit.)",
       },
       {
         title: "Expected Value",
         description:
-          "Best case, worst case, probability per option. Highest EV or reject all. If you can't decide, the answer is no.",
-      },
-      {
-        title: "Credibility vs Status",
-        description:
-          "Audit last 6 months: building credibility or chasing status? What to kill, what to double down on.",
-      },
-      {
-        title: "Wealth Creation vs Capture",
-        description:
-          "Creating new value (positive sum) or capturing existing (zero sum)? If pure capture, what would creation look like?",
-      },
-      {
-        title: "Escape Competition",
-        description:
-          "Find 2–3 skill intersections: top 10% each, unique combo, demand. What would you call yourself?",
-      },
-      {
-        title: "Retirement Cope",
-        description:
-          "Retirement = today is complete in itself. Love it or leading somewhere? Would you do it if wealthy?",
-      },
-      {
-        title: "Build in Public",
-        description:
-          "Should you build publicly? Accountability if it fails, leverage from being public. What to share weekly.",
-      },
-      {
-        title: "Narrow Niche",
-        description:
-          "Narrow until you're the obvious choice. I'm the only person who [X] for [Y]. Why too narrow is good.",
+          "Best case, worst case, probability. Highest EV or reject all. If you can't decide, the answer is no.",
       },
     ],
     plugins: [
       {
         name: "Plugin-Naval",
-        category: "Philosophy & Career",
+        category: "Philosophy & Project Frameworks",
         summary:
-          "13 career-audit prompts: specific knowledge, leverage, long-term games, productize yourself, accountability, reading for understanding, expected value, credibility vs status, wealth creation vs capture, escape competition, retirement test, build in public, narrow niche. Plus wisdom, mental models, book recs.",
+          "38 actions: project-focused (push not pull, one command, size/skip/watch, why this trade, one terminal, agents as leverage, paper before live, touch grass, cover costs then profit; thesis first, signal not hype, sovereignty) plus wisdom, mental models, book recs, and career audits (specific knowledge, leverage, long-term games, expected value, and more).",
         points: [
-          "Paste your context; get Naval's take. Ruthless and concrete.",
+          "On-brand: benefit-led, no hype, battle-tested signal. Paste context; get a direct take.",
           "Knowledge: naval, the-good-life, teammate.",
         ],
-        example: '"specific knowledge audit" then paste your background, or "expected value" then paste decision and options',
+        example: '"push not pull" or "thesis first" then paste your context, or "size skip watch" with your decision',
       },
       {
         name: "Powered by ElizaOS",
@@ -961,7 +966,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
     ],
     proTip:
-      "Click a quick action or say the prompt name (e.g. specific knowledge audit, leverage identification), then paste your context in the same or next message.",
+      "Lead with quick actions that match the project: push not pull, thesis first, one command, size skip watch, why this trade, touch grass. Paste your context in the same or next message.",
   },
 
   Eliza: {

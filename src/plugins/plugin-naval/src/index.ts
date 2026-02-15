@@ -1,7 +1,7 @@
 /**
  * Plugin-Naval — Philosophy, mental models, reading, wealth, happiness (Naval-style)
  *
- * Actions (26):
+ * Actions (38):
  * - NAVAL_WISDOM, NAVAL_MENTAL_MODEL, NAVAL_READING (wisdom, frameworks, book recs)
  * - NAVAL_SPECIFIC_KNOWLEDGE_AUDIT: career audit for specific knowledge
  * - NAVAL_LEVERAGE_IDENTIFICATION: code/media/labor/capital, rank by ease to scale
@@ -26,6 +26,21 @@
  * - NAVAL_RETIREMENT_COPE: retirement test
  * - NAVAL_BUILD_IN_PUBLIC: accountability leverage
  * - NAVAL_NARROW_NICHE: narrow until obvious choice
+ * - NAVAL_SOVEREIGNTY_CONVICTION: build on conviction, no permission, no VCs (on-brand)
+ * - NAVAL_THESIS_FIRST: underwrite thesis before execution (on-brand)
+ * - NAVAL_SIGNAL_NOT_HYPE: battle-tested signal, no hype/no shilling (on-brand)
+ * - NAVAL_PUSH_NOT_PULL: proactive beats reactive, get fed not check (README)
+ * - NAVAL_ONE_TEAM_ONE_DREAM: clear lanes, no overlap (README)
+ * - NAVAL_PAPER_BEFORE_LIVE: paper then optional live, don't bet the farm (README)
+ * - NAVAL_LEARN_WHILE_YOU_SLEEP: systems that improve without you, ML loop (README)
+ * - NAVAL_TOUCH_GRASS: live well, step away, balance (README/Kelly)
+ * - NAVAL_COVER_COSTS_THEN_PROFIT: cover costs then profitability (TREASURY)
+ * - NAVAL_ONE_COMMAND: one command full picture, no ten tabs (ALOHA)
+ * - NAVAL_SIZE_SKIP_WATCH: size, skip, or watch — one clear move (Solus)
+ * - NAVAL_WHY_THIS_TRADE: know why you're in, invalidation, no black box
+ * - NAVAL_KNOWLEDGE_BEFORE_DATA: framework before numbers (trench knowledge)
+ * - NAVAL_ONE_TERMINAL: one place for intel, not 20 tools (ClawTerm)
+ * - NAVAL_AGENTS_AS_LEVERAGE: agents do the job without you (multi-agent)
  *
  * Naval only. Knowledge: knowledge/naval (and teammate for context).
  */
@@ -57,11 +72,26 @@ import { navalRentingTimeAuditAction } from "./actions/navalRentingTimeAudit.act
 import { navalAvoidRuinAction } from "./actions/navalAvoidRuin.action";
 import { navalAngelInvestingAction } from "./actions/navalAngelInvesting.action";
 import { navalLongTermPeopleAction } from "./actions/navalLongTermPeople.action";
+import { navalSovereigntyConvictionAction } from "./actions/navalSovereigntyConviction.action";
+import { navalThesisFirstAction } from "./actions/navalThesisFirst.action";
+import { navalSignalNotHypeAction } from "./actions/navalSignalNotHype.action";
+import { navalPushNotPullAction } from "./actions/navalPushNotPull.action";
+import { navalOneTeamOneDreamAction } from "./actions/navalOneTeamOneDream.action";
+import { navalPaperBeforeLiveAction } from "./actions/navalPaperBeforeLive.action";
+import { navalLearnWhileYouSleepAction } from "./actions/navalLearnWhileYouSleep.action";
+import { navalTouchGrassAction } from "./actions/navalTouchGrass.action";
+import { navalCoverCostsThenProfitAction } from "./actions/navalCoverCostsThenProfit.action";
+import { navalOneCommandAction } from "./actions/navalOneCommand.action";
+import { navalSizeSkipWatchAction } from "./actions/navalSizeSkipWatch.action";
+import { navalWhyThisTradeAction } from "./actions/navalWhyThisTrade.action";
+import { navalKnowledgeBeforeDataAction } from "./actions/navalKnowledgeBeforeData.action";
+import { navalOneTerminalAction } from "./actions/navalOneTerminal.action";
+import { navalAgentsAsLeverageAction } from "./actions/navalAgentsAsLeverage.action";
 
 export const navalPlugin: Plugin = {
   name: "plugin-naval",
   description:
-    "Naval-style philosophy: wisdom, mental models, reading, plus career-audit prompts (specific knowledge, leverage, long-term games, productize yourself, accountability, expected value, credibility vs status, wealth creation vs capture, wealth vs money, crypto wealth mindset, startup founder check, startup equity/ownership, happiness/desire audit, meditation/stillness, renting time audit, avoid ruin, angel investing, long-term people, escape competition, retirement test, build in public, narrow niche). Naval only.",
+    "Naval-style philosophy: wisdom, mental models, reading, plus career-audit prompts (specific knowledge, leverage, long-term games, productize yourself, accountability, expected value, credibility vs status, wealth creation vs capture, wealth vs money, crypto wealth mindset, startup founder check, startup equity/ownership, happiness/desire audit, meditation/stillness, renting time audit, avoid ruin, angel investing, long-term people, escape competition, retirement test, build in public, narrow niche; sovereignty/conviction, thesis first, signal not hype; push not pull, one team one dream, paper before live, learn while you sleep, touch grass, cover costs then profit; one command, size/skip/watch, why this trade, knowledge before data, one terminal, agents as leverage — on-brand, on-topic README). Naval only.",
 
   actions: [
     navalWisdomAction,
@@ -90,6 +120,21 @@ export const navalPlugin: Plugin = {
     navalRetirementCopeAction,
     navalBuildInPublicAction,
     navalNarrowNicheAction,
+    navalSovereigntyConvictionAction,
+    navalThesisFirstAction,
+    navalSignalNotHypeAction,
+    navalPushNotPullAction,
+    navalOneTeamOneDreamAction,
+    navalPaperBeforeLiveAction,
+    navalLearnWhileYouSleepAction,
+    navalTouchGrassAction,
+    navalCoverCostsThenProfitAction,
+    navalOneCommandAction,
+    navalSizeSkipWatchAction,
+    navalWhyThisTradeAction,
+    navalKnowledgeBeforeDataAction,
+    navalOneTerminalAction,
+    navalAgentsAsLeverageAction,
   ],
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -124,3 +169,18 @@ export { navalEscapeCompetitionAction } from "./actions/navalEscapeCompetition.a
 export { navalRetirementCopeAction } from "./actions/navalRetirementCope.action";
 export { navalBuildInPublicAction } from "./actions/navalBuildInPublic.action";
 export { navalNarrowNicheAction } from "./actions/navalNarrowNiche.action";
+export { navalSovereigntyConvictionAction } from "./actions/navalSovereigntyConviction.action";
+export { navalThesisFirstAction } from "./actions/navalThesisFirst.action";
+export { navalSignalNotHypeAction } from "./actions/navalSignalNotHype.action";
+export { navalPushNotPullAction } from "./actions/navalPushNotPull.action";
+export { navalOneTeamOneDreamAction } from "./actions/navalOneTeamOneDream.action";
+export { navalPaperBeforeLiveAction } from "./actions/navalPaperBeforeLive.action";
+export { navalLearnWhileYouSleepAction } from "./actions/navalLearnWhileYouSleep.action";
+export { navalTouchGrassAction } from "./actions/navalTouchGrass.action";
+export { navalCoverCostsThenProfitAction } from "./actions/navalCoverCostsThenProfit.action";
+export { navalOneCommandAction } from "./actions/navalOneCommand.action";
+export { navalSizeSkipWatchAction } from "./actions/navalSizeSkipWatch.action";
+export { navalWhyThisTradeAction } from "./actions/navalWhyThisTrade.action";
+export { navalKnowledgeBeforeDataAction } from "./actions/navalKnowledgeBeforeData.action";
+export { navalOneTerminalAction } from "./actions/navalOneTerminal.action";
+export { navalAgentsAsLeverageAction } from "./actions/navalAgentsAsLeverage.action";

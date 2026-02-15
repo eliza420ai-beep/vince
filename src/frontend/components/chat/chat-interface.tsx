@@ -243,22 +243,23 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
     { label: "Categories", message: "What categories are available on polymarket?" },
   ],
-  // Naval: 13 career-audit prompts. Paste context after clicking (or in same message).
+  // Naval: on-topic, on-brand (push not pull, thesis first, one team one dream, signal not hype, paper before live, one command, size/skip/watch, why this trade, one terminal, agents as leverage, touch grass, cover costs). Paste context after clicking.
   naval: [
     { label: "What can you do?", message: "What can you do?" },
+    { label: "Push Not Pull", message: "push not pull" },
+    { label: "One Team One Dream", message: "one team one dream" },
+    { label: "Thesis First", message: "thesis first" },
+    { label: "Signal Not Hype", message: "signal not hype" },
+    { label: "Paper Before Live", message: "paper before live" },
+    { label: "One Command", message: "one command" },
+    { label: "Size / Skip / Watch", message: "size skip watch" },
+    { label: "Why This Trade", message: "why this trade" },
+    { label: "One Terminal", message: "one terminal" },
+    { label: "Agents as Leverage", message: "agents as leverage" },
+    { label: "Touch Grass", message: "touch grass" },
+    { label: "Cover Costs Then Profit", message: "cover costs then profit" },
     { label: "Specific Knowledge Audit", message: "specific knowledge audit" },
-    { label: "Leverage ID", message: "leverage identification" },
-    { label: "Long-Term Games", message: "long term games" },
-    { label: "Productize Yourself", message: "productize myself" },
-    { label: "Accountability vs Authenticity", message: "accountability authenticity" },
-    { label: "Reading for Understanding", message: "reading for understanding" },
     { label: "Expected Value", message: "expected value" },
-    { label: "Credibility vs Status", message: "credibility vs status" },
-    { label: "Wealth Creation vs Capture", message: "wealth creation capture" },
-    { label: "Escape Competition", message: "escape competition" },
-    { label: "Retirement Test", message: "retirement cope" },
-    { label: "Build in Public", message: "build in public" },
-    { label: "Narrow Niche", message: "narrow niche" },
   ],
   // Clawterm: AI terminal, OpenClaw expert — AI 2027, AGI, setup, gateway, openclaw-agents, tips, use cases, HIP-3 AI assets. For crypto data—VINCE.
   clawterm: [
@@ -299,7 +300,7 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
   clawterm:
     "AI terminal, OpenClaw expert. For crypto research, prices, watchlist, portfolio—ask VINCE.",
   naval:
-    "Philosophy and career audits only. Paste your context after the prompt. No trading—ask VINCE or Solus.",
+    "Frameworks only (push not pull, thesis first, size/skip/watch, etc.). Paste context after the prompt. No trading—ask VINCE or Solus.",
 };
 
 // Alpha at a glance: terminal dashboards as TLDR cards (same style as Quick Start)
