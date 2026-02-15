@@ -34,6 +34,7 @@ import { verifyActionItem } from "./standupVerifier";
 import { appendLearning } from "./standupLearnings";
 import { saveSharedDailyInsights, loadSharedDailyInsights } from "./dayReportPersistence";
 import { fetchAgentData, extractKeyEventsFromVinceData } from "./standupDataFetcher";
+import { AGENT_ROLES } from "./standupReports";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning, markAgentReported } from "./standupState";
 import { validatePredictions } from "./predictionTracker";
@@ -225,6 +226,16 @@ function extractReplyFromResponse(resp: unknown): string | null {
   if (!resp || typeof resp !== "object") return null;
   const c = (resp as { content?: typeof resp }).content ?? (resp as { text?: string; message?: string; thought?: string; actions?: string[]; actionCallbacks?: unknown[] });
   const obj = c as { text?: string; message?: string; thought?: string; actions?: string[]; actionCallbacks?: unknown[] };
+
+  // Reject IGNORE/NONE actions — these are "agent decided not to respond" placeholders, not real replies
+  if (Array.isArray(obj?.actions)) {
+    const actions = obj.actions.map((a) => (typeof a === "string" ? a.toUpperCase() : ""));
+    if (actions.includes("IGNORE") || actions.includes("NONE")) {
+      logger.info("[Standup] extractReplyFromResponse: agent returned IGNORE/NONE — treating as no reply");
+      return null;
+    }
+  }
+
   let text = typeof obj?.text === "string" ? obj.text : typeof obj?.message === "string" ? obj.message : "";
   if (!text.trim() && typeof obj?.thought === "string" && obj.thought.trim()) text = obj.thought;
   if (!text.trim() && Array.isArray(obj?.actionCallbacks) && obj.actionCallbacks.length > 0) {
@@ -257,11 +268,16 @@ async function runOneStandupTurn(
     transcript.length > MAX_TRANSCRIPT_CHARS
       ? transcript.slice(-MAX_TRANSCRIPT_CHARS)
       : transcript;
+  // Directly address the agent by name so the bootstrap shouldRespond check
+  // recognizes this message is for them (prevents IGNORE/NONE decisions).
+  const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
+  const roleHint = agentRole ? ` (${agentRole.focus})` : "";
+  const directAddress = `@${agentName}${roleHint}, it's your turn. Report your domain data for the standup. Keep it concise.\n\n`;
   const userMsg = {
     id: uuidv4(),
     entityId: facilitatorEntityId,
     roomId,
-    content: { text: truncated, source: STANDUP_SOURCE },
+    content: { text: directAddress + truncated, source: STANDUP_SOURCE },
     createdAt: Date.now(),
   };
   return new Promise<string | null>((resolve, reject) => {
