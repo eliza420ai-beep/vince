@@ -190,7 +190,36 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
 // ═══════════════════════════════════════════════════════════════════════
 // ECHO: real CT sentiment from X (actual tweets, not a placeholder).
 // When contextHints from VINCE are provided, builds 2-3 targeted queries.
+// Sanitizes queries for X API; falls back to minimal "$BTC" if primary fails.
 // ═══════════════════════════════════════════════════════════════════════
+
+const X_QUERY_MAX_LEN = 200;
+
+function sanitizeXQuery(q: string): string {
+  return q.trim().replace(/\s+/g, " ").slice(0, X_QUERY_MAX_LEN);
+}
+
+async function runXQueries(
+  svc: { searchQuery: (opts: { query: string; maxResults?: number; hoursBack?: number; cacheTtlMs?: number }) => Promise<Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>> },
+  queries: string[],
+  opts: { hoursBack: number; cacheTtlMs: number },
+): Promise<Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>> {
+  const allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }> = [];
+  const seen = new Set<string>();
+  for (const query of queries) {
+    const sanitized = sanitizeXQuery(query);
+    if (!sanitized) continue;
+    const tweets = await svc.searchQuery({ ...opts, query: sanitized, maxResults: 5 });
+    for (const t of tweets ?? []) {
+      const key = (t as { id?: string }).id ?? t.text?.slice(0, 50) ?? "";
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        allTweets.push(t);
+      }
+    }
+  }
+  return allTweets;
+}
 
 export async function fetchEchoData(
   runtime: IAgentRuntime,
@@ -236,20 +265,22 @@ export async function fetchEchoData(
     }
     const uniqueQueries = [...new Set(queries)].slice(0, 3);
 
-    const allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }> = [];
-    const seen = new Set<string>();
-    for (const query of uniqueQueries) {
-      const tweets = await svc.searchQuery({
-        ...opts,
-        query,
-        maxResults: 5,
-      });
-      for (const t of tweets ?? []) {
-        const key = t.id ?? t.text?.slice(0, 50) ?? "";
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          allTweets.push(t);
-        }
+    let allTweets: Array<{ id?: string; text: string; author?: { username?: string }; metrics?: { likeCount?: number } }>;
+    try {
+      allTweets = await runXQueries(svc, uniqueQueries, opts);
+    } catch (firstErr) {
+      logger.warn(
+        { err: firstErr, queries: uniqueQueries },
+        "[STANDUP_DATA] fetchEchoData: primary queries failed, retrying with minimal",
+      );
+      try {
+        allTweets = await runXQueries(svc, ["$BTC"], opts);
+      } catch (fallbackErr) {
+        logger.warn(
+          { err: fallbackErr, lastQuery: "$BTC" },
+          "[STANDUP_DATA] fetchEchoData: X unavailable",
+        );
+        return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
       }
     }
 
@@ -265,7 +296,7 @@ export async function fetchEchoData(
     const queryNote = uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
     return `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
   } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] fetchEchoData: X unavailable");
+    logger.warn({ err, lastQuery: "init or format" }, "[STANDUP_DATA] fetchEchoData: X unavailable");
     return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
   }
 }
