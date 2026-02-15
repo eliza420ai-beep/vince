@@ -19,7 +19,10 @@ import type {
 
 const OPENSEA_BASE_URL = "https://api.opensea.io/api/v2";
 const CACHE_TTL_MS = 60_000; // 60 seconds
-const REQUEST_DELAY_MS = 250; // 4 req/s without API key
+/** Delay between API calls. OpenSea free tier is strict; 3s keeps us under typical limits. */
+const REQUEST_DELAY_MS = 3_000;
+/** When we get 429, no requests until this cooldown has passed (global). */
+const RATE_LIMIT_BACKOFF_MS = 60_000;
 
 // ETH price fallback (will try to get real price)
 const DEFAULT_ETH_PRICE_USD = 3000;
@@ -109,6 +112,8 @@ interface EventsResponse {
 export class OpenSeaFallbackService implements IOpenSeaService {
   private cache: Map<string, CacheEntry<unknown>> = new Map();
   private lastRequestTime = 0;
+  /** After 429, no requests until this time (ms). Prevents repeated 429s. */
+  private rateLimitedUntilMs = 0;
   private apiKey: string | null = null;
   private ethPriceUsd = DEFAULT_ETH_PRICE_USD;
 
@@ -148,7 +153,8 @@ export class OpenSeaFallbackService implements IOpenSeaService {
   }
 
   /**
-   * Rate-limited GET request to OpenSea API
+   * Rate-limited GET request to OpenSea API.
+   * Respects global cooldown after 429 so we don't spam until the bucket resets.
    */
   private async fetchOpenSea<T>(endpoint: string): Promise<T | null> {
     const cacheKey = endpoint;
@@ -158,9 +164,19 @@ export class OpenSeaFallbackService implements IOpenSeaService {
       return cached.data;
     }
 
-    // Rate limiting
     const now = Date.now();
-    const timeSinceLastRequest = now - this.lastRequestTime;
+
+    // Global cooldown: after a 429, no request until rateLimitedUntilMs
+    if (now < this.rateLimitedUntilMs) {
+      const waitMs = this.rateLimitedUntilMs - now;
+      logger.debug(
+        `[OpenSeaFallback] In rate-limit cooldown, waiting ${Math.ceil(waitMs / 1000)}s`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+
+    // Throttle: minimum spacing between requests
+    const timeSinceLastRequest = Date.now() - this.lastRequestTime;
     if (timeSinceLastRequest < REQUEST_DELAY_MS) {
       await new Promise((resolve) =>
         setTimeout(resolve, REQUEST_DELAY_MS - timeSinceLastRequest),
@@ -185,8 +201,10 @@ export class OpenSeaFallbackService implements IOpenSeaService {
 
       if (!response.ok) {
         if (response.status === 429) {
-          logger.warn("[OpenSeaFallback] Rate limited, backing off");
-          await new Promise((resolve) => setTimeout(resolve, 3000));
+          this.rateLimitedUntilMs = Date.now() + RATE_LIMIT_BACKOFF_MS;
+          logger.warn(
+            `[OpenSeaFallback] Rate limited. Pausing all requests for ${RATE_LIMIT_BACKOFF_MS / 1000}s. Set OPENSEA_API_KEY for higher limits.`,
+          );
           return null;
         }
         if (response.status === 404) {

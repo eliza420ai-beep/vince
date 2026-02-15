@@ -40,6 +40,11 @@ function getFacilitatorName(): string {
   ).toLowerCase();
 }
 
+/** Max retries for patching messageService (agents with many services start slowly). */
+const PATCH_MESSAGE_SERVICE_MAX_RETRIES = 6;
+/** Delays (ms) between retries: 5s, 10s, 20s, 30s, 45s, 60s. */
+const PATCH_RETRY_DELAYS_MS = [5_000, 10_000, 20_000, 30_000, 45_000, 60_000];
+
 /**
  * Monkey-patch the runtime's messageService.handleMessage so non-facilitator
  * agents short-circuit BEFORE any DB access (createMemory / ensureAllAgentsInRoom).
@@ -48,18 +53,26 @@ function getFacilitatorName(): string {
  * The bootstrap's OtakuMessageService is loaded from an npm dist we can't edit,
  * so this wrapper intercepts at the JS object level.
  */
-function patchMessageServiceForStandupSkip(runtime: any): void {
+function patchMessageServiceForStandupSkip(runtime: any, attempt = 0): void {
   const myName = (runtime.character?.name ?? "").toLowerCase();
   const facilitator = getFacilitatorName();
   if (myName === facilitator) return; // Kelly must NOT be patched
 
   const svc = (runtime as any).messageService;
   if (!svc || typeof svc.handleMessage !== "function") {
-    logger.warn("[ONE_TEAM] No messageService.handleMessage to patch for " + myName + " — will retry");
-    // Retry after 5s (messageService may not be registered yet)
-    setTimeout(() => {
-      try { patchMessageServiceForStandupSkip(runtime); } catch { /* give up */ }
-    }, 5000);
+    if (attempt < PATCH_MESSAGE_SERVICE_MAX_RETRIES) {
+      const delayMs = PATCH_RETRY_DELAYS_MS[Math.min(attempt, PATCH_RETRY_DELAYS_MS.length - 1)];
+      if (attempt === 0) {
+        logger.warn("[ONE_TEAM] No messageService.handleMessage to patch for " + myName + " — will retry (messageService registers after services start)");
+      }
+      setTimeout(() => {
+        try {
+          patchMessageServiceForStandupSkip(runtime, attempt + 1);
+        } catch {
+          /* give up */
+        }
+      }, delayMs);
+    }
     return;
   }
 
@@ -151,20 +164,17 @@ export const interAgentPlugin: Plugin = {
 
     // Patch messageService for non-facilitator agents: skip standup room
     // messages entirely (prevents PGLite deadlock from 7+ concurrent writes).
-    // For Kelly (facilitator): add timing logs so we can see where processing hangs.
-    // Deferred 5s so messageService has been registered by bootstrap.
-    // Second attempt at 15s catches late-initializing agents (e.g. VINCE with heavy service init).
+    // Deferred 5s so MessageServiceInstaller has run (services start after init).
+    // Internal retries with backoff (5s, 10s, 20s, …) handle slow starters like VINCE.
     const myNameLower = (runtime.character?.name ?? "").toLowerCase();
     if (myNameLower !== getFacilitatorName()) {
-      const doPatch = () => {
+      setTimeout(() => {
         try {
-          patchMessageServiceForStandupSkip(runtime);
+          patchMessageServiceForStandupSkip(runtime, 0);
         } catch (err) {
           logger.debug({ err }, "[ONE_TEAM] patchMessageService failed");
         }
-      };
-      setTimeout(doPatch, 5000);
-      setTimeout(doPatch, 15000); // safety retry
+      }, 5000);
     } else {
       // Kelly (facilitator): wrap handleMessage so that standup-channel messages
       // get mentionContext.isMention = true. Without this, the core's shouldRespond

@@ -19,7 +19,9 @@ import { startBox, endBox, logLine, logEmpty, sep } from "../utils/boxLogger";
 import { getOrCreateOpenSeaService } from "./fallbacks";
 import { isVinceAgent } from "../utils/dashboard";
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes (match OpenSeaService cache)
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes — fewer refreshes with 60+ collections to avoid rate limits
+/** Refresh only this many collections per run to stay under OpenSea rate limits (no key = strict). */
+const MAX_COLLECTIONS_PER_REFRESH = 25;
 const MIN_GAP_TO_2ND_ETH = 0.21; // Dashboard only shows collections with gap to 2nd listing above this
 /** Thin floor with zero recent sales = illiquid, NOT a real opportunity */
 const MIN_VOLUME_7D_ETH = 0.001; // At least some 7d volume (implies recent sales)
@@ -91,6 +93,24 @@ const CURATED_COLLECTIONS: CuratedCollection[] = [
     category: "photography",
     priority: 21,
   },
+  // Extended curated (gen art, blue chip, photography)
+  { slug: "winds-of-yawanawa", name: "Winds of Yawanawa", category: "art", priority: 22 },
+  { slug: "ackcolorstudy", name: "Ack Color Study", category: "generative", priority: 23 },
+  { slug: "vera-molnar-themes-and-variations", name: "Vera Molnar Themes and Variations", category: "generative", priority: 24 },
+  { slug: "brokenkeys", name: "Broken Keys", category: "art", priority: 25 },
+  { slug: "aligndraw", name: "Align Draw", category: "generative", priority: 26 },
+  { slug: "qql", name: "QQL", category: "blue_chip", priority: 27 },
+  { slug: "machine-hallucinations-coral-generative-ai-data-pa", name: "Machine Hallucinations Coral", category: "generative", priority: 28 },
+  { slug: "pursuit-by-per-kristian-stoveland", name: "Pursuit", category: "generative", priority: 29 },
+  { slug: "100-sunsets-by-zach-lieberman", name: "100 Sunsets", category: "generative", priority: 30 },
+  { slug: "strands-of-solitude", name: "Strands of Solitude", category: "generative", priority: 31 },
+  { slug: "opepen-edition", name: "Opepen Edition", category: "pfp", priority: 32 },
+  { slug: "sam-spratt-masks-of-luci", name: "Masks of Luci", category: "art", priority: 33 },
+  { slug: "pink-such-a-useless-color-by-simon-raion", name: "Pink Such a Useless Color", category: "art", priority: 34 },
+  { slug: "sketchbook-a-by-william-mapan-1", name: "Sketchbook A", category: "generative", priority: 35 },
+  { slug: "the-vault-of-wonders-chapter-1-the-abyssal-unseen", name: "The Vault of Wonders Ch.1", category: "art", priority: 36 },
+  { slug: "skulptuur-by-piter-pasma", name: "Skulptuur", category: "generative", priority: 37 },
+  { slug: "dataland-biomelumina", name: "Dataland Biomelumina", category: "generative", priority: 38 },
 ];
 
 export class VinceNFTFloorService extends Service {
@@ -319,15 +339,16 @@ export class VinceNFTFloorService extends Service {
       return;
     }
 
+    const toRefresh = CURATED_COLLECTIONS.slice(0, MAX_COLLECTIONS_PER_REFRESH);
     logger.info(
-      `[VinceNFTFloor] Refreshing ${CURATED_COLLECTIONS.length} collections via OpenSeaService...`,
+      `[VinceNFTFloor] Refreshing ${toRefresh.length}/${CURATED_COLLECTIONS.length} collections (cap to avoid rate limit)...`,
     );
 
-    for (const collection of CURATED_COLLECTIONS) {
+    for (const collection of toRefresh) {
       try {
         await this.fetchCollectionFloor(opensea, collection);
-        // Rate limit: wait between requests
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Rate limit: ~3–4 OpenSea calls per collection; wait 2s between collections to avoid 429
+        await new Promise((resolve) => setTimeout(resolve, 2_000));
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.warn(

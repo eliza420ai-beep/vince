@@ -83,6 +83,8 @@ export class VinceNansenService extends Service {
   private apiKey: string = "";
   private creditsUsed: number = 0;
   private cache: Map<string, CacheEntry<unknown>> = new Map();
+  /** Log no-key / auth failure once so we don't spam when Nansen is intentionally omitted. */
+  private hasLoggedUnavailable = false;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -93,7 +95,7 @@ export class VinceNansenService extends Service {
 
     if (!this.apiKey) {
       logger.debug(
-        "[VinceNansenService] NANSEN_API_KEY not set - API calls will fail",
+        "[VinceNansenService] Nansen optional — NANSEN_API_KEY not set; smart money data disabled.",
       );
     } else {
       logger.debug("[VinceNansenService] Initialized with API key");
@@ -176,7 +178,10 @@ export class VinceNansenService extends Service {
     if (cached) return cached;
 
     if (!this.apiKey) {
-      logger.error("[VinceNansenService] No API key configured");
+      if (!this.hasLoggedUnavailable) {
+        this.hasLoggedUnavailable = true;
+        logger.debug("[VinceNansenService] Skipping request — no API key (Nansen optional).");
+      }
       return null;
     }
 
@@ -206,17 +211,18 @@ export class VinceNansenService extends Service {
       });
       clearTimeout(timeoutId);
 
-      this.trackCredits(creditCost);
-
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          logger.error(
-            "[VinceNansenService] Authentication failed - check NANSEN_API_KEY",
-          );
+          if (!this.hasLoggedUnavailable) {
+            this.hasLoggedUnavailable = true;
+            logger.debug(
+              "[VinceNansenService] Nansen auth failed (invalid key or limit) — smart money data disabled. Set NANSEN_API_KEY for 100 free credits.",
+            );
+          }
         } else if (response.status === 429) {
           logger.warn("[VinceNansenService] Rate limit hit");
         } else {
-          logger.error(
+          logger.warn(
             { status: response.status, endpoint },
             "[VinceNansenService] API error",
           );
@@ -224,12 +230,13 @@ export class VinceNansenService extends Service {
         return null;
       }
 
+      this.trackCredits(creditCost);
       const data = (await response.json()) as T;
       this.setCache(cacheKey, data);
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      logger.error({ error, endpoint }, "[VinceNansenService] Fetch failed");
+      logger.debug({ error, endpoint }, "[VinceNansenService] Fetch failed (Nansen optional)");
       return null;
     }
   }

@@ -360,6 +360,19 @@ export class CoinGeckoService extends Service {
             await this.loadCoinsIndex();
             return;
           }
+          // 429: wait long so the rate limit can reset (free tier is strict), then retry
+          if (res.status === 429) {
+            clearTimeout(timeout);
+            if (attempt === maxAttempts) {
+              throw new Error(`Failed to load coins list ${res.status}: ${res.statusText}${body ? ` - ${JSON.stringify(body)}` : ""}`);
+            }
+            const rateLimitBackoffMs = 60_000;
+            logger.warn(
+              `[CoinGecko] Rate limited (429). Waiting ${rateLimitBackoffMs / 1000}s before retry (${attempt}/${maxAttempts}). Set COINGECKO_API_KEY for higher limits.`,
+            );
+            await new Promise((r) => setTimeout(r, rateLimitBackoffMs));
+            continue;
+          }
           throw new Error(`Failed to load coins list ${res.status}: ${res.statusText}${body ? ` - ${JSON.stringify(body)}` : ""}`);
         }
 
@@ -401,8 +414,18 @@ export class CoinGeckoService extends Service {
           );
           break;
         }
-        const backoff = baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
-        logger.warn(`[CoinGecko] Coins index fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`);
+        // 429 needs a long wait; other errors use exponential backoff
+        const is429 = msg.includes("429") || msg.includes("Rate Limit");
+        const backoff = is429
+          ? 60_000
+          : baseDelayMs * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+        if (is429) {
+          logger.warn(
+            `[CoinGecko] Coins index rate limited (429). Waiting ${backoff / 1000}s before retry (${attempt}/${maxAttempts}).`,
+          );
+        } else {
+          logger.warn(`[CoinGecko] Coins index fetch failed (attempt ${attempt}): ${msg}. Retrying in ${backoff}ms...`);
+        }
         await new Promise((r) => setTimeout(r, backoff));
       }
     }
