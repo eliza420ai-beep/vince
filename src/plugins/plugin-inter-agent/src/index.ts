@@ -144,6 +144,17 @@ export const interAgentPlugin: Plugin = {
       { agent: runtime.character?.name, hasElizaOS },
       "[ONE_TEAM] elizaOS on runtime",
     );
+
+    // Register "standup" as an always-respond source so the bootstrap's shouldRespond
+    // bypasses LLM evaluation for standup round-robin messages. Without this, agents
+    // in a GROUP-type room with source "standup" fall to LLM eval which returns IGNORE.
+    const existing = String(runtime.getSetting("ALWAYS_RESPOND_SOURCES") ?? "");
+    if (!existing.toLowerCase().includes("standup")) {
+      const updated = existing ? `${existing},standup` : "standup";
+      runtime.setSetting("ALWAYS_RESPOND_SOURCES", updated);
+      logger.info({ agent: runtime.character?.name }, `[ONE_TEAM] Added "standup" to ALWAYS_RESPOND_SOURCES`);
+    }
+
     if (isStandupCoordinator(runtime)) {
       // Defer so runtime.db is available (plugin-sql registers it during init; we run after other plugins).
       setImmediate(() => {
