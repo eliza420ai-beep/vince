@@ -154,11 +154,12 @@ export async function buildAndSaveSharedDailyInsights(
   runtime: IAgentRuntime,
   eliza: IElizaOSRegistry,
 ): Promise<void> {
-  const getAgent = eliza.getAgent;
-  if (!getAgent) {
+  if (!eliza.getAgent) {
     logger.debug("[Standup] No getAgent — skip shared insights pre-write");
     return;
   }
+  // Bind getAgent so `this` is preserved (unbound call throws "Cannot read properties of undefined (reading 'runtimes')")
+  const getAgent = eliza.getAgent.bind(eliza);
   if (typeof eliza.getAgents !== "function") {
     logger.debug("[Standup] No getAgents — skip shared insights pre-write");
     return;
@@ -186,7 +187,14 @@ export async function buildAndSaveSharedDailyInsights(
       sections.push(`## ${displayName}\n(no agent in registry)\n`);
       continue;
     }
-    const agentRuntime = getAgent(entry.agentId);
+    let agentRuntime: IAgentRuntime | undefined;
+    try {
+      agentRuntime = getAgent(entry.agentId);
+    } catch (err) {
+      logger.warn({ err, agent: displayName }, "[Standup] getAgent() failed for shared insights");
+      sections.push(`## ${displayName}\n(runtime unavailable)\n`);
+      continue;
+    }
     if (!agentRuntime) {
       sections.push(`## ${displayName}\n(no runtime)\n`);
       continue;
@@ -228,7 +236,7 @@ function extractReplyFromResponse(resp: unknown): string | null {
     logger.debug({ thoughtLen: (obj.thought ?? "").length, textLen: (obj.text ?? "").length }, "[Standup] extractReplyFromResponse: got response but no usable text/thought");
   }
   if (out && out.length < 100) {
-    logger.debug({ len: out.length, preview: out.slice(0, 80) }, "[Standup] extractReplyFromResponse: short reply (possibly canned)");
+    logger.info({ len: out.length, preview: out.slice(0, 80) }, "[Standup] extractReplyFromResponse: short reply (possibly canned)");
   }
   return out;
 }
