@@ -176,6 +176,25 @@ flowchart LR
 
 ---
 
+## 🔬 Recent improvements (train_models.py)
+
+The training pipeline is under active improvement. As of 2026-02:
+
+| Area | What |
+|:---|:---|
+| **Tuning** | Optuna hyperparameter search for all 4 models; GridSearchCV fallback |
+| **Validation** | Walk-forward validation with expanding window and purge gap; forward-in-time fold ordering |
+| **Explainability** | SHAP TreeExplainer for all 4 models; mean \|SHAP\| and top interactions in improvement report |
+| **Features** | Lag features (lag1/2/3 + rolling mean per asset); asset dummies when multi-asset |
+| **Calibration** | Platt scaling for signal-quality probabilities; saved to metadata and applied at inference |
+| **Ops** | Feature name manifests (`{model}_features.json`); ONNX SHA-256 in `training_metadata.json`; `--parallel` for concurrent model training |
+| **Correctness** | No StandardScaler (train/serve skew removed); holdout metrics from a fresh model on train split only; no in-place mutation in clip_outliers |
+| **Retrain trigger** | Besides 90+ trades and 24h cooldown, retrain when recent win rate &lt; 45% |
+
+See [plugin-vince/scripts/README.md](../src/plugins/plugin-vince/scripts/README.md) and [FEEDBACK.md](../src/plugins/plugin-vince/scripts/FEEDBACK.md) for the full checklist and run commands.
+
+---
+
 ## 📐 Implementation Notes
 
 ### ONNX-compatible operators

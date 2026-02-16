@@ -105,141 +105,121 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
   Otaku: {
     headline: "DeFi in one conversation.",
     intro:
-      "Chief Operating Officer (COO): DeFi ops executor. On-chain data (Nansen, DexScreener). CDP wallet and Relay. Research, plan, act—one conversation.",
+      "Chief Operating Officer (COO): the only agent with a funded wallet. Swap, DCA, bridge, Morpho, stop-loss, limit orders, NFT mint, execute Vince signals—in chat. CDP wallet, BANKR, Relay. Two modes: Degen (full DeFi) or Normies (simple language). Alerts and completion events show up in the notifications panel. Still under construction: smoother confirmation flows, testnet validation, and more chain coverage on the way.",
     tags: [
       { label: "COO", withSparkles: true },
-      { label: "Self-Directed" },
+      { label: "Only executor" },
       { label: "DeFi stack" },
-      { label: "Just ask" },
+      { label: "Degen / Normies" },
+      { label: "In progress" },
     ],
     capabilities: [
       {
-        title: "Token Analysis & Comparisons",
+        title: "Swap, bridge, DCA",
         description:
-          "Compare assets. Liquidity depth, volume, odd moves before they move the market.",
+          "Token swaps and cross-chain bridge (Relay, BANKR). Dollar-cost averaging over time. Confirms before sending.",
       },
       {
-        title: "Yield Strategy Discovery",
+        title: "Limit orders & positions",
         description:
-          "Morpho, Aave. Compare APRs, pick strongest risk-adjusted yield.",
+          "Limit orders at target price. Portfolio and active orders. Balance checks.",
       },
       {
-        title: "Cross-Chain Execution",
+        title: "Morpho & yield",
         description:
-          "Bridge, swap (Relay, Biconomy). Stays in chat.",
+          "Supply and withdraw on Morpho. Yield suggestions and rebalance targets.",
       },
       {
-        title: "Wallet Operations",
+        title: "Stop-loss & take-profit",
         description:
-          "CDP smart wallets. Balances, sends, approvals.",
+          "Stop-loss, take-profit, trailing stops. Warnings when conditions hit.",
       },
       {
-        title: "Portfolio Risk Monitoring",
+        title: "Wallet & approvals",
         description:
-          "Stress-test exposure. Track drawdowns. Warnings when concentration or vol spikes.",
+          "CDP smart wallets. Balances, sends, token approvals. Sign in chat.",
       },
       {
-        title: "Market Intelligence",
+        title: "NFT mint & Vince signal",
         description:
-          "Macro, protocol updates, on-chain flows. Summarized.",
+          "Mint NFTs (e.g. gen-art from Sentinel). Execute a Vince paper signal (swap or bridge) when you want it onchain.",
       },
       {
-        title: "DeFi Education",
+        title: "Notifications",
         description:
-          "Perps, restaking, vaults—explained. Matched to level.",
+          "Alerts (Morpho health, DCA/stop-loss counts) and completion events (swap, bridge, DCA, etc.) in the wallet UI.",
       },
     ],
     plugins: [
       {
-        name: "CoinGecko",
-        category: "Market Data",
-        summary:
-          "Live token prices, market caps, volume trends, and relative strength comparisons.",
-        points: [
-          "Call up intraday performance and liquidity snapshots.",
-          "Benchmark tokens. Spot outperformers and laggards.",
-        ],
-        example: '"What\'s the 24h volume for AAVE and LINK?"',
-      },
-      {
-        name: "DeFiLlama",
-        category: "Analytics",
-        summary:
-          "Total value locked, ecosystem growth, and category-level flows across chains.",
-        points: [
-          "Identify which sectors are expanding fastest by TVL shift.",
-          "Spot emerging protocols before capital concentration peaks.",
-        ],
-        example: '"Show me the top 5 lending protocols by TVL this week."',
-      },
-      {
-        name: "Powered by ElizaOS",
-        category: "AI Engine",
-        summary:
-          "DeFi in plain language. Hedging, farming.",
-        points: [
-          "Draft hedging or farming strategies.",
-        ],
-        example: '"Explain the risks of staking ETH on Lido vs. RocketPool."',
-      },
-      {
         name: "Coinbase CDP",
-        category: "Execution",
+        category: "Wallet",
         summary:
           "Smart wallets. Balances, sends, approvals. Sign in chat.",
         points: [
           "Wallets linked to session.",
-          "Sign and broadcast transfers without leaving chat.",
+          "Fund, send, approve without leaving chat.",
         ],
-        example: '"Send 0.1 ETH to my friend on Base."',
+        example: '"Send 0.1 ETH to …" or "What\'s my balance?"',
+      },
+      {
+        name: "BANKR",
+        category: "Execution",
+        summary:
+          "Swaps, limit orders, DCA. Agent API + Trading Engine on Base.",
+        points: [
+          "Swap and limit order execution.",
+          "DCA schedules.",
+        ],
+        example: '"Swap 0.1 ETH to USDC" or "DCA $50 into ETH over 5 days"',
+      },
+      {
+        name: "Relay",
+        category: "Bridge",
+        summary:
+          "Cross-chain bridge. Stays in chat.",
+        points: [
+          "Bridge assets between chains.",
+        ],
+        example: '"Bridge 2 ETH to Arbitrum"',
       },
       {
         name: "Morpho",
-        category: "Yield Markets",
+        category: "Yield",
         summary:
-          "Morpho Blue rates. Supply/borrow APRs. Positions, rebalancing.",
+          "Morpho Blue. Supply/borrow, positions, rebalancing.",
         points: [
-          "Compare supply and borrow APRs across markets before entering.",
-          "Manage open positions and rebalance collateral in-line.",
+          "Supply and withdraw. Compare APRs.",
         ],
-        example: '"Compare ETH lending yields on Morpho and Aave."',
+        example: '"Supply 1 ETH on Morpho" or "Compare ETH lending yields"',
       },
       {
-        name: "Web Search",
-        category: "News",
+        name: "DeFiLlama",
+        category: "Data",
         summary:
-          "News, governance, on-chain narratives. Tavily.",
-        points: [
-          "Sentiment scans.",
-          "Cross-check on-chain moves against breaking headlines.",
-        ],
-        example: '"What is the latest on EigenLayer restaking yields?"',
+          "TVL, yields, protocol discovery. No API key.",
+        points: [],
+        example: "",
       },
       {
-        name: "SQL",
-        category: "Database",
+        name: "ElizaOS",
+        category: "AI Engine",
         summary:
-          "Query structured data for trades, logs, and historical data.",
-        points: [
-          "Pull portfolio summaries or transaction histories.",
-          "Validate trade ideas with custom metrics or cohort analysis.",
-        ],
-        example: '"Summarize my recent swaps and profits."',
+          "DeFi in plain language. Confirms before sending.",
+        points: [],
+        example: "",
       },
       {
         name: "Bootstrap",
         category: "Memory",
         summary:
           "Remembers. Stays on task.",
-        points: [
-          "Past trades. Risk appetite.",
-        ],
-        example:
-          "Past trades. Risk appetite.",
+        points: [],
+        example: "",
       },
     ],
     proTip:
-      "Ask: 'Bridge 2 ETH to Arbitrum, swap half to USDC.' She confirms before sending.",
+      "Ask: 'Swap 0.1 ETH to USDC' or 'Bridge 2 ETH to Arbitrum.' He confirms before sending. Degen mode = full DeFi; Normies = simpler language.",
   },
 
   Kelly: {
