@@ -221,17 +221,17 @@ export const gamificationPlugin: Plugin = {
     {
       path: '/leaderboard',
       type: 'GET',
-      handler: handleGetLeaderboard,
+      handler: handleGetLeaderboard as any,
     },
     {
       path: '/summary',
       type: 'GET',
-      handler: handleGetUserSummary,
+      handler: handleGetUserSummary as any,
     },
     {
       path: '/referral',
       type: 'GET',
-      handler: handleGetReferralCode,
+      handler: handleGetReferralCode as any,
     },
   ],
 };

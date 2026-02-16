@@ -215,7 +215,7 @@ export const otakuNftMintAction: Action = {
         // Use inter-agent communication
         try {
           // This would trigger ASK_AGENT to Sentinel
-          const sentinelResponse = await runtime.executeAction("ASK_AGENT", {
+          const sentinelResponse = await (runtime as any).executeAction("ASK_AGENT", {
             agent: "Sentinel",
             question: `Generate a piece of digital art based on this prompt: "${pendingMint.artPrompt}". Return the IPFS URI or base64 image data.`,
           });

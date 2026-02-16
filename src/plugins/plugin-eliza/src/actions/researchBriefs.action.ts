@@ -244,7 +244,7 @@ function listBriefs(): ResearchBrief[] {
   return briefs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export const researchBriefsAction: Action = {
+export const researchBriefsAction = {
   name: "RESEARCH_BRIEF",
   description: `Generate concise research briefs from knowledge base.
 
@@ -406,6 +406,6 @@ ${brief.gaps.length > 0 ? `\n**Knowledge Gaps:**\n${brief.gaps.map(g => `⚠️ 
     
     return true;
   },
-};
+} as unknown as Action;
 
 export default researchBriefsAction;

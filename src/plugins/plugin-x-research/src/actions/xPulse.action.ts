@@ -247,8 +247,8 @@ function findBreakingContent(tweets: XTweet[]): XBreakingContent[] {
       reason: `${Math.round(t.computed?.velocity ?? 0)} likes/hour`,
       velocity: t.computed?.velocity ?? 0,
       topic: 'crypto',
-      urgency: (t.computed?.velocity ?? 0) > 500 ? 'high' :
-               (t.computed?.velocity ?? 0) > 200 ? 'medium' : 'low',
+      urgency: ((t.computed?.velocity ?? 0) > 500 ? 'high' :
+               (t.computed?.velocity ?? 0) > 200 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
     }))
     .sort((a, b) => b.velocity - a.velocity);
 }
@@ -287,7 +287,7 @@ Write the narrative only (no "Here is the summary" wrapper — start with the na
 async function generateBriefing(
   runtime: IAgentRuntime,
   data: {
-    sentiment: ReturnType<typeof getXSentimentService extends () => infer S ? S extends { analyzeSentiment: (...args: any[]) => infer R } ? R : never : never>;
+    sentiment: any;
     threads: XThreadSummary[];
     breaking: XBreakingContent[];
     spikes: Array<{ topic: string; spikeMultiple: number }>;
@@ -323,19 +323,20 @@ async function generateBriefing(
   output += `${emoji} **Overall:** ${capitalize(sentiment.overallSentiment)} (${scoreStr}) | ${sentiment.overallConfidence}% confidence\n\n`;
 
   // Topic breakdown
-  const topTopics = Object.entries(sentiment.byTopic)
-    .sort((a, b) => b[1].breakdown.totalAnalyzed - a[1].breakdown.totalAnalyzed)
+  const topTopics = Object.entries(sentiment.byTopic as Record<string, any>)
+    .sort((a: [string, any], b: [string, any]) => b[1].breakdown.totalAnalyzed - a[1].breakdown.totalAnalyzed)
     .slice(0, 4);
 
   if (topTopics.length > 0) {
     output += `**By Topic:**\n`;
     for (const [topicId, topicSentiment] of topTopics) {
-      const tEmoji = topicSentiment.direction === 'bullish' ? '📈' :
-                     topicSentiment.direction === 'bearish' ? '📉' : '😐';
-      const tScore = topicSentiment.weightedScore > 0 ? `+${topicSentiment.weightedScore}` : String(topicSentiment.weightedScore);
+      const ts = topicSentiment as any;
+      const tEmoji = ts.direction === 'bullish' ? '📈' :
+                     ts.direction === 'bearish' ? '📉' : '😐';
+      const tScore = ts.weightedScore > 0 ? `+${ts.weightedScore}` : String(ts.weightedScore);
       output += `• ${topicId.toUpperCase()} ${tEmoji} ${tScore}`;
-      if (topicSentiment.whaleAlignment !== 0) {
-        output += ` (whales: ${topicSentiment.whaleAlignment > 0 ? '+' : ''}${topicSentiment.whaleAlignment})`;
+      if (ts.whaleAlignment !== 0) {
+        output += ` (whales: ${ts.whaleAlignment > 0 ? '+' : ''}${ts.whaleAlignment})`;
       }
       output += `\n`;
     }

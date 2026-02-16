@@ -208,7 +208,7 @@ function formatRules(): string {
   return response;
 }
 
-export const styleCheckAction: Action = {
+export const styleCheckAction = {
   name: "STYLE_CHECK",
   description: `Check content against brand style guide.
 
@@ -410,6 +410,6 @@ Returns a score (0-100) and detailed violation report.`,
       }
     }
   },
-};
+} as unknown as Action;
 
 export default styleCheckAction;

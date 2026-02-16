@@ -47,7 +47,7 @@ export const walletStatusProvider: Provider = {
     runtime: IAgentRuntime,
     message: Memory,
     state?: State
-  ): Promise<string> => {
+  ) => {
     const context: WalletContext = {
       balances: [],
       activeOrders: [],
@@ -155,7 +155,7 @@ export const walletStatusProvider: Provider = {
     lines.push("");
     lines.push(`**Services:** CDP: ${context.hasCdp ? "✅" : "❌"} | BANKR: ${context.hasBankr ? "✅" : "❌"}`);
 
-    return lines.join("\n");
+    return { text: lines.join("\n") };
   },
 };
 

@@ -99,7 +99,7 @@ Be concise but thorough.`;
                 contentType: mimeType,
               },
             ],
-          });
+          } as any);
 
           processedAttachment.description = description;
           processedAttachment.title = attachment.title || `${mimeType} attachment`;

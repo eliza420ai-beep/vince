@@ -233,7 +233,7 @@ export const cdpWalletSwap: Action = {
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Validate required parameters
       const fromTokenParam = params?.fromToken?.trim();
@@ -622,7 +622,7 @@ export const cdpWalletSwap: Action = {
       
       // Try to capture input params even in failure
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
       const failureInputParams = {
         fromToken: params?.fromToken,
         toToken: params?.toToken,

@@ -164,7 +164,7 @@ export const getProtocolTvlAction: Action = {
         data: results,
         values: successes.map((r) => r.data),
         input: inputParams,
-      } as ActionResult & { input: typeof inputParams };
+      } as unknown as ActionResult & { input: typeof inputParams };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_PROTOCOL_TVL] Action failed: ${msg}`);

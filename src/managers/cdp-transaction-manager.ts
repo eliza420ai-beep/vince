@@ -20,6 +20,7 @@ import {
   UNISWAP_V3_QUOTER,
   WRAPPED_NATIVE_TOKEN,
   UNISWAP_POOL_FEES,
+  type SupportedNetwork,
 } from "@/constants/chains";
 
 // ============================================================================
@@ -1626,7 +1627,7 @@ export class CdpTransactionManager {
             `[CdpTransactionManager] 0x API unavailable, falling back to Uniswap V3`,
           );
 
-          const quoterAddress = UNISWAP_V3_QUOTER[network];
+          const quoterAddress = UNISWAP_V3_QUOTER[network as SupportedNetwork];
           if (!quoterAddress) {
             logger.warn(
               `[CdpTransactionManager] Uniswap V3 Quoter not available for ${network}`,
@@ -1657,7 +1658,7 @@ export class CdpTransactionManager {
               transport: http(rpcUrl),
             });
 
-            const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network];
+            const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
             if (!wrappedNativeAddress) {
               throw new Error(
                 `Wrapped native token not configured for network: ${network}`,
@@ -1730,7 +1731,7 @@ export class CdpTransactionManager {
           `[CdpTransactionManager] 0x API unavailable, falling back to Uniswap V3`,
         );
 
-        const quoterAddress = UNISWAP_V3_QUOTER[network];
+        const quoterAddress = UNISWAP_V3_QUOTER[network as SupportedNetwork];
         if (!quoterAddress) {
           logger.warn(
             `[CdpTransactionManager] Uniswap V3 Quoter not available for ${network}`,
@@ -1761,7 +1762,7 @@ export class CdpTransactionManager {
             transport: http(rpcUrl),
           });
 
-          const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network];
+          const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
           if (!wrappedNativeAddress) {
             throw new Error(
               `Wrapped native token not configured for network: ${network}`,
@@ -2667,17 +2668,17 @@ export class CdpTransactionManager {
     fromAmount: bigint,
     slippageBps: number,
   ): Promise<{ transactionHash: string; toAmount: string }> {
-    const routerAddress = UNISWAP_V3_ROUTER[network];
+    const routerAddress = UNISWAP_V3_ROUTER[network as SupportedNetwork];
     if (!routerAddress) {
       throw new Error(`Uniswap V3 not available on network: ${network}`);
     }
 
-    const quoterAddress = UNISWAP_V3_QUOTER[network];
+    const quoterAddress = UNISWAP_V3_QUOTER[network as SupportedNetwork];
     if (!quoterAddress) {
       throw new Error(`Uniswap V3 Quoter not available on network: ${network}`);
     }
 
-    const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network];
+    const wrappedNativeAddress = WRAPPED_NATIVE_TOKEN[network as SupportedNetwork];
     if (!wrappedNativeAddress) {
       throw new Error(
         `Wrapped native token not configured for network: ${network}`,

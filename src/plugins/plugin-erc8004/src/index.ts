@@ -33,7 +33,7 @@ export const erc8004Plugin: Plugin = {
     erc8004RegisterAction,
     erc8004ReputationAction,
   ],
-  services: [ERC8004Service],
+  services: [ERC8004Service as any],
   providers: [],
   evaluators: [],
 };

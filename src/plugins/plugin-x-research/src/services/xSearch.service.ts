@@ -296,7 +296,7 @@ export class XSearchService {
     const { data: tweets = [], includes } = response;
 
     // Build user lookup
-    const userMap = new Map<string, typeof includes extends { users: infer U } ? U extends Array<infer T> ? T : never : never>();
+    const userMap = new Map<string, any>();
     if (includes?.users) {
       for (const user of includes.users) {
         userMap.set(user.id, user);
@@ -306,7 +306,7 @@ export class XSearchService {
     // Enrich tweets
     return tweets.map(tweet => {
       const author = userMap.get(tweet.authorId);
-      const username = author?.username ?? '';
+      const username = (author as any)?.username ?? '';
       const tier = getAccountTier(username);
 
       // Calculate velocity (if we have created_at)

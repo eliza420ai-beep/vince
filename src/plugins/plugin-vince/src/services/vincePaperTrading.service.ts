@@ -823,7 +823,7 @@ export class VincePaperTradingService extends Service {
         } catch { /* non-fatal */ }
         // Fetch RSI
         try {
-          const rsi = await (marketData as { estimateRSI?: (asset: string) => Promise<number | null> })?.estimateRSI?.(asset);
+          const rsi = await (marketData as unknown as { estimateRSI?: (asset: string) => Promise<number | null> })?.estimateRSI?.(asset);
           mktCtx.rsi = rsi ?? undefined;
         } catch { /* non-fatal */ }
         const adjustedConfidence = getAdjustedConfidence(

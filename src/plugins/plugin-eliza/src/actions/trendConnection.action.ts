@@ -268,7 +268,7 @@ function saveTrendReport(report: TrendReport): void {
   fs.writeFileSync(TRENDS_CACHE, JSON.stringify(report, null, 2));
 }
 
-export const trendConnectionAction: Action = {
+export const trendConnectionAction = {
   name: "TREND_CONNECTION",
   description: `Connect knowledge base topics to VINCE's real-time trend analysis.
 
@@ -400,6 +400,6 @@ Uses VINCE's market research to prioritize content production.`,
     
     return true;
   },
-};
+} as unknown as Action;
 
 export default trendConnectionAction;

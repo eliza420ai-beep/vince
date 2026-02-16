@@ -55,7 +55,7 @@ export const meeSupertransactionStatusAction: Action = {
 
       // Extract parameters
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
       const supertxHash = params?.supertxHash?.trim();
 
       if (!supertxHash) {

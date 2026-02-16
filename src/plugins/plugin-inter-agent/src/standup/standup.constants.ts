@@ -126,17 +126,28 @@ export function isStandupTime(): boolean {
 }
 
 /**
- * Essential question we want answered every daily standup (Solus).
+ * Essential questions we want answered every daily standup.
+ * Q1 (Solus): Hypersurface options -- BTC level by Friday.
+ * Q2 (VINCE): Paper trading bot perps on Hyperliquid.
  * Level can be overridden via ESSENTIAL_STANDUP_BTC_LEVEL env (e.g. "70000").
  */
 export function getEssentialStandupQuestion(): string {
   const level = process.env.ESSENTIAL_STANDUP_BTC_LEVEL?.trim() || "70K";
-  return `Based on current market sentiment, do you think BTC will be above $${level} by next Friday?`;
+  return `1. Based on current market sentiment, do you think BTC will be above $${level} by next Friday? (Hypersurface options)\n2. What is the best paper trading bot perps setup on Hyperliquid right now? (direction, entry, stop, size)`;
+}
+
+/** Returns essential questions as array for callers that need them separately. */
+export function getEssentialStandupQuestions(): string[] {
+  const level = process.env.ESSENTIAL_STANDUP_BTC_LEVEL?.trim() || "70K";
+  return [
+    `Based on current market sentiment, do you think BTC will be above $${level} by next Friday?`,
+    `What is the best paper trading bot perps setup on Hyperliquid right now? (direction, entry, stop, size)`,
+  ];
 }
 
 /** Default essential question (static fallback). */
 export const ESSENTIAL_STANDUP_QUESTION =
-  "Based on current market sentiment, do you think BTC will be above $70K by next Friday?";
+  "1. Based on current market sentiment, do you think BTC will be above $70K by next Friday? (Hypersurface options)\n2. What is the best paper trading bot perps setup on Hyperliquid right now? (direction, entry, stop, size)";
 
 /** Resolve standup world ID for the coordinator runtime (deterministic). */
 export function getStandupWorldId(runtime: IAgentRuntime): UUID {

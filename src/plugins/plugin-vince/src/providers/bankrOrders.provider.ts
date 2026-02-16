@@ -147,11 +147,11 @@ export const bankrOrdersProvider: Provider = {
     runtime: IAgentRuntime,
     _message: Memory,
     _state?: State
-  ): Promise<string> => {
+  ) => {
     const orders = await fetchBankrOrders(runtime);
 
     if (orders.length === 0) {
-      return ""; // No orders, don't add to context
+      return { text: "" }; // No orders, don't add to context
     }
 
     // Group by order type
@@ -177,7 +177,7 @@ export const bankrOrdersProvider: Provider = {
 
     lines.push(`\nTotal: ${orders.length} active orders`);
 
-    return lines.join("\n");
+    return { text: lines.join("\n") };
   },
 };
 

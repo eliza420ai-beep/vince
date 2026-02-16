@@ -79,18 +79,18 @@ export const bankrProvider: Provider = {
     runtime: IAgentRuntime,
     _message: Memory,
     _state?: State
-  ): Promise<string> => {
+  ) => {
     const agentService = runtime.getService<BankrAgentService>(BankrAgentService.serviceType);
     
     if (!agentService?.isConfigured()) {
-      return 'BANKR: Not configured (BANKR_API_KEY not set)';
+      return { text: 'BANKR: Not configured (BANKR_API_KEY not set)' };
     }
 
     try {
       // Get account info
       const accountInfo = await getAccountInfo(runtime);
       if (!accountInfo) {
-        return 'BANKR: Could not fetch account info';
+        return { text: 'BANKR: Could not fetch account info' };
       }
 
       const wallets = accountInfo.wallets ?? [];
@@ -128,10 +128,10 @@ export const bankrProvider: Provider = {
         context += `Open Orders: None\n`;
       }
 
-      return context;
+      return { text: context };
     } catch (error) {
       console.error('[BankrProvider] Error:', error);
-      return 'BANKR: Error fetching state';
+      return { text: 'BANKR: Error fetching state' };
     }
   },
 };

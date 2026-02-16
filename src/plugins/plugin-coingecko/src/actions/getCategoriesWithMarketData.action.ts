@@ -48,7 +48,7 @@ export const getCategoriesWithMarketDataAction: Action = {
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Extract and validate order parameter
       const validOrders = [
@@ -92,14 +92,14 @@ export const getCategoriesWithMarketDataAction: Action = {
         data: categoriesData,
         values: categoriesData,
         input: inputParams,
-      } as ActionResult & { input: typeof inputParams };
+      } as unknown as ActionResult & { input: typeof inputParams };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_CATEGORIES_WITH_MARKET_DATA] Action failed: ${msg}`);
       
       // Try to capture input params even in failure
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
       const failureInputParams = {
         order: params?.order || 'market_cap_desc',
       };

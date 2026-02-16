@@ -14,6 +14,48 @@ const execAsync = promisify(exec);
 const STANDUP_REPO_ROOT = typeof process !== "undefined" && process.cwd ? process.cwd() : ".";
 const GIT_TIMEOUT_MS = 5000;
 
+/** Curated Naval quotes (external advisor / inspiration). Rotates daily by day-of-year. */
+const NAVAL_QUOTES = [
+  "Find the simplest thing that works.",
+  "Work as hard as you can. Even though who you work with and what you work on are more important.",
+  "Blame yourself for everything, and preserve your agency.",
+  "If you want to learn, do.",
+  "Inspiration all the way down.",
+  "Find your specific knowledge through action.",
+  "When you truly work for yourself, every hour counts.",
+  "In most difficult things in life, the solution is indirect.",
+  "Life is lived in the arena.",
+  "Good products are hard to vary.",
+  "Curate people. Your network is your net worth, but not in the way most people think.",
+  "Most books should be skimmed, a few should be devoured.",
+  "You have to enjoy it a lot. Otherwise, someone who enjoys it more will outperform you.",
+  "The best authors respect the reader's time.",
+  "It is impossible to fool Mother Nature.",
+  "Pause, reflect, see how well it did.",
+  "Escape competition through authenticity.",
+  "Specific knowledge is found by pursuing your genuine curiosity.",
+  "Play long-term games with long-term people.",
+  "All the returns in life come from compound interest.",
+  "Reading is faster than listening. Doing is faster than watching.",
+  "A calm mind, a fit body, a house full of love. These things cannot be bought.",
+  "Desire is a contract you make with yourself to be unhappy until you get what you want.",
+  "The means of learning are abundant; it is the desire to learn that is scarce.",
+  "Code and media are permissionless leverage.",
+  "Productize yourself.",
+  "If you can't decide, the answer is no.",
+  "The people who succeed are irrationally passionate about something.",
+  "Earn with your mind, not your time.",
+  "Peace is happiness at rest. Happiness is peace in motion.",
+];
+
+/** Get today's Naval quote, rotating by day-of-year. */
+export function getDailyNavalQuote(): string {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  return NAVAL_QUOTES[dayOfYear % NAVAL_QUOTES.length];
+}
+
 /**
  * Get recent git commits (oneline) from repo root. Returns placeholder on error or timeout.
  * Uses async exec with a 5s timeout; handles non-git repos and empty repos.
@@ -51,7 +93,8 @@ export function buildShortStandupKickoff(): string {
   const date = new Date().toISOString().slice(0, 10);
   const vinceMentionId = getStandupDiscordMentionId("vince");
   const call = vinceMentionId ? `<@${vinceMentionId}> go.` : "@VINCE, go.";
-  return `Standup ${date}. ${call}`;
+  const naval = getDailyNavalQuote();
+  return `> "${naval}" -- Naval\n\nStandup ${date}. ${call}`;
 }
 
 /**
@@ -70,7 +113,10 @@ export function buildKickoffWithRoles(): string {
       roleLines.push(`- **${name}**: ${role.focus}`);
     }
   }
-  return `## Standup ${date} (${day})
+  const naval = getDailyNavalQuote();
+  return `> "${naval}" -- Naval
+
+## Standup ${date} (${day})
 
 BTC · SOL · HYPE · HIP-3 — Numbers only, no fluff.
 
@@ -94,7 +140,9 @@ export async function buildKickoffWithSharedInsights(sharedContent: string): Pro
   } catch {
     scoreboard = "## Prediction scoreboard\n(Unavailable)";
   }
+  const naval = getDailyNavalQuote();
   return (
+    `> "${naval}" -- Naval\n\n` +
     scoreboard +
     "\n\n---\n\n" +
     sharedContent.trim() +

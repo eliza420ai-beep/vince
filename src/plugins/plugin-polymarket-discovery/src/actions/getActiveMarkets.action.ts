@@ -218,7 +218,7 @@ export const getActiveMarketsAction: Action = {
       );
 
       // Narrative lead-in (ALOHA style); fallback to minimal header if LLM fails
-      let narrative = await generateActiveMarketsNarrative(runtime, marketsWithPrices);
+      let narrative = await generateActiveMarketsNarrative(runtime, marketsWithPrices as any);
       if (!narrative.trim()) {
         narrative = `Here’s what’s active on Polymarket right now—${marketsWithPrices.length} markets with live odds.`;
       }

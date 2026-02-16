@@ -267,7 +267,7 @@ function formatFullReport(): string {
   return response;
 }
 
-export const knowledgeIntelligenceAction: Action = {
+export const knowledgeIntelligenceAction = {
   name: "KNOWLEDGE_INTEL",
   description: `Unified knowledge base intelligence: monitoring, relationships, deduplication, source quality.
 
@@ -398,6 +398,6 @@ Combines Auto-Monitor, Knowledge Graph, Deduplication, and Source Quality servic
     callback?.({ text: out });
     return true;
   },
-};
+} as unknown as Action;
 
 export default knowledgeIntelligenceAction;

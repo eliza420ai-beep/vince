@@ -290,7 +290,7 @@ ${sources.map(s => `- ${s}`).join("\n")}
   };
 }
 
-export const autoResearchAction: Action = {
+export const autoResearchAction = {
   name: "AUTO_RESEARCH",
   description: `Autonomous knowledge base expansion. Distinct from "knowledge status" (quick file stats): this action does gap analysis against a coverage framework.
 
@@ -558,6 +558,6 @@ Run \`next topics\` to see the queue, or \`research session\` to start.`,
 
     return true;
   },
-};
+} as unknown as Action;
 
 export default autoResearchAction;

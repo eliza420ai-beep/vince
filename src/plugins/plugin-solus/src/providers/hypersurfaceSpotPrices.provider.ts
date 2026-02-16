@@ -52,7 +52,7 @@ export const hypersurfaceSpotPricesProvider: Provider = {
       }
     }
 
-    const service = runtime.getService<{ getSimplePrices: (ids: string[]) => Promise<Record<string, number>> }>("COINGECKO_SERVICE");
+    const service = runtime.getService("COINGECKO_SERVICE") as unknown as { getSimplePrices: (ids: string[]) => Promise<Record<string, number>> } | null;
     if (!service?.getSimplePrices) {
       return {};
     }

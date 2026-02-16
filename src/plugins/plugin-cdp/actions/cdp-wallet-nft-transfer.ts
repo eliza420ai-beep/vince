@@ -122,7 +122,7 @@ export const cdpWalletNftTransfer: Action = {
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Store input parameters early for debugging (even if validation fails)
       const inputParams = {
@@ -343,7 +343,7 @@ export const cdpWalletNftTransfer: Action = {
       let failureInputParams;
       try {
         const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = composedState?.data?.actionParams || {};
+        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
         failureInputParams = {
           to: params?.to,
           contractAddress: params?.contractAddress,

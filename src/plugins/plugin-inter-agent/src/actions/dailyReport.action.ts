@@ -122,7 +122,7 @@ export const dailyReportAction: Action = {
     }
 
     // Check if we're in a standup channel and being asked to contribute
-    const isStandupChannel = (message.content?.channelName || "")
+    const isStandupChannel = ((message.content?.channelName || "") as string)
       .toLowerCase()
       .includes("standup");
     

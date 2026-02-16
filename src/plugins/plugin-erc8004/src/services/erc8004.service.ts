@@ -10,7 +10,6 @@
 import {
   type IAgentRuntime,
   type Service,
-  ServiceType,
   logger,
 } from "@elizaos/core";
 import { createPublicClient, createWalletClient, http, parseAbi } from "viem";
@@ -37,19 +36,19 @@ const DEFAULT_CONFIG: ERC8004Config = {
   validationRegistryAddress: "0x0000000000000000000000000000000000000000",
 };
 
-export class ERC8004Service implements Service {
-  static serviceType: ServiceType = "erc8004" as ServiceType;
+export class ERC8004Service {
+  static serviceType = "erc8004" as const;
   readonly serviceType = ERC8004Service.serviceType;
 
   private runtime: IAgentRuntime;
-  private config: ERC8004Config;
+  private _config: ERC8004Config;
   private publicClient: any;
   private walletClient: any;
   private account: any;
 
   constructor(runtime: IAgentRuntime) {
     this.runtime = runtime;
-    this.config = this.loadConfig();
+    this._config = this.loadConfig();
   }
 
   static async start(runtime: IAgentRuntime): Promise<ERC8004Service> {
@@ -59,13 +58,13 @@ export class ERC8004Service implements Service {
   }
 
   async initialize(): Promise<void> {
-    const network = this.config.network;
+    const network = this._config.network;
     const chain = network === "base" ? base : baseSepolia;
 
     // Create public client for reads
     this.publicClient = createPublicClient({
       chain,
-      transport: http(this.config.rpcUrl || chain.rpcUrls.default.http[0]),
+      transport: http(this._config.rpcUrl || chain.rpcUrls.default.http[0]),
     });
 
     // Create wallet client if private key available
@@ -76,7 +75,7 @@ export class ERC8004Service implements Service {
         this.walletClient = createWalletClient({
           account: this.account,
           chain,
-          transport: http(this.config.rpcUrl || chain.rpcUrls.default.http[0]),
+          transport: http(this._config.rpcUrl || chain.rpcUrls.default.http[0]),
         });
         logger.info(`[ERC-8004] Wallet configured: ${this.account.address.slice(0, 10)}...`);
       } catch (err) {
@@ -106,7 +105,7 @@ export class ERC8004Service implements Service {
    */
   isConfigured(): boolean {
     return (
-      this.config.identityRegistryAddress !== "0x0000000000000000000000000000000000000000" &&
+      this._config.identityRegistryAddress !== "0x0000000000000000000000000000000000000000" &&
       !!this.publicClient
     );
   }
@@ -157,7 +156,7 @@ export class ERC8004Service implements Service {
 
       // Call register function
       const hash = await this.walletClient.writeContract({
-        address: this.config.identityRegistryAddress as `0x${string}`,
+        address: this._config.identityRegistryAddress as `0x${string}`,
         abi: parseAbi(["function register(string tokenURI) returns (uint256)"]),
         functionName: "register",
         args: [tokenURI],
@@ -191,13 +190,13 @@ export class ERC8004Service implements Service {
     try {
       const [owner, tokenURI] = await Promise.all([
         this.publicClient.readContract({
-          address: this.config.identityRegistryAddress as `0x${string}`,
+          address: this._config.identityRegistryAddress as `0x${string}`,
           abi: parseAbi(["function ownerOf(uint256 tokenId) view returns (address)"]),
           functionName: "ownerOf",
           args: [agentId],
         }),
         this.publicClient.readContract({
-          address: this.config.identityRegistryAddress as `0x${string}`,
+          address: this._config.identityRegistryAddress as `0x${string}`,
           abi: parseAbi(["function tokenURI(uint256 tokenId) view returns (string)"]),
           functionName: "tokenURI",
           args: [agentId],
@@ -265,7 +264,7 @@ export class ERC8004Service implements Service {
 
     try {
       const hash = await this.walletClient.writeContract({
-        address: this.config.reputationRegistryAddress as `0x${string}`,
+        address: this._config.reputationRegistryAddress as `0x${string}`,
         abi: parseAbi([
           "function rate(uint256 agentId, uint8 score, string[] tags, bytes metadata)",
         ]),
@@ -298,7 +297,7 @@ export class ERC8004Service implements Service {
 
     try {
       const [avgScore, count] = await this.publicClient.readContract({
-        address: this.config.reputationRegistryAddress as `0x${string}`,
+        address: this._config.reputationRegistryAddress as `0x${string}`,
         abi: parseAbi([
           "function getReputation(uint256 agentId) view returns (uint256 avgScore, uint256 count)",
         ]),
@@ -331,7 +330,7 @@ export class ERC8004Service implements Service {
 
     try {
       const [isValid, confidence] = await this.publicClient.readContract({
-        address: this.config.validationRegistryAddress as `0x${string}`,
+        address: this._config.validationRegistryAddress as `0x${string}`,
         abi: parseAbi([
           "function isValid(uint256 agentId, uint8 validationType) view returns (bool, uint256 confidence)",
         ]),
@@ -341,7 +340,7 @@ export class ERC8004Service implements Service {
 
       return {
         agentId: params.agentId,
-        validator: this.config.validationRegistryAddress,
+        validator: this._config.validationRegistryAddress,
         validationType: params.validationType,
         isValid: isValid as boolean,
         confidence: Number(confidence),
@@ -377,7 +376,7 @@ export class ERC8004Service implements Service {
 
     try {
       const balance = await this.publicClient.readContract({
-        address: this.config.identityRegistryAddress as `0x${string}`,
+        address: this._config.identityRegistryAddress as `0x${string}`,
         abi: parseAbi(["function balanceOf(address owner) view returns (uint256)"]),
         functionName: "balanceOf",
         args: [this.account.address],

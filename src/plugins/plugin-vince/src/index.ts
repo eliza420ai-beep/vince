@@ -48,6 +48,7 @@ import { VinceNansenService } from "./services/nansen.service";
 import { VinceSanbaseService } from "./services/sanbase.service";
 import { VinceBinanceService } from "./services/binance.service";
 import { VinceBinanceLiquidationService } from "./services/binanceLiquidation.service";
+import { VinceAlliumService } from "./services/allium.service";
 import { VinceHIP3Service } from "./services/hip3.service";
 import { VinceWatchlistService } from "./services/watchlist.service";
 import { VinceNotificationService } from "./services/notification.service";
@@ -208,6 +209,8 @@ export const vincePlugin: Plugin = {
     VinceWeightBanditService,
     VinceSignalSimilarityService,
     VinceMLInferenceService,
+    // On-chain data (Allium API — DEX prices, Hyperliquid without rate limits, chain metrics)
+    VinceAlliumService,
   ],
 
   // Actions - focus areas + paper trading bot controls

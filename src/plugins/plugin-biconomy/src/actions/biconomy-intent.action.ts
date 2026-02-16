@@ -176,7 +176,7 @@ Supports: Ethereum, Base, Arbitrum, Polygon, Optimism.`,
         ["ACTION_STATE"],
         true,
       );
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Validate required parameters
       const inputToken = params?.inputToken?.toLowerCase().trim();

@@ -62,6 +62,7 @@ export async function buildUsageResponse(
       byDay: [],
       totalTokens: 0,
       period: { from: new Date(from).toISOString(), to: new Date(to).toISOString() },
+      estimatedCostUsd: 0,
     };
   }
 

@@ -29,7 +29,7 @@ async function getRoomName(
   roomId: string,
   memory: Memory
 ): Promise<string> {
-  const room = await runtime.getRoom(roomId);
+  const room = await runtime.getRoom(roomId as any);
   const meta = room?.metadata as Record<string, unknown> | undefined;
   return (
     room?.name ??
@@ -86,8 +86,8 @@ const KNOWN_AGENTS = ["vince", "eliza", "kelly", "solus", "otaku", "sentinel", "
 /** Check if a message is from a known agent (case-insensitive) */
 function isFromKnownAgent(memory: Memory): boolean {
   const senderName = (
-    memory.content?.name ||
-    memory.content?.userName ||
+    (memory.content as any)?.name ||
+    (memory.content as any)?.userName ||
     (memory.content?.source as string) ||
     ""
   ).toLowerCase();
@@ -167,7 +167,7 @@ export const a2aLoopGuardEvaluator: Evaluator = {
     return isFromKnownAgent(memory);
   },
 
-  handler: async (
+  handler: (async (
     runtime: IAgentRuntime,
     memory: Memory
   ): Promise<{ shouldRespond: boolean; reason: string }> => {
@@ -205,7 +205,7 @@ export const a2aLoopGuardEvaluator: Evaluator = {
       const recentMessages = await runtime.getMemories({
         roomId: memory.roomId,
         count: lookback,
-      });
+      } as any);
 
       const senderEntityId = memory.entityId || memory.agentId || "";
       const responseCount = countRecentResponsesToSender(
@@ -233,7 +233,9 @@ export const a2aLoopGuardEvaluator: Evaluator = {
     }
 
     return { shouldRespond: true, reason: "A2A exchange allowed" };
-  },
+  }) as any,
+
+  examples: [],
 };
 
 export default a2aLoopGuardEvaluator;

@@ -29,7 +29,7 @@ import type {
 
 const API_BASE_URL = "https://api.bankr.bot/external-orders/v1";
 
-const CHAINS: Record<number, typeof base> = {
+const CHAINS: Record<number, any> = {
   8453: base,
   1: mainnet,
   42161: arbitrum,
@@ -64,6 +64,10 @@ export class BankrTradingEngineService extends Service {
 
   get capabilityDescription(): string {
     return "BANKR Trading Engine: Direct EIP-712 signed orders (limit, stop, DCA, TWAP) without AI overhead.";
+  }
+
+  async initialize(_runtime: IAgentRuntime): Promise<void> {
+    // No async init needed
   }
 
   static async start(runtime: IAgentRuntime): Promise<BankrTradingEngineService> {
@@ -178,7 +182,7 @@ export class BankrTradingEngineService extends Service {
         to: approvalAction.to,
         data: approvalAction.data,
         value: approvalAction.value ? BigInt(approvalAction.value) : 0n,
-      });
+      } as any);
       logger.info(`[BANKR Trading Engine] Approval tx: ${txHash}`);
       // Note: In production, wait for confirmation
     }

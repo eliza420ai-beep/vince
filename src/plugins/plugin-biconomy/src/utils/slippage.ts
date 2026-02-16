@@ -32,7 +32,7 @@ async function detectUserConsentViaLLM(
   if (!state?.recentMessagesData) return false;
 
   // Get last 3 user messages
-  const recentMessages = state.recentMessagesData
+  const recentMessages = (state.recentMessagesData as any[])
     .filter((msg: any) => msg.userId !== msg.agentId) // Only user messages
     .slice(-3)
     .map((msg: any) => msg.content?.text || '')
@@ -67,7 +67,7 @@ Respond with ONLY "YES" if consent is clearly given, or "NO" if not.`;
       ],
       max_tokens: 10,
       temperature: 0.1,
-    });
+    } as any);
 
     const answer = (response || '').toString().trim().toUpperCase();
     logger.debug(`[Slippage] LLM consent detection: ${answer}`);

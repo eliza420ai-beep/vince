@@ -4,5 +4,5 @@
  */
 declare module "@xdevplatform/xdk" {
   export const Client: new (config: { bearerToken?: string }) => unknown;
-  export const PostPaginator?: new (fetcher: (token?: string) => Promise<unknown>) => unknown;
+  export const PostPaginator: (new (fetcher: (token?: string) => Promise<unknown>) => unknown) | undefined;
 }

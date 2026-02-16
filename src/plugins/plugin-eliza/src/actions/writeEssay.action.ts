@@ -160,7 +160,7 @@ url: ${SUBSTACK_URL}
   return filepath;
 }
 
-export const writeEssayAction: Action = {
+export const writeEssayAction = {
   name: "WRITE_ESSAY",
   similes: [
     "DRAFT_ESSAY",
@@ -242,7 +242,7 @@ Start with the title (# Title) and subtitle, then the essay.`;
       const response = await runtime.useModel(ModelType.TEXT_LARGE, {
         prompt: userPrompt,
         system: ESSAY_SYSTEM_PROMPT + "\n\n" + voiceAddition,
-      });
+      } as any);
 
       const essay = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
 
@@ -327,6 +327,6 @@ ${essay}
       },
     ],
   ],
-};
+} as Action;
 
 export default writeEssayAction;

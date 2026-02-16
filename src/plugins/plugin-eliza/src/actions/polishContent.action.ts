@@ -395,7 +395,7 @@ function getLatestDraft(): string | null {
   return files[0]?.path || null;
 }
 
-export const polishContentAction: Action = {
+export const polishContentAction = {
   name: "POLISH",
   description: `Transform generic copy into premium, brand-elevating content.
 
@@ -575,6 +575,6 @@ Transform generic copy into premium, brand-elevating content.
     callback?.({ text: out });
     return true;
   },
-};
+} as unknown as Action;
 
 export default polishContentAction;

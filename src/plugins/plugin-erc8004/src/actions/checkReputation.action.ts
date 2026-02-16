@@ -57,7 +57,7 @@ export const erc8004ReputationAction: Action = {
     _options?: Record<string, unknown>,
     callback?: HandlerCallback
   ): Promise<void | ActionResult> => {
-    const erc8004 = runtime.getService("erc8004") as ERC8004Service;
+    const erc8004 = runtime.getService("erc8004") as unknown as ERC8004Service;
 
     if (!erc8004) {
       await callback?.({

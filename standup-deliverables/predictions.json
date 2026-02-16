@@ -38,5 +38,25 @@
     "expiryDate": "2026-02-21T08:00:00Z",
     "source": "Solus",
     "id": "pred-1771148200816-y7qlio8"
+  },
+  {
+    "date": "2026-02-15",
+    "asset": "BTC",
+    "direction": "above",
+    "strike": 68500,
+    "confidence": 60,
+    "expiryDate": "2026-02-21T08:00:00Z",
+    "source": "Solus",
+    "id": "pred-1771191287363-7up32ln"
+  },
+  {
+    "date": "2026-02-16",
+    "asset": "BTC",
+    "direction": "neutral",
+    "strike": 68500,
+    "confidence": 60,
+    "expiryDate": "2026-02-21T08:00:00Z",
+    "source": "Solus",
+    "id": "pred-1771234482724-m0iqt7f"
   }
 ]

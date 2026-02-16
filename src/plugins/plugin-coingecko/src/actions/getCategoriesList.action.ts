@@ -59,8 +59,8 @@ export const getCategoriesListAction: Action = {
       return {
         text,
         success: true,
-        data: categoriesList,
-        values: categoriesList,
+        data: categoriesList as any,
+        values: categoriesList as any,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

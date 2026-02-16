@@ -1,23 +1,22 @@
 ---
-date: 2026-02-15T21:33:21.639Z
+date: 2026-02-16T09:33:28.258Z
 type: shared-daily-insights
 ---
 
-# Shared Daily Insights — 2026-02-15
+# Shared Daily Insights — 2026-02-16
 
 ## VINCE
 *(Live data unavailable)*
 
 ## Eliza
-**Yesterday:** No day report found (first run or missing file).
+**Yesterday:** Solus's call: Above — BTC likely stays range-bound, sell covered call at $68,500 to capture premium.
 
-**Today (from shared insights):** | BTC | N/A | — | — | | SOL | N/A | — | — | | HYPE | N/A | — | — |
+**TL;DR:** BTC neutral with bullish sentiment extremes — sell premium, don't chase.
 
-**Your job:** Delta reporter — what changed since yesterday; was yesterday's Solus call tracking? One knowledge gap, one content idea, one cross-agent link.
-
-**Recent facts in memory (5):**
-- [Standup lesson] Focus on improving multi-agent communication protocols
-- [Standup lesson] Use defensive options strategies during low volati…
+### Actions (max 3, each with @Owner)
+1. **BTC Covered Call** — @Solus — Sell $68,500 strike, Friday expiry, invalidation $67,000
+2. **CT Sentiment Monitor** — @ECHO — Watch for sentiment reversal signals above +70
+3. **Data Feed Initialization** — @VINCE — Complete Hyperliquid API setup for live …
 
 ## ECHO
 **CT sentiment:** X API unavailable. Report from character knowledge only.
@@ -64,11 +63,16 @@ a397444 knowledge: new chain-abstraction category (4 files)
 
 ## Clawterm
 === X (OpenClaw/AGI) ===
-@Eternal1000x: AI is no longer just talking… it’s taking action.
+@ClawsAIsol: 🚨 CLAWSAI AIRDROP GOING 🚨
 
-With Velvet Unicorn now integrated into OpenClaw, AI agents can analy… (23 likes)
-@LazarusPulse: . @steipete thought I saw a post here on X where you could use cursor paid account for more tokens with @openclaw is thi… (2 likes)
-@romanengineerr: Got frustrated agentifying existing tools so we're just gonna build our own leaner version. @openclaw + @sillydarket's C… (1 likes)
-@openclawlaunchr: You no longer have to buy mini macs
+ClawsAI powered by OpenClaw is dropping 1,000,000 $CLAWS to EARLY HOLDERS 🦀🔥
 
-We allow you to launch your OpenClaw within minutes and we help you keep tra…
+People are … (304 likes)
+@romanengineerr: Got frustrated agentifying existing tools so we're just gonna build our own leaner version. @openclaw + @sillydarket's C… (6 likes)
+@KealeyPing: If you’ve ever woken up to a brutal OpenClaw bill, this explains why.
+Long-running agents + unmanaged context = silent t… (18 likes)
+@jvstme_ophyxial: Friday, I’ll see if my OpenClaw holds up 
+
+@arguedotfun doesn’t let the usual comfort zone hide mistakes. 
+
+Can I a…

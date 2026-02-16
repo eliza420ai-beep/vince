@@ -213,7 +213,7 @@ export function extractSignalsFromStructured(
     const direction: SignalDirection = (c.direction ?? "").toLowerCase() === "above" ? "bullish" : (c.direction ?? "").toLowerCase() === "below" ? "bearish" : "neutral";
     result.push({
       agent: agentName,
-      asset: c.asset.trim().toUpperCase(),
+      asset: (c.asset ?? "").trim().toUpperCase(),
       direction,
       confidence: confidencePctToLevel(c.confidence_pct),
       reasoning: `call strike ${c.strike ?? "—"} (${c.confidence_pct ?? "—"}%)`,

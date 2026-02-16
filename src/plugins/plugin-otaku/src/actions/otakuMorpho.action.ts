@@ -231,7 +231,7 @@ export const otakuMorphoAction: Action = {
         }
 
         // Fallback: try via runtime action execution
-        const actionResult = await runtime.executeAction(
+        const actionResult = await (runtime as any).executeAction(
           pendingMorpho.intent === "supply" ? "MORPHO_VAULT_TRANSFER" : "MORPHO_VAULT_TRANSFER",
           {
             intent: pendingMorpho.intent === "supply" ? "deposit" : "withdraw",

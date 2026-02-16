@@ -183,7 +183,7 @@ export const otakuStopLossAction: Action = {
 
     if (isConfirmation && pendingOrder) {
       // Execute via BANKR
-      const bankr = runtime.getService("bankr_agent") as {
+      const bankr = runtime.getService("bankr_agent") as unknown as {
         submitPrompt: (prompt: string) => Promise<{ jobId: string }>;
         pollJobUntilComplete: (jobId: string, opts: any) => Promise<any>;
       };

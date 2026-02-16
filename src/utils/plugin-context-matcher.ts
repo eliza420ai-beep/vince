@@ -75,7 +75,7 @@ function getConversationText(state: State, recentMessageCount: number = 5): stri
         return cachedEntry.text;
     }
 
-    const recentMessages = state.recentMessagesData?.slice(-recentMessageCount) || [];
+    const recentMessages = ((state.recentMessagesData as any)?.slice(-recentMessageCount) || []) as Memory[];
     const text = recentMessages
         .map((msg: Memory) => msg.content?.text || "")
         .join(" ")
@@ -102,7 +102,7 @@ export function matchesPluginContext(
     // If current message is provided, append it to context if not already present
     // This ensures we catch keywords in the immediate user request
     if (message?.content?.text) {
-        const recentMessages = state.recentMessagesData || [];
+        const recentMessages = (state.recentMessagesData || []) as Memory[];
         const lastMsg = recentMessages[recentMessages.length - 1];
         const isAlreadyIncluded = lastMsg && lastMsg.id === message.id;
         

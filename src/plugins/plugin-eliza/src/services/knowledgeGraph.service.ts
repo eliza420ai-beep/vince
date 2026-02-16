@@ -65,34 +65,34 @@ function extractKeywords(content: string): string[] {
   const keywords = new Set<string>();
   
   // Extract capitalized phrases (proper nouns, titles)
-  const properNouns = content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
+  const properNouns: string[] = content.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
   properNouns.forEach(n => {
     if (n.length > 2 && n.length < 30) keywords.add(n.toLowerCase());
   });
   
   // Extract quoted terms
-  const quoted = content.match(/"([^"]+)"/g) || [];
+  const quoted: string[] = content.match(/"([^"]+)"/g) || [];
   quoted.forEach(q => {
     const term = q.replace(/"/g, "").toLowerCase();
     if (term.length > 2 && term.length < 30) keywords.add(term);
   });
   
   // Extract markdown headers
-  const headers = content.match(/^#+\s+(.+)$/gm) || [];
+  const headers: string[] = content.match(/^#+\s+(.+)$/gm) || [];
   headers.forEach(h => {
     const text = h.replace(/^#+\s+/, "").toLowerCase();
     keywords.add(text);
   });
   
   // Extract bold/italic terms
-  const emphasis = content.match(/\*\*([^*]+)\*\*|\*([^*]+)\*/g) || [];
+  const emphasis: string[] = content.match(/\*\*([^*]+)\*\*|\*([^*]+)\*/g) || [];
   emphasis.forEach(e => {
     const term = e.replace(/\*/g, "").toLowerCase();
     if (term.length > 2 && term.length < 30) keywords.add(term);
   });
   
   // Common crypto/tech terms
-  const techTerms = content.match(/\b(?:AI|DeFi|NFT|DAO|DEX|CEX|TVL|APY|APR|ETH|BTC|SOL|L1|L2|ZK|EVM|RWA|MEV|AMM|LSD|LST)\b/gi) || [];
+  const techTerms: string[] = content.match(/\b(?:AI|DeFi|NFT|DAO|DEX|CEX|TVL|APY|APR|ETH|BTC|SOL|L1|L2|ZK|EVM|RWA|MEV|AMM|LSD|LST)\b/gi) || [];
   techTerms.forEach(t => keywords.add(t.toUpperCase()));
   
   return Array.from(keywords).slice(0, 30);

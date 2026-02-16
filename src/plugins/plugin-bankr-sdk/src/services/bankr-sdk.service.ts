@@ -27,6 +27,10 @@ export class BankrSdkService extends Service {
     return "Bankr SDK: send prompts via @bankr/sdk (own wallet, x402 payment); returns response and transaction data for you to submit.";
   }
 
+  async initialize(_runtime: IAgentRuntime): Promise<void> {
+    // No-op: configuration is handled in constructor
+  }
+
   static async start(runtime: IAgentRuntime): Promise<BankrSdkService> {
     logger.info("[BANKR SDK] Starting Bankr SDK service");
     const service = new BankrSdkService(runtime);
@@ -84,7 +88,7 @@ export class BankrSdkService extends Service {
       response: result.response,
       error: result.error,
       status: result.status,
-      transactions: result.transactions,
+      transactions: result.transactions as any,
     };
   }
 }

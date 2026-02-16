@@ -49,7 +49,7 @@ export async function handleUploadRequest(
   const callback = async (c: { text?: string; success?: boolean }): Promise<Memory[]> => {
     if (c?.text) callbackMessage = c.text;
     if (typeof (c as { success?: boolean }).success === "boolean") {
-      explicitSuccess = (c as { success?: boolean }).success;
+      explicitSuccess = (c as { success?: boolean }).success ?? null;
     }
     return [];
   };

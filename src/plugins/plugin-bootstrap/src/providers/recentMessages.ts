@@ -159,7 +159,7 @@ export async function ensureMessageSendersInRoom(
           id: entityId as UUID,
           names: [name],
           agentId: runtime.agentId,
-        });
+        } as Entity);
       }
       await r.ensureConnection({
         entityId: entityId as UUID,

@@ -175,7 +175,7 @@ export const relayBridgeAction: Action = {
             ["ACTION_STATE"],
             true,
           );
-          const params = composedState?.data?.actionParams || {};
+          const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
           earlyFailureInput = {
             originChain: params?.originChain,
             destinationChain: params?.destinationChain,
@@ -209,7 +209,7 @@ export const relayBridgeAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Validate required parameters
       const originChain = params?.originChain?.toLowerCase().trim();
@@ -691,7 +691,7 @@ export const relayBridgeAction: Action = {
           ["ACTION_STATE"],
           true,
         );
-        const params = composedState?.data?.actionParams || {};
+        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
         catchFailureInput = {
           originChain: params?.originChain,
           destinationChain: params?.destinationChain,

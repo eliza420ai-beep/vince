@@ -13,13 +13,13 @@
  * - Solus: directive referencing VINCE's data (no own price fetch)
  * - Sentinel: git log, PRDs, ProjectRadar, macro news (Tavily)
  * - Eliza: recent facts from memory
- * - Clawterm: OpenClaw/AGI X + web
- * - Otaku: under construction
+ * - Clawterm: OpenClaw skills, setup, trending (X + web, LLM summary)
+ * - Otaku: wallet setup progress + concrete next step
  */
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type IAgentRuntime, logger } from "@elizaos/core";
+import { type IAgentRuntime, logger, ModelType } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
 import { getRecentCodeContext } from "./standup.context";
 import { getStandupTrackedAssets, getStandupSnippetLen } from "./standup.constants";
@@ -54,137 +54,194 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// VINCE: enriched context + 9 data sources
+// VINCE: enriched context + 9 data sources (all parallel via Promise.allSettled)
 // ═══════════════════════════════════════════════════════════════════════
 
-export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
-  const lines: string[] = [];
-  try {
-    // 1. Enriched context per asset (price + funding + L/S + regime bundled)
-    const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
-      getEnrichedContext?: (asset: string) => Promise<{
-        currentPrice?: number; priceChange24h?: number; fundingRate?: number;
-        longShortRatio?: number; marketRegime?: string; volumeRatio?: number;
-        volume24h?: number;
-      } | null>;
-    } | null;
+async function fetchEnrichedContext(runtime: IAgentRuntime): Promise<string> {
+  const marketData = runtime.getService("VINCE_MARKET_DATA_SERVICE") as {
+    getEnrichedContext?: (asset: string) => Promise<{
+      currentPrice?: number; priceChange24h?: number; fundingRate?: number;
+      longShortRatio?: number; marketRegime?: string; volumeRatio?: number;
+      volume24h?: number;
+    } | null>;
+  } | null;
+  if (!marketData?.getEnrichedContext) return "";
+  const assets = getStandupTrackedAssets();
+  const results = await Promise.all(assets.map(async (asset) => {
+    const ctx = await marketData.getEnrichedContext!(asset).catch(() => null);
+    if (!ctx) return `| ${asset} | N/A | — | — |`;
+    const price = ctx.currentPrice ? `$${ctx.currentPrice.toLocaleString()}` : "N/A";
+    const change = ctx.priceChange24h != null ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%` : "";
+    const funding = ctx.fundingRate != null ? `F:${(ctx.fundingRate * 100).toFixed(3)}%` : "";
+    const ls = ctx.longShortRatio != null ? `L/S:${ctx.longShortRatio.toFixed(2)}` : "";
+    const vol = ctx.volumeRatio != null ? `Vol:${ctx.volumeRatio.toFixed(1)}x` : "";
+    const regime = ctx.marketRegime ?? "";
+    return `| ${asset} | ${price} ${change} | ${funding} ${ls} ${vol} | ${regime} |`;
+  }));
+  return `| Asset | Price | Funding/LS | Regime |\n|-------|-------|-----------|--------|\n${results.join("\n")}`;
+}
 
-    const rows: string[] = [];
-    for (const asset of getStandupTrackedAssets()) {
-      const ctx = await marketData?.getEnrichedContext?.(asset).catch(() => null) ?? null;
-      if (!ctx) { rows.push(`| ${asset} | N/A | — | — |`); continue; }
-      const price = ctx.currentPrice ? `$${ctx.currentPrice.toLocaleString()}` : "N/A";
-      const change = ctx.priceChange24h != null ? `${ctx.priceChange24h >= 0 ? "+" : ""}${ctx.priceChange24h.toFixed(1)}%` : "";
-      const funding = ctx.fundingRate != null ? `F:${(ctx.fundingRate * 100).toFixed(3)}%` : "";
-      const ls = ctx.longShortRatio != null ? `L/S:${ctx.longShortRatio.toFixed(2)}` : "";
-      const vol = ctx.volumeRatio != null ? `Vol:${ctx.volumeRatio.toFixed(1)}x` : "";
-      const regime = ctx.marketRegime ?? "";
-      rows.push(`| ${asset} | ${price} ${change} | ${funding} ${ls} ${vol} | ${regime} |`);
-    }
-    if (rows.length > 0) {
-      lines.push(`| Asset | Price | Funding/LS | Regime |\n|-------|-------|-----------|--------|\n${rows.join("\n")}`);
-    }
+async function fetchFearGreed(runtime: IAgentRuntime): Promise<string> {
+  const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
+    getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
+  } | null;
+  const fg = await coinglass?.getFearGreed?.().catch(() => null) ?? null;
+  return fg ? `**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})` : "";
+}
 
-    // 2. Fear & Greed
-    const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
-      getFearGreed?: () => Promise<{ value: number; classification: string } | null>;
-    } | null;
-    const fg = await coinglass?.getFearGreed?.().catch(() => null) ?? null;
-    if (fg) lines.push(`**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})`);
+async function fetchHIP3Pulse(runtime: IAgentRuntime): Promise<string> {
+  const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as {
+    getHIP3Pulse?: () => Promise<{ tldr: string } | null>;
+  } | null;
+  const data = await hip3?.getHIP3Pulse?.().catch(() => null) ?? null;
+  return data?.tldr ? `**HIP-3:** ${data.tldr}` : "";
+}
 
-    // 3. HIP-3 pulse
-    const hip3 = runtime.getService("VINCE_HIP3_SERVICE") as {
-      getHIP3Pulse?: () => Promise<{ tldr: string } | null>;
-    } | null;
-    const hip3Data = await hip3?.getHIP3Pulse?.().catch(() => null) ?? null;
-    if (hip3Data?.tldr) lines.push(`**HIP-3:** ${hip3Data.tldr}`);
+async function fetchSignalAggregator(runtime: IAgentRuntime): Promise<string> {
+  const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
+    aggregateSignals?: (asset: string) => Promise<{ direction?: string; confidence?: number; sources?: number } | null>;
+  } | null;
+  const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null) ?? null;
+  return btcSignal?.direction ? `**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)` : "";
+}
 
-    // 4. Signal aggregator (overall signal strength from 20+ sources)
-    const sigAgg = runtime.getService("VINCE_SIGNAL_AGGREGATOR_SERVICE") as {
-      aggregateSignals?: (asset: string) => Promise<{ direction?: string; confidence?: number; sources?: number } | null>;
-    } | null;
-    const btcSignal = await sigAgg?.aggregateSignals?.("BTC").catch(() => null) ?? null;
-    if (btcSignal?.direction) lines.push(`**Signal (BTC):** ${btcSignal.direction} (${btcSignal.confidence ?? 0}% conf, ${btcSignal.sources ?? 0} sources)`);
-
-    // 5. Deribit DVOL + best covered calls (Solus reads this from shared insights)
-    const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
-      getDVOL?: (currency: string) => Promise<{ dvol: number } | null>;
-      getBestCoveredCalls?: (currency: string) => Promise<Array<{ strike: number; premium: number; expiry: string }> | null>;
-    } | null;
-    const dvol = await deribit?.getDVOL?.("BTC").catch(() => null) ?? null;
-    const bestCalls = await deribit?.getBestCoveredCalls?.("BTC").catch(() => null) ?? null;
-    if (dvol?.dvol != null) {
-      let deribitLine = `**BTC DVOL:** ${dvol.dvol.toFixed(1)}`;
-      if (bestCalls?.[0]) {
-        const top = bestCalls[0];
-        deribitLine += ` | Best CC: $${top.strike} (${top.premium?.toFixed(2)} prem, ${top.expiry})`;
-      }
-      lines.push(deribitLine);
-    }
-
-    // 6. Binance top trader positions
-    const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
-      getTopTraderPositions?: (asset: string) => Promise<{ longPercent: number; shortPercent: number } | null>;
-    } | null;
-    const topTraders = await binance?.getTopTraderPositions?.("BTC").catch(() => null) ?? null;
-    if (topTraders) lines.push(`**Top traders (BTC):** ${topTraders.longPercent?.toFixed(0)}% long / ${topTraders.shortPercent?.toFixed(0)}% short`);
-
-    // 7. Paper bot: stats + open positions
-    const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
-      getStats?: () => Promise<{ wins: number; losses: number; pnl: number } | null>;
-    } | null;
-    const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
-      getStatus?: () => Promise<{ openPositions?: number; pendingEntries?: number } | null>;
-    } | null;
-    const stats = await paperBot?.getStats?.().catch(() => null) ?? null;
-    const botStatus = await paperTrading?.getStatus?.().catch(() => null) ?? null;
-    let botLine = stats
-      ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
-      : "**Paper bot:** No data";
-    if (botStatus) botLine += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
-    lines.push(botLine);
-
-    // 8. Goal tracker
-    const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
-      getDailyProgress?: () => Promise<{ pnlToday?: number; target?: number; pctComplete?: number } | null>;
-    } | null;
-    const goalData = await goals?.getDailyProgress?.().catch(() => null) ?? null;
-    if (goalData?.target) lines.push(`**Daily goal:** $${goalData.pnlToday?.toFixed(0) ?? 0}/$${goalData.target} (${goalData.pctComplete?.toFixed(0) ?? 0}%)`);
-
-    // 9. MandoMinutes headlines (essential news context for the team)
-    const newsSvc = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
-      refreshData?: (force?: boolean) => Promise<void>;
-      getTopHeadlines?: (limit: number) => Array<{ title: string; sentiment: string; impact: string }>;
-      getVibeCheck?: () => string;
-      getTLDR?: () => string;
-      getOverallSentiment?: () => { sentiment: string; confidence: number };
-    } | null;
-    if (newsSvc) {
-      try {
-        await newsSvc.refreshData?.();
-        const vibeCheck = newsSvc.getVibeCheck?.() ?? "";
-        const tldr = newsSvc.getTLDR?.() ?? "";
-        const sentiment = newsSvc.getOverallSentiment?.();
-        const headlines = newsSvc.getTopHeadlines?.(5) ?? [];
-        const headlineLines = headlines.map((h) => {
-          const dot = h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪";
-          return `${dot} ${h.title.slice(0, 80)}`;
-        });
-        const newsBlock = [
-          vibeCheck ? `**MandoMinutes:** ${vibeCheck}` : "",
-          sentiment ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)` : "",
-          tldr ? `TLDR: ${tldr}` : "",
-          headlineLines.length > 0 ? `Headlines:\n${headlineLines.join("\n")}` : "",
-        ].filter(Boolean).join("\n");
-        if (newsBlock) lines.push(newsBlock);
-      } catch { /* non-fatal */ }
-    }
-
-    return lines.join("\n\n");
-  } catch (err) {
-    logger.warn({ err }, "[STANDUP_DATA] Failed to fetch VINCE data");
-    return "*(Live data unavailable)*";
+async function fetchDeribitDVOL(runtime: IAgentRuntime): Promise<string> {
+  const deribit = runtime.getService("VINCE_DERIBIT_SERVICE") as {
+    getDVOL?: (currency: string) => Promise<{ dvol: number } | null>;
+    getBestCoveredCalls?: (currency: string) => Promise<Array<{ strike: number; premium: number; expiry: string }> | null>;
+  } | null;
+  const [dvol, bestCalls] = await Promise.all([
+    deribit?.getDVOL?.("BTC").catch(() => null) ?? null,
+    deribit?.getBestCoveredCalls?.("BTC").catch(() => null) ?? null,
+  ]);
+  if (dvol?.dvol == null) return "";
+  let line = `**BTC DVOL:** ${dvol.dvol.toFixed(1)}`;
+  if (bestCalls?.[0]) {
+    const top = bestCalls[0];
+    line += ` | Best CC: $${top.strike} (${top.premium?.toFixed(2)} prem, ${top.expiry})`;
   }
+  return line;
+}
+
+async function fetchBinanceTopTraders(runtime: IAgentRuntime): Promise<string> {
+  const binance = runtime.getService("VINCE_BINANCE_SERVICE") as {
+    getTopTraderPositions?: (asset: string) => Promise<{ longPercent: number; shortPercent: number } | null>;
+  } | null;
+  const topTraders = await binance?.getTopTraderPositions?.("BTC").catch(() => null) ?? null;
+  return topTraders ? `**Top traders (BTC):** ${topTraders.longPercent?.toFixed(0)}% long / ${topTraders.shortPercent?.toFixed(0)}% short` : "";
+}
+
+async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
+  const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
+    getStats?: () => Promise<{ wins: number; losses: number; pnl: number } | null>;
+  } | null;
+  const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
+    getStatus?: () => Promise<{ openPositions?: number; pendingEntries?: number } | null>;
+  } | null;
+  const [stats, botStatus] = await Promise.all([
+    paperBot?.getStats?.().catch(() => null) ?? null,
+    paperTrading?.getStatus?.().catch(() => null) ?? null,
+  ]);
+  let line = stats
+    ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
+    : "**Paper bot:** No data";
+  if (botStatus) line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;
+  return line;
+}
+
+async function fetchGoalTracker(runtime: IAgentRuntime): Promise<string> {
+  const goals = runtime.getService("VINCE_GOAL_TRACKER_SERVICE") as {
+    getDailyProgress?: () => Promise<{ pnlToday?: number; target?: number; pctComplete?: number } | null>;
+  } | null;
+  const goalData = await goals?.getDailyProgress?.().catch(() => null) ?? null;
+  return goalData?.target ? `**Daily goal:** $${goalData.pnlToday?.toFixed(0) ?? 0}/$${goalData.target} (${goalData.pctComplete?.toFixed(0) ?? 0}%)` : "";
+}
+
+async function fetchMandoMinutes(runtime: IAgentRuntime): Promise<string> {
+  const newsSvc = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as {
+    refreshData?: (force?: boolean) => Promise<void>;
+    getTopHeadlines?: (limit: number) => Array<{ title: string; sentiment: string; impact: string }>;
+    getVibeCheck?: () => string;
+    getTLDR?: () => string;
+    getOverallSentiment?: () => { sentiment: string; confidence: number };
+  } | null;
+  if (!newsSvc) return "";
+  await newsSvc.refreshData?.();
+  const vibeCheck = newsSvc.getVibeCheck?.() ?? "";
+  const tldr = newsSvc.getTLDR?.() ?? "";
+  const sentiment = newsSvc.getOverallSentiment?.();
+  const headlines = newsSvc.getTopHeadlines?.(5) ?? [];
+  const headlineLines = headlines.map((h) => {
+    const dot = h.sentiment === "bullish" ? "🟢" : h.sentiment === "bearish" ? "🔴" : "⚪";
+    return `${dot} ${h.title.slice(0, 80)}`;
+  });
+  return [
+    vibeCheck ? `**MandoMinutes:** ${vibeCheck}` : "",
+    sentiment ? `News sentiment: ${sentiment.sentiment} (${Math.round(sentiment.confidence)}% conf)` : "",
+    tldr ? `TLDR: ${tldr}` : "",
+    headlineLines.length > 0 ? `Headlines:\n${headlineLines.join("\n")}` : "",
+  ].filter(Boolean).join("\n");
+}
+
+async function fetchAlliumOnChain(runtime: IAgentRuntime): Promise<string> {
+  const allium = runtime.getService("VINCE_ALLIUM_SERVICE") as {
+    isConfigured?: () => boolean;
+    getStandupOnChainSummary?: () => Promise<string | null>;
+  } | null;
+  if (!allium?.isConfigured?.()) return "";
+  return (await allium.getStandupOnChainSummary?.()) ?? "";
+}
+
+export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
+  const blockLabels = [
+    "EnrichedContext", "FearGreed", "HIP3", "SignalAgg",
+    "Deribit", "Binance", "PaperBot", "Goals", "MandoMinutes", "Allium",
+  ];
+  const results = await Promise.allSettled([
+    fetchEnrichedContext(runtime),
+    fetchFearGreed(runtime),
+    fetchHIP3Pulse(runtime),
+    fetchSignalAggregator(runtime),
+    fetchDeribitDVOL(runtime),
+    fetchBinanceTopTraders(runtime),
+    fetchPaperBot(runtime),
+    fetchGoalTracker(runtime),
+    fetchMandoMinutes(runtime),
+    fetchAlliumOnChain(runtime),
+  ]);
+
+  const lines: string[] = [];
+  results.forEach((r, i) => {
+    if (r.status === "fulfilled" && r.value) {
+      lines.push(r.value);
+    } else if (r.status === "rejected") {
+      logger.warn({ err: r.reason, source: blockLabels[i] }, "[STANDUP_DATA] VINCE block failed");
+    }
+  });
+
+  if (lines.length > 0) return lines.join("\n\n");
+
+  // Fallback: read latest daily market brief from knowledge/research-daily/
+  try {
+    const briefDir = path.join(process.cwd(), "knowledge", "research-daily");
+    if (fs.existsSync(briefDir)) {
+      const briefs = fs.readdirSync(briefDir)
+        .filter((f) => f.endsWith(".md") && f !== "README.md")
+        .sort()
+        .reverse();
+      if (briefs.length > 0) {
+        const latest = fs.readFileSync(path.join(briefDir, briefs[0]), "utf-8").trim();
+        const stripped = latest.replace(/^---[\s\S]*?---\s*/, "");
+        const capped = stripped.length > 1100 ? stripped.slice(0, 1100) + "..." : stripped;
+        logger.info({ file: briefs[0] }, "[STANDUP_DATA] VINCE using daily brief fallback");
+        return `*(Live services unavailable -- using latest daily brief: ${briefs[0]})*\n\n${capped}`;
+      }
+    }
+  } catch (briefErr) {
+    logger.debug({ err: briefErr }, "[STANDUP_DATA] VINCE daily brief fallback failed");
+  }
+
+  return "*(Live data unavailable)*";
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -346,17 +403,32 @@ Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Solus: directive referencing VINCE's data (no own price fetch)
+// Solus: directive referencing VINCE's data + last-week options strategy
 // ═══════════════════════════════════════════════════════════════════════
 
+function readWeeklyOptionsContext(): string {
+  try {
+    const filePath = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables", "weekly-options-context.md");
+    if (fs.existsSync(filePath)) return fs.readFileSync(filePath, "utf-8").trim();
+  } catch { /* non-fatal */ }
+  return "";
+}
+
 export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
-  return `**Options context (use VINCE's data from shared insights above):**
+  const lastWeek = process.env.SOLUS_LAST_WEEK_STRATEGY?.trim()
+    || readWeeklyOptionsContext()
+    || "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create standup-deliverables/weekly-options-context.md.";
+
+  return `**Last week's strategy:** ${lastWeek}
+
+**Options context (use VINCE's data from shared insights above):**
 Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
 Read Oracle's section for: Polymarket odds that inform confidence.
 
-**Your job:** Propose a specific BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
+**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
 State: strike price, direction (above/below), premium target, invalidation level.
-Reference VINCE's DVOL, funding, and regime. Reference Oracle's odds.`;
+Reference VINCE's DVOL, funding, and regime. Reference Oracle's odds.
+If uncertain (like last week), say so and explain why with data.`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -407,7 +479,9 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
     if (snippets?.length > 0) sections.push(`**Macro news:**\n${snippets.join("\n")}`);
   } catch { /* Tavily not available */ }
 
-  sections.push("**Your job:** What shipped, what's next, one architecture item, and flag any macro news that affects our trades.");
+  sections.push("**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.");
+
+  sections.push("**Your job:** What shipped, what's next, one architecture item, the dev task above, and flag any macro news that affects our trades.");
   return sections.join("\n\n");
 }
 
@@ -468,24 +542,50 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
   } catch {
     sections.push("**Facts:** Query failed.");
   }
+
+  // Substack + knowledge expansion suggestions via LLM
+  if (runtime.useModel) {
+    try {
+      const context = sections.join("\n");
+      const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, suggest:\n1. One Substack content topic for Ikigai Studio (specific, timely, tied to what's happening in crypto/AI/DeFi today)\n2. One area in the knowledge/ directory to expand or update (be specific: which category, what's missing)\n\nKeep each to one sentence. No filler.\n\nContext:\n${context}`,
+        maxTokens: 200,
+        temperature: 0.6,
+      });
+      const text = String(suggestion ?? "").trim();
+      if (text && text.length > 20) sections.push(text);
+    } catch {
+      sections.push("**Substack idea:** [LLM unavailable -- suggest based on yesterday's delta]");
+      sections.push("**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]");
+    }
+  } else {
+    sections.push("**Substack idea:** Review yesterday's delta for a timely Ikigai Studio topic.");
+    sections.push("**Knowledge to expand:** Check knowledge/FRESHNESS.md for stale categories to update.");
+  }
+
   return sections.join("\n\n");
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Otaku: under construction (keep as-is)
+// Otaku: wallet setup in progress — concrete next steps
 // ═══════════════════════════════════════════════════════════════════════
 
 export async function fetchOtakuData(_runtime: IAgentRuntime): Promise<string> {
-  return `You are the agent with wallet (Bankr, Coinbase) and DeFi skills; currently under construction — no execution yet.
+  return `**Status:** Under construction -- no wallet execution yet.
 
-🔧 **Wallet integration in progress.**
-Observing team reports — no execution capability yet.
+**Steps to get operational:**
+1. Configure Bankr wallet (Base + Solana) -- set EVM_PRIVATE_KEY and SOLANA_PRIVATE_KEY in .env
+2. Test with plugin-evm / plugin-solana: simple token balance check
+3. Once balance check works, enable DefiLlama yield scanning (already loaded)
 
-*Watching for: DeFi opportunities to act on once wallet is live.*`;
+**Today's task:** Complete step 1 -- generate or import wallet keys and verify Bankr connection. Report: wallet address, chain, balance.
+
+*Watching team reports for DeFi opportunities to queue once wallet is live.*`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Clawterm: OpenClaw/AGI X + web. When contextHints provided, adds targeted query.
+// Clawterm: OpenClaw skills, setup, trending articles on X + web.
+// LLM summary so the standup section adds value within the cap.
 // ═══════════════════════════════════════════════════════════════════════
 
 const CLAWTERM_X_MAX = 10;
@@ -514,11 +614,15 @@ export async function fetchClawtermData(
     const searchService = getXSearchService();
 
     const cacheOpts = { hoursBack: CLAWTERM_HOURS_BACK, cacheTtlMs: 60 * 60 * 1000 };
-    const queries: string[] = ["OpenClaw", "AGI AI research agents"];
+    const queries: string[] = [
+      "OpenClaw skills trending",
+      "OpenClaw setup tips tutorial",
+      "OpenClaw popular articles",
+    ];
     if (contextHints?.length) {
       const first = contextHints[0];
       if (first && /^(BTC|SOL|ETH|HYPE)/i.test(first.split(/\s/)[0])) {
-        queries.push(`${first.split(/\s/)[0]} AI agents crypto`);
+        queries.push(`${first.split(/\s/)[0]} OpenClaw agents`);
       }
     }
     const tweetPromises = queries.slice(0, 3).map((q) =>
@@ -537,19 +641,35 @@ export async function fetchClawtermData(
       return `@${handle}: ${snippet} (${likes} likes)`;
     };
 
-    const xBlock =
+    const rawXBlock =
       deduped.length > 0
-        ? `=== X (OpenClaw/AGI) ===\n${deduped.map(formatOne).join("\n")}`
-        : "=== X (OpenClaw/AGI) ===\nNo recent X posts in the last 24h.";
+        ? deduped.map(formatOne).join("\n")
+        : "No recent X posts about OpenClaw in the last 24h.";
 
-    const webSnippets = await tavilySearch("OpenClaw AI AGI research agents news", runtime, 3);
-    const webBlock =
-      webSnippets.length > 0 ? `=== Web ===\n${webSnippets.join("\n\n")}` : "=== Web ===\nNo web snippets (set TAVILY_API_KEY for web).";
+    const webSnippets = await tavilySearch("OpenClaw skills setup tutorial news", runtime, 3);
+    const rawWebBlock =
+      webSnippets.length > 0 ? webSnippets.join("\n") : "";
 
-    return [xBlock, webBlock].join("\n\n");
+    const rawData = `=== X (OpenClaw) ===\n${rawXBlock}${rawWebBlock ? `\n\n=== Web ===\n${rawWebBlock}` : ""}`;
+
+    if (runtime.useModel) {
+      try {
+        const summary = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: `You are Clawterm, the OpenClaw terminal. Summarize the data below for the daily standup in 2-4 sentences. Focus on: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Be concrete and specific. No filler intros, no AI slop (banned: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, delve, landscape, dive into). If the data is thin, say so in one sentence.\n\nData:\n${rawData}`,
+          maxTokens: 300,
+          temperature: 0.5,
+        });
+        const text = String(summary ?? "").trim();
+        if (text && text.length > 30) return text;
+      } catch (err) {
+        logger.debug({ err }, "[STANDUP_DATA] Clawterm LLM summary failed, using raw");
+      }
+    }
+
+    return rawData;
   } catch (err) {
     logger.warn({ err }, "[STANDUP_DATA] fetchClawtermData: X/Tavily unavailable, using fallback");
-    return "OpenClaw/AI data: run CLAWTERM_DAY_REPORT in chat for full report; here report gateway status and one take from knowledge.";
+    return "OpenClaw data: run CLAWTERM_DAY_REPORT in chat for full report; here report gateway status and one take from knowledge.";
   }
 }
 

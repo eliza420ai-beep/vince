@@ -48,7 +48,7 @@ const DEFAULT_INSIGHTS_CAP_BY_AGENT: Record<string, number> = {
   echo: 600,
   solus: 600,
   sentinel: 600,
-  clawterm: 600,
+  clawterm: 800,
   eliza: 500,
   otaku: 400,
   kelly: 400,

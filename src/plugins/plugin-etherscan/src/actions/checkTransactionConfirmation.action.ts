@@ -206,10 +206,11 @@ export const checkTransactionConfirmationAction: Action = {
         ["ACTION_STATE"],
         true,
       );
-      const params =
+      const params = (
         composedState?.data?.actionParams ||
         composedState?.data?.checkTransactionConfirmation ||
-        {};
+        {}
+      ) as Record<string, any>;
       const failureInputParams = {
         transactionHash: params?.transactionHash,
         chain: params?.chain,

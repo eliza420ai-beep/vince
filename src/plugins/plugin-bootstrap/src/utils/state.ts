@@ -1,4 +1,4 @@
-import type { IAgentRuntime, Memory, State } from '@elizaos/core';
+import type { IAgentRuntime, Memory, State, ActionResult } from '@elizaos/core';
 
 /**
  * Refreshes state after action execution to keep prompts and action results in sync
@@ -24,7 +24,7 @@ export async function refreshStateAfterAction(
   ]);
 
   // Preserve action results in state
-  refreshedState.data.actionResults = actionResults;
+  refreshedState.data.actionResults = actionResults as ActionResult[];
 
   // Merge any custom data from current state that shouldn't be lost
   if (currentState.data?.actionPlan) {
@@ -66,7 +66,7 @@ export function updateActionPlanStep(
     steps[stepIndex] = {
       ...steps[stepIndex],
       status,
-      result,
+      result: result as unknown as ActionResult,
       error,
     };
 

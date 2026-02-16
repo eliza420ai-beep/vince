@@ -11,6 +11,7 @@ export {
   isStandupTime,
   DEFAULT_STANDUP_HOUR_UTC,
   getEssentialStandupQuestion,
+  getEssentialStandupQuestions,
   ESSENTIAL_STANDUP_QUESTION,
 } from "./standup.constants";
 export {

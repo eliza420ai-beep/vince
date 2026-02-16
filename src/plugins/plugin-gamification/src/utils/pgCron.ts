@@ -38,11 +38,12 @@ export const pgCron = {
    */
   async isAvailable(db: Db): Promise<boolean> {
     try {
-      const [result] = await db.execute<{ exists: boolean }>(sql`
+      const rows = await db.execute(sql`
         SELECT EXISTS (
           SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
         ) as exists
       `);
+      const result = (rows as unknown as Array<{ exists: boolean }>)[0];
       return result?.exists ?? false;
     } catch {
       return false;
@@ -64,14 +65,15 @@ export const pgCron = {
   /**
    * Schedule a new cron job
    * @param name - Unique job identifier
-   * @param schedule - Cron expression (e.g., '*/5 * * * *')
+   * @param schedule - Cron expression (e.g., "every 5 min" = asterisk-slash-5 asterisk asterisk asterisk asterisk)
    * @param command - SQL command to execute
    */
   async schedule(db: Db, name: string, schedule: string, command: string): Promise<number | null> {
     try {
-      const [result] = await db.execute<{ schedule: number }>(
+      const rows = await db.execute(
         sql`SELECT cron.schedule(${name}, ${schedule}, ${command}) as schedule`
       );
+      const result = (rows as unknown as Array<{ schedule: number }>)[0];
       return result?.schedule ?? null;
     } catch (error) {
       console.error(`[pgCron] Failed to schedule job '${name}':`, error);
@@ -108,7 +110,7 @@ export const pgCron = {
    */
   async listJobs(db: Db): Promise<CronJob[]> {
     try {
-      const jobs = await db.execute<CronJob>(sql`
+      const jobs = await db.execute(sql`
         SELECT jobid, jobname, schedule, command, nodename, nodeport, database, username, active 
         FROM cron.job 
         ORDER BY jobname
@@ -124,12 +126,13 @@ export const pgCron = {
    */
   async getJob(db: Db, name: string): Promise<CronJob | null> {
     try {
-      const [job] = await db.execute<CronJob>(sql`
+      const rows = await db.execute(sql`
         SELECT jobid, jobname, schedule, command, nodename, nodeport, database, username, active 
         FROM cron.job 
         WHERE jobname = ${name}
         LIMIT 1
       `);
+      const job = (rows as unknown as CronJob[])[0];
       return job ?? null;
     } catch {
       return null;
@@ -141,7 +144,7 @@ export const pgCron = {
    */
   async getRunHistory(db: Db, limit = 20): Promise<CronJobRunDetail[]> {
     try {
-      const history = await db.execute<CronJobRunDetail>(sql`
+      const history = await db.execute(sql`
         SELECT runid, jobid, job_run_details.jobname, status, return_message, start_time, end_time 
         FROM cron.job_run_details 
         ORDER BY start_time DESC 
@@ -158,7 +161,7 @@ export const pgCron = {
    */
   async getJobRunHistory(db: Db, name: string, limit = 20): Promise<CronJobRunDetail[]> {
     try {
-      const history = await db.execute<CronJobRunDetail>(sql`
+      const history = await db.execute(sql`
         SELECT runid, jobid, job_run_details.jobname, status, return_message, start_time, end_time 
         FROM cron.job_run_details 
         WHERE jobname = ${name}

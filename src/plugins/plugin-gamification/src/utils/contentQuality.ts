@@ -106,8 +106,8 @@ function calculateEntropy(text: string): number {
  * Check for consecutive repeated characters
  */
 function checkRepeatedChars(text: string): { valid: boolean; ratio: number } {
-  const matches = text.match(CONSECUTIVE_CHAR_REGEX) || [];
-  const repeatedLength = matches.reduce((sum, m) => sum + m.length, 0);
+  const matches: string[] = text.match(CONSECUTIVE_CHAR_REGEX) || [];
+  const repeatedLength = matches.reduce((sum: number, m: string) => sum + m.length, 0);
   const ratio = repeatedLength / text.length;
   
   // Also check if single char dominates
@@ -162,8 +162,8 @@ function checkKeyboardMash(text: string): { valid: boolean; matchRatio: number }
   const cleanText = text.replace(/\s/g, '').toLowerCase();
   
   for (const pattern of KEYBOARD_MASH_PATTERNS) {
-    const matches = cleanText.match(pattern) || [];
-    matchedLength += matches.reduce((sum, m) => sum + m.length, 0);
+    const matches: string[] = cleanText.match(pattern) || [];
+    matchedLength += matches.reduce((sum: number, m: string) => sum + m.length, 0);
   }
   
   const ratio = cleanText.length > 0 ? matchedLength / cleanText.length : 0;
@@ -191,8 +191,8 @@ function checkEmojiSpam(text: string): { valid: boolean; ratio: number } {
  * Check URL spam
  */
 function checkUrlSpam(text: string): { valid: boolean; ratio: number } {
-  const urls = text.match(URL_REGEX) || [];
-  const urlLength = urls.reduce((sum, url) => sum + url.length, 0);
+  const urls: string[] = text.match(URL_REGEX) || [];
+  const urlLength = urls.reduce((sum: number, url: string) => sum + url.length, 0);
   const ratio = urlLength / Math.max(text.length, 1);
   
   return {

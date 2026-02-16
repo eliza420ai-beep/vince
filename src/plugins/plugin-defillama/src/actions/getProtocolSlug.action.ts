@@ -180,7 +180,7 @@ export const getProtocolSlugAction: Action = {
         data: searchResults,
         values: searchResults,
         input: inputParams,
-      } as ActionResult & { input: typeof inputParams };
+      } as unknown as ActionResult & { input: typeof inputParams };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_PROTOCOL_SLUG] Action failed: ${msg}`);

@@ -99,7 +99,7 @@ async function generateDailyDigest(runtime: IAgentRuntime): Promise<string> {
       agentId: runtime.agentId,
       createdAt: Date.now(),
     },
-    null,
+    undefined,
   );
   const contextBlock = typeof state.text === "string" ? state.text : "";
   const prompt = `You are Sentinel. North star: 24/7 coding, ML/ONNX, ART, openclaw, best settings. You use all .md in knowledge and improve docs and consolidate progress. Produce a SHORT daily digest (4 items max, one line each):

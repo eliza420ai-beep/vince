@@ -221,7 +221,7 @@ export const getTokenMetadataAction: Action = {
           failureCount: failures.length,
         },
         input: inputParams,
-      } as ActionResult & { input: typeof inputParams };
+      } as unknown as ActionResult & { input: typeof inputParams };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_TOKEN_METADATA] Action failed: ${msg}`);

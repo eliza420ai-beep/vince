@@ -142,7 +142,7 @@ async function handler(runtime: IAgentRuntime, message: Memory, state?: State) {
     }
 
     // Parse XML response
-    const reflection = parseKeyValueXml(response);
+    const reflection = parseKeyValueXml(response) as Record<string, any>;
 
     if (!reflection) {
       logger.warn({ response }, 'Getting reflection failed - failed to parse XML');

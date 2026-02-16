@@ -109,8 +109,8 @@ export function createMockRuntimeWithService(
 ): IAgentRuntime {
   const mock = { ...defaultLifestyleServiceMock, ...serviceOverrides };
   return createMockRuntime({
-    getService: (name: string) =>
-      name === "KELLY_LIFESTYLE_SERVICE" ? (mock as unknown) : null,
+    getService: ((name: string) =>
+      name === "KELLY_LIFESTYLE_SERVICE" ? (mock as unknown) : null) as any,
   });
 }
 

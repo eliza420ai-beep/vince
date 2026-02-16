@@ -20,7 +20,7 @@ export const AGENT_ROLES = {
   VINCE: {
     title: "CDO",
     focus: "Market Intelligence",
-    reportSections: ["market_snapshot", "paper_bot", "options_context", "signals", "meme_watch"],
+    reportSections: ["market_snapshot", "paper_bot", "options_context", "signals"],
   },
   ECHO: {
     title: "CSO",
@@ -56,8 +56,8 @@ export const AGENT_ROLES = {
   },
   Clawterm: {
     title: "AI Terminal",
-    focus: "OpenClaw & AI/AGI",
-    reportSections: ["openclaw_ai_news", "x_web_sentiment", "gateway_status"],
+    focus: "OpenClaw Skills, Setup & Trending",
+    reportSections: ["openclaw_skills_trending", "setup_tips", "gateway_status"],
   },
 } as const;
 
@@ -156,12 +156,11 @@ ${STRUCTURED_CALL_INSTRUCTION}`,
 
   Otaku: `## Otaku — {{date}}
 
-You are the agent with wallet (Bankr, Coinbase) and DeFi skills; currently under construction — no execution yet.
+**Status:** [wallet setup progress -- which step are we on?]
+**Today's task:** [specific next step: wallet keys, balance check, or yield scan]
+**Blocked:** [what's preventing progress, or "Nothing -- ready to proceed"]
 
-🔧 **Wallet integration in progress.**
-Observing team reports — no execution capability yet.
-
-*Watching for: DeFi opportunities to act on once wallet is live.*`,
+Report concrete progress. If blocked, say what's needed to unblock.`,
 
   Kelly: `Good morning team. {{date}} standup.
 
@@ -182,11 +181,12 @@ Observing team reports — no execution capability yet.
 | Agents | 🟢/🟡/🔴 |
 | APIs | 🟢/🟡/🔴 |
 
+**Today's dev task (OpenClaw):** [One specific thing to work on in the vince repo using OpenClaw setup, with expected outcome]
 **Action:** [One tech recommendation]`,
 
   Clawterm: `## Clawterm — AI Terminal — {{date}}
 
-Use the LIVE DATA below (X + web for OpenClaw/AI/AGI). Write one short ALOHA-style narrative: what's happening in OpenClaw and AI, key X/web sentiment, gateway status, and one clear take. No bullet dumps — flowing prose. End with one action or recommendation.`,
+Use the LIVE DATA below (X + web for OpenClaw skills, setup, trending). Write one short ALOHA-style narrative: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Gateway status if available. No bullet dumps — flowing prose. End with one action or recommendation.`,
 };
 
 /**
@@ -220,9 +220,9 @@ export function getAgentRole(agentName: string): typeof AGENT_ROLES[AgentName] |
  */
 export function isHumanMessage(memory: Memory): boolean {
   const senderName = (
-    memory.content?.name ||
+    (memory.content?.name ||
     memory.content?.userName ||
-    ""
+    "") as string
   ).toLowerCase();
 
   // Check if sender is a known agent

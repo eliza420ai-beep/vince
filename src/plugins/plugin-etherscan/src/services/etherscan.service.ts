@@ -63,12 +63,12 @@ export class EtherscanService extends Service {
   }
 
   async initialize(runtime: IAgentRuntime): Promise<void> {
-    this.apiKey = runtime.getSetting("ETHERSCAN_API_KEY") || "";
+    this.apiKey = String(runtime.getSetting("ETHERSCAN_API_KEY") || "");
 
     // Allow override for custom deployments, but default to V2
     const customUrl = runtime.getSetting("ETHERSCAN_BASE_URL");
     if (customUrl) {
-      this.baseUrl = customUrl;
+      this.baseUrl = String(customUrl);
     }
 
     if (!this.apiKey) {

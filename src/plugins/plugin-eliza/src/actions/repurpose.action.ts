@@ -169,7 +169,7 @@ status: draft
   return filepath;
 }
 
-export const repurposeAction: Action = {
+export const repurposeAction = {
   name: "REPURPOSE",
   similes: [
     "REPURPOSE_CONTENT",
@@ -286,7 +286,7 @@ ${sourceContent}`;
       const response = await runtime.useModel(ModelType.TEXT_LARGE, {
         prompt,
         system: `You are a content strategist for Ikigai Studio. Transform content between formats while maintaining the core message and voice. Be sharp, confident, no AI slop.`,
-      });
+      } as any);
 
       const result = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
 
@@ -364,6 +364,6 @@ ${displayContent}
       },
     ],
   ],
-};
+} as Action;
 
 export default repurposeAction;

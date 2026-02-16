@@ -130,7 +130,7 @@ export const getYieldRatesAction: Action = {
           success: true, // Not really an error, just no results
           data: [],
           input: inputParams,
-        } as ActionResult & { input: typeof inputParams };
+        } as unknown as ActionResult & { input: typeof inputParams };
         if (callback) {
           await callback({
             text: errorResult.text,
@@ -175,7 +175,7 @@ export const getYieldRatesAction: Action = {
         data: formattedResults,
         values: formattedResults, // For compatibility
         input: inputParams,
-      } as ActionResult & { input: typeof inputParams };
+      } as unknown as ActionResult & { input: typeof inputParams };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`[GET_YIELD_RATES] Action failed: ${msg}`);

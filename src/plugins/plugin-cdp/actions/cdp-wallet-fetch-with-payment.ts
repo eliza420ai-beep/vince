@@ -173,7 +173,7 @@ export const cdpWalletFetchWithPayment: Action = {
       
       // Read parameters from state (extracted by multiStepDecisionTemplate)
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
       
       // Extract and validate parameters
       const url = params?.url?.trim();

@@ -126,7 +126,7 @@ function formatTweetForDisplay(content: string, format: TweetFormat): string {
   return content;
 }
 
-export const draftTweetsAction: Action = {
+export const draftTweetsAction = {
   name: "DRAFT_TWEETS",
   similes: [
     "TWEET",
@@ -231,7 +231,7 @@ Requirements:
       const response = await runtime.useModel(ModelType.TEXT_LARGE, {
         prompt: userPrompt,
         system: TWEET_SYSTEM_PROMPT + "\n\n" + voiceAddition,
-      });
+      } as any);
 
       const content = typeof response === "string" ? response : (response as { text?: string })?.text ?? "";
 
@@ -332,6 +332,6 @@ ${displayContent}
       },
     ],
   ],
-};
+} as Action;
 
 export default draftTweetsAction;

@@ -49,7 +49,7 @@ export const getPointsSummaryAction: Action = {
       return {
         text,
         success: true,
-        data: summary,
+        data: summary as unknown as Record<string, unknown>,
       };
     } catch (error) {
       const errorText = 'Could not load your points.';

@@ -104,7 +104,7 @@ export const getTokenInfoAction: Action = {
       if (!conditionId) {
         const errorMsg = "conditionId or tokenId is required";
         callback?.({ text: ` ${errorMsg}.` });
-        return { text: ` ${errorMsg}.`, success: false, error: "missing_condition_id", input: {} };
+        return { text: ` ${errorMsg}.`, success: false, error: "missing_condition_id" } as ActionResult;
       }
 
       const service = runtime.getService(
@@ -112,7 +112,7 @@ export const getTokenInfoAction: Action = {
       ) as PolymarketService;
       if (!service) {
         callback?.({ text: " Polymarket service not available." });
-        return { text: " Polymarket service not available.", success: false, error: "service_unavailable", input: { conditionId } };
+        return { text: " Polymarket service not available.", success: false, error: "service_unavailable" } as ActionResult;
       }
 
       callback?.({ text: " Fetching full market info and prices..." });
@@ -200,8 +200,7 @@ export const getTokenInfoAction: Action = {
         text: ` Failed to fetch market info: ${errorMsg}`,
         success: false,
         error: errorMsg,
-        input: {},
-      };
+      } as ActionResult;
     }
   },
 

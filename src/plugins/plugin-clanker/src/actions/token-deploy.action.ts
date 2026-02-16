@@ -122,7 +122,7 @@ export const tokenDeployAction: Action = {
 
       // Read parameters from state (extracted by multiStepDecisionTemplate)
       const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Store input parameters for return
       const inputParams = {
@@ -296,7 +296,7 @@ export const tokenDeployAction: Action = {
       let catchFailureInput = {};
       try {
         const composedState = await runtime.composeState(message, ["ACTION_STATE"], true);
-        const params = composedState?.data?.actionParams || {};
+        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
         catchFailureInput = {
           name: params.name,
           symbol: params.symbol,

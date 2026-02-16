@@ -74,8 +74,8 @@ export const replyAction = {
       const parsedXml = parseKeyValueXml(response);
 
       const responseContent = {
-        thought: parsedXml?.thought || '',
-        text: parsedXml?.message || '',
+        thought: (parsedXml?.thought || '') as string,
+        text: (parsedXml?.message || '') as string,
         actions: ['REPLY'],
       };
 

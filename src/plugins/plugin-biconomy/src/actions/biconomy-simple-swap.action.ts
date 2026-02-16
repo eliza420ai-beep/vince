@@ -168,7 +168,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
         ["ACTION_STATE"],
         true,
       );
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Validate required parameters
       const srcToken = params?.srcToken?.toLowerCase().trim();
@@ -659,7 +659,7 @@ Native gas tokens: ETH on Base/Ethereum/Arbitrum/Optimism, POL on Polygon. On Po
           ["ACTION_STATE"],
           true,
         );
-        const params = composedState?.data?.actionParams || {};
+        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
         failureInputParams = {
           srcToken: params?.srcToken,
           srcChain: params?.srcChain,

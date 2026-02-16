@@ -164,7 +164,7 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
         ["ACTION_STATE"],
         true,
       );
-      const params = composedState?.data?.actionParams || {};
+      const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
 
       // Validate required parameters
       const token = params?.token?.toLowerCase().trim();
@@ -514,7 +514,7 @@ CCIP fees are paid in the native token of the source chain (ETH, POL, etc.).`,
           ["ACTION_STATE"],
           true,
         );
-        const params = composedState?.data?.actionParams || {};
+        const params = (composedState?.data?.actionParams || {}) as Record<string, any>;
         failureInputParams = {
           token: params?.token,
           srcChain: params?.srcChain,
