@@ -1,6 +1,6 @@
 # Solus North Star and Roadmap
 
-This document is the **north star and inspiration** for Solus as an X-native crypto intelligence agent. It summarizes an aspirational system design (autonomous lead analyst, sub-agents, memory, EV framework) and maps **Solus today** plus an **aspirational roadmap**. No implementation is committed here—reference and direction only.
+The **north star and inspiration** for Solus as an X-native crypto intelligence agent. Summarizes an aspirational system design (autonomous lead analyst, sub-agents, memory, EV framework) and maps **Solus today** plus an **aspirational roadmap**. No implementation is committed here — reference and direction only.
 
 ---
 

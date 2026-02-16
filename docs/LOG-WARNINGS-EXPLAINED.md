@@ -1,4 +1,6 @@
-# Why You See These Log Warnings
+# Log Warnings Explained
+
+Common log warnings you may see during development and production, what causes them, and whether action is needed.
 
 ## 1. `[PLUGIN:BOOTSTRAP:PROVIDER:ROLES] User has no name or username, skipping (entityId=...)`
 

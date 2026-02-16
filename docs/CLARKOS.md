@@ -1,9 +1,8 @@
 # ClarkOS Reference
 
-> **C**ontinuously **L**earning **A**gentic **R**ealtime **K**nowledgebase **OS**  
-> *always on. always learning.*
+> **C**ontinuously **L**earning **A**gentic **R**ealtime **K**nowledgebase **OS** — *always on, always learning.*
 
-[ClarkOS](https://docs.clarkos.dev/) is a TypeScript-first agent framework built on **Convex serverless** infrastructure. It targets agents that run continuously, keep **persistent memory**, and evolve via **autonomous tick cycles**. This doc is a concise reference and comparison for the VINCE project (ElizaOS-based).
+[ClarkOS](https://docs.clarkos.dev/) is a TypeScript-first agent framework built on **Convex serverless** infrastructure. It targets agents that run continuously, keep **persistent memory**, and evolve via **autonomous tick cycles**. This doc is a concise reference and comparison for the VINCE project (ElizaOS-based). **Decision: use ClarkOS as a design reference, not a dependency** (see [recommendation](#use-clarkos-inside-elizaos-recommendation)).
 
 ---
 

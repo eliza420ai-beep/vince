@@ -1,5 +1,8 @@
-### Understanding Reverse Prompting
-Reverse prompting (also called reverse prompt engineering) is a technique where you start with a desired AI output (like text, code, or a response) and work backward to infer or generate the ideal prompt that would produce it. This flips traditional prompting: instead of trial-and-error crafting prompts to get good results, you analyze successful (or existing) outputs to create reusable, optimized prompts. It's especially useful for refining AI interactions, achieving consistency, diagnosing issues, or customizing agents.
+# Reverse Prompting & Prompt Design
+
+## Understanding Reverse Prompting
+
+Reverse prompting (also called reverse prompt engineering) is a technique where you start with a desired AI output and work backward to infer or generate the ideal prompt that would produce it. Instead of trial-and-error crafting, you analyze successful outputs to create reusable, optimized prompts. Especially useful for refining AI interactions, achieving consistency, diagnosing issues, or customizing agents.
 
 Key benefits:
 - **Consistency**: Helps create templates for repeatable high-quality outputs.
@@ -12,7 +15,7 @@ Common methods:
 2. **Interview-Style (Role Reversal)**: Let the AI "interview" you by asking questions to build a prompt collaboratively.
 3. **Deconstruction**: Break down an output into components (structure, style, key elements) and reverse-engineer the prompt manually or with AI help.
 
-### Applying Reverse Prompting to OpenClaw
+## Applying Reverse Prompting to OpenClaw
 OpenClaw is an open-source, self-hosted AI agent runtime that acts as a personal assistant. It runs locally, integrates with messaging apps (e.g., WhatsApp, Telegram), and uses LLMs (like Anthropic's Claude or OpenAI's models) to execute tasks via skills, tools, and injected prompts. Its core behavior is defined by files like `SOUL.md` (core identity/persona), `AGENTS.md` (agent configurations), `TOOLS.md` (tool descriptions), and skill-specific `SKILL.md` files in your `~/.openclaw/workspace/` directory. These are injected into the model's context, making reverse prompting ideal for customizing or optimizing them.
 
 Since OpenClaw is "yours" (customizable instance), reverse prompting can help you:
@@ -21,7 +24,7 @@ Since OpenClaw is "yours" (customizable instance), reverse prompting can help yo
 - Debug or enhance existing prompts to reduce errors like hallucinations or off-topic replies.
 - Build automations (e.g., cron jobs) by generating prompts from example outcomes.
 
-#### Step-by-Step Guide to Reverse Prompting in OpenClaw
+### Step-by-Step Guide
 1. **Set Up Your Environment**:
    - Ensure OpenClaw is installed and running (e.g., via `openclaw onboard` CLI).
    - Configure your model (recommend Claude Opus for better context handling and prompt-injection resistance).
@@ -73,9 +76,11 @@ Since OpenClaw is "yours" (customizable instance), reverse prompting can help yo
    - **Iteration Loop**: Test generated prompts 3-5 times, refining each time (e.g., "Improve this prompt based on why the output deviated").
    - **Tools for Help**: Integrate with models like GPT-4o for meta-prompting if Claude struggles.
 
-### Examples
+## Examples
 - **Content Creation**: Output: "A fun, 200-word blog post on AI agents." Reverse: OpenClaw generates: "Write a 200-word engaging blog post about AI agents, using humor and real-world examples."
 - **Code Task**: Output: Python script for file sorting. Reverse: "Create a prompt for generating a Python script that sorts files by date."
 - **OpenClaw-Specific**: If OpenClaw's response is verbose: Feed it back with "Make a prompt that enforces concise replies."
 
-If this doesn't match what you meant (e.g., a specific OpenClaw feature or skill), provide more details like an example output or task!
+---
+
+*If this doesn't match what you meant (e.g. a specific OpenClaw feature or skill), provide more details like an example output or task.*

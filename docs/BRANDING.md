@@ -294,7 +294,7 @@ The project’s **`.env.example`** implies **developer/API accounts** you’ll n
 | **Database / infra** | Supabase / Postgres | `POSTGRES_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` | Persistence, feature store, ML bucket. |
 | **Logging / monitoring** | Sentry | `SENTRY_DSN`, `SENTRY_ENVIRONMENT` | Errors and tracing (optional). |
 | **Search / web** | Tavily | `TAVILY_API_KEY` | Eliza web search; Kelly wine/château lookups (https://tavily.com). |
-| **X (Twitter)** | X Developer | `X_BEARER_TOKEN` (Basic+), optional `X_BEARER_TOKEN_SENTIMENT`, `X_LIST_ID`, `X_RESEARCH_QUALITY_LIST_ID` | VINCE X research, paper-algo sentiment; see docs/X-API.md. |
+| **X (Twitter)** | X Developer | `X_BEARER_TOKEN` (Basic+), optional `X_BEARER_TOKEN_SENTIMENT`, `X_LIST_ID`, `X_RESEARCH_QUALITY_LIST_ID` | VINCE X research, paper-algo sentiment; see [X-API.md](X-API.md). |
 | **Messaging** | Discord | Per-agent: `ELIZA_DISCORD_*`, `VINCE_DISCORD_*`, `SOLUS_DISCORD_*`, `OTAKU_DISCORD_*`, `KELLY_DISCORD_*`, `SENTINEL_DISCORD_*` (or fallback `DISCORD_APPLICATION_ID`, `DISCORD_API_TOKEN`) | One Discord **Application** per agent (Bot token) at discord.com/developers/applications. |
 | | Slack | `SLACK_BOT_TOKEN` | Push notifications (optional; add client-slack). |
 | | Telegram | `TELEGRAM_BOT_TOKEN` | Push notifications (optional). |

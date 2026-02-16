@@ -160,7 +160,7 @@ this comes from **@elizaos/plugin-discord**. The bot does not have the **View Au
 
 ### Rate limits and standup
 
-To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input tokens/min), use standup single-responder and skip reflection in standup. See [docs/RATE_LIMIT_AND_STANDUP.md](docs/RATE_LIMIT_AND_STANDUP.md). Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`, `REFLECTION_SKIP_STANDUP=true`; optionally lower conversation length if your ElizaOS version supports it.
+To reduce token use and stay under LLM rate limits (e.g. Anthropic 200K input tokens/min), use standup single-responder and skip reflection in standup. See [RATE_LIMIT_AND_STANDUP.md](RATE_LIMIT_AND_STANDUP.md). Set `A2A_STANDUP_SINGLE_RESPONDER=Kelly`, `REFLECTION_SKIP_STANDUP=true`; optionally lower conversation length if your ElizaOS version supports it.
 
 Optional (plugin-vince features):
 

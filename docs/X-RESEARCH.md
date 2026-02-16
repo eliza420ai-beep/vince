@@ -55,7 +55,7 @@ After changing `.env`, restart so the new values are picked up. An active 429 cl
 
 Cooldowns are per-token; in-chat still uses `X_BEARER_TOKEN` only.
 
-See [docs/X-API.md](docs/X-API.md) for quotas, spending limits, and the optional second token.
+See [X-API.md](X-API.md) for quotas, spending limits, and the optional second token.
 
 ---
 
@@ -310,5 +310,5 @@ Run both from the repo root with `X_BEARER_TOKEN` in `.env`.
 | Grok Expert (uses X vibe check in context; requires XAI_API_KEY) | [grokExpert.action.ts](src/plugins/plugin-vince/src/actions/grokExpert.action.ts), [grokExpert.tasks.ts](src/plugins/plugin-vince/src/tasks/grokExpert.tasks.ts) |
 | Daily report (uses X vibe check in context) | [dailyReport.tasks.ts](src/plugins/plugin-vince/src/tasks/dailyReport.tasks.ts) |
 | **Crypto intel daily report (sub-agents)** | When `GROK_SUB_AGENTS_ENABLED=true`, Grok Expert produces a 10-section report. Memory dir: `.elizadb/vince-paper-bot/crypto-intel/` (`intelligence_log.jsonl`, `session_state.json`, `recommendations.jsonl`, `track_record.json`, `smart_wallets.json`, `watchlist.json`). Report path: `knowledge/internal-docs/grok-daily-<date>.md` or `grok-auto-<date>.md`. Close recommendations in-chat: "close recommendation TOKEN". |
-| X API (pay-per-use, second token, XDK) | [docs/X-API.md](docs/X-API.md) |
+| X API (pay-per-use, second token, XDK) | [X-API.md](X-API.md) |
 | Project dev guide | [CLAUDE.md](../CLAUDE.md) (X Research skill section) |

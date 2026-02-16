@@ -1,8 +1,8 @@
-# Todo: Michelin scraping with Crawlee (fallback)
+# Michelin Scraping with Crawlee (Fallback)
 
 ## Status
 
-**In progress** — The desired result (reliable, full-detail Michelin entries: address, phone, website, chef, description) is not yet fully achieved. We are exploring **plugin-based solutions**; preference is **not** to set up a separate ClawdBot/Crawlee bot. All improvements should stay inside the agent via plugins.
+**In progress.** The desired result (reliable, full-detail Michelin entries: address, phone, website, chef, description) is not yet fully achieved. We are exploring **plugin-based solutions**; preference is **not** to set up a separate ClawdBot/Crawlee bot. All improvements should stay inside the agent via plugins.
 
 ## Solution exploration (plugins)
 
