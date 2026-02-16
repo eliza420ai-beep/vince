@@ -19,6 +19,8 @@ Lifestyle-only concierge for the Kelly agent: daily briefing, health, dining, ho
 | **KELLY_RECOMMEND_TEA** | "what tea", "morning tea", "evening tea", "Dammann", "tea with milk", "herbal tea", "rooibos" | Tea from Dammann Frères by time of day: morning (Darjeeling, Ceylon, breakfast, Assam, green) or evening caffeine-free (rooibos, herbal, fruit). One pick + one alternative. |
 | **KELLY_RECOMMEND_ENTERTAINMENT** | "recommend a book", "what to watch", "Netflix", "Apple TV", "music recommendation", "something like X" | Books, music, Netflix series, Apple TV movies by taste. Detects category and "something like X" pattern. Music context: Taycan/Burmester or Denon DJ/Bose. |
 | **KELLY_RECOMMEND_CREATIVE** | "oil painting tips", "Hasselblad", "Capture One", "Ableton", "Push 3", "Blackmagic", "DaVinci Resolve", "Blender", "Claude MCP" | Creative practice tips: painting, photography (Hasselblad/Fuji/Capture One), music (Ableton/Push 3/AI), cinema (BMPCC 6K/Resolve/IRIX), Blender + Claude MCP. One tip + next step. |
+| **KELLY_RECOMMEND_ROWING** | "rowing", "rowing workout", "water rower", "surf fit", "swim fit", "indoor cardio" | Rowing session for surf/swim fitness. Detects surf vs swim focus. Weather-aware. One concrete session + benefit. |
+| **KELLY_INTERESTING_QUESTION** | "ask me something", "interesting question", "what should we talk about", "surprise me" | Picks one thought-provoking question from lifestyle/interesting-questions that fits the conversation moment. Natural voice, not a list. |
 
 ## Providers
 
