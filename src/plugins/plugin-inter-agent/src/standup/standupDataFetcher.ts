@@ -408,7 +408,7 @@ Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
 
 function readWeeklyOptionsContext(): string {
   try {
-    const filePath = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables", "weekly-options-context.md");
+    const filePath = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup", "weekly-options-context.md");
     if (fs.existsSync(filePath)) return fs.readFileSync(filePath, "utf-8").trim();
   } catch { /* non-fatal */ }
   return "";
@@ -417,7 +417,7 @@ function readWeeklyOptionsContext(): string {
 export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
   const lastWeek = process.env.SOLUS_LAST_WEEK_STRATEGY?.trim()
     || readWeeklyOptionsContext()
-    || "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create standup-deliverables/weekly-options-context.md.";
+    || "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
 
   return `**Last week's strategy:** ${lastWeek}
 
@@ -448,7 +448,7 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
 
   // 2. PRD scan
   try {
-    const prdDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables", "prds");
+    const prdDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup", "prds");
     if (fs.existsSync(prdDir)) {
       const files = fs.readdirSync(prdDir).filter((f) => f.endsWith(".md")).sort().reverse().slice(0, 3);
       if (files.length > 0) sections.push(`**Recent PRDs:** ${files.join(", ")}`);

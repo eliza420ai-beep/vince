@@ -18,10 +18,10 @@ When working on VINCE from the vault, read the root CLAUDE.md and README for arc
 
 **Where deliverables live (repo root):**
 
-- `standup-deliverables/day-reports/` — day reports (YYYY-MM-DD-day-report.md)
-- `standup-deliverables/predictions.json` — predictions and validation
-- `standup-deliverables/action-items.json` — action items
-- `standup-deliverables/daily-insights/` — daily insights
+- `docs/standup/day-reports/` — day reports (YYYY-MM-DD-day-report.md)
+- `docs/standup/predictions.json` — predictions and validation
+- `docs/standup/action-items.json` — action items
+- `docs/standup/daily-insights/` — daily insights
 
 **After standup checklist:**
 

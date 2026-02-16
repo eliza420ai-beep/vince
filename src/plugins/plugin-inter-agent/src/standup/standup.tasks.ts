@@ -528,12 +528,12 @@ export async function persistStandupDisagreements(
 /** Resolve deliverables dir for suggestions file (same as standup.build). */
 function getStandupDeliverablesDir(): string {
   const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
-  const base = dir ? (path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)) : path.join(process.cwd(), "standup-deliverables");
+  const base = dir ? (path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir)) : path.join(process.cwd(), "docs/standup");
   return base;
 }
 
 /**
- * Append agent-suggested improvements to standup-deliverables/agent-suggestions.md for human review.
+ * Append agent-suggested improvements to STANDUP_DELIVERABLES_DIR/agent-suggestions.md (default docs/standup) for human review.
  */
 function persistStandupSuggestions(suggestions: string[] | undefined): void {
   if (!suggestions?.length) return;
@@ -1030,7 +1030,7 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
 
         // Persist metrics to JSONL
         try {
-          const metricsDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables");
+          const metricsDir = path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
           if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
           const metricsLine = JSON.stringify({
             date: dateStr,

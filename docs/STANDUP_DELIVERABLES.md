@@ -18,7 +18,7 @@ VINCE does not implement this endpoint; it only calls it. If Milaidy (or any com
 | Variable | Purpose |
 |----------|---------|
 | `MILAIDY_GATEWAY_URL` | Base URL of Milaidy Gateway (e.g. `http://localhost:18789`). When set, build items are POSTed here first. |
-| `STANDUP_DELIVERABLES_DIR` | Directory for fallback-generated files (default: `./standup-deliverables`). Relative paths are resolved from process cwd. |
+| `STANDUP_DELIVERABLES_DIR` | Directory for fallback-generated files (default: `./docs/standup`). Relative paths are resolved from process cwd. |
 | `STANDUP_BUILD_FALLBACK_TO_VINCE` | When `false`, disable in-VINCE code gen; build items only go to Milaidy. Default: `true`. |
 
 ## Fallback: in-VINCE code generation
@@ -40,7 +40,7 @@ When Milaidy is not used or returns an error:
 
 ## Agent suggestions
 
-If the standup parse returns `suggestions` (agent-proposed improvements: new topics, tools, or process changes), they are appended to `standup-deliverables/agent-suggestions.md` with date and list. No automatic application; human reviews and can adopt.
+If the standup parse returns `suggestions` (agent-proposed improvements: new topics, tools, or process changes), they are appended to `docs/standup/agent-suggestions.md` (or `STANDUP_DELIVERABLES_DIR/agent-suggestions.md`) with date and list. No automatic application; human reviews and can adopt.
 
 ## Safety
 

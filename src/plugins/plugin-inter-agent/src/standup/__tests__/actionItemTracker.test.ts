@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import {
   addActionItem,
   updateActionItem,
@@ -21,7 +22,7 @@ import {
   type ActionItem,
 } from "../actionItemTracker";
 
-const TEST_DIR = path.join(process.cwd(), "standup-deliverables-test-" + Date.now());
+const TEST_DIR = path.join(os.tmpdir(), "standup-deliverables-test-" + Date.now());
 
 describe("actionItemTracker", () => {
   beforeEach(() => {

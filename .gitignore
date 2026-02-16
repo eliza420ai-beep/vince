@@ -17,6 +17,10 @@ dist/
 # OpenClaw research cache (ephemeral, runtime-generated)
 .openclaw-cache/
 
+# Standup plugin test artifacts (temporary dirs from test runs)
+standup-deliverables-test-*/
+standup-deliverables-build-test-*/
+
 # IDE / OS
 .DS_Store
 *.log

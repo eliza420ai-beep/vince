@@ -327,7 +327,7 @@ async function handleRoundRobin(
         const pathMod = await import("node:path");
         const metricsDir = pathMod.join(
           process.cwd(),
-          process.env.STANDUP_DELIVERABLES_DIR || "standup-deliverables",
+          process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
         );
         if (!fs.existsSync(metricsDir)) fs.mkdirSync(metricsDir, { recursive: true });
         const dateStr = new Date().toISOString().slice(0, 10);

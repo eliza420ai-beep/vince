@@ -2,6 +2,30 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v2.8.0] - 2026-02-16
+
+### OpenClaw workspace orientation
+
+- **OPENCLAW.md** — Root orientation for openclaw-agents/, vault/, skills/, tasks/
+- **openclaw-agents, vault, skills/x-research, tasks** — READMEs updated with workspace context and links to OPENCLAW.md
+- **Sentinel** — Knowledge and message example to guide OpenClaw (and humans) to the right directories
+- **README** — "For OpenClaw" quick link to OPENCLAW.md
+
+### Standup & docs
+
+- **docs/standup/** — New folder; standup deliverables reorganized under docs/standup/
+- **IDEAS.md, SEARCH.md** — Moved to docs/IDEAS.md, docs/SEARCH.md
+- Obsolete standup-deliverables-build-test-* folders and legacy standup files removed
+- Sync script and vault templates updated for new layout
+
+### Env & dev experience
+
+- **.env.example** — Grouped and clarified; agent-specific sections
+- **CLAUDE.md** — Fully updated
+- **reorder-env.js** — Optional script to reorder .env to match example
+
+---
+
 ## [v2.7.0] - 2026-02-16
 
 ### Otaku: the executor
@@ -172,7 +196,7 @@ X research fully migrated to ECHO:
   - Project Radar scans plugins, progress, docs, and todos
   - Impact Scorer (RICE + strategic alignment) ranks suggestions
   - Architecture rules baked into every PRD
-  - Saved to `standup-deliverables/prds/`
+  - Saved to `docs/standup/prds/`
 
 - **Trading Intelligence** — Deep expertise in paper trading and options
   - Signal sources, feature store, ML pipeline, ONNX

@@ -8,7 +8,7 @@
  *
  * Standup (STANDUP_ENABLED=true): Kelly coordinates; turn order VINCE → Eliza → ECHO → Oracle → Solus → Otaku → Sentinel.
  * Day Report is generated from transcript (TL;DR, essential question, signals, WHAT/HOW/WHY/OWNER table).
- * Action items from the report are stored in standup-deliverables/action-items.json, prioritized by a planner,
+ * Action items from the report are stored in docs/standup/action-items.json (or STANDUP_DELIVERABLES_DIR), prioritized by a planner,
  * and processed one-at-a-time by the Ralph loop (execute → verify → update status → append learnings).
  *
  * A2A Loop Guard: Symmetric agent-to-agent chat with loop prevention (A2A_LOOP_GUARD evaluator).

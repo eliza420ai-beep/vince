@@ -31,17 +31,17 @@
 
 ---
 
-## What's New in v2.7
+## What's New in v2.8
 
-**Otaku** is the only agent with a funded wallet and onchain execution. This release doubles down on that story: docs, grant application, and a clear path to testnet MVP.
+**OpenClaw** gets a clear home: root [OPENCLAW.md](OPENCLAW.md) orients to `openclaw-agents/`, `vault/`, `skills/`, `tasks/`. **Sentinel** can guide OpenClaw and humans to the right directories. Standup moves under **docs/standup/**; IDEAS and SEARCH live in docs; env and CLAUDE.md are cleaned up.
 
 | Focus | Summary |
 |:---|:---|
-| **Otaku** | 13 actions (swap, DCA, bridge, Morpho, stop-loss, NFT mint, execute Vince signal, etc.). Free API: health, config, alerts, notifications. Paid (x402): positions, quote, yields, history, portfolio. Degen vs Normies mode; DB-backed completion events and socket-driven UI. |
-| **Docs** | [OTAKU.md](docs/OTAKU.md) updated with a **For Developers** section. [Base Builder Grant](docs/grants/BASE-BUILDER-GRANT-APPLICATION.md) rewritten with Otaku as the core agent for VC/grant attention. |
-| **Next** | Grinding on **Kelly** (lifestyle agent as good as it gets) and **Sentinel**'s **gen art** passion project (QQL derivative). |
+| **OpenClaw** | [OPENCLAW.md](OPENCLAW.md) + READMEs in openclaw-agents, vault, skills, tasks. Sentinel knows where OpenClaw works and can assist. |
+| **Standup & docs** | [docs/standup/](docs/standup/) for deliverables; IDEAS and SEARCH in docs; build-test folders removed. |
+| **Env & CLAUDE** | .env.example grouped by agent; CLAUDE.md fully updated; optional reorder-env.js. |
 
-**Previous releases:** [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
+**Previous releases:** [v2.7](docs/RELEASE_v2.7.md) · [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -78,7 +78,7 @@ Clear lanes, no overlap: data → plan → call → lifestyle → infra.
 | [PAPER-BOT-AND-ML](docs/PAPER-BOT-AND-ML.md) | Heart of VINCE · signals → trades → learning · MandoMinutes · train_models |
 | [ONNX](docs/ONNX.md) | Train → export → deploy · recent train_models.py improvements |
 | [MULTI_AGENT](docs/MULTI_AGENT.md) | ASK_AGENT · standups |
-| [Release v2.7](docs/RELEASE_v2.7.md) | Otaku star · Kelly & Sentinel grind |
+| [Release v2.8](docs/RELEASE_v2.8.md) | OpenClaw orientation · standup reorg · docs cleanup |
 | [OTAKU](docs/OTAKU.md) | The executor agent · dev section |
 | [SUPABASE_MIGRATION](docs/SUPABASE_MIGRATION.md) | Production persistence |
 | [DEPLOY](docs/DEPLOY.md) | Eliza Cloud · env · troubleshooting |
@@ -86,6 +86,8 @@ Clear lanes, no overlap: data → plan → call → lifestyle → infra.
 | [plugin-vince](src/plugins/plugin-vince/) | README · WHAT · WHY · HOW |
 | [plugin-kelly](src/plugins/plugin-kelly/) | Lifestyle concierge |
 | [BRANDING](docs/BRANDING.md) | Voice · positioning · LIVETHELIFETV |
+
+**For OpenClaw:** Working on this repo or the fork? See [OPENCLAW.md](OPENCLAW.md) for **openclaw-agents/**, **vault/**, **skills/**, **tasks/**.
 
 ---
 

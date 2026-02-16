@@ -173,7 +173,7 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
 **How they're produced:**
 • Standup parses action items by type (essay, tweets, prd, etc.)
 • North-star generator runs instead of code-build path
-• Output written to \`standup-deliverables/\` subdirs
+• Output written to \`docs/standup/\` subdirs (or STANDUP_DELIVERABLES_DIR)
 
 *Success = these seven (now eight with eliza_task).*`,
         });
@@ -216,8 +216,8 @@ ${deliverables.map(d => `| **${d.type}** | ${d.owner} | \`${d.outputDir}\` |`).j
 1. User: \`FEEDBACK: Kelly should recommend Biarritz restaurants\`
 2. Kelly (tested agent) → ASK_AGENT Sentinel with feedback + context
 3. Sentinel triages:
-   • **Code/behavior fix** → PRD for Cursor (\`standup-deliverables/prds/\`)
-   • **Knowledge gap** → Eliza task (\`standup-deliverables/eliza-tasks/\`)
+   • **Code/behavior fix** → PRD for Cursor (\`docs/standup/prds/\`)
+   • **Knowledge gap** → Eliza task (\`docs/standup/eliza-tasks/\`)
 4. Sentinel returns confirmation → Kelly relays to user
 
 **Why triage:** Not every feedback is code. Sometimes it's knowledge (Kelly doesn't know Biarritz because corpus is thin). Right fix = task for Eliza to expand knowledge.

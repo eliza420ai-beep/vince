@@ -4,7 +4,7 @@
  * Tracks action items from standups and their completion status.
  * Enables accountability: did we do what we said we'd do?
  *
- * Storage: standup-deliverables/action-items.json
+ * Storage: docs/standup/action-items.json (or STANDUP_DELIVERABLES_DIR)
  * Uses async fs and file locking for safe concurrent access.
  */
 
@@ -47,7 +47,7 @@ interface ActionItemStore {
 /** Get the action items file path */
 function getActionItemsPath(): string {
   const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
-    path.join(process.cwd(), "standup-deliverables");
+    path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
   return path.join(dir, "action-items.json");
 }
 

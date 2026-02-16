@@ -2,7 +2,7 @@
  * Day Report Persistence
  *
  * Saves day reports to files for history and accountability.
- * Location: standup-deliverables/day-reports/YYYY-MM-DD-day-report.md
+ * Location: docs/standup/day-reports/YYYY-MM-DD-day-report.md (or STANDUP_DELIVERABLES_DIR)
  * Uses async fs; manifest updates use file locking.
  */
 
@@ -17,7 +17,7 @@ function getDeliverablesDir(): string {
   if (envDir) {
     return path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir);
   }
-  return path.join(process.cwd(), "standup-deliverables");
+  return path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
 }
 
 /** Get the day reports directory */
@@ -44,7 +44,7 @@ export function getSharedInsightsPath(date?: Date): string {
 
 /**
  * Save shared daily insights to disk (pre-standup artifact).
- * Location: standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md
+ * Location: docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md
  */
 export async function saveSharedDailyInsights(content: string, date?: Date): Promise<string | null> {
   try {

@@ -15,10 +15,10 @@ Multi-agent coordination for VINCE: agents ask other agents and report back (ASK
 - **ASK_AGENT** — Ask another agent (Vince, Kelly, Solus, Sentinel, Eliza, Otaku, Clawterm, etc.) a question and relay the answer. In-process via `runtime.elizaOS.handleMessage` or fallback to POST `/api/messaging/jobs`.
 - **STANDUP_FACILITATE** — Kelly kicks off the standup, runs round-robin (each agent reports), then wraps up with a Day Report. Day Report includes TL;DR, essential question, signals, and a WHAT/HOW/WHY/OWNER action table.
 - **DAILY_REPORT** — On-demand daily report (standup-style synthesis).
-- **Action item backlog** — Items from the Day Report table are stored in `standup-deliverables/action-items.json`, prioritized by a planner, and processed one-at-a-time by the **Ralph loop** (execute → verify → update status → append to learnings log).
+- **Action item backlog** — Items from the Day Report table are stored in `docs/standup/action-items.json`, prioritized by a planner, and processed one-at-a-time by the **Ralph loop** (execute → verify → update status → append to learnings log).
 - **A2A Loop Guard + A2A Context** — Evaluator prevents infinite ping-pong (max exchanges, reply-to-self). **A2A_CONTEXT** provider injects standup turn-taking, human-priority response, and single-responder rules. Set `shouldIgnoreBotMessages: false` on agents that should respond to other bots.
 
-**Recent progress (1+1=3 upgrade + manual standup):** **Structured signals** — VINCE, ECHO, Oracle, and Solus output fenced JSON (signals array / Solus call); round-robin stores `structuredSignals` per reply; cross-agent validation uses parsed confidence and direction. **Prediction tracker** — Solus’s call is extracted and saved to `standup-deliverables/predictions.json`; a daily `STANDUP_VALIDATE_PREDICTIONS` task checks expired predictions against CoinGecko price and marks correct/incorrect; accuracy stats are injected into the kickoff scoreboard and Day Report prompt. **Dynamic ECHO** — Key events from VINCE (e.g. “SOL funding negative”, “BTC +5% 24h”) are extracted and passed as context hints so ECHO and Clawterm run targeted X queries instead of a single hardcoded search. **Per-agent caps** — VINCE 1200, Oracle 800, others 400–600 chars (env-overridable) so data-heavy reports aren’t cut mid-table. **Eliza as delta reporter** — Fetches yesterday’s Day Report and today’s shared insights and reports what changed and whether yesterday’s call is tracking. **Feedback loop** — Kickoff includes a prediction scoreboard; Solus’s template tells it to calibrate using the scoreboard; Day Report prompt includes “Historical accuracy: X%. If below 50%, note more conservative confidence.” Manual trigger in `#daily-standup` remains reliable (single-responder, round-robin passthrough, entity-ID human detection, kickoff-first, 30 min session). See **Manual standup trigger: implementation notes** below.
+**Recent progress (1+1=3 upgrade + manual standup):** **Structured signals** — VINCE, ECHO, Oracle, and Solus output fenced JSON (signals array / Solus call); round-robin stores `structuredSignals` per reply; cross-agent validation uses parsed confidence and direction. **Prediction tracker** — Solus’s call is extracted and saved to `docs/standup/predictions.json`; a daily `STANDUP_VALIDATE_PREDICTIONS` task checks expired predictions against CoinGecko price and marks correct/incorrect; accuracy stats are injected into the kickoff scoreboard and Day Report prompt. **Dynamic ECHO** — Key events from VINCE (e.g. “SOL funding negative”, “BTC +5% 24h”) are extracted and passed as context hints so ECHO and Clawterm run targeted X queries instead of a single hardcoded search. **Per-agent caps** — VINCE 1200, Oracle 800, others 400–600 chars (env-overridable) so data-heavy reports aren’t cut mid-table. **Eliza as delta reporter** — Fetches yesterday’s Day Report and today’s shared insights and reports what changed and whether yesterday’s call is tracking. **Feedback loop** — Kickoff includes a prediction scoreboard; Solus’s template tells it to calibrate using the scoreboard; Day Report prompt includes “Historical accuracy: X%. If below 50%, note more conservative confidence.” Manual trigger in `#daily-standup` remains reliable (single-responder, round-robin passthrough, entity-ID human detection, kickoff-first, 30 min session). See **Manual standup trigger: implementation notes** below.
 
 ---
 
@@ -68,7 +68,7 @@ The answering agent (e.g. VINCE) runs its normal pipeline (composeState, actions
    - If a session is already active, end it.
    - `startStandupSession(roomId)` — in-memory state + persist to `standup-session.json`.
    - Send a **short** kickoff string to the channel immediately via `callback` (e.g. “## Standup 2026-02-14 … @VINCE, market data — go.”) so the user sees the standup start.
-   - Optionally call `buildAndSaveSharedDailyInsights(runtime, eliza)` (guarded: only if `eliza.runtimes` exists and `getAgents` works). That fetches a snippet of each agent’s data (e.g. market, Polymarket) and writes `standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md`. The **kickoff text** used for the round-robin context is either this enriched content or the short kickoff.
+   - Optionally call `buildAndSaveSharedDailyInsights(runtime, eliza)` (guarded: only if `eliza.runtimes` exists and `getAgents` works). That fetches a snippet of each agent’s data (e.g. market, Polymarket) and writes `docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`. The **kickoff text** used for the round-robin context is either this enriched content or the short kickoff.
 
 2. **handleRoundRobin**
    - `ensureStandupWorldAndRoom(runtime)` — creates/gets world and room, ensures all agents and the facilitator are participants.
@@ -80,7 +80,7 @@ The answering agent (e.g. VINCE) runs its normal pipeline (composeState, actions
        - Call `eliza.handleMessage(agentId, userMsg, { onResponse })`. The target agent receives a message with `source: "standup"`, so non-Kelly agents **do not** skip it (passthrough).
        - The target runs its normal reply flow; the coordinator waits for reply text (from `onResponse`, with extraction from nested content / thought and accumulation so the final REPLY callback isn’t lost). Timeout per turn (e.g. 90s); on timeout, use last extracted text if any.
        - Append “AgentName: &lt;reply&gt;” to the transcript; optionally push a one-line summary to standup channels.
-   - With the full transcript, call `generateAndSaveDayReport(runtime, transcript)` → LLM synthesizes TL;DR, essential question, signals, action table; save to `standup-deliverables/day-reports/YYYY-MM-DD-day-report.md` and parse action items into the backlog.
+   - With the full transcript, call `generateAndSaveDayReport(runtime, transcript)` → LLM synthesizes TL;DR, essential question, signals, action table; save to `docs/standup/day-reports/YYYY-MM-DD-day-report.md` and parse action items into the backlog.
    - Run the **planner** on today’s items (urgency order), update priorities in the file store.
    - `parseStandupTranscript` for lessons, disagreements, and action items; persist lessons to each agent’s facts, update relationship metadata for disagreements; if not using Ralph, create one queue task per action item.
    - `endStandupSession()`; clear in-memory state and optionally the session file.
@@ -110,11 +110,11 @@ So the guard doesn’t stop the current reply; it influences future turns and wo
 
 ### 7. Standup state and session file
 
-**standupState** keeps: `startedAt`, `roomId`, `reportedAgents`, `currentAgent`, `lastActivityAt`, `isWrappingUp`. It’s in memory and persisted to `standup-deliverables/standup-session.json` so a restart during a standup can (if within session timeout) recover. `startStandupSession`, `markAgentReported`, `haveAllAgentsReported`, `endStandupSession` drive the lifecycle. The **hybrid** flow (handleRoundRobin) doesn’t rely on per-message progression; it runs the full round-robin in one STANDUP_FACILITATE handler call, so the orchestrator’s “next agent” logic is used more in the scheduled/legacy path or for health checks.
+**standupState** keeps: `startedAt`, `roomId`, `reportedAgents`, `currentAgent`, `lastActivityAt`, `isWrappingUp`. It’s in memory and persisted to `docs/standup/standup-session.json` so a restart during a standup can (if within session timeout) recover. `startStandupSession`, `markAgentReported`, `haveAllAgentsReported`, `endStandupSession` drive the lifecycle. The **hybrid** flow (handleRoundRobin) doesn’t rely on per-message progression; it runs the full round-robin in one STANDUP_FACILITATE handler call, so the orchestrator’s “next agent” logic is used more in the scheduled/legacy path or for health checks.
 
 ### 8. Action items and Ralph loop
 
-- **Backlog:** After each Day Report, parsed rows (WHAT/HOW/WHY/OWNER) are appended to `standup-deliverables/action-items.json` with status `new` and optional urgency.
+- **Backlog:** After each Day Report, parsed rows (WHAT/HOW/WHY/OWNER) are appended to `docs/standup/action-items.json` with status `new` and optional urgency.
 - **Planner:** Sorts by urgency (`now` &lt; `today` &lt; `this_week` &lt; `backlog`) and `createdAt`, assigns `priority`, writes back to the file.
 - **Ralph loop** (when `STANDUP_USE_RALPH_LOOP=true`): A recurring task runs every `STANDUP_RALPH_INTERVAL_MS`. Each run: take pending items (status `new` or `in_progress`), sort by priority and date, pick the first; set `in_progress`; **execute** — if “remind”-like, `handleMessage` to the assignee agent; if “build”/north-star, call `executeBuildActionItem` (Milaidy or in-VINCE); **verify** (file exists or message sent); update item to `done` or `failed` with outcome; append to `standup-learnings.md`; optionally push a one-liner to standup channels.
 
@@ -146,9 +146,9 @@ Standup is turn-based. **Kelly** kicks off and acts only as coordinator (very sh
 | **Sentinel**| What's next in coding and what's been pushed to the repo. |
 | **Clawterm**| OpenClaw/AI/AGI: X and web sentiment, gateway status, one clear take. |
 
-The **Day Report** includes: **Essential question**, **Solus's call** (Above/Below/Uncertain + one sentence), TL;DR, signals table, and an action plan table (WHAT / HOW / WHY / OWNER). Full behavior and quality bar are in `standup-deliverables/prds/` (e.g. 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md).
+The **Day Report** includes: **Essential question**, **Solus's call** (Above/Below/Uncertain + one sentence), TL;DR, signals table, and an action plan table (WHAT / HOW / WHY / OWNER). Full behavior and quality bar are in `docs/standup/prds/` (e.g. 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md).
 
-**Shared daily insights:** For the **scheduled** standup, a shared daily insights file is written **before** the meeting to `standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md`. The kickoff includes this so the conversation is synthesis-first. North star = shared knowledge > sum of individual silos. See [docs/MULTI_AGENT.md](../../../docs/MULTI_AGENT.md) § Standup: shared daily insights.
+**Shared daily insights:** For the **scheduled** standup, a shared daily insights file is written **before** the meeting to `docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`. The kickoff includes this so the conversation is synthesis-first. North star = shared knowledge > sum of individual silos. See [docs/MULTI_AGENT.md](../../../docs/MULTI_AGENT.md) § Standup: shared daily insights.
 
 **Essential question** is configurable via `ESSENTIAL_STANDUP_BTC_LEVEL` (e.g. `70000`); default: "Based on current market sentiment, do you think BTC will be above $70K by next Friday?"
 
@@ -199,7 +199,7 @@ Action items from the Day Report (WHAT/HOW/WHY/OWNER table) are the single backl
 
 ### Backlog (file store)
 
-- **Path:** `standup-deliverables/action-items.json` (or `STANDUP_DELIVERABLES_DIR/action-items.json`).
+- **Path:** `docs/standup/action-items.json` (or `STANDUP_DELIVERABLES_DIR/action-items.json`).
 - **When:** After each Day Report, rows from the action table are parsed and appended via `addActionItem`. Each item has: id, date, what, how, why, owner, urgency, status, optional priority, outcome, completedAt.
 - **Statuses:** `new` → `in_progress` → `done` | `failed` | `cancelled`.
 
@@ -218,7 +218,7 @@ Action items from the Day Report (WHAT/HOW/WHY/OWNER table) are the single backl
   4. **Execute:** Build/north-star → `executeBuildActionItem` (Milaidy Gateway or in-VINCE fallback); Remind → `handleMessage` to assignee agent. Type is inferred from item text (e.g. "remind", "ping", "follow up" → remind).  
   5. **Verify:** For build/north-star, deliverable path must exist and be non-empty; for remind, success after message sent.  
   6. Update item: `done` (with outcome) or `failed` (with message).  
-  7. **Learnings:** Append one entry to `standup-deliverables/standup-learnings.md` (date, status, owner, what, outcome, optional learning sentence).  
+  7. **Learnings:** Append one entry to `docs/standup/standup-learnings.md` (date, status, owner, what, outcome, optional learning sentence).  
   8. Optionally push a one-line summary to standup channels (Discord/Slack/Telegram).
 
 So: one item per run, in priority order, with verification and a persistent "what we learned" log.
@@ -245,7 +245,7 @@ When **STANDUP_USE_RALPH_LOOP** is `false`, the plugin creates one ElizaOS queue
 | `STANDUP_SCHEDULE` | `0 8 * * *` | Cron expression for scheduler (minute hour * * *). Used when STANDUP_AUTO_START is true. |
 | `STANDUP_AUTO_START` | `false` | Set to `"true"` to enable cron-style auto kickoff at STANDUP_SCHEDULE. |
 | `STANDUP_TIMEZONE` | `UTC` | Timezone for schedule (scheduler). |
-| `STANDUP_DELIVERABLES_DIR` | `standup-deliverables` | Root dir for day reports, action-items.json, standup-learnings.md, north-star deliverables (prds/, essays/, etc.). |
+| `STANDUP_DELIVERABLES_DIR` | `docs/standup` | Root dir for day reports, action-items.json, standup-learnings.md, north-star deliverables (prds/, essays/, etc.). |
 | `STANDUP_RALPH_INTERVAL_MS` | `300000` | Ralph loop interval (ms). Process one action item per run (default 5 min). |
 | `STANDUP_USE_RALPH_LOOP` | `true` | When true, backlog is processed only by the Ralph loop; when false, legacy per-item queue tasks are created. |
 | `STANDUP_BUILD_FALLBACK_TO_VINCE` | `true` | When Milaidy Gateway is not set, generate code/deliverables in-VINCE and write to deliverables dir. |
@@ -270,7 +270,7 @@ Day reports are written to `{STANDUP_DELIVERABLES_DIR}/day-reports/YYYY-MM-DD-da
 
 **Optional schedule (cron-style):** Besides `STANDUP_UTC_HOURS` + `STANDUP_INTERVAL_MS`, you can use **STANDUP_SCHEDULE** (cron, e.g. `0 8 * * *` = 8 AM UTC daily), **STANDUP_AUTO_START** (`true` to enable), and **STANDUP_TIMEZONE** (default `UTC`). The scheduler uses a ±1 minute window so triggers are not missed.
 
-**Testing a standup:** In Discord (or your standup channel), the human (e.g. livethelifetv) can trigger manually: *"let's do a new standup kelly"* or *"day report"* / *"wrap up"*. Kelly should reply with STANDUP_FACILITATE: kickoff, round-robin (VINCE → Eliza → … → Clawterm), then Day Report + action items. Check: (1) only Kelly responds to the human in the standup channel (single-responder), (2) Day Report appears in `standup-deliverables/day-reports/YYYY-MM-DD-day-report.md`, (3) action items in `action-items.json` and Ralph loop processes them when enabled.
+**Testing a standup:** In Discord (or your standup channel), the human (e.g. livethelifetv) can trigger manually: *"let's do a new standup kelly"* or *"day report"* / *"wrap up"*. Kelly should reply with STANDUP_FACILITATE: kickoff, round-robin (VINCE → Eliza → … → Clawterm), then Day Report + action items. Check: (1) only Kelly responds to the human in the standup channel (single-responder), (2) Day Report appears in `docs/standup/day-reports/YYYY-MM-DD-day-report.md`, (3) action items in `action-items.json` and Ralph loop processes them when enabled.
 
 ---
 
@@ -415,7 +415,7 @@ If the reply is emitted with a different channel, the job’s responseHandler wi
   Postgres connection pool limit. Increase pool_size or use transaction/pooler mode.
 
 - **Ralph loop not running**  
-  Ensure `STANDUP_ENABLED=true` and the coordinator agent (e.g. Kelly) is the one that called `registerStandupTask`. Check that tasks with tag `queue` and `repeat` are being ticked by the Bootstrap TaskService. Verify `standup-deliverables/action-items.json` has pending items with `status: new` or `in_progress` and optional `priority` set.
+  Ensure `STANDUP_ENABLED=true` and the coordinator agent (e.g. Kelly) is the one that called `registerStandupTask`. Check that tasks with tag `queue` and `repeat` are being ticked by the Bootstrap TaskService. Verify `docs/standup/action-items.json` has pending items with `status: new` or `in_progress` and optional `priority` set.
 
 ---
 

@@ -153,7 +153,7 @@ function generateIntelligentSuggestions(state: ProjectState): WorkItem[] {
     suggestions.push({
       id: `northstar-${del.deliverable.toLowerCase().replace(/\s+/g, "-")}`,
       title: `Produce: ${del.deliverable}`,
-      description: `North star deliverable is ${del.status}. Owner: ${del.owner}. Generate and save to standup-deliverables/.`,
+      description: `North star deliverable is ${del.status}. Owner: ${del.owner}. Generate and save to docs/standup/ (or STANDUP_DELIVERABLES_DIR).`,
       category: "content",
       createdAt: now,
     });

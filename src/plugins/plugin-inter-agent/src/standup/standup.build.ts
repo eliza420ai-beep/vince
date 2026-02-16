@@ -11,7 +11,7 @@ import type { StandupActionItem, StandupActionItemType } from "./standup.parse";
 import { withLock } from "./fileLock";
 
 const MILAIDY_STANDUP_ACTION_PATH = "/api/standup-action";
-const DEFAULT_DELIVERABLES_DIR = "standup-deliverables";
+const DEFAULT_DELIVERABLES_DIR = "docs/standup";
 const MANIFEST_FILENAME = "manifest.md";
 
 const NORTH_STAR_TYPES: StandupActionItemType[] = [

@@ -149,7 +149,7 @@ When enabled, agents meet **twice per day** in a dedicated standup without you i
 
 The **north star** for standup is: *shared knowledge of the team is greater than the sum of each agent's individual knowledge*. To get there, the **scheduled** standup is **synthesis-first**: linking across domains, fact-checking, and actionable synthesis instead of each agent reporting their data in isolation.
 
-- **Shared daily insights:** Before the meeting, the coordinator writes a **shared daily insights** file that merges each agent's live data (same sources as today's fetch) into one document—one section per agent (e.g. `## VINCE`, `## Eliza`, …). Path: **`standup-deliverables/daily-insights/YYYY-MM-DD-shared-insights.md`** (same root as Day Reports; see `STANDUP_DELIVERABLES_DIR`).
+- **Shared daily insights:** Before the meeting, the coordinator writes a **shared daily insights** file that merges each agent's live data (same sources as today's fetch) into one document—one section per agent (e.g. `## VINCE`, `## Eliza`, …). Path: **`docs/standup/daily-insights/YYYY-MM-DD-shared-insights.md`** (same root as Day Reports; see `STANDUP_DELIVERABLES_DIR`).
 - **Kickoff:** The first message in the room **includes** that shared document plus a short instruction: *"Above: shared daily insights. Link, fact-check, brainstorm — then we get to the Day Report. Standup {date}. @VINCE, go."*
 - **Turn semantics:** When the shared-insights sentinel is present, each agent's turn is **not** "report your data" but: add (1) one **link** between your domain and another agent's insight, (2) one **fact-check** or clarification if needed, (3) one **brainstorm or risk**, (4) one **actionable take**. So the conversation is linking/fact-check/brainstorm first; the Day Report is then built from this richer transcript.
 - **Manual standup:** Unchanged unless "gather insights" is added later; manual standup uses the current flow (short kickoff, report-your-data turns).
@@ -169,10 +169,10 @@ To reduce token burn and rate limits in #daily-standup, the following behavior a
 Action items parsed as **build** (e.g. "build feature X", "write a script for Y") trigger code delivery instead of a chat reminder:
 
 - **Milaidy Gateway (optional):** If `MILAIDY_GATEWAY_URL` is set (e.g. `http://localhost:18789`), the worker POSTs the action to `POST {MILAIDY_GATEWAY_URL}/api/standup-action` with body `{ description, assigneeAgentName?, source: "vince-standup" }`. If Milaidy implements this endpoint, it can run its agent/tools and return `deliverablePath` or `message`. No change to the Milaidy repo is required in VINCE; the contract is documented in [docs/STANDUP_DELIVERABLES.md](docs/STANDUP_DELIVERABLES.md).
-- **Fallback (in-VINCE):** When Milaidy is not set or the request fails, the worker uses the runtime LLM to generate a single file (TypeScript/JavaScript) and writes it to `STANDUP_DELIVERABLES_DIR` (default `./standup-deliverables/`). A `manifest.md` in that directory lists date, assignee, description, and filename. Set `STANDUP_BUILD_FALLBACK_TO_VINCE=false` to disable fallback (build items then only go to Milaidy).
+- **Fallback (in-VINCE):** When Milaidy is not set or the request fails, the worker uses the runtime LLM to generate a single file (TypeScript/JavaScript) and writes it to `STANDUP_DELIVERABLES_DIR` (default `./docs/standup/`). A `manifest.md` in that directory lists date, assignee, description, and filename. Set `STANDUP_BUILD_FALLBACK_TO_VINCE=false` to disable fallback (build items then only go to Milaidy).
 - **Notification:** When a build deliverable is ready, a short message is pushed to the same channels as the standup summary (e.g. "Standup deliverable: … → `path` (from AgentName)").
 - **Safety:** Generated code is written to disk only; it is not executed automatically. Review and run at your discretion.
-- **Agent suggestions:** If the standup transcript includes agent-proposed improvements (new topics, tools, or process changes), they are appended to `standup-deliverables/agent-suggestions.md` for human review.
+- **Agent suggestions:** If the standup transcript includes agent-proposed improvements (new topics, tools, or process changes), they are appended to `docs/standup/agent-suggestions.md` for human review.
 - **North-star deliverables:** Action items can also be parsed as **essay** (Substack), **tweets** (banger suggestions), **x_article** (long-form for X), **trades** (perps Hyperliquid + options HypeSurface for BTC/SOL/ETH/HYPE), **good_life** (Kelly-style founder lifestyle suggestions), **prd** (Sentinel: PRD for Cursor), or **integration_instructions** (Sentinel: Milaidy/OpenClaw setup and integration). These are generated in-VINCE and written to subdirs under `STANDUP_DELIVERABLES_DIR`. See [docs/NORTH_STAR_DELIVERABLES.md](docs/NORTH_STAR_DELIVERABLES.md).
 
 ## Feedback from agent testing (planned)
@@ -184,8 +184,8 @@ When testing an agent (e.g. Kelly) in Discord, we want the user to be able to pr
 1. **Trigger:** User sends a message that is clearly feedback from testing, e.g. `FEEDBACK: Kelly should recommend Biarritz restaurants when I ask for Biarritz` (or similar prefix/keyword).
 2. **Tested agent (e.g. Kelly):** Uses a dedicated action (e.g. FEEDBACK or FEEDBACK_TO_IMPROVEMENT) that **asks Sentinel** via ASK_AGENT (or in-process `elizaOS.handleMessage`) with a structured request: agent tested, feedback text, and optional recent conversation context.
 3. **Sentinel:** Receives the request and **triages**:
-   - **Code/behavior fix** (prompts, actions, plugin logic) → produce a **PRD for Cursor** and write to `standup-deliverables/prds/` (existing pattern).
-   - **Knowledge gap** (missing or outdated content in `knowledge/`) → produce an **Eliza task**: what to add or update and where (e.g. `knowledge/the-good-life/michelin-restaurants/biarritz-region.md`), and write to `standup-deliverables/eliza-tasks/`. This is a task for **Eliza** (or a human) to execute later—expand the corpus, run UPLOAD, ADD_MICHELIN_RESTAURANT, etc.
+   - **Code/behavior fix** (prompts, actions, plugin logic) → produce a **PRD for Cursor** and write to `docs/standup/prds/` (existing pattern).
+   - **Knowledge gap** (missing or outdated content in `knowledge/`) → produce an **Eliza task**: what to add or update and where (e.g. `knowledge/the-good-life/michelin-restaurants/biarritz-region.md`), and write to `docs/standup/eliza-tasks/`. This is a task for **Eliza** (or a human) to execute later—expand the corpus, run UPLOAD, ADD_MICHELIN_RESTAURANT, etc.
 4. **Reply:** Sentinel returns a one-line confirmation (e.g. "PRD written to …" or "Eliza task written to …"); the tested agent relays it back to the user in Discord.
 
 ### Why triage
@@ -196,8 +196,8 @@ Not every feedback is a code change. Sometimes the gap is **knowledge** (e.g. "K
 
 | Type        | Owner   | Path                               | Purpose |
 |------------|---------|------------------------------------|---------|
-| PRD        | Sentinel| `standup-deliverables/prds/`       | Code/behavior change; paste into Cursor. |
-| Eliza task | Sentinel| `standup-deliverables/eliza-tasks/`| Knowledge gap; what to add/update where for Eliza or human. |
+| PRD        | Sentinel| `docs/standup/prds/`       | Code/behavior change; paste into Cursor. |
+| Eliza task | Sentinel| `docs/standup/eliza-tasks/`| Knowledge gap; what to add/update where for Eliza or human. |
 
 ### Implementation notes (for later)
 
@@ -219,7 +219,7 @@ The current setup (ElizaOS, ASK_AGENT, in-process `elizaOS.handleMessage`, stand
 
 - **Distinct agent identities (Option C):** Each agent has its own Discord Application ID, so in Discord users see separate bots (Vince, Kelly, Sentinel, etc.) with clear branding and presence. We’re not multiplexing one bot by session; each agent is a first-class identity in the channel.
 - **ElizaOS agent model:** Character, actions, providers, evaluators, knowledge/RAG, and tasks are all first-class. We get rich semantics (e.g. “Kelly runs this action when this provider says X”) and built-in learning (evaluators, memory, facts). OpenClaw is centered on tools and skills; we have a full agent abstraction with prompts, validation, and response flow.
-- **Standup and deliverables already built:** Kelly-coordinated 2×/day standup, transcript parsing, action-item types (remind vs build), Milaidy Gateway hook, north-star deliverable types (prd, essay, tweets, trades, good_life, integration_instructions), and writing to `standup-deliverables/` are implemented. Recreating this on another stack would be a large project.
+- **Standup and deliverables already built:** Kelly-coordinated 2×/day standup, transcript parsing, action-item types (remind vs build), Milaidy Gateway hook, north-star deliverable types (prd, essay, tweets, trades, good_life, integration_instructions), and writing to `docs/standup/` are implemented. Recreating this on another stack would be a large project.
 - **A2A policy:** `allowedTargets` and optional `allow` rules (source → target) give per-character control over who can ask whom. We can express “only Kelly can ask Sentinel” or “Eliza can ask anyone in the list” without extra infrastructure.
 - **Single process, shared persistence:** All runtimes run in one process with a shared database (memories, rooms, entities, relationships). In-process ASK_AGENT has no network hop; we avoid distributed coordination and multi-service ops for the main A2A path.
 - **ElizaOS plugin ecosystem:** We compose plugin-vince, plugin-kelly, plugin-sentinel, plugin-inter-agent, and other ElizaOS plugins in one codebase. Patterns (actions, providers, routes) are consistent and we can reuse or extend community plugins.
@@ -230,7 +230,7 @@ A different way to get “where we need to be” is to **run [OpenClaw](https://
 
 **Two interpretations:**
 
-1. **OpenClaw as dev worker (hybrid):** VINCE stays on ElizaOS. We run OpenClaw separately with a session that has repo access (clone, read/write/edit, bash) and standing instructions: e.g. “Implement PRDs in `standup-deliverables/prds/` and Eliza tasks in `standup-deliverables/eliza-tasks/`; open PRs, run tests, keep the codebase consistent with our docs.” Standup and feedback flow keep producing deliverables; OpenClaw’s agent applies them. That can be **more efficient** if the bottleneck is human implementation: no paste-PRD-into-Cursor step; one agent reads the deliverable and edits the repo (with PRs for review).
+1. **OpenClaw as dev worker (hybrid):** VINCE stays on ElizaOS. We run OpenClaw separately with a session that has repo access (clone, read/write/edit, bash) and standing instructions: e.g. “Implement PRDs in `docs/standup/prds/` and Eliza tasks in `docs/standup/eliza-tasks/`; open PRs, run tests, keep the codebase consistent with our docs.” Standup and feedback flow keep producing deliverables; OpenClaw’s agent applies them. That can be **more efficient** if the bottleneck is human implementation: no paste-PRD-into-Cursor step; one agent reads the deliverable and edits the repo (with PRs for review).
 2. **Full migration to OpenClaw:** Rebuild VINCE (Vince, Kelly, Sentinel, standup, deliverables) on OpenClaw’s Gateway/sessions/skills. As argued above, that’s a large reimplementation and likely **less** efficient for “getting there fast”—we’d spend time recreating what we have.
 
 **Why the dev-worker idea can be more efficient:**
@@ -243,7 +243,7 @@ A different way to get “where we need to be” is to **run [OpenClaw](https://
 
 - **Two systems:** VINCE (ElizaOS) for product and standup; OpenClaw for the coding agent. You run and secure both; OpenClaw needs repo credentials (e.g. token with PR scope).
 - **Quality and review:** Autonomous code changes can introduce bugs. Prefer “open PR, human merges” over “push to main.” Set clear instructions (run tests, lint, follow MULTI_AGENT and CLAUDE).
-- **Triggering:** OpenClaw isn’t built for “watch this folder and run when a new file appears.” You’d implement that via a skill that polls `standup-deliverables/`, or a cron job that sends a message to the dev session (“implement any new PRDs”), or manual “implement the latest PRD” in chat.
+- **Triggering:** OpenClaw isn’t built for “watch this folder and run when a new file appears.” You’d implement that via a skill that polls `docs/standup/`, or a cron job that sends a message to the dev session (“implement any new PRDs”), or manual “implement the latest PRD” in chat.
 
 **Conclusion:** Using OpenClaw as a dev worker with this repo and instructions to implement our deliverables is a **viable strategy** to evaluate. Efficiency gain is real if the main bottleneck is human implementation of PRDs and the agent is reliable enough that review is lighter than doing the work yourself. If the bottleneck is design or product decisions, our current path (Sentinel PRDs + Cursor/human) or strengthening the Milaidy Gateway may be enough. Documenting this here so the team can decide and, if desired, prototype (e.g. one OpenClaw session, repo clone, “implement this PRD” as a test).
 
@@ -251,7 +251,7 @@ A different way to get “where we need to be” is to **run [OpenClaw](https://
 
 ### Recommendation
 
-- **First:** Implement the [Feedback from agent testing](#feedback-from-agent-testing-planned) flow in VINCE (trigger, tested agent asks Sentinel, triage, write to `standup-deliverables/prds/` and `eliza-tasks/`). Keep implementation in Cursor/human: Sentinel (and feedback) produce PRDs and Eliza tasks; humans or Cursor apply them. No second system yet.
+- **First:** Implement the [Feedback from agent testing](#feedback-from-agent-testing-planned) flow in VINCE (trigger, tested agent asks Sentinel, triage, write to `docs/standup/prds/` and `eliza-tasks/`). Keep implementation in Cursor/human: Sentinel (and feedback) produce PRDs and Eliza tasks; humans or Cursor apply them. No second system yet.
 - **Then:** If the bottleneck becomes “too many good PRDs, not enough implementation capacity,” add a dev worker. Prefer **Milaidy** (extend the standup-action contract or add a PRD endpoint; same ElizaOS stack, existing Gateway hook) over OpenClaw (second stack, more ops). Only add OpenClaw if there is a clear reason to prefer its session/tool model.
 - **Rationale:** Shipping the feedback flow is a bounded, in-repo task. Autonomous “read PRD → edit repo → open PR” is non-trivial; add it only when the need is clear. Milaidy is the more coherent choice when we do.
 

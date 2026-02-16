@@ -97,56 +97,56 @@ export const DELIVERABLE_TYPES: DeliverableType[] = [
   {
     type: "essay",
     owner: "Eliza, Solus",
-    outputDir: "standup-deliverables/essays/",
+    outputDir: "docs/standup/essays/",
     description: "Long-form Substack essays — benefit-led, one clear idea, no AI slop",
     format: "Markdown, YYYY-MM-DD-essay-<slug>.md",
   },
   {
     type: "tweets",
     owner: "Eliza, Solus",
-    outputDir: "standup-deliverables/tweets/",
+    outputDir: "docs/standup/tweets/",
     description: "Banger tweet suggestions with viral potential",
     format: "Numbered list, YYYY-MM-DD-tweets-<topic>.md",
   },
   {
     type: "x_article",
     owner: "Eliza, Solus",
-    outputDir: "standup-deliverables/x-articles/",
+    outputDir: "docs/standup/x-articles/",
     description: "Long-form X article — story, narrative, shareable",
     format: "Markdown, YYYY-MM-DD-x-article-<slug>.md",
   },
   {
     type: "trades",
     owner: "VINCE",
-    outputDir: "standup-deliverables/trades/",
+    outputDir: "docs/standup/trades/",
     description: "Suggested perps (Hyperliquid) and options (HypeSurface) for BTC/SOL/ETH/HYPE",
     format: "Structured bullets/table, YYYY-MM-DD-trades-<source>.md",
   },
   {
     type: "good_life",
     owner: "Kelly",
-    outputDir: "standup-deliverables/good-life/",
+    outputDir: "docs/standup/good-life/",
     description: "Founder good-life suggestions: travel, dining, wine, health, fitness",
     format: "Markdown list, YYYY-MM-DD-good-life-<theme>.md",
   },
   {
     type: "prd",
     owner: "Sentinel",
-    outputDir: "standup-deliverables/prds/",
+    outputDir: "docs/standup/prds/",
     description: "PRD for Cursor — goal, acceptance criteria, architecture rules",
     format: "Full PRD markdown, YYYY-MM-DD-prd-<slug>.md",
   },
   {
     type: "integration_instructions",
     owner: "Sentinel",
-    outputDir: "standup-deliverables/integration-instructions/",
+    outputDir: "docs/standup/integration-instructions/",
     description: "Milaidy/OpenClaw setup and integration instructions",
     format: "Step-by-step markdown, YYYY-MM-DD-integration-<system>.md",
   },
   {
     type: "eliza_task",
     owner: "Sentinel",
-    outputDir: "standup-deliverables/eliza-tasks/",
+    outputDir: "docs/standup/eliza-tasks/",
     description: "Knowledge gap task for Eliza — what to add/update where",
     format: "Task spec markdown, YYYY-MM-DD-eliza-task-<slug>.md",
   },
@@ -203,7 +203,7 @@ export const ARCHITECTURE_CONCEPTS: ArchitectureConcept[] = [
       "Code/behavior fix → PRD for Cursor",
       "Knowledge gap → Eliza task (what to add/update)",
       "Tested agent relays Sentinel's response",
-      "Deliverables in standup-deliverables/prds/ or eliza-tasks/",
+      "Deliverables in docs/standup/prds/ or eliza-tasks/",
     ],
   },
   {
@@ -413,7 +413,7 @@ STANDUP_UTC_HOURS=8,20
 # STANDUP_INTERVAL_MS=43200000
 
 # Deliverables directory
-STANDUP_DELIVERABLES_DIR=./standup-deliverables
+STANDUP_DELIVERABLES_DIR=./docs/standup
 
 # Milaidy Gateway for build items
 MILAIDY_GATEWAY_URL=http://localhost:18789

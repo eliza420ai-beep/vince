@@ -1,6 +1,6 @@
 # X Research Skill (Cursor / Claude)
 
-X/Twitter read-only research for Cursor and Claude: agentic search, thread following, and sourced briefings. Same idea as [rohunvora/x-research-skill](https://github.com/rohunvora/x-research-skill), vendored in this repo so you can use it without cloning.
+X/Twitter read-only research for Cursor and Claude: agentic search, thread following, and sourced briefings. Same idea as [rohunvora/x-research-skill](https://github.com/rohunvora/x-research-skill), vendored in this repo so you can use it without cloning. This repo is OpenClaw-friendly; see [OPENCLAW.md](../../OPENCLAW.md) for **openclaw-agents/**, **vault/**, **tasks/**.
 
 ## Setup
 

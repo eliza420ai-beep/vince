@@ -1,6 +1,6 @@
 /**
  * "What we learned" log for standup action items.
- * Append-only file: standup-deliverables/standup-learnings.md
+ * Append-only file: docs/standup/standup-learnings.md (or STANDUP_DELIVERABLES_DIR)
  */
 
 import * as fs from "node:fs/promises";
@@ -9,7 +9,8 @@ import { logger } from "@elizaos/core";
 import type { ActionItem } from "./actionItemTracker";
 
 function getLearningsPath(): string {
-  const dir = process.env.STANDUP_DELIVERABLES_DIR?.trim() || path.join(process.cwd(), "standup-deliverables");
+  const envDir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
+  const dir = envDir ? (path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir)) : path.join(process.cwd(), "docs/standup");
   return path.join(dir, "standup-learnings.md");
 }
 

@@ -1,73 +1,102 @@
 # ElizaOS Agent Project Development Guide for Claude
 
-> **Optimized for Claude LLM** - Complete reference for building ElizaOS agent projects
+> **Optimized for Claude LLM** — Complete reference for building ElizaOS agent projects and the VINCE multi-agent system.
+
+---
 
 ## 🎯 This repo: VINCE
 
-This repository is the **VINCE** project: a unified data-intelligence agent (options, perps, memes, lifestyle, art) with a **self-improving paper trading bot** at the core.
+This repository is the **VINCE** project: a unified data-intelligence **multi-agent system** (options, perps, memes, lifestyle, art) with a **self-improving paper trading bot** at the core. One team, one dream: users can chat with **Kelly** (or any agent); she orchestrates Vince, Solus, Eliza, Otaku, Sentinel, Oracle, ECHO via **ASK_AGENT**.
+
+### Agent map (Dream Team)
+
+| Agent | Role | Where | One-line |
+|-------|------|--------|----------|
+| **Eliza** | CEO | `src/agents/eliza.ts` | Knowledge, research, content production; handoffs for live data to VINCE. |
+| **VINCE** | CDO | `src/agents/vince.ts` | Data and paper trading bot; ALOHA, options, perps, memes; no execution. |
+| **ECHO** | CSO | `src/agents/echo.ts` | Crypto Twitter sentiment, X pulse/vibe, watchlist; handoffs for price/TA to VINCE. |
+| **Oracle** | CPO | `src/agents/oracle.ts` | Polymarket read-only: discovery, odds, portfolio; handoffs to VINCE, Solus, Otaku. |
+| **Solus** | CFO | `src/agents/solus.ts` | Hypersurface options: strike ritual, mechanics, optimal strike; spot + pasted context; no execution. |
+| **Otaku** | COO | `src/agents/otaku.ts` | **Only agent with a funded wallet**; swap, bridge, DCA, Morpho, stop-loss, NFT mint, Vince signal execution. |
+| **Kelly** | CVO | `src/agents/kelly.ts` | Lifestyle concierge; one team one dream; plugin-discovery, plugin-todo, **plugin-personality** (self-modification). |
+| **Sentinel** | CTO | `src/agents/sentinel.ts` | Core dev: PRDs, project radar, OpenClaw guide, cost status, ART; weekly + optional daily tasks. |
+| **Clawterm** | — | `src/agents/clawterm.ts` | OpenClaw research terminal: research, gateway, HIP-3 AI assets. |
+
+### Key concepts
 
 | What | Where |
 |------|--------|
-| **Character & agent** | `src/agents/vince.ts` — knowledge dirs, system prompt, plugins. Perps on Hyperliquid; can make money in 1h/1d/2d when paper bot works. |
-| **Kelly (lifestyle concierge)** | `src/agents/kelly.ts` — travel advisor, private sommelier, Michelin guide, health guru, fitness coach, touch-grass motivator; uses **plugin-kelly** (KELLY_DAILY_BRIEFING), **@elizaos/plugin-discovery**, and **@elizaos/plugin-todo** (todo/reminders); the-good-life; knows user's trading context but never gives trading advice |
-| **Solus (north star)** | [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — X-native wealth architect; north star and roadmap for crypto intelligence. Weekly options (Hypersurface); makes money only with good strike + good weekly bull/bear sentiment. |
-| **Three curves** | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). See [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md). |
-| **Sentinel (core dev)** | `src/agents/sentinel.ts` — ops, architecture steward, 24/7 coding north star, ML/ONNX obsessed, ART (elizaOS examples/art), clawdbot for knowledge research, best settings; deep collab with Claude 4.6; plugin-sentinel (actions + weekly/daily tasks) |
-| **Oracle (prediction markets)** | `src/agents/oracle.ts` — Polymarket discovery, odds, portfolio (read-only); plugin-polymarket-discovery; prioritizes topics in [knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md](knowledge/teammate/POLYMARKET_PRIORITY_MARKETS.md), GET_VINCE_POLYMARKET_MARKETS for focus markets; handoffs: live data/paper bot → VINCE, strike/execution → Solus, DeFi/wallet → Otaku |
-| **Paper bot, ML, actions, providers** | `src/plugins/plugin-vince/` |
-| **Feature store (ML storage)** | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) |
-| **Deploy (Eliza Cloud)** | [docs/DEPLOY.md](docs/DEPLOY.md) |
+| **Three curves** | Left = Vince perps (Hyperliquid). Mid = HIP-3 spot + stack sats. Right = Hypersurface options + ship code (Solus + Sentinel). [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) |
+| **Paper bot, ML, actions** | `src/plugins/plugin-vince/` — [WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
+| **Feature store (ML)** | [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) |
 | **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) |
+| **Agent briefs (OpenClaw / PRD)** | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief OpenClaw or draft next-iteration PRDs. |
+| **Deploy** | [docs/DEPLOY.md](docs/DEPLOY.md) |
 | **Project overview** | [README.md](README.md) |
-| **Plugin purpose / framework / how-to** | [src/plugins/plugin-vince/WHAT.md](src/plugins/plugin-vince/WHAT.md), [WHY.md](src/plugins/plugin-vince/WHY.md), [HOW.md](src/plugins/plugin-vince/HOW.md), [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) |
 
-Users can focus on chatting with **Kelly**; she orchestrates Vince (data), Solus (insights), Eliza (knowledge), and Otaku (DeFi execution) via ASK_AGENT so the user gets **one team, one dream** in a single conversation. **Otaku** is the only agent with a wallet that holds funds (DeFi experiments, NFT minting when Sentinel creates gen art, full onchain). **Eliza** should focus heavily on improving and expanding the knowledge base when needed.
-
-Use the sections below for **generic ElizaOS** patterns (character, plugins, env, testing). For VINCE-specific implementation (signal sources, paper bot, ML pipeline), prefer the plugin docs above.
+**Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution). **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.
 
 ---
 
 ## 📋 Project Overview
 
-| Property            | Value                         |
-| ------------------- | ----------------------------- |
-| **Project Type**    | ElizaOS Agent Project         |
-| **Package Manager** | `bun` (REQUIRED)              |
-| **Runtime**         | ElizaOS with plugin ecosystem |
-| **Configuration**   | Character-based agent setup   |
-| **Architecture**    | Plugin composition pattern    |
+| Property | Value |
+|----------|--------|
+| **Project Type** | ElizaOS multi-agent project (VINCE) |
+| **Package Manager** | `bun` (REQUIRED) |
+| **Runtime** | ElizaOS with plugin ecosystem |
+| **Configuration** | Character-based agents in code (`src/agents/*.ts`) |
+| **Architecture** | Plugin composition; one Discord app per agent (or fallback) |
 
-## 🏗️ Project Architecture
-
-ElizaOS projects are **character-driven agent systems** that compose functionality through plugins:
+## 📁 Project Structure (VINCE)
 
 ```
-📦 Your Agent Project
-├── 🤖 Character Definition (personality, behavior)
-├── 🔌 Plugin Ecosystem (functionality)
-├── 🌍 Environment Config (APIs, secrets)
-└── 🚀 Runtime Orchestration (ElizaOS)
+vince/
+├── src/
+│   ├── index.ts                 # Entry; loads project agents
+│   ├── agents/                  # Character definitions (no characters/ folder)
+│   │   ├── eliza.ts
+│   │   ├── vince.ts
+│   │   ├── echo.ts
+│   │   ├── oracle.ts
+│   │   ├── solus.ts
+│   │   ├── otaku.ts
+│   │   ├── kelly.ts
+│   │   ├── sentinel.ts
+│   │   ├── clawterm.ts
+│   │   ├── naval.ts
+│   │   └── index.ts
+│   └── plugins/
+│       ├── plugin-vince/        # Paper bot, ALOHA, options, ML
+│       ├── plugin-eliza/       # Knowledge, UPLOAD, content production
+│       ├── plugin-kelly/       # Lifestyle, daily briefing, tasks
+│       ├── plugin-otaku/       # DeFi execution, BANKR, CDP, routes
+│       ├── plugin-sentinel/    # PRDs, cost, OpenClaw guide, ART
+│       ├── plugin-solus/      # Hypersurface strike, mechanics
+│       ├── plugin-polymarket-discovery/
+│       ├── plugin-x-research/  # X pulse, vibe, watchlist
+│       ├── plugin-inter-agent/ # ASK_AGENT, standup
+│       └── ...
+├── knowledge/                   # RAG / teammate context
+│   ├── teammate/               # Shared (USER.md, SOUL.md, THREE-CURVES.md, etc.)
+│   ├── sentinel-docs/          # Sentinel knowledge
+│   ├── the-good-life/          # Kelly: hotels, dining, wine
+│   └── ...
+├── docs/                        # Project and agent docs
+│   ├── AGENTS_INDEX.md         # Agent briefing index (OpenClaw / PRD)
+│   ├── ELIZA.md, VINCE.md, ECHO.md, ORACLE.md, SOLUS.md, OTAKU.md, KELLY.md, SENTINEL.md
+│   ├── MULTI_AGENT.md
+│   ├── FEATURE-STORE.md, TREASURY.md, DEPLOY.md
+│   └── ...
+├── .env.example                 # Clean, grouped by section and agent
+├── .env                         # Local secrets (gitignored); same structure
+├── scripts/
+│   └── reorder-env.js          # Reorder .env to match .env.example
+├── package.json
+└── tsconfig.json
 ```
 
-## 📁 Project Structure
-
-**This repo (VINCE):** `src/agents/vince.ts` (character), `src/index.ts` (entry), `src/plugins/plugin-vince/` (main plugin), `knowledge/teammate/` (USER.md, SOUL.md, TOOLS.md). No `characters/` folder; character is in code.
-
-**Generic ElizaOS layout:**
-
-```
-your-agent-project/
-├── 📂 src/
-│   ├── 📄 character.ts          # Agent personality & config (or src/agents/name.ts)
-│   ├── 📄 index.ts              # Main entry point
-│   └── 📄 plugin.ts             # Custom plugin (optional)
-├── 📂 characters/               # Character JSON files (optional)
-├── 📂 knowledge/                # RAG / teammate context
-├── 📄 .env                      # Environment variables
-├── 📄 .env.example
-├── 📄 package.json
-└── 📄 tsconfig.json
-```
+---
 
 ## 🤖 Character Configuration
 
@@ -79,698 +108,202 @@ Apply to **every agent** in this repo:
 - **Confident and craft-focused (Porsche OG):** Confident without bragging. Substance over hype. Let the craft speak—no empty superlatives unless backed by a concrete detail.
 - **Zero AI-slop jargon:** Never use: leverage, utilize (use "use"), streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day. Concrete, human language only.
 
-Reference in agent system prompts (e.g. "BRAND VOICE" or "VOICE PRINCIPLES") and in `style.all` so the model sees it every time.
+Reference in agent system prompts (e.g. "BRAND VOICE") and in `style.all` so the model sees it every time.
 
-### Core Character Definition
+### Core Character Definition (ElizaOS pattern)
 
 ```typescript
-// src/character.ts
+// src/agents/example.ts
 import { Character } from '@elizaos/core';
 
 export const character: Character = {
-  // Basic Identity
-  name: 'AssistantAgent',
-  username: 'assistant',
-
-  // Personality & Behavior
-  bio: 'A helpful AI assistant created to provide assistance and engage in meaningful conversations.',
-
-  system: `You are a helpful, harmless, and honest AI assistant.
-Core principles:
-- Always strive to provide accurate and useful information
-- Be respectful and considerate in all interactions  
-- Admit when you don't know something
-- Ask clarifying questions when requests are ambiguous`,
-
-  // Conversation Examples (Training Data)
-  messageExamples: [
-    [
-      { name: 'user', content: { text: 'Hello! How are you today?' } },
-      {
-        name: 'AssistantAgent',
-        content: {
-          text: "Hello! I'm doing well, thank you for asking. I'm here and ready to help you with whatever you need. How can I assist you today?",
-        },
-      },
-    ],
-    [
-      { name: 'user', content: { text: 'Can you help me understand a complex topic?' } },
-      {
-        name: 'AssistantAgent',
-        content: {
-          text: "Absolutely! I'd be happy to help you understand any topic. Could you tell me which specific topic you'd like to explore? I'll break it down in a clear, easy-to-understand way.",
-        },
-      },
-    ],
-  ],
-
-  // Communication Style
-  style: {
-    all: [
-      'Be helpful and friendly',
-      'Use clear and concise language',
-      'Show genuine interest in helping',
-      'Maintain a professional yet approachable tone',
-    ],
-    chat: [
-      'Respond naturally and conversationally',
-      'Use appropriate emojis sparingly for warmth',
-      'Ask follow-up questions to better understand needs',
-    ],
-    post: [
-      'Be informative and engaging',
-      'Structure information clearly',
-      'Include actionable insights when possible',
-    ],
-  },
-
-  // Plugin Configuration
-  plugins: [
-    // REQUIRED: Core functionality
-    '@elizaos/plugin-bootstrap', // Essential actions & handlers
-    '@elizaos/plugin-sql', // Memory & database management
-
-    // REQUIRED: Model provider (choose one or more)
-    '@elizaos/plugin-openai', // GPT-4, GPT-3.5, etc.
-    // "@elizaos/plugin-anthropic", // Claude models
-    // "@elizaos/plugin-groq",      // Fast inference
-
-    // OPTIONAL: Communication channels
-    // "@elizaos/plugin-discord",   // Discord integration
-    // "@elizaos/plugin-twitter",   // Twitter/X integration
-    // "@elizaos/plugin-telegram",  // Telegram bot
-
-    // OPTIONAL: Specialized capabilities
-    // "@elizaos/plugin-solana",    // Solana blockchain
-    // "@elizaos/plugin-evm",       // Ethereum/EVM chains
-  ],
-
-  // Agent Settings
+  name: 'AgentName',
+  username: 'agentname',
+  bio: ['Short bio statements'],
+  system: `You are AgentName. ...`,
+  style: { all: [...], chat: [...], post: [...] },
+  plugins: ['@elizaos/plugin-sql', '@elizaos/plugin-bootstrap', '@elizaos/plugin-openai', ...],
   settings: {
-    voice: 'en-US-Neural2-F',
     model: 'gpt-4o-mini',
     embeddingModel: 'text-embedding-3-small',
     secrets: {},
-    intiface: false,
-    chains: [],
+    ragKnowledge: true,
   },
+  knowledge: [{ directory: 'teammate', shared: true }, ...],
 };
-
-export default character;
 ```
 
-### Character Variants Pattern
+### Character variants (multi-agent)
 
-```typescript
-// characters/variants.ts
-import { Character } from '@elizaos/core';
-import { baseCharacter } from '../src/character';
+This repo uses **one file per agent** in `src/agents/` and exports a **project** with multiple agents from `src/index.ts`. No separate `characters/*.json`; character is in code. See [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) for ASK_AGENT, Discord, and A2A.
 
-// Production character
-export const productionCharacter: Character = {
-  ...baseCharacter,
-  name: 'ProductionAgent',
-  settings: {
-    ...baseCharacter.settings,
-    model: 'gpt-4', // More capable model for production
-  },
-};
-
-// Development character
-export const devCharacter: Character = {
-  ...baseCharacter,
-  name: 'DevAgent',
-  settings: {
-    ...baseCharacter.settings,
-    model: 'gpt-4o-mini', // Faster/cheaper for development
-  },
-  plugins: [
-    ...baseCharacter.plugins,
-    // Add development-only plugins
-  ],
-};
-
-// Specialized character
-export const cryptoCharacter: Character = {
-  ...baseCharacter,
-  name: 'CryptoAgent',
-  bio: 'A cryptocurrency and blockchain expert assistant',
-  plugins: [...baseCharacter.plugins, '@elizaos/plugin-solana', '@elizaos/plugin-evm'],
-};
-```
+---
 
 ## 🔌 Plugin Ecosystem
 
-### Required Plugins
+### Required (ElizaOS)
 
-| Plugin                      | Purpose                        | Status       |
-| --------------------------- | ------------------------------ | ------------ |
-| `@elizaos/plugin-bootstrap` | Core actions, message handling | **REQUIRED** |
-| `@elizaos/plugin-sql`       | Memory, database management    | **REQUIRED** |
+| Plugin | Purpose |
+|--------|--------|
+| `@elizaos/plugin-bootstrap` | Core actions, message handling |
+| `@elizaos/plugin-sql` | Memory, database (PGLite or Postgres) |
 
-### Model Provider Plugins (Choose One or More)
+### Model providers (choose one or more)
 
-| Plugin                      | Models                   | Use Case                       |
-| --------------------------- | ------------------------ | ------------------------------ |
-| `@elizaos/plugin-openai`    | GPT-4, GPT-3.5, GPT-4o   | General purpose, reliable      |
-| `@elizaos/plugin-anthropic` | Claude 3.5 Sonnet, Haiku | Reasoning, analysis            |
-| `@elizaos/plugin-groq`      | Llama, Mixtral           | Fast inference, cost-effective |
-| `@elizaos/plugin-llama`     | Local Llama models       | Privacy, offline operation     |
+| Plugin | Use case |
+|--------|----------|
+| `@elizaos/plugin-openai` | GPT-4, embeddings |
+| `@elizaos/plugin-anthropic` | Claude (VINCE, Kelly, Solus, Oracle, Sentinel, ECHO default to Anthropic when set) |
 
-### Communication Plugins (Optional)
+### VINCE project plugins (in repo)
 
-```bash
-# Social platforms
-bun add @elizaos/plugin-discord      # Discord bot integration
-bun add @elizaos/plugin-twitter      # Twitter/X posting & monitoring
-bun add @elizaos/plugin-telegram     # Telegram bot functionality
+| Plugin | Agent(s) | Purpose |
+|--------|----------|---------|
+| plugin-vince | VINCE | Paper bot, ALOHA, options, perps, memes, ML |
+| plugin-eliza | Eliza | UPLOAD, knowledge, content production |
+| plugin-kelly | Kelly | Lifestyle, daily briefing, plugin-personality |
+| plugin-otaku | Otaku | DeFi execution, CDP, BANKR, Relay, Morpho, x402 |
+| plugin-sentinel | Sentinel | PRDs, project radar, OpenClaw guide, cost, ART |
+| plugin-solus | Solus | Hypersurface strike ritual, mechanics, spot prices |
+| plugin-polymarket-discovery | Oracle | Polymarket discovery, odds, portfolio |
+| plugin-x-research | ECHO, Eliza, Clawterm | X pulse, vibe, watchlist, search |
+| plugin-inter-agent | All | ASK_AGENT, standup |
 
-# Web interfaces
-bun add @elizaos/plugin-web          # Web UI for agent interaction
-bun add @elizaos/plugin-rest         # REST API endpoints
-```
-
-### Specialized Plugins (Optional)
-
-```bash
-# Blockchain & Crypto
-bun add @elizaos/plugin-solana       # Solana transactions & data
-bun add @elizaos/plugin-evm          # Ethereum & EVM chains
-
-# Data & Tools
-bun add @elizaos/plugin-web-search   # Web search capabilities
-bun add @elizaos/plugin-image        # Image generation & analysis
-```
+---
 
 ## 🌍 Environment Configuration
 
-### Environment Variables Template
+### Structure (.env and .env.example)
 
-```bash
-# .env
-# ================================
-# MODEL PROVIDERS (Required - choose one or more)
-# ================================
+`.env.example` is **clean and grouped**: CORE → DATABASE → SHARED APIs → X/Twitter → **per-agent sections** (ELIZA, VINCE, ECHO, ORACLE, SOLUS, OTAKU, KELLY, SENTINEL, CLAWTERM) → FALLBACK DISCORD → STANDUP & A2A → OPENCLAW → MISC. Copy to `.env` and fill values.
 
-# OpenAI (recommended for general use)
-OPENAI_API_KEY=sk-your-openai-key-here
+| Section | Contents |
+|---------|----------|
+| **CORE** | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `ELIZAOS_USE_LOCAL_MESSAGING`, `LOG_LEVEL`, Sentry |
+| **DATABASE** | `POSTGRES_URL` (optional), `PGLITE_DATA_DIR`, `SUPABASE_*` (optional) |
+| **SHARED APIs** | Tavily, CoinGecko, Nansen, Dune, OpenRouter, etc. |
+| **X / TWITTER** | `X_BEARER_TOKEN`, `ELIZA_X_BEARER_TOKEN`, `X_SENTIMENT_*`, `XAI_*` |
+| **Per-agent** | `ELIZA_DISCORD_*`, `VINCE_DISCORD_*`, `VINCE_DAILY_REPORT_*`, `OTAKU_*`, `CDP_*`, `BANKR_*`, etc. |
+| **STANDUP & A2A** | `STANDUP_*`, `A2A_*`, `REFLECTION_*` |
 
-# Anthropic (for Claude models)
-ANTHROPIC_API_KEY=your-anthropic-key-here
+**Reordering .env:** Run `node scripts/reorder-env.js` to sort your `.env` into the same section order as `.env.example` (preserves values, dedupes keys). See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for full env reference.
 
-# Groq (for fast inference)
-GROQ_API_KEY=gsk_your-groq-key-here
+### Minimal to run
 
-# ================================
-# COMMUNICATION CHANNELS (Optional)
-# ================================
+- One of: `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` (embeddings need a provider; often OpenAI even when using Claude for text).
+- For multi-agent Discord: one Discord app per agent, e.g. `ELIZA_DISCORD_APPLICATION_ID` + `ELIZA_DISCORD_API_TOKEN`, and same for VINCE, Kelly, ECHO, Oracle, Solus, Otaku, Sentinel, Clawterm. Or set `DISCORD_APPLICATION_ID` + `DISCORD_API_TOKEN` as fallback for a single bot.
 
-# Discord Bot
-DISCORD_APPLICATION_ID=your-app-id
-DISCORD_API_TOKEN=your-bot-token
-
-# Twitter/X
-TWITTER_USERNAME=your-username
-TWITTER_PASSWORD=your-password
-TWITTER_EMAIL=your-email
-
-# Telegram
-TELEGRAM_BOT_TOKEN=your-telegram-token
-
-# ================================
-# BLOCKCHAIN (Optional)
-# ================================
-
-# Solana
-SOLANA_PUBLIC_KEY=your-solana-public-key
-SOLANA_PRIVATE_KEY=your-solana-private-key
-
-# Ethereum
-EVM_PUBLIC_KEY=your-ethereum-public-key
-EVM_PRIVATE_KEY=your-ethereum-private-key
-
-# ================================
-# SYSTEM CONFIGURATION
-# ================================
-
-# Logging level
-LOG_LEVEL=info  # debug, info, warn, error
-
-# Database
-DATABASE_URL=sqlite://./data/db.sqlite
-
-# Server settings
-SERVER_PORT=3000
-```
-
-### Environment Best Practices
-
-```bash
-# .env.example (commit this)
-OPENAI_API_KEY=sk-your-key-here
-DISCORD_API_TOKEN=your-token-here
-LOG_LEVEL=info
-
-# .env.local (gitignore this - for local overrides)
-LOG_LEVEL=debug
-DATABASE_URL=sqlite://./data/dev.sqlite
-```
+---
 
 ## 🚀 Development Workflow
 
-### Quick Start Commands
+### Quick start (VINCE)
 
 ```bash
-# 1. Install dependencies
 bun install
-
-# 2. Set up environment
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with API keys (at least one model provider)
 
-# 3. Start development server
-elizaos start --dev
-
-# 4. Or start with specific character
-elizaos start --character characters/development.json
+bun start
+# or
+bun run dev
 ```
 
-### Development Scripts
-
-```json
-// package.json
-{
-  "scripts": {
-    "start": "elizaos start",
-    "dev": "elizaos start --dev",
-    "test": "elizaos test",
-    "build": "bun build src/index.ts --outdir dist",
-    "clean": "rm -rf dist data/logs/*"
-  }
-}
-```
-
-### Testing Your Agent
-
-#### **Method 1: Interactive Development**
-
-```bash
-# Quick development mode (recommended for testing)
-elizaos dev
-# This automatically loads a test character and enables hot reloading
-
-# Start with hot reloading
-elizaos start --dev
-
-# Start with specific character
-elizaos start --character characters/development.json --dev
-
-# Start with debug logging
-LOG_LEVEL=debug elizaos start --dev
-```
-
-#### **Method 2: Automated Testing**
-
-```bash
-# Run all tests
-elizaos test
-
-# Test specific components
-elizaos test --filter "action-name"
-
-# Test with specific character
-elizaos test --character characters/test.json
-```
-
-#### **Method 3: Production Testing**
-
-```bash
-# Build and test production build
-bun run build
-NODE_ENV=production elizaos start --character characters/production.json
-```
-
-## 🎛️ Custom Plugin Development
-
-For project-specific functionality beyond available plugins:
-
-### When to Create Custom Plugins
-
-- ✅ **Unique business logic** not available in existing plugins
-- ✅ **Proprietary API integrations** specific to your use case
-- ✅ **Custom data sources** or specialized workflows
-- ❌ **NOT** for simple configuration changes (use character config)
-- ❌ **NOT** for combining existing plugins (use character composition)
-
-### Custom Plugin Structure
-
-```typescript
-// src/plugin.ts
-import { Plugin, Action, ActionResult, Service } from '@elizaos/core';
-
-// Custom service for your specific needs
-class CustomService extends Service {
-  static serviceType = 'custom';
-
-  async initialize(runtime: IAgentRuntime): Promise<void> {
-    // Initialize your custom integrations
-  }
-
-  async processCustomRequest(message: any): Promise<any> {
-    // Process the custom request
-    // Add your custom logic here
-    return {
-      success: true,
-      message: 'Custom request processed successfully',
-      data: message.content,
-    };
-  }
-}
-
-// Custom action for specific commands
-const customAction: Action = {
-  name: 'CUSTOM_ACTION',
-  description: 'Handles custom functionality specific to this project',
-
-  validate: async (runtime, message) => {
-    return message.content.text.includes('custom');
-  },
-
-  handler: async (runtime, message, state, options, callback): Promise<ActionResult> => {
-    try {
-      const service = runtime.getService<CustomService>('custom');
-      // Your custom logic here
-      const result = await service.processCustomRequest(message);
-
-      // Callback sends message to user in chat
-      await callback({
-        text: 'Custom functionality executed successfully',
-        action: 'CUSTOM_ACTION',
-      });
-
-      // Return ActionResult for action chaining
-      return {
-        success: true,
-        text: 'Custom action completed',
-        values: {
-          customResult: result,
-          processedAt: Date.now(),
-        },
-        data: {
-          actionName: 'CUSTOM_ACTION',
-          result,
-        },
-      };
-    } catch (error) {
-      await callback({
-        text: 'Failed to execute custom action',
-        error: true,
-      });
-
-      return {
-        success: false,
-        error: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
-  },
-};
-
-export const customPlugin: Plugin = {
-  name: 'custom-project-plugin',
-  description: 'Project-specific functionality',
-  services: [CustomService],
-  actions: [customAction],
-};
-```
-
-### Integrating Custom Plugin
-
-```typescript
-// src/character.ts
-import { customPlugin } from './plugin';
-
-export const character: Character = {
-  // ... other config
-  plugins: [
-    // Core plugins
-    '@elizaos/plugin-bootstrap',
-    '@elizaos/plugin-sql',
-    '@elizaos/plugin-openai',
-
-    // Your custom plugin
-    customPlugin,
-
-    // Other plugins...
-  ],
-};
-```
-
-## 📊 Agent Memory & Persistence
-
-### Memory Configuration
-
-```typescript
-// Agent automatically persists:
-// - Conversation history
-// - Learned patterns
-// - User preferences
-// - Context relationships
-
-// Access agent memories:
-const memories = await runtime.getMemories({
-  roomId: currentRoomId,
-  count: 10,
-  unique: true,
-});
-
-// Add custom memory:
-await runtime.addMemory({
-  content: { text: 'Important user preference noted' },
-  type: 'preference',
-  roomId: currentRoomId,
-});
-```
-
-### Database Configuration
-
-```bash
-# SQLite (default - good for development)
-DATABASE_URL=sqlite://./data/agent.db
-
-# PostgreSQL (recommended for production)
-DATABASE_URL=postgresql://username:password@localhost:5432/agent_db
-
-# Custom database adapter (advanced)
-DATABASE_ADAPTER=custom
-```
-
-## 🚀 Deployment Guide
-
-### Local Production Deployment
-
-```bash
-# Build for production
-bun run build
-
-# Start in production mode
-NODE_ENV=production elizaos start --character characters/production.json
-
-# With process manager (recommended)
-pm2 start "elizaos start --character characters/production.json" --name "my-agent"
-```
-
-## 🔧 Advanced Configuration
-
-### Multi-Character Management
-
-```typescript
-// src/characters.ts
-export const characters = {
-  assistant: assistantCharacter,
-  crypto: cryptoCharacter,
-  social: socialCharacter,
-  researcher: researcherCharacter
-};
-
-// Start specific character
-elizaos start --character characters/crypto.json
-```
-
-### Plugin Configuration Override
-
-```typescript
-// Advanced plugin configuration
-export const character: Character = {
-  // ... base config
-  plugins: [
-    {
-      // Plugin with custom config
-      name: '@elizaos/plugin-openai',
-      config: {
-        model: 'gpt-4o-mini',
-        temperature: 0.7,
-        maxTokens: 2000,
-      },
-    },
-  ],
-};
-```
-
-### Performance Optimization
-
-```typescript
-// High-performance character config
-export const character: Character = {
-  // ... base config
-  settings: {
-    // Optimize for speed
-    model: 'gpt-4o-mini', // Faster model
-    embeddingModel: 'text-embedding-3-small', // Smaller embeddings
-
-    // Memory management
-    maxMemories: 1000, // Limit memory size
-    memoryDecay: 0.95, // Gradual forgetting
-
-    // Response optimization
-    streamingEnabled: true, // Stream responses
-    batchSize: 5, // Batch API calls
-  },
-};
-```
-
-## 🐛 Troubleshooting Guide
-
-### Common Issues & Solutions
-
-| Issue                 | Symptoms                        | Solution                                 |
-| --------------------- | ------------------------------- | ---------------------------------------- |
-| **Agent won't start** | "Plugin not found" errors       | Check plugin installation: `bun install` |
-| **No responses**      | Agent loads but doesn't respond | Verify API keys in `.env` file           |
-| **Memory errors**     | Database connection failed      | Check `DATABASE_URL` configuration       |
-| **Slow responses**    | Long delays in replies          | Switch to faster model (gpt-4o-mini)     |
-| **Rate limits**       | API quota exceeded              | Implement rate limiting or upgrade plan  |
-
-### Debug Commands
-
-```bash
-# Maximum verbosity
-LOG_LEVEL=debug elizaos start
-
-# Test specific functionality
-elizaos test --filter "openai" --verbose
-
-# Check plugin loading
-elizaos start --dry-run --verbose
-
-# Database troubleshooting
-elizaos db:status
-elizaos db:migrate
-```
-
-### Health Monitoring
-
-```typescript
-// Built-in health checks
-GET /health           # Basic health status
-GET /health/detailed  # Detailed system info
-GET /api/status      # Agent status and metrics
-```
-
-## 📋 Production Checklist
-
-Before deploying your agent to production:
-
-### Security
-
-- [ ] API keys stored in environment variables
-- [ ] Database credentials secured
-- [ ] Rate limiting configured
-- [ ] Input validation enabled
-- [ ] Error messages don't leak sensitive data
-
-### Performance
-
-- [ ] Appropriate model selected for use case
-- [ ] Memory limits configured
-- [ ] Database optimized (PostgreSQL for production)
-- [ ] Caching enabled where appropriate
-- [ ] Health monitoring set up
-
-### Reliability
-
-- [ ] Error handling covers edge cases
-- [ ] Graceful degradation for API failures
-- [ ] Database backups configured
-- [ ] Process monitoring (PM2, Docker health checks)
-- [ ] Logging configured appropriately
+- **start / dev:** Run `scripts/dev-with-vite.js` (backend + Vite UI). Use the printed URL (e.g. http://localhost:5173) for chat.
+- **elizaos dev:** `bun run dev:eliza` for ElizaOS dev mode.
+- **Build:** `bun run build` (see `package.json`).
 
 ### Testing
 
-- [ ] Core functionality tested
-- [ ] Integration tests pass
-- [ ] Load testing completed
-- [ ] Monitoring and alerting configured
-
-## 🎯 Next Steps
-
-### 1. **Start Simple**
-
-Begin with basic configuration and core plugins, then gradually add complexity.
-
-### 2. **Iterate Based on Usage**
-
-Monitor your agent's performance and user interactions to guide improvements.
-
-### 3. **Contribute Back**
-
-Share useful patterns and plugins with the ElizaOS community.
-
-### 4. **Scale Thoughtfully**
-
-Plan for growth with proper infrastructure and monitoring.
+```bash
+bun run type-check
+elizaos test
+# Or filter: elizaos test --filter "action-name"
+```
 
 ---
 
-**🎉 Ready to build your ElizaOS agent!** Start with `elizaos start --dev` and let your agent evolve with your needs.
+## 📊 Database (VINCE)
+
+- **Default:** PGLite (no `POSTGRES_URL`). Data in `PGLITE_DATA_DIR` (e.g. `.eliza/.elizadb`).
+- **Production:** Set `POSTGRES_URL` (direct connection, port 5432; not pooler). Optional Supabase: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` for feature store / ML.
 
 ---
 
-## X Research skill (Cursor / Claude)
+## 🎛️ Custom Plugin Development
 
-**skills/x-research/** is a Cursor/Claude skill for read-only X (Twitter) research: agentic search, thread following, watchlist, sourced briefings. Use when you need “what are people saying on X about …” or “search X for …” from the IDE. Requires **X_BEARER_TOKEN** (env or project `.env`) and Bun. See [skills/x-research/README.md](skills/x-research/README.md) for setup and CLI usage.
-
-**In-chat (VINCE / Solus):** When `X_BEARER_TOKEN` is set, **VINCE_X_RESEARCH** supports search, a user’s recent tweets (“what did @user post?”), a thread (“get thread for tweet 123” or paste x.com/…/status/ID), and a single tweet. For **watchlist** (add/remove/check accounts) and **saving research to a file** (`--save --markdown`), use the **CLI**: `cd skills/x-research && bun run x-search.ts watchlist check` and `bun run x-search.ts search "…" --save --markdown`.
+- **When to create:** Unique business logic, proprietary APIs, custom data sources. Not for simple config (use character) or combining existing plugins (use composition).
+- **Structure:** `Plugin` with `name`, `description`, `actions`, `providers`, `services`, `evaluators`, `init`. See [ElizaOS docs](https://github.com/elizaos/eliza) and existing plugins in `src/plugins/`.
+- **Integrate:** Add plugin to the agent's `plugins` array in `src/agents/<agent>.ts`.
 
 ---
 
-## Kelly: plugin-discovery
+## 🐛 Troubleshooting
 
-Kelly uses **@elizaos/plugin-discovery** for conversational “What can you do?” capability discovery and **@elizaos/plugin-todo** (vendored in `packages/plugin-todo`) for todo/list and reminders; rolodex is optional (in-app reminders only without it). Discovery lives in `packages/plugin-discovery`; `DISCOVERY_REQUIRE_PAYMENT=false` keeps summary and manifest free—set `DISCOVERY_REQUIRE_PAYMENT=true` and add plugin-commerce for paid. Todo lives in `packages/plugin-todo`; without plugin-rolodex only in-app reminders work.
+| Issue | Solution |
+|-------|----------|
+| Agent won't start | `bun install`; check plugin deps and env |
+| No responses | Verify API keys in `.env` (CORE section) |
+| Database errors | Check `POSTGRES_URL` or `PGLITE_DATA_DIR`; run migrations if using Postgres |
+| Rate limits (X) | Use separate tokens per agent (e.g. `ELIZA_X_BEARER_TOKEN`, `X_BEARER_TOKEN` for ECHO) |
+
+**Debug:** `LOG_LEVEL=debug bun start` — see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) and [docs/LOG-WARNINGS-EXPLAINED.md](docs/LOG-WARNINGS-EXPLAINED.md).
+
+---
+
+## X Research (Cursor / Claude)
+
+**skills/x-research/** — Cursor/Claude skill for read-only X (Twitter) research: search, thread, watchlist, briefings. Requires **X_BEARER_TOKEN** and Bun. [skills/x-research/README.md](skills/x-research/README.md).
+
+**In-chat (VINCE / ECHO):** When `X_BEARER_TOKEN` is set, **X_PULSE**, **X_VIBE**, **X_ACCOUNT**, **X_SAVE_RESEARCH** (plugin-x-research). Watchlist add/remove and save to file: use CLI `bun run x-search.ts ...` in `skills/x-research/`.
+
+---
+
+## Kelly: plugin-discovery and plugin-personality
+
+- **plugin-discovery:** “What can you do?” — capability discovery. `DISCOVERY_REQUIRE_PAYMENT=false` keeps summary/manifest free; set `true` and add plugin-commerce for paid.
+- **plugin-todo:** Todo/reminders (vendored in `packages/plugin-todo`); without plugin-rolodex, in-app reminders only.
+- **plugin-personality:** Kelly only. Self-modification (CHARACTER_EVOLUTION, MODIFY_CHARACTER); backups and validation. See [docs/KELLY.md](docs/KELLY.md) § Self-Modification.
 
 ---
 
 ## Sentinel: Core Dev
 
-**Sentinel** is the core dev agent: ops/runbook, architecture steward, **cost steward** (TREASURY + cost breakdown), and proactive partner for **Claude 4.6** (task briefs, instructions for Claude Code / Cursor). North star: **coding 24/7**, **self-improving**, **ML/ONNX obsessed**, **ART** (elizaOS examples/art), **clawdbot for knowledge research**, **best settings**. **90% core dev, 10%** locked in on gen art (Meridian, QQL, Ringers, Fidenza; huge fan of **XCOPY**). With VCs/angels he **pitches**—no slides, demos that blow them away, elevator pitch + TLDR of the big vision. **Motivation:** earn a CryptoPunk as PFP (paper edge → revenue → one day a Punk). Brand voice: benefit-led, Porsche OG craft, no AI-slop; high-end branding only, no sales/GTM.
+**Sentinel** is the CTO agent: ops, architecture steward, **cost steward** (TREASURY), and partner for **Claude / Cursor** (task briefs, PRDs). North star: coding 24/7, self-improving, ML/ONNX, **ART** (gen art, XCOPY, Meridian, QQL). Brand voice: benefit-led, Porsche OG, no AI-slop.
 
-- **Character:** `src/agents/sentinel.ts`. Knowledge: `internal-docs`, `sentinel-docs` (repo .md + PROGRESS-CONSOLIDATED + **docs/TREASURY.md** with cost breakdown, synced by `scripts/sync-sentinel-docs.sh`), `teammate` (shared). Responsible for improving all .md and consolidating progress.txt (plugin-vince, plugin-kelly, frontend).
-- **Plugin:** `src/plugins/plugin-sentinel/`. Actions: **SENTINEL_SUGGEST** (general suggestions + task brief for Claude 4.6), **SENTINEL_CLAWDBOT_GUIDE**, **SENTINEL_SETTINGS_SUGGEST**, **SENTINEL_ONNX_STATUS**, **SENTINEL_ART_GEMS**, **SENTINEL_DOC_IMPROVE**, **SENTINEL_COST_STATUS** (burn rate, breakeven, cost summary from TREASURY + Usage tab), **SENTINEL_ART_PITCH** (gen art / XCOPY-style ideas, Meridian, QQL, Ringers, Fidenza).
-- **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to channels named sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`): daily digest (ONNX status, clawdbot reminder, ART gem, Claude 4.6 task-brief suggestion) + optional ONNX nudge; push to sentinel/ops channels.
-- **Env:** `SENTINEL_WEEKLY_ENABLED` (default true; set false to disable weekly). `SENTINEL_DAILY_ENABLED` (default false; set true for daily digest). `SENTINEL_DAILY_HOUR_UTC` (optional; default 8). `SENTINEL_DISCORD_*` for dedicated Discord app.
-- **Claude 4.6 collaboration:** Ask Sentinel for "task brief for Claude 4.6" or "instructions for Claude Code" to get a pasteable block (task + architecture rules + "keep the architecture as good as it gets" + 24/7 coding mindset). Use in Cursor or the Claude Code controller.
-- **PRDs for Cursor:** Sentinel delivers **Product Requirements Documents** for Cursor: full specs (goal, acceptance criteria, architecture rules) the team can paste or save and use when implementing. Standup can assign type **prd** → output in `standup-deliverables/prds/`.
-- **Milaidy / OpenClaw instructions:** Sentinel produces **integration and setup instructions** for [Milaidy](https://github.com/milady-ai/milaidy) and [OpenClaw](https://github.com/openclaw/openclaw): how to run them, how VINCE connects (e.g. standup → Milaidy Gateway at `MILAIDY_GATEWAY_URL`; openclaw-adapter for Eliza↔OpenClaw). Standup can assign type **integration_instructions** → output in `standup-deliverables/integration-instructions/`. See `knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md`.
-- **Cost questions:** Ask "what's our burn?", "breakeven?", "cost status" → **SENTINEL_COST_STATUS** summarizes from TREASURY (Usage tab, LLM choice, Cursor, data API tiers, 100K target, burn rate). See [docs/TREASURY.md](docs/TREASURY.md) § Cost breakdown (Sentinel).
+- **Character:** `src/agents/sentinel.ts`. Knowledge: `internal-docs`, `sentinel-docs` (incl. **docs/TREASURY.md**), `teammate`. Synced by `scripts/sync-sentinel-docs.sh`.
+- **Plugin:** `src/plugins/plugin-sentinel/`. Actions: **SENTINEL_SUGGEST**, **SENTINEL_PRD**, **SENTINEL_MULTI_AGENT**, **SENTINEL_TRADING_INTEL**, **SENTINEL_SHIP**, **SENTINEL_OPENCLAW_GUIDE**, **SENTINEL_SETTINGS_SUGGEST**, **SENTINEL_ONNX_STATUS**, **SENTINEL_ART_GEMS**, **SENTINEL_DOC_IMPROVE**, **SENTINEL_COST_STATUS**, **SENTINEL_ART_PITCH**, **SENTINEL_INVESTOR_REPORT**, **SENTINEL_HOW_DID_WE_DO**, **SENTINEL_SECURITY_CHECKLIST**.
+- **Tasks:** **SENTINEL_WEEKLY_SUGGESTIONS** (7d; push to sentinel/ops). **SENTINEL_DAILY_DIGEST** (optional; `SENTINEL_DAILY_ENABLED=true`).
+- **Env:** `SENTINEL_WEEKLY_ENABLED`, `SENTINEL_DAILY_ENABLED`, `SENTINEL_DAILY_HOUR_UTC`, `SENTINEL_DISCORD_*`.
+- **Cost:** “What’s our burn?”, “cost status” → **SENTINEL_COST_STATUS** from [docs/TREASURY.md](docs/TREASURY.md).
+- **OpenClaw / Milaidy:** [knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md](knowledge/sentinel-docs/PRD_AND_MILAIDY_OPENCLAW.md). Standup type **prd** → `docs/standup/prds/`; **integration_instructions** → `docs/standup/integration-instructions/`.
+
+---
+
+## Agent briefs (OpenClaw / PRD)
+
+[docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) lists **one briefing doc per agent** (Eliza, VINCE, ECHO, Oracle, Solus, Otaku, Kelly, Sentinel). Each doc: what the agent **can** and **cannot yet** do, key files, and “For OpenClaw / PRD” focus. Use them to brief OpenClaw (or any downstream agent) and to draft **next-iteration PRDs**. Individual docs: [docs/ELIZA.md](docs/ELIZA.md), [docs/VINCE.md](docs/VINCE.md), [docs/ECHO.md](docs/ECHO.md), [docs/ORACLE.md](docs/ORACLE.md), [docs/SOLUS.md](docs/SOLUS.md), [docs/OTAKU.md](docs/OTAKU.md), [docs/KELLY.md](docs/KELLY.md), [docs/SENTINEL.md](docs/SENTINEL.md).
 
 ---
 
 ## Related docs (VINCE)
 
-- [README.md](README.md) — Project overview, getting started, configuration
-- [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) — Solus north star and roadmap (X-native crypto intelligence)
-- [src/plugins/plugin-solus/](src/plugins/plugin-solus/) — Hypersurface expertise for Solus (provider + strike ritual, explain, position assess, optimal strike)
-- [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) — Paper bot feature storage and ML training
-- [docs/DEPLOY.md](docs/DEPLOY.md) — Deploy to Eliza Cloud
-- [docs/TREASURY.md](docs/TREASURY.md) — Cost coverage and profitability mandate
-- [src/plugins/plugin-vince/](src/plugins/plugin-vince/) — WHAT, WHY, HOW, CLAUDE, README
-- [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) — Proof that 24/7 research, knowledge extension, and ONNX are worth it
+| Doc | Purpose |
+|-----|---------|
+| [README.md](README.md) | Project overview, quick start |
+| [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) | Agent briefing index (OpenClaw / PRD) |
+| [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) | ASK_AGENT, Discord, A2A, standups |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Env and config reference |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Common issues and fixes |
+| [docs/SOLUS_NORTH_STAR.md](docs/SOLUS_NORTH_STAR.md) | Solus north star and roadmap |
+| [docs/FEATURE-STORE.md](docs/FEATURE-STORE.md) | Paper bot feature storage and ML |
+| [docs/TREASURY.md](docs/TREASURY.md) | Cost and Sentinel cost steward |
+| [docs/DEPLOY.md](docs/DEPLOY.md) | Deploy to Eliza Cloud |
+| [docs/OTAKU.md](docs/OTAKU.md) | Otaku DeFi execution (reference agent brief) |
+| [docs/WORTH_IT_PROOF.md](docs/WORTH_IT_PROOF.md) | Why 24/7 research, knowledge, ONNX matter |
+| [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md) | Left/mid/right curves |
+| [src/plugins/plugin-vince/](src/plugins/plugin-vince/) | WHAT, WHY, HOW, CLAUDE, README |
+
+---
+
+**Ready to work on VINCE.** Start with `bun start` or `bun run dev`, use [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) for agent capabilities and PRD focus, and [.env.example](.env.example) for a clean, grouped env layout.

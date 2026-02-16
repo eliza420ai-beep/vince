@@ -4,13 +4,13 @@ These deliverable types define **success** for the standup and content pipeline.
 
 | # | Deliverable | Owner(s) | Output location | Purpose |
 |---|-------------|----------|-----------------|---------|
-| 1 | **Long-form essay** | Eliza, Solus | `standup-deliverables/essays/` | Ikigai Studio Substack - benefit-led, one clear idea, no AI slop. |
-| 2 | **Banger tweet suggestions** | Eliza, Solus | `standup-deliverables/tweets/` | Viral-potential tweets; short, punchy, on-brand. |
-| 3 | **Long-form X article** | Eliza, Solus | `standup-deliverables/x-articles/` | Story to publish on X as an article (long-form post). |
-| 4 | **Suggested trades** | VINCE | `standup-deliverables/trades/` | Perps on Hyperliquid (BTC, SOL, ETH, HYPE); onchain options on HypeSurface (same). |
-| 5 | **Founder good-life suggestions** | Kelly | `standup-deliverables/good-life/` | Things for founders to do to live well: travel, dining, wine, health, fitness, touch grass - what Kelly knows best. |
-| 6 | **PRD for Cursor** | Sentinel | `standup-deliverables/prds/` | Product requirements document for implementation in Cursor: goal, acceptance criteria, architecture rules, pasteable spec. |
-| 7 | **Milaidy / OpenClaw instructions** | Sentinel | `standup-deliverables/integration-instructions/` | Setup and integration instructions for [Milaidy](https://github.com/milady-ai/milaidy) and [OpenClaw](https://github.com/openclaw/openclaw); how to run them and how VINCE connects (e.g. standup → Milaidy Gateway). |
+| 1 | **Long-form essay** | Eliza, Solus | `docs/standup/essays/` | Ikigai Studio Substack - benefit-led, one clear idea, no AI slop. |
+| 2 | **Banger tweet suggestions** | Eliza, Solus | `docs/standup/tweets/` | Viral-potential tweets; short, punchy, on-brand. |
+| 3 | **Long-form X article** | Eliza, Solus | `docs/standup/x-articles/` | Story to publish on X as an article (long-form post). |
+| 4 | **Suggested trades** | VINCE | `docs/standup/trades/` | Perps on Hyperliquid (BTC, SOL, ETH, HYPE); onchain options on HypeSurface (same). |
+| 5 | **Founder good-life suggestions** | Kelly | `docs/standup/good-life/` | Things for founders to do to live well: travel, dining, wine, health, fitness, touch grass - what Kelly knows best. |
+| 6 | **PRD for Cursor** | Sentinel | `docs/standup/prds/` | Product requirements document for implementation in Cursor: goal, acceptance criteria, architecture rules, pasteable spec. |
+| 7 | **Milaidy / OpenClaw instructions** | Sentinel | `docs/standup/integration-instructions/` | Setup and integration instructions for [Milaidy](https://github.com/milady-ai/milaidy) and [OpenClaw](https://github.com/openclaw/openclaw); how to run them and how VINCE connects (e.g. standup → Milaidy Gateway). |
 
 ## 1. Long-form essay (Ikigai Studio Substack)
 
@@ -63,7 +63,7 @@ These deliverable types define **success** for the standup and content pipeline.
 
 - **Standup:** When the standup parse identifies an action item as one of these types (`essay`, `tweets`, `x_article`, `trades`, `good_life`, `prd`, `integration_instructions`), the action-item worker runs the north-star generator instead of the code-build path. Output is written to the paths above and announced like other standup deliverables.
 - **Code/build:** Standard "build" type still goes through Milaidy or in-VINCE code gen; see [STANDUP_DELIVERABLES.md](STANDUP_DELIVERABLES.md).
-- **Env:** Same as standup deliverables: `STANDUP_DELIVERABLES_DIR` (default `./standup-deliverables`). North-star subdirs are created under that directory.
+- **Env:** Same as standup deliverables: `STANDUP_DELIVERABLES_DIR` (default `./docs/standup`). North-star subdirs are created under that directory.
 
 ## Success = these seven
 

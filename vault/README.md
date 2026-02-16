@@ -9,6 +9,8 @@ Based on **Knowledge Vault** by naushadzaman: [gist.github.com/naushadzaman/164e
 - **vault/** — This directory. Your capture, todos, projects, and processed notes.
 - **knowledge/** — ElizaOS RAG knowledge (teammate, sentinel-docs, agents). Separate from the vault; used by VINCE agents.
 
+OpenClaw and Cursor also use **openclaw-agents/**, **skills/**, and **tasks/**. See [OPENCLAW.md](../OPENCLAW.md) for the full map.
+
 ## Four pillars
 
 | Pillar | Flow |
@@ -43,7 +45,7 @@ vault/
 
 ## Standup integration
 
-Standup output lives in **`standup-deliverables/`** at the repo root (day-reports, predictions.json, action-items.json, daily-insights). To keep the vault in the loop:
+Standup output lives in **`docs/standup/`** (day-reports, predictions.json, action-items.json, daily-insights). To keep the vault in the loop:
 
 - **Sync script (recommended):** Run `bun run vault:standup` to push the latest standup summary and accuracy into `vault/06-meetings/standup-YYYY-MM-DD.md` and optionally append a line to `vault/03-resources/standup-accuracy-log.md`.
 - **Manual:** Copy TL;DR and scoreboard from the day report or predictions into a note in `06-meetings/` or `03-resources/`.

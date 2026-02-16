@@ -34,7 +34,7 @@ Sentinel is the **CTO agent**: ops, architecture steward, cost steward, and proa
 - **Project radar scope:** Scans plugins, progress, knowledge, docs, todos; may not include every repo or external system. PRD: document scope and add key paths if needed.
 - **Daily digest optional:** SENTINEL_DAILY_ENABLED defaults false; daily digest and ONNX nudge require env and channel setup. PRD: runbook for enabling daily and Discord channel naming.
 - **Cost data source:** SENTINEL_COST_STATUS reads from TREASURY (e.g. docs/TREASURY.md and Usage tab); if TREASURY is not updated, numbers can be stale. PRD: sync process and ownership for TREASURY.
-- **PRD output location:** Standup can assign type “prd” to output in standup-deliverables/prds/; integration instructions in standup-deliverables/integration-instructions/. PRD: document standup types and deliverable paths for OpenClaw.
+- **PRD output location:** Standup can assign type “prd” to output in docs/standup/prds/; integration instructions in docs/standup/integration-instructions/. PRD: document standup types and deliverable paths for OpenClaw.
 - **ART/NFT execution:** Sentinel suggests gen art and pitches; minting/execution is Otaku. PRD: keep handoff clear; optional “Sentinel idea → Otaku mint” flow doc.
 
 ---

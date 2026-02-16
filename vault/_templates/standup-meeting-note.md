@@ -1,12 +1,12 @@
 ---
 date: {{date}}
 type: standup
-source: standup-deliverables
+source: docs/standup
 ---
 
 # Standup {{date}}
 
-- **Day report:** `standup-deliverables/day-reports/{{date}}-day-report.md`
+- **Day report:** `docs/standup/day-reports/{{date}}-day-report.md`
 
 ## TL;DR
 

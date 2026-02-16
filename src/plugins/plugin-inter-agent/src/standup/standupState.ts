@@ -46,7 +46,7 @@ let currentSession: StandupSession | null = null;
 function getSessionFilePath(): string {
   const dir =
     process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
-    path.join(process.cwd(), "standup-deliverables");
+    path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR || "docs/standup");
   return path.join(dir, "standup-session.json");
 }
 

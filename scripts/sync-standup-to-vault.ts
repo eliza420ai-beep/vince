@@ -8,7 +8,7 @@
  *   bun run vault:standup
  *   bun run scripts/sync-standup-to-vault.ts --date=2025-02-14
  *
- * Env: STANDUP_DELIVERABLES_DIR (default standup-deliverables), VAULT_DIR (default vault).
+ * Env: STANDUP_DELIVERABLES_DIR (default docs/standup), VAULT_DIR (default vault).
  * Idempotent: overwrites same-date meeting note; appends to accuracy log. Does not fail on
  * missing day report or predictions—writes what's available and logs warnings.
  *
@@ -19,7 +19,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 
-const STANDUP_DELIVERABLES_DIR = process.env.STANDUP_DELIVERABLES_DIR?.trim() || "standup-deliverables";
+const STANDUP_DELIVERABLES_DIR = process.env.STANDUP_DELIVERABLES_DIR?.trim() || "docs/standup";
 const VAULT_DIR = process.env.VAULT_DIR?.trim() || "vault";
 const LAST_N = 10;
 
@@ -152,7 +152,7 @@ async function main(): Promise<void> {
   const date = dayReport?.date ?? (explicitDate || new Date().toISOString().slice(0, 10));
   const relativeDayReportPath = dayReport
     ? path.relative(cwd, dayReport.filepath)
-    : "standup-deliverables/day-reports/";
+    : "docs/standup/day-reports/";
   const tldr = dayReport ? extractTldr(dayReport.content) : "";
   const solusCall = dayReport ? extractSolusCallOneLiner(dayReport.content) : "";
 

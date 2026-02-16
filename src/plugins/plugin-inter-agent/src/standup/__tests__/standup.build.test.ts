@@ -6,6 +6,7 @@ import { describe, it, expect, mock, beforeEach } from "bun:test";
 import type { IAgentRuntime } from "@elizaos/core";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import {
   isNorthStarType,
   executeBuildActionItem,
@@ -14,7 +15,7 @@ import {
 } from "../standup.build";
 import type { StandupActionItem } from "../standup.parse";
 
-const TEST_DELIVERABLES_DIR = path.join(process.cwd(), "standup-deliverables-build-test-" + Date.now());
+const TEST_DELIVERABLES_DIR = path.join(os.tmpdir(), "standup-deliverables-build-test-" + Date.now());
 
 describe("standup.build", () => {
   beforeEach(() => {

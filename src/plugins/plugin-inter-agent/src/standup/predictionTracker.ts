@@ -3,7 +3,7 @@
  *
  * Saves Solus's standup calls (asset, direction, strike, confidence, expiry) and
  * validates them after expiry by comparing to actual price. Stores in
- * standup-deliverables/predictions.json. Used for accuracy stats and feedback loop.
+ * docs/standup/predictions.json (or STANDUP_DELIVERABLES_DIR). Used for accuracy stats and feedback loop.
  */
 
 import * as fs from "node:fs/promises";
@@ -16,7 +16,7 @@ function getDeliverablesDir(): string {
   if (envDir) {
     return path.isAbsolute(envDir) ? envDir : path.join(process.cwd(), envDir);
   }
-  return path.join(process.cwd(), "standup-deliverables");
+  return path.join(process.cwd(), "docs/standup");
 }
 
 function getPredictionsPath(): string {
