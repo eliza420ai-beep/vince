@@ -1,6 +1,6 @@
 # Training script review: train_models.py
 
-**Status (2026-02-05):** Short-term items addressed. Script loads JSONL (line-by-line), implements all four models including SL Optimizer (quantile regression for max adverse excursion), uses robust key access (`r.get('market', {})` etc.), has `requirements.txt`, and uses the `logging` module. Early stopping and asset dummies are in place. TP/SL now use the same optional news/signal features as signal quality and position sizing. See repo root [scripts/README.md](../../../../scripts/README.md) for the correct run command.
+**Status (2026-02-16):** All short-term and medium-term items addressed. Script loads JSONL (line-by-line), implements all four models including SL Optimizer (quantile regression for max adverse excursion), uses robust key access (`r.get('market', {})` etc.), has `requirements.txt`, and uses the `logging` module. Early stopping and asset dummies are in place. TP/SL now use the same optional news/signal features as signal quality and position sizing. Latest refactor (2026-02-16) added: DRY feature prep helpers, removed train/serve StandardScaler skew, fixed holdout data leakage, fixed walk-forward fold ordering, Optuna + walk-forward + SHAP for all 4 models, feature name manifests, ONNX SHA-256 hashing, parallel training mode, and lag feature engineering. See repo root [scripts/README.md](../../../../scripts/README.md) for the correct run command.
 
 ## Quick checklist
 
@@ -12,7 +12,18 @@
 | Short-term | requirements.txt; logging | Done — `scripts/requirements.txt`; `logging` module with file handler |
 | Medium-term | Early stopping | Done — XGBoost `early_stopping_rounds` with time-based holdout |
 | Medium-term | Asset/feature enhancements | Done — asset dummies when multi-asset; OPTIONAL_FEATURE_COLUMNS; TP/SL use news + signal features |
-| Medium-term | Hyperparameter tuning; ONNX validation; unit tests | Optional — GridSearch/Optuna; onnxruntime smoke test; test_train_models.py (6 tests) |
+| Medium-term | Hyperparameter tuning; ONNX validation; unit tests | Done — Optuna (all 4 models) with GridSearchCV fallback; onnxruntime smoke test; test_train_models.py |
+| Medium-term | SHAP / feature explanation | Done — `_shap_analysis()` for all 4 models; SHAP importance + top interactions in improvement report |
+| Medium-term | Walk-forward validation | Done — `_walk_forward_validation()` with expanding window + purge gap for all 4 models |
+| Medium-term | Lag features | Done — `add_lag_features()` creates lag1/2/3 + rolling mean for key market columns per asset |
+| Correctness | Remove StandardScaler (train/serve skew) | Done — XGBoost is tree-based; scaler was never saved for ONNX inference |
+| Correctness | Fix holdout data leakage | Done — `_holdout_metrics()` now trains a fresh model on train split only |
+| Correctness | Fix walk-forward fold order | Done — folds advance forward in time (expanding window) |
+| Correctness | Fix `_clip_outliers` in-place mutation | Done — returns a copy to prevent cross-model contamination |
+| Ops | Feature name manifest | Done — `{model}_features.json` saved alongside ONNX; maps f0/f1/... to column names |
+| Ops | ONNX SHA-256 hash | Done — stored in `training_metadata.json` for model versioning |
+| Ops | Parallel training | Done — `--parallel` flag; `ProcessPoolExecutor` for concurrent model training |
+| Ops | DRY feature prep | Done — `_add_common_features()` + `_finalize_features()` shared helpers |
 
 ---
 
@@ -68,14 +79,14 @@ Prioritized ideas to improve the training pipeline and ML loop (see also ALGO_ML
 | **Log actual vs predicted** | Holdout MAE / quantile loss / AUC in improvement report. | Done — `_holdout_metrics()`; `improvement_report.holdout_metrics` per model; in `training_metadata.json` and `improvement_report.md`. |
 | **Stratification / sample weights** | Optional recency weighting or per-asset balancing so one symbol doesn’t dominate training. | Done — `--recency-decay`, `--balance-assets`; `_compute_sample_weights()`; passed into all four `train_*` fits. |
 | **Hyperparameter search** | GridSearchCV over max_depth, learning_rate, n_estimators with TimeSeriesSplit. | Done — `--tune-hyperparams`; `_tune_signal_quality`, `_tune_position_sizing`; run e.g. every 500 trades. |
-| **Suppress StandardScaler warnings** | Avoid "Mean of empty slice" when float cols empty or constant. | Done — `_safe_float_columns_for_scaler()` in all four `prepare_*`. |
+| **Remove StandardScaler** | XGBoost is tree-based (monotonic-invariant); scaler was never persisted for ONNX inference, causing train/serve skew. | Done — StandardScaler removed entirely; no scaler warnings possible. |
 
 ### Lower priority / backlog
 
 | Idea | What / how to add |
 |------|-------------------|
 | **Ensemble** | Add signal-quality prob as input to position-sizing: in `prepare_position_sizing_features` add column from `model_sq.predict_proba(X_sq)[:, 1]` aligned by index (train signal_quality first); inference already has `signalQualityScore` in `PositionSizingInput`. |
-| **SHAP / feature selection** | SHAP: `shap.TreeExplainer(model)`; add summary to improvement report. Feature selection: `RFE(estimator, n_features_to_select=...)` with TimeSeriesSplit. |
+| **SHAP / feature selection** | Done — `_shap_analysis()` with `shap.TreeExplainer` for all 4 models; mean |SHAP| values + top interactions in improvement report. Feature selection (RFE) remains backlog. |
 | **Backtest harness** | Load holdout from JSONL; run `model.predict(X_holdout)`; compute win rate, Sharpe, max DD; write `backtest_report.json` or add to improvement report. |
 | **A/B shadow mode** | In `evaluateAndTrade()` / `openTrade()` log `{ mlSuggestedSize, actualSize, asset, timestamp }` to table or file; later analyze correlation of following ML with outcomes. |
 
