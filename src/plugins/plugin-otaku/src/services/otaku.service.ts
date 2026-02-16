@@ -13,6 +13,7 @@ import {
   Service,
   logger,
 } from "@elizaos/core";
+import type { BankrAgentService, BankrOrdersService } from "../types/services";
 
 export interface SwapRequest {
   sellToken: string;
@@ -95,24 +96,22 @@ export class OtakuService extends Service {
    * Check if BANKR is available
    */
   isBankrAvailable(): boolean {
-    const bankrSvc = this.runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-    } | null;
+    const bankrSvc = this.runtime.getService("bankr_agent") as BankrAgentService | null;
     return bankrSvc?.isConfigured?.() ?? false;
   }
 
   /**
    * Get BANKR agent service
    */
-  private getBankrAgent(): any {
-    return this.runtime.getService("bankr_agent");
+  private getBankrAgent(): BankrAgentService | null {
+    return this.runtime.getService("bankr_agent") as BankrAgentService | null;
   }
 
   /**
    * Get BANKR orders service
    */
-  private getBankrOrders(): any {
-    return this.runtime.getService("bankr_orders");
+  private getBankrOrders(): BankrOrdersService | null {
+    return this.runtime.getService("bankr_orders") as BankrOrdersService | null;
   }
 
   /**
@@ -298,17 +297,17 @@ export class OtakuService extends Service {
 
       // Get active orders
       if (orders?.isConfigured?.()) {
-        const accountInfo = await bankr.getAccountInfo();
+        const accountInfo = await bankr.getAccountInfo!();
         const evmWallet = accountInfo.wallets?.find(
-          (w: any) => w.chain === "evm"
+          (w) => w.chain === "evm"
         );
         if (evmWallet?.address) {
-          const orderResult = await orders.listOrders({
+          const orderResult = await orders.listOrders!({
             maker: evmWallet.address,
             status: "active",
           });
           if (orderResult.orders) {
-            result.orders = orderResult.orders.map((o: any) => ({
+            result.orders = orderResult.orders.map((o) => ({
               orderId: o.orderId,
               type: o.orderType,
               status: o.status,

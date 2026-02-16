@@ -18,6 +18,14 @@ import {
   logger,
 } from "@elizaos/core";
 import { OtakuService, type SwapRequest } from "../services/otaku.service";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseSwapIntentWithLLM } from "../utils/intentParser";
 
 /**
  * Parse swap request from text
@@ -126,14 +134,25 @@ export const otakuSwapAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain swap-like intent
-    if (!text.includes("swap")) return false;
+    // Allow "confirm" when there is a pending swap in cache
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "swap");
+    }
 
-    // Must have token pair indication
+    // Swap-like intent (regex or LLM will parse in handler)
+    const swapLike =
+      text.includes("swap") ||
+      text.includes("exchange") ||
+      text.includes("convert") ||
+      (text.includes("sell") && (text.includes(" for ") || text.includes(" to ")));
+    if (!swapLike) return false;
+
+    // Token pair or amount indication so we have something to parse
     const hasTokenPair =
       text.includes(" to ") ||
       text.includes(" for ") ||
-      text.includes(" into ");
+      text.includes(" into ") ||
+      /\b(eth|usdc|usdt|btc|sol|matic)\b/i.test(text);
     if (!hasTokenPair) return false;
 
     // Check if BANKR is available
@@ -162,8 +181,19 @@ export const otakuSwapAction: Action = {
       return { success: false, error: new Error("Otaku service not available") };
     }
 
-    // Parse swap request
-    const request = parseSwapRequest(text);
+    // Parse swap request: regex first, then LLM fallback for natural language
+    let request: SwapRequest | null = parseSwapRequest(text);
+    if (!request) {
+      const llmIntent = await parseSwapIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        request = {
+          amount: llmIntent.amount,
+          sellToken: llmIntent.sellToken,
+          buyToken: llmIntent.buyToken,
+          chain: llmIntent.chain,
+        };
+      }
+    }
     if (!request) {
       await callback?.({
         text: "I couldn't parse the swap details. Please specify:\n- Amount (e.g., 0.5 or $100)\n- Sell token (e.g., ETH)\n- Buy token (e.g., USDC)\n\nExample: \"swap 0.5 ETH to USDC on Base\"",
@@ -171,8 +201,8 @@ export const otakuSwapAction: Action = {
       return { success: false, error: new Error("Could not parse swap request") };
     }
 
-    // Add chain if specified
-    request.chain = extractChain(text);
+    // Add chain if specified (from text or LLM)
+    if (!request.chain) request.chain = extractChain(text);
 
     // Check for missing amount
     if (request.amount === "?") {
@@ -182,19 +212,11 @@ export const otakuSwapAction: Action = {
       return { success: true };
     }
 
-    // Check if this is a confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes" ||
-      text.toLowerCase() === "go ahead" ||
-      text.toLowerCase() === "do it" ||
-      text.toLowerCase() === "proceed";
+    // Check for pending swap in cache (confirmation flow)
+    const pendingSwap = await getPending<SwapRequest>(runtime, message, "swap");
 
-    // Check state for pending swap
-    const pendingSwap = state?.pendingSwap as SwapRequest | undefined;
-
-    if (isConfirmation && pendingSwap) {
-      // Execute the swap
+    if (isConfirmation(text) && pendingSwap) {
+      await clearPending(runtime, message, "swap");
       await callback?.({
         text: `Executing swap: ${pendingSwap.amount} ${pendingSwap.sellToken} → ${pendingSwap.buyToken}...`,
       });
@@ -215,15 +237,13 @@ export const otakuSwapAction: Action = {
       }
     }
 
-    // Show confirmation and store pending swap
+    // Show confirmation and persist pending swap to cache
     const confirmation = otakuSvc.formatSwapConfirmation(request);
     await callback?.({
       text: confirmation,
     });
-
-    // Store pending swap in state (would need state management)
-    // For now, the confirmation flow relies on BANKR_AGENT_PROMPT
-    logger.info(`[OTAKU_SWAP] Pending swap: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "swap", request);
+    logger.info(`[OTAKU_SWAP] Pending swap stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },

@@ -8,3 +8,6 @@ export { otakuStopLossAction } from "./otakuStopLoss.action";
 export { otakuMorphoAction } from "./otakuMorpho.action";
 export { otakuApproveAction } from "./otakuApprove.action";
 export { otakuNftMintAction } from "./otakuNftMint.action";
+export { otakuYieldRecommendAction } from "./otakuYieldRecommend.action";
+export { otakuSetRebalanceAction } from "./otakuSetRebalance.action";
+export { otakuExecuteVinceSignalAction } from "./otakuExecuteVinceSignal.action";

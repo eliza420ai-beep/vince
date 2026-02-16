@@ -18,6 +18,18 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseNftMintIntentWithLLM } from "../utils/intentParser";
+import { getArtUri, ensureIpfsUri } from "../utils/genArtPipeline";
+import type { CdpService } from "../types/services";
+
+const GEN_ART_MINT_CONTRACT = process.env.OTAKU_GEN_ART_MINT_CONTRACT ?? "";
 
 interface MintRequest {
   collection?: string;
@@ -30,11 +42,28 @@ interface MintRequest {
   artPrompt?: string;
 }
 
-// Known mint contracts
+// Known mint contracts (mainnet)
 const KNOWN_COLLECTIONS: Record<string, { name: string; address: string; chain: string }> = {
-  // Add known collections here
-  "zorb": { name: "Zorbs", address: "0x...", chain: "base" },
-  "base-onchain-summer": { name: "Base Onchain Summer", address: "0x...", chain: "base" },
+  "zorb": {
+    name: "Zorbs",
+    address: "0xCa21d4228cDCc68D4e23807E5e370C07577Dd152",
+    chain: "ethereum",
+  },
+  "zorbs": {
+    name: "Zorbs",
+    address: "0xCa21d4228cDCc68D4e23807E5e370C07577Dd152",
+    chain: "ethereum",
+  },
+  "base-onchain-summer": {
+    name: "Base Onchain Summer",
+    address: "0x1d568698f708dcbc4cc5abb9aefdc55376e23109",
+    chain: "base",
+  },
+  "collective-zorb": {
+    name: "Collective Zorb",
+    address: "0x1d568698f708dcbc4cc5abb9aefdc55376e23109",
+    chain: "base",
+  },
 };
 
 /**
@@ -158,14 +187,16 @@ export const otakuNftMintAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain mint-related intent
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "nftMint");
+    }
+
     const hasMintIntent =
       text.includes("mint") ||
       (text.includes("nft") && (text.includes("create") || text.includes("generate")));
 
     if (!hasMintIntent) return false;
 
-    // Need CDP for minting
     const cdp = runtime.getService("cdp");
     return !!cdp;
   },
@@ -179,7 +210,29 @@ export const otakuNftMintAction: Action = {
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
-    const request = parseMintRequest(text);
+    let request: MintRequest | null = parseMintRequest(text);
+    if (!request) {
+      const llmIntent = await parseNftMintIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        request = {
+          quantity: llmIntent.quantity,
+          chain: llmIntent.chain,
+          isGenArt: llmIntent.isGenArt,
+          artPrompt: llmIntent.artPrompt,
+        };
+        if (llmIntent.collection) {
+          const key = llmIntent.collection.toLowerCase().replace(/\s+/g, "-");
+          const known = KNOWN_COLLECTIONS[key];
+          if (known) {
+            request.collection = known.name;
+            request.contractAddress = known.address;
+            request.chain = request.chain ?? known.chain;
+          } else {
+            request.collection = llmIntent.collection;
+          }
+        }
+      }
+    }
     if (!request) {
       await callback?.({
         text: [
@@ -198,55 +251,65 @@ export const otakuNftMintAction: Action = {
       return { success: false, error: new Error("Could not parse mint request") };
     }
 
-    // Check if confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes";
+    const pendingMint = await getPending<MintRequest>(runtime, message, "nftMint");
 
-    const pendingMint = state?.pendingMint as MintRequest | undefined;
-
-    if (isConfirmation && pendingMint) {
-      // Gen art flow: Ask Sentinel first
+    if (isConfirmation(text) && pendingMint) {
+      await clearPending(runtime, message, "nftMint");
+      // Gen art pipeline: generate → IPFS (optional) → mint on Zora/Base with metadata
       if (pendingMint.isGenArt && pendingMint.artPrompt) {
         await callback?.({
-          text: "🎨 Asking Sentinel to generate the art...",
+          text: "🎨 Generating art (Sentinel / image service)...",
         });
 
-        // Use inter-agent communication
         try {
-          // This would trigger ASK_AGENT to Sentinel
-          const sentinelResponse = await (runtime as any).executeAction("ASK_AGENT", {
-            agent: "Sentinel",
-            question: `Generate a piece of digital art based on this prompt: "${pendingMint.artPrompt}". Return the IPFS URI or base64 image data.`,
-          });
-
-          if (sentinelResponse?.imageUri) {
-            // Now mint with the generated art
+          const artResult = await getArtUri(runtime, pendingMint.artPrompt);
+          if (!artResult?.uri) {
             await callback?.({
-              text: `✅ Art generated! Now minting to NFT...\n\nImage: ${sentinelResponse.imageUri.slice(0, 50)}...`,
-            });
-
-            // Would call NFT contract with image URI
-            // This is a placeholder for actual minting logic
-          } else {
-            await callback?.({
-              text: "Sentinel is working on the art. I'll notify you when it's ready to mint.",
+              text: "No image was returned. Try asking Sentinel to generate art first, or ensure an image_generation service is configured.",
             });
             return { success: true };
           }
+
+          const finalUri = await ensureIpfsUri(artResult.uri);
+          await callback?.({
+            text: `✅ Art ready: ${finalUri.slice(0, 60)}${finalUri.length > 60 ? "..." : ""}\n\nMinting on-chain...`,
+          });
+
+          const cdp = runtime.getService("cdp") as CdpService | null;
+          if (GEN_ART_MINT_CONTRACT && cdp?.writeContract) {
+            const tokenURI = finalUri;
+            const result = await cdp.writeContract({
+              address: GEN_ART_MINT_CONTRACT as `0x${string}`,
+              abi: [
+                "function mint(string calldata tokenURI) payable",
+                "function mintWithURI(string memory tokenURI) payable",
+                "function safeMint(address to, string memory uri) payable",
+              ],
+              functionName: "mint",
+              args: [tokenURI],
+              value: 0n,
+            });
+            if (result?.hash || result?.txHash) {
+              await callback?.({
+                text: `✅ Gen art minted!\n\n**Contract:** ${GEN_ART_MINT_CONTRACT.slice(0, 20)}...\n**TX:** ${(result.hash ?? result.txHash).slice(0, 24)}...\n**Token URI:** ${tokenURI.slice(0, 50)}...`,
+              });
+              return { success: true };
+            }
+          }
+
+          await callback?.({
+            text: `Art generated and stored at: ${finalUri}\n\nTo mint on-chain, set \`OTAKU_GEN_ART_MINT_CONTRACT\` to a Zora/Base contract that supports \`mint(string tokenURI)\`.`,
+          });
+          return { success: true };
         } catch (err) {
           await callback?.({
-            text: `❌ Gen art creation failed: ${err instanceof Error ? err.message : String(err)}\n\nTry asking Sentinel directly, then come back to mint.`,
+            text: `❌ Gen art pipeline failed: ${err instanceof Error ? err.message : String(err)}\n\nTry asking Sentinel directly, then come back to mint.`,
           });
           return { success: false, error: err instanceof Error ? err : new Error(String(err)) };
         }
       }
 
-      // Direct mint flow
-      const cdp = runtime.getService("cdp") as {
-        writeContract?: (params: any) => Promise<any>;
-        sendTransaction?: (params: any) => Promise<any>;
-      } | null;
+      const cdp = runtime.getService("cdp") as CdpService | null;
 
       if (!cdp) {
         await callback?.({
@@ -334,8 +397,8 @@ export const otakuNftMintAction: Action = {
     lines.push('Type "confirm" to proceed.');
 
     await callback?.({ text: lines.join("\n") });
-
-    logger.info(`[OTAKU_NFT_MINT] Pending: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "nftMint", request);
+    logger.info(`[OTAKU_NFT_MINT] Pending stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },

@@ -18,6 +18,15 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseApproveIntentWithLLM } from "../utils/intentParser";
+import type { CdpService } from "../types/services";
 
 interface ApproveRequest {
   intent: "approve" | "revoke" | "check";
@@ -133,7 +142,10 @@ export const otakuApproveAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain approval-related intent
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "approve");
+    }
+
     const hasApprovalIntent =
       text.includes("approve") ||
       text.includes("revoke") ||
@@ -142,7 +154,6 @@ export const otakuApproveAction: Action = {
 
     if (!hasApprovalIntent) return false;
 
-    // Need CDP for wallet operations
     const cdp = runtime.getService("cdp");
     return !!cdp;
   },
@@ -156,7 +167,24 @@ export const otakuApproveAction: Action = {
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
-    const request = parseApproveRequest(text);
+    let request: ApproveRequest | null = parseApproveRequest(text);
+    if (!request) {
+      const llmIntent = await parseApproveIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        let spender: string | undefined = llmIntent.spender;
+        if (spender && !spender.startsWith("0x")) {
+          const resolved = KNOWN_SPENDERS[spender.toLowerCase()];
+          spender = resolved?.address ?? spender;
+        }
+        request = {
+          intent: llmIntent.intent,
+          token: llmIntent.token,
+          spender,
+          amount: llmIntent.amount,
+          chain: llmIntent.chain ?? "base",
+        };
+      }
+    }
     if (!request) {
       await callback?.({
         text: [
@@ -190,19 +218,11 @@ export const otakuApproveAction: Action = {
       return { success: true };
     }
 
-    // Check if confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes";
+    const pendingApproval = await getPending<ApproveRequest>(runtime, message, "approve");
 
-    const pendingApproval = state?.pendingApproval as ApproveRequest | undefined;
-
-    if (isConfirmation && pendingApproval) {
-      const cdp = runtime.getService("cdp") as {
-        approve?: (token: string, spender: string, amount: string) => Promise<any>;
-        revoke?: (token: string, spender: string) => Promise<any>;
-        writeContract?: (params: any) => Promise<any>;
-      } | null;
+    if (isConfirmation(text) && pendingApproval) {
+      await clearPending(runtime, message, "approve");
+      const cdp = runtime.getService("cdp") as CdpService | null;
 
       if (!cdp) {
         await callback?.({
@@ -306,8 +326,8 @@ export const otakuApproveAction: Action = {
     lines.push('Type "confirm" to proceed.');
 
     await callback?.({ text: lines.join("\n") });
-
-    logger.info(`[OTAKU_APPROVE] Pending: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "approve", request);
+    logger.info(`[OTAKU_APPROVE] Pending stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },

@@ -17,6 +17,15 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseMorphoIntentWithLLM } from "../utils/intentParser";
+import type { MorphoService } from "../types/services";
 
 interface MorphoRequest {
   intent: "supply" | "withdraw";
@@ -26,12 +35,28 @@ interface MorphoRequest {
   chain?: string;
 }
 
-// Popular Morpho vaults on Base
+// Popular Morpho Blue vaults on Base mainnet (app.morpho.org/base)
 const POPULAR_VAULTS: Record<string, { name: string; address: string; asset: string }> = {
-  "usdc": { name: "Moonwell USDC", address: "0x...", asset: "USDC" },
-  "eth": { name: "Moonwell ETH", address: "0x...", asset: "WETH" },
-  "weth": { name: "Moonwell ETH", address: "0x...", asset: "WETH" },
-  "cbeth": { name: "Moonwell cbETH", address: "0x...", asset: "cbETH" },
+  "usdc": {
+    name: "Blue Chip USDC Vault (Prime)",
+    address: "0x8A034f069D59d62a4643ad42E49b846d036468D7",
+    asset: "USDC",
+  },
+  "eth": {
+    name: "Morpho Base Vault",
+    address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
+    asset: "WETH",
+  },
+  "weth": {
+    name: "Morpho Base Vault",
+    address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
+    asset: "WETH",
+  },
+  "cbeth": {
+    name: "Morpho cbETH Vault",
+    address: "0xbEefc4aDBE58173FCa2C042097Fe33095E68C3D6",
+    asset: "cbETH",
+  },
 };
 
 /**
@@ -130,15 +155,21 @@ export const otakuMorphoAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain Morpho-related intent
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "morpho");
+    }
+
     const hasMorphoIntent =
       text.includes("morpho") ||
-      ((text.includes("supply") || text.includes("lend") || text.includes("deposit")) &&
-        (text.includes("vault") || text.includes("yield")));
+      text.includes("vault") ||
+      text.includes("yield") ||
+      text.includes("supply") ||
+      text.includes("lend") ||
+      text.includes("deposit") ||
+      text.includes("withdraw");
 
     if (!hasMorphoIntent) return false;
 
-    // Check if Morpho service is available
     const morpho = runtime.getService("morpho");
     return !!morpho;
   },
@@ -152,7 +183,19 @@ export const otakuMorphoAction: Action = {
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
-    const request = parseMorphoRequest(text);
+    let request: MorphoRequest | null = parseMorphoRequest(text);
+    if (!request) {
+      const llmIntent = await parseMorphoIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        request = {
+          intent: llmIntent.intent,
+          asset: llmIntent.asset,
+          amount: llmIntent.amount,
+          vault: llmIntent.vault,
+          chain: llmIntent.chain ?? "base",
+        };
+      }
+    }
     if (!request) {
       await callback?.({
         text: [
@@ -168,20 +211,11 @@ export const otakuMorphoAction: Action = {
       return { success: false, error: new Error("Could not parse Morpho request") };
     }
 
-    // Check if confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes";
+    const pendingMorpho = await getPending<MorphoRequest>(runtime, message, "morpho");
 
-    const pendingMorpho = state?.pendingMorpho as MorphoRequest | undefined;
-
-    if (isConfirmation && pendingMorpho) {
-      // Get Morpho service
-      const morphoService = runtime.getService("morpho") as {
-        deposit?: (params: any) => Promise<any>;
-        withdraw?: (params: any) => Promise<any>;
-        getVaultByAsset?: (asset: string) => Promise<any>;
-      } | null;
+    if (isConfirmation(text) && pendingMorpho) {
+      await clearPending(runtime, message, "morpho");
+      const morphoService = runtime.getService("morpho") as MorphoService | null;
 
       if (!morphoService) {
         await callback?.({
@@ -258,11 +292,8 @@ export const otakuMorphoAction: Action = {
       }
     }
 
-    // Get APY estimate if available
-    let apyEstimate = "~5%"; // Default
-    const morphoService = runtime.getService("morpho") as {
-      getVaultApy?: (asset: string) => Promise<number>;
-    } | null;
+    let apyEstimate = "~5%";
+    const morphoService = runtime.getService("morpho") as MorphoService | null;
 
     if (morphoService?.getVaultApy) {
       try {
@@ -292,8 +323,8 @@ export const otakuMorphoAction: Action = {
     lines.push('Type "confirm" to proceed.');
 
     await callback?.({ text: lines.join("\n") });
-
-    logger.info(`[OTAKU_MORPHO] Pending: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "morpho", request);
+    logger.info(`[OTAKU_MORPHO] Pending stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },

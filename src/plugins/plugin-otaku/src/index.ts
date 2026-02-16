@@ -35,6 +35,7 @@
 
 import type { Plugin } from "@elizaos/core";
 import { OtakuService } from "./services/otaku.service";
+import { registerOtakuRebalanceTaskWorker } from "./tasks/rebalance.tasks";
 import {
   otakuSwapAction,
   otakuLimitOrderAction,
@@ -46,8 +47,11 @@ import {
   otakuMorphoAction,
   otakuApproveAction,
   otakuNftMintAction,
+  otakuYieldRecommendAction,
+  otakuSetRebalanceAction,
+  otakuExecuteVinceSignalAction,
 } from "./actions";
-import { walletStatusProvider } from "./providers";
+import { walletStatusProvider, proactiveAlertsProvider, vinceSignalProvider } from "./providers";
 import {
   positionsRoute,
   quoteRoute,
@@ -57,6 +61,7 @@ import {
   healthRoute,
   gasRoute,
 } from "./routes";
+import { portfolioEvaluator } from "./evaluators";
 
 export const otakuPlugin: Plugin = {
   name: "otaku",
@@ -72,10 +77,16 @@ export const otakuPlugin: Plugin = {
     otakuMorphoAction,
     otakuApproveAction,
     otakuNftMintAction,
+    otakuYieldRecommendAction,
+    otakuSetRebalanceAction,
+    otakuExecuteVinceSignalAction,
   ],
   services: [OtakuService],
-  providers: [walletStatusProvider],
-  evaluators: [],
+  init: async (_config, runtime) => {
+    registerOtakuRebalanceTaskWorker(runtime);
+  },
+  providers: [walletStatusProvider, proactiveAlertsProvider, vinceSignalProvider],
+  evaluators: [portfolioEvaluator],
   routes: [
     // Paid routes (x402)
     positionsRoute,

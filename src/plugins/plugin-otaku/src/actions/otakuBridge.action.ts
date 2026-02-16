@@ -18,6 +18,15 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseBridgeIntentWithLLM } from "../utils/intentParser";
+import type { RelayService, BankrAgentService } from "../types/services";
 
 interface BridgeRequest {
   token: string;
@@ -115,23 +124,21 @@ export const otakuBridgeAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain bridge-like intent
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "bridge");
+    }
+
     const hasBridgeIntent =
       text.includes("bridge") ||
-      (text.includes("send") && text.includes("to") && text.includes("from")) ||
-      (text.includes("move") && text.includes("to"));
+      text.includes("cross-chain") ||
+      (text.includes("send") && (text.includes("to") || text.includes("from"))) ||
+      (text.includes("move") && text.includes("to")) ||
+      (text.includes("transfer") && (text.includes("to") || text.includes("from")));
 
     if (!hasBridgeIntent) return false;
 
-    // Check if Relay is available
-    const relayService = runtime.getService("relay") as {
-      isConfigured?: () => boolean;
-    } | null;
-
-    // Also check BANKR as fallback
-    const bankrService = runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-    } | null;
+    const relayService = runtime.getService("relay") as RelayService | null;
+    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
 
     return !!(relayService || bankrService?.isConfigured?.());
   },
@@ -145,8 +152,19 @@ export const otakuBridgeAction: Action = {
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
-    // Parse bridge request
-    const request = parseBridgeRequest(text);
+    // Parse bridge request: regex first, then LLM fallback
+    let request: BridgeRequest | null = parseBridgeRequest(text);
+    if (!request) {
+      const llmIntent = await parseBridgeIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        request = {
+          amount: llmIntent.amount,
+          token: llmIntent.token,
+          fromChain: CHAIN_ALIASES[llmIntent.fromChain] ?? llmIntent.fromChain,
+          toChain: CHAIN_ALIASES[llmIntent.toChain] ?? llmIntent.toChain,
+        };
+      }
+    }
     if (!request) {
       await callback?.({
         text: "I couldn't parse the bridge details. Please specify:\n- Amount and token (e.g., 0.1 ETH)\n- Source chain (e.g., from Base)\n- Destination chain (e.g., to Arbitrum)\n\nExample: \"bridge 0.1 ETH from Base to Arbitrum\"",
@@ -154,29 +172,13 @@ export const otakuBridgeAction: Action = {
       return { success: false, error: new Error("Could not parse bridge request") };
     }
 
-    // Check if this is a confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes" ||
-      text.toLowerCase() === "proceed";
+    const relayService = runtime.getService("relay") as RelayService | null;
+    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
 
-    // Get Relay service for quotes
-    const relayService = runtime.getService("relay") as {
-      getQuote?: (params: any) => Promise<any>;
-      executeBridge?: (params: any) => Promise<any>;
-    } | null;
+    const pendingBridge = await getPending<BridgeRequest>(runtime, message, "bridge");
 
-    // Get BANKR as fallback
-    const bankrService = runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-      submitPrompt?: (prompt: string) => Promise<{ jobId: string }>;
-      pollJobUntilComplete?: (jobId: string, opts: any) => Promise<any>;
-    } | null;
-
-    // Check for pending bridge in state
-    const pendingBridge = state?.pendingBridge as BridgeRequest | undefined;
-
-    if (isConfirmation && pendingBridge) {
+    if (isConfirmation(text) && pendingBridge) {
+      await clearPending(runtime, message, "bridge");
       await callback?.({
         text: `Executing bridge: ${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}...`,
       });
@@ -272,8 +274,8 @@ export const otakuBridgeAction: Action = {
     ].join("\n");
 
     await callback?.({ text: confirmation });
-
-    logger.info(`[OTAKU_BRIDGE] Pending bridge: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "bridge", request);
+    logger.info(`[OTAKU_BRIDGE] Pending bridge stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },

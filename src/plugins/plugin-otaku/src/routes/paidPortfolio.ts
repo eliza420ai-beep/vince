@@ -13,6 +13,7 @@
 
 import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import type { CdpService, MorphoService, BankrOrdersService } from "../types/services";
 
 type RouteHandler = (
   req: RouteRequest,
@@ -135,12 +136,7 @@ async function handlePortfolio(
       timestamp: new Date().toISOString(),
     };
 
-    // 1. Get wallet address and token balances from CDP
-    const cdpService = runtime.getService("cdp") as {
-      getWalletAddress?: () => Promise<string>;
-      getBalances?: () => Promise<any[]>;
-      getNfts?: () => Promise<any[]>;
-    } | null;
+    const cdpService = runtime.getService("cdp") as CdpService | null;
 
     if (cdpService?.getWalletAddress) {
       portfolio.wallet = await cdpService.getWalletAddress();
@@ -158,7 +154,7 @@ async function handlePortfolio(
     if (cdpService?.getBalances) {
       try {
         const balances = await cdpService.getBalances();
-        portfolio.tokens = balances.map((b: any) => ({
+        portfolio.tokens = balances.map((b) => ({
           token: b.contract || b.address,
           symbol: b.symbol || b.token,
           balance: b.balance || b.amount,
@@ -179,7 +175,7 @@ async function handlePortfolio(
     if (cdpService?.getNfts) {
       try {
         const nfts = await cdpService.getNfts();
-        portfolio.nfts = nfts.slice(0, 50).map((n: any) => ({
+        portfolio.nfts = nfts.slice(0, 50).map((n) => ({
           collection: n.collection || n.contractAddress,
           tokenId: n.tokenId || n.id,
           name: n.name,
@@ -196,10 +192,7 @@ async function handlePortfolio(
       }
     }
 
-    // 2. DeFi positions from Morpho
-    const morphoService = runtime.getService("morpho") as {
-      getUserPositions?: (address: string) => Promise<any[]>;
-    } | null;
+    const morphoService = runtime.getService("morpho") as MorphoService | null;
 
     if (morphoService?.getUserPositions) {
       try {
@@ -255,15 +248,12 @@ async function handlePortfolio(
       0
     );
 
-    // 4. Active orders from BANKR
-    const bankrOrders = runtime.getService("bankr_orders") as {
-      getActiveOrders?: () => Promise<any[]>;
-    } | null;
+    const bankrOrders = runtime.getService("bankr_orders") as BankrOrdersService | null;
 
     if (bankrOrders?.getActiveOrders) {
       try {
         const orders = await bankrOrders.getActiveOrders();
-        portfolio.orders = orders.slice(0, 20).map((o: any) => ({
+        portfolio.orders = orders.slice(0, 20).map((o) => ({
           orderId: o.orderId,
           type: o.orderType || o.type,
           pair: `${o.sellToken}/${o.buyToken}`,

@@ -13,6 +13,7 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import type { CdpService, BankrAgentService } from "../types/services";
 
 interface TokenBalance {
   token: string;
@@ -74,12 +75,8 @@ export const otakuBalanceAction: Action = {
 
     if (!hasBalanceIntent) return false;
 
-    // Need either CDP or BANKR
     const cdp = runtime.getService("cdp");
-    const bankr = runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-    } | null;
-
+    const bankr = runtime.getService("bankr_agent") as BankrAgentService | null;
     return !!(cdp || bankr?.isConfigured?.());
   },
 
@@ -99,11 +96,7 @@ export const otakuBalanceAction: Action = {
     const balances: TokenBalance[] = [];
     let walletAddress: string | undefined;
 
-    // Try CDP first
-    const cdpService = runtime.getService("cdp") as {
-      getWalletAddress?: () => Promise<string>;
-      getBalances?: () => Promise<any[]>;
-    } | null;
+    const cdpService = runtime.getService("cdp") as CdpService | null;
 
     if (cdpService) {
       try {
@@ -127,12 +120,7 @@ export const otakuBalanceAction: Action = {
       }
     }
 
-    // Try BANKR for additional balances
-    const bankrService = runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-      submitPrompt?: (prompt: string) => Promise<{ jobId: string }>;
-      pollJobUntilComplete?: (jobId: string, opts: any) => Promise<any>;
-    } | null;
+    const bankrService = runtime.getService("bankr_agent") as BankrAgentService | null;
 
     if (bankrService?.isConfigured?.() && balances.length === 0) {
       try {

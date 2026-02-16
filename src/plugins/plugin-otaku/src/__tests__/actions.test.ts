@@ -44,8 +44,8 @@ describe("Otaku Plugin", () => {
     expect(otakuPlugin.name).toBe("otaku");
   });
 
-  it("should have 10 actions", () => {
-    expect(otakuPlugin.actions).toHaveLength(10);
+  it("should have 13 actions", () => {
+    expect(otakuPlugin.actions).toHaveLength(13);
   });
 
   it("should have 1 service", () => {
@@ -64,6 +64,9 @@ describe("Otaku Plugin", () => {
       "OTAKU_MORPHO",
       "OTAKU_APPROVE",
       "OTAKU_NFT_MINT",
+      "OTAKU_YIELD_RECOMMEND",
+      "OTAKU_SET_REBALANCE",
+      "OTAKU_EXECUTE_VINCE_SIGNAL",
     ];
 
     for (const actionName of expectedActions) {
@@ -104,12 +107,20 @@ describe("OTAKU_SWAP", () => {
       expect(result).toBe(false);
     });
 
-    it("should not validate without swap keyword", async () => {
+    it("should not validate without swap-like intent (swap/exchange/convert/sell)", async () => {
+      const runtime = createMockRuntime(true);
+      const memory = createMemory("what is my balance on base");
+
+      const result = await action.validate!(runtime, memory);
+      expect(result).toBe(false);
+    });
+
+    it("should validate with convert (LLM/regex will parse in handler)", async () => {
       const runtime = createMockRuntime(true);
       const memory = createMemory("convert 1 ETH to USDC");
 
       const result = await action.validate!(runtime, memory);
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
 
     it("should not validate without token pair", async () => {

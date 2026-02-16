@@ -20,6 +20,15 @@ import {
   type HandlerCallback,
   logger,
 } from "@elizaos/core";
+import {
+  setPending,
+  getPending,
+  clearPending,
+  isConfirmation,
+  hasPending,
+} from "../utils/pendingCache";
+import { parseStopLossIntentWithLLM } from "../utils/intentParser";
+import type { BankrAgentService } from "../types/services";
 
 interface StopLossRequest {
   token: string;
@@ -129,7 +138,10 @@ export const otakuStopLossAction: Action = {
   validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
 
-    // Must contain stop-loss or take-profit intent
+    if (isConfirmation(text)) {
+      return hasPending(runtime, message, "stopLoss");
+    }
+
     const hasIntent =
       text.includes("stop-loss") ||
       text.includes("stop loss") ||
@@ -141,10 +153,7 @@ export const otakuStopLossAction: Action = {
 
     if (!hasIntent) return false;
 
-    // Check BANKR availability
-    const bankr = runtime.getService("bankr_agent") as {
-      isConfigured?: () => boolean;
-    } | null;
+    const bankr = runtime.getService("bankr_agent") as BankrAgentService | null;
 
     return !!bankr?.isConfigured?.();
   },
@@ -158,7 +167,20 @@ export const otakuStopLossAction: Action = {
   ): Promise<void | ActionResult> => {
     const text = message.content?.text ?? "";
 
-    const request = parseStopLossRequest(text);
+    let request: StopLossRequest | null = parseStopLossRequest(text);
+    if (!request) {
+      const llmIntent = await parseStopLossIntentWithLLM(runtime, text);
+      if (llmIntent) {
+        request = {
+          token: llmIntent.token,
+          amount: llmIntent.amount,
+          stopLossPrice: llmIntent.stopLossPrice,
+          takeProfitPrice: llmIntent.takeProfitPrice,
+          trailingPercent: llmIntent.trailingPercent,
+          chain: llmIntent.chain,
+        };
+      }
+    }
     if (!request) {
       await callback?.({
         text: [
@@ -174,19 +196,15 @@ export const otakuStopLossAction: Action = {
       return { success: false, error: new Error("Could not parse stop-loss request") };
     }
 
-    // Check if confirmation
-    const isConfirmation =
-      text.toLowerCase().includes("confirm") ||
-      text.toLowerCase() === "yes";
+    const pendingOrder = await getPending<StopLossRequest>(runtime, message, "stopLoss");
 
-    const pendingOrder = state?.pendingStopLoss as StopLossRequest | undefined;
-
-    if (isConfirmation && pendingOrder) {
-      // Execute via BANKR
-      const bankr = runtime.getService("bankr_agent") as unknown as {
-        submitPrompt: (prompt: string) => Promise<{ jobId: string }>;
-        pollJobUntilComplete: (jobId: string, opts: any) => Promise<any>;
-      };
+    if (isConfirmation(text) && pendingOrder) {
+      await clearPending(runtime, message, "stopLoss");
+      const bankr = runtime.getService("bankr_agent") as BankrAgentService | null;
+      if (!bankr?.submitPrompt || !bankr?.pollJobUntilComplete) {
+        await callback?.({ text: "BANKR service not available for orders." });
+        return { success: false, error: new Error("BANKR not available") };
+      }
 
       const prompts: string[] = [];
 
@@ -282,8 +300,8 @@ export const otakuStopLossAction: Action = {
     lines.push('Type "confirm" to place orders.');
 
     await callback?.({ text: lines.join("\n") });
-
-    logger.info(`[OTAKU_STOP_LOSS] Pending: ${JSON.stringify(request)}`);
+    await setPending(runtime, message, "stopLoss", request);
+    logger.info(`[OTAKU_STOP_LOSS] Pending stored: ${JSON.stringify(request)}`);
 
     return { success: true };
   },
