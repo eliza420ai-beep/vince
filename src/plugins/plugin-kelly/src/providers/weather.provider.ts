@@ -11,7 +11,7 @@ import type {
   Provider,
   ProviderResult,
 } from "@elizaos/core";
-import { RAIN_STORM_SAFETY_LINE, STRONG_WIND_SAFETY_LINE } from "../constants/safety";
+import { RAIN_STORM_SAFETY_LINE, STRONG_WIND_SAFETY_LINE, isRainOrStormCode } from "../constants/safety";
 
 const BORDEAUX = { lat: 44.84, lon: -0.58 };
 const BIARRITZ = { lat: 43.48, lon: -1.56 };
@@ -83,17 +83,8 @@ function labelFromCode(code: number): string {
   return "mixed";
 }
 
-/**
- * True for rain, drizzle, freezing rain, showers, or thunderstorm WMO codes.
- * Does NOT include snow (71–77, 85–86) or fog (45, 48) — those need different advice.
- */
-function isRainOrStorm(code: number): boolean {
-  return (
-    (code >= 51 && code <= 67) || // drizzle (51–55) + rain (61–65) + freezing rain (66–67)
-    (code >= 80 && code <= 82) || // showers
-    code >= 95                    // thunderstorms (95, 96, 99)
-  );
-}
+/** Re-export from safety for local use. */
+const isRainOrStorm = (code: number): boolean => isRainOrStormCode(code);
 
 async function fetchCurrent(lat: number, lon: number): Promise<{
   weather_code: number;

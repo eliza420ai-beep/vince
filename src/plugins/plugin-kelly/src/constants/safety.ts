@@ -19,6 +19,18 @@ export const MON_TUE_CLOSED_LINE =
 export const PAST_LUNCH_INSTRUCTION =
   "We almost NEVER go out for dinner—lunch only. If CURRENT TIME shows past lunch hours (past 14:30, or 15:00 on Sunday), do NOT suggest lunch or dinner at a restaurant. Suggest pool, swim, walk, yoga, wine at home, or afternoon activities instead.";
 
+/**
+ * True for rain, drizzle, freezing rain, showers, or thunderstorm WMO codes.
+ * Does NOT include snow (71–77, 85–86) or fog (45, 48).
+ */
+export function isRainOrStormCode(code: number): boolean {
+  return (
+    (code >= 51 && code <= 67) || // drizzle (51–55) + rain (61–65) + freezing rain (66–67)
+    (code >= 80 && code <= 82) || // showers
+    code >= 95                    // thunderstorms (95, 96, 99)
+  );
+}
+
 /** Single line for all recommendation actions: only from context; if nothing, say so and point to MICHELIN/James Edition. */
 export const NEVER_INVENT_LINE =
   "Do not invent any names; only recommend from the context above. If the context has nothing for this place or request, say so and suggest MICHELIN Guide or James Edition.";

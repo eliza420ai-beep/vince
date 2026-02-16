@@ -11,6 +11,7 @@ import type {
   State,
 } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
+import { getParisTimeAndPastLunch } from "../utils/briefing";
 
 const LIFESTYLE_FACT_HINTS = [
   "loved",
@@ -106,29 +107,7 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = season;
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
 
-      const nowParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const hourParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        hour12: false,
-      });
-      const minParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        minute: "2-digit",
-      });
-      const hourNum = parseInt(hourParis, 10);
-      const minNum = parseInt(minParis, 10);
-      const minutesSinceMidnight = hourNum * 60 + minNum;
-      const lunchCutoff = 14 * 60 + 30; // 14:30 - don't suggest lunch after this
-      const lunchCutoffSunday = 15 * 60; // 15:00 - Maison Devaux Sun until 15:00
-      const isSunday = day.toLowerCase() === "sunday";
-      const pastLunch =
-        minutesSinceMidnight >= (isSunday ? lunchCutoffSunday : lunchCutoff);
+      const { currentTimeParis: nowParis, pastLunch } = getParisTimeAndPastLunch(day);
 
       values.kellyCurrentTimeParis = nowParis;
       values.kellyPastLunch = pastLunch;
@@ -175,7 +154,6 @@ export const kellyContextProvider: Provider = {
         }
       }
     } else {
-      const now = new Date();
       const days = [
         "Sunday",
         "Monday",
@@ -185,20 +163,16 @@ export const kellyContextProvider: Provider = {
         "Friday",
         "Saturday",
       ];
-      values.kellyDay = days[now.getDay()];
+      const fallbackDay = days[new Date().getDay()] ?? "Monday";
+      values.kellyDay = fallbackDay;
       values.kellySeason = "pool";
       values.kellyWellnessTip = "";
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
-      const nowParis = now.toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      values.kellyCurrentTimeParis = nowParis;
+      const { currentTimeParis: fallbackTimeParis } = getParisTimeAndPastLunch(fallbackDay);
+      values.kellyCurrentTimeParis = fallbackTimeParis;
       textParts.push(`Day: ${values.kellyDay}`);
       textParts.push(
-        `**Current time (Europe/Paris):** ${nowParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
+        `**Current time (Europe/Paris):** ${fallbackTimeParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
       );
       if (requestedDayCap) textParts.push(`**User asked for ${requestedDayCap}.**`);
       textParts.push("Season: pool");

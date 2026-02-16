@@ -13,6 +13,7 @@ import type {
 import { logger, ModelType } from "@elizaos/core";
 import { getVoiceAvoidPromptFragment } from "../constants/voice";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
+import { getParisTimeAndPastLunch } from "../utils/briefing";
 
 const WEEK_AHEAD_TRIGGERS = [
   "week ahead",
@@ -59,26 +60,9 @@ export const kellyWeekAheadAction: Action = {
       const season = service?.getCurrentSeason() ?? "pool";
       const contextBlock = typeof state.text === "string" ? state.text : "";
 
-      const now = new Date();
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const today = dayNames[now.getDay()];
-      const timeParis = now.toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const hourParis = parseInt(
-        now.toLocaleString("en-GB", { timeZone: "Europe/Paris", hour: "2-digit", hour12: false }),
-        10,
-      );
-      const minParis = parseInt(
-        now.toLocaleString("en-GB", { timeZone: "Europe/Paris", minute: "2-digit" }),
-        10,
-      );
-      const minutesSinceMidnight = hourParis * 60 + minParis;
-      const isSunday = today === "Sunday";
-      const pastLunch = minutesSinceMidnight >= (isSunday ? 15 * 60 : 14 * 60 + 30);
+      const today = dayNames[new Date().getDay()] ?? "Monday";
+      const { currentTimeParis: timeParis, pastLunch } = getParisTimeAndPastLunch(today);
 
       const restLine = restaurants.length > 0 ? restaurants.slice(0, 8).join("; ") : "See curated-open-schedule by day";
       const hotelLine = hotels.length > 0 ? hotels.slice(0, 5).join("; ") : "See curated-open-schedule";
