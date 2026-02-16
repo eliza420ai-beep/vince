@@ -33,54 +33,17 @@
 
 ---
 
-## 🆕 What's New in v2.5.0
+## What's New in v2.7
 
-We shipped a lot. **Clawterm**, **OpenClaw**, **standups**, and two new DeFi plugins—all in one release.
+**Otaku** is the only agent with a funded wallet and onchain execution. This release doubles down on that story: docs, grant application, and a clear path to testnet MVP.
 
-<table>
-<tr>
-<td width="50%">
+| Focus | Summary |
+|:---|:---|
+| **Otaku** | 13 actions (swap, DCA, bridge, Morpho, stop-loss, NFT mint, execute Vince signal, etc.). Free API: health, config, alerts, notifications. Paid (x402): positions, quote, yields, history, portfolio. Degen vs Normies mode; DB-backed completion events and socket-driven UI. |
+| **Docs** | [OTAKU.md](docs/OTAKU.md) updated with a **For Developers** section (what it can/cannot do, key files, how to run, suggested issues for MVP). [Base Builder Grant](docs/grants/BASE-BUILDER-GRANT-APPLICATION.md) rewritten with Otaku as the core agent for VC/grant attention. |
+| **Next** | We're grinding hard on **Kelly** (personal lifestyle agent as good as it gets—deeper knowledge on topics that matter most) and **Sentinel**'s passion for **gen art** (QQL derivative passion project). |
 
-**🦞 Clawterm & standups**
-
-- **Clawterm agent** — Bio, config, day report (`CLAWTERM_DAY_REP`)
-- **Standup facilitator** — Refactored data fetch, clearer lessons & action items
-- **Structured standups** — Twice daily, lessons per agent, #daily-standup summary
-
-</td>
-<td width="50%">
-
-**🔗 OpenClaw integration**
-
-- **Tests & security** — OpenClaw plugin tests, clarified data sources, security hardening
-- **Knowledge & adapter** — OpenClaw knowledge base, adapter enhancements
-- **Hybrid mode** — VINCE + OpenClaw sub-agents for parallel research
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-**📦 New plugins**
-
-- **@elizaos/plugin-8004** — ERC-8004 (identity/attestation) integration
-- **plugin-defillama** — TVL, yields, protocol discovery (Otaku; no API key)
-
-</td>
-<td width="50%">
-
-**⚡ Core & UX**
-
-- **A2A context** — Richer agent-to-agent context provisioning
-- **Dashboard leader** — Volume-based leaderboard enhancements
-- **Gamification** — Rebels ranking, engagement hooks
-- **Agent branding** — Clearer lanes and voice
-
-</td>
-</tr>
-</table>
-
-**Stats:** 20+ plugins · 162+ actions · [Full changelog](CHANGELOG.md)
+**Previous releases:** [v2.5.0](docs/RELEASE_v2.5.0.md) (Clawterm, OpenClaw, standups, DefiLlama, ERC-8004) · [Changelog](CHANGELOG.md)
 
 ---
 
@@ -146,7 +109,7 @@ You talk to one agent. That agent asks any teammate by name and brings the answe
 |:---|:---|
 | [**FEATURE-STORE**](docs/FEATURE-STORE.md) | ML & paper bot · feature store |
 | [**MULTI_AGENT**](docs/MULTI_AGENT.md) | ASK_AGENT · standups · one conversation, full team |
-| [**Release v2.5.0**](docs/RELEASE_v2.5.0.md) | What we shipped · Clawterm, OpenClaw, DefiLlama, ERC-8004 |
+| [**Release v2.7**](docs/RELEASE_v2.7.md) | Otaku star · grant · Kelly & Sentinel grind |
 | [**SUPABASE_MIGRATION**](docs/SUPABASE_MIGRATION.md) | Production persistence checklist |
 | [**DEPLOY**](docs/DEPLOY.md) | Eliza Cloud · env · troubleshooting |
 | [**DISCORD**](docs/DISCORD.md) | Channel structure for VINCE + Eliza (IKIGAI, LiveTheLifeTV, Slack) |
@@ -604,6 +567,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | `VINCE_PAPER_ASSETS` | e.g. `BTC` or `BTC,ETH,SOL` |
 | `VINCE_APPLY_IMPROVEMENT_WEIGHTS` | `true` = align weights with training metadata |
 | `VINCE_BINANCE_BASE_URL` | Proxy for Binance in 451 regions |
+| `VITE_OTAKU_MODE` | Wallet UI: `normies` = simple/Coinbase (balance, activity, add funds, buy & sell); unset = DeFi mode. Build-time only; see `.env.example`. |
 
 ---
 

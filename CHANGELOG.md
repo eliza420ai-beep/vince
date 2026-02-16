@@ -2,6 +2,23 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v2.7.0] - 2026-02-16
+
+### Otaku: the executor
+
+- **13 actions** — Swap, limit order, DCA, positions, bridge, balance, stop-loss, Morpho, approve, NFT mint, yield recommend, rebalance, execute Vince signal
+- **API** — Free routes (health, config, alerts, notifications, gas); paid x402 routes (positions, quote, yields, history, portfolio)
+- **Notifications** — Wallet history + alerts + DB-backed completion events; merged in UI with socket refresh
+- **Wallet UI** — Degen vs Normies mode from backend config; mode-aware copy and optional Swap
+- **Docs** — OTAKU.md updated with dev section (can/cannot do, key files, MVP issues); Base Builder Grant application rewritten with Otaku as core
+
+### What's next
+
+- **Kelly** — Grind to make the personal lifestyle agent as good as it gets; deeper knowledge on topics that matter most
+- **Sentinel** — Gen art passion project: QQL derivative
+
+---
+
 ## [v2.5.0] - 2026-02-14
 
 ### 🦞 Clawterm & standups
