@@ -11,14 +11,22 @@ import type {
   Provider,
   ProviderResult,
 } from "@elizaos/core";
-import { RAIN_STORM_SAFETY_LINE, STRONG_WIND_SAFETY_LINE } from "../constants/safety";
+import {
+  RAIN_STORM_SAFETY_LINE,
+  STRONG_WIND_SAFETY_LINE,
+  SNOW_SAFETY_LINE,
+  FOG_SAFETY_LINE,
+  isRainOrStormCode,
+  isSnowCode,
+  isFogCode,
+} from "../constants/safety";
 
 const BORDEAUX = { lat: 44.84, lon: -0.58 };
 const BIARRITZ = { lat: 43.48, lon: -1.56 };
 const HOME = { lat: 43.93, lon: -0.92 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const MARINE_OPEN_METEO = "https://marine-api.open-meteo.com/v1/marine";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
 const STRONG_WIND_KMH = 35;
 
 const COMPASS = [
@@ -83,15 +91,8 @@ function labelFromCode(code: number): string {
   return "mixed";
 }
 
-function isRainOrStorm(code: number): boolean {
-  return (
-    code >= 51 ||
-    code === 80 ||
-    code === 81 ||
-    code === 82 ||
-    code >= 95
-  );
-}
+/** Re-export from safety for local use. */
+const isRainOrStorm = (code: number): boolean => isRainOrStormCode(code);
 
 async function fetchCurrent(lat: number, lon: number): Promise<{
   weather_code: number;
@@ -210,10 +211,12 @@ export const weatherProvider: Provider = {
       values.weatherHome = { condition: cond, temp: temp, code: home.weather_code };
     }
 
-    const rainOrStorm =
-      (bdx && isRainOrStorm(bdx.weather_code)) ||
-      (biarritz && isRainOrStorm(biarritz.weather_code)) ||
-      (home && isRainOrStorm(home.weather_code));
+    const allCodes = [bdx?.weather_code, biarritz?.weather_code, home?.weather_code].filter(
+      (c): c is number => c !== undefined && c !== null,
+    );
+    const rainOrStorm = allCodes.some(isRainOrStorm);
+    const snow = allCodes.some(isSnowCode);
+    const fog = allCodes.some(isFogCode);
     const windBdx = bdx?.wind_speed_10m ?? 0;
     const windBiarritz = biarritz?.wind_speed_10m ?? 0;
     const windHome = home?.wind_speed_10m ?? 0;
@@ -224,6 +227,12 @@ export const weatherProvider: Provider = {
 
     if (rainOrStorm) {
       parts.push(RAIN_STORM_SAFETY_LINE);
+    }
+    if (snow && !rainOrStorm) {
+      parts.push(SNOW_SAFETY_LINE);
+    }
+    if (fog && !rainOrStorm && !snow) {
+      parts.push(FOG_SAFETY_LINE);
     }
     if (strongWind && !rainOrStorm) {
       parts.push(STRONG_WIND_SAFETY_LINE);

@@ -15,6 +15,10 @@ Lifestyle-only concierge for the Kelly agent: daily briefing, health, dining, ho
 | **KELLY_WEEK_AHEAD** | "week ahead", "this week's picks", "plan for the week" | 3–5 suggestions for the week (dining, hotels, wellness) from the-good-life and curated schedule. |
 | **KELLY_SWIMMING_TIPS** | "tips for my daily 1000m", "swimming tips", "winter swimming" | Tips for lap swim, winter indoor pools, swimmer yoga from swimming-daily-winter-pools and yoga docs. |
 | **KELLY_RECOMMEND_EXPERIENCE** | "wine tasting experience", "spa day", "cooking class", "guided tour", "something special to do" | One best pick + one alternative for one-off experiences from the-good-life (wine-tasting, luxury spas, experience-prioritization-framework). |
+| **KELLY_RECOMMEND_HOME_COOKING** | "what to cook", "dinner idea", "Green Egg", "Thermomix", "BBQ", "something in the oven", "dinner at home" | Dinner-at-home pick: Green Egg BBQ, Thermomix TM7, or long oven cook. Detects cooking method preference. Includes wine pairing. Uses lifestyle/home-cooking and local meat context. |
+| **KELLY_RECOMMEND_TEA** | "what tea", "morning tea", "evening tea", "Dammann", "tea with milk", "herbal tea", "rooibos" | Tea from Dammann Frères by time of day: morning (Darjeeling, Ceylon, breakfast, Assam, green) or evening caffeine-free (rooibos, herbal, fruit). One pick + one alternative. |
+| **KELLY_RECOMMEND_ENTERTAINMENT** | "recommend a book", "what to watch", "Netflix", "Apple TV", "music recommendation", "something like X" | Books, music, Netflix series, Apple TV movies by taste. Detects category and "something like X" pattern. Music context: Taycan/Burmester or Denon DJ/Bose. |
+| **KELLY_RECOMMEND_CREATIVE** | "oil painting tips", "Hasselblad", "Capture One", "Ableton", "Push 3", "Blackmagic", "DaVinci Resolve", "Blender", "Claude MCP" | Creative practice tips: painting, photography (Hasselblad/Fuji/Capture One), music (Ableton/Push 3/AI), cinema (BMPCC 6K/Resolve/IRIX), Blender + Claude MCP. One tip + next step. |
 
 ## Providers
 

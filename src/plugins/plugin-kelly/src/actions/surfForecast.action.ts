@@ -11,6 +11,7 @@ import type {
   HandlerCallback,
 } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { isRainOrStormCode } from "../constants/safety";
 import type { SurfBiarritzValue } from "../types.ts";
 
 const SURF_TRIGGERS = [
@@ -32,13 +33,7 @@ function wantsSurfForecast(text: string): boolean {
 
 function isRainOrStorm(weatherCode: number | undefined): boolean {
   if (weatherCode === undefined) return false;
-  return (
-    weatherCode >= 51 ||
-    weatherCode === 80 ||
-    weatherCode === 81 ||
-    weatherCode === 82 ||
-    weatherCode >= 95
-  );
+  return isRainOrStormCode(weatherCode);
 }
 
 function formatInterpretation(surf: SurfBiarritzValue): string {

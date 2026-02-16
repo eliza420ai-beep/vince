@@ -11,6 +11,7 @@ import type {
   State,
 } from "@elizaos/core";
 import type { KellyLifestyleService } from "../services/lifestyle.service";
+import { getParisTimeAndPastLunch } from "../utils/briefing";
 
 const LIFESTYLE_FACT_HINTS = [
   "loved",
@@ -45,22 +46,17 @@ type DayName = (typeof DAY_NAMES)[number];
 function detectRequestedDay(messageText: string): DayName | null {
   const lower = (messageText ?? "").toLowerCase().trim();
   if (!lower) return null;
-  const dayTrigger =
-    /\b(on|for|tomorrow is)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
-      lower,
-    ) ||
-    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(lunch|dinner|recommendations|picks|open)\b/i.exec(
-      lower,
-    ) ||
-    /\b(place to eat|where to eat|eat|recommend|restaurant| lunch)\s+.*\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
-      lower,
-    ) ||
-    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.*\b(lunch|dinner|eat|place|restaurant)\b/i.exec(
-      lower,
-    );
-  if (dayTrigger) {
-    const day = dayTrigger[2] ?? dayTrigger[3];
-    if (day && DAY_NAMES.includes(day as DayName)) return day as DayName;
+
+  // Simple approach: find any day name in the text when combined with a meal/recommendation keyword
+  const dayPattern = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+  const contextPattern = /\b(on|for|tomorrow|lunch|dinner|recommendations?|picks?|open|place to eat|where to eat|eat|recommend|restaurant)\b/i;
+
+  if (!contextPattern.test(lower)) return null;
+
+  const dayMatch = dayPattern.exec(lower);
+  if (dayMatch) {
+    const day = dayMatch[1].toLowerCase();
+    if (DAY_NAMES.includes(day as DayName)) return day as DayName;
   }
   return null;
 }
@@ -106,29 +102,7 @@ export const kellyContextProvider: Provider = {
       values.kellySeason = season;
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
 
-      const nowParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      const hourParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        hour12: false,
-      });
-      const minParis = new Date().toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        minute: "2-digit",
-      });
-      const hourNum = parseInt(hourParis, 10);
-      const minNum = parseInt(minParis, 10);
-      const minutesSinceMidnight = hourNum * 60 + minNum;
-      const lunchCutoff = 14 * 60 + 30; // 14:30 - don't suggest lunch after this
-      const lunchCutoffSunday = 15 * 60; // 15:00 - Maison Devaux Sun until 15:00
-      const isSunday = day.toLowerCase() === "sunday";
-      const pastLunch =
-        minutesSinceMidnight >= (isSunday ? lunchCutoffSunday : lunchCutoff);
+      const { currentTimeParis: nowParis, pastLunch } = getParisTimeAndPastLunch(day);
 
       values.kellyCurrentTimeParis = nowParis;
       values.kellyPastLunch = pastLunch;
@@ -175,7 +149,6 @@ export const kellyContextProvider: Provider = {
         }
       }
     } else {
-      const now = new Date();
       const days = [
         "Sunday",
         "Monday",
@@ -185,20 +158,16 @@ export const kellyContextProvider: Provider = {
         "Friday",
         "Saturday",
       ];
-      values.kellyDay = days[now.getDay()];
+      const fallbackDay = days[new Date().getDay()] ?? "Monday";
+      values.kellyDay = fallbackDay;
       values.kellySeason = "pool";
       values.kellyWellnessTip = "";
       if (requestedDayCap) values.kellyRequestedDay = requestedDayCap;
-      const nowParis = now.toLocaleString("en-GB", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      values.kellyCurrentTimeParis = nowParis;
+      const { currentTimeParis: fallbackTimeParis } = getParisTimeAndPastLunch(fallbackDay);
+      values.kellyCurrentTimeParis = fallbackTimeParis;
       textParts.push(`Day: ${values.kellyDay}`);
       textParts.push(
-        `**Current time (Europe/Paris):** ${nowParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
+        `**Current time (Europe/Paris):** ${fallbackTimeParis}. Do not suggest lunch if it's past 14:30 (or 15:00 on Sunday).`,
       );
       if (requestedDayCap) textParts.push(`**User asked for ${requestedDayCap}.**`);
       textParts.push("Season: pool");

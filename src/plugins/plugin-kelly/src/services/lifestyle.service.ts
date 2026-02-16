@@ -27,10 +27,16 @@ export interface CuratedOpenContext {
   palacePoolReopenDates?: Record<string, string>;
 }
 
+/** How long to cache the curated schedule file in memory (ms). */
+const CURATED_SCHEDULE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+
 export class KellyLifestyleService extends Service {
   static serviceType = "KELLY_LIFESTYLE_SERVICE";
   capabilityDescription =
     "Daily lifestyle suggestions: health, dining, hotels, wellness";
+
+  /** Cached curated schedule content + timestamp. */
+  private curatedScheduleCache: { content: string; at: number } | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -45,17 +51,40 @@ export class KellyLifestyleService extends Service {
 
   /** Optional: validate that curated-open-schedule has required sections; log warning if not. */
   private validateCuratedScheduleStructure(): void {
+    const content = this.loadCuratedSchedule();
+    if (!content) return;
+    const required = ["## Restaurants by Day", "## Hotels by Season", "## Fitness / Health"];
+    const missing = required.filter((s) => !content.includes(s));
+    if (missing.length > 0) {
+      logger.warn("[KellyLifestyle] Curated schedule missing sections: " + missing.join(", "));
+    }
+  }
+
+  /**
+   * Load curated schedule from disk with in-memory cache (5 min TTL).
+   * Returns null if file is missing or empty.
+   */
+  private loadCuratedSchedule(): string | null {
+    const now = Date.now();
+    if (this.curatedScheduleCache && now - this.curatedScheduleCache.at < CURATED_SCHEDULE_CACHE_TTL_MS) {
+      return this.curatedScheduleCache.content;
+    }
     const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
-    if (!fs.existsSync(fullPath)) return;
+    if (!fs.existsSync(fullPath)) {
+      this.curatedScheduleCache = null;
+      return null;
+    }
     try {
       const content = fs.readFileSync(fullPath, "utf-8");
-      const required = ["## Restaurants by Day", "## Hotels by Season", "## Fitness / Health"];
-      const missing = required.filter((s) => !content.includes(s));
-      if (missing.length > 0) {
-        logger.warn("[KellyLifestyle] Curated schedule missing sections: " + missing.join(", "));
+      if (!content || !content.trim()) {
+        this.curatedScheduleCache = null;
+        return null;
       }
+      this.curatedScheduleCache = { content, at: now };
+      return content;
     } catch {
-      // ignore
+      this.curatedScheduleCache = null;
+      return null;
     }
   }
 
@@ -68,18 +97,13 @@ export class KellyLifestyleService extends Service {
     const month = monthOverride ?? this.getMonth();
     const isWinter = month <= 2;
 
-    const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
-    if (!fs.existsSync(fullPath)) {
-      logger.warn("[KellyLifestyle] Curated schedule file missing: " + CURATED_SCHEDULE_PATH);
+    const content = this.loadCuratedSchedule();
+    if (!content) {
+      logger.warn("[KellyLifestyle] Curated schedule file missing or empty: " + CURATED_SCHEDULE_PATH);
       return null;
     }
 
     try {
-      const content = fs.readFileSync(fullPath, "utf-8");
-      if (!content || !content.trim()) {
-        logger.warn("[KellyLifestyle] Curated schedule file is empty: " + CURATED_SCHEDULE_PATH);
-        return null;
-      }
       // Curated schedule structure (see README Dependency):
       // - ## Restaurants by Day — then ### Monday … ### Sunday with lines like "- **Name** | Location | Hours"
       // - ## Hotels by Season — then ### Winter (January–February) and ### March–November with hotel lines
@@ -116,15 +140,10 @@ export class KellyLifestyleService extends Service {
 
   /** Returns palace indoor pool reopen dates (e.g. Palais Feb 12, Caudalie Feb 5, Eugenie Mar 6). From curated-open-schedule or fallback constant. */
   getPalacePoolReopenDates(): Record<string, string> {
-    const fullPath = path.join(process.cwd(), CURATED_SCHEDULE_PATH);
-    if (fs.existsSync(fullPath)) {
-      try {
-        const content = fs.readFileSync(fullPath, "utf-8");
-        const parsed = this.parsePalacePoolReopenDates(content);
-        if (Object.keys(parsed).length > 0) return parsed;
-      } catch {
-        // fallback
-      }
+    const content = this.loadCuratedSchedule();
+    if (content) {
+      const parsed = this.parsePalacePoolReopenDates(content);
+      if (Object.keys(parsed).length > 0) return parsed;
     }
     return { Palais: "Feb 12", Caudalie: "Feb 5", Eugenie: "Mar 6" };
   }

@@ -62,7 +62,7 @@ export function findFillerPhrases(text: string): string[] {
  * Use in action prompts (dailyBriefing, recommendPlace, etc.) to keep voice consistent.
  */
 export function getVoiceAvoidPromptFragment(): string {
-  const jargonList = BANNED_JARGON.slice(0, 12).join(", ") + ", etc.";
+  const jargonList = BANNED_JARGON.join(", ");
   const fillerList = FILLER_PHRASES.join(", ");
   return `- Jargon: ${jargonList}\n- Filler phrases: ${fillerList}`;
 }
