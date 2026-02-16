@@ -29,6 +29,7 @@ import {
 } from "../utils/pendingCache";
 import { parseStopLossIntentWithLLM } from "../utils/intentParser";
 import type { BankrAgentService } from "../types/services";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 interface StopLossRequest {
   token: string;
@@ -253,6 +254,14 @@ export const otakuStopLossAction: Action = {
       await callback?.({
         text: out,
       });
+      const successCount = results.filter((r) => r.startsWith("✅")).length;
+      if (successCount > 0) {
+        await appendNotificationEvent(runtime, {
+          action: "stop_loss_created",
+          title: "Stop-loss order(s) created",
+          subtitle: `${pendingOrder.amount} ${pendingOrder.token} · ${successCount} order(s) placed`,
+        }, message.entityId);
+      }
       return { success: true };
     }
 

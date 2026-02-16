@@ -9,10 +9,7 @@
  */
 
 import type { Provider, IAgentRuntime, Memory, State } from "@elizaos/core";
-import { logger } from "@elizaos/core";
-import type { CdpService, MorphoService, BankrOrdersService } from "../types/services";
-
-const MORPHO_HEALTH_WARN_THRESHOLD = 1.2;
+import { getAlerts } from "../lib/getAlerts";
 
 export const proactiveAlertsProvider: Provider = {
   name: "OTAKU_PROACTIVE_ALERTS",
@@ -24,65 +21,23 @@ export const proactiveAlertsProvider: Provider = {
     _message: Memory,
     _state?: State
   ) => {
-    const lines: string[] = [];
-
-    const cdp = runtime.getService("cdp") as CdpService | null;
-    const morpho = runtime.getService("morpho") as MorphoService | null;
-    const bankrOrders = runtime.getService("bankr_orders") as BankrOrdersService | null;
-
-    if (morpho?.getUserPositions && cdp?.getWalletAddress) {
-      try {
-        const address = await cdp.getWalletAddress();
-        if (address) {
-          const positions = await morpho.getUserPositions(address);
-          for (const p of positions ?? []) {
-            const hf = p.healthFactor;
-            if (hf != null && hf < MORPHO_HEALTH_WARN_THRESHOLD) {
-              lines.push(
-                `⚠️ **Morpho:** Position ${p.asset ?? p.token ?? "?"} health factor ${hf.toFixed(2)} (below ${MORPHO_HEALTH_WARN_THRESHOLD}). Consider topping up collateral.`
-              );
-            }
-          }
-        }
-      } catch (err) {
-        logger.debug(`[OTAKU_ALERTS] Morpho positions check failed: ${err}`);
-      }
-    }
-
-    if (bankrOrders?.getActiveOrders ?? bankrOrders?.listOrders) {
-      try {
-        let orders: Array<{ orderType?: string; type?: string }> = [];
-        if (bankrOrders.getActiveOrders) {
-          orders = await bankrOrders.getActiveOrders();
-        } else if (cdp?.getWalletAddress && bankrOrders.listOrders) {
-          const address = await cdp.getWalletAddress();
-          const res = await bankrOrders.listOrders({ maker: address, status: "active" });
-          orders = res.orders ?? [];
-        }
-        const stopOrders = orders.filter(
-          (o) =>
-            (o.orderType ?? o.type ?? "").toLowerCase().includes("stop") ||
-            (o.orderType ?? o.type ?? "").toLowerCase().includes("sl")
-        );
-        const dcaOrders = orders.filter(
-          (o) => (o.orderType ?? o.type ?? "").toLowerCase().includes("dca")
-        );
-        if (stopOrders.length > 0) {
-          lines.push(
-            `📌 **Stop-loss:** ${stopOrders.length} active stop order(s). Monitor for triggers if price is volatile.`
-          );
-        }
-        if (dcaOrders.length > 0) {
-          lines.push(`📌 **DCA:** ${dcaOrders.length} active DCA order(s) in progress.`);
-        }
-      } catch (err) {
-        logger.debug(`[OTAKU_ALERTS] Orders check failed: ${err}`);
-      }
-    }
-
-    if (lines.length === 0) {
+    const alerts = await getAlerts(runtime);
+    if (alerts.length === 0) {
       return { text: "" };
     }
+
+    const lines = alerts.map((a) => {
+      if (a.type === "morpho_warning") {
+        return `⚠️ **Morpho:** ${a.subtitle ?? a.title}`;
+      }
+      if (a.type === "stop_loss_active") {
+        return `📌 **Stop-loss:** ${a.title}. ${a.subtitle ?? ""}`.trim();
+      }
+      if (a.type === "dca_active") {
+        return `📌 **DCA:** ${a.title}. ${a.subtitle ?? ""}`.trim();
+      }
+      return `${a.title}${a.subtitle ? ` — ${a.subtitle}` : ""}`;
+    });
 
     const header = "## Proactive Alerts";
     return {

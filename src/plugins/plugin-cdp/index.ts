@@ -14,8 +14,13 @@ import { cdpWalletNftTransfer } from "./actions/cdp-wallet-nft-transfer";
 import { cdpResolveEns } from "./actions/cdp-resolve-ens";
 import { cdpTxExplorerLink } from "./actions/cdp-tx-explorer-link";
 import { cdpCheckTxConfirmation } from "./actions/cdp-check-tx-confirmation";
-// import { cdpWalletFetchWithPayment } from "./actions/cdp-wallet-fetch-with-payment";
+import { cdpWalletFetchWithPayment } from "./actions/cdp-wallet-fetch-with-payment";
 // import { cdpWalletUnwrap } from "./actions/cdp-wallet-unwrap";
+import { cdpAdvancedTradeListAccounts } from "./actions/cdp-advanced-trade-list-accounts";
+import { cdpAdvancedTradeListOrders } from "./actions/cdp-advanced-trade-list-orders";
+import { cdpAdvancedTradeCreateOrder } from "./actions/cdp-advanced-trade-create-order";
+import { cdpAdvancedTradeCancelOrder } from "./actions/cdp-advanced-trade-cancel-order";
+import { isAdvancedTradeConfigured } from "./utils/advancedTradeClient";
 
 // Providers
 import { walletStateProvider } from "./providers/walletState";
@@ -60,6 +65,15 @@ export const cdpPlugin: Plugin = {
     cdpResolveEns,
     cdpTxExplorerLink,
     cdpCheckTxConfirmation,
+    cdpWalletFetchWithPayment,
+    ...(isAdvancedTradeConfigured()
+      ? [
+          cdpAdvancedTradeListAccounts,
+          cdpAdvancedTradeListOrders,
+          cdpAdvancedTradeCreateOrder,
+          cdpAdvancedTradeCancelOrder,
+        ]
+      : []),
   ],
   services: [CdpService],
 };

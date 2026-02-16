@@ -26,6 +26,7 @@ import {
 } from "../utils/pendingCache";
 import { parseMorphoIntentWithLLM } from "../utils/intentParser";
 import type { MorphoService } from "../types/services";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 interface MorphoRequest {
   intent: "supply" | "withdraw";
@@ -260,6 +261,12 @@ export const otakuMorphoAction: Action = {
             await callback?.({
               text: "Here's the Morpho result—\n\n" + morphoLines,
             });
+            await appendNotificationEvent(runtime, {
+              action: pendingMorpho.intent === "supply" ? "morpho_deposit" : "morpho_withdraw",
+              title: pendingMorpho.intent === "supply" ? "Morpho deposit" : "Morpho withdrawal",
+              subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
+              metadata: { txHash: result?.txHash },
+            }, message.entityId);
             return { success: true };
           }
         }
@@ -280,6 +287,11 @@ export const otakuMorphoAction: Action = {
           await callback?.({
             text: "Here's the Morpho result—\n\n" + fallbackText,
           });
+          await appendNotificationEvent(runtime, {
+            action: pendingMorpho.intent === "supply" ? "morpho_deposit" : "morpho_withdraw",
+            title: pendingMorpho.intent === "supply" ? "Morpho deposit" : "Morpho withdrawal",
+            subtitle: `${pendingMorpho.amount} ${pendingMorpho.asset}`,
+          }, message.entityId);
           return { success: true };
         }
 

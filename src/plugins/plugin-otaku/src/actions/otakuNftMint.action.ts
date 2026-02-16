@@ -28,6 +28,7 @@ import {
 import { parseNftMintIntentWithLLM } from "../utils/intentParser";
 import { getArtUri, ensureIpfsUri } from "../utils/genArtPipeline";
 import type { CdpService } from "../types/services";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 const GEN_ART_MINT_CONTRACT = process.env.OTAKU_GEN_ART_MINT_CONTRACT ?? "";
 
@@ -290,9 +291,16 @@ export const otakuNftMintAction: Action = {
               value: 0n,
             });
             if (result?.hash || result?.txHash) {
+              const txHash = result.hash ?? result.txHash;
               await callback?.({
-                text: `✅ Gen art minted!\n\n**Contract:** ${GEN_ART_MINT_CONTRACT.slice(0, 20)}...\n**TX:** ${(result.hash ?? result.txHash).slice(0, 24)}...\n**Token URI:** ${tokenURI.slice(0, 50)}...`,
+                text: `✅ Gen art minted!\n\n**Contract:** ${GEN_ART_MINT_CONTRACT.slice(0, 20)}...\n**TX:** ${txHash.slice(0, 24)}...\n**Token URI:** ${tokenURI.slice(0, 50)}...`,
               });
+              await appendNotificationEvent(runtime, {
+                action: "nft_minted",
+                title: "NFT minted",
+                subtitle: `Gen art: ${pendingMint.artPrompt?.slice(0, 40)}...`,
+                metadata: { txHash },
+              }, message.entityId);
               return { success: true };
             }
           }
@@ -346,17 +354,24 @@ export const otakuNftMintAction: Action = {
         }
 
         if (result?.hash || result?.txHash) {
+          const txHash = result.hash || result.txHash;
           const mintOut = [
             `✅ Minted ${pendingMint.quantity} NFT(s)!`,
             "",
             `**Contract:** ${pendingMint.contractAddress?.slice(0, 20)}...`,
-            `**TX:** ${(result.hash || result.txHash).slice(0, 20)}...`,
+            `**TX:** ${txHash.slice(0, 20)}...`,
             "",
             "Check your wallet for the new NFT(s).",
           ].join("\n");
           await callback?.({
             text: "Here's the mint result—\n\n" + mintOut,
           });
+          await appendNotificationEvent(runtime, {
+            action: "nft_minted",
+            title: "NFT minted",
+            subtitle: `${pendingMint.quantity} NFT(s) · ${pendingMint.contractAddress?.slice(0, 10)}...`,
+            metadata: { txHash },
+          }, message.entityId);
           return { success: true };
         }
 

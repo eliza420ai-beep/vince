@@ -2,11 +2,17 @@
  * Free Routes - No payment required
  *
  * GET /otaku/health - Service health status
+ * GET /otaku/config - Runtime wallet mode
+ * GET /otaku/alerts - Proactive alerts (Morpho, DCA, stop-loss) for notifications UI
  * GET /otaku/gas - Gas prices across chains
  */
 
 import type { IAgentRuntime, RouteRequest, RouteResponse } from "@elizaos/core";
 import { logger } from "@elizaos/core";
+import { getAlerts } from "../lib/getAlerts";
+import { getNotificationEvents } from "../lib/notificationEvents";
+
+export type { AlertItem } from "../lib/getAlerts";
 
 type RouteHandler = (
   req: RouteRequest,
@@ -74,6 +80,73 @@ export const healthRoute = {
   type: "GET" as const,
   public: true,
   handler: handleHealth,
+};
+
+// ---------------------------------------------------------------------------
+// Config Route (runtime wallet mode for frontend)
+// ---------------------------------------------------------------------------
+
+async function handleConfig(
+  _req: RouteRequest,
+  res: RouteResponse,
+  _runtime: IAgentRuntime,
+): Promise<void> {
+  const mode =
+    (process.env.OTAKU_MODE ?? "degen").toLowerCase() === "normies"
+      ? "normies"
+      : "degen";
+  res.status(200).json({ mode });
+}
+
+export const configRoute = {
+  name: "otaku-config",
+  path: "/otaku/config",
+  type: "GET" as const,
+  public: true,
+  handler: handleConfig,
+};
+
+// ---------------------------------------------------------------------------
+// Alerts Route (proactive alerts for notifications UI)
+// ---------------------------------------------------------------------------
+
+async function handleAlerts(
+  _req: RouteRequest,
+  res: RouteResponse,
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const alerts = await getAlerts(runtime);
+  res.status(200).json(alerts);
+}
+
+export const alertsRoute = {
+  name: "otaku-alerts",
+  path: "/otaku/alerts",
+  type: "GET" as const,
+  public: true,
+  handler: handleAlerts,
+};
+
+// ---------------------------------------------------------------------------
+// Notifications Route (completion events for notifications UI)
+// ---------------------------------------------------------------------------
+
+async function handleNotifications(
+  req: RouteRequest,
+  res: RouteResponse,
+  runtime: IAgentRuntime,
+): Promise<void> {
+  const userId = (req.query?.userId ?? req.query?.entityId) as string | undefined;
+  const events = await getNotificationEvents(runtime, userId);
+  res.status(200).json(events);
+}
+
+export const notificationsRoute = {
+  name: "otaku-notifications",
+  path: "/otaku/notifications",
+  type: "GET" as const,
+  public: true,
+  handler: handleNotifications,
 };
 
 // ---------------------------------------------------------------------------

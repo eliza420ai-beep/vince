@@ -50,10 +50,12 @@ function formatFearGreedLine(value: number, classification: string): string {
 
 interface WidgetProps {
   agentId?: string;
+  /** Wallet UI mode: degen (full labels) | normies (softer copy for top block). Default "degen". */
+  mode?: "degen" | "normies";
 }
 
 // Memoize Widget to prevent re-renders of parent components
-function Widget({ agentId }: WidgetProps) {
+function Widget({ agentId, mode = "degen" }: WidgetProps) {
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   const [btcChange24h, setBtcChange24h] = useState<number | null>(null);
@@ -154,13 +156,17 @@ function Widget({ agentId }: WidgetProps) {
           {useLeaderboardsRow ? (
             <>
               <div className="min-w-0 flex flex-col items-start">
-                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">Top traders</span>
+                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">
+                  {mode === "normies" ? "Market snapshot" : "Top traders"}
+                </span>
                 <span className="truncate w-full text-left font-normal normal-case">
                   {topTraderLine ?? "…"}
                 </span>
               </div>
               <div className="min-w-0 flex flex-col items-end shrink-0">
-                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">Fear & Greed</span>
+                <span className="opacity-50 text-[0.65rem] uppercase tracking-wide">
+                  {mode === "normies" ? "Sentiment" : "Fear & Greed"}
+                </span>
                 <span className="font-normal normal-case">{fearGreedLine ?? "…"}</span>
               </div>
             </>

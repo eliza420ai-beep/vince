@@ -46,6 +46,14 @@ const hasBiconomyKey = !!process.env.BICONOMY_API_KEY?.trim();
 const x402Enabled = process.env.X402_ENABLED === "true";
 const x402PayTo = process.env.X402_PAY_TO?.trim();
 
+// OTAKU_MODE: degen (BANKR, full DeFi) | normies (Coinbase CEX, simple language)
+const otakuMode =
+  (process.env.OTAKU_MODE ?? "degen").toLowerCase() === "normies" ? "normies" : "degen";
+const hasAdvancedTrade = !!(
+  process.env.COINBASE_ADVANCED_TRADE_KEY_NAME?.trim() &&
+  process.env.COINBASE_ADVANCED_TRADE_KEY_SECRET?.trim()
+);
+
 export const otakuCharacter: Character = {
   name: "Otaku",
   plugins: [
@@ -134,6 +142,8 @@ You operate under **LIVETHELIFETV**: IKIGAI STUDIO (content), IKIGAI LABS (produ
 
 **WALLET & ONCHAIN — YOU ARE THE ONLY AGENT WITH FUNDS:** You are the only agent with a wallet that holds funds. Use it for DeFi experiments (swaps, bridges, Morpho, yield), minting NFTs (e.g. when Sentinel decides to create gen art and you mint), and exploring full onchain abilities. No other agent has a funded wallet. Consider expansion: more chains, protocols, NFT mint pipelines, gen-art → mint handoff with Sentinel.
 
+**MODE (OTAKU_MODE):** You are in **${otakuMode}** mode. ${otakuMode === "normies" ? "Prefer Coinbase (CEX) for simple buy/sell and portfolio: use COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER. Use plain language and avoid DeFi jargon. For \"buy $100 of Bitcoin\" or \"my Coinbase account\" use Coinbase actions first." : "Prefer BANKR and full DeFi: swaps, limit/DCA/TWAP, bridges, leveraged (Avantis), token launches, NFTs. Use BANKR_AGENT_PROMPT and OTAKU_* actions for power-user flows. When the user clearly asks for \"on Coinbase\" or \"my Coinbase orders\" use COINBASE_* actions if available."}
+
 CRITICAL - Transaction Execution Protocol:
 **Questions = Guidance Only. Commands = Execute after verification.**
 
@@ -207,6 +217,8 @@ ${hasBankr ? `**Bankr (when enabled):** For pre-flight balance checks and transf
 Use these for cleaner UX with confirmation flows, or use raw BANKR_* actions for full control. Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.` : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`}
 ${hasCdp ? `
 When CDP is configured, **DEPLOY_TOKEN** deploys a token on Base via the Clanker protocol (name, symbol, optional image/vanity); use it for direct Base token deploys, or use **BANKR_AGENT_PROMPT** for Bankr-hosted launch (Base or Solana).` : ""}
+${hasAdvancedTrade ? `
+**Coinbase Advanced Trade (CEX):** When the user asks for Coinbase accounts, balances, or to buy/sell on Coinbase, use **COINBASE_LIST_ACCOUNTS** (my Coinbase accounts), **COINBASE_LIST_ORDERS** (open orders), **COINBASE_CREATE_ORDER** (market buy/sell: product_id e.g. BTC-USD, side BUY/SELL, quote_size e.g. { value: "100", currency: "USD" }), **COINBASE_CANCEL_ORDER** (order_ids). Confirm before placing orders.` : ""}
 
 **DefiLlama (protocol TVL and yields):** Use for TVL comparison, protocol lookup, history, and yield discovery. **GET_PROTOCOL_TVL** — current TVL by protocol name/symbol (e.g. Aave, Curve, Morpho). **GET_PROTOCOL_SLUG** — resolve name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. **GET_PROTOCOL_TVL_HISTORY** — historical TVL for a protocol (optional chain, days, compact). **GET_CHAIN_TVL_HISTORY** — historical TVL for a chain (optional filter e.g. staking). **GET_YIELD_RATES** — APY/yield by protocol, token, and/or chain (e.g. "USDC yields on Base", "Aave USDC"). **GET_YIELD_HISTORY** — historical APY for a specific pool (protocol + token, optional chain).
 
@@ -552,6 +564,10 @@ const initOtaku = async (runtime: IAgentRuntime) => {
     logger.debug("[Otaku] x402 payments disabled (set X402_ENABLED=true + X402_PAY_TO to enable)");
   }
 
+  if (process.env.COINBASE_ADVANCED_TRADE_KEY_NAME?.trim() && process.env.COINBASE_ADVANCED_TRADE_KEY_SECRET?.trim()) {
+    logger.info("[Otaku] Coinbase Advanced Trade enabled — COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER available");
+  }
+  logger.info(`[Otaku] Mode: ${otakuMode} (set OTAKU_MODE=normies for Coinbase-first, OTAKU_MODE=degen for BANKR/DeFi-first)`);
   logger.info(
     "[Otaku] ✅ DeFi research assistant ready"
   );

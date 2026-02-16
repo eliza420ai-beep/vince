@@ -26,6 +26,7 @@ import {
   hasPending,
 } from "../utils/pendingCache";
 import { parseSwapIntentWithLLM } from "../utils/intentParser";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 /**
  * Parse swap request from text
@@ -228,6 +229,12 @@ export const otakuSwapAction: Action = {
         await callback?.({
           text: "Here's the swap result—\n\n" + swapOut,
         });
+        await appendNotificationEvent(runtime, {
+          action: "swap_completed",
+          title: "Swap completed",
+          subtitle: `${pendingSwap.amount} ${pendingSwap.sellToken} → ${pendingSwap.buyToken}`,
+          metadata: { txHash: result.txHash },
+        }, message.entityId);
         return { success: true };
       } else {
         await callback?.({

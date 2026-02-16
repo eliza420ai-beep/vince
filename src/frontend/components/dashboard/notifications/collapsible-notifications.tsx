@@ -4,19 +4,72 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/frontend/components/ui/badge";
 import { Bullet } from "@/frontend/components/ui/bullet";
+import { Button } from "@/frontend/components/ui/button";
 import BellIcon from "@/frontend/components/icons/bell";
 import PlusIcon from "@/frontend/components/icons/plus";
 import MinusIcon from "@/frontend/components/icons/minus";
+import type { NotificationItem } from "@/frontend/hooks/useWalletNotifications";
 
 const CONTENT_HEIGHT = 400; // Height of expandable content
 
-export default function CollapsibleNotifications() {
+function NotificationRow({ item }: { item: NotificationItem }) {
+  const content = (
+    <div className="flex flex-col gap-0.5 p-2 rounded-md hover:bg-muted/50 transition-colors text-left w-full">
+      <span className="text-xs font-medium truncate">{item.title}</span>
+      {item.subtitle && (
+        <span className="text-[10px] text-muted-foreground truncate">
+          {item.subtitle}
+        </span>
+      )}
+    </div>
+  );
+  if (item.link) {
+    return (
+      <a
+        href={item.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block"
+      >
+        {content}
+      </a>
+    );
+  }
+  return content;
+}
+
+export interface CollapsibleNotificationsProps {
+  /** Wallet UI mode: degen | normies. Affects empty state and header copy. Default "degen". */
+  mode?: "degen" | "normies";
+  /** Notification items (e.g. from wallet history). */
+  notifications?: NotificationItem[];
+  /** Unread count for badge. */
+  unreadCount?: number;
+  /** Called when user clicks "Mark all read". */
+  onMarkAllRead?: () => void;
+  /** True while loading notifications. */
+  isLoading?: boolean;
+}
+
+export default function CollapsibleNotifications({
+  mode = "degen",
+  notifications = [],
+  unreadCount: unreadCountProp = 0,
+  onMarkAllRead,
+  isLoading = false,
+}: CollapsibleNotificationsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const unreadCount = 0; // Dummy data - will be dynamic later
+  const unreadCount = unreadCountProp;
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
+
+  const emptyPrimary =
+    mode === "normies" ? "You're all caught up" : "No new notifications";
+  const emptySecondary =
+    mode === "normies" ? "No new activity" : "You're all caught up!";
+  const headerLabel = mode === "normies" ? "Activity" : "Notifications";
 
   return (
     <motion.div
@@ -38,7 +91,7 @@ export default function CollapsibleNotifications() {
 
           {/* Title */}
           <span className="text-sm font-medium uppercase">
-            {isExpanded ? "Notifications" : "Notifications"}
+            {isExpanded ? headerLabel : headerLabel}
           </span>
         </motion.div>
 
@@ -74,25 +127,46 @@ export default function CollapsibleNotifications() {
               >
                 {/* Notifications List */}
                 <div className="flex-1 flex flex-col overflow-y-auto">
-                  {/* Dummy content - Empty state */}
-                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                    <div className="rounded-full bg-muted p-4 mb-4">
-                      <BellIcon className="size-8 text-muted-foreground" />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      No new notifications
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">
-                      You're all caught up!
-                    </p>
-                  </div>
-
-                  {/* Future: Notification items will go here */}
-                  {/* Example structure when there are notifications:
-                  <div className="space-y-2 p-3">
-                    <NotificationItem ... />
-                  </div>
-                  */}
+                  ) : notifications.length > 0 ? (
+                    <>
+                      {unreadCount > 0 && onMarkAllRead && (
+                        <div className="px-3 pt-2 pb-1 border-b border-border/50">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onMarkAllRead();
+                            }}
+                          >
+                            Mark all read
+                          </Button>
+                        </div>
+                      )}
+                      <div className="space-y-0.5 p-3">
+                        {notifications.map((item) => (
+                          <NotificationRow key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                      <div className="rounded-full bg-muted p-4 mb-4">
+                        <BellIcon className="size-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {emptyPrimary}
+                      </p>
+                      <p className="text-xs text-muted-foreground/70">
+                        {emptySecondary}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

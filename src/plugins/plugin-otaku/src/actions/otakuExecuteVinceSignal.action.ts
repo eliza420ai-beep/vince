@@ -21,6 +21,7 @@ import {
   hasPending,
 } from "../utils/pendingCache";
 import { VINCE_SIGNAL_CACHE_KEY } from "../providers/vinceSignal.provider";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 type SwapSignal = {
   action: "swap";
@@ -144,6 +145,12 @@ export const otakuExecuteVinceSignalAction: Action = {
             await callback?.({
               text: `✅ Vince’s bridge done: ${pending.amount} ${pending.token} ${pending.fromChain} → ${pending.toChain}. ${result.txHash ? `TX: ${result.txHash.slice(0, 24)}...` : ""}`,
             });
+            await appendNotificationEvent(runtime, {
+              action: "vince_signal_completed",
+              title: "Vince signal: bridge completed",
+              subtitle: `${pending.amount} ${pending.token} ${pending.fromChain} → ${pending.toChain}`,
+              metadata: { txHash: result.txHash },
+            }, message.entityId);
             return { success: true };
           }
         }

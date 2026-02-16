@@ -27,6 +27,7 @@ import {
 } from "../utils/pendingCache";
 import { parseBridgeIntentWithLLM } from "../utils/intentParser";
 import type { RelayService, BankrAgentService } from "../types/services";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 interface BridgeRequest {
   token: string;
@@ -192,6 +193,12 @@ export const otakuBridgeAction: Action = {
             await callback?.({
               text: "Here's the bridge status—\n\n" + bridgeOut,
             });
+            await appendNotificationEvent(runtime, {
+              action: "bridge_completed",
+              title: "Bridge completed",
+              subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
+              metadata: { txHash: result.txHash },
+            }, message.entityId);
             return { success: true };
           }
         } catch (err) {
@@ -210,10 +217,17 @@ export const otakuBridgeAction: Action = {
           });
 
           if (result.status === "completed") {
-            const bridgeOut = `✅ Bridge initiated!\n\n${result.response}\n\nTX: ${result.transactions?.[0]?.hash || "pending"}`;
+            const txHash = result.transactions?.[0]?.hash;
+            const bridgeOut = `✅ Bridge initiated!\n\n${result.response}\n\nTX: ${txHash || "pending"}`;
             await callback?.({
               text: "Here's the bridge status—\n\n" + bridgeOut,
             });
+            await appendNotificationEvent(runtime, {
+              action: "bridge_completed",
+              title: "Bridge completed",
+              subtitle: `${pendingBridge.amount} ${pendingBridge.token} from ${pendingBridge.fromChain} to ${pendingBridge.toChain}`,
+              metadata: { txHash },
+            }, message.entityId);
             return { success: true };
           } else {
             await callback?.({

@@ -51,7 +51,7 @@ import {
   otakuSetRebalanceAction,
   otakuExecuteVinceSignalAction,
 } from "./actions";
-import { walletStatusProvider, proactiveAlertsProvider, vinceSignalProvider } from "./providers";
+import { walletStatusProvider, vinceSignalProvider } from "./providers";
 import {
   positionsRoute,
   quoteRoute,
@@ -60,6 +60,9 @@ import {
   portfolioRoute,
   healthRoute,
   gasRoute,
+  configRoute,
+  alertsRoute,
+  notificationsRoute,
 } from "./routes";
 import { portfolioEvaluator } from "./evaluators";
 
@@ -85,7 +88,7 @@ export const otakuPlugin: Plugin = {
   init: async (_config, runtime) => {
     registerOtakuRebalanceTaskWorker(runtime);
   },
-  providers: [walletStatusProvider, proactiveAlertsProvider, vinceSignalProvider],
+  providers: [walletStatusProvider, vinceSignalProvider],
   evaluators: [portfolioEvaluator],
   routes: [
     // Paid routes (x402)
@@ -97,6 +100,9 @@ export const otakuPlugin: Plugin = {
     // Free routes
     healthRoute,
     gasRoute,
+    configRoute,
+    alertsRoute,
+    notificationsRoute,
   ],
 };
 

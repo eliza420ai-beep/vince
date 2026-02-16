@@ -18,6 +18,7 @@ import {
   logger,
 } from "@elizaos/core";
 import { OtakuService, type DcaRequest } from "../services/otaku.service";
+import { appendNotificationEvent } from "../lib/notificationEvents";
 
 /**
  * Parse DCA request from text
@@ -226,6 +227,12 @@ export const otakuDcaAction: Action = {
         await callback?.({
           text: "Here's the DCA schedule—\n\n" + dcaOut,
         });
+        await appendNotificationEvent(runtime, {
+          action: "dca_created",
+          title: "DCA schedule created",
+          subtitle: `${pendingDca.totalAmount} ${pendingDca.sellToken} → ${pendingDca.buyToken} (${pendingDca.numOrders} × ${pendingDca.interval})`,
+          metadata: { orderId: result.orderId },
+        }, message.entityId);
         return { success: true };
       } else {
         await callback?.({

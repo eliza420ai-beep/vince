@@ -13,7 +13,7 @@ import {
   CDPWalletCard,
   type CDPWalletCardRef,
 } from "./components/dashboard/cdp-wallet-card";
-import CollapsibleNotifications from "./components/dashboard/notifications/collapsible-notifications";
+import NotificationsContainer from "./components/dashboard/notifications/notifications-container";
 import AccountPage from "./components/dashboard/account/page";
 import LeaderboardPage from "./components/dashboard/leaderboard/page";
 import PointsPage from "./components/dashboard/points/page";
@@ -27,6 +27,7 @@ import {
 import { ModalProvider, useModal } from "./contexts/ModalContext";
 import { MessageSquare, Info } from "lucide-react";
 import { resolveCdpUserInfo, type CdpUser } from "@/frontend/lib/cdpUser";
+import { fetchOtakuConfig } from "@/frontend/lib/otakuConfigApi";
 import { UUID } from "@elizaos/core";
 import { AboutModalContent } from "@/frontend/components/about/about-modal-content";
 import { getRandomAvatar, cn } from "@/frontend/lib/utils";
@@ -221,6 +222,11 @@ function App() {
       /* ignore */
     }
   }, []);
+
+  // Wallet UI mode: degen (DeFi/on-chain) | normies (simple/Coinbase). Runtime from GET /otaku/config when available; fallback to VITE_OTAKU_MODE.
+  const otakuModeFallback: "degen" | "normies" =
+    import.meta.env.VITE_OTAKU_MODE === "normies" ? "normies" : "degen";
+  const [otakuMode, setOtakuMode] = useState<"degen" | "normies">(otakuModeFallback);
 
   /**
    * Sign out handler - revokes JWT token on server before signing out from CDP
@@ -465,6 +471,19 @@ function App() {
       setSelectedAgentId(agentsData[0]?.id ?? null);
     }
   }, [agentsData, selectedAgentId, setSelectedAgentId]);
+
+  // Resolve wallet mode from backend when agentId is available (fallback remains VITE_OTAKU_MODE)
+  useEffect(() => {
+    if (!agentId) return;
+    let cancelled = false;
+    fetchOtakuConfig(agentId).then((data) => {
+      if (cancelled || data == null) return;
+      setOtakuMode(data.mode);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [agentId]);
 
   const isWaitingForAgents =
     (isFetchingAgents || (agentsFailureCount > 0 && agentsFailureCount < 8)) &&
@@ -990,6 +1009,7 @@ function App() {
         isSignedIn={isSignedIn}
         agentId={agentId}
         navigate={navigate}
+        otakuMode={otakuMode}
       />
     </SidebarProvider>
   );
@@ -1024,6 +1044,7 @@ function AppContent({
   isSignedIn,
   agentId,
   navigate,
+  otakuMode = "degen",
 }: any) {
   const { setOpenMobile } = useSidebar();
   const { showModal, hideModal } = useModal();
@@ -1085,7 +1106,10 @@ function AppContent({
       )} */}
 
       {/* Mobile Header */}
-      <MobileHeader onHomeClick={() => navigate("/chat")} />
+      <MobileHeader
+        onHomeClick={() => navigate("/chat")}
+        walletMode={otakuMode}
+      />
 
       {/* Desktop Layout - 3 columns */}
       <div className="w-full min-h-[100dvh] h-[100dvh] lg:min-h-screen lg:h-screen grid grid-cols-1 lg:grid-cols-12 gap-gap lg:px-sides">
@@ -1216,17 +1240,18 @@ function AppContent({
         {/* Right Sidebar - Widget & CDP Wallet & Notifications */}
         <div className="col-span-3 hidden lg:block">
           <div className="space-y-gap py-sides min-h-screen max-h-screen sticky top-0 overflow-clip">
-            <Widget agentId={agentId ?? undefined} />
+            <Widget agentId={agentId ?? undefined} mode={otakuMode} />
             {userId && (
               <CDPWalletCard
                 ref={walletRef}
                 userId={userId}
                 walletAddress={userProfile?.walletAddress}
+                mode={otakuMode}
                 onBalanceChange={handleBalanceChange}
                 onOpenChat={() => navigate("/chat")}
               />
             )}
-            <CollapsibleNotifications />
+            <NotificationsContainer userId={userId} agentId={agentId} mode={otakuMode} />
           </div>
         </div>
       </div>

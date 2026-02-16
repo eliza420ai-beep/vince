@@ -23,6 +23,11 @@ import {
 } from "@/frontend/constants/chains";
 import { useModal } from "@/frontend/contexts/ModalContext";
 import { useNavigate } from "react-router-dom";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/frontend/components/ui/tooltip";
 
 interface Token {
   symbol: string;
@@ -69,9 +74,50 @@ interface Transaction {
   contractAddress?: string | null;
 }
 
+/** Copy and feature flags for wallet card by mode: degen (DeFi/on-chain) vs normies (simple/Coinbase) */
+const WALLET_COPY = {
+  degen: {
+    showSwap: true,
+    headerPill: "DeFi",
+    balanceLabel: "Total Balance",
+    tabs: {
+      tokens: "Tokens",
+      collections: "Collections",
+      history: "History",
+      orders: "Orders",
+    },
+    buttons: { fund: "Fund", send: "Send", swap: "Swap" },
+    buttonTooltips: { fund: undefined, swap: undefined },
+    emptyTokens: "No tokens yet. Fund and swap to get started.",
+    emptyCollections: "No NFTs found",
+    emptyHistory: "No activity yet. Fund and swap to get started.",
+  },
+  normies: {
+    showSwap: false,
+    headerPill: "Simple",
+    balanceLabel: "Your balance",
+    tabs: {
+      tokens: "Balance",
+      collections: "Collections",
+      history: "Activity",
+      orders: "Orders",
+    },
+    buttons: { fund: "Add funds", send: "Send", swap: "Buy & sell" },
+    buttonTooltips: {
+      fund: "Add cash with Coinbase",
+      swap: "Buy or sell crypto",
+    },
+    emptyTokens: "No balance yet. Add funds to get started.",
+    emptyCollections: "No collections yet",
+    emptyHistory: "No activity yet. Add funds to get started.",
+  },
+} as const;
+
 interface CDPWalletCardProps {
   userId: string;
   walletAddress?: string;
+  /** degen = DeFi/on-chain; normies = simple/Coinbase. Drives copy and labels. Default: degen */
+  mode?: "degen" | "normies";
   onBalanceChange?: (balance: number) => void;
   onActionClick?: () => void; // Optional callback to close parent container (Sheet/Sidebar)
   onOpenChat?: () => void; // Optional: navigate to chat (e.g. set Otaku); if not set, card uses navigate("/chat")
@@ -85,9 +131,20 @@ export interface CDPWalletCardRef {
 }
 
 export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
-  ({ userId, walletAddress, onBalanceChange, onActionClick, onOpenChat }, ref) => {
+  (
+    {
+      userId,
+      walletAddress,
+      mode = "degen",
+      onBalanceChange,
+      onActionClick,
+      onOpenChat,
+    },
+    ref,
+  ) => {
     const { showModal } = useModal();
     const navigate = useNavigate();
+    const copy = WALLET_COPY[mode];
 
     // Format address for display (shortened)
     const shortAddress = walletAddress
@@ -599,6 +656,16 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
               <Bullet />
               <div className="flex items-center gap-1">
                 Wallet
+                <span
+                  className={
+                    mode === "normies"
+                      ? "text-[10px] font-normal normal-case px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                      : "text-[10px] font-normal normal-case px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-primary/30"
+                  }
+                  title={mode === "normies" ? "Simple & secure" : "BANKR & full DeFi"}
+                >
+                  {copy.headerPill}
+                </span>
                 {/* Copy Address Popup */}
                 <div
                   className="relative inline-flex z-50"
@@ -704,7 +771,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
               {/* Total Balance - Centered */}
               <div className="flex flex-col items-center gap-3 py-2">
                 <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                  Total Balance
+                  {copy.balanceLabel}
                 </span>
                 {isLoadingTokens && tokens.length === 0 ? (
                   <div className="h-10 w-32 bg-muted animate-pulse rounded"></div>
@@ -716,33 +783,67 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                   </div>
                 )}
               </div>
-              {/* Action Buttons - Before tabs */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* Action Buttons - Before tabs (two columns when Swap hidden in normies) */}
+              <div
+                className={
+                  copy.showSwap
+                    ? "grid grid-cols-3 gap-2"
+                    : "grid grid-cols-2 gap-2"
+                }
+              >
+                {copy.buttonTooltips?.fund ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => {
+                          onActionClick?.();
+                          showModal(
+                            <FundModalContent
+                              walletAddress={walletAddress}
+                              shortAddress={shortAddress}
+                            />,
+                            "fund-modal",
+                            {
+                              closeOnBackdropClick: true,
+                              className: "max-w-md",
+                            },
+                          );
+                        }}
+                        className="flex-1"
+                        variant="default"
+                        size="sm"
+                      >
+                        {copy.buttons.fund}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{copy.buttonTooltips.fund}</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      onActionClick?.();
+                      showModal(
+                        <FundModalContent
+                          walletAddress={walletAddress}
+                          shortAddress={shortAddress}
+                        />,
+                        "fund-modal",
+                        {
+                          closeOnBackdropClick: true,
+                          className: "max-w-md",
+                        },
+                      );
+                    }}
+                    className="flex-1"
+                    variant="default"
+                    size="sm"
+                  >
+                    {copy.buttons.fund}
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
-                    // Close parent container (Sheet/Sidebar) if callback provided
                     onActionClick?.();
-
-                    showModal(
-                      <FundModalContent
-                        walletAddress={walletAddress}
-                        shortAddress={shortAddress}
-                      />,
-                      "fund-modal",
-                      { closeOnBackdropClick: true, className: "max-w-md" },
-                    );
-                  }}
-                  className="flex-1"
-                  variant="default"
-                  size="sm"
-                >
-                  Fund
-                </Button>
-                <Button
-                  onClick={() => {
-                    // Close parent container (Sheet/Sidebar) if callback provided
-                    onActionClick?.();
-
                     showModal(
                       <SendModalContent
                         tokens={tokens as any}
@@ -760,32 +861,67 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                   size="sm"
                   disabled={tokens.length === 0 || isLoadingTokens}
                 >
-                  Send
+                  {copy.buttons.send}
                 </Button>
-                <Button
-                  onClick={() => {
-                    // Close parent container (Sheet/Sidebar) if callback provided
-                    onActionClick?.();
-
-                    showModal(
-                      <SwapModalContent
-                        tokens={tokens}
-                        userId={userId}
-                        onSuccess={() => {
-                          fetchTokens();
-                        }}
-                      />,
-                      "swap-modal",
-                      { closeOnBackdropClick: true, className: "max-w-lg" },
-                    );
-                  }}
-                  className="flex-1"
-                  variant="outline"
-                  size="sm"
-                  disabled={tokens.length === 0 || isLoadingTokens}
-                >
-                  Swap
-                </Button>
+                {copy.showSwap &&
+                  (copy.buttonTooltips?.swap ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => {
+                            onActionClick?.();
+                            showModal(
+                              <SwapModalContent
+                                tokens={tokens}
+                                userId={userId}
+                                onSuccess={() => {
+                                  fetchTokens();
+                                }}
+                              />,
+                              "swap-modal",
+                              {
+                                closeOnBackdropClick: true,
+                                className: "max-w-lg",
+                              },
+                            );
+                          }}
+                          className="flex-1"
+                          variant="outline"
+                          size="sm"
+                          disabled={tokens.length === 0 || isLoadingTokens}
+                        >
+                          {copy.buttons.swap}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{copy.buttonTooltips.swap}</TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        onActionClick?.();
+                        showModal(
+                          <SwapModalContent
+                            tokens={tokens}
+                            userId={userId}
+                            onSuccess={() => {
+                              fetchTokens();
+                            }}
+                          />,
+                          "swap-modal",
+                          {
+                            closeOnBackdropClick: true,
+                            className: "max-w-lg",
+                          },
+                        );
+                      }}
+                      className="flex-1"
+                      variant="outline"
+                      size="sm"
+                      disabled={tokens.length === 0 || isLoadingTokens}
+                    >
+                      {copy.buttons.swap}
+                    </Button>
+                  ))}
               </div>
             </div>
 
@@ -800,7 +936,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Tokens
+                  {copy.tabs.tokens}
                 </button>
                 <button
                   onClick={() => setActiveTab("collections")}
@@ -810,7 +946,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Collections
+                  {copy.tabs.collections}
                 </button>
                 <button
                   onClick={() => setActiveTab("history")}
@@ -820,7 +956,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  History
+                  {copy.tabs.history}
                 </button>
                 <button
                   onClick={() => setActiveTab("orders")}
@@ -830,7 +966,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Orders
+                  {copy.tabs.orders}
                 </button>
               </div>
 
@@ -856,7 +992,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                     ))
                   ) : tokens.length === 0 ? (
                     <div className="text-center py-8 text-sm text-muted-foreground">
-                      No tokens found
+                      {copy.emptyTokens}
                     </div>
                   ) : (
                     // Token list
@@ -909,7 +1045,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                     </div>
                   ) : nfts.length === 0 ? (
                     <div className="text-center py-8 text-sm text-muted-foreground">
-                      No NFTs found
+                      {copy.emptyCollections}
                     </div>
                   ) : (
                     // NFT list
@@ -1009,7 +1145,7 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                   </div>
                 ) : transactions.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
-                    No transaction history
+                    {copy.emptyHistory}
                   </div>
                 ) : (
                   <div className="space-y-3">

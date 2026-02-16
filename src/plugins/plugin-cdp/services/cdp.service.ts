@@ -63,6 +63,19 @@ export class CdpService extends Service {
   }
 
   /**
+   * Get wallet address for an account. When accountName is omitted, uses CDP_DEFAULT_ACCOUNT
+   * so routes/providers without entity context can resolve a single "agent" wallet.
+   */
+  async getWalletAddress(accountName?: string): Promise<string> {
+    const name = accountName ?? process.env.CDP_DEFAULT_ACCOUNT?.trim();
+    if (!name) {
+      return "";
+    }
+    const { address } = await this.getOrCreateWallet(name);
+    return address;
+  }
+
+  /**
    * Get Viem wallet and public clients for a CDP account on a specific network
    * Delegates to transaction manager
    * 

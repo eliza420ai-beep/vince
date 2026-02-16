@@ -142,6 +142,18 @@ class SocketManager {
     return () => this.socket?.off("messageBroadcast", callback);
   }
 
+  /**
+   * Subscribe to a custom server event (e.g. notifications:update).
+   * Returns an unsubscribe function. No-op if socket is not connected.
+   */
+  onEvent(eventName: string, callback: (data: any) => void): () => void {
+    if (!this.socket) {
+      return () => {};
+    }
+    this.socket.on(eventName, callback);
+    return () => this.socket?.off(eventName, callback);
+  }
+
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();

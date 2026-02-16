@@ -10,6 +10,9 @@
  *
  * Free routes:
  * - GET /otaku/health - Service health status
+ * - GET /otaku/config - Runtime wallet mode (degen | normies) for frontend
+ * - GET /otaku/alerts - Proactive alerts (Morpho, DCA, stop-loss) for notifications UI
+ * - GET /otaku/notifications - Completion events (swap, DCA, bridge, etc.) for notifications UI
  * - GET /otaku/gas - Gas prices across chains
  */
 
@@ -18,4 +21,4 @@ export { quoteRoute } from "./paidQuote";
 export { yieldsRoute } from "./paidYields";
 export { historyRoute } from "./paidHistory";
 export { portfolioRoute } from "./paidPortfolio";
-export { healthRoute, gasRoute } from "./freeRoutes";
+export { healthRoute, gasRoute, configRoute, alertsRoute, notificationsRoute } from "./freeRoutes";

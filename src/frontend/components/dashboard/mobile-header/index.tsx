@@ -18,9 +18,14 @@ import { Wallet } from "lucide-react";
 
 interface MobileHeaderProps {
   onHomeClick?: () => void;
+  /** degen = DeFi/on-chain; normies = simple/Coinbase. Passed to wallet card. Default: degen */
+  walletMode?: "degen" | "normies";
 }
 
-export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
+export function MobileHeader({
+  onHomeClick,
+  walletMode = "degen",
+}: MobileHeaderProps) {
   const navigate = useNavigate();
   const { currentUser } = useCDPWallet();
   const userId = currentUser?.userId || "";
@@ -87,6 +92,7 @@ export function MobileHeader({ onHomeClick }: MobileHeaderProps) {
                 {userId && (
                   <CDPWalletCard
                     userId={userId}
+                    mode={walletMode}
                     onActionClick={() => setIsSheetOpen(false)}
                     onOpenChat={() => {
                       setIsSheetOpen(false);
