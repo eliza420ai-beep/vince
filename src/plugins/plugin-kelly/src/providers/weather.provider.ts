@@ -18,7 +18,7 @@ const BIARRITZ = { lat: 43.48, lon: -1.56 };
 const HOME = { lat: 43.93, lon: -0.92 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const MARINE_OPEN_METEO = "https://marine-api.open-meteo.com/v1/marine";
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 min
 const STRONG_WIND_KMH = 35;
 
 const COMPASS = [
@@ -83,13 +83,15 @@ function labelFromCode(code: number): string {
   return "mixed";
 }
 
+/**
+ * True for rain, drizzle, freezing rain, showers, or thunderstorm WMO codes.
+ * Does NOT include snow (71–77, 85–86) or fog (45, 48) — those need different advice.
+ */
 function isRainOrStorm(code: number): boolean {
   return (
-    code >= 51 ||
-    code === 80 ||
-    code === 81 ||
-    code === 82 ||
-    code >= 95
+    (code >= 51 && code <= 67) || // drizzle (51–55) + rain (61–65) + freezing rain (66–67)
+    (code >= 80 && code <= 82) || // showers
+    code >= 95                    // thunderstorms (95, 96, 99)
   );
 }
 
