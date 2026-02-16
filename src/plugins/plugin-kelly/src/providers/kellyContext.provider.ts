@@ -46,22 +46,17 @@ type DayName = (typeof DAY_NAMES)[number];
 function detectRequestedDay(messageText: string): DayName | null {
   const lower = (messageText ?? "").toLowerCase().trim();
   if (!lower) return null;
-  const dayTrigger =
-    /\b(on|for|tomorrow is)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
-      lower,
-    ) ||
-    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(lunch|dinner|recommendations|picks|open)\b/i.exec(
-      lower,
-    ) ||
-    /\b(place to eat|where to eat|eat|recommend|restaurant| lunch)\s+.*\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(
-      lower,
-    ) ||
-    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b.*\b(lunch|dinner|eat|place|restaurant)\b/i.exec(
-      lower,
-    );
-  if (dayTrigger) {
-    const day = dayTrigger[2] ?? dayTrigger[3];
-    if (day && DAY_NAMES.includes(day as DayName)) return day as DayName;
+
+  // Simple approach: find any day name in the text when combined with a meal/recommendation keyword
+  const dayPattern = /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+  const contextPattern = /\b(on|for|tomorrow|lunch|dinner|recommendations?|picks?|open|place to eat|where to eat|eat|recommend|restaurant)\b/i;
+
+  if (!contextPattern.test(lower)) return null;
+
+  const dayMatch = dayPattern.exec(lower);
+  if (dayMatch) {
+    const day = dayMatch[1].toLowerCase();
+    if (DAY_NAMES.includes(day as DayName)) return day as DayName;
   }
   return null;
 }
