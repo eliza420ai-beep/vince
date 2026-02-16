@@ -11,7 +11,15 @@ import type {
   Provider,
   ProviderResult,
 } from "@elizaos/core";
-import { RAIN_STORM_SAFETY_LINE, STRONG_WIND_SAFETY_LINE, isRainOrStormCode } from "../constants/safety";
+import {
+  RAIN_STORM_SAFETY_LINE,
+  STRONG_WIND_SAFETY_LINE,
+  SNOW_SAFETY_LINE,
+  FOG_SAFETY_LINE,
+  isRainOrStormCode,
+  isSnowCode,
+  isFogCode,
+} from "../constants/safety";
 
 const BORDEAUX = { lat: 44.84, lon: -0.58 };
 const BIARRITZ = { lat: 43.48, lon: -1.56 };
@@ -203,10 +211,12 @@ export const weatherProvider: Provider = {
       values.weatherHome = { condition: cond, temp: temp, code: home.weather_code };
     }
 
-    const rainOrStorm =
-      (bdx && isRainOrStorm(bdx.weather_code)) ||
-      (biarritz && isRainOrStorm(biarritz.weather_code)) ||
-      (home && isRainOrStorm(home.weather_code));
+    const allCodes = [bdx?.weather_code, biarritz?.weather_code, home?.weather_code].filter(
+      (c): c is number => c !== undefined && c !== null,
+    );
+    const rainOrStorm = allCodes.some(isRainOrStorm);
+    const snow = allCodes.some(isSnowCode);
+    const fog = allCodes.some(isFogCode);
     const windBdx = bdx?.wind_speed_10m ?? 0;
     const windBiarritz = biarritz?.wind_speed_10m ?? 0;
     const windHome = home?.wind_speed_10m ?? 0;
@@ -217,6 +227,12 @@ export const weatherProvider: Provider = {
 
     if (rainOrStorm) {
       parts.push(RAIN_STORM_SAFETY_LINE);
+    }
+    if (snow && !rainOrStorm) {
+      parts.push(SNOW_SAFETY_LINE);
+    }
+    if (fog && !rainOrStorm && !snow) {
+      parts.push(FOG_SAFETY_LINE);
     }
     if (strongWind && !rainOrStorm) {
       parts.push(STRONG_WIND_SAFETY_LINE);

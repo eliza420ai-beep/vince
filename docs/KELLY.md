@@ -25,6 +25,7 @@ Kelly is the **CVO (Chief Vibes Officer)** agent: five-star hotels, fine dining,
 - **Home cooking:** KELLY_RECOMMEND_HOME_COOKING — dinner-at-home ideas: Green Egg BBQ, Thermomix TM7, long oven cooks, local meat, wine pairing.
 - **Tea:** KELLY_RECOMMEND_TEA — Dammann Frères by time of day: morning profiles or evening caffeine-free.
 - **Entertainment:** KELLY_RECOMMEND_ENTERTAINMENT — books, music, Netflix series, Apple TV movies by taste. Supports "something like X" queries.
+- **Creative:** KELLY_RECOMMEND_CREATIVE — oil painting, photography (Hasselblad/Fuji/Capture One), house music (Ableton/Push 3), cinema (Blackmagic/Resolve/IRIX), Blender + Claude MCP.
 - **Learning:** LIFESTYLE_FEEDBACK evaluator; plugin-personality (CHARACTER_EVOLUTION, MODIFY_CHARACTER) for gradual character updates from user feedback.
 - **Standup:** Kelly is the standup facilitator; STANDUP_FACILITATE via plugin-inter-agent; loop protection via A2A_LOOP_GUARD and A2A_CONTEXT.
 - **Multi-agent:** ASK_AGENT to Vince, Solus, Eliza, Otaku, Sentinel, Oracle, ECHO; reports back so user stays in one conversation.
@@ -54,6 +55,7 @@ Kelly is the **CVO (Chief Vibes Officer)** agent: five-star hotels, fine dining,
 | Home cooking action | [src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts](src/plugins/plugin-kelly/src/actions/recommendHomeCooking.action.ts) |
 | Tea action | [src/plugins/plugin-kelly/src/actions/recommendTea.action.ts](src/plugins/plugin-kelly/src/actions/recommendTea.action.ts) |
 | Entertainment action | [src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts](src/plugins/plugin-kelly/src/actions/recommendEntertainment.action.ts) |
+| Creative action | [src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts](src/plugins/plugin-kelly/src/actions/recommendCreative.action.ts) |
 | Evaluator | [src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts](src/plugins/plugin-kelly/src/evaluators/lifestyleFeedback.evaluator.ts) |
 
 ---

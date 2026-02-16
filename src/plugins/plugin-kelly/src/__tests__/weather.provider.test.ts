@@ -103,6 +103,36 @@ describe("WEATHER Provider", () => {
     expect(text).toMatch(/indoor|do not recommend|storm|thunder|beach|surf/);
   });
 
+  it("snow (code 71–77) yields snow safety line, not rain line", async () => {
+    globalThis.fetch = async (url: string) => {
+      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      return Response.json(openMeteoCurrent(73)); // moderate snow
+    };
+
+    const runtime = createMockRuntime();
+    const message = createMockMessage("what should I do today");
+    const result = await weatherProvider.get(runtime, message);
+
+    const text = (result?.text ?? "").toLowerCase();
+    expect(text).toMatch(/snow|indoor/);
+    // Should NOT contain rain safety line
+    expect(text).not.toMatch(/do not recommend beach walks, surf, outdoor swimming/i);
+  });
+
+  it("fog (code 45/48) yields fog safety line", async () => {
+    globalThis.fetch = async (url: string) => {
+      if ((url as string).includes("marine-api")) return Response.json(marinePayload);
+      return Response.json(openMeteoCurrent(45)); // fog
+    };
+
+    const runtime = createMockRuntime();
+    const message = createMockMessage("what should I do today");
+    const result = await weatherProvider.get(runtime, message);
+
+    const text = (result?.text ?? "").toLowerCase();
+    expect(text).toMatch(/fog|long drive|local indoor/i);
+  });
+
   it("marine API failure or empty response does not crash, returns result or check conditions", async () => {
     globalThis.fetch = async (url: string) => {
       if ((url as string).includes("marine-api")) return Response.json({});
