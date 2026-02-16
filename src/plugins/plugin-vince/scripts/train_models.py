@@ -33,6 +33,8 @@ Requirements:
 """
 
 import argparse
+import concurrent.futures
+import hashlib
 import json
 import logging
 import os
@@ -44,7 +46,7 @@ import numpy as np
 import pandas as pd
 import joblib
 from sklearn.model_selection import TimeSeriesSplit, cross_val_score, GridSearchCV
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import (
     accuracy_score,
     log_loss,
@@ -273,11 +275,12 @@ OPTIONAL_FEATURE_COLUMNS = (
 
 
 def _clip_outliers(df: pd.DataFrame, z_thresh: float = 3.0) -> pd.DataFrame:
-    """Optionally clip numeric outliers using z-score (requires scipy). No-op if scipy missing."""
+    """Clip numeric outliers using z-score (requires scipy). Returns a copy. No-op if scipy missing."""
     try:
         from scipy import stats
     except ImportError:
         return df
+    df = df.copy()
     numeric = df.select_dtypes(include=[np.number])
     for col in numeric.columns:
         std = df[col].std()
@@ -291,8 +294,99 @@ def _clip_outliers(df: pd.DataFrame, z_thresh: float = 3.0) -> pd.DataFrame:
     return df
 
 
+def _add_common_features(
+    df_trades: pd.DataFrame, feature_cols: List[str],
+    include_regime_binary: bool = False, include_regime_ordinal: bool = False,
+    include_market_regime: bool = False,
+) -> Tuple[pd.DataFrame, List[str]]:
+    """Shared feature enrichment: optional columns, news, regime, asset dummies, lag features.
+
+    Mutates df_trades (caller passes a copy) and extends feature_cols in-place.
+    Returns (df_trades, feature_cols) for chaining.
+    """
+    # Optional feature columns
+    for opt in OPTIONAL_FEATURE_COLUMNS:
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    # Sentiment columns
+    for col in ("signal_avg_sentiment", "news_avg_sentiment"):
+        if col in df_trades.columns:
+            feature_cols.append(col)
+    # News numeric columns
+    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
+        if opt in df_trades.columns:
+            feature_cols.append(opt)
+    # News macro risk one-hot
+    if "news_macroRiskEnvironment" in df_trades.columns:
+        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
+        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
+        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
+    # Volatility regime — binary (high) for signal quality
+    if include_regime_binary and "regime_volatilityRegime" in df_trades.columns:
+        df_trades["regime_volatility_high"] = (df_trades["regime_volatilityRegime"] == "high").astype(int)
+        feature_cols.append("regime_volatility_high")
+    # Volatility regime — ordinal for position sizing / TP / SL
+    if include_regime_ordinal and "regime_volatilityRegime" in df_trades.columns:
+        df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
+            {"low": 0, "normal": 1, "high": 2}
+        ).fillna(1)
+        feature_cols.append("volatility_level")
+    # Market regime (bullish/bearish) — binary for signal quality
+    if include_regime_binary and "regime_marketRegime" in df_trades.columns:
+        df_trades["regime_bullish"] = (df_trades["regime_marketRegime"] == "bullish").astype(int)
+        df_trades["regime_bearish"] = (df_trades["regime_marketRegime"] == "bearish").astype(int)
+        feature_cols.extend(["regime_bullish", "regime_bearish"])
+    # Market regime — ordinal for TP/SL
+    if include_market_regime and "regime_marketRegime" in df_trades.columns:
+        df_trades["market_regime_num"] = df_trades["regime_marketRegime"].map(
+            {"bearish": -1, "neutral": 0, "bullish": 1}
+        ).fillna(0)
+        feature_cols.append("market_regime_num")
+    # Asset dummies
+    if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
+        asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
+        df_trades = pd.concat([df_trades, asset_dummies], axis=1)
+        feature_cols.extend(asset_dummies.columns.tolist())
+    # Lag and rolling features
+    lag_roll_cols = [c for c in df_trades.columns if ("_lag" in c or "_roll3" in c)]
+    feature_cols.extend(lag_roll_cols)
+    return df_trades, feature_cols
+
+
+def _finalize_features(
+    df_trades: pd.DataFrame, feature_cols: List[str], label_col: str, label_transform=None,
+    model_name: str = "model",
+) -> Tuple[pd.DataFrame, pd.Series]:
+    """Shared finalization: select available columns, fillna, cast bools, extract y.
+
+    No StandardScaler — XGBoost is tree-based and invariant to monotonic transforms.
+    Removing the unfitted scaler also eliminates train/serve skew (scaler was never
+    saved alongside ONNX models).
+    """
+    available_cols = sorted(set(c for c in feature_cols if c in df_trades.columns), key=feature_cols.index)
+    # Deduplicate while preserving order
+    seen = set()
+    deduped = []
+    for c in available_cols:
+        if c not in seen:
+            seen.add(c)
+            deduped.append(c)
+    X = df_trades[deduped].copy()
+    y = df_trades[label_col]
+    if label_transform is not None:
+        y = label_transform(y)
+
+    X = X.fillna(0)
+    X = X.select_dtypes(include=[np.number, "bool"])
+    for c in X.select_dtypes(include=["bool"]).columns:
+        X[c] = X[c].astype(int)
+
+    logger.info("%s features: %s", model_name, X.shape)
+    return X, y
+
+
 def prepare_signal_quality_features(
-    df: pd.DataFrame, clip_outliers: bool = True, use_scaler: bool = True
+    df: pd.DataFrame, clip_outliers: bool = True,
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Prepare features for signal quality prediction."""
     df_trades = df[df["label_profitable"].notna()].copy()
@@ -306,57 +400,20 @@ def prepare_signal_quality_features(
         "signal_hasWhaleSignal", "session_isWeekend", "session_isOpenWindow",
         "session_utcHour",
     ]
-    for opt in OPTIONAL_FEATURE_COLUMNS:
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "signal_avg_sentiment" in df_trades.columns:
-        feature_cols.append("signal_avg_sentiment")
-    if "news_avg_sentiment" in df_trades.columns:
-        feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "news_macroRiskEnvironment" in df_trades.columns:
-        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
-        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
-        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
-
-    if "regime_volatilityRegime" in df_trades.columns:
-        df_trades["regime_volatility_high"] = (df_trades["regime_volatilityRegime"] == "high").astype(int)
-        feature_cols.append("regime_volatility_high")
-    if "regime_marketRegime" in df_trades.columns:
-        df_trades["regime_bullish"] = (df_trades["regime_marketRegime"] == "bullish").astype(int)
-        df_trades["regime_bearish"] = (df_trades["regime_marketRegime"] == "bearish").astype(int)
-        feature_cols.extend(["regime_bullish", "regime_bearish"])
-
-    if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
-        asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
-        df_trades = pd.concat([df_trades, asset_dummies], axis=1)
-        feature_cols.extend(asset_dummies.columns.tolist())
-
-    # Include lag and rolling features (added by add_lag_features)
-    lag_roll_cols = [c for c in df_trades.columns if ("_lag" in c or "_roll3" in c)]
-    feature_cols.extend(lag_roll_cols)
-
-    available_cols = [c for c in feature_cols if c in df_trades.columns]
-    X = df_trades[available_cols].copy()
-    y = df_trades["label_profitable"].astype(int)
-
-    X = X.fillna(0)
-    X = X.select_dtypes(include=[np.number, "bool"])
-    for c in X.select_dtypes(include=["bool"]).columns:
-        X[c] = X[c].astype(int)
-    if use_scaler:
-        float_cols = _safe_float_columns_for_scaler(X)
-        if len(float_cols) > 0:
-            X[float_cols] = StandardScaler().fit_transform(X[float_cols])
-
-    logger.info("Signal quality features: %s, positive rate: %.2f%%", X.shape, y.mean() * 100)
+    df_trades, feature_cols = _add_common_features(
+        df_trades, feature_cols, include_regime_binary=True,
+    )
+    X, y = _finalize_features(
+        df_trades, feature_cols, "label_profitable",
+        label_transform=lambda s: s.astype(int),
+        model_name="Signal quality",
+    )
+    logger.info("Signal quality positive rate: %.2f%%", y.mean() * 100)
     return X, y
 
 
 def prepare_position_sizing_features(
-    df: pd.DataFrame, clip_outliers: bool = True, use_scaler: bool = True
+    df: pd.DataFrame, clip_outliers: bool = True,
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Prepare features for position sizing prediction."""
     df_trades = df[df["label_rMultiple"].notna()].copy()
@@ -365,50 +422,22 @@ def prepare_position_sizing_features(
 
     feature_cols = [
         "signal_strength", "signal_confidence", "signal_source_count",
-        "session_isWeekend", "exec_streakMultiplier",
+        "session_isWeekend", "exec_streakMultiplier", "market_atrPct",
     ]
-    for opt in OPTIONAL_FEATURE_COLUMNS + ("market_atrPct",):
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "signal_avg_sentiment" in df_trades.columns:
-        feature_cols.append("signal_avg_sentiment")
-    if "news_avg_sentiment" in df_trades.columns:
-        feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "news_macroRiskEnvironment" in df_trades.columns:
-        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
-        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
-        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
-    if "regime_volatilityRegime" in df_trades.columns:
-        df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
-            {"low": 0, "normal": 1, "high": 2}
-        ).fillna(1)
-        feature_cols.append("volatility_level")
-    if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
-        asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
-        df_trades = pd.concat([df_trades, asset_dummies], axis=1)
-        feature_cols.extend(asset_dummies.columns.tolist())
-
-    available_cols = [c for c in feature_cols if c in df_trades.columns]
-    X = df_trades[available_cols].copy()
-    y = df_trades["label_rMultiple"].clip(-2, 3)
-    X = X.fillna(0)
-    X = X.select_dtypes(include=[np.number, "bool"])
-    for c in X.select_dtypes(include=["bool"]).columns:
-        X[c] = X[c].astype(int)
-    if use_scaler:
-        float_cols = _safe_float_columns_for_scaler(X)
-        if len(float_cols) > 0:
-            X[float_cols] = StandardScaler().fit_transform(X[float_cols])
-
-    logger.info("Position sizing features: %s, target mean: %.2f", X.shape, y.mean())
+    df_trades, feature_cols = _add_common_features(
+        df_trades, feature_cols, include_regime_ordinal=True,
+    )
+    X, y = _finalize_features(
+        df_trades, feature_cols, "label_rMultiple",
+        label_transform=lambda s: s.clip(-2, 3),
+        model_name="Position sizing",
+    )
+    logger.info("Position sizing target mean: %.2f", y.mean())
     return X, y
 
 
 def prepare_tp_features(
-    df: pd.DataFrame, clip_outliers: bool = True, use_scaler: bool = True
+    df: pd.DataFrame, clip_outliers: bool = True,
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Prepare features for take-profit optimization."""
     df_trades = df[df["label_optimalTpLevel"].notna()].copy()
@@ -419,53 +448,20 @@ def prepare_tp_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
-    for opt in OPTIONAL_FEATURE_COLUMNS:
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "signal_avg_sentiment" in df_trades.columns:
-        feature_cols.append("signal_avg_sentiment")
-    if "news_avg_sentiment" in df_trades.columns:
-        feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "news_macroRiskEnvironment" in df_trades.columns:
-        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
-        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
-        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
-    if "regime_volatilityRegime" in df_trades.columns:
-        df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
-            {"low": 0, "normal": 1, "high": 2}
-        ).fillna(1)
-        feature_cols.append("volatility_level")
-    if "regime_marketRegime" in df_trades.columns:
-        df_trades["market_regime_num"] = df_trades["regime_marketRegime"].map(
-            {"bearish": -1, "neutral": 0, "bullish": 1}
-        ).fillna(0)
-        feature_cols.append("market_regime_num")
-    if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
-        asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
-        df_trades = pd.concat([df_trades, asset_dummies], axis=1)
-        feature_cols.extend(asset_dummies.columns.tolist())
-
-    available_cols = [c for c in feature_cols if c in df_trades.columns]
-    X = df_trades[available_cols].copy()
-    y = df_trades["label_optimalTpLevel"].astype(int)
-    X = X.fillna(0)
-    X = X.select_dtypes(include=[np.number, "bool"])
-    for c in X.select_dtypes(include=["bool"]).columns:
-        X[c] = X[c].astype(int)
-    if use_scaler:
-        float_cols = _safe_float_columns_for_scaler(X)
-        if len(float_cols) > 0:
-            X[float_cols] = StandardScaler().fit_transform(X[float_cols])
-
-    logger.info("TP features: %s, TP level distribution: %s", X.shape, y.value_counts().to_dict())
+    df_trades, feature_cols = _add_common_features(
+        df_trades, feature_cols, include_regime_ordinal=True, include_market_regime=True,
+    )
+    X, y = _finalize_features(
+        df_trades, feature_cols, "label_optimalTpLevel",
+        label_transform=lambda s: s.astype(int),
+        model_name="TP",
+    )
+    logger.info("TP level distribution: %s", y.value_counts().to_dict())
     return X, y
 
 
 def prepare_sl_features(
-    df: pd.DataFrame, clip_outliers: bool = True, use_scaler: bool = True
+    df: pd.DataFrame, clip_outliers: bool = True,
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Prepare features for stop-loss optimization (max adverse excursion)."""
     label_col = "label_maxAdverseExcursion"
@@ -481,48 +477,16 @@ def prepare_sl_features(
     feature_cols = [
         "signal_direction_num", "market_atrPct", "signal_strength", "signal_confidence",
     ]
-    for opt in OPTIONAL_FEATURE_COLUMNS:
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "signal_avg_sentiment" in df_trades.columns:
-        feature_cols.append("signal_avg_sentiment")
-    if "news_avg_sentiment" in df_trades.columns:
-        feature_cols.append("news_avg_sentiment")
-    for opt in ("news_nasdaqChange", "news_etfFlowBtc", "news_etfFlowEth"):
-        if opt in df_trades.columns:
-            feature_cols.append(opt)
-    if "news_macroRiskEnvironment" in df_trades.columns:
-        df_trades["news_macro_risk_on"] = (df_trades["news_macroRiskEnvironment"] == "risk_on").astype(int)
-        df_trades["news_macro_risk_off"] = (df_trades["news_macroRiskEnvironment"] == "risk_off").astype(int)
-        feature_cols.extend(["news_macro_risk_on", "news_macro_risk_off"])
-    if "regime_volatilityRegime" in df_trades.columns:
-        df_trades["volatility_level"] = df_trades["regime_volatilityRegime"].map(
-            {"low": 0, "normal": 1, "high": 2}
-        ).fillna(1)
-        feature_cols.append("volatility_level")
-    if "regime_marketRegime" in df_trades.columns:
-        df_trades["market_regime_num"] = df_trades["regime_marketRegime"].map(
-            {"bearish": -1, "neutral": 0, "bullish": 1}
-        ).fillna(0)
-        feature_cols.append("market_regime_num")
-    if "asset" in df_trades.columns and df_trades["asset"].nunique() > 1:
-        asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
-        df_trades = pd.concat([df_trades, asset_dummies], axis=1)
-        feature_cols.extend(asset_dummies.columns.tolist())
+    df_trades, feature_cols = _add_common_features(
+        df_trades, feature_cols, include_regime_ordinal=True, include_market_regime=True,
+    )
 
-    available_cols = [c for c in feature_cols if c in df_trades.columns]
-    X = df_trades[available_cols].copy()
-    y = df_trades[label_col].clip(0, 5)
-    X = X.fillna(0)
-    X = X.select_dtypes(include=[np.number, "bool"])
-    for c in X.select_dtypes(include=["bool"]).columns:
-        X[c] = X[c].astype(int)
-    if use_scaler:
-        float_cols = _safe_float_columns_for_scaler(X)
-        if len(float_cols) > 0:
-            X[float_cols] = StandardScaler().fit_transform(X[float_cols])
-
-    logger.info("SL features: %s, target mean: %.2f", X.shape, y.mean())
+    X, y = _finalize_features(
+        df_trades, feature_cols, label_col,
+        label_transform=lambda s: s.clip(0, 5),
+        model_name="SL",
+    )
+    logger.info("SL target mean: %.2f", y.mean())
     return X, y
 
 
@@ -560,29 +524,27 @@ def _time_split(X: pd.DataFrame, y: pd.Series, test_frac: float = 0.2):
     return X.iloc[:split], y.iloc[:split], X.iloc[split:], y.iloc[split:]
 
 
-def _safe_float_columns_for_scaler(X: pd.DataFrame) -> List[str]:
-    """Return float columns that have at least one valid value and non-zero variance to avoid StandardScaler warnings."""
-    float_cols = X.select_dtypes(include=["float64", "float32"]).columns.tolist()
-    valid = []
-    for c in float_cols:
-        ser = X[c]
-        if not ser.notna().any():
-            continue
-        v = ser.var(skipna=True)
-        if v is None or (hasattr(v, "__float__") and float(v) <= 1e-10):
-            continue
-        valid.append(c)
-    return valid
-
-
 def _holdout_metrics(
-    model: Any, X: pd.DataFrame, y: pd.Series, kind: str
+    model_factory, X: pd.DataFrame, y: pd.Series, kind: str,
+    sample_weight: np.ndarray | None = None,
 ) -> Dict[str, float]:
-    """Compute metrics on time-based holdout (last 20%) for drift detection. Returns dict for improvement_report.holdout_metrics."""
+    """Compute metrics on time-based holdout (last 20%) for drift detection.
+
+    Trains a *fresh* model on the train split only to avoid data leakage
+    (the deployed model was fit on the full dataset).
+    Returns dict for improvement_report.holdout_metrics.
+    """
     X_tr, y_tr, X_val, y_val = _time_split(X, y, test_frac=0.2)
     if X_val is None or len(X_val) < 5:
         return {}
     try:
+        model = model_factory()
+        w_tr = sample_weight[:len(y_tr)] if sample_weight is not None and len(sample_weight) >= len(y_tr) else None
+        if w_tr is not None:
+            model.fit(X_tr, y_tr, sample_weight=w_tr)
+        else:
+            model.fit(X_tr, y_tr)
+
         if kind == "signal_quality":
             proba = model.predict_proba(X_val)[:, 1]
             return {
@@ -601,7 +563,6 @@ def _holdout_metrics(
             }
         if kind == "sl_optimizer":
             pred = model.predict(X_val)
-            # Pinball/quantile loss for alpha=0.95
             err = np.asarray(y_val) - np.asarray(pred)
             quantile_loss = np.mean(np.where(err >= 0, 0.95 * err, -0.05 * err))
             return {"holdout_mae": float(mean_absolute_error(y_val, pred)), "holdout_quantile_loss": float(quantile_loss)}
@@ -676,14 +637,16 @@ def _walk_forward_validation(
     if n < min_train_size + 10:
         return {}
 
-    fold_size = max(10, (n - min_train_size) // n_splits)
+    # Expanding window: folds advance forward through time
+    test_region = n - min_train_size - purge_gap
+    if test_region < 10:
+        return {}
+    fold_size = max(10, test_region // n_splits)
     results = []
 
     for fold in range(n_splits):
-        test_end = n - fold * fold_size
-        test_start = test_end - fold_size
-        if test_start < min_train_size + purge_gap:
-            break
+        test_start = min_train_size + purge_gap + fold * fold_size
+        test_end = min(test_start + fold_size, n)
         train_end = test_start - purge_gap  # purge gap: skip rows between train and test
 
         X_train = X.iloc[:train_end]
@@ -945,6 +908,105 @@ def train_position_sizing_model(
     return model
 
 
+def _tune_tp_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBClassifier:
+    """Bayesian hyperparameter tuning for TP optimizer via Optuna or GridSearchCV fallback."""
+    n_class = int(y.nunique())
+    if OPTUNA_AVAILABLE:
+        tscv = TimeSeriesSplit(n_splits=3)
+
+        def objective(trial):
+            params = {
+                "max_depth": trial.suggest_int("max_depth", 2, 7),
+                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.15, log=True),
+                "n_estimators": trial.suggest_int("n_estimators", 100, 400, step=50),
+                "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+                "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+                "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
+            }
+            model = xgb.XGBClassifier(
+                objective="multi:softprob", num_class=max(n_class, 2), eval_metric="mlogloss",
+                random_state=42, tree_method="hist", **params,
+            )
+            scores = cross_val_score(model, X, y, cv=tscv, scoring="accuracy",
+                                     fit_params={"sample_weight": sample_weight} if sample_weight is not None else {})
+            return scores.mean()
+
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
+        logger.info("Optuna TP Optimizer - best CV accuracy: %.3f (params: %s)", study.best_value, study.best_params)
+        final = xgb.XGBClassifier(
+            objective="multi:softprob", num_class=max(n_class, 2), eval_metric="mlogloss",
+            random_state=42, tree_method="hist", **study.best_params,
+        )
+        final.fit(X, y, sample_weight=sample_weight)
+        return final
+
+    # Fallback: GridSearchCV
+    param_grid = {"max_depth": [3, 4, 5], "learning_rate": [0.03, 0.05, 0.07], "n_estimators": [150, 200]}
+    base = xgb.XGBClassifier(
+        objective="multi:softprob", num_class=max(n_class, 2), eval_metric="mlogloss",
+        random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8,
+    )
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="accuracy", n_jobs=-1, verbose=0)
+    if sample_weight is not None:
+        search.fit(X, y, sample_weight=sample_weight)
+    else:
+        search.fit(X, y)
+    logger.info("TP Optimizer - best CV accuracy: %.3f (params: %s)", search.best_score_, search.best_params_)
+    return search.best_estimator_
+
+
+def _tune_sl_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBRegressor:
+    """Bayesian hyperparameter tuning for SL optimizer via Optuna or GridSearchCV fallback."""
+    if OPTUNA_AVAILABLE:
+        tscv = TimeSeriesSplit(n_splits=3)
+
+        def objective(trial):
+            params = {
+                "max_depth": trial.suggest_int("max_depth", 2, 7),
+                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.15, log=True),
+                "n_estimators": trial.suggest_int("n_estimators", 100, 400, step=50),
+                "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+                "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+                "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
+            }
+            model = xgb.XGBRegressor(
+                objective="reg:quantileerror", quantile_alpha=0.95,
+                random_state=42, tree_method="hist", **params,
+            )
+            scores = cross_val_score(model, X, y, cv=tscv, scoring="neg_mean_absolute_error",
+                                     fit_params={"sample_weight": sample_weight} if sample_weight is not None else {})
+            return scores.mean()
+
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
+        logger.info("Optuna SL Optimizer - best CV MAE: %.3f (params: %s)", -study.best_value, study.best_params)
+        final = xgb.XGBRegressor(
+            objective="reg:quantileerror", quantile_alpha=0.95,
+            random_state=42, tree_method="hist", **study.best_params,
+        )
+        final.fit(X, y, sample_weight=sample_weight)
+        return final
+
+    # Fallback: GridSearchCV
+    param_grid = {"max_depth": [3, 4, 5], "learning_rate": [0.03, 0.05, 0.07], "n_estimators": [150, 200]}
+    base = xgb.XGBRegressor(
+        objective="reg:quantileerror", quantile_alpha=0.95,
+        random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8,
+    )
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=-1, verbose=0)
+    if sample_weight is not None:
+        search.fit(X, y, sample_weight=sample_weight)
+    else:
+        search.fit(X, y)
+    logger.info("SL Optimizer - best CV MAE: %.3f (params: %s)", -search.best_score_, search.best_params_)
+    return search.best_estimator_
+
+
 def train_tp_optimizer_model(
     X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None = None
 ) -> xgb.XGBClassifier:
@@ -1101,6 +1163,33 @@ def export_to_onnx(model: Any, X_sample: pd.DataFrame, output_path: str, model_n
     except Exception as e:
         logger.warning("Failed to export %s: %s", model_name, e)
         return False
+
+
+def save_feature_manifest(feature_names: List[str], output_path: str, model_name: str) -> None:
+    """Save ordered feature name manifest alongside the ONNX model.
+
+    This ensures inference uses the exact same column order as training.
+    The manifest maps index → feature name (f0 → market_priceChange24h, etc.).
+    """
+    manifest = {"model": model_name, "features": feature_names, "n_features": len(feature_names)}
+    try:
+        with open(output_path, "w") as f:
+            json.dump(manifest, f, indent=2)
+        logger.info("Saved feature manifest for %s (%d features): %s", model_name, len(feature_names), output_path)
+    except Exception as e:
+        logger.warning("Failed to save feature manifest for %s: %s", model_name, e)
+
+
+def compute_onnx_hash(onnx_path: str) -> str | None:
+    """Compute SHA-256 hash of an ONNX file for versioning/integrity checks."""
+    try:
+        h = hashlib.sha256()
+        with open(onnx_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                h.update(chunk)
+        return h.hexdigest()
+    except Exception:
+        return None
 
 
 def save_joblib_backup(model: Any, output_path: str, model_name: str) -> None:
@@ -1399,6 +1488,111 @@ def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> No
 # Main Training Pipeline
 # ==========================================
 
+def _train_single_model(
+    name: str, df: pd.DataFrame, args: argparse.Namespace,
+    output_dir: Path,
+) -> Tuple[str, Dict[str, Any] | None]:
+    """Train a single model (designed to run in parallel). Returns (name, improvement_entry) or (name, None) on skip/error."""
+    try:
+        # Prepare features
+        if name == "signal_quality":
+            X, y = prepare_signal_quality_features(df)
+            label_filter = "label_profitable"
+        elif name == "position_sizing":
+            X, y = prepare_position_sizing_features(df)
+            label_filter = "label_rMultiple"
+        elif name == "tp_optimizer":
+            X, y = prepare_tp_features(df)
+            label_filter = "label_optimalTpLevel"
+        elif name == "sl_optimizer":
+            X, y = prepare_sl_features(df)
+            label_filter = "label_maxAdverseExcursion"
+        else:
+            return name, None
+
+        if X.empty or len(X) < args.min_samples:
+            logger.info("Skipping %s - insufficient samples (%d)", name, len(X))
+            return name, None
+
+        logger.info("=" * 40)
+        logger.info("Training %s (%d samples, %d features)", name, len(X), X.shape[1])
+        logger.info("=" * 40)
+
+        # Sample weights
+        df_sub = df[df[label_filter].notna()].copy()
+        w = _compute_sample_weights(
+            len(X),
+            df_sub["asset"] if "asset" in df_sub.columns else None,
+            args.recency_decay,
+            args.balance_assets,
+        ) if (args.recency_decay > 0 or args.balance_assets) else None
+
+        # Train or tune
+        tune = getattr(args, "tune_hyperparams", False)
+        if name == "signal_quality":
+            model = _tune_signal_quality(X, y, w) if tune else train_signal_quality_model(X, y, sample_weight=w)
+        elif name == "position_sizing":
+            model = _tune_position_sizing(X, y, w) if tune else train_position_sizing_model(X, y, sample_weight=w)
+        elif name == "tp_optimizer":
+            model = _tune_tp_optimizer(X, y, w) if tune else train_tp_optimizer_model(X, y, sample_weight=w)
+        elif name == "sl_optimizer":
+            model = _tune_sl_optimizer(X, y, w) if tune else train_sl_optimizer_model(X, y, sample_weight=w)
+
+        entry: Dict[str, Any] = {
+            "feature_importances": dict(zip(X.columns.tolist(), [float(x) for x in model.feature_importances_])),
+            "feature_names": X.columns.tolist(),
+        }
+
+        # Export ONNX + feature manifest + hash
+        onnx_path = str(output_dir / f"{name}.onnx")
+        onnx_ok = export_to_onnx(model, X.iloc[:1], onnx_path, name)
+        entry["onnx_exported"] = onnx_ok
+        if onnx_ok:
+            save_feature_manifest(X.columns.tolist(), str(output_dir / f"{name}_features.json"), name)
+            onnx_hash = compute_onnx_hash(onnx_path)
+            if onnx_hash:
+                entry["onnx_sha256"] = onnx_hash
+        save_joblib_backup(model, str(output_dir / f"{name}.joblib"), name)
+
+        # Model factory for holdout (trains fresh model on train split — no leakage)
+        def _make_model_factory():
+            """Create a factory that produces an untrained model with same hyperparams."""
+            params = model.get_params()
+            cls = type(model)
+            def factory():
+                return cls(**params)
+            return factory
+
+        factory = _make_model_factory()
+
+        # Holdout metrics (fresh model on train split only — no leakage)
+        entry["holdout_metrics"] = _holdout_metrics(factory, X, y, name, sample_weight=w)
+
+        # SHAP analysis
+        shap_result = _shap_analysis(model, X, name)
+        if shap_result:
+            entry["shap"] = shap_result
+
+        # Walk-forward validation
+        wf = _walk_forward_validation(X, y, factory)
+        if wf:
+            entry["walk_forward"] = wf
+
+        # Signal quality extras
+        if name == "signal_quality":
+            entry["suggested_threshold"] = _suggest_signal_quality_threshold(model, X, y)
+            calibration = _platt_calibration(model, X, y)
+            if calibration:
+                entry["signal_quality_calibration"] = calibration
+                logger.info("Platt calibration: scale=%.4f, intercept=%.4f", calibration["scale"], calibration["intercept"])
+
+        return name, entry
+
+    except Exception as e:
+        logger.error("Error training %s: %s", name, e, exc_info=True)
+        return name, None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Train VINCE ML models")
     parser.add_argument("--data", type=str, required=True, help="Path to features.jsonl or directory of features_*.jsonl (e.g. .elizadb/vince-paper-bot/features)")
@@ -1410,6 +1604,7 @@ def main():
     parser.add_argument("--tune-hyperparams", action="store_true", help="Run hyperparameter tuning: Optuna (if installed) or GridSearchCV fallback with TimeSeriesSplit (slower)")
     parser.add_argument("--optuna-trials", type=int, default=50, help="Number of Optuna trials when --tune-hyperparams is used (default 50)")
     parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
+    parser.add_argument("--parallel", action="store_true", help="Train models in parallel using concurrent.futures (faster on multi-core)")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -1435,7 +1630,6 @@ def main():
             "Insufficient data: %d trades with outcomes (need at least %d). Continue collecting with the paper trading bot.",
             trades_with_outcome, args.min_samples,
         )
-        # Still write a minimal report: data summary + suggested signal factors (so we learn what to add)
         minimal_report = {
             "data_summary": {
                 "total_records": int(len(df)),
@@ -1468,159 +1662,37 @@ def main():
     # Add lag features (temporal context from prior trades)
     df = add_lag_features(df)
 
-    models_trained = []
-    models_fit = []
-    improvement_entries = {}
+    model_names = ["signal_quality", "position_sizing", "tp_optimizer", "sl_optimizer"]
+    improvement_entries: Dict[str, Dict[str, Any]] = {}
 
-    # Signal Quality
-    try:
-        logger.info("=" * 40)
-        logger.info("Training Signal Quality Model")
-        logger.info("=" * 40)
-        X_sq, y_sq = prepare_signal_quality_features(df)
-        if len(X_sq) >= args.min_samples:
-            df_sq = df[df["label_profitable"].notna()].copy()
-            w_sq = _compute_sample_weights(
-                len(X_sq),
-                df_sq["asset"] if "asset" in df_sq.columns else None,
-                args.recency_decay,
-                args.balance_assets,
-            ) if (args.recency_decay > 0 or args.balance_assets) else None
-            model_sq = (
-                _tune_signal_quality(X_sq, y_sq, w_sq)
-                if getattr(args, "tune_hyperparams", False)
-                else train_signal_quality_model(X_sq, y_sq, sample_weight=w_sq)
-            )
-            models_fit.append("signal_quality")
-            if export_to_onnx(model_sq, X_sq.iloc[:1], str(output_dir / "signal_quality.onnx"), "Signal Quality"):
-                models_trained.append("signal_quality")
-            save_joblib_backup(model_sq, str(output_dir / "signal_quality.joblib"), "Signal Quality")
-            imp = dict(zip(X_sq.columns.tolist(), [float(x) for x in model_sq.feature_importances_]))
-            calibration = _platt_calibration(model_sq, X_sq, y_sq)
-            improvement_entries["signal_quality"] = {
-                "feature_importances": imp,
-                "suggested_threshold": _suggest_signal_quality_threshold(model_sq, X_sq, y_sq),
-                "feature_names": X_sq.columns.tolist(),
+    # Train all 4 models (optionally in parallel)
+    if getattr(args, "parallel", False):
+        logger.info("Training models in parallel...")
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as pool:
+            futures = {
+                pool.submit(_train_single_model, name, df, args, output_dir): name
+                for name in model_names
             }
-            if calibration:
-                improvement_entries["signal_quality"]["signal_quality_calibration"] = calibration
-                logger.info("Signal quality Platt calibration: scale=%.4f, intercept=%.4f", calibration["scale"], calibration["intercept"])
-            improvement_entries["signal_quality"]["holdout_metrics"] = _holdout_metrics(model_sq, X_sq, y_sq, "signal_quality")
+            for future in concurrent.futures.as_completed(futures):
+                name, entry = future.result()
+                if entry is not None:
+                    improvement_entries[name] = entry
+    else:
+        for name in model_names:
+            _, entry = _train_single_model(name, df, args, output_dir)
+            if entry is not None:
+                improvement_entries[name] = entry
 
-            # SHAP analysis
-            shap_result = _shap_analysis(model_sq, X_sq, "signal_quality")
-            if shap_result:
-                improvement_entries["signal_quality"]["shap"] = shap_result
-
-            # Walk-forward validation with purge gap
-            pos_count = int(np.sum(y_sq))
-            spw = (len(y_sq) - pos_count) / pos_count if pos_count > 0 else 1.0
-            def _sq_factory():
-                return xgb.XGBClassifier(
-                    n_estimators=200, max_depth=4, learning_rate=0.05,
-                    objective="binary:logistic", eval_metric="auc", random_state=42,
-                    tree_method="hist", subsample=0.8, colsample_bytree=0.8, scale_pos_weight=spw,
-                )
-            wf = _walk_forward_validation(X_sq, y_sq, _sq_factory)
-            if wf:
-                improvement_entries["signal_quality"]["walk_forward"] = wf
-        else:
-            logger.info("Skipping Signal Quality - insufficient samples")
-    except Exception as e:
-        logger.error("Error training Signal Quality Model: %s", e)
-
-    # Position Sizing
-    try:
-        logger.info("=" * 40)
-        logger.info("Training Position Sizing Model")
-        logger.info("=" * 40)
-        X_ps, y_ps = prepare_position_sizing_features(df)
-        if len(X_ps) >= args.min_samples:
-            df_ps = df[df["label_rMultiple"].notna()].copy()
-            w_ps = _compute_sample_weights(
-                len(X_ps),
-                df_ps["asset"] if "asset" in df_ps.columns else None,
-                args.recency_decay,
-                args.balance_assets,
-            ) if (args.recency_decay > 0 or args.balance_assets) else None
-            model_ps = (
-                _tune_position_sizing(X_ps, y_ps, w_ps)
-                if getattr(args, "tune_hyperparams", False)
-                else train_position_sizing_model(X_ps, y_ps, sample_weight=w_ps)
-            )
-            models_fit.append("position_sizing")
-            if export_to_onnx(model_ps, X_ps.iloc[:1], str(output_dir / "position_sizing.onnx"), "Position Sizing"):
-                models_trained.append("position_sizing")
-            save_joblib_backup(model_ps, str(output_dir / "position_sizing.joblib"), "Position Sizing")
-            improvement_entries["position_sizing"] = {
-                "feature_importances": dict(zip(X_ps.columns.tolist(), [float(x) for x in model_ps.feature_importances_])),
-                "holdout_metrics": _holdout_metrics(model_ps, X_ps, y_ps, "position_sizing"),
-            }
-        else:
-            logger.info("Skipping Position Sizing - insufficient samples")
-    except Exception as e:
-        logger.error("Error training Position Sizing Model: %s", e)
-
-    # TP Optimizer
-    try:
-        logger.info("=" * 40)
-        logger.info("Training TP Optimizer Model")
-        logger.info("=" * 40)
-        X_tp, y_tp = prepare_tp_features(df)
-        if len(X_tp) >= args.min_samples:
-            df_tp = df[df["label_optimalTpLevel"].notna()].copy()
-            w_tp = _compute_sample_weights(
-                len(X_tp),
-                df_tp["asset"] if "asset" in df_tp.columns else None,
-                args.recency_decay,
-                args.balance_assets,
-            ) if (args.recency_decay > 0 or args.balance_assets) else None
-            model_tp = train_tp_optimizer_model(X_tp, y_tp, sample_weight=w_tp)
-            models_fit.append("tp_optimizer")
-            if export_to_onnx(model_tp, X_tp.iloc[:1], str(output_dir / "tp_optimizer.onnx"), "TP Optimizer"):
-                models_trained.append("tp_optimizer")
-            save_joblib_backup(model_tp, str(output_dir / "tp_optimizer.joblib"), "TP Optimizer")
-            improvement_entries["tp_optimizer"] = {
-                "feature_importances": dict(zip(X_tp.columns.tolist(), [float(x) for x in model_tp.feature_importances_])),
-                "holdout_metrics": _holdout_metrics(model_tp, X_tp, y_tp, "tp_optimizer"),
-            }
-        else:
-            logger.info("Skipping TP Optimizer - insufficient samples")
-    except Exception as e:
-        logger.error("Error training TP Optimizer Model: %s", e)
-
-    # SL Optimizer (only if label_maxAdverseExcursion present and enough samples)
-    try:
-        logger.info("=" * 40)
-        logger.info("Training SL Optimizer Model")
-        logger.info("=" * 40)
-        X_sl, y_sl = prepare_sl_features(df)
-        if not X_sl.empty and len(X_sl) >= args.min_samples:
-            label_col = "label_maxAdverseExcursion"
-            df_sl = df[df[label_col].notna()].copy()
-            w_sl = _compute_sample_weights(
-                len(X_sl),
-                df_sl["asset"] if "asset" in df_sl.columns else None,
-                args.recency_decay,
-                args.balance_assets,
-            ) if (args.recency_decay > 0 or args.balance_assets) else None
-            model_sl = train_sl_optimizer_model(X_sl, y_sl, sample_weight=w_sl)
-            models_fit.append("sl_optimizer")
-            if export_to_onnx(model_sl, X_sl.iloc[:1], str(output_dir / "sl_optimizer.onnx"), "SL Optimizer"):
-                models_trained.append("sl_optimizer")
-            save_joblib_backup(model_sl, str(output_dir / "sl_optimizer.joblib"), "SL Optimizer")
-            improvement_entries["sl_optimizer"] = {
-                "feature_importances": dict(zip(X_sl.columns.tolist(), [float(x) for x in model_sl.feature_importances_])),
-                "holdout_metrics": _holdout_metrics(model_sl, X_sl, y_sl, "sl_optimizer"),
-            }
-        else:
-            logger.info("Skipping SL Optimizer - no label_maxAdverseExcursion or insufficient samples")
-    except Exception as e:
-        logger.error("Error training SL Optimizer Model: %s", e)
+    # Collect results
+    models_fit = [n for n in model_names if n in improvement_entries]
+    models_trained = [n for n in models_fit if improvement_entries[n].get("onnx_exported")]
 
     improvement_report = build_improvement_report(df, improvement_entries) if improvement_entries else {}
     if improvement_entries.get("signal_quality", {}).get("signal_quality_calibration"):
         improvement_report["signal_quality_calibration"] = improvement_entries["signal_quality"]["signal_quality_calibration"]
+
+    # Metadata with ONNX hashes for versioning
+    onnx_hashes = {n: e["onnx_sha256"] for n, e in improvement_entries.items() if e.get("onnx_sha256")}
     metadata = {
         "trained_at": datetime.now().isoformat(),
         "data_file": args.data,
@@ -1628,6 +1700,7 @@ def main():
         "trades_with_outcomes": trades_with_outcome,
         "models_trained": models_trained,
         "models_fit": models_fit,
+        "onnx_hashes": onnx_hashes,
         "improvement_report": improvement_report,
     }
     if improvement_entries.get("signal_quality", {}).get("feature_importances"):
@@ -1642,8 +1715,11 @@ def main():
 
     logger.info("=" * 60)
     logger.info("Training complete. Output: %s", output_dir)
-    logger.info("Models fit: %s", ", ".join(metadata["models_fit"]))
-    logger.info("Models exported (ONNX): %s", ", ".join(metadata["models_trained"]) or "none")
+    logger.info("Models fit: %s", ", ".join(models_fit))
+    logger.info("Models exported (ONNX): %s", ", ".join(models_trained) or "none")
+    if onnx_hashes:
+        for n, h in onnx_hashes.items():
+            logger.info("  %s.onnx SHA-256: %s", n, h[:16] + "...")
     if improvement_report.get("action_items"):
         logger.info("Improvement report: %s", output_dir / "improvement_report.md")
     logger.info("Log file: %s", output_dir / "train.log")
