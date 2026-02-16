@@ -20,17 +20,31 @@ export function extractRecommendationNames(text: string): string[] {
 
 const ALLOWLIST_PLACES_PATH = "knowledge/the-good-life/allowlist-places.txt";
 
-/** Load allowed place names from project knowledge. Returns empty array if file missing. */
+/** Cached allowlist: loaded once and reused. */
+let allowlistCache: { list: string[]; at: number } | null = null;
+const ALLOWLIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 min
+
+/** Load allowed place names from project knowledge. Cached 5 min. Returns empty array if file missing. */
 export function loadPlacesAllowlist(): string[] {
+  const now = Date.now();
+  if (allowlistCache && now - allowlistCache.at < ALLOWLIST_CACHE_TTL_MS) {
+    return allowlistCache.list;
+  }
   const fullPath = path.join(process.cwd(), ALLOWLIST_PLACES_PATH);
-  if (!fs.existsSync(fullPath)) return [];
+  if (!fs.existsSync(fullPath)) {
+    allowlistCache = { list: [], at: now };
+    return [];
+  }
   try {
     const content = fs.readFileSync(fullPath, "utf-8");
-    return content
+    const list = content
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+    allowlistCache = { list, at: now };
+    return list;
   } catch {
+    allowlistCache = { list: [], at: now };
     return [];
   }
 }
