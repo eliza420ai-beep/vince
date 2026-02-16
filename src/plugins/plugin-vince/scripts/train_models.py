@@ -64,6 +64,19 @@ except ImportError:
     convert_xgboost = None  # type: ignore
     FloatTensorType = None  # type: ignore
 
+try:
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    OPTUNA_AVAILABLE = True
+except ImportError:
+    OPTUNA_AVAILABLE = False
+
+try:
+    import shap
+    SHAP_AVAILABLE = True
+except ImportError:
+    SHAP_AVAILABLE = False
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -193,6 +206,56 @@ def load_features(filepath: str, real_only: bool = False) -> pd.DataFrame:
     return df
 
 
+# ==========================================
+# Lag Feature Engineering
+# ==========================================
+
+# Columns eligible for lag features (market conditions from previous trades)
+LAG_SOURCE_COLUMNS = [
+    "market_priceChange24h", "market_volumeRatio", "market_fundingPercentile",
+    "market_longShortRatio", "market_atrPct", "market_rsi14",
+    "market_oiChange24h", "market_dvol",
+]
+
+# Number of prior trades to look back (per asset)
+LAG_WINDOWS = [1, 2, 3]
+
+
+def add_lag_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add lagged market features from prior trades (per asset, time-ordered).
+
+    Creates columns like market_priceChange24h_lag1, market_priceChange24h_lag2, etc.
+    Also adds rolling means (lag1-3 average) for key columns.
+    Only uses columns that exist in the DataFrame. Fills NaN for early rows.
+    """
+    if df.empty or "timestamp" not in df.columns:
+        return df
+
+    df = df.sort_values("timestamp").reset_index(drop=True)
+    available_lag_cols = [c for c in LAG_SOURCE_COLUMNS if c in df.columns]
+    if not available_lag_cols:
+        return df
+
+    has_asset = "asset" in df.columns and df["asset"].nunique() > 1
+
+    for col in available_lag_cols:
+        for lag in LAG_WINDOWS:
+            lag_name = f"{col}_lag{lag}"
+            if has_asset:
+                df[lag_name] = df.groupby("asset")[col].shift(lag)
+            else:
+                df[lag_name] = df[col].shift(lag)
+
+        # Rolling mean of last 3 trades
+        lag_cols_for_roll = [f"{col}_lag{i}" for i in LAG_WINDOWS if f"{col}_lag{i}" in df.columns]
+        if lag_cols_for_roll:
+            df[f"{col}_roll3"] = df[lag_cols_for_roll].mean(axis=1)
+
+    lag_count = sum(1 for c in df.columns if "_lag" in c or "_roll3" in c)
+    logger.info("Added %d lag/rolling features from %d source columns", lag_count, len(available_lag_cols))
+    return df
+
+
 # Optional feature columns used across models when present in data.
 # Extend this list when the feature store adds new sources (e.g. ETF flow, per-source flags).
 # With more sources, load_features() could also derive per-source booleans from signal.sources.
@@ -270,6 +333,10 @@ def prepare_signal_quality_features(
         asset_dummies = pd.get_dummies(df_trades["asset"], prefix="asset")
         df_trades = pd.concat([df_trades, asset_dummies], axis=1)
         feature_cols.extend(asset_dummies.columns.tolist())
+
+    # Include lag and rolling features (added by add_lag_features)
+    lag_roll_cols = [c for c in df_trades.columns if ("_lag" in c or "_roll3" in c)]
+    feature_cols.extend(lag_roll_cols)
 
     available_cols = [c for c in feature_cols if c in df_trades.columns]
     X = df_trades[available_cols].copy()
@@ -544,8 +611,176 @@ def _holdout_metrics(
     return {}
 
 
+def _shap_analysis(model: Any, X: pd.DataFrame, model_name: str, max_samples: int = 200) -> Dict[str, Any]:
+    """Compute SHAP values for feature explanation. Returns dict with mean absolute SHAP values per feature and top interactions."""
+    if not SHAP_AVAILABLE:
+        return {}
+    try:
+        sample = X.iloc[:max_samples] if len(X) > max_samples else X
+        explainer = shap.TreeExplainer(model)
+        shap_values = explainer.shap_values(sample)
+
+        # For binary classification, shap_values may be a list [neg_class, pos_class]
+        if isinstance(shap_values, list):
+            shap_values = shap_values[1] if len(shap_values) > 1 else shap_values[0]
+
+        mean_abs_shap = np.abs(shap_values).mean(axis=0)
+        feature_shap = dict(zip(X.columns.tolist(), [float(v) for v in mean_abs_shap]))
+        sorted_features = sorted(feature_shap.items(), key=lambda x: -x[1])
+
+        result = {
+            "shap_importance": {f: round(v, 5) for f, v in sorted_features[:15]},
+            "top_features": [f for f, _ in sorted_features[:5]],
+        }
+
+        # Interaction: which pairs of features matter most (top 3)
+        if shap_values.shape[1] >= 2:
+            try:
+                interaction_matrix = np.abs(np.corrcoef(shap_values.T))
+                np.fill_diagonal(interaction_matrix, 0)
+                cols = X.columns.tolist()
+                top_interactions = []
+                flat_idx = np.argsort(interaction_matrix.flatten())[::-1]
+                seen = set()
+                for idx in flat_idx[:10]:
+                    i, j = divmod(idx, len(cols))
+                    if i != j and (j, i) not in seen:
+                        seen.add((i, j))
+                        top_interactions.append(f"{cols[i]} × {cols[j]}")
+                    if len(top_interactions) >= 3:
+                        break
+                result["top_interactions"] = top_interactions
+            except Exception:
+                pass
+
+        logger.info("SHAP analysis for %s: top features = %s", model_name, result["top_features"])
+        return result
+    except Exception as e:
+        logger.warning("SHAP analysis failed for %s: %s", model_name, e)
+        return {}
+
+
+def _walk_forward_validation(
+    X: pd.DataFrame, y: pd.Series, model_factory, n_splits: int = 5,
+    min_train_size: int = 50, purge_gap: int = 2,
+) -> Dict[str, Any]:
+    """Walk-forward validation with expanding window and purge gap.
+
+    Unlike TimeSeriesSplit, this uses an expanding training window and enforces
+    a purge gap (number of rows skipped between train and test) to prevent
+    information leakage from sequential trades.
+
+    Returns dict with per-fold metrics and aggregated statistics.
+    """
+    n = len(X)
+    if n < min_train_size + 10:
+        return {}
+
+    fold_size = max(10, (n - min_train_size) // n_splits)
+    results = []
+
+    for fold in range(n_splits):
+        test_end = n - fold * fold_size
+        test_start = test_end - fold_size
+        if test_start < min_train_size + purge_gap:
+            break
+        train_end = test_start - purge_gap  # purge gap: skip rows between train and test
+
+        X_train = X.iloc[:train_end]
+        y_train = y.iloc[:train_end]
+        X_test = X.iloc[test_start:test_end]
+        y_test = y.iloc[test_start:test_end]
+
+        if len(X_train) < min_train_size or len(X_test) < 5:
+            continue
+
+        try:
+            model = model_factory()
+            model.fit(X_train, y_train)
+
+            fold_metrics = {"fold": fold, "train_size": len(X_train), "test_size": len(X_test)}
+
+            if hasattr(model, "predict_proba"):
+                proba = model.predict_proba(X_test)[:, 1]
+                fold_metrics["auc"] = float(roc_auc_score(y_test, proba))
+                fold_metrics["accuracy"] = float(accuracy_score(y_test, (proba >= 0.5).astype(int)))
+            else:
+                pred = model.predict(X_test)
+                fold_metrics["mae"] = float(mean_absolute_error(y_test, pred))
+
+            results.append(fold_metrics)
+        except Exception as e:
+            logger.debug("Walk-forward fold %d failed: %s", fold, e)
+
+    if not results:
+        return {}
+
+    # Aggregate
+    agg: Dict[str, Any] = {"n_folds": len(results), "folds": results}
+    if "auc" in results[0]:
+        aucs = [r["auc"] for r in results]
+        agg["mean_auc"] = round(float(np.mean(aucs)), 4)
+        agg["std_auc"] = round(float(np.std(aucs)), 4)
+    if "mae" in results[0]:
+        maes = [r["mae"] for r in results]
+        agg["mean_mae"] = round(float(np.mean(maes)), 4)
+        agg["std_mae"] = round(float(np.std(maes)), 4)
+    if "accuracy" in results[0]:
+        accs = [r["accuracy"] for r in results]
+        agg["mean_accuracy"] = round(float(np.mean(accs)), 4)
+
+    logger.info("Walk-forward validation: %d folds, %s",
+                len(results),
+                ", ".join(f"{k}={v}" for k, v in agg.items() if k not in ("folds", "n_folds")))
+    return agg
+
+
+def _tune_signal_quality_optuna(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None, n_trials: int = 50) -> xgb.XGBClassifier:
+    """Bayesian hyperparameter tuning via Optuna with TimeSeriesSplit. Returns best estimator."""
+    pos_count = int(np.sum(y))
+    scale_pos_weight = (len(y) - pos_count) / pos_count if pos_count > 0 else 1.0
+    tscv = TimeSeriesSplit(n_splits=3)
+
+    def objective(trial):
+        params = {
+            "max_depth": trial.suggest_int("max_depth", 2, 7),
+            "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.15, log=True),
+            "n_estimators": trial.suggest_int("n_estimators", 100, 400, step=50),
+            "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+            "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
+            "gamma": trial.suggest_float("gamma", 0.0, 5.0),
+        }
+        model = xgb.XGBClassifier(
+            objective="binary:logistic", eval_metric="auc", random_state=42,
+            tree_method="hist", scale_pos_weight=scale_pos_weight, **params,
+        )
+        scores = cross_val_score(model, X, y, cv=tscv, scoring="roc_auc",
+                                 fit_params={"sample_weight": sample_weight} if sample_weight is not None else {})
+        return scores.mean()
+
+    study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+    study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
+
+    best = study.best_params
+    logger.info("Optuna Signal Quality - best CV AUC: %.3f (params: %s)", study.best_value, best)
+
+    final = xgb.XGBClassifier(
+        objective="binary:logistic", eval_metric="auc", random_state=42,
+        tree_method="hist", scale_pos_weight=scale_pos_weight, **best,
+    )
+    final.fit(X, y, sample_weight=sample_weight)
+    return final
+
+
 def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBClassifier:
-    """GridSearchCV over key hyperparams with TimeSeriesSplit. Returns best estimator."""
+    """Hyperparameter tuning: Optuna (if available) or GridSearchCV fallback."""
+    if OPTUNA_AVAILABLE:
+        return _tune_signal_quality_optuna(X, y, sample_weight)
+
+    # Fallback: GridSearchCV
     pos_count = int(np.sum(y))
     scale_pos_weight = (len(y) - pos_count) / pos_count if pos_count > 0 else 1.0
     param_grid = {
@@ -628,7 +863,34 @@ def train_signal_quality_model(
 
 
 def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray | None) -> xgb.XGBRegressor:
-    """GridSearchCV for position sizing (neg MAE). Returns best estimator."""
+    """Hyperparameter tuning for position sizing: Optuna (if available) or GridSearchCV fallback."""
+    if OPTUNA_AVAILABLE:
+        tscv = TimeSeriesSplit(n_splits=3)
+
+        def objective(trial):
+            params = {
+                "max_depth": trial.suggest_int("max_depth", 2, 7),
+                "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.15, log=True),
+                "n_estimators": trial.suggest_int("n_estimators", 100, 400, step=50),
+                "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+                "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+                "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+                "reg_alpha": trial.suggest_float("reg_alpha", 1e-8, 10.0, log=True),
+                "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10.0, log=True),
+            }
+            model = xgb.XGBRegressor(objective="reg:squarederror", random_state=42, tree_method="hist", **params)
+            scores = cross_val_score(model, X, y, cv=tscv, scoring="neg_mean_absolute_error",
+                                     fit_params={"sample_weight": sample_weight} if sample_weight is not None else {})
+            return scores.mean()
+
+        study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler(seed=42))
+        study.optimize(objective, n_trials=50, show_progress_bar=False)
+        logger.info("Optuna Position Sizing - best CV MAE: %.3f (params: %s)", -study.best_value, study.best_params)
+        final = xgb.XGBRegressor(objective="reg:squarederror", random_state=42, tree_method="hist", **study.best_params)
+        final.fit(X, y, sample_weight=sample_weight)
+        return final
+
+    # Fallback: GridSearchCV
     param_grid = {"max_depth": [3, 4, 5], "learning_rate": [0.03, 0.05, 0.07], "n_estimators": [150, 200]}
     base = xgb.XGBRegressor(objective="reg:squarederror", random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8)
     search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=-1, verbose=0)
@@ -1088,6 +1350,34 @@ def write_improvement_report_md(report: Dict[str, Any], output_path: Path) -> No
         for model_name, metrics in report["holdout_metrics"].items():
             lines.append(f"- **{model_name}**: " + ", ".join(f"{k}={v:.4f}" for k, v in metrics.items()))
         lines.append("")
+
+    # SHAP analysis
+    for model_name, data in (report.get("feature_importances") or {}).items():
+        shap_data = data.get("shap") if isinstance(data, dict) else None
+        if shap_data and shap_data.get("shap_importance"):
+            lines.append(f"## SHAP feature importance ({model_name})")
+            lines.append("")
+            lines.append("SHAP values show the average impact of each feature on model predictions (more reliable than gain-based importance).")
+            lines.append("")
+            for feat, score in list(shap_data["shap_importance"].items())[:10]:
+                lines.append(f"- `{feat}`: {score:.5f}")
+            if shap_data.get("top_interactions"):
+                lines.append("")
+                lines.append("**Top feature interactions:** " + ", ".join(shap_data["top_interactions"]))
+            lines.append("")
+
+    # Walk-forward validation
+    for model_name, data in (report.get("feature_importances") or {}).items():
+        wf = data.get("walk_forward") if isinstance(data, dict) else None
+        if wf:
+            lines.append(f"## Walk-forward validation ({model_name})")
+            lines.append("")
+            lines.append(f"Expanding-window validation with purge gap ({wf.get('n_folds', 0)} folds):")
+            lines.append("")
+            for k, v in wf.items():
+                if k not in ("folds", "n_folds"):
+                    lines.append(f"- **{k}**: {v}")
+            lines.append("")
     sug = report.get("suggested_signal_factors") or []
     if sug:
         lines.append("## Suggested signal factors (consider adding)")
@@ -1117,7 +1407,8 @@ def main():
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging to train.log")
     parser.add_argument("--recency-decay", type=float, default=0.0, help="Recency sample weight decay (e.g. 0.01 upweights recent rows); 0 = off")
     parser.add_argument("--balance-assets", action="store_true", help="Balance sample weights by asset so one symbol does not dominate")
-    parser.add_argument("--tune-hyperparams", action="store_true", help="Run GridSearchCV over max_depth, learning_rate, n_estimators with TimeSeriesSplit (slower)")
+    parser.add_argument("--tune-hyperparams", action="store_true", help="Run hyperparameter tuning: Optuna (if installed) or GridSearchCV fallback with TimeSeriesSplit (slower)")
+    parser.add_argument("--optuna-trials", type=int, default=50, help="Number of Optuna trials when --tune-hyperparams is used (default 50)")
     parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
     args = parser.parse_args()
 
@@ -1173,6 +1464,10 @@ def main():
         return
 
     logger.info("Training on %d completed trades", trades_with_outcome)
+
+    # Add lag features (temporal context from prior trades)
+    df = add_lag_features(df)
+
     models_trained = []
     models_fit = []
     improvement_entries = {}
@@ -1211,6 +1506,24 @@ def main():
                 improvement_entries["signal_quality"]["signal_quality_calibration"] = calibration
                 logger.info("Signal quality Platt calibration: scale=%.4f, intercept=%.4f", calibration["scale"], calibration["intercept"])
             improvement_entries["signal_quality"]["holdout_metrics"] = _holdout_metrics(model_sq, X_sq, y_sq, "signal_quality")
+
+            # SHAP analysis
+            shap_result = _shap_analysis(model_sq, X_sq, "signal_quality")
+            if shap_result:
+                improvement_entries["signal_quality"]["shap"] = shap_result
+
+            # Walk-forward validation with purge gap
+            pos_count = int(np.sum(y_sq))
+            spw = (len(y_sq) - pos_count) / pos_count if pos_count > 0 else 1.0
+            def _sq_factory():
+                return xgb.XGBClassifier(
+                    n_estimators=200, max_depth=4, learning_rate=0.05,
+                    objective="binary:logistic", eval_metric="auc", random_state=42,
+                    tree_method="hist", subsample=0.8, colsample_bytree=0.8, scale_pos_weight=spw,
+                )
+            wf = _walk_forward_validation(X_sq, y_sq, _sq_factory)
+            if wf:
+                improvement_entries["signal_quality"]["walk_forward"] = wf
         else:
             logger.info("Skipping Signal Quality - insufficient samples")
     except Exception as e:

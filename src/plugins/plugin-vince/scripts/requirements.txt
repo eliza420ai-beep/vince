@@ -9,3 +9,5 @@ onnxmltools>=1.16.0
 joblib>=1.3.0
 # Optional: scipy for z-score outlier clipping (_clip_outliers); script works without it
 # Optional: onnxruntime for ONNX smoke test after export (verify_onnx_inference); script skips test if not installed
+# Optional: optuna for Bayesian hyperparameter tuning (--tune-optuna); script falls back to GridSearchCV if not installed
+# Optional: shap for feature explanation (SHAP values in improvement report); script uses gain-based importance if not installed
