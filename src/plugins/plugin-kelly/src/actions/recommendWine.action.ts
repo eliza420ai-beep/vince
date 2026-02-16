@@ -43,6 +43,10 @@ export const kellyRecommendWineAction: Action = {
 
   validate: async (_runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
     const text = (message.content?.text ?? "").toLowerCase();
+    // "wine tasting" + booking/experience words → let experience action handle it
+    if (text.includes("wine tasting") && (text.includes("book") || text.includes("visit") || text.includes("experience"))) {
+      return false;
+    }
     return wantsWineRecommendation(text);
   },
 

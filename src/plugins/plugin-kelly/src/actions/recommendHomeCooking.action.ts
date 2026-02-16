@@ -37,7 +37,8 @@ const HOME_COOKING_TRIGGERS = [
   "home cooking",
   "cook at home",
   "dinner at home",
-  "what to make",
+  "what to make for dinner",
+  "what to make tonight",
 ];
 
 function wantsHomeCooking(text: string): boolean {

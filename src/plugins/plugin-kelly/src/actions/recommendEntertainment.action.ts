@@ -41,14 +41,22 @@ const ENTERTAINMENT_TRIGGERS = [
   "movie recommendation",
   "good movie",
   "apple tv",
-  "something like",
-  "similar to",
   "entertainment",
+];
+
+const ENTERTAINMENT_KEYWORDS = [
+  "book", "movie", "film", "series", "show", "album", "song",
+  "watch", "read", "listen", "netflix", "tv", "music", "playlist",
 ];
 
 function wantsEntertainment(text: string): boolean {
   const lower = text.toLowerCase();
-  return ENTERTAINMENT_TRIGGERS.some((t) => lower.includes(t));
+  if (ENTERTAINMENT_TRIGGERS.some((t) => lower.includes(t))) return true;
+  // "something like" / "similar to" only with entertainment context
+  if (lower.includes("something like") || lower.includes("similar to")) {
+    return ENTERTAINMENT_KEYWORDS.some((k) => lower.includes(k));
+  }
+  return false;
 }
 
 function detectCategory(text: string): EntertainmentCategory {

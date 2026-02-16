@@ -20,6 +20,8 @@ import { kellyRecommendHomeCookingAction } from "./actions/recommendHomeCooking.
 import { kellyRecommendTeaAction } from "./actions/recommendTea.action";
 import { kellyRecommendEntertainmentAction } from "./actions/recommendEntertainment.action";
 import { kellyRecommendCreativeAction } from "./actions/recommendCreative.action";
+import { kellyRecommendRowingAction } from "./actions/recommendRowing.action";
+import { kellyInterestingQuestionAction } from "./actions/interestingQuestion.action";
 import { lifestyleFeedbackEvaluator } from "./evaluators/lifestyleFeedback.evaluator";
 import { kellyContextProvider } from "./providers/kellyContext.provider";
 import { weatherProvider } from "./providers/weather.provider";
@@ -51,6 +53,8 @@ export const kellyPlugin: Plugin = {
     kellyRecommendTeaAction,
     kellyRecommendEntertainmentAction,
     kellyRecommendCreativeAction,
+    kellyRecommendRowingAction,
+    kellyInterestingQuestionAction,
   ],
   evaluators: [lifestyleFeedbackEvaluator],
   providers: [kellyContextProvider, weatherProvider],
