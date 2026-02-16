@@ -28,11 +28,26 @@ describe("KELLY_DAILY_BRIEFING Action", () => {
       expect(result).toBe(true);
     });
 
-    it("returns true for 'lifestyle'", async () => {
+    it("returns true for 'lifestyle briefing'", async () => {
+      const runtime = createMockRuntime();
+      const message = createMockMessage("lifestyle briefing");
+      const result = await kellyDailyBriefingAction.validate(runtime, message);
+      expect(result).toBe(true);
+    });
+
+    it("returns false for bare 'lifestyle' (too vague)", async () => {
       const runtime = createMockRuntime();
       const message = createMockMessage("lifestyle");
       const result = await kellyDailyBriefingAction.validate(runtime, message);
-      expect(result).toBe(true);
+      expect(result).toBe(false);
+    });
+
+    it("returns false when specific action triggers match", async () => {
+      const runtime = createMockRuntime();
+      // "what should i do today" + "workout" → specific action wins
+      const message = createMockMessage("what should i do today workout");
+      const result = await kellyDailyBriefingAction.validate(runtime, message);
+      expect(result).toBe(false);
     });
 
     it("returns false for unrelated message", async () => {

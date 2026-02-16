@@ -46,36 +46,42 @@ export const kellyDailyBriefingAction: Action = {
     message: Memory,
   ): Promise<boolean> => {
     const text = message.content.text?.toLowerCase() || "";
-    return (
-      text.includes("lifestyle") ||
-      text.includes("daily") ||
-      text.includes("suggestion") ||
-      text.includes("suggestions") ||
-      text.includes("health") ||
-      text.includes("dining") ||
-      text.includes("hotel") ||
-      text.includes("hotels") ||
-      text.includes("swim") ||
-      text.includes("gym") ||
-      text.includes("lunch") ||
-      text.includes("wellness") ||
-      text.includes("what should i do") ||
+
+    // Positive: only general daily/lifestyle briefing requests
+    const wantsBriefing =
+      text.includes("daily briefing") ||
+      text.includes("lifestyle briefing") ||
+      text.includes("daily suggestions") ||
+      text.includes("what's on today") ||
+      text.includes("whats on today") ||
+      text.includes("today's plan") ||
+      text.includes("todays plan") ||
+      text.includes("my day") ||
+      text.includes("plan my day") ||
+      text.includes("what should i do today") ||
       text.includes("what to do today") ||
-      text.includes("what to do this week") ||
-      (text.includes("today") &&
-        (text.includes("recommend") ||
-          text.includes("plan") ||
-          text.includes("vibe"))) ||
-      (text.includes("wine") &&
-        (text.includes("recommend") ||
-          text.includes("tasting") ||
-          text.includes("where"))) ||
-      text.includes("pool day") ||
-      text.includes("fitness") ||
-      text.includes("workout") ||
-      text.includes("yoga") ||
-      (text.includes("curated") && text.includes("open"))
-    );
+      (text.includes("curated") && text.includes("open"));
+
+    if (!wantsBriefing) return false;
+
+    // Negative: if the user is asking for something specific, let the specific action handle it
+    const specificTriggers = [
+      "workout", "yoga", "gym", "exercise", // workout
+      "what wine", "recommend wine", "wine with", "wine for", "pairing", // wine
+      "where to eat", "restaurant", "recommend a place", "lunch spot", // place
+      "what to cook", "dinner idea", "cook tonight", "bbq", "green egg", "thermomix", // home cooking
+      "rowing", "water rower", "erg", // rowing
+      "surf forecast", "surf report", "wave", "swell", // surf
+      "what to watch", "what to read", "recommend a book", "recommend a movie", "netflix", // entertainment
+      "week ahead", "this week's picks", "plan for the week", // week ahead
+      "spa day", "cooking class", "guided tour", "wine tasting", // experience
+      "swimming", "swim technique", "swim tips", // swimming
+      "tea", "matcha", "brew", // tea
+      "itinerary", "trip", "travel plan", // itinerary
+    ];
+    if (specificTriggers.some((t) => text.includes(t))) return false;
+
+    return true;
   },
 
   handler: async (

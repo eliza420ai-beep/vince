@@ -15,10 +15,11 @@ import { NEVER_INVENT_LINE } from "../constants/safety";
 import { getVoiceAvoidPromptFragment } from "../constants/voice";
 
 const EXPERIENCE_TRIGGERS = [
-  "experience",
+  "recommend an experience",
+  "special experience",
   "wine tasting",
   "spa day",
-  "spa",
+  "spa experience",
   "cooking class",
   "guided tour",
   "something special to do",

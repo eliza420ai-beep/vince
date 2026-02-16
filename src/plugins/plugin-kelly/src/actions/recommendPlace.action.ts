@@ -267,7 +267,7 @@ Voice: avoid jargon and filler. ${getVoiceAvoidPromptFragment()}${openTodayBlock
       }
 
       const out = text
-        ? "Here's a place for you—\n\n" + text
+        ? "Here's a place for you:\n\n" + text
         : `I don't have enough in the-good-life for **${placeQuery}** right now. Check MICHELIN Guide or James Edition.`;
       await callback({
         text: out,

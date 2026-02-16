@@ -32,6 +32,8 @@ const ROWING_TRIGGERS = [
 
 function wantsRowing(text: string): boolean {
   const lower = text.toLowerCase();
+  // "forecast" or "conditions" → surf forecast, not rowing
+  if (lower.includes("forecast") || lower.includes("conditions")) return false;
   return ROWING_TRIGGERS.some((t) => lower.includes(t));
 }
 
