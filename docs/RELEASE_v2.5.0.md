@@ -1,8 +1,8 @@
 # VINCE v2.5.0 — We Shipped a Lot
 
-**Release date:** 2026-02-14
+> **Release date:** 2026-02-14
 
-This release packs **Clawterm**, **OpenClaw**, **standups**, and two new DeFi plugins. One team, one dream—with more structure and more data.
+This release packs **Clawterm**, **OpenClaw**, **standups**, and two new DeFi plugins. One team, one dream — more structure, more data.
 
 ---
 

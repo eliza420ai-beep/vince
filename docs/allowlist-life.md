@@ -1,8 +1,8 @@
-# Allowlist Life — Places I say yes to
+# Allowlist Life — Places I Say Yes To
 
 > **Canonical source:** [knowledge/the-good-life/allowlist-life.md](../knowledge/the-good-life/allowlist-life.md) — edit there; this page is for viewing (e.g. GitHub Pages).
 
-No reviews; just the list. Default for lifestyle suggestions (hotels, dining). For current listings and reservations use **James Edition** and **MICHELIN Guide**.
+No reviews — just the list. Default for lifestyle suggestions (hotels, dining). For current listings and reservations, use **James Edition** and **MICHELIN Guide**.
 
 ---
 

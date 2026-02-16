@@ -1,6 +1,6 @@
 # Multi-Agent Setup (VINCE)
 
-**North star:** A Discord (or other channel) where your agents have names and profile images, talk to you and to each other, and run heartbeat-style check-ins that sometimes spark small conversations between them. When you're all collaborating, it can feel genuinely *alive*—like you're building together. You have to remind yourself it's you and a bunch of AIs. That feeling is what we're optimizing for.
+**North star:** A Discord (or other channel) where your agents have names and profile images, talk to you and to each other, and run heartbeat-style check-ins that sometimes spark small conversations between them. When you're all collaborating, it feels genuinely *alive* — like you're building together. You have to remind yourself it's you and a bunch of AIs. That feeling is what we're optimizing for.
 
 This doc is the **reference for our use case**: how we get there with VINCE. It covers ASK_AGENT (one agent asking another and relaying the answer), elizaOS attachment, Discord Option C (one bot identity per agent), A2A policy, standups (Kelly-coordinated 2×/day), and subagent-style options. One team, one dream—implemented here.
 

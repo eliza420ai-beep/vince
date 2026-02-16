@@ -1,8 +1,8 @@
 # VINCE Paper Bot Feature Store (ML)
 
-**Purpose:** Where paper-bot trade features (40+ per decision) are stored and how to use them for ML training. For deploy and env setup, see [DEPLOY.md](DEPLOY.md). For the rest of the repo, see [README.md](../README.md).
+Where paper-bot trade features (40+ per decision) are stored and how to use them for ML training.
 
-**When to read:** Setting up Supabase/PGLite for features, running the training script, or syncing existing JSONL to Supabase.
+**When to read:** Setting up Supabase/PGLite for features, running the training script, or syncing existing JSONL to Supabase. See also: [DEPLOY.md](DEPLOY.md) (deploy and env), [README.md](../README.md) (project overview).
 
 ---
 

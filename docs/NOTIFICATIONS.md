@@ -1,6 +1,6 @@
-# Notifications – Channel Structure (VINCE, Kelly, Sentinel)
+# Notifications — Channel Structure (VINCE, Kelly, Sentinel)
 
-Push notifications go to Discord, Slack, and Telegram when those plugins are connected. **VINCE** (daily, news, lifestyle, alerts), **Kelly** (daily concierge), and **Sentinel** (weekly/daily suggestions) each push to channels whose names contain specific keywords. This doc suggests how to name and structure channels.
+Push notifications go to Discord, Slack, and Telegram when those plugins are connected. **VINCE** (daily, news, lifestyle, alerts), **Kelly** (daily concierge), and **Sentinel** (weekly/daily suggestions) each push to channels whose names contain specific keywords. This doc defines how to name and structure channels for correct push routing.
 
 ---
 

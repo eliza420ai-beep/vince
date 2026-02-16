@@ -1,6 +1,8 @@
-# OpenClaw vision and lore
+# OpenClaw Vision and Lore
 
 First use case, naming history, and original vision for OpenClaw (formerly ClawdBot, MoltBot).
+
+> **Contents:** [First Use Case](#first-use-case) · [Naming History](#naming-clawdbot--moltbot--openclaw) · [Original Vision](#original-vision-jan-24-2024) · [See Also](#see-also)
 
 ---
 

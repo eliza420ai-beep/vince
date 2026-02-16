@@ -1,6 +1,6 @@
 # X Research Improvements
 
-Analysis of current `plugin-vince` X research capabilities and opportunities.
+Analysis of current `plugin-vince` X research capabilities and improvement opportunities.
 
 ## Current Capabilities
 
