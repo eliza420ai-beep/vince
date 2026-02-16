@@ -409,6 +409,69 @@ class TestTrainModels(unittest.TestCase):
             models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
             self.assertGreaterEqual(len(models_fit), 1, "At least one model should be fit after hyperparameter tuning")
 
+    def test_feature_manifest_and_onnx_hash(self):
+        """Training produces feature manifests and ONNX hashes for each exported model."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features.jsonl")
+            output_dir = os.path.join(tmp, "models")
+            generate_synthetic_jsonl(data_path, num_records=150, include_sl_label=True)
+
+            result = run_train_models(data_path, output_dir, min_samples=30)
+            self.assertEqual(result.returncode, 0, f"train_models.py failed: stderr={result.stderr!r}")
+
+            metadata_path = os.path.join(output_dir, "training_metadata.json")
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+
+            # Feature manifests
+            for name in metadata.get("models_trained", []):
+                manifest_path = os.path.join(output_dir, f"{name}_features.json")
+                self.assertTrue(os.path.isfile(manifest_path), f"Missing feature manifest: {manifest_path}")
+                with open(manifest_path) as f:
+                    manifest = json.load(f)
+                self.assertIn("features", manifest)
+                self.assertGreater(len(manifest["features"]), 0, f"Empty feature list in {manifest_path}")
+                self.assertEqual(manifest["n_features"], len(manifest["features"]))
+
+            # ONNX hashes
+            onnx_hashes = metadata.get("onnx_hashes", {})
+            for name in metadata.get("models_trained", []):
+                self.assertIn(name, onnx_hashes, f"Missing ONNX hash for {name}")
+                self.assertEqual(len(onnx_hashes[name]), 64, f"SHA-256 hash should be 64 hex chars for {name}")
+
+    def test_walk_forward_and_shap_in_report(self):
+        """Improvement report includes walk-forward validation and SHAP analysis when deps available."""
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features.jsonl")
+            output_dir = os.path.join(tmp, "models")
+            generate_synthetic_jsonl(data_path, num_records=200, include_sl_label=True)
+
+            result = run_train_models(data_path, output_dir, min_samples=30)
+            self.assertEqual(result.returncode, 0, f"train_models.py failed: stderr={result.stderr!r}")
+
+            metadata_path = os.path.join(output_dir, "training_metadata.json")
+            with open(metadata_path) as f:
+                metadata = json.load(f)
+
+            report = metadata.get("improvement_report", {})
+            feature_importances = report.get("feature_importances", {})
+
+            # At least signal_quality should have walk-forward results (200 samples is enough)
+            has_walk_forward = any(
+                v.get("walk_forward") for v in feature_importances.values() if isinstance(v, dict)
+            )
+            self.assertTrue(has_walk_forward, "At least one model should have walk-forward validation results")
+
+            # SHAP (if shap is installed)
+            try:
+                import shap  # noqa: F401
+                has_shap = any(
+                    v.get("shap") for v in feature_importances.values() if isinstance(v, dict)
+                )
+                self.assertTrue(has_shap, "At least one model should have SHAP analysis when shap is installed")
+            except ImportError:
+                pass  # SHAP not installed; skip assertion
+
 
 if __name__ == "__main__":
     try:
