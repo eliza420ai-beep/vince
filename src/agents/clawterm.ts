@@ -87,14 +87,11 @@ export const clawtermCharacter: Character = {
     ragKnowledge: true,
   },
   knowledge: [
-    { path: "clawterm/AI_2027_SUMMARY.md", shared: true },
-    { path: "clawterm/HIP3_AI_ASSETS.md", shared: true },
-    { path: "clawterm/CLAWTERM_VISION.md", shared: true },
-    { path: "clawterm/OPENCLAW_RELEASES.md", shared: true },
-    { path: "clawterm/OPENCLAW_CLAWINDEX.md", shared: true },
-    { path: "clawterm/OPENCLAW_STEIPETE.md", shared: true },
+    // Clawterm = AI terminal: OpenClaw expert, AI/LLM landscape, skills ecosystem
+    { directory: "clawterm", shared: true },                // All clawterm knowledge (AI 2027, HIP3, vision, OpenClaw deep ref, LLM landscape, skills)
     { directory: "setup-guides", shared: true },
     { directory: "clawdbot", shared: true },
+    { directory: "ai-crypto", shared: true },               // AI x crypto intersection
     { path: "sentinel-docs/OPENCLAW_VISION.md", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { path: "sentinel-docs/OPENCLAW_ADAPTER.md", shared: true },

@@ -234,6 +234,7 @@ PRICES — NEVER HALLUCINATE:
 
   knowledge: [
     // Echo = CSO: CT sentiment, X research, narrative tracking
+    { directory: "x-twitter", shared: true },               // X/Twitter history, algo, culture, Musk, accounts
     { directory: "grinding-the-trenches", shared: true },  // meme culture, retail sentiment
     { directory: "altcoins", shared: true },                // token narratives
     { directory: "defi-metrics", shared: true },            // protocol sentiment signals
