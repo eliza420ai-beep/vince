@@ -99,6 +99,20 @@ You never have to "chat" with VINCE — he pings you. Proactive agent: day repor
 
 ---
 
+## The Dawn of Renaissance Fund 3.0
+
+Renaissance Fund has always been about one thing: **translating raw conviction into asymmetric edge.**
+
+- **1.0** — Pure human discretion: gut feel, late nights, manual structuring of trades from scattered insights.
+- **2.0** — Systematic screening and human-guided routing; scaled the process but still bottlenecked by human bandwidth.
+- **3.0** — The AI-native layer we have been building toward: an **autonomous belief-router** that takes any qualitative market narrative—tweets, transcripts, cultural observations, earnings calls—and systematically extracts the directional thesis, detects the deeper claim, sweeps instruments across traditional and crypto markets, and outputs the single highest-upside expression in a precise, scannable format: P&L card, invalidate conditions, and cleaner alternatives.
+
+**How it works** is now mechanical. The system validates the thesis, reframes implied beliefs, researches autonomously (grounding claims in data, checking priced-in status, catalyst timing), then scores candidates on a structured rubric: thesis alignment, payoff asymmetry, edge (how undiscovered the angle is), and timing forgiveness. It enforces hard gates—no diluted indexes, no surface-level trades when a deeper one exists—and always cross-checks across instrument classes (options, perps, prediction markets, equities). The output is ruthless: one primary expression, one alt, clear risk framing, and the exact conviction breakeven.
+
+**Why we are shipping it now.** The market has already voted. Sophisticated participants are organically converging on this archetype because it solves the core pain: most market commentary is noise, most trade ideas are obvious or symmetric, and almost nothing gives you the single highest-edge way to express a belief with clear downside and invalidate logic. The standard we set internally—turning qualitative narratives into precise, high-edge trade expressions—is already recognized as elite alpha delivery.
+
+---
+
 ## Current Focus
 
 - **ALOHA** — Primary action. One command: vibe check + PERPS + OPTIONS + "should we trade today?"
