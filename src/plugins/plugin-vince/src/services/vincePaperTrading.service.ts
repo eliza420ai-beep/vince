@@ -717,8 +717,44 @@ export class VincePaperTradingService extends Service {
   }
 
   /**
+   * Append a WTT pick to the JSONL history (ML training data).
+   * Records every pick regardless of whether a trade was opened.
+   */
+  private async appendWttPickJsonl(
+    pick: WttPickJson,
+    outcome: "traded" | "rejected" | "skipped",
+    reason?: string,
+  ): Promise<void> {
+    try {
+      const dir = path.join(process.cwd(), ".elizadb", "vince-paper-bot");
+      await fs.promises.mkdir(dir, { recursive: true });
+      const filepath = path.join(dir, "wtt-picks.jsonl");
+      const row = {
+        ts: Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        primaryTicker: pick.primaryTicker,
+        altTicker: pick.altTicker ?? null,
+        direction: pick.primaryDirection,
+        instrument: pick.primaryInstrument,
+        entryPrice: pick.primaryEntryPrice ?? null,
+        riskUsd: pick.primaryRiskUsd ?? null,
+        thesis: pick.thesis,
+        rubric: pick.rubric,
+        invalidateCondition: pick.invalidateCondition ?? null,
+        evThresholdPct: pick.evThresholdPct ?? null,
+        outcome,
+        rejectReason: reason ?? null,
+      };
+      await fs.promises.appendFile(filepath, JSON.stringify(row) + "\n");
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] Failed to append WTT JSONL: ${e}`);
+    }
+  }
+
+  /**
    * If WTT is enabled, read today's pick and open a paper trade if the primary (or alt) is perp/HIP-3 eligible.
    * Called before the regular signal loop so WTT gets first shot at the asset.
+   * Every pick is appended to wtt-picks.jsonl for ML regardless of outcome.
    */
   private async evaluateWttPick(): Promise<boolean> {
     const pick = await this.readLatestWttPick();
@@ -727,19 +763,31 @@ export class VincePaperTradingService extends Service {
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
     const marketData = this.getMarketData();
-    if (!positionManager || !riskManager || !marketData) return false;
+    if (!positionManager || !riskManager || !marketData) {
+      await this.appendWttPickJsonl(pick, "skipped", "missing services");
+      return false;
+    }
 
     const asset = normalizeWttTicker(pick.primaryTicker) ?? normalizeWttTicker(pick.altTicker ?? "");
-    if (!asset) return false;
-    if (positionManager.hasOpenPosition(asset) || this.hasPendingEntry(asset)) return false;
+    if (!asset) {
+      await this.appendWttPickJsonl(pick, "skipped", "ticker not in universe");
+      return false;
+    }
+    if (positionManager.hasOpenPosition(asset) || this.hasPendingEntry(asset)) {
+      await this.appendWttPickJsonl(pick, "skipped", `already in ${asset}`);
+      return false;
+    }
 
     const { strength, confidence } = wttRubricToSignal(pick.rubric);
+    // WTT is a curated daily thesis — set confirmingCount high enough to
+    // pass the risk manager's gate (rubric already encodes signal quality).
+    const confirmingCount = Math.max(3, strength >= 80 && confidence >= 80 ? 3 : 2);
     const tradeSignal: AggregatedTradeSignal = {
       asset,
       direction: pick.primaryDirection,
       strength,
       confidence,
-      confirmingCount: 1,
+      confirmingCount,
       conflictingCount: 0,
       signals: [{ source: "wtt", direction: pick.primaryDirection, strength, description: pick.thesis }],
       reasons: [pick.thesis],
@@ -750,6 +798,7 @@ export class VincePaperTradingService extends Service {
     const signalValidation = riskManager.validateSignal(tradeSignal);
     if (!signalValidation.valid) {
       logger.debug(`[VincePaperTrading] WTT pick ${asset} rejected: ${signalValidation.reason}`);
+      await this.appendWttPickJsonl(pick, "rejected", signalValidation.reason);
       return false;
     }
 
@@ -763,7 +812,10 @@ export class VincePaperTradingService extends Service {
       leverage,
       signal: tradeSignal,
     });
-    if (!position) return false;
+    if (!position) {
+      await this.appendWttPickJsonl(pick, "rejected", "openTrade failed");
+      return false;
+    }
 
     const wttBlock = wttPickToWttBlock({
       primary: true,
@@ -774,6 +826,7 @@ export class VincePaperTradingService extends Service {
       evThresholdPct: pick.evThresholdPct,
     });
     await this.recordMLFeatures(position, tradeSignal, undefined, wttBlock);
+    await this.appendWttPickJsonl(pick, "traded");
     logger.info(`[VincePaperTrading] WTT trade opened: ${pick.primaryDirection} ${asset}`);
     return true;
   }

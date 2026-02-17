@@ -7,6 +7,7 @@
 
 import type { IAgentRuntime } from "@elizaos/core";
 import type { RiskLimits, TradingGoal } from "../types/paperTrading";
+import { CORE_ASSETS, HIP3_ASSETS, ALL_TRACKED_ASSETS } from "./targetAssets";
 
 // ==========================================
 // Trading Goal / KPI Configuration
@@ -304,30 +305,40 @@ export function getAssetMaxLeverage(
   return ASSET_MAX_LEVERAGE[asset.toUpperCase()] ?? aggressiveDefault;
 }
 
-/** Assets available for paper trading */
-export const TRADEABLE_ASSETS = ["BTC", "ETH", "SOL", "HYPE"] as const;
+/** Assets available for paper trading (V3.0: full HIP-3 universe) */
+export const TRADEABLE_ASSETS = [...CORE_ASSETS, ...HIP3_ASSETS] as const;
 export type TradeableAsset = (typeof TRADEABLE_ASSETS)[number];
+
+/** Whether to include HIP-3 in the regular signal loop. Default ON (V3.0). Env: VINCE_PAPER_HIP3_ENABLED */
+export function isHip3Enabled(runtime: IAgentRuntime): boolean {
+  const v = runtime.getSetting?.("vince_paper_hip3_enabled");
+  if (v === false || v === "false") return false;
+  return true; // default on
+}
 
 /**
  * Resolve which assets the paper bot trades from runtime setting.
- * Set vince_paper_assets to "BTC" to focus only on BTC; "BTC,ETH,SOL,HYPE" or unset = all.
- * Env: VINCE_PAPER_ASSETS (e.g. VINCE_PAPER_ASSETS=BTC).
+ * Set vince_paper_assets to "BTC" to focus only on BTC.
+ * Set VINCE_PAPER_HIP3_ENABLED=false to restrict to core 4 only.
+ * Unset / empty = full universe (core + HIP-3).
+ * Env: VINCE_PAPER_ASSETS (e.g. VINCE_PAPER_ASSETS=BTC,NVDA,GOLD).
  */
 export function getPaperTradeAssets(
   runtime: IAgentRuntime,
-): readonly TradeableAsset[] {
+): readonly string[] {
   const raw = runtime.getSetting?.("vince_paper_assets");
-  if (raw === undefined || raw === null || String(raw).trim() === "") {
-    return TRADEABLE_ASSETS;
+  if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+    const list = String(raw)
+      .split(",")
+      .map((s) => s.trim().toUpperCase())
+      .filter(Boolean);
+    const valid = list.filter((a) =>
+      (ALL_TRACKED_ASSETS as readonly string[]).includes(a),
+    );
+    return valid.length > 0 ? valid : [...CORE_ASSETS];
   }
-  const list = String(raw)
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-  const valid = list.filter((a): a is TradeableAsset =>
-    (TRADEABLE_ASSETS as readonly string[]).includes(a),
-  );
-  return valid.length > 0 ? valid : TRADEABLE_ASSETS;
+  // Default: core + HIP-3 (unless HIP-3 explicitly disabled)
+  return isHip3Enabled(runtime) ? TRADEABLE_ASSETS : [...CORE_ASSETS];
 }
 
 // ==========================================
@@ -445,10 +456,11 @@ const WTT_TIMING_ORD: Record<string, number> = {
   very_forgiving: 4,
 };
 
-/** Whether the paper bot is allowed to trade the daily WTT pick. Default off. Env: VINCE_PAPER_WTT_ENABLED */
+/** Whether the paper bot is allowed to trade the daily WTT pick. Default ON (V3.0 HIP-3 universe). Env: VINCE_PAPER_WTT_ENABLED */
 export function isWttEnabled(runtime: IAgentRuntime): boolean {
   const v = runtime.getSetting?.("vince_paper_wtt_enabled");
-  return v === true || v === "true";
+  if (v === false || v === "false") return false;
+  return true; // default on — WTT is the primary HIP-3 entry path
 }
 
 /** Map WTT rubric to signal strength/confidence for the paper bot (0–100). */

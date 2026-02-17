@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-17",
+  "thesis": "BTC outperforms traditional safe havens as institutional adoption accelerates through spot ETF demand",
+  "primaryTicker": "MSTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 127.44,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "BTC < $65k",
+  "killConditions": [
+    "dies if BTC <$63k"
+  ],
+  "rubric": {
+    "alignment": "exposed",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "BTC",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 3
+}

@@ -25,6 +25,7 @@ import {
   LEVERAGE_ADJUSTMENTS,
   DEFAULT_LEVERAGE,
 } from "../constants/paperTradingDefaults";
+import { CORE_ASSETS } from "../constants/targetAssets";
 import type { VinceGoalTrackerService } from "./goalTracker.service";
 import type { VinceMarketDataService } from "./marketData.service";
 // V3: Dynamic Configuration (Self-Improving Architecture)
@@ -494,7 +495,8 @@ export class VinceRiskManagerService extends Service {
     }
 
     // Check confirming signals
-    // HYPE has fewer signal sources (only on Hyperliquid), so use lower minimum
+    // HIP-3 and HYPE have fewer signal sources (Hyperliquid only), so use lower minimum (2).
+    // Core assets (BTC/ETH/SOL) have many sources, so use full minimum (3).
     // Strong-signal override: when strength/confidence are high, allow MIN_CONFIRMING_WHEN_STRONG (more trades → more training data)
     const strongStrength = SIGNAL_THRESHOLDS.STRONG_STRENGTH;
     const strongConfidence = SIGNAL_THRESHOLDS.HIGH_CONFIDENCE;
@@ -503,9 +505,10 @@ export class VinceRiskManagerService extends Service {
     const isStrongSignal =
       signal.strength >= strongStrength &&
       signal.confidence >= strongConfidence;
+    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(signal.asset);
     const minConfirming =
-      signal.asset === "HYPE"
-        ? 2
+      !isCoreAsset
+        ? 2 // HIP-3 / HYPE: fewer signal sources available
         : isStrongSignal && signal.confirmingCount >= minConfirmingWhenStrong
           ? minConfirmingWhenStrong
           : this.limits.minConfirmingSignals;
