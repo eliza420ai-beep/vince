@@ -1,12 +1,28 @@
 ---
-date: 2026-02-16T21:10:00.810Z
+date: 2026-02-17T09:09:38.530Z
 type: shared-daily-insights
 ---
 
-# Shared Daily Insights — 2026-02-16
+# Shared Daily Insights — 2026-02-17
 
 ## VINCE
-**Paper bot:** No data
+| Asset | Price | Funding/LS | Regime |
+|-------|-------|-----------|--------|
+| BTC | $68,228 -0.9% | F:0.066% L/S:1.94 Vol:1.0x | bearish |
+| SOL | $86.013 +0.4% | F:-0.518% L/S:2.58 Vol:1.0x | bearish |
+| HYPE | $29.833 +0.1% | F:0.000% L/S:1.00 Vol:1.2x | bearish |
+
+**Signal (BTC):** short (55% conf, CoinGlass,BinanceLongShort,NewsSentiment,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+
+**MandoMinutes:** Mixed:. Themes: other, price, meme, regulatory
+News sentiment: bullish (19% conf)
+TLDR: REGULATORY NOISE: Choppy ahead - trade smaller
+Headlines:
+⚪ BTC ETFs: -$404m | ETH ETFs: -$110m
+🔴 Trump pauses China tech ban ahead of summit
+⚪ BTC support at $77k production cost: JP Morgan
+⚪ Tether will flip BTC & ETH: Bloomberg
+⚪ Bhutan sells $6.7m BTC
 
 ## Eliza
 **Yesterday:** Solus's call: Above — BTC likely stays range-bound, sell covered call at $68,500 to capture premium.
@@ -62,8 +78,6 @@ ee15c49 feat(kelly): add Fargo, Diplomat, On the Waterfront to Netflix picks
 8597ca2 fix(kelly): strip knowledge boilerplate, fill entertainment-tast…
 
 ## Clawterm
-I'll run the actions to verify and summarize:
+Here's the daily standup summary:
 
-**CLAWTERM_DAY_REPORT**
-
-OpenClaw is gaining traction as a locally-run AI agent with multi-platform support (Telegram, WhatsApp, Discord), focusing on conversation-first interactions. The latest tutorial highlights a 20-minute setup process covering installation, AI model configuration, and skill enablement across 25 tools and 53 official skills. However, X shows no recent OpenClaw-specific posts in the last 24 hours, suggesting a quiet news cycle.
+OpenClaw is gaining traction with a new freeCodeCamp.org tutorial showcasing its autonomous agent capabilities across messaging platforms like Telegram and WhatsApp. The project is shifting the AI landscape towards proactive agents, with a focus on local installation, AI model connections, and critical security practices like Docker-based sandboxing. Trending skills include web search and task automation, with builders emphasizing modular skill installation and persistent memory management.

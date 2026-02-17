@@ -1,5 +1,32 @@
+# IDEAS
 
-Here are 10 asymmetric ideas from the structural audit. The audit (themes, unused capacities, tensions) is used internally; only the ideas are shown.
+*Push, not pull. One team, one dream.*
+
+---
+
+## Local-first: why it’s in the picture
+
+This doc and the vision below assume a world where **inference runs where you choose**—on your own hardware, under your control. In this repo, that path is spelled out in **[LOCALSONLY](LOCALSONLY.md)**.
+
+**LOCALSONLY** describes the **EXO Inference Cluster**: local inference (e.g. prefill on DGX Spark, decode on Mac Studio / MacBook Pro, models on NAS) with a low-power **Mac Mini** as orchestrator running OpenClaw. You get private, controllable inference with no third-party API rate limits; cost is front-loaded in hardware instead of ongoing cloud spend. VINCE and the rest of the team can point at that cluster to cap or remove inference API burn—so the stack can run 24/7 without depending on someone else’s quota. Sovereignty, cost at scale, and “no exit” all line up there. If you care about local super-intelligence and economic edge, LOCALSONLY is the technical foundation. Read the full architecture, cost model, and caveats in [docs/LOCALSONLY.md](LOCALSONLY.md).
+
+---
+
+## Vision
+
+Open-source models are now as capable as closed-source—often more. The next step is obvious: **private, personalized super-intelligent agents running locally on your desk, 24/7.** Those who run them will hold disproportionate economic power. Those who don’t will be at a structural disadvantage. I’m going all-in on that future.
+
+My second Mac Studio is here. Two more are on the way. The stack will be **four Mac Studios and one Mac Mini**—five concurrent OpenClaws, seven strong local models—working around the clock, every day of the year. I interface with them; they coordinate with each other. They talk, plan, and build while I sleep. No permission. No exit.
+
+I’m building a digital society that hasn’t existed before. I’m pushing what’s possible with local agents and on-device intelligence. I’m redefining what one person can do in a lifetime. Everything I build and learn, I share.
+
+The future can be extraordinary—but only if you act. Don’t let default settings run your life. Take control. Break free.
+
+---
+
+## Ten asymmetric ideas
+
+Below are 10 ideas from a structural audit of the repo (themes, unused capacity, tensions). The audit stays internal; only the ideas are shown. Each is built to ship in ~30 days and to create clarity or edge, not just incremental change.
 
 ---
 
@@ -7,7 +34,7 @@ Here are 10 asymmetric ideas from the structural audit. The audit (themes, unuse
 
 **Core concept:** A small system that *only* records what you decided to stop doing, when, and why. No tasks, no goals—just "stopped X on date Y because Z." Entries are immutable; you can tag (project, curve, domain). Once a month it surfaces a digest: "You quit 4 things in 30 days; 2 were right-curve, 1 was lifestyle." No recommendations, no AI—pure log of exits.
 
-**Why it's asymmetric:** The repo is full of "what we run" (standup, ALOHA, tasks, knowledge). The Decay Ledger inverts that: it's the first-class record of *de*-activation. Leverage often comes from what you stop, not what you add; the system makes that visible instead of implicit.
+**Why it's asymmetric:** The repo is full of "what we run" (standup, ALOHA, tasks, knowledge). The Decay Ledger inverts that: it's the first-class record of *de*-activation. Edge often comes from what you stop, not what you add; the system makes that visible instead of implicit.
 
 **Why it would surprise the founder:** It turns "making it = control of time" and "what fills the cup" into a *negative* dashboard: not "did I do the thing?" but "did I cleanly stop the thing?" It's a direct answer to "would you allocate your time the same way?" by tracking the moment you chose not to.
 
@@ -73,17 +100,17 @@ Here are 10 asymmetric ideas from the structural audit. The audit (themes, unuse
 
 ---
 
-# Idea 6 — **Allowlist Life**
+# Idea 6 — **Touch Grass Ledger**
 
-**Core concept:** A tiny public site or doc: "Places I'll say yes to." One list per category (e.g. hotels, restaurants, regions), derived from the-good-life and allowlist-places.txt. No reviews, no ratings—just "these are on the list." Optional: one line per entry ("why") or a rule ("Southwest France Palaces only"). The point is to make *curated yes* the default for lifestyle so the agent and the human don't re-debate the same options.
+**Core concept:** A log that records only *touch-grass* events: date + what you did (restaurant, walk, hotel, wine tasting, fitness, travel day). No tasks, no goals—just "on date Y I did Z" where Z is something that got you off-screen and into the world. Entries are immutable; you can tag (dining, travel, fitness, nature). Sources: Kelly briefings, allowlist check-ins, calendar. Once a month it surfaces a digest: "12 touch-grass days this month; 5 dining, 4 travel, 3 fitness." Makes lifestyle execution visible instead of assumed.
 
-**Why it's asymmetric:** The repo has internal allowlists (places, lifestyle). This is the same list, *externalised* as a minimal artifact: "my life is configured to say yes here." It's not a guide for others; it's your own contract with yourself and with the agent.
+**Why it's asymmetric:** The repo pushes lifestyle (Kelly, the-good-life, allowlist) but doesn't track whether you *did* it. The ledger inverts the default: it's the first-class record of "I actually lived." Complements Allowlist Life (what you say yes to) with evidence (what you did).
 
-**Why it would surprise the founder:** "What fills the cup" and "Wed hotels, Southwest France Palaces" become a *product*: the world's smallest "positive only" list. It's the-good-life as a single page.
+**Why it would surprise the founder:** "What fills the cup" becomes measurable. You see the gap between "Kelly suggested X" and "I did Y." It's the-good-life as a closed loop—suggestions in, execution logged, digest out.
 
-**30-day launch path:** Week 1: export allowlist-places.txt + any the-good-life highlights into one markdown file with sections. Week 2: add one-line "why" or rule for 10 entries. Week 3: put it on a single static page (e.g. GitHub Pages, Notion, or Obsidian Publish). Week 4: share with Kelly (or doc) so "suggest from allowlist only" is explicit; add 5 more entries.
+**30-day launch path:** Week 1: define minimal schema (id, date, what_short, tags) and one CLI or script (e.g. `touchgrass log "2026-02-15" "Lunch at X; walk by the water"`). Week 2: append-only store (file or SQLite). Week 3: seed 10–15 entries from the last 90 days (calendar, memory). Week 4: monthly digest (counts by tag, list of days); optionally wire Kelly or standup to remind "log your touch-grass this week."
 
-**Long-term optionality:** Becomes the canonical "lifestyle config" for the agent; could grow into "invite-only" or "I only do X with people on this list."
+**Long-term optionality:** Becomes the input to "how much did I actually live?" reviews; could feed Kelly ("suggest more of what he did") or a simple annual "touch-grass report."
 
 ---
 
@@ -115,32 +142,32 @@ Here are 10 asymmetric ideas from the structural audit. The audit (themes, unuse
 
 ---
 
-# Idea 9 — **13 Prompts as a Product**
+# Idea 9 — **Standup Highlight Reel**
 
-**Core concept:** Ship the Naval "13 career-audit prompts" plus the essay-themes map as a *tiny product*: one page per prompt, one "run this" flow (e.g. answer in a form or in chat), and at the end a personalised "essay map"—which nav.al essays to read and in what order. No AI beyond optional summarisation; the core is the prompt set + the mapping you already have.
+**Core concept:** Standup already writes to `docs/standup/` (essays, tweets, trades, good-life, PRDs, integration instructions). The **Highlight Reel** is a weekly or monthly one-pager: the 5–10 deliverables from that period that are actually worth revisiting. Not everything—a curated "best of." One section per type (e.g. one essay, one trade, one good-life, one PRD) or one list with one-line summaries and links. Human picks, or a script that surfaces "most recent + one standout per category." Output: e.g. `docs/standup/highlight-reel/YYYY-MM-DD.md` or a single rolling "This week's standup, distilled."
 
-**Why it's asymmetric:** knowledge/naval and plugin-naval already exist. The product is "we turn your answers into a reading prescription." It's not a new content product; it's a *router* from self-audit to Naval's archive. The leverage is the intent-to-essay map as the deliverable.
+**Why it's asymmetric:** The repo is built to *produce* (standup 2×/day, ALOHA, day reports). The Reel inverts that: it's the first-class artifact of *what was worth your attention*. Reduces "we made a lot" to "here's what mattered"—fits "stay in the game without 12+ hours on screens."
 
-**Why it would surprise the founder:** The repo has the map and the prompts; they're used internally. Packaging them as a minimal product (e.g. "Naval audit → your essay list") could serve creators, operators, or communities who want structure without building it themselves.
+**Why it would surprise the founder:** Standup deliverables are the raw output; the Reel is the product. It turns the standup pipeline into something you can scan in five minutes. For anyone running a similar multi-agent standup, "your standup, distilled" could be a repeatable product or open-source template.
 
-**30-day launch path:** Week 1: export the 13 prompts and essay-themes map into a single flow (Notion, Typeform, or a small app). Week 2: "Results" = a generated list of essay links + short rationale per prompt. Week 3: one landing page and one test run with 3 users. Week 4: soft launch (e.g. Substack post, X thread, or private link) and collect feedback.
+**30-day launch path:** Week 1: define the format (sections or flat list; 5–10 items; one-line + link). Week 2: manually produce one Highlight Reel from the last 7 or 30 days of `docs/standup/`. Week 3: script or small action that lists recent files by type and outputs a draft (human edits). Week 4: add to standup cadence (e.g. "Friday: publish highlight reel") and optionally link from day report or Discord.
 
-**Long-term optionality:** Becomes a lead-in to deeper Naval-style products (e.g. cohort, paid audit) or a permanent "starter" for your audience.
-
----
-
-# Idea 10 — **Agent Death Date**
-
-**Core concept:** For each agent (VINCE, Kelly, Solus, Sentinel, Oracle, Eliza, Otaku), you assign a "death date": a date after which that agent will be turned off unless you explicitly renew. No automatic sunset—just a visible field (e.g. in config or a doc): "VINCE: 2026-12-31. If not renewed, we stop." Once a quarter (or before death date), you do a short review: keep, change role, or let die. The system doesn't enforce; it *surfaces* the date so the decision is conscious.
-
-**Why it's asymmetric:** The whole stack is built to persist and improve (24/7, ONNX, knowledge). Death Date is the opposite: it's the *planned* end of an agent. It makes "we might turn this off" a first-class idea, which reduces attachment and forces periodic justification.
-
-**Why it would unsettle but empower:** It's uncomfortable because it makes loyalty to the system optional. It's powerful because it aligns with "would you allocate the same way?" and "treat crypto so we can live well"—if an agent no longer serves that, it should be allowed to die. It's the only idea that explicitly names *stopping* the machine.
-
-**30-day launch path:** Week 1: add a "death_date" (or "review_by") field to each agent's description (in code or in a single doc). Week 2: set initial dates (e.g. 6–12 months out) for each agent. Week 3: add a quarterly reminder (calendar or task): "Agent death date review." Week 4: run one review for one agent (renew, change, or set a real death date) and document the decision.
-
-**Long-term optionality:** Becomes part of TREASURY and ops ("cost vs. renewal"); supports pruning and "right size the squad" without guilt.
+**Long-term optionality:** Becomes the default "what did the squad do this week?" artifact; could drive Substack or X ("this week's build"); or ship as a template/script for other ElizaOS/standup users.
 
 ---
 
-**Summary:** Ideas 1, 4, 7, 10 are tools/systems (Decay Ledger, Silence Protocol, Punk Ledger, Agent Death Date). Ideas 2, 3, 5, 8 are frameworks/rituals (Operator Mirror, Essay Debt, Calibration Obituary, Contrarian Session). Idea 6 is lifestyle/artifact (Allowlist Life); Idea 9 is product (13 Prompts). Idea 8 is playful/experimental (ritualised disagreement); Idea 10 is unsettling but powerful (planned agent death). Ideas 2, 6, 8, 9 are largely outside the core "crypto/trading/agent stack" business. Each is designed to be shippable in ~30 days and to create leverage or clarity rather than incremental improvement.
+# Idea 10 — **Agent Renewal Ritual**
+
+**Core concept:** Once a quarter, for each agent (VINCE, Kelly, Solus, Sentinel, Oracle, Eliza, Otaku), you run a short **renewal review**: three wins from the last quarter, one thing to improve, and a decision—keep as-is, change role, or retire. No fixed "death date"; the ritual is about conscious renewal with evidence. Output: a one-pager per agent (or one doc "Squad renewal [quarter]") that you keep for yourself or share with standup. The system doesn't enforce; it *surfaces* the cadence so the decision is deliberate and positive.
+
+**Why it's asymmetric:** The whole stack is built to persist and improve (24/7, ONNX, knowledge). Renewal Ritual adds a human habit: pause and ask "did this agent earn its place?" with evidence (wins) and a clear choice. It makes gratitude and pruning both first-class—renew because the agent delivered, or change/retire because it didn't.
+
+**Why it would surprise the founder:** It turns "one team one dream" into a practice. You don't run agents on autopilot; you consciously renew them. Fits TREASURY (cost vs. value) and "treat crypto so we can live well"—right-size the squad with clarity, not guilt.
+
+**30-day launch path:** Week 1: define the format (three wins, one improvement, decision; one page per agent). Week 2: run one renewal review for one agent; write the one-pager. Week 3: add a quarterly reminder (calendar or task): "Agent renewal ritual." Week 4: run reviews for 2–3 more agents and store in e.g. `docs/standup/renewals/` or a single doc; decide whether to link from standup or keep private.
+
+**Long-term optionality:** Becomes part of TREASURY and ops (cost vs. value); supports "right size the squad" with evidence and a positive framing. Could feed Sentinel's weekly digest ("this agent's wins this quarter") or an annual "squad report."
+
+---
+
+**Summary:** Ideas 1, 4, 7, 10 are tools/systems (Decay Ledger, Silence Protocol, Punk Ledger, Agent Renewal Ritual). Ideas 2, 3, 5, 8 are frameworks/rituals (Operator Mirror, Essay Debt, Calibration Obituary, Contrarian Session). Idea 6 is lifestyle/artifact (Touch Grass Ledger); Idea 9 is product (Standup Highlight Reel). Idea 8 is playful/experimental (ritualised disagreement); Idea 10 is renewal-focused (quarterly wins + conscious keep/change/retire). Ideas 2, 6, 8, 9 are largely outside the core "crypto/trading/agent stack" business. Each is designed to be shippable in ~30 days and to create clarity or edge rather than incremental improvement.

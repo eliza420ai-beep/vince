@@ -8,7 +8,7 @@ When you (OpenClaw) work on this repo — including the fork [eliza420ai-beep/vi
 |-----------|---------|
 | **openclaw-agents/** | Sub-agents (alpha, market-data, onchain, news), orchestrator, Brain/Muscles/Bones/DNA/Soul/Eyes/Heartbeat/Nerves flows, workspace templates. Run agents here; workspace files sync to `knowledge/teammate/` and `~/.openclaw/workspace/`. See [openclaw-agents/README.md](openclaw-agents/README.md). |
 | **vault/** | Knowledge vault (Claude Code / Obsidian): inbox, todos (01-todos), project context (02-projects/vince/CLAUDE.md), meetings (06-meetings), standup sync. Use for capture, task flow, meeting notes. See [vault/README.md](vault/README.md). |
-| **skills/** | Cursor/Claude skills (e.g. **x-research** for X/Twitter search, thread, watchlist). Same X token as VINCE in-chat. See [skills/x-research/README.md](skills/x-research/README.md). |
+| **skills/** | Cursor/Claude skills: **x-research** (X/Twitter search, thread, watchlist; same X token as VINCE in-chat), **whats-the-trade** (belief router — turn opinions into trade expressions; stocks, options, prediction markets, perps). See [skills/x-research/README.md](skills/x-research/README.md), [skills/whats-the-trade/README.md](skills/whats-the-trade/README.md). |
 | **tasks/** | Working notes, lessons, frontend quickstarts, todo. Task backlogs and team notes. See [tasks/README.md](tasks/README.md). |
 
 ## Sentinel
