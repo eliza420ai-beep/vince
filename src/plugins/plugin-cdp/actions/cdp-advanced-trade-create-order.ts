@@ -83,7 +83,7 @@ export const cdpAdvancedTradeCreateOrder: Action = {
       if (data?.success && data?.success_response?.order_id) {
         const text = `Order placed on Coinbase. Order ID: ${data.success_response.order_id}`;
         await callback?.({ text });
-        return { success: true, text, data };
+        return { success: true, text, data: data as Record<string, unknown> };
       }
       const errMsg = (data as any)?.error_response?.message ?? (data as any)?.error_response?.error ?? "Order failed";
       await callback?.({ text: `Coinbase order failed: ${errMsg}` });

@@ -5,7 +5,7 @@
  * Events are stored as memories (table notification_events) and can be filtered by userId.
  */
 
-import type { IAgentRuntime, Memory } from "@elizaos/core";
+import type { IAgentRuntime, Memory, UUID } from "@elizaos/core";
 import { randomUUID } from "node:crypto";
 
 const NOTIFICATION_EVENTS_TABLE = "notification_events";
@@ -69,7 +69,7 @@ export async function appendNotificationEvent(
     time,
     metadata: input.metadata,
   };
-  const entityId = userId ?? runtime.agentId;
+  const entityId = (userId ?? runtime.agentId) as UUID;
   await runtime.createMemory(
     {
       entityId,

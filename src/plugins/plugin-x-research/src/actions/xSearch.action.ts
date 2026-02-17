@@ -21,6 +21,7 @@ import { initXClientFromEnv } from '../services/xClient.service';
 import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
+import { getFriendlyXErrorMessage } from '../utils/xErrorMessages';
 import type { XTweet } from '../types/tweet.types';
 
 const DEFAULT_LIMIT = 10;
@@ -195,18 +196,12 @@ export const xSearchAction: Action = {
       });
       return { success: true };
     } catch (error) {
-      const errMsg = error instanceof Error ? error.message : String(error);
-      if (errMsg.includes('X_BEARER_TOKEN')) {
-        callback({
-          text: "**X Search**\n\n⚠️ X API not configured. Set `X_BEARER_TOKEN` to enable search.",
-          action: 'X_SEARCH',
-        });
-      } else {
-        callback({
-          text: `**X Search**\n\n❌ Error: ${errMsg}`,
-          action: 'X_SEARCH',
-        });
-      }
+      logger.warn({ err: error }, '[X_SEARCH] X API error');
+      const friendly = getFriendlyXErrorMessage(error);
+      callback({
+        text: `**X Search**\n\n⚠️ ${friendly}`,
+        action: 'X_SEARCH',
+      });
       return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },

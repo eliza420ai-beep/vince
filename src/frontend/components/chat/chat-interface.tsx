@@ -222,9 +222,10 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Launch Token", message: "Ask Bankr to deploy a token called MyAgent with symbol AGENT on base" },
     { label: "Limit Order Quote", message: "Get a limit buy quote for ETH on Base via Bankr" },
   ],
-  // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research).
+  // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
   echo: [
     { label: "What can you do?", message: "What can you do?" },
+    { label: "What's the trade", message: "What's the trade today?" },
     { label: "X Pulse", message: "What's CT saying today?" },
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },

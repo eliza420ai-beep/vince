@@ -70,9 +70,9 @@ export const walletStatusProvider: Provider = {
         if (cdpService.getBalances) {
           const balances = await cdpService.getBalances();
           context.balances = balances.map((b) => ({
-            token: b.symbol || b.token,
-            balance: b.balance || b.amount,
-            usdValue: b.usdValue,
+            token: b.symbol ?? b.token ?? "",
+            balance: b.balance ?? b.amount ?? "",
+            usdValue: b.usdValue ?? 0,
             chain: b.chain || "base",
           }));
 
@@ -98,11 +98,11 @@ export const walletStatusProvider: Provider = {
           const orders = await bankrOrders.getActiveOrders();
           context.activeOrders = orders.slice(0, 5).map((o) => ({
             orderId: o.orderId,
-            type: o.orderType || o.type,
+            type: o.orderType ?? o.type ?? "limit",
             status: o.status,
             pair: `${o.sellToken}/${o.buyToken}`,
-            amount: o.sellAmount || o.amount,
-            price: o.limitPrice || o.price,
+            amount: o.sellAmount ?? o.amount ?? "",
+            price: o.limitPrice ?? o.price ?? "",
           }));
         } catch (err) {
           logger.debug(`[OTAKU] Failed to get BANKR orders: ${err}`);

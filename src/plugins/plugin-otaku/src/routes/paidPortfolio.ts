@@ -155,12 +155,12 @@ async function handlePortfolio(
       try {
         const balances = await cdpService.getBalances();
         portfolio.tokens = balances.map((b) => ({
-          token: b.contract || b.address,
-          symbol: b.symbol || b.token,
-          balance: b.balance || b.amount,
-          usdValue: b.usdValue || 0,
+          token: b.contract ?? b.address ?? "",
+          symbol: b.symbol ?? b.token ?? "",
+          balance: b.balance ?? b.amount ?? "",
+          usdValue: b.usdValue ?? 0,
           chain: b.chain || "base",
-          logo: b.logo,
+          logo: b.logo ?? "",
         }));
         portfolio.summary.breakdown.tokens = portfolio.tokens.reduce(
           (sum, t) => sum + t.usdValue,
@@ -176,12 +176,12 @@ async function handlePortfolio(
       try {
         const nfts = await cdpService.getNfts();
         portfolio.nfts = nfts.slice(0, 50).map((n) => ({
-          collection: n.collection || n.contractAddress,
-          tokenId: n.tokenId || n.id,
-          name: n.name,
-          image: n.image || n.imageUrl,
+          collection: n.collection ?? n.contractAddress ?? "",
+          tokenId: n.tokenId ?? n.id ?? "",
+          name: n.name ?? "",
+          image: n.image ?? n.imageUrl ?? "",
           chain: n.chain || "base",
-          floorPrice: n.floorPrice,
+          floorPrice: n.floorPrice ?? 0,
         }));
         portfolio.summary.breakdown.nfts = portfolio.nfts.reduce(
           (sum, n) => sum + (n.floorPrice || 0),
@@ -200,10 +200,10 @@ async function handlePortfolio(
         for (const p of positions || []) {
           portfolio.defi.push({
             protocol: "Morpho",
-            type: p.type || "supply",
-            asset: p.asset || p.token,
-            amount: p.amount || p.balance,
-            usdValue: p.usdValue || 0,
+            type: (p.type || "supply") as "supply" | "borrow" | "stake" | "lp",
+            asset: p.asset ?? p.token ?? "",
+            amount: p.amount ?? p.balance ?? "",
+            usdValue: p.usdValue ?? 0,
             apy: p.apy,
             healthFactor: p.healthFactor,
             chain: p.chain || "base",
@@ -228,10 +228,10 @@ async function handlePortfolio(
             if (!portfolio.defi.some((d) => d.protocol === p.protocol && d.asset === p.token)) {
               portfolio.defi.push({
                 protocol: p.protocol,
-                type: p.type || "supply",
-                asset: p.token,
-                amount: p.balance,
-                usdValue: p.balanceUsd || 0,
+                type: (p.type || "supply") as "supply" | "borrow" | "stake" | "lp",
+                asset: p.token ?? "",
+                amount: p.balance ?? "",
+                usdValue: p.balanceUsd ?? 0,
                 apy: p.apy,
                 chain: p.chain || "base",
               });
@@ -255,11 +255,11 @@ async function handlePortfolio(
         const orders = await bankrOrders.getActiveOrders();
         portfolio.orders = orders.slice(0, 20).map((o) => ({
           orderId: o.orderId,
-          type: o.orderType || o.type,
+          type: o.orderType ?? o.type ?? "limit",
           pair: `${o.sellToken}/${o.buyToken}`,
-          side: o.side || "sell",
-          amount: o.sellAmount || o.amount,
-          price: o.limitPrice || o.price,
+          side: (o.side ?? "sell") as "buy" | "sell",
+          amount: o.sellAmount ?? o.amount ?? "",
+          price: o.limitPrice ?? o.price ?? "",
           status: o.status,
         }));
       } catch (err) {

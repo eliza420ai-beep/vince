@@ -58,7 +58,7 @@ export const cdpAdvancedTradeCancelOrder: Action = {
           ? `Canceled ${ok} order(s) on Coinbase.`
           : `Canceled ${ok} order(s). Failed: ${failed.map((r) => `${r.order_id} (${r.failure_reason ?? "?"})`).join(", ")}`;
       await callback?.({ text });
-      return { success: failed.length === 0, text, data };
+      return { success: failed.length === 0, text, data: data as Record<string, unknown> };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logger.warn(`[COINBASE_CANCEL_ORDER] ${msg}`);

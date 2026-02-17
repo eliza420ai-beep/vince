@@ -23,6 +23,7 @@ import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
 import { getMandoContextForX } from '../utils/mandoContext';
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
+import { getFriendlyXErrorMessage } from '../utils/xErrorMessages';
 
 export const xVibeAction: Action = {
   name: 'X_VIBE',
@@ -209,14 +210,12 @@ export const xVibeAction: Action = {
 
       return { success: true };
     } catch (error) {
-      console.error('[X_VIBE] Error:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.warn({ err: error }, '[X_VIBE] X API error');
+      const friendly = getFriendlyXErrorMessage(error);
       callback({
-        text: `📊 **Vibe Check**\n\n❌ Error: ${errorMessage}`,
+        text: `📊 **Vibe Check**\n\n⚠️ ${friendly}`,
         action: 'X_VIBE',
       });
-      
       return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },

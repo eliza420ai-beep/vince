@@ -1,6 +1,6 @@
 # X (Twitter) API — VINCE usage and scaling
 
-VINCE uses the **X API v2** (read-only) for search, profile, thread, single tweet, and list feed. By default **one bearer token** (`X_BEARER_TOKEN`) is shared by in-chat research and background sentiment; when you add **`X_BEARER_TOKEN_SENTIMENT`** (or `X_BEARER_TOKEN_BACKGROUND`), sentiment and list feed use that token and in-chat keeps the primary token so vibe-check 429s no longer block "What are people saying about BTC?".
+VINCE uses the **X API v2** (read-only) for search, profile, thread, single tweet, and list feed. By default **one bearer token** (`X_BEARER_TOKEN`) is shared. Optional per-agent tokens avoid rate-limit clashes: **ELIZA_X_BEARER_TOKEN** (Eliza), **ECHO_X_BEARER_TOKEN** (ECHO: what's the trade, X_PULSE, vibe). When you add **`X_BEARER_TOKEN_SENTIMENT`** (or `X_BEARER_TOKEN_BACKGROUND`), sentiment and list feed use that token and in-chat keeps the primary token so vibe-check 429s no longer block "What are people saying about BTC?".
 
 ## Tiers and limits
 

@@ -30,7 +30,7 @@ function buildJwt(method: string, path: string, config: AdvancedTradeConfig): st
   return jwt.sign(payload, config.keySecret, {
     algorithm: "ES256",
     header: { kid: config.keyName, nonce: randomBytes(16).toString("hex") },
-  });
+  } as unknown as jwt.SignOptions);
 }
 
 export async function advancedTradeRequest<T>(

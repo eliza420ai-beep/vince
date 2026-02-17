@@ -547,26 +547,35 @@ export function getXClient(config?: XClientConfig): XClientService {
 }
 
 /**
- * Resolve bearer token from env: Eliza uses ELIZA_X_BEARER_TOKEN when set to avoid sharing rate limits with ECHO.
+ * Resolve bearer token from env. Per-agent tokens avoid sharing rate limits:
+ * Eliza → ELIZA_X_BEARER_TOKEN when set; ECHO → ECHO_X_BEARER_TOKEN when set; else X_BEARER_TOKEN.
  */
 function getBearerTokenForAgent(agentName?: string): string {
-  const isEliza = agentName?.toLowerCase() === 'eliza';
-  const token =
-    isEliza && process.env.ELIZA_X_BEARER_TOKEN?.trim()
-      ? process.env.ELIZA_X_BEARER_TOKEN.trim()
-      : process.env.X_BEARER_TOKEN?.trim();
+  const name = agentName?.toLowerCase();
+  const isEliza = name === 'eliza';
+  const isEcho = name === 'echo';
+  let token: string | undefined;
+  if (isEliza && process.env.ELIZA_X_BEARER_TOKEN?.trim()) {
+    token = process.env.ELIZA_X_BEARER_TOKEN.trim();
+  } else if (isEcho && process.env.ECHO_X_BEARER_TOKEN?.trim()) {
+    token = process.env.ECHO_X_BEARER_TOKEN.trim();
+  } else {
+    token = process.env.X_BEARER_TOKEN?.trim();
+  }
   if (!token) {
     throw new Error(
       isEliza
         ? 'X API token required. Set ELIZA_X_BEARER_TOKEN or X_BEARER_TOKEN.'
-        : 'X_BEARER_TOKEN environment variable is required'
+        : isEcho
+          ? 'X API token required. Set ECHO_X_BEARER_TOKEN or X_BEARER_TOKEN.'
+          : 'X_BEARER_TOKEN environment variable is required'
     );
   }
   return token;
 }
 
 /**
- * Initialize the X client from environment. Pass runtime so Eliza can use ELIZA_X_BEARER_TOKEN (avoids rate limits when two agents use X).
+ * Initialize the X client from environment. Pass runtime so Eliza uses ELIZA_X_BEARER_TOKEN and ECHO uses ECHO_X_BEARER_TOKEN when set (avoids rate limits).
  * Sets the "current" token so getXClient() with no config returns this client for the rest of the request.
  */
 export function initXClientFromEnv(runtime?: { character?: { name?: string } }): XClientService {

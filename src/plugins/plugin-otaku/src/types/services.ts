@@ -79,6 +79,7 @@ export interface BankrOrder {
   price?: string;
   fillPercent?: number;
   chainId?: number;
+  side?: "buy" | "sell";
 }
 
 export interface BankrOrdersService {

@@ -32,6 +32,7 @@ import { formatCostFooter } from '../constants/cost';
 import { setLastResearch } from '../store/lastResearchStore';
 import { getMandoContextForX } from '../utils/mandoContext';
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from '../utils/alohaStyle';
+import { getFriendlyXErrorMessage } from '../utils/xErrorMessages';
 
 const BREAKING_VELOCITY_THRESHOLD = 100; // 100+ likes/hour = breaking
 
@@ -190,22 +191,12 @@ export const xPulseAction: Action = {
 
       return { success: true };
     } catch (error) {
-      console.error('[X_PULSE] Error:', error);
-      
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
-      if (errorMessage.includes('X_BEARER_TOKEN')) {
-        callback({
-          text: "📊 **X Pulse**\n\n⚠️ X API not configured. Set `X_BEARER_TOKEN` environment variable to enable X research.",
-          action: 'X_PULSE',
-        });
-      } else {
-        callback({
-          text: `📊 **X Pulse**\n\n❌ Error fetching X data: ${errorMessage}`,
-          action: 'X_PULSE',
-        });
-      }
-      
+      logger.warn({ err: error }, '[X_PULSE] X API error');
+      const friendly = getFriendlyXErrorMessage(error);
+      callback({
+        text: `📊 **X Pulse**\n\n⚠️ ${friendly}`,
+        action: 'X_PULSE',
+      });
       return { success: false, error: error instanceof Error ? error : new Error(String(error)) };
     }
   },

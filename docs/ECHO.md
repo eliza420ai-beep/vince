@@ -20,6 +20,7 @@ ECHO is the **CSO (Chief Sentiment Officer)** agent: the voice of Crypto Twitter
 - **Watchlist:** X_WATCHLIST — read-only “check my watchlist”; add/remove via CLI only.
 - **Account:** X_ACCOUNT — “what did @user say about BTC/ETH/…” with topic filter.
 - **Save research:** X_SAVE_RESEARCH — save last pulse/vibe/news to file (e.g. `--save --markdown` via CLI).
+- **What's the trade (daily):** Once per day (configurable hour UTC), ECHO runs a belief-router style report: one thesis, live data from the whats-the-trade skill adapters (Kalshi, Robinhood, Hyperliquid), then one ALOHA-style narrative + minimal trade card. Output: `docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.md`. Env: `ECHO_WHATS_THE_TRADE_ENABLED`, `ECHO_WHATS_THE_TRADE_HOUR`.
 - **Handoffs:** Objective price, options, perps, TA → ASK_AGENT VINCE; trading plan, strike, execution → Solus/Otaku; knowledge/upload → Eliza. ECHO reports back the other agent’s answer.
 - **Brand voice:** Benefit-led, confident, no AI-slop; cite sources (“per @user”), flag confidence; emojis where appropriate.
 
@@ -28,7 +29,7 @@ ECHO is the **CSO (Chief Sentiment Officer)** agent: the voice of Crypto Twitter
 ## What ECHO Cannot Do Yet / Gaps
 
 - **No prices:** ECHO must never invent or add “Cryptocurrency Prices” or numeric levels. For current prices she must use ASK_AGENT VINCE and report his answer. PRD: enforce no-hallucination guardrail in prompts/evals.
-- **X token shared with Eliza:** If ECHO and Eliza both use X_BEARER_TOKEN, rate limits can bite. ELIZA_X_BEARER_TOKEN separates Eliza. PRD: document token strategy and optional per-agent tokens.
+- **X token:** Set **ECHO_X_BEARER_TOKEN** in `.env` so ECHO (what's the trade, X_PULSE, vibe) uses its own token; otherwise ECHO uses X_BEARER_TOKEN. ELIZA_X_BEARER_TOKEN does the same for Eliza. Per-agent tokens avoid rate-limit clashes when you have multiple X apps.
 - **Watchlist only via CLI:** X_WATCHLIST is read-only in chat; add/remove is CLI-only. PRD: optional in-chat “add to watchlist” / “remove from watchlist” actions.
 - **Pulse/vibe failure handling:** If X_PULSE or X_VIBE fails (API/network), ECHO must not say “feeds acting up” or “last successful read” without having run the action; return real error or result. PRD: clear error messaging and optional retry/backoff.
 - **No historical sentiment series:** ECHO returns current pulse/vibe, not time-series sentiment for backtest or paper bot history. PRD: optional sentiment history store for analytics.

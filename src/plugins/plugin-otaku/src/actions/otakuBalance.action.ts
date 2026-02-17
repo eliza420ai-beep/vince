@@ -108,8 +108,8 @@ export const otakuBalanceAction: Action = {
           const cdpBalances = await cdpService.getBalances();
           for (const b of cdpBalances) {
             balances.push({
-              token: b.symbol || b.token,
-              balance: b.balance || b.amount,
+              token: b.symbol ?? b.token ?? "",
+              balance: b.balance ?? b.amount ?? "",
               usdValue: b.usdValue,
               chain: b.chain || "base",
             });

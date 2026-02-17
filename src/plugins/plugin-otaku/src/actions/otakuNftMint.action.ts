@@ -291,7 +291,7 @@ export const otakuNftMintAction: Action = {
               value: 0n,
             });
             if (result?.hash || result?.txHash) {
-              const txHash = result.hash ?? result.txHash;
+              const txHash = result.hash ?? result.txHash ?? "";
               await callback?.({
                 text: `✅ Gen art minted!\n\n**Contract:** ${GEN_ART_MINT_CONTRACT.slice(0, 20)}...\n**TX:** ${txHash.slice(0, 24)}...\n**Token URI:** ${tokenURI.slice(0, 50)}...`,
               });

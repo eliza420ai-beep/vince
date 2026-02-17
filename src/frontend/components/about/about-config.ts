@@ -551,6 +551,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       "Chief Sentiment Officer (CSO): captures and communicates what CT is saying. Pulse, vibe, threads, account analysis, watchlist, news from X. Subjective sentiment only—VINCE owns the numbers. Whale and alpha accounts weighted; contrarian warnings when sentiment gets extreme. No content audit—that's Eliza.",
     tags: [
       { label: "CSO", withSparkles: true },
+      { label: "What's the trade" },
       { label: "X / CT" },
       { label: "Pulse & Vibe" },
       { label: "Threads" },
@@ -558,6 +559,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       { label: "Sentiment only" },
     ],
     capabilities: [
+      {
+        title: "What's the trade",
+        description:
+          "Belief-router: one thesis → one best expression (stock, option, Kalshi, perp). Live data from the skill adapters; ALOHA-style narrative + trade card. Saves to docs/standup/whats-the-trade/. Daily run or on demand.",
+      },
       {
         title: "Pulse",
         description:

@@ -248,7 +248,7 @@ export const otakuApproveAction: Action = {
         } else if (cdp.writeContract) {
           // Fallback to direct contract call
           result = await cdp.writeContract({
-            address: pendingApproval.token, // Would need token address lookup
+            address: pendingApproval.token as `0x${string}`,
             abi: ["function approve(address spender, uint256 amount) returns (bool)"],
             functionName: "approve",
             args: [

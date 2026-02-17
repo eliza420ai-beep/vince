@@ -124,7 +124,7 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.()) {
+    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -169,7 +169,7 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.()) {
+    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -216,7 +216,7 @@ export class OtakuService extends Service {
     response?: string;
   }> {
     const bankr = this.getBankrAgent();
-    if (!bankr?.isConfigured?.()) {
+    if (!bankr?.isConfigured?.() || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
       return { success: false, error: "BANKR not configured" };
     }
 
@@ -273,6 +273,9 @@ export class OtakuService extends Service {
     if (!bankr?.isConfigured?.()) {
       return result;
     }
+    if (!bankr.getAccountInfo || !bankr.submitPrompt || !bankr.pollJobUntilComplete) {
+      return result;
+    }
 
     try {
       // Get account info for positions
@@ -309,14 +312,14 @@ export class OtakuService extends Service {
           if (orderResult.orders) {
             result.orders = orderResult.orders.map((o) => ({
               orderId: o.orderId,
-              type: o.orderType,
-              status: o.status,
+              type: (o.orderType ?? o.type ?? "limit") as "stop" | "limit" | "dca" | "twap",
+              status: o.status as "active" | "filled" | "cancelled" | "expired",
               sellToken: o.sellToken,
               buyToken: o.buyToken,
-              amount: o.sellAmount,
-              price: o.limitPrice,
-              fillPercent: o.fillPercent,
-              chain: `chain-${o.chainId}`,
+              amount: o.sellAmount ?? o.amount ?? "",
+              price: o.limitPrice ?? o.price ?? "",
+              fillPercent: o.fillPercent ?? 0,
+              chain: `chain-${o.chainId ?? ""}`,
             }));
           }
         }
