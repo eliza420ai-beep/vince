@@ -38,6 +38,8 @@ import type { VinceDeribitService } from "./deribit.service";
 import type { VinceMarketDataService } from "./marketData.service";
 import type { VinceSanbaseService } from "./sanbase.service";
 import type { VinceMarketRegimeService } from "./marketRegime.service";
+import type { VinceHIP3Service } from "./hip3.service";
+import { CORE_ASSETS } from "../constants/targetAssets";
 // External service factories (with fallbacks)
 import {
   getOrCreateHyperliquidService,
@@ -1518,6 +1520,102 @@ export class VinceSignalAggregatorService extends Service {
     }
 
     // =========================================
+    // 9d. HIP-3 Asset Signals (funding + momentum from Hyperliquid HIP-3 DEXes)
+    // Only fires for non-core assets that the HIP-3 service tracks.
+    // =========================================
+    const isCoreAsset = (CORE_ASSETS as readonly string[]).includes(asset);
+    if (!isCoreAsset) {
+      const hip3Service = this.runtime.getService(
+        "VINCE_HIP3_SERVICE",
+      ) as VinceHIP3Service | null;
+      if (hip3Service) {
+        try {
+          const hip3Data = await withTimeout(
+            SOURCE_FETCH_TIMEOUT_MS,
+            "HIP3",
+            hip3Service.getAssetPrice(asset),
+          );
+          if (hip3Data) {
+            // Funding-based signal (contrarian: extreme funding → mean reversion)
+            const fr = hip3Data.funding8h;
+            if (Math.abs(fr) > 0.0003) {
+              const fundingDir: "long" | "short" = fr > 0 ? "short" : "long";
+              const fundingStrength = Math.min(72, 58 + Math.abs(fr) * 20000);
+              const fundingConfidence = Math.min(65, 52 + Math.abs(fr) * 15000);
+              signals.push({
+                asset,
+                direction: fundingDir,
+                strength: fundingStrength,
+                confidence: fundingConfidence,
+                source: "HIP3Funding",
+                factors: [
+                  `HIP-3 ${asset} funding ${fr > 0 ? "longs paying" : "shorts paying"} ${(fr * 100).toFixed(4)}% - contrarian ${fundingDir}`,
+                ],
+                timestamp: Date.now(),
+              });
+              sources.push("HIP3Funding");
+              allFactors.push(
+                `HIP-3 ${asset} funding ${(fr * 100).toFixed(4)}% (contrarian ${fundingDir})`,
+              );
+            }
+
+            // Momentum signal (24h change)
+            const change = hip3Data.change24h;
+            if (Math.abs(change) > 2) {
+              const momDir: "long" | "short" = change > 0 ? "long" : "short";
+              const momStrength = Math.min(70, 55 + Math.abs(change) * 1.5);
+              const momConfidence = Math.min(62, 50 + Math.abs(change));
+              signals.push({
+                asset,
+                direction: momDir,
+                strength: momStrength,
+                confidence: momConfidence,
+                source: "HIP3Momentum",
+                factors: [
+                  `HIP-3 ${asset} ${change > 0 ? "+" : ""}${change.toFixed(1)}% 24h momentum`,
+                ],
+                timestamp: Date.now(),
+              });
+              sources.push("HIP3Momentum");
+              allFactors.push(
+                `HIP-3 ${asset} ${change > 0 ? "+" : ""}${change.toFixed(1)}% 24h momentum`,
+              );
+            }
+
+            // OI buildup signal (high OI = crowded, mean reversion potential)
+            if (hip3Data.openInterest > 0 && hip3Data.volume24h > 0) {
+              const oiToVolRatio = hip3Data.openInterest / hip3Data.volume24h;
+              if (oiToVolRatio > 3) {
+                const oiDir: "long" | "short" = change > 0 ? "short" : "long";
+                signals.push({
+                  asset,
+                  direction: oiDir,
+                  strength: 55,
+                  confidence: 50,
+                  source: "HIP3OIBuild",
+                  factors: [
+                    `HIP-3 ${asset} OI/volume ratio ${oiToVolRatio.toFixed(1)}x (position buildup, contrarian ${oiDir})`,
+                  ],
+                  timestamp: Date.now(),
+                });
+                sources.push("HIP3OIBuild");
+                allFactors.push(
+                  `HIP-3 ${asset} OI/vol ${oiToVolRatio.toFixed(1)}x (contrarian)`,
+                );
+              }
+            }
+          }
+          if (!sources.some((s) => s.startsWith("HIP3"))) {
+            triedNoContribution.push("HIP3");
+          }
+        } catch (e) {
+          logger.debug(`[VinceSignalAggregator] HIP-3 service error for ${asset}: ${e}`);
+          triedNoContribution.push("HIP3");
+        }
+      }
+    }
+
+    // =========================================
     // 10. Deribit Options (Put/Call Ratio + DVOL) - use pre-fetched results
     // =========================================
     const pcRatio = comprehensiveData?.optionsSummary?.putCallRatio;
@@ -2302,6 +2400,10 @@ export class VinceSignalAggregatorService extends Service {
       { name: "HyperliquidOICap", available: !!hyperliquidService },
       { name: "HyperliquidFundingExtreme", available: !!hyperliquidService },
       { name: "CrossVenueFunding", available: !!hyperliquidService },
+      {
+        name: "HIP3Funding",
+        available: !!this.runtime.getService("VINCE_HIP3_SERVICE"),
+      },
       { name: "DeribitPutCallRatio", available: !!deribitPluginService },
       { name: "DeribitDVOL", available: !!deribitPluginService },
       {

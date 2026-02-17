@@ -86,6 +86,11 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
   BinanceTopTraders: 1.0, // Real data from public Binance API
   SanbaseWhales: 0.0, // DISABLED - 30-day lag on free tier
 
+  // HIP-3 Hyperliquid DEX signals (1.3x-1.0x)
+  HIP3Funding: 1.3, // HIP-3 per-asset funding rate (contrarian mean-reversion)
+  HIP3Momentum: 1.0, // HIP-3 24h price momentum
+  HIP3OIBuild: 0.8, // HIP-3 OI/volume ratio (position buildup, contrarian)
+
   // Strong on-chain signals (1.2x)
   SanbaseExchangeFlows: 1.2,
   CrossVenueFunding: 1.2,

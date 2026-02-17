@@ -13,6 +13,7 @@
 import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import type { VinceCoinGlassService } from "./coinglass.service";
 import type { VinceCoinGeckoService } from "./coingecko.service";
+import type { VinceHIP3Service } from "./hip3.service";
 import {
   getOrCreateDeribitService,
   getOrCreateHyperliquidService,
@@ -226,6 +227,28 @@ export class VinceMarketDataService extends Service {
         }
       } catch {
         // Keep currentPrice 0
+      }
+    }
+
+    // HIP-3 fallback: use VinceHIP3Service for stocks/commodities/indices on Hyperliquid DEXes
+    if (currentPrice <= 0) {
+      const hip3Service = this.runtime.getService(
+        "VINCE_HIP3_SERVICE",
+      ) as VinceHIP3Service | null;
+      if (hip3Service) {
+        try {
+          const hip3Data = await hip3Service.getAssetPrice(asset);
+          if (hip3Data && hip3Data.price > 0) {
+            currentPrice = hip3Data.price;
+            priceChange24h = hip3Data.change24h;
+            volume24h = hip3Data.volume24h;
+            logger.debug(
+              `[VinceMarketData] Price from HIP-3 service: ${asset} $${currentPrice.toFixed(2)} (24h: ${priceChange24h.toFixed(2)}%)`,
+            );
+          }
+        } catch {
+          // Keep currentPrice 0
+        }
       }
     }
 
