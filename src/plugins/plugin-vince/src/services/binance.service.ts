@@ -36,6 +36,8 @@ const FEAR_GREED_CACHE_TTL = 60 * 60 * 1000; // 1 hour (updates daily)
 const HTTP_WARN_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 /** Default Binance Futures API base (override with VINCE_BINANCE_BASE_URL for proxy in 451 regions) */
 const DEFAULT_BINANCE_BASE = "https://fapi.binance.com";
+/** Fetch timeout — 15s gives headroom during startup when many requests fire at once */
+const FETCH_TIMEOUT_MS = 15_000;
 
 interface CacheEntry<T> {
   data: T | null;
@@ -413,7 +415,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch("https://api.alternative.me/fng/", {
         signal: controller.signal,
@@ -476,7 +478,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const limit = 5; // use last 3 for smoothing (BINANCE_DATA_IMPROVEMENTS)
       const response = await fetch(
@@ -549,7 +551,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const limit = 5;
       const response = await fetch(
@@ -618,7 +620,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/globalLongShortAccountRatio?symbol=${symbol}&period=5m&limit=1`,
@@ -686,7 +688,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch(
         `${this.getBaseUrl()}/futures/data/openInterestHist?symbol=${symbol}&period=${period}&limit=${limit}`,
@@ -760,7 +762,7 @@ export class VinceBinanceService extends Service {
 
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch(
         `${this.getBaseUrl()}/fapi/v1/fundingRate?symbol=${symbol}&limit=${limit}`,
@@ -900,7 +902,7 @@ export class VinceBinanceService extends Service {
   ): Promise<{ rate: number; markPrice: number } | null> {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch(
         `${this.getBaseUrl()}/fapi/v1/premiumIndex?symbol=${symbol}`,
@@ -929,7 +931,7 @@ export class VinceBinanceService extends Service {
   ): Promise<{ rate: number } | null> {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       const response = await fetch(
         `https://api.bybit.com/v5/market/tickers?category=linear&symbol=${symbol}`,

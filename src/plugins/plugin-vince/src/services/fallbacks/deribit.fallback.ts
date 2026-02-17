@@ -18,6 +18,9 @@ import type {
 const DERIBIT_BASE_URL = "https://www.deribit.com/api/v2";
 const CACHE_TTL_MS = 30_000; // 30 seconds
 const REQUEST_DELAY_MS = 450; // Rate limiting delay
+const FETCH_TIMEOUT_MS = 15_000; // 15s timeout per request
+const MAX_RETRIES = 1; // One retry on transient failure
+const RETRY_DELAY_MS = 2_000; // 2s before retry
 
 interface CacheEntry<T> {
   data: T;
@@ -68,7 +71,7 @@ export class DeribitFallbackService implements IDeribitService {
   }
 
   /**
-   * Rate-limited fetch with caching
+   * Rate-limited fetch with caching, timeout, and retry
    */
   private async fetchDeribit<T>(
     endpoint: string,
@@ -91,45 +94,63 @@ export class DeribitFallbackService implements IDeribitService {
     }
     this.lastRequestTime = Date.now();
 
-    try {
-      const queryString = new URLSearchParams(params).toString();
-      const url = `${DERIBIT_BASE_URL}${endpoint}${queryString ? `?${queryString}` : ""}`;
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${DERIBIT_BASE_URL}${endpoint}${queryString ? `?${queryString}` : ""}`;
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-      if (!response.ok) {
-        if (response.status === 429) {
-          logger.warn("[DeribitFallback] Rate limited, backing off");
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+        const response = await fetch(url, {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            logger.warn("[DeribitFallback] Rate limited, backing off");
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            return null;
+          }
+          logger.error(`[DeribitFallback] HTTP error: ${response.status}`);
           return null;
         }
-        logger.error(`[DeribitFallback] HTTP error: ${response.status}`);
+
+        const json = (await response.json()) as DeribitResponse<T>;
+
+        if (json.error) {
+          logger.error(`[DeribitFallback] API error: ${json.error.message}`);
+          return null;
+        }
+
+        this.cache.set(cacheKey, {
+          data: json.result,
+          timestamp: Date.now(),
+        });
+
+        return json.result;
+      } catch (error) {
+        const isRetryable =
+          error instanceof TypeError ||
+          (error instanceof DOMException && error.name === "AbortError");
+
+        if (isRetryable && attempt < MAX_RETRIES) {
+          logger.debug(
+            `[DeribitFallback] Attempt ${attempt + 1} failed, retrying in ${RETRY_DELAY_MS}ms`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          continue;
+        }
+
+        logger.warn(`[DeribitFallback] Fetch failed: ${error instanceof DOMException ? error.name : (error as Error).message}`);
         return null;
       }
-
-      const json = (await response.json()) as DeribitResponse<T>;
-
-      if (json.error) {
-        logger.error(`[DeribitFallback] API error: ${json.error.message}`);
-        return null;
-      }
-
-      // Cache the result
-      this.cache.set(cacheKey, {
-        data: json.result,
-        timestamp: Date.now(),
-      });
-
-      return json.result;
-    } catch (error) {
-      logger.error(`[DeribitFallback] Fetch error: ${error}`);
-      return null;
     }
+
+    return null;
   }
 
   /**
