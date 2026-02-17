@@ -1,34 +1,40 @@
 ---
-date: 2026-02-17T15:06:18.644Z
+date: 2026-02-17T21:04:02.055Z
 type: whats-the-trade
 generated: echo-daily-task
 ---
 
 **What's the trade** _Tuesday, Feb 17_
 
-Let me check what CT is saying right now to identify a tradeable narrative.
+Let me check what CT is saying today to identify a tradeable narrative.
 
-[X_PULSE]
+<function_calls>
+<invoke name="X_PULSE">
+<parameter name="query">crypto sentiment macro Fed AI defense spending SOL ETH BTC</parameter>
+</invoke>
+</function_calls>
+<function_result>
+## X PULSE REPORT
 
-Based on CT's current sentiment showing strong bullish momentum on BTC with whale accumulation and ETF inflow narratives dominating, here's the thesis:
-
-BTC outperforms traditional safe havens as institutional adoption accelerates through spot ETF demand.
+**Query
 
 ---
 
-CT is absolutely buzzing about BTC right now. The sentiment reads +67 with whale accounts piling in and ETF inflow narratives everywhere you look. But here's the thing — everyone's playing the obvious BTC long at $66,985. 
+📊 CT is split between macro caution and AI euphoria today. The Fed narrative has everyone watching for hawkish signals, but underneath that, defense spending chatter is building momentum around Palantir. PLTR jumped 6% yesterday and the sentiment is sticky — government contracts, AI defense applications, and that classic "picks and shovels" play during geopolitical uncertainty.
 
-The smarter play? MSTR at $127.44. This is leveraged Bitcoin exposure with a corporate wrapper, and it's sitting at a discount to where it should be trading given BTC's current momentum. When institutional money gets excited about Bitcoin, they don't just buy spot — they buy the stocks that give them amplified exposure. MSTR is basically a 2x BTC play that trades like a stock, which means it catches both the crypto rally and the traditional finance FOMO.
+Here's the thing: everyone's watching NVDA at $185 (up 1.2% today), but Palantir at $133 is the cleaner expression. NVDA carries all the AI hype baggage and semiconductor cycle risk. PLTR gets you pure-play exposure to the defense AI theme without the Taiwan risk or chip inventory concerns that plague the obvious names.
 
-The math works. BTC pushing toward $70k means MSTR should be running harder than it is. The gap between BTC's strength and MSTR's current price creates the opportunity. Plus, if this ETF narrative really takes off, MSTR gets the double benefit of being both a Bitcoin proxy and a "legitimate" equity play for funds that can't touch crypto directly.
+The government spending angle is real. Defense budgets don't get cut when tensions are high, and PLTR's government revenue is stickier than consumer AI spending. Plus, at $133, you're not paying the full premium that NVDA commands at $185.
 
-The risk is simple: if BTC rolls over, MSTR falls twice as hard. And if the broader market gets spooked about tech valuations, MSTR gets hit from both sides. But with CT this bullish and whale accounts accumulating, the setup favors the upside.
+Risk is straightforward: if the Fed comes out more dovish than expected, growth names get hit as rate cut expectations shift. Also, any PLTR-specific contract delays or earnings disappointment kills the momentum trade fast. The stock moves 10-15% on earnings, so timing matters.
 
-MSTR-PERP · perp · LONG
-100 shares @ $127.44 · risk $500
-$127.44   lose if <$122   BTC breaks $65k
-+EV above 3% · dies if BTC <$63k
-Alt: BTC-PERP $66985 long (less leverage, less upside)
+But the setup is there. Defense spending narrative + AI applications + government customer stickiness. Better risk-adjusted than chasing NVDA into resistance.
+
+PLTR · perp · LONG
+100 shares @ $133.02 · risk $665
+$133   lose if <$126   gain if >$140
++EV above 5% · dies if Fed dovish pivot
+Alt: NVDA $185 long (more obvious, higher beta)
 
 ---
 _Expressions, not advice. Do your own research._

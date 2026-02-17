@@ -1,23 +1,22 @@
 {
-  "date": "2026-02-17",
-  "thesis": "BTC outperforms traditional safe havens as institutional adoption accelerates through spot ETF demand",
-  "primaryTicker": "MSTR",
+  "date": "2024-02-17",
+  "thesis": "Defense AI spending narrative via government contracts",
+  "primaryTicker": "PLTR",
   "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 127.44,
-  "primaryRiskUsd": 500,
-  "invalidateCondition": "BTC < $65k",
+  "primaryEntryPrice": 133.02,
+  "primaryRiskUsd": 665,
+  "invalidateCondition": "PLTR < $126",
   "killConditions": [
-    "dies if BTC <$63k"
+    "dies if Fed dovish pivot"
   ],
   "rubric": {
-    "alignment": "exposed",
+    "alignment": "direct",
     "edge": "emerging",
-    "payoffShape": "high",
+    "payoffShape": "moderate",
     "timingForgiveness": "punishing"
   },
-  "altTicker": "BTC",
+  "altTicker": "NVDA",
   "altDirection": "long",
-  "altInstrument": "perp",
-  "evThresholdPct": 3
+  "evThresholdPct": 5
 }

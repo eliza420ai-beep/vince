@@ -163,22 +163,23 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Positioning", message: "what's our positioning?" },
     { label: "Research agenda", message: "research agenda" },
   ],
-  // Kelly (CVO): lifestyle concierge — benefit-led labels; messages are the actual prompts sent.
+  // Kelly (CVO): lifestyle concierge — benefit-led, concrete, evocative. Live the life.
   kelly: [
-    { label: "What can you do?", message: "What can you do?" },
-    { label: "Today's picks", message: "What should I do today?" },
-    { label: "Eat or stay", message: "Where should I eat or stay? Somewhere within 2 hours of home." },
-    { label: "Wine tonight", message: "Recommend a wine for tonight" },
-    { label: "Something special", message: "Recommend something special—wine tasting, spa, or cooking class" },
-    { label: "Itinerary", message: "Plan me 2 days in Bordeaux" },
+    { label: "Live the life", message: "What can you do?" },
+    { label: "Today's move", message: "What should I do today?" },
+    { label: "Best table", message: "Where should I eat? Somewhere within 2 hours of home." },
+    { label: "Where to stay", message: "Where should I stay this weekend?" },
+    { label: "Open something good", message: "Recommend a wine for tonight" },
+    { label: "Cook tonight", message: "What should I cook for dinner tonight?" },
+    { label: "The ocean", message: "How's the surf in Biarritz?" },
+    { label: "Pool or rower?", message: "Recommend a workout for today" },
     { label: "Week ahead", message: "What's the week ahead? This week's picks" },
-    { label: "Surf", message: "How's the surf in Biarritz?" },
-    { label: "Workout", message: "Recommend a workout for today" },
-    { label: "Swim tips", message: "Tips for my daily 1000m" },
-    { label: "Tea", message: "What tea for this evening?" },
+    { label: "Coast road", message: "Plan me a road trip this week" },
+    { label: "The 1000m", message: "Tips for my daily 1000m" },
+    { label: "Dammann Frères", message: "What tea for this evening?" },
     { label: "Touch grass", message: "I've been grinding—need to rebalance" },
-    { label: "Entertainment", message: "Recommend a book or something to watch" },
-    { label: "Creative", message: "Tips to get started with oil painting" },
+    { label: "Make something", message: "Creative tips—what should I work on?" },
+    { label: "Ask me something", message: "Ask me an interesting question" },
   ],
   // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
@@ -292,6 +293,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Objective data and paper bot. For X/CT sentiment and threads, ask Echo.",
   eliza:
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
+  kelly:
+    "Hotels, dining, wine, surf, wellness, creative. No trading advice—Kelly asks the team for you.",
   echo:
     "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
   sentinel:
@@ -580,94 +583,106 @@ const CLAWTERM_CATEGORIES: Record<
   },
 };
 
-// Kelly: lifestyle concierge — benefit-led titles and descriptions (Apple-style; no AI-slop)
+// Kelly: lifestyle concierge — benefit-led, concrete, evocative. No filler. Live the life.
 const KELLY_CATEGORIES: Record<
   string,
   { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
 > = {
   daily: {
-    title: "Daily Briefing",
+    title: "Today's Move",
     icon: Sun,
     promptToAsk: "What should I do today?",
-    description: "One thing for health, one for dining or stay, one for wellness—today.",
+    description: "Your day, laid out. One swim, one table, one concrete move.",
   },
   place: {
-    title: "Restaurant & Hotel",
+    title: "Best Table",
     icon: UtensilsCrossed,
-    promptToAsk: "Where should I eat or stay? Somewhere within 2 hours of home.",
-    description: "One spot plus a backup. Landes, Hossegor, Basque coast, Saint-Émilion.",
+    promptToAsk: "Where should I eat? Somewhere within 2 hours of home.",
+    description: "One Michelin spot open today. Landes, Basque coast, Saint-Émilion.",
+  },
+  hotel: {
+    title: "Where to Stay",
+    icon: Building2,
+    promptToAsk: "Where should I stay this weekend?",
+    description: "One palace or relais, one reason. Within the 2h corridor.",
   },
   wine: {
-    title: "Wine",
+    title: "Open Something Good",
     icon: Wine,
     promptToAsk: "Recommend a wine for tonight",
-    description: "One bottle for tonight plus a backup. French and Champagne by default.",
+    description: "One bottle, one pairing, service notes. French by default.",
   },
-  experience: {
-    title: "Something Special",
-    icon: Sparkles,
-    promptToAsk: "Recommend something special—wine tasting, spa, or cooking class",
-    description: "One experience—tasting, spa, cooking class, or tour—plus a backup.",
+  homeCooking: {
+    title: "Cook Tonight",
+    icon: Flame,
+    promptToAsk: "What should I cook for dinner tonight?",
+    description: "Green Egg, Thermomix, or long oven cook. Wine pairing included.",
   },
-  itinerary: {
-    title: "Itinerary",
-    icon: MapPin,
-    promptToAsk: "Plan me 2 days in Bordeaux",
-    description: "Hotel, lunch, dinner, activities—laid out day by day.",
+  surf: {
+    title: "The Ocean",
+    icon: Waves,
+    promptToAsk: "How's the surf in Biarritz?",
+    description: "Wave height, period, direction, water temp. When it's on, you'll know.",
+  },
+  workout: {
+    title: "Pool or Rower?",
+    icon: Dumbbell,
+    promptToAsk: "Recommend a workout for today",
+    description: "One session: pool, rower, surfer yoga, or swim. Season-aware.",
+  },
+  swimming: {
+    title: "The 1000m",
+    icon: Activity,
+    promptToAsk: "Tips for my daily 1000m",
+    description: "When and where to swim. Palace pools in winter, backyard in summer.",
   },
   weekAhead: {
     title: "Week Ahead",
     icon: CalendarDays,
     promptToAsk: "What's the week ahead? This week's picks",
-    description: "Three to five picks for the week: dining, stay, wellness.",
+    description: "3–5 picks across dining, stay, and wellness. Your week, sorted.",
   },
-  surf: {
-    title: "Surf",
-    icon: Waves,
-    promptToAsk: "How's the surf in Biarritz?",
-    description: "Wave height, period, direction, water temp.",
+  itinerary: {
+    title: "Coast Road",
+    icon: MapPin,
+    promptToAsk: "Plan me 2 days in Bordeaux",
+    description: "Hotel, lunch, activities—day by day. Burmester on, no agenda required.",
   },
-  workout: {
-    title: "Workout",
-    icon: Dumbbell,
-    promptToAsk: "Recommend a workout for today",
-    description: "One suggestion: pool, gym, surfer yoga, or swim.",
-  },
-  swimming: {
-    title: "Swimming Tips",
-    icon: Activity,
-    promptToAsk: "Tips for my daily 1000m",
-    description: "When and where to swim; yoga and pool tips for your 1000m.",
+  experience: {
+    title: "Something Special",
+    icon: Sparkles,
+    promptToAsk: "Recommend something special—wine tasting, spa, or cooking class",
+    description: "One experience you'll remember. Tasting, spa, or tour.",
   },
   tea: {
-    title: "Tea",
+    title: "Dammann Frères",
     icon: CupSoda,
     promptToAsk: "What tea for this evening?",
-    description: "One tea for now—morning or evening, by occasion. Dammann Frères.",
+    description: "Morning or evening, by occasion. One pick, no caffeine after dark.",
   },
   rebalance: {
     title: "Touch Grass",
     icon: TreePine,
     promptToAsk: "I've been grinding—need to rebalance",
-    description: "One concrete move: escape, pool, dinner, or yoga.",
+    description: "One concrete move: escape, pool, wine and a great meal. No screens.",
   },
   entertainment: {
-    title: "Entertainment",
+    title: "What to Watch",
     icon: BookOpen,
     promptToAsk: "Recommend a book or something to watch",
-    description: "One book, show, or album—by your taste.",
+    description: "One book, series, or album. By your taste, no scrolling required.",
   },
   creative: {
-    title: "Creative Tips",
+    title: "Make Something",
     icon: Palette,
-    promptToAsk: "Tips to get started with oil painting",
-    description: "Getting started: painting, photography, Ableton, film, Blender.",
+    promptToAsk: "Creative tips—what should I work on?",
+    description: "Oil painting, Hasselblad, Ableton, Blackmagic, Blender. Hands on.",
   },
-  discovery: {
-    title: "What can you do?",
-    icon: HelpCircle,
-    promptToAsk: "What can you do?",
-    description: "What I can do—summary and full list.",
+  question: {
+    title: "Ask Me Something",
+    icon: MessageSquare,
+    promptToAsk: "Ask me an interesting question",
+    description: "One thought-provoking question to deepen the conversation.",
   },
 };
 
