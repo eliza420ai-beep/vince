@@ -115,6 +115,8 @@ When the paper bot **evaluates a signal but does not trade** (e.g. “SIGNAL EVA
   - **Filter in SQL/JSONL:** `payload->'avoided' IS NOT NULL` (Supabase) or filter in Python: `r.get('avoided')` to get “evaluated but no trade” rows.
   - **Possible uses:** (1) Train an “should we trade?” / avoid classifier. (2) Counterfactual analysis: e.g. “if we had traded this avoided signal, what would have happened?” using later price action. (3) Analytics: distribution of avoid reasons by regime, asset, or session.
 
+**What's the Trade integration:** Logic and rubric from the [What's the Trade](standup/whats-the-trade/) standup (alignment, edge, payoff, timing, invalidate conditions) can improve the paper bot and `train_models.py`—e.g. WTT-sourced feature fields, edge/liquidity proxies, invalidate-condition labels. See [standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md](standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md).
+
 ## Fee-aware PnL (net of costs)
 
 **Realized PnL in the feature store is net of trading fees.** When a position closes, we subtract round-trip fees (open + close, taker) from gross PnL before writing to the position, portfolio, journal, and feature store. So `outcome.realizedPnl` and `outcome.realizedPnlPct` are **after fees**; the improvement report and training labels (profitable, winAmount, lossAmount, rMultiple) are therefore fee-aware. Optional `outcome.feesUsd` is stored so you can see the fee per trade (e.g. for analytics). Fee rate: `FEES.ROUND_TRIP_BPS` (5 bps = 0.05% of notional, Hyperliquid-like) in `paperTradingDefaults.ts`.

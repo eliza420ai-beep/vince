@@ -101,6 +101,8 @@ You never have to "chat" with VINCE — he pings you. Proactive agent: day repor
 
 ## The Dawn of Renaissance Fund 3.0
 
+**TL;DR: Why the OG Renaissance Medallion Fund is legendary.** Jim Simons’ Medallion Fund (1988–present) is widely considered the greatest money-making machine in history: ~66% gross / ~39% net annual returns for over three decades—$1 in 1988 → tens of millions net of fees, almost no down years, massive profits even in 2008. It did this with a pure-quant approach: mathematicians, physicists, and computer scientists (not Wall Street traders) building statistical models that detected hidden patterns and executed high-frequency trades with ruthless precision. Unprecedented consistent alpha + extreme secrecy (closed to outsiders since the 1990s) created a mythic status that still defines the pinnacle of quantitative investing.
+
 Renaissance Fund has always been about one thing: **translating raw conviction into asymmetric edge.**
 
 - **1.0** — Pure human discretion: gut feel, late nights, manual structuring of trades from scattered insights.
