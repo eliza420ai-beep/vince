@@ -472,6 +472,7 @@ export interface AggregatedTradeSignal {
     sentiment?: { count: number; avgStrength: number };
     news?: { count: number; avgStrength: number };
     on_chain?: { count: number; avgStrength: number };
+    wtt?: { count: number; avgStrength: number };
   };
 
   /** Timestamp */

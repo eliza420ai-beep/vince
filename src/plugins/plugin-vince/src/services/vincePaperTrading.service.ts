@@ -55,7 +55,12 @@ import {
   getAssetMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
+  isWttEnabled,
+  wttRubricToSignal,
+  wttPickToWttBlock,
+  type WttFeatureBlock,
 } from "../constants/paperTradingDefaults";
+import { normalizeWttTicker } from "../constants/targetAssets";
 import * as fs from "fs";
 import * as path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -89,6 +94,29 @@ const PULLBACK_CONFIG = {
   pullbackPct: 0.15, // Wait for 0.15% pullback (was 0.3% - too aggressive, entries kept expiring)
   timeoutMs: 3 * 60 * 1000, // 3 minute timeout (was 5 min)
 };
+
+/** Minimal shape of WTT JSON sidecar (docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json) */
+interface WttPickJson {
+  date: string;
+  thesis: string;
+  primaryTicker: string;
+  primaryDirection: "long" | "short";
+  primaryInstrument: string;
+  primaryEntryPrice: number;
+  primaryRiskUsd: number;
+  invalidateCondition: string;
+  altTicker?: string;
+  altDirection?: "long" | "short";
+  altInstrument?: string;
+  rubric: {
+    alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
+    edge: "undiscovered" | "emerging" | "consensus" | "crowded";
+    payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
+    timingForgiveness: "very_forgiving" | "forgiving" | "punishing" | "very_punishing";
+  };
+  evThresholdPct?: number;
+  killConditions: string[];
+}
 
 export class VincePaperTradingService extends Service {
   static serviceType = "VINCE_PAPER_TRADING_SERVICE";
@@ -668,6 +696,88 @@ export class VincePaperTradingService extends Service {
   // Trade Execution
   // ==========================================
 
+  private getWttPickPath(): string {
+    const base = process.env.STANDUP_DELIVERABLES_DIR?.trim()
+      ? path.join(process.cwd(), process.env.STANDUP_DELIVERABLES_DIR)
+      : path.join(process.cwd(), "docs", "standup");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    return path.join(base, "whats-the-trade", `${dateStr}-whats-the-trade.json`);
+  }
+
+  private async readLatestWttPick(): Promise<WttPickJson | null> {
+    try {
+      const filepath = this.getWttPickPath();
+      const raw = await fs.promises.readFile(filepath, "utf-8");
+      const parsed = JSON.parse(raw) as WttPickJson;
+      if (parsed?.primaryTicker && parsed?.rubric) return parsed;
+    } catch {
+      // No file or invalid JSON
+    }
+    return null;
+  }
+
+  /**
+   * If WTT is enabled, read today's pick and open a paper trade if the primary (or alt) is perp/HIP-3 eligible.
+   * Called before the regular signal loop so WTT gets first shot at the asset.
+   */
+  private async evaluateWttPick(): Promise<boolean> {
+    const pick = await this.readLatestWttPick();
+    if (!pick) return false;
+
+    const positionManager = this.getPositionManager();
+    const riskManager = this.getRiskManager();
+    const marketData = this.getMarketData();
+    if (!positionManager || !riskManager || !marketData) return false;
+
+    const asset = normalizeWttTicker(pick.primaryTicker) ?? normalizeWttTicker(pick.altTicker ?? "");
+    if (!asset) return false;
+    if (positionManager.hasOpenPosition(asset) || this.hasPendingEntry(asset)) return false;
+
+    const { strength, confidence } = wttRubricToSignal(pick.rubric);
+    const tradeSignal: AggregatedTradeSignal = {
+      asset,
+      direction: pick.primaryDirection,
+      strength,
+      confidence,
+      confirmingCount: 1,
+      conflictingCount: 0,
+      signals: [{ source: "wtt", direction: pick.primaryDirection, strength, description: pick.thesis }],
+      reasons: [pick.thesis],
+      sourceBreakdown: { wtt: { count: 1, avgStrength: strength } },
+      timestamp: Date.now(),
+    };
+
+    const signalValidation = riskManager.validateSignal(tradeSignal);
+    if (!signalValidation.valid) {
+      logger.debug(`[VincePaperTrading] WTT pick ${asset} rejected: ${signalValidation.reason}`);
+      return false;
+    }
+
+    const portfolio = positionManager.getPortfolio();
+    const leverage = Math.min(DEFAULT_LEVERAGE, getAssetMaxLeverage(asset));
+    const sizeUsd = Math.min(portfolio.totalValue * 0.05, portfolio.totalValue * 0.1);
+    const position = await this.openTrade({
+      asset,
+      direction: pick.primaryDirection,
+      sizeUsd,
+      leverage,
+      signal: tradeSignal,
+    });
+    if (!position) return false;
+
+    const wttBlock = wttPickToWttBlock({
+      primary: true,
+      ticker: pick.primaryTicker,
+      thesis: pick.thesis,
+      rubric: pick.rubric,
+      invalidateCondition: pick.invalidateCondition || undefined,
+      evThresholdPct: pick.evThresholdPct,
+    });
+    await this.recordMLFeatures(position, tradeSignal, undefined, wttBlock);
+    logger.info(`[VincePaperTrading] WTT trade opened: ${pick.primaryDirection} ${asset}`);
+    return true;
+  }
+
   async evaluateAndTrade(): Promise<void> {
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -680,6 +790,9 @@ export class VincePaperTradingService extends Service {
 
     // First, check pending entries for pullbacks
     await this.checkPendingEntries();
+
+    // WTT: if enabled, try to open today's pick first (perp/HIP-3 eligible only)
+    if (isWttEnabled(this.runtime)) await this.evaluateWttPick();
 
     const assets = getPaperTradeAssets(this.runtime);
     for (const asset of assets) {
@@ -1877,6 +1990,7 @@ export class VincePaperTradingService extends Service {
     position: Position,
     signal: AggregatedTradeSignal,
     entryATRPct?: number,
+    wtt?: WttFeatureBlock,
   ): Promise<void> {
     const featureStore = this.getFeatureStore();
     const similarityService = this.getSignalSimilarity();
@@ -1909,6 +2023,7 @@ export class VincePaperTradingService extends Service {
         const decisionId = await featureStore.recordDecision({
           asset: position.asset,
           signal: aggSignal,
+          ...(wtt && { wtt }),
         });
 
         // Link the trade to the decision

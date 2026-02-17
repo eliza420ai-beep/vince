@@ -560,9 +560,9 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
     ],
     capabilities: [
       {
-        title: "What's the trade",
+        title: "What's the trade (V3.0)",
         description:
-          "Belief-router: one thesis → one best expression (stock, option, Kalshi, perp). Live data from the skill adapters; ALOHA-style narrative + trade card. Saves to docs/standup/whats-the-trade/. Daily run or on demand.",
+          "Belief-router: one thesis → one best onchain expression via Hyperliquid perp. HIP-3 only mode (default): 4 core + 34 HIP-3 assets. Robinhood stays as context — the LLM sees offchain movers but must pick from the onchain universe. Daily run feeds the paper bot (rubric → signal → trade → feature store → ML). Renaissance Fund 3.0: every trade expressible onchain.",
       },
       {
         title: "Pulse",

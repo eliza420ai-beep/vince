@@ -347,3 +347,31 @@ export function getCoinGeckoId(asset: string): string | null {
 export function getSantimentSlug(asset: string): string | null {
   return SANTIMENT_SLUGS[asset.toUpperCase()] || null;
 }
+
+// ============================================================================
+// WTT UNIVERSE (HIP-3 + core perps — used by daily task prompt constraints)
+// ============================================================================
+
+/** All assets expressible onchain via Hyperliquid perps (core + HIP-3). */
+export const WTT_UNIVERSE_TICKERS = [...CORE_ASSETS, ...HIP3_ASSETS] as const;
+export type WttUniverseAsset = (typeof WTT_UNIVERSE_TICKERS)[number];
+
+/** Comma-separated label for prompt injection (e.g. "BTC, ETH, SOL, HYPE, GOLD, ..."). */
+export const WTT_UNIVERSE_LABEL = (WTT_UNIVERSE_TICKERS as readonly string[]).join(", ");
+
+/** WTT ticker aliases -> paper bot asset (e.g. GOOG -> GOOGL) */
+const WTT_TICKER_ALIASES: Record<string, string> = {
+  GOOG: "GOOGL",
+  GOOGLE: "GOOGL",
+};
+
+/**
+ * Map a WTT pick ticker to a paper-bot tradeable asset (core perp or HIP-3).
+ * Returns the asset symbol if it is in ALL_TRACKED_ASSETS, or null if not tradeable as perp/HIP-3.
+ */
+export function normalizeWttTicker(ticker: string): string | null {
+  const upper = ticker.trim().toUpperCase();
+  if (!upper) return null;
+  const resolved = WTT_TICKER_ALIASES[upper] ?? upper;
+  return (ALL_TRACKED_ASSETS as readonly string[]).includes(resolved) ? resolved : null;
+}

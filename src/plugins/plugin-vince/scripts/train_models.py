@@ -66,6 +66,15 @@ except ImportError:
     convert_xgboost = None  # type: ignore
     FloatTensorType = None  # type: ignore
 
+def _get_train_n_jobs() -> int:
+    """Use 1 job when VINCE_TRAIN_NJOBS=1 or CI=true to avoid sandbox/process limits (e.g. in tests)."""
+    if os.environ.get("VINCE_TRAIN_NJOBS") == "1":
+        return 1
+    if os.environ.get("CI") == "true" or os.environ.get("CI") == "1":
+        return 1
+    return -1
+
+
 try:
     import optuna
     optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -193,6 +202,14 @@ def load_features(filepath: str, real_only: bool = False) -> pd.DataFrame:
             exc = outcome.get('maxAdverseExcursion')
             if exc is not None:
                 flat['label_maxAdverseExcursion'] = float(exc)
+        wtt = r.get('wtt')
+        if wtt:
+            flat['wtt_primary'] = 1 if wtt.get('primary') else 0
+            flat['wtt_alignment'] = wtt.get('alignment', 0)
+            flat['wtt_edge'] = wtt.get('edge', 0)
+            flat['wtt_payoffShape'] = wtt.get('payoffShape', 0)
+            flat['wtt_timingForgiveness'] = wtt.get('timingForgiveness', 0)
+            flat['wtt_invalidateHit'] = 1 if wtt.get('invalidateHit') else 0
 
         flat_records.append(flat)
 
@@ -271,6 +288,12 @@ OPTIONAL_FEATURE_COLUMNS = (
     "market_priceVsSma20",
     "signal_hasOICap",
     "signal_xSentimentScore",  # X (Twitter) sentiment when XSentiment source contributed
+    "wtt_primary",
+    "wtt_alignment",
+    "wtt_edge",
+    "wtt_payoffShape",
+    "wtt_timingForgiveness",
+    "wtt_invalidateHit",
 )
 
 
@@ -665,7 +688,11 @@ def _walk_forward_validation(
 
             if hasattr(model, "predict_proba"):
                 proba = model.predict_proba(X_test)[:, 1]
-                fold_metrics["auc"] = float(roc_auc_score(y_test, proba))
+                try:
+                    fold_metrics["auc"] = float(roc_auc_score(y_test, proba))
+                except ValueError:
+                    # Single class in y_test (e.g. small fold); use neutral AUC
+                    fold_metrics["auc"] = 0.5
                 fold_metrics["accuracy"] = float(accuracy_score(y_test, (proba >= 0.5).astype(int)))
             else:
                 pred = model.predict(X_test)
@@ -761,7 +788,7 @@ def _tune_signal_quality(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarra
         scale_pos_weight=scale_pos_weight,
     )
     tscv = TimeSeriesSplit(n_splits=3)
-    search = GridSearchCV(base, param_grid, cv=tscv, scoring="roc_auc", n_jobs=-1, verbose=0)
+    search = GridSearchCV(base, param_grid, cv=tscv, scoring="roc_auc", n_jobs=_get_train_n_jobs(), verbose=0)
     if sample_weight is not None:
         search.fit(X, y, sample_weight=sample_weight)
     else:
@@ -856,7 +883,7 @@ def _tune_position_sizing(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarr
     # Fallback: GridSearchCV
     param_grid = {"max_depth": [3, 4, 5], "learning_rate": [0.03, 0.05, 0.07], "n_estimators": [150, 200]}
     base = xgb.XGBRegressor(objective="reg:squarederror", random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8)
-    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=-1, verbose=0)
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=_get_train_n_jobs(), verbose=0)
     if sample_weight is not None:
         search.fit(X, y, sample_weight=sample_weight)
     else:
@@ -949,7 +976,7 @@ def _tune_tp_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray 
         objective="multi:softprob", num_class=max(n_class, 2), eval_metric="mlogloss",
         random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8,
     )
-    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="accuracy", n_jobs=-1, verbose=0)
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="accuracy", n_jobs=_get_train_n_jobs(), verbose=0)
     if sample_weight is not None:
         search.fit(X, y, sample_weight=sample_weight)
     else:
@@ -998,7 +1025,7 @@ def _tune_sl_optimizer(X: pd.DataFrame, y: pd.Series, sample_weight: np.ndarray 
         objective="reg:quantileerror", quantile_alpha=0.95,
         random_state=42, tree_method="hist", subsample=0.8, colsample_bytree=0.8,
     )
-    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=-1, verbose=0)
+    search = GridSearchCV(base, param_grid, cv=TimeSeriesSplit(n_splits=3), scoring="neg_mean_absolute_error", n_jobs=_get_train_n_jobs(), verbose=0)
     if sample_weight is not None:
         search.fit(X, y, sample_weight=sample_weight)
     else:
@@ -1299,6 +1326,8 @@ CANDIDATE_SIGNAL_FACTORS = [
     {"name": "Hyperliquid funding extreme", "description": "Extreme funding regime (mean reversion).", "hint": "signal_hasFundingExtreme"},
     {"name": "Binance L/S ratio", "description": "Long/short ratio signal.", "hint": "market_longShortRatio"},
     {"name": "Binance OI flush", "description": "Open interest flush signal.", "hint": "market_oiChange24h"},
+    {"name": "WTT alignment", "description": "Thesis alignment from WTT rubric (1-5).", "hint": "wtt_alignment"},
+    {"name": "WTT edge", "description": "Edge level from WTT rubric (1-4).", "hint": "wtt_edge"},
 ]
 
 
@@ -1351,6 +1380,22 @@ def build_improvement_report(
                 }
             except (TypeError, ValueError):
                 pass
+    if "wtt_primary" in df.columns:
+        wtt_trades = df[df["wtt_primary"] == 1]
+        if len(wtt_trades) >= 5:
+            wtt_win_rate = wtt_trades["label_profitable"].mean() * 100
+            non_wtt = df[df["wtt_primary"] != 1]
+            non_wtt_wr = non_wtt["label_profitable"].mean() * 100 if len(non_wtt) > 0 else 0
+            report["wtt_performance"] = {
+                "wtt_trades": len(wtt_trades),
+                "wtt_win_rate": round(wtt_win_rate, 1),
+                "non_wtt_win_rate": round(non_wtt_wr, 1),
+                "delta": round(wtt_win_rate - non_wtt_wr, 1),
+            }
+            for dim in ["wtt_alignment", "wtt_edge", "wtt_payoffShape", "wtt_timingForgiveness"]:
+                if dim in wtt_trades.columns:
+                    corr = wtt_trades[dim].corr(wtt_trades["label_profitable"].astype(float))
+                    report["wtt_performance"][f"{dim}_corr"] = round(corr, 3)
     if "signal_quality" in report_entries and "suggested_threshold" in report_entries["signal_quality"]:
         t = report_entries["signal_quality"]["suggested_threshold"]
         report["suggested_signal_quality_threshold"] = t

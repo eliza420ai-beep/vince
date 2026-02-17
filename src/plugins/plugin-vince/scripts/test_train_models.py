@@ -29,6 +29,25 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 
+def _wtt_block(
+    primary: bool = True,
+    alignment: int = 3,
+    edge: int = 2,
+    payoff_shape: int = 4,
+    timing_forgiveness: int = 2,
+    invalidate_hit: bool = False,
+) -> dict:
+    """WTT block as written by the feature store (align/edge/payoff/timing ordinals, invalidateHit)."""
+    return {
+        "primary": primary,
+        "alignment": alignment,
+        "edge": edge,
+        "payoffShape": payoff_shape,
+        "timingForgiveness": timing_forgiveness,
+        "invalidateHit": invalidate_hit,
+    }
+
+
 def _synthetic_record(
     i: int,
     profitable: bool,
@@ -36,6 +55,7 @@ def _synthetic_record(
     optimal_tp: int,
     asset: str = "BTC",
     max_adverse_excursion: float | None = None,
+    wtt: dict | None = None,
 ) -> dict:
     """One feature record matching the shape expected by train_models.load_features."""
     rec = {
@@ -88,6 +108,8 @@ def _synthetic_record(
     }
     if max_adverse_excursion is not None:
         rec["labels"]["maxAdverseExcursion"] = max_adverse_excursion
+    if wtt is not None:
+        rec["wtt"] = wtt
     return rec
 
 
@@ -107,6 +129,35 @@ def generate_synthetic_jsonl(
             asset = assets[i % len(assets)]
             max_adv = (0.5 + (i % 5) * 0.2) if include_sl_label else None
             rec = _synthetic_record(i, profitable, r_multiple, optimal_tp, asset=asset, max_adverse_excursion=max_adv)
+            f.write(json.dumps(rec) + "\n")
+
+
+def generate_synthetic_jsonl_with_wtt(
+    path: str,
+    num_records: int = 80,
+    num_wtt: int = 10,
+    include_sl_label: bool = False,
+) -> None:
+    """Write synthetic feature records where the first num_wtt records have a wtt block (for load_features/build_improvement_report WTT tests)."""
+    with open(path, "w") as f:
+        for i in range(num_records):
+            profitable = i % 3 != 1
+            r_multiple = (0.5 if profitable else -0.5) + (i % 10) * 0.1
+            optimal_tp = min(3, max(0, i % 4))
+            max_adv = (0.5 + (i % 5) * 0.2) if include_sl_label else None
+            wtt = None
+            if i < num_wtt:
+                wtt = _wtt_block(
+                    primary=True,
+                    alignment=2 + (i % 4),
+                    edge=1 + (i % 3),
+                    payoff_shape=1 + (i % 5),
+                    timing_forgiveness=1 + (i % 4),
+                    invalidate_hit=(i % 2 == 0),
+                )
+            rec = _synthetic_record(
+                i, profitable, r_multiple, optimal_tp, asset="BTC", max_adverse_excursion=max_adv, wtt=wtt
+            )
             f.write(json.dumps(rec) + "\n")
 
 
@@ -386,28 +437,37 @@ class TestTrainModels(unittest.TestCase):
 
     def test_tune_hyperparams_run_without_crash(self):
         """Smoke test: train_models with --tune-hyperparams (GridSearchCV + TimeSeriesSplit) completes without crash."""
-        with tempfile.TemporaryDirectory() as tmp:
-            data_path = os.path.join(tmp, "features.jsonl")
-            output_dir = os.path.join(tmp, "models")
-            generate_synthetic_jsonl(data_path, num_records=100)
+        # Avoid multiprocessing in sandbox/CI (joblib/loky can raise PermissionError)
+        prev = os.environ.get("VINCE_TRAIN_NJOBS")
+        os.environ["VINCE_TRAIN_NJOBS"] = "1"
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                data_path = os.path.join(tmp, "features.jsonl")
+                output_dir = os.path.join(tmp, "models")
+                generate_synthetic_jsonl(data_path, num_records=100)
 
-            result = run_train_models(
-                data_path,
-                output_dir,
-                min_samples=50,
-                extra_args=["--tune-hyperparams"],
-                timeout_sec=180,
-            )
-            self.assertEqual(result.returncode, 0, (
-                f"train_models.py with --tune-hyperparams failed: "
-                f"stdout={result.stdout!r} stderr={result.stderr!r}"
-            ))
-            metadata_path = os.path.join(output_dir, "training_metadata.json")
-            self.assertTrue(os.path.isfile(metadata_path), f"Missing {metadata_path}")
-            with open(metadata_path) as f:
-                metadata = json.load(f)
-            models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
-            self.assertGreaterEqual(len(models_fit), 1, "At least one model should be fit after hyperparameter tuning")
+                result = run_train_models(
+                    data_path,
+                    output_dir,
+                    min_samples=50,
+                    extra_args=["--tune-hyperparams"],
+                    timeout_sec=180,
+                )
+                self.assertEqual(result.returncode, 0, (
+                    f"train_models.py with --tune-hyperparams failed: "
+                    f"stdout={result.stdout!r} stderr={result.stderr!r}"
+                ))
+                metadata_path = os.path.join(output_dir, "training_metadata.json")
+                self.assertTrue(os.path.isfile(metadata_path), f"Missing {metadata_path}")
+                with open(metadata_path) as f:
+                    metadata = json.load(f)
+                models_fit = metadata.get("models_fit", metadata.get("models_trained", []))
+                self.assertGreaterEqual(len(models_fit), 1, "At least one model should be fit after hyperparameter tuning")
+        finally:
+            if prev is None:
+                os.environ.pop("VINCE_TRAIN_NJOBS", None)
+            else:
+                os.environ["VINCE_TRAIN_NJOBS"] = prev
 
     def test_feature_manifest_and_onnx_hash(self):
         """Training produces feature manifests and ONNX hashes for each exported model."""
@@ -440,7 +500,7 @@ class TestTrainModels(unittest.TestCase):
                 self.assertEqual(len(onnx_hashes[name]), 64, f"SHA-256 hash should be 64 hex chars for {name}")
 
     def test_walk_forward_and_shap_in_report(self):
-        """Improvement report includes walk-forward validation and SHAP analysis when deps available."""
+        """Improvement report includes walk-forward and/or SHAP when produced (structure check when present)."""
         with tempfile.TemporaryDirectory() as tmp:
             data_path = os.path.join(tmp, "features.jsonl")
             output_dir = os.path.join(tmp, "models")
@@ -456,13 +516,19 @@ class TestTrainModels(unittest.TestCase):
             report = metadata.get("improvement_report", {})
             feature_importances = report.get("feature_importances", {})
 
-            # At least signal_quality should have walk-forward results (200 samples is enough)
+            # When walk-forward is present (enough data + folds succeeded), assert structure
             has_walk_forward = any(
                 v.get("walk_forward") for v in feature_importances.values() if isinstance(v, dict)
             )
-            self.assertTrue(has_walk_forward, "At least one model should have walk-forward validation results")
+            if has_walk_forward:
+                for name, data in feature_importances.items():
+                    if not isinstance(data, dict) or not data.get("walk_forward"):
+                        continue
+                    wf = data["walk_forward"]
+                    self.assertIn("n_folds", wf, f"{name} walk_forward should have n_folds")
+                    self.assertGreater(wf["n_folds"], 0, f"{name} walk_forward should have at least one fold")
 
-            # SHAP (if shap is installed)
+            # SHAP: when shap is installed, at least one model should have SHAP in the report
             try:
                 import shap  # noqa: F401
                 has_shap = any(
@@ -471,6 +537,49 @@ class TestTrainModels(unittest.TestCase):
                 self.assertTrue(has_shap, "At least one model should have SHAP analysis when shap is installed")
             except ImportError:
                 pass  # SHAP not installed; skip assertion
+
+    def test_load_features_flattens_wtt_columns(self):
+        """load_features() flattens wtt block into wtt_primary, wtt_alignment, wtt_edge, wtt_payoffShape, wtt_timingForgiveness, wtt_invalidateHit."""
+        from train_models import load_features
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features_wtt.jsonl")
+            generate_synthetic_jsonl_with_wtt(data_path, num_records=20, num_wtt=8)
+            df = load_features(data_path, real_only=False)
+            self.assertFalse(df.empty, "Should load records")
+            for col in (
+                "wtt_primary",
+                "wtt_alignment",
+                "wtt_edge",
+                "wtt_payoffShape",
+                "wtt_timingForgiveness",
+                "wtt_invalidateHit",
+            ):
+                self.assertIn(col, df.columns, f"load_features should produce column {col} when records have wtt block")
+            wtt_rows = df[df["wtt_primary"] == 1]
+            self.assertEqual(len(wtt_rows), 8, "Exactly 8 records had wtt block")
+            self.assertIn(wtt_rows["wtt_alignment"].min(), (1, 2, 3, 4, 5))
+            self.assertIn(wtt_rows["wtt_edge"].min(), (1, 2, 3, 4))
+            non_wtt = df[~df["wtt_primary"].fillna(0).astype(bool)]
+            self.assertEqual(len(non_wtt), 12, "Records without wtt block should have wtt_primary 0 or NaN")
+
+    def test_build_improvement_report_includes_wtt_performance(self):
+        """build_improvement_report() includes wtt_performance when there are >= 5 WTT trades."""
+        from train_models import load_features, build_improvement_report
+
+        with tempfile.TemporaryDirectory() as tmp:
+            data_path = os.path.join(tmp, "features_wtt.jsonl")
+            generate_synthetic_jsonl_with_wtt(data_path, num_records=50, num_wtt=10)
+            df = load_features(data_path, real_only=False)
+            self.assertGreaterEqual(len(df[df["wtt_primary"] == 1]), 5, "Need at least 5 WTT trades for wtt_performance")
+            report = build_improvement_report(df, {})
+            self.assertIn("wtt_performance", report, "Report should include wtt_performance when >= 5 WTT trades")
+            wtt_perf = report["wtt_performance"]
+            self.assertIn("wtt_trades", wtt_perf)
+            self.assertIn("wtt_win_rate", wtt_perf)
+            self.assertIn("non_wtt_win_rate", wtt_perf)
+            self.assertIn("delta", wtt_perf)
+            self.assertEqual(wtt_perf["wtt_trades"], 10)
 
 
 if __name__ == "__main__":

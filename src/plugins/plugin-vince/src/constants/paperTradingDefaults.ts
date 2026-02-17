@@ -405,3 +405,97 @@ export const SIGNAL_EXPLANATIONS: Record<string, string> = {
   short_liquidations:
     "Short liquidation cascade - forced buying accelerating upside",
 };
+
+// ==========================================
+// WTT (What's the Trade) → Paper Bot
+// ==========================================
+
+/** Rubric strings from WTT pick (alignment, edge, payoff, timing). */
+export type WttRubricStrings = {
+  alignment: "direct" | "pure_play" | "exposed" | "partial" | "tangential";
+  edge: "undiscovered" | "emerging" | "consensus" | "crowded";
+  payoffShape: "max_asymmetry" | "high" | "moderate" | "linear" | "capped";
+  timingForgiveness: "very_forgiving" | "forgiving" | "punishing" | "very_punishing";
+};
+
+const WTT_ALIGNMENT_ORD: Record<string, number> = {
+  tangential: 1,
+  partial: 2,
+  exposed: 3,
+  pure_play: 4,
+  direct: 5,
+};
+const WTT_EDGE_ORD: Record<string, number> = {
+  crowded: 1,
+  consensus: 2,
+  emerging: 3,
+  undiscovered: 4,
+};
+const WTT_PAYOFF_ORD: Record<string, number> = {
+  capped: 1,
+  linear: 2,
+  moderate: 3,
+  high: 4,
+  max_asymmetry: 5,
+};
+const WTT_TIMING_ORD: Record<string, number> = {
+  very_punishing: 1,
+  punishing: 2,
+  forgiving: 3,
+  very_forgiving: 4,
+};
+
+/** Whether the paper bot is allowed to trade the daily WTT pick. Default off. Env: VINCE_PAPER_WTT_ENABLED */
+export function isWttEnabled(runtime: IAgentRuntime): boolean {
+  const v = runtime.getSetting?.("vince_paper_wtt_enabled");
+  return v === true || v === "true";
+}
+
+/** Map WTT rubric to signal strength/confidence for the paper bot (0–100). */
+export function wttRubricToSignal(rubric: WttRubricStrings): {
+  strength: number;
+  confidence: number;
+} {
+  const a = WTT_ALIGNMENT_ORD[rubric.alignment] ?? 2;
+  const e = WTT_EDGE_ORD[rubric.edge] ?? 2;
+  const p = WTT_PAYOFF_ORD[rubric.payoffShape] ?? 2;
+  const t = WTT_TIMING_ORD[rubric.timingForgiveness] ?? 2;
+  const strength = Math.min(100, Math.max(0, 50 + (a + e) * 10 + p * 2));
+  const confidence = Math.min(100, Math.max(0, 50 + (a + e) * 8 + t * 3));
+  return { strength: Math.round(strength), confidence: Math.round(confidence) };
+}
+
+/** WTT block for feature store (ordinals for ML). */
+export interface WttFeatureBlock {
+  primary: boolean;
+  ticker: string;
+  thesis: string;
+  alignment: number;
+  edge: number;
+  payoffShape: number;
+  timingForgiveness: number;
+  invalidateCondition?: string;
+  evThresholdPct?: number;
+}
+
+/** Build feature-store wtt block from WTT pick (rubric → ordinals). */
+export function wttPickToWttBlock(params: {
+  primary: boolean;
+  ticker: string;
+  thesis: string;
+  rubric: WttRubricStrings;
+  invalidateCondition?: string;
+  evThresholdPct?: number;
+}): WttFeatureBlock {
+  return {
+    primary: params.primary,
+    ticker: params.ticker,
+    thesis: params.thesis,
+    alignment: WTT_ALIGNMENT_ORD[params.rubric.alignment] ?? 2,
+    edge: WTT_EDGE_ORD[params.rubric.edge] ?? 2,
+    payoffShape: WTT_PAYOFF_ORD[params.rubric.payoffShape] ?? 2,
+    timingForgiveness: WTT_TIMING_ORD[params.rubric.timingForgiveness] ?? 2,
+    invalidateCondition: params.invalidateCondition,
+    evThresholdPct: params.evThresholdPct,
+  };
+}

@@ -40,6 +40,54 @@ import { PERSISTENCE_DIR } from "../constants/paperTradingDefaults";
 import { loadLatestGrokPulse } from "../utils/grokPulseParser";
 
 // ==========================================
+// WTT Invalidate Condition Parser (exported for tests)
+// ==========================================
+
+/**
+ * Parse WTT invalidate condition (e.g. "BTC < 65k", "above $180") and return true if exit price hit it.
+ * Only evaluates when condition references the same asset (case-insensitive ticker match).
+ * Exported for unit tests.
+ */
+export function parseWttInvalidateCondition(
+  asset: string,
+  exitPrice: number,
+  condition: string,
+): boolean {
+  const raw = condition.trim().toUpperCase();
+  const assetUpper = asset.toUpperCase();
+  const parseNum = (s: string): number | null => {
+    const m = s.replace(/\$/g, "").trim().match(/^([\d.]+)([KMB])?$/i);
+    if (!m) return null;
+    let n = parseFloat(m[1]);
+    if (m[2] === "K") n *= 1e3;
+    else if (m[2] === "M") n *= 1e6;
+    else if (m[2] === "B") n *= 1e9;
+    return n;
+  };
+  const ltMatch = raw.match(new RegExp(`${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*<\\s*([\\d.$KMB]+)`, "i"));
+  if (ltMatch) {
+    const threshold = parseNum(ltMatch[1].replace(/\$/g, ""));
+    return threshold != null && exitPrice < threshold;
+  }
+  const gtMatch = raw.match(new RegExp(`${assetUpper.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*>\\s*([\\d.$KMB]+)`, "i"));
+  if (gtMatch) {
+    const threshold = parseNum(gtMatch[1].replace(/\$/g, ""));
+    return threshold != null && exitPrice > threshold;
+  }
+  const aboveMatch = raw.match(/ABOVE\s*\$?([\d.KMB]+)/);
+  if (aboveMatch) {
+    const threshold = parseNum(aboveMatch[1]);
+    return threshold != null && exitPrice > threshold;
+  }
+  const belowMatch = raw.match(/BELOW\s*\$?([\d.KMB]+)/);
+  if (belowMatch) {
+    const threshold = parseNum(belowMatch[1]);
+    return threshold != null && exitPrice < threshold;
+  }
+  return false;
+}
+
+// ==========================================
 // Feature Record Types
 // ==========================================
 
@@ -296,6 +344,24 @@ export interface FeatureRecord {
   avoided?: { reason: string; timestamp: number };
   /** Grok daily pulse at decision time (F&G and Top Traders % from grok-auto-*.md). */
   grokPulse?: { fearGreed?: number; topTradersLongPct?: number };
+  /**
+   * What's the Trade: set when this trade was opened from the daily WTT pick.
+   * Ordinals for ML: alignment 1-5 (tangential→direct), edge 1-4 (crowded→undiscovered),
+   * payoffShape 1-5 (capped→max_asymmetry), timingForgiveness 1-4 (very_punishing→very_forgiving).
+   * invalidateHit computed on close when invalidateCondition is present.
+   */
+  wtt?: {
+    primary: boolean;
+    ticker: string;
+    thesis: string;
+    alignment: number;
+    edge: number;
+    payoffShape: number;
+    timingForgiveness: number;
+    invalidateCondition?: string;
+    invalidateHit?: boolean;
+    evThresholdPct?: number;
+  };
 }
 
 // ==========================================
@@ -391,7 +457,10 @@ export class VinceFeatureStoreService extends Service {
     }
 
     try {
-      // Ensure data directory exists
+      const overrideDataDir = this.runtime.getSetting?.("VINCE_FEATURE_STORE_DATA_DIR") as string | undefined;
+      if (overrideDataDir?.trim()) {
+        this.storeConfig = { ...this.storeConfig, dataDir: overrideDataDir.trim() };
+      }
       if (!fs.existsSync(this.storeConfig.dataDir)) {
         fs.mkdirSync(this.storeConfig.dataDir, { recursive: true });
       }
@@ -502,6 +571,7 @@ export class VinceFeatureStoreService extends Service {
     asset: string;
     signal: AggregatedSignal;
     execution?: Partial<TradeExecutionFeatures>;
+    wtt?: FeatureRecord["wtt"];
   }): Promise<string> {
     if (!this.storeConfig.enabled || !this.initialized) return "";
 
@@ -551,6 +621,7 @@ export class VinceFeatureStoreService extends Service {
               }),
             },
           }),
+        ...(params.wtt && { wtt: params.wtt }),
       };
 
       this.records.push(record);
@@ -760,10 +831,27 @@ export class VinceFeatureStoreService extends Service {
     // Derive ML labels
     record.labels = this.deriveLabels(record);
 
+    // WTT: compute invalidateHit if we have a condition for this asset
+    if (record.wtt?.invalidateCondition) {
+      record.wtt.invalidateHit = this.computeWttInvalidateHit(
+        record.asset,
+        outcome.exitPrice,
+        record.wtt.invalidateCondition,
+      );
+    }
+
     this.pendingOutcomes.delete(positionId);
     logger.debug(
       `[VinceFeatureStore] Outcome recorded for ${record.asset}: ${outcome.realizedPnl >= 0 ? "+" : ""}$${outcome.realizedPnl.toFixed(2)}`,
     );
+  }
+
+  private computeWttInvalidateHit(
+    asset: string,
+    exitPrice: number,
+    condition: string,
+  ): boolean {
+    return parseWttInvalidateCondition(asset, exitPrice, condition);
   }
 
   // ==========================================

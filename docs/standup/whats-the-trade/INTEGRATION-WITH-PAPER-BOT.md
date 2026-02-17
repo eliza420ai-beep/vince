@@ -1,6 +1,18 @@
 # What's the Trade ↔ Paper Bot & train_models.py
 
-**Short answer:** Yes. WTT logic and standup outputs can improve the paper trading bot and `train_models.py` in several concrete ways. Some need new feature-store fields and pipeline wiring; others are proxy features or rubric-driven analysis you can add incrementally.
+**Short answer:** Yes. WTT logic and standup outputs improve the paper trading bot and `train_models.py`. The full loop is **implemented**: WTT daily task writes a structured JSON sidecar; the paper bot can trade today’s pick (gated by `VINCE_PAPER_WTT_ENABLED`); the feature store records WTT rubric fields and `invalidateHit` on close; `train_models.py` uses WTT optional columns and reports a `wtt_performance` slice.
+
+---
+
+## What is implemented (shipped)
+
+| Component | What was done |
+|-----------|----------------|
+| **WTT daily task** | After the markdown report, the task runs LLM extraction to produce a typed **WttPick** (thesis, primaryTicker, primaryDirection, primaryInstrument, rubric, invalidateCondition, killConditions, alt*, evThresholdPct). Saved as `docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json` alongside the `.md`. |
+| **Feature store** | Optional **`wtt`** block on `FeatureRecord`: primary, ticker, thesis, alignment/edge/payoffShape/timingForgiveness (ordinals), invalidateCondition, invalidateHit, evThresholdPct. `recordDecision({ asset, signal, wtt })` accepts `wtt`. In **`recordOutcome()`**, when a record has `wtt.invalidateCondition`, the store computes **`invalidateHit`** (e.g. "BTC < 65k" vs exit price) and persists it. |
+| **Paper bot** | **`evaluateWttPick()`** runs at the start of `evaluateAndTrade()` when WTT is enabled. It reads today’s WTT JSON, maps ticker via **`normalizeWttTicker()`** (targetAssets), skips if already positioned or ineligible, builds an **AggregatedTradeSignal** from **`wttRubricToSignal(pick.rubric)`**, opens a paper trade, and calls **`recordMLFeatures(..., wttBlock)`** so the feature store gets the `wtt` block. Gated by **`VINCE_PAPER_WTT_ENABLED`** (env) or **`vince_paper_wtt_enabled`** (character). Default: off. |
+| **train_models.py** | **`load_features()`** flattens **`wtt_*`** (wtt_primary, wtt_alignment, wtt_edge, wtt_payoffShape, wtt_timingForgiveness, wtt_invalidateHit). These are in **`OPTIONAL_FEATURE_COLUMNS`**. **`CANDIDATE_SIGNAL_FACTORS`** includes "WTT alignment" and "WTT edge". **`build_improvement_report()`** adds a **`wtt_performance`** slice when there are ≥5 WTT trades: wtt_win_rate, non_wtt_win_rate, delta, and correlations of each rubric dimension with `label_profitable`. |
+| **Config / env** | **paperTradingDefaults.ts**: `isWttEnabled()`, `wttRubricToSignal()`, `wttPickToWttBlock()`, WTT strength/confidence defaults. **.env.example**: `# VINCE_PAPER_WTT_ENABLED=true`. **Vince character**: `vince_paper_wtt_enabled` can be set from env. |
 
 ---
 
@@ -18,9 +30,9 @@ WTT does not currently write into the feature store. The link is: **when a trade
 
 ## 2. Concrete ways to use WTT logic
 
-### A. Add WTT-sourced fields to the feature store (when WTT drives a trade)
+### A. Add WTT-sourced fields to the feature store (when WTT drives a trade) — **implemented**
 
-If you ever route WTT output into a paper trade (e.g. “today’s WTT pick” or “trade the primary expression”), the feature record should carry WTT context so training can see it:
+When the paper bot opens a trade from today's WTT pick (e.g. “today’s WTT pick” or “trade the primary expression”), the feature record carries WTT context so training can see it:
 
 - **`wtt_primary`** (boolean): this trade was the WTT primary expression.
 - **`wtt_alignment`**: Direct | Pure-play | Exposed | Partial | Tangential (or ordinal 1–5).
@@ -29,7 +41,7 @@ If you ever route WTT output into a paper trade (e.g. “today’s WTT pick” o
 - **`wtt_timing_forgiveness`**: Very forgiving → Very punishing (or ordinal).
 - **`wtt_invalidate_condition`** (string): e.g. `"BTC < 65k"` for later checks.
 
-**train_models.py:** Add these to `OPTIONAL_FEATURE_COLUMNS` (or ordinal variants). Use them in Signal Quality and Position Sizing when present. In the improvement report, add a slice: “WTT-sourced trades: which rubric dimension correlated most with profitable / higher rMultiple?”
+**train_models.py:** Implemented: these are in `OPTIONAL_FEATURE_COLUMNS` as `wtt_primary`, `wtt_alignment`, `wtt_edge`, `wtt_payoffShape`, `wtt_timingForgiveness`, `wtt_invalidateHit`. The improvement report includes a `wtt_performance` slice (win rate vs non-WTT, plus rubric-dimension correlations with profitability) when ≥5 WTT trades exist.
 
 ### B. Proxy “edge” and “alignment” from existing data (no WTT pipeline yet)
 
@@ -48,18 +60,18 @@ WTT hard gates (thesis contradiction, liquidity, time mismatch) map to bot/featu
 - **Liquidity:** Not in the feature store today. Adding spread or depth (e.g. `market_bidAskSpread`, order-book imbalance) would help both live risk and ML. `train_models.py` already has `CANDIDATE_SIGNAL_FACTORS` for `market_bidAskSpread` / `market_bookImbalance` — populating these when available would let the model learn liquidity vs outcome.
 - **Thesis contradiction:** Only relevant when we have a stated thesis (e.g. WTT output). Then we could store “thesis direction” and “signal direction” and flag contradiction as a feature or a pre-trade gate.
 
-### D. Invalidate conditions → outcome labels
+### D. Invalidate conditions → outcome labels — **implemented**
 
 WTT’s “invalidate condition” (e.g. “lose above $180”, “dies if BTC &lt; $65k”) could be turned into a label after close:
 
-- Store `wtt_invalidate_condition` at open (when WTT-sourced).
-- At close, compute **`invalidate_condition_hit`** (boolean): did price/level cross the condition?
-- Use as an extra label: “we had a clear invalidate and it was hit” → good exit or missed exit; “we didn’t have one” vs “we had one and it wasn’t hit” → different learning signals. train_models could use this as an auxiliary target or filter (e.g. analyze profitable rate when invalidate was hit vs not).
+- The feature store stores `wtt.invalidateCondition` at open (when WTT-sourced).
+- At close, **`recordOutcome()`** computes **`wtt.invalidateHit`** (boolean) by parsing the condition (e.g. "TICKER &lt; X", "TICKER &gt; X") and comparing to exit price.
+- train_models flattens `wtt_invalidateHit` and uses it in the optional feature set; the improvement report's WTT slice can be used to analyze profitable rate when invalidate was hit vs not.
 
-### E. Improvement report and CANDIDATE_SIGNAL_FACTORS
+### E. Improvement report and CANDIDATE_SIGNAL_FACTORS — **implemented**
 
-- **CANDIDATE_SIGNAL_FACTORS** (train_models.py): Add entries for WTT-derived fields when you add them, e.g. “WTT alignment (when WTT-sourced)”, “WTT edge (when WTT-sourced)”, “Invalidate condition hit”.
-- **Improvement report:** Add a subsection when `wtt_primary` (or similar) is present: rubric dimension vs profitability, and suggest “prefer WTT picks with Undiscovered/Emerging edge” or “avoid when timing is Very punishing” if the data supports it.
+- **CANDIDATE_SIGNAL_FACTORS** (train_models.py): Includes "WTT alignment" (hint: `wtt_alignment`) and "WTT edge" (hint: `wtt_edge`).
+- **Improvement report:** When `wtt_primary` is present and there are ≥5 WTT trades, the report has a **`wtt_performance`** subsection: wtt_win_rate, non_wtt_win_rate, delta, and correlations of `wtt_alignment`, `wtt_edge`, `wtt_payoffShape`, `wtt_timingForgiveness` with `label_profitable`.
 
 ### F. Avoided decisions and “should we trade?”
 
@@ -70,18 +82,17 @@ WTT stress-test (“what would make this lose even if thesis is right?”) is a 
 
 ---
 
-## 3. Suggested order of implementation
+## 3. Implementation status
 
 1. **No WTT pipeline yet**  
    - Add liquidity/edge-like proxies to the feature store and `OPTIONAL_FEATURE_COLUMNS` / `CANDIDATE_SIGNAL_FACTORS` (e.g. bid-ask spread, book imbalance, IV percentile if available).  
    - Run train_models and improvement report; see if these help Signal Quality or sizing.
 
-2. **WTT as daily idea, not yet executed by bot**  
-   - Persist WTT standup output in a structured form (e.g. JSON: primary, alt, rubric, invalidate).  
-   - When you later add “trade WTT primary” or “trade WTT alt,” pass that context into the feature store (wtt_primary, wtt_alignment, wtt_edge, etc.) and add optional columns in train_models + improvement report.
+2. **WTT as daily idea, not yet executed by bot** — **done**  
+   - WTT standup output is persisted as structured JSON (`docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json`) with primary, alt, rubric, invalidate, etc.
 
-3. **Full loop**  
-   - Paper trade WTT recommendations when they exist; store invalidate condition; compute `invalidate_condition_hit` on close; use WTT dimensions and invalidate hit in training and report.
+3. **Full loop** — **done**  
+   - Paper bot trades today's WTT pick when `VINCE_PAPER_WTT_ENABLED=true` (or `vince_paper_wtt_enabled` in character). Feature store records the `wtt` block and computes `invalidateHit` on close. train_models uses WTT optional columns and the improvement report includes the `wtt_performance` slice.
 
 ---
 

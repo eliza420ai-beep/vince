@@ -31,17 +31,20 @@
 
 ---
 
-## What's New in v2.8
+## What's New in V3.0 — Renaissance Fund 3.0
 
-**OpenClaw** gets a clear home: root [OPENCLAW.md](OPENCLAW.md) orients to `openclaw-agents/`, `vault/`, `skills/`, `tasks/`. **Sentinel** can guide OpenClaw and humans to the right directories. Standup moves under **docs/standup/**; IDEAS and SEARCH live in docs; env and CLAUDE.md are cleaned up.
+Every trade expressible onchain. The daily **What's the Trade** thesis now constrains picks to Hyperliquid perps (4 core + 34 HIP-3 assets). The full WTT → Paper Bot → Feature Store → ML loop is live.
 
 | Focus | Summary |
 |:---|:---|
-| **OpenClaw** | [OPENCLAW.md](OPENCLAW.md) + READMEs in openclaw-agents, vault, skills, tasks. Sentinel knows where OpenClaw works and can assist. |
-| **Standup & docs** | [docs/standup/](docs/standup/) for deliverables; IDEAS and SEARCH in docs; build-test folders removed. |
-| **Env & CLAUDE** | .env.example grouped by agent; CLAUDE.md fully updated; optional reorder-env.js. |
+| **HIP-3 only picks** | Thesis, narrative, and extraction prompts enforce onchain-only tickers. Hard gate rejects non-HIP-3 primary picks (falls back to alt). `ECHO_WTT_HIP3_ONLY=true` (default). |
+| **WTT → Paper Bot** | Daily thesis generates a structured JSON pick; paper bot auto-evaluates, opens trades with WTT rubric metadata (alignment, edge, payoff, timing). |
+| **Feature store + ML** | WTT rubric ordinals stored per trade. `invalidateHit` computed on close. `wtt_*` columns in ML training; improvement report includes `wtt_performance` when 5+ WTT trades. |
+| **Robinhood as context** | Offchain stock data stays (gated by `ECHO_WTT_ROBINHOOD_ENABLED=true`) but labeled "context only" — LLM sees IREN is hot, expresses the thesis via SEMIS or AMD. |
+| **Hyperliquid adapter** | Expanded from 3 tickers to full 38-asset universe (live funding, OI, volume for all HIP-3 + core). |
+| **Env vars** | `ECHO_WTT_HIP3_ONLY`, `ECHO_WTT_ROBINHOOD_ENABLED`, `VINCE_PAPER_WTT_ENABLED`. |
 
-**Previous releases:** [v2.7](docs/RELEASE_v2.7.md) · [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
+**Previous releases:** [v2.8](docs/RELEASE_v2.8.md) · [v2.7](docs/RELEASE_v2.7.md) · [v2.5.0](docs/RELEASE_v2.5.0.md) · [Changelog](CHANGELOG.md)
 
 ---
 

@@ -98,6 +98,8 @@ export const vinceCharacter: Character = {
     vince_paper_aggressive: process.env.VINCE_PAPER_AGGRESSIVE === "true",
     /** Paper trading: which assets to trade. "BTC" = BTC only; "BTC,ETH,SOL,HYPE" or unset = all. Set VINCE_PAPER_ASSETS=BTC to focus on BTC. */
     vince_paper_assets: process.env.VINCE_PAPER_ASSETS || "BTC,ETH,SOL,HYPE",
+    /** Paper trading: trade the daily What's the Trade pick (WTT JSON sidecar). Set VINCE_PAPER_WTT_ENABLED=true to enable. */
+    vince_paper_wtt_enabled: process.env.VINCE_PAPER_WTT_ENABLED === "true",
   },
   knowledge: [
     // VINCE = CDO: objective data — options, perps, prices, market intelligence
