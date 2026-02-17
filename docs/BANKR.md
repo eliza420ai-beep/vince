@@ -90,12 +90,112 @@ Both support access, dev funding, API spend; Bankr is agent-as-product; BAGS is 
 
 ---
 
+## VINCE Plugin Implementation
+
+Two plugins wrap the Bankr stack. Both live in `src/plugins/`; **Otaku** loads `plugin-bankr` by default.
+
+### plugin-bankr (Agent API — custodial)
+
+| What | Detail |
+|:-----|:-------|
+| **Auth** | `BANKR_API_KEY` (from [bankr.bot/api](https://bankr.bot/api)) |
+| **Execution** | Bankr executes transactions for you (custodial wallet) |
+| **Actions (10)** | `BANKR_AGENT_PROMPT` · `BANKR_USER_INFO` · `BANKR_JOB_STATUS` · `BANKR_AGENT_CANCEL_JOB` · `BANKR_AGENT_SIGN` · `BANKR_AGENT_SUBMIT` · `BANKR_ORDER_QUOTE` · `BANKR_ORDER_LIST` · `BANKR_ORDER_STATUS` · `BANKR_ORDER_CANCEL` |
+| **Services (2)** | `BankrAgentService` (Agent API calls) · `BankrOrdersService` (External Orders API) |
+| **Providers (1)** | `bankrProvider` — exposes wallets, positions, orders for cross-agent context |
+| **Loaded by** | **Otaku** |
+
+**API endpoints used:**
+
+- Agent API (`https://api.bankr.bot`): `POST /agent/prompt`, `GET /agent/job/{jobId}`, `POST /agent/job/{jobId}/cancel`, `GET /agent/me`, `POST /agent/sign`, `POST /agent/submit`
+- External Orders API (`https://api.bankr.bot/trading/order`): `POST /quote`, `POST /submit`, `POST /list`, `GET /{orderId}`, `POST /cancel/{orderId}`
+
+### plugin-bankr-sdk (Own-wallet — x402)
+
+| What | Detail |
+|:-----|:-------|
+| **Auth** | `BANKR_PRIVATE_KEY` (0x-prefixed hex; your own wallet) |
+| **Execution** | SDK returns transaction data; you sign and submit yourself |
+| **Actions (1)** | `BANKR_SDK_PROMPT` |
+| **Services (1)** | `BankrSdkService` — wraps `@bankr/sdk` `BankrClient` |
+| **Providers** | None |
+| **Payment** | x402 micropayments ($0.01 USDC per request on Base) |
+| **Loaded by** | Not loaded by any agent yet |
+
+### When to use which
+
+| Scenario | Use |
+|:---------|:----|
+| Interactive DeFi through Otaku (swap, bridge, limit, perps, NFT, Polymarket) | `plugin-bankr` — Bankr executes, no wallet management |
+| Own-wallet control, fine-grained tx signing, x402 payments | `plugin-bankr-sdk` — you sign, you submit |
+| Token launching | `plugin-bankr` via `BANKR_AGENT_PROMPT` (simplest path) |
+| Programmatic DCA/TWAP/limit without AI overhead | `plugin-bankr` External Orders API actions (`BANKR_ORDER_QUOTE` → `BANKR_ORDER_LIST`) |
+
+---
+
+## Token Launching via API
+
+**Can we launch tokens programmatically?** Yes — already supported through both plugins. No new code needed for the basic flow.
+
+### How it works
+
+[Bankr token launching](https://docs.bankr.bot/token-launching/overview) uses the same natural-language prompt system that `BANKR_AGENT_PROMPT` / `BANKR_SDK_PROMPT` wrap. There is no separate REST endpoint for token deployment — it flows through the prompt API.
+
+**Prompt examples:**
+```
+"deploy a token called MyAgent with symbol AGENT on base"
+"launch a token called CoolBot on solana"
+"deploy a token with 20% vaulted for 30 days on base"
+```
+
+### Supported features (via prompt)
+
+| Feature | Base | Solana |
+|:--------|:-----|:-------|
+| Token deploy | Yes | Yes |
+| Vaulting (lock supply %) | Yes | Yes |
+| Vesting (time-based release) | Yes | Yes |
+| Fee splitting (route fees to collaborators) | Yes | Yes |
+| Claiming accumulated fees | Yes | Yes |
+
+### Fee structure
+
+**Base:** 1% fee LP; deployer gets 60%, Bankr gets 40%. Fees accumulate in your token + WETH.
+
+**Solana — bonding curve phase:** 1% platform fee (Bankr) + 0.5% creator fee (your wallet).
+**Solana — after migration to CPMM pool:** 50% LP locked to creator, 40% to Bankr, 10% burned. Ongoing trading fees from locked LP.
+
+### Token supply
+
+- **Base:** Fixed 100B tokens (not mintable after deploy)
+- **Solana:** Configurable supply, default 6 decimals
+
+### Deployment limits
+
+| User type | Tokens/day |
+|:----------|:-----------|
+| Standard | 1 |
+| Bankr Club | 10 |
+
+Gas is sponsored within limits. Extra launches require paying gas (~0.02 SOL on Solana).
+
+### Recommendation
+
+**Use `plugin-bankr` (Agent API) through Otaku.** Token launching already works via `BANKR_AGENT_PROMPT` — Otaku prompts Bankr, Bankr handles creation + LP + fee routing. No need for the manual web UI at [bankr.bot/launches](https://bankr.bot/launches).
+
+**Optional next step:** A dedicated `BANKR_DEPLOY_TOKEN` action wrapping `BANKR_AGENT_PROMPT` with structured params (name, symbol, chain, vault %, vest days, fee split addresses) for better validation, cleaner inter-agent handoff (VINCE signal → Otaku deploy), and structured response parsing.
+
+---
+
 ## Links
 
 | What | URL |
 |:-----|:----|
 | Bankr | https://bankr.bot/ |
 | Bankr API / key | https://bankr.bot/api · https://bankr.bot/#api |
+| Bankr Docs | https://docs.bankr.bot/ |
+| Token Launching Docs | https://docs.bankr.bot/token-launching/overview |
+| Token Launches (web UI) | https://bankr.bot/launches |
 | Agent API (Notion) | https://www.notion.so/Agent-API-2e18e0f9661f80cb83ccfc046f8872e3 |
 | OpenClaw skills | https://github.com/BankrBot/openclaw-skills |
 | Tokenized agents | https://github.com/BankrBot/tokenized-agents |

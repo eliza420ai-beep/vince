@@ -305,6 +305,72 @@ What we already have that matches these repos:
 
 ---
 
+## 4. Token Launching Analysis (Feb 2026)
+
+### Can we launch tokens via the API?
+
+**Yes.** [Bankr token launching](https://docs.bankr.bot/token-launching/overview) uses the same natural-language prompt system our plugins already wrap. No separate REST endpoint exists — it all flows through `POST /agent/prompt`.
+
+### What we have today
+
+| Plugin | Action | How token launch works |
+|--------|--------|----------------------|
+| `plugin-bankr` | `BANKR_AGENT_PROMPT` | Prompt → Bankr executes deploy + LP + fee setup (custodial) |
+| `plugin-bankr-sdk` | `BANKR_SDK_PROMPT` | Prompt → SDK returns tx data → you sign + submit |
+
+Both support prompts like:
+```
+"deploy a token called MyAgent with symbol AGENT on base"
+"launch a token on solana with 20% vaulted for 30 days"
+```
+
+### Token launching specifics
+
+| Feature | Base | Solana |
+|---------|------|--------|
+| Deploy | Yes | Yes |
+| Vaulting (lock supply %) | Yes | Yes |
+| Vesting (time-based release) | Yes | Yes |
+| Fee splitting | Yes | Yes |
+| Claiming fees | Yes | Yes |
+| Supply | Fixed 100B (not mintable) | Configurable, default 6 decimals |
+
+**Fee structure — Base:** 1% fee LP; deployer 60% / Bankr 40%. Accumulates in token + WETH.
+
+**Fee structure — Solana:**
+- Bonding curve: 1% platform (Bankr) + 0.5% creator
+- After CPMM migration: 50% LP to creator, 40% to Bankr, 10% burned; ongoing trading fees from locked LP
+
+**Limits:** 1 token/day (standard), 10/day (Bankr Club). Gas sponsored within limits.
+
+### Do we need [bankr.bot/launches](https://bankr.bot/launches)?
+
+**No.** The web UI is for manual browser-based launching. Our agents do the same thing programmatically via `BANKR_AGENT_PROMPT`. The API path is strictly better for automation.
+
+### Recommendation
+
+**Use `plugin-bankr` (Agent API) through Otaku.** Already works, zero new code needed.
+
+**Optional enhancement:** A dedicated `BANKR_DEPLOY_TOKEN` action that wraps `BANKR_AGENT_PROMPT` with:
+- Structured params: name, symbol, chain, vault %, vest days, fee-split addresses
+- Input validation before hitting the API
+- Structured response parsing (deployed token address, LP info, fee config)
+- Cleaner inter-agent handoff (VINCE signal → Otaku deploy)
+
+### Plugin comparison for token launching
+
+| Aspect | plugin-bankr | plugin-bankr-sdk |
+|--------|-------------|-----------------|
+| Complexity | Prompt and done | Prompt → sign → submit yourself |
+| Wallet | Bankr custodial | Your own wallet |
+| Cost | Free (API key) | $0.01 USDC/request (x402) |
+| Best for | Fire-and-forget deploys | Control over signing |
+| Loaded by | Otaku (default) | No agent yet |
+
+**Winner for token launching: `plugin-bankr`.** Custodial execution is fine for a deploy — you want Bankr to handle the transaction. Own-wallet control (SDK) matters more for ongoing trading, not one-time deploys.
+
+---
+
 ## Conclusion
 
 The Trading Engine API is the **killer feature** we should integrate. It enables:
@@ -312,5 +378,7 @@ The Trading Engine API is the **killer feature** we should integrate. It enables
 2. **TWAP** - Institutional-grade execution for larger orders
 3. **Programmatic rebalancing** - Scheduled portfolio adjustments
 4. **Lower costs** - No $0.10/request for routine operations
+
+Token launching is **already covered** by `BANKR_AGENT_PROMPT` — no new integration needed, just an optional structured action wrapper for cleaner UX and inter-agent handoff.
 
 Combined with our existing Agent API integration for interactive trading, VINCE would have the most complete BANKR integration in the elizaOS ecosystem.

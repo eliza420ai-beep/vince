@@ -1023,14 +1023,14 @@ export const vincePlugin: Plugin = {
   },
 };
 
-/** Plugin variant without X API — use for Solus so only VINCE uses X_BEARER_TOKEN (avoids rate-limit conflict). */
+/** Plugin variant without X API or real-time WebSockets — use for Solus so only VINCE uses X_BEARER_TOKEN (avoids rate-limit conflict) and only one Binance liquidation WebSocket runs. */
 export const vincePluginNoX: Plugin = {
   ...vincePlugin,
   name: "plugin-vince-no-x",
   description:
-    vincePlugin.description + " No X API (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
+    vincePlugin.description + " No X API or Binance WS (Solus). For X/CT research use Echo; VINCE uses X only as sentiment data for the paper bot when enabled.",
   services: (vincePlugin.services as (typeof Service)[]).filter(
-    (s) => s !== VinceXResearchService && s !== VinceXSentimentService,
+    (s) => s !== VinceXResearchService && s !== VinceXSentimentService && s !== VinceBinanceLiquidationService,
   ),
   actions: vincePlugin.actions!.filter((a) => a.name !== "VINCE_X_RESEARCH"),
 };
