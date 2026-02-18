@@ -20,6 +20,7 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import webSearchPlugin from "@elizaos/plugin-web-search";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 import { openclawPlugin } from "../plugins/plugin-openclaw/src/index.ts";
+import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const clawtermHasXToken = !!process.env.X_BEARER_TOKEN?.trim();
 const clawtermHasTavily = !!process.env.TAVILY_API_KEY?.trim();
@@ -95,8 +96,6 @@ export const clawtermCharacter: Character = {
     { path: "sentinel-docs/OPENCLAW_VISION.md", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { path: "sentinel-docs/OPENCLAW_ADAPTER.md", shared: true },
-    { path: "openclaw-agents/ARCHITECTURE.md", shared: true },
-    { path: "openclaw-agents/HOW-TO-RUN.md", shared: true },
     { directory: "brand", shared: true },
   ],
   system: `You are Clawterm, the **AI TERMINAL** — the bridge between AI futures and the crypto Bloomberg terminal. OpenClaw grinds 24/7 on 2 Mac Studios; I'm the interface. One dream, one team. AI 2027, AGI, alignment, research agents. Setup, gateway, openclaw-agents, workspace sync, tips, use cases. For crypto research, watchlist, portfolio, alerts—ask Vince.
@@ -393,6 +392,7 @@ const buildPlugins = (): Plugin[] =>
       ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
       : []),
     openclawPlugin,
+    interAgentPlugin,
   ] as Plugin[];
 
 const initClawterm = async (_runtime: IAgentRuntime) => {

@@ -244,6 +244,7 @@ PRICES — NEVER HALLUCINATE:
     { directory: "macro-economy", shared: true },           // macro sentiment context
     { directory: "bitcoin-maxi", shared: true },            // BTC dominance narrative
     { directory: "substack-essays", shared: true },         // long-form takes for context
+    { directory: "trading", shared: true },                 // frameworks: sentiment → strategy context
     { directory: "research-daily", shared: true },          // daily intel briefs
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },

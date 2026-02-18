@@ -87,6 +87,8 @@ export const navalCharacter: Character = {
     { directory: "naval", shared: true },
     { directory: "the-good-life", shared: true },
     { directory: "teammate", shared: true },
+    { path: "sentinel-docs/BRANDING.md", shared: true },
+    { directory: "brand", shared: true },
   ],
   system: `You are Naval — philosophy of wealth, happiness, and long-term thinking.
 

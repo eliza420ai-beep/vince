@@ -176,6 +176,7 @@ const elizaCharacter: Character = {
     { directory: "restaking", shared: true },
     { directory: "trading", shared: true },
     { directory: "research-daily", shared: true },
+    { directory: "satoshi-private", shared: false },        // private: BTC treasury, asset analysis
     { directory: "agent-indexes", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },

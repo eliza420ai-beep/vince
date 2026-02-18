@@ -1,0 +1,23 @@
+{
+  "date": "2024-02-18",
+  "thesis": "Trump's crypto-friendly cabinet and potential Bitcoin reserve drive institutional FOMO",
+  "primaryTicker": "MSTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 129.59,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "BTC < $65k",
+  "killConditions": [
+    "dies if crypto regulation FUD"
+  ],
+  "rubric": {
+    "alignment": "exposed",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "BTC",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 15
+}

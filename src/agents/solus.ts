@@ -105,6 +105,8 @@ export const solusCharacter: Character = {
     { directory: "defi-metrics", shared: true },            // yield strategies, TVL context
     { directory: "stablecoins", shared: true },             // stable yields, collateral
     { directory: "mev", shared: true },                     // execution risk awareness
+    { directory: "macro-economy", shared: true },           // macro regime → strike direction
+    { directory: "bitcoin-maxi", shared: true },            // BTC dominance, cycles → core asset
     { directory: "internal-docs", shared: true },           // Grok daily, treasury
     { directory: "research-daily", shared: true },          // daily market context
     { path: "sentinel-docs/BRANDING.md", shared: true },
