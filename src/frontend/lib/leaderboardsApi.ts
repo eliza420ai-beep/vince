@@ -210,6 +210,7 @@ export interface LeaderboardsResponse {
   hip3: HIP3LeaderboardSection | null;
   hlCrypto: HLCryptoLeaderboardSection | null;
   memes: MemesLeaderboardSection | null;
+  memesBase?: MemesLeaderboardSection | null;
   meteora: MeteoraLeaderboardSection | null;
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;

@@ -259,6 +259,7 @@ export interface LeaderboardsResponse {
   hip3: HIP3LeaderboardSection | null;
   hlCrypto: HLCryptoLeaderboardSection | null;
   memes: MemesLeaderboardSection | null;
+  memesBase: MemesLeaderboardSection | null;
   meteora: MeteoraLeaderboardSection | null;
   news: NewsLeaderboardSection | null;
   digitalArt: DigitalArtLeaderboardSection | null;
@@ -505,6 +506,60 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
     result.leftcurve = { title: "Left Curve (MandoMinutes)", headlines: leftcurve };
   }
   return result;
+}
+
+async function buildMemesBaseSection(runtime: IAgentRuntime): Promise<MemesLeaderboardSection | null> {
+  const dexscreener = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
+  if (!dexscreener) return null;
+
+  const baseSection = await safe("Memes BASE", async () => {
+    const baseTokens = dexscreener.getTokensByChain("base");
+    if (baseTokens.length === 0) return null;
+
+    const hot = baseTokens.filter((t) => t.priceChange24h >= 21).slice(0, 10);
+    const ape = baseTokens.filter((t) => t.verdict === "APE").slice(0, 5);
+    const watch = baseTokens.filter((t) => t.verdict === "WATCH").slice(0, 5);
+    const avoid = baseTokens.filter((t) => t.verdict === "AVOID").slice(0, 5);
+    const { mood, summary } = dexscreener.getMarketMoodForTokens(baseTokens);
+
+    const toRow = (
+      t: {
+        symbol: string;
+        price?: number;
+        priceUsd?: number;
+        priceChange24h?: number;
+        volume24h?: number;
+        volumeLiquidityRatio?: number;
+        verdict?: string;
+        marketCap?: number;
+      },
+      i: number,
+    ): LeaderboardRow => ({
+      rank: i + 1,
+      symbol: t.symbol ?? "—",
+      price: t.price ?? t.priceUsd,
+      change24h: t.priceChange24h,
+      volume: t.volume24h,
+      volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
+      extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
+      verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
+      volumeLiquidityRatio: t.volumeLiquidityRatio,
+      marketCap: t.marketCap,
+    });
+
+    const result: MemesLeaderboardSection = {
+      title: "Memes (BASE)",
+      hot: hot.map((t, i) => toRow(t, i)),
+      ape: ape.map((t, i) => toRow(t, i)),
+      mood: mood ?? "unknown",
+      moodSummary: summary ?? "BASE meme scanner active.",
+    };
+    if (watch.length > 0) result.watch = watch.map((t, i) => toRow(t, i));
+    if (avoid.length > 0) result.avoid = avoid.map((t, i) => toRow(t, i));
+    return result;
+  });
+
+  return baseSection ?? null;
 }
 
 function toMeteoraPoolRow(
@@ -1137,10 +1192,11 @@ export async function buildLeaderboardsResponse(
 ): Promise<LeaderboardsResponse> {
   const now = Date.now();
 
-  const [hip3, hlCrypto, memes, meteora, news, digitalArt, more] = await Promise.all([
+  const [hip3, hlCrypto, memes, memesBase, meteora, news, digitalArt, more] = await Promise.all([
     buildHIP3Section(runtime),
     buildHLCryptoSection(runtime),
     buildMemesSection(runtime),
+    buildMemesBaseSection(runtime),
     buildMeteoraSection(runtime),
     buildNewsSection(runtime),
     buildDigitalArtSection(runtime),
@@ -1152,6 +1208,7 @@ export async function buildLeaderboardsResponse(
     hip3,
     hlCrypto,
     memes,
+    memesBase,
     meteora,
     news,
     digitalArt,

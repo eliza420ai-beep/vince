@@ -538,7 +538,7 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
               <div className="space-y-8">
                 <div className="rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border border-border/50 px-4 py-3">
                   <p className="text-sm font-medium text-foreground/90">
-                    Memes (Solana), Meteora LP, and Watchlist — memetics-focused views.
+                    Memes (Solana), Memes (BASE), Meteora LP, and Watchlist — memetics-focused views.
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {leaderboardsData.updatedAt != null
@@ -636,6 +636,108 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                                     </tr>
                                   ))}
                                   {(leaderboardsData.memes.watch?.length ?? 0) === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      </DashboardCard>
+                    );
+                  })()}
+
+                  {/* Memes (BASE): same layout as Solana */}
+                  {leaderboardsData.memesBase && (() => {
+                    const section = leaderboardsData.memesBase!;
+                    const hot = section.hot ?? [];
+                    const ape = section.ape ?? [];
+                    const apeSymbols = new Set(ape.map((r) => r.symbol));
+                    const hotOnly = hot.filter((r) => !apeSymbols.has(r.symbol));
+                    const formatMcap = (v: number) =>
+                      v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v.toFixed(0)}`;
+                    const formatChange = (n: number) => (n >= 0 ? `+${n.toFixed(1)}%` : `${n.toFixed(1)}%`);
+
+                    return (
+                      <DashboardCard title={section.title} className="lg:col-span-2">
+                        <div className="rounded-lg bg-muted/40 dark:bg-muted/20 px-4 py-2.5 mb-5">
+                          <p className="text-sm font-medium text-foreground/95">{section.moodSummary ?? ""}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Mood: {section.mood ?? "—"}</p>
+                        </div>
+                        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                              <Flame className="w-3.5 h-3.5" /> Hot (≥21%)
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {hotOnly.slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right">
+                                        <span
+                                          className={cn(
+                                            "tabular-nums font-medium",
+                                            (r.change24h ?? 0) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400",
+                                          )}>
+                                          {formatChange(r.change24h ?? 0)}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {hotOnly.length === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                              Ape
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {ape.slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                        {r.marketCap != null && formatMcap(r.marketCap)}
+                                        {r.volumeLiquidityRatio != null && ` · ${r.volumeLiquidityRatio.toFixed(1)}x`}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {ape.length === 0 && (
+                                    <tr>
+                                      <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                              Watch
+                            </div>
+                            <div className="rounded-md border border-border/60 overflow-hidden">
+                              <table className="w-full text-sm">
+                                <tbody>
+                                  {(section.watch ?? []).slice(0, 6).map((r) => (
+                                    <tr key={r.symbol} className="border-b border-border/40 last:border-0 hover:bg-muted/30">
+                                      <td className="py-2 px-3 font-medium">{r.symbol}</td>
+                                      <td className="py-2 px-3 text-right text-muted-foreground tabular-nums">
+                                        {r.volumeLiquidityRatio != null ? `${r.volumeLiquidityRatio.toFixed(1)}x` : "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                  {(section.watch?.length ?? 0) === 0 && (
                                     <tr>
                                       <td colSpan={2} className="py-3 px-3 text-muted-foreground text-sm">—</td>
                                     </tr>

@@ -12,8 +12,7 @@
  * - Viral potential detection for 5-10x plays
  *
  * Uses DexScreener API (FREE)
- * Solana only (Base abandoned: DexScreener Base feeds consistently failed to return data).
- * - Solana: token-boosts/top/v1 (keep only solana)
+ * Solana: token-boosts/top/v1. Base: token-boosts, community-takeovers, ads (best-effort; Solana unaffected if Base fails).
  * Includes circuit breaker and retry logic for resilience
  */
 
@@ -25,6 +24,7 @@ import {
   CACHE_TTLS,
   TRACTION_THRESHOLDS,
   AI_MEME_CRITERIA,
+  BASE_PRIORITY_PAIR_IDS,
   type LifecycleStage,
   type EntryAction,
   type MarketMood,
@@ -89,6 +89,10 @@ const AI_KEYWORDS = [
   "inference",
   "tensor",
   "model",
+  // AI agents / research (e.g. ConwayResearch, OpenClaw)
+  "conway",
+  "openclaw",
+  "claw",
 ];
 
 // ============================================
@@ -428,8 +432,13 @@ export class VinceDexScreenerService extends Service {
     try {
       this.tokenCache.clear();
       this.trendingTokensSolana = [];
-      this.trendingTokensBase = []; // Base fetch abandoned - DexScreener Base feeds failed consistently
+      this.trendingTokensBase = [];
       await this.fetchTrendingSolana();
+      try {
+        await this.fetchTrendingBase();
+      } catch (e) {
+        logger.debug(`[VinceDexScreener] Base fetch skipped: ${e}`);
+      }
       this.mergeTrendingLists();
       this.lastUpdate = now;
     } catch (error) {
@@ -507,6 +516,24 @@ export class VinceDexScreenerService extends Service {
           `[VinceDexScreener] Base ${label}: ${baseOnly.length} tokens`,
         );
       }
+      // Always include priority BASE pairs (AI memes we don't want to miss, e.g. CONWAY)
+      for (const pairId of BASE_PRIORITY_PAIR_IDS) {
+        try {
+          const res = await fetch(
+            `https://api.dexscreener.com/latest/dex/pairs/base/${pairId}`,
+          );
+          if (!res.ok) continue;
+          const data = (await res.json()) as { pairs?: Array<{ baseToken?: { address?: string } }> };
+          const pair = data.pairs?.[0];
+          const tokenAddress = pair?.baseToken?.address;
+          if (tokenAddress) {
+            await this.processToken({ tokenAddress }, "base");
+          }
+        } catch (e) {
+          logger.debug(`[VinceDexScreener] Base priority pair ${pairId.slice(0, 10)}…: ${e}`);
+        }
+      }
+
       this.trendingTokensBase = this.getChainListFromCache("base");
       logger.debug(
         `[VinceDexScreener] Base: ${this.trendingTokensBase.length} processed (cache deduped)`,
@@ -943,6 +970,40 @@ export class VinceDexScreenerService extends Service {
    */
   getMarketMood(): { mood: MarketMood; summary: string } {
     const tokens = this.trendingTokens;
+    if (tokens.length === 0) {
+      return { mood: "quiet", summary: "No data available" };
+    }
+
+    const avgChange =
+      tokens.reduce((sum, t) => sum + t.priceChange24h, 0) / tokens.length;
+    const hotCount = tokens.filter(
+      (t) => t.volumeLiquidityRatio >= 5 || t.priceChange24h >= 50,
+    ).length;
+
+    const mood = determineMarketMood(avgChange, hotCount);
+
+    let summary: string;
+    switch (mood) {
+      case "pumping":
+        summary = `Market is PUMPING - ${hotCount} hot tokens, avg +${avgChange.toFixed(0)}%`;
+        break;
+      case "dumping":
+        summary = `Market is DUMPING - avg ${avgChange.toFixed(0)}%`;
+        break;
+      case "choppy":
+        summary = `Choppy market - ${hotCount} tokens with action`;
+        break;
+      default:
+        summary = "Quiet market - waiting for catalysts";
+    }
+
+    return { mood, summary };
+  }
+
+  /**
+   * Get market mood for a specific token list (e.g. BASE-only for leaderboard).
+   */
+  getMarketMoodForTokens(tokens: MemeToken[]): { mood: MarketMood; summary: string } {
     if (tokens.length === 0) {
       return { mood: "quiet", summary: "No data available" };
     }

@@ -222,6 +222,15 @@ export function determineMarketMood(
 }
 
 // ============================================
+// BASE priority pairs (AI memes we always want in the scanner)
+// DexScreener pair IDs from https://dexscreener.com/base/{pairId}
+// ============================================
+
+export const BASE_PRIORITY_PAIR_IDS: string[] = [
+  "0xae11897d5a77fe094f4745b5e1992b3bc331ff659e959ae8789b5e92b9d5b921", // ConwayResearch / WETH (CONWAY)
+];
+
+// ============================================
 // URL Builders
 // ============================================
 

@@ -9,7 +9,7 @@ One dashboard: market pulse and "who's doing best" **without chatting.** Open th
 | Tab | What you get |
 |:---|:---|
 | **Markets** | HIP-3 (commodities, indices, stocks, AI/Tech) + Hyperliquid crypto — top movers, volume leaders, OI leaders, crowded longs/shorts |
-| **Memetics** | Memes (hot / ape / watch / avoid), Meteora LP (top pools, meme pools, by APY), Leftcurve headlines, watchlist |
+| **Memetics** | Memes (Solana), Memes (BASE) — hot / ape / watch / avoid; Meteora LP (top pools, meme pools, by APY); Leftcurve headlines; watchlist |
 | **News** | MandoMinutes headlines + sentiment + one-liner |
 | **Digital Art** | Curated NFT collections — floor prices, thin-floor opportunities, volume leaders |
 | **More** | Fear & Greed, Options (BTC/ETH DVOL + TLDR), funding, OI cap, regime, Binance intel, CoinGlass, Deribit skew |
