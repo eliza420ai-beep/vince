@@ -74,9 +74,35 @@
 
 Apply these in code, infra, and prompt design. Review periodically.
 
+### ClawRouter — Automated model routing (Strategy 4 implementation)
+
+[ClawRouter](https://github.com/BlockRunAI/ClawRouter) automates the "model choice" principle above. Instead of manually choosing TEXT_SMALL vs TEXT_LARGE, ClawRouter scores every request across 15 dimensions and routes to the cheapest model that can handle it. Local routing in <1ms, no external API call for the routing decision.
+
+**Why it matters for VINCE:** 9 agents default to `claude-sonnet-4` for everything — standup formatting, watchlist summaries, daily briefings, simple lookups. ~90% of those calls don't need a $15/M output model. ClawRouter's blended average is ~$2.05/M vs $15+/M, cutting the single largest variable cost by 85-92%.
+
+**Routing profiles per agent:**
+
+| Agent | Profile | Rationale |
+|-------|---------|-----------|
+| VINCE | `premium` | Trading signals need reliable, consistent quality |
+| Eliza | `auto` | Knowledge, content — variable complexity |
+| ECHO | `eco` | Sentiment summaries, watchlist — high volume, lower stakes |
+| Oracle | `auto` | Polymarket discovery — mixed complexity |
+| Solus | `premium` | Options math, strike ritual — precision matters |
+| Otaku | `auto` | DeFi routing — moderate complexity |
+| Kelly | `eco` | Lifestyle concierge, daily briefing — simple queries |
+| Sentinel | `auto` | PRDs, cost — mixed complexity |
+| Clawterm | `auto` | Research queries |
+
+**Setup:** `CLAWROUTER_ENABLED=true` in `.env`. See `.env.example` CLAWROUTER section for per-agent profile overrides, wallet config, and proxy port. Embeddings (`text-embedding-3-small`) stay on OpenAI directly — ClawRouter routes text generation only. Keep `OPENAI_API_KEY` set.
+
+**x402 payments:** ClawRouter pays per-request with USDC on Base. No API keys needed for routed models — the wallet IS the API key. This connects directly to the money loop: agents pay for their own compute from their own wallets. Otaku already has a funded wallet and x402 infrastructure; ClawRouter extends this to LLM costs.
+
+**Fallback:** Keep direct `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` as fallback. If the ClawRouter proxy goes down, agents can revert to direct model access.
+
 **Local inference:** For running inference locally instead of cloud APIs (e.g. EXO cluster), see [LOCALSONLY.md](LOCALSONLY.md).
 
-**Session token tracking (implemented):** Each chat run emits a `run_event` log with estimated tokens (input + output character-length heuristic). Real usage from model providers is stored when available. The dashboard **Usage** tab (Leaderboard → Usage) shows tokens by day and total for the period. Optional estimated cost: set `VINCE_USAGE_COST_PER_1K_TOKENS` (e.g. `0.01` for $0.01 per 1K tokens) in env or agent settings to see estimated cost in the Usage tab.
+**Session token tracking (implemented):** Each chat run emits a `run_event` log with estimated tokens (input + output character-length heuristic). Real usage from model providers is stored when available. The dashboard **Usage** tab (Leaderboard → Usage) shows tokens by day and total for the period. Optional estimated cost: set `VINCE_USAGE_COST_PER_1K_TOKENS` (e.g. `0.01` for $0.01 per 1K tokens) in env or agent settings to see estimated cost in the Usage tab. When using ClawRouter, set `CLAWROUTER_BLENDED_COST_PER_1K=0.002` for accurate blended cost tracking.
 
 ---
 
@@ -89,7 +115,7 @@ Keep this section updated as strategies are tried:
 | Prediction markets| Not started   | Consider after paper edge proof |
 | Token/fee revenue | Not started   | Pending eligibility/approval   |
 | Micro-tasks       | Research      | Evaluate MTurk, freelance APIs |
-| Cost optimization| In progress   | Cache, batching, model choice; session token tracking + Usage tab live |
+| Cost optimization| In progress   | Cache, batching, model choice; session token tracking + Usage tab live; **ClawRouter** for automated routing (85-92% LLM cost reduction) |
 | **Monthly target**| e.g. cover 20% of API costs | Adjust as data comes in |
 
 ---
@@ -108,7 +134,7 @@ Keep this section updated as strategies are tried:
 
 Single source of truth for Sentinel: all project costs, LLM choice, data API tiers, bottom line. Update this section when tiers or targets change.
 
-**Last updated (cost breakdown):** 2026-02-13
+**Last updated (cost breakdown):** 2026-02-18
 
 ### Token usage (tracker)
 
@@ -120,8 +146,9 @@ Single source of truth for Sentinel: all project costs, LLM choice, data API tie
 
 - **TEXT_SMALL:** Simple tasks (suggestions, short replies, daily digest, most actions). Cheaper; use by default when quality allows.
 - **TEXT_LARGE:** Complex reasoning, long context, task briefs. Model from env: e.g. `ANTHROPIC_LARGE_MODEL` (claude-sonnet-4-20250514) or OpenAI equivalent.
-- **Embeddings:** `OPENAI_EMBEDDING_MODEL` (e.g. text-embedding-3-small). Required for RAG.
+- **Embeddings:** `OPENAI_EMBEDDING_MODEL` (e.g. text-embedding-3-small). Required for RAG. Always direct to OpenAI (not through ClawRouter).
 - **Principle:** Use cheaper/smaller for simple tasks; reserve expensive models for complex reasoning. See Strategy 4 above.
+- **ClawRouter (when enabled):** Automates this principle per-request. Routes TEXT_SMALL/TEXT_LARGE to the cheapest capable model (30+ models, blended ~$2.05/M). Pin `premium` profile for trading-critical agents (VINCE, Solus); use `eco` for high-volume low-stakes agents (Kelly, ECHO). See `.env.example` CLAWROUTER section.
 
 ### Cursor Max
 
@@ -152,6 +179,7 @@ When suggesting features or answering "what does it cost?", cite these limits so
 - **Breakeven:** Cover API + Cursor + data API spend from revenue or cost reduction. Strategy 4 (cost optimization) first; then Strategies 1–3 for revenue.
 - **Target:** 100K/year. Track progress via paper edge proof, then prediction-market or fee revenue when eligible.
 - **Burn rate:** Always watch it. Prefer cheaper models, cache, batch, and stay within data API tiers. Sentinel should remind about burn when suggesting work or when asked about cost.
+- **Money loop (Web4):** When ClawRouter + x402 is active, the closed economic loop becomes possible: Otaku's wallet funds LLM calls via ClawRouter → agents generate signals → Oracle/VINCE find prediction market edge → Otaku executes → revenue returns to wallet → loop continues. If revenue > costs, agents are self-sustaining. See [WEB4.md](../knowledge/teammate/WEB4.md) for the thesis.
 
 ---
 
@@ -162,4 +190,4 @@ When suggesting features or answering "what does it cost?", cite these limits so
 
 ---
 
-*Last updated: 2026-02-13. Update this file when activating new revenue streams or cost levers.*
+*Last updated: 2026-02-18. Update this file when activating new revenue streams or cost levers.*
