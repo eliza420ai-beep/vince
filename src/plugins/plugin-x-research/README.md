@@ -63,6 +63,7 @@ export X_RESEARCH_QUALITY_LIST_ID="your-list-id"
 | `X_RESEARCH_SAVE_DIR` | Directory for "save that" (last research export) | `skills/x-research/data/drafts` |
 | `X_PULSE_CACHE_TTL_MS` | Cache TTL for pulse/vibe search (ms) | `3600000` (1h) |
 | `X_RESEARCH_QUALITY_LIST_ID` | X list ID for quality-filtered results | — |
+| `X_SEARCH_MAX_RESULTS` | Posts to fetch for X_SEARCH (deeper insight) | `60` |
 
 **Plugin-vince (paper-bot sentiment):** `X_SENTIMENT_SHOW_COST=true` or `LOG_LEVEL=debug` logs estimated cost after each sentiment refresh.
 

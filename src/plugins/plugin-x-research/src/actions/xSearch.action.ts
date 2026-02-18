@@ -25,8 +25,9 @@ import { getFriendlyXErrorMessage } from '../utils/xErrorMessages';
 import type { XTweet } from '../types/tweet.types';
 
 const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 30;
+const MAX_LIMIT = 100; // X API allows 100 per page
 const QUICK_MAX_RESULTS = 10;
+const DEFAULT_MAX_RESULTS = 60; // More posts → richer insight (was 20)
 const QUALITY_MIN_LIKES = 10;
 const SNIPPET_LEN = 120;
 
@@ -143,7 +144,13 @@ export const xSearchAction: Action = {
       }
 
       const fromUser = extractFromUser(text);
-      const maxResults = quick ? QUICK_MAX_RESULTS : Math.min(DEFAULT_LIMIT + 10, MAX_LIMIT);
+      const envMax = process.env.X_SEARCH_MAX_RESULTS
+        ? parseInt(process.env.X_SEARCH_MAX_RESULTS, 10)
+        : undefined;
+      const defaultMax = Number.isFinite(envMax) && envMax > 0
+        ? Math.min(envMax, MAX_LIMIT)
+        : DEFAULT_MAX_RESULTS;
+      const maxResults = quick ? QUICK_MAX_RESULTS : defaultMax;
       const cacheTtlMs = quick ? 60 * 60 * 1000 : 15 * 60 * 1000;
 
       const searchService = getXSearchService();
