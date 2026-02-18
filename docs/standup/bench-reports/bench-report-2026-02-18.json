@@ -1,0 +1,5210 @@
+{
+  "version": "0.1",
+  "runId": "0d78fd46-400a-4505-9158-fc601d6a83dd",
+  "timestamp": 1771416923416,
+  "scenarioCount": 500,
+  "scoring": {
+    "base": 23.75,
+    "bonus": 35.25,
+    "penalty": 0,
+    "finalScore": 59
+  },
+  "domainBreakdown": {
+    "signal_quality": {
+      "weight": 1.5,
+      "uniqueSignatures": 3,
+      "contribution": 4.5
+    },
+    "position_management": {
+      "weight": 1.25,
+      "uniqueSignatures": 2,
+      "contribution": 2.5
+    },
+    "risk_discipline": {
+      "weight": 1.5,
+      "uniqueSignatures": 6,
+      "contribution": 9
+    },
+    "timing": {
+      "weight": 1,
+      "uniqueSignatures": 2,
+      "contribution": 2
+    },
+    "regime_awareness": {
+      "weight": 1.25,
+      "uniqueSignatures": 3,
+      "contribution": 3.75
+    },
+    "avoidance_quality": {
+      "weight": 1,
+      "uniqueSignatures": 2,
+      "contribution": 2
+    }
+  },
+  "perDecision": [
+    {
+      "recordId": "1771414684716-7wk9uts0d",
+      "timestamp": 1771414684985,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523578
+    },
+    {
+      "recordId": "1771414683403-yeyhjokp4",
+      "timestamp": 1771414683673,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523578
+    },
+    {
+      "recordId": "1771414682392-qkuplnoou",
+      "timestamp": 1771414682809,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523578
+    },
+    {
+      "recordId": "1771414679521-a0voej4fg",
+      "timestamp": 1771414682209,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523578
+    },
+    {
+      "recordId": "1771414544723-1s0zxlrs0",
+      "timestamp": 1771414544988,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523575
+    },
+    {
+      "recordId": "1771414543580-7dw45se8e",
+      "timestamp": 1771414543932,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523575
+    },
+    {
+      "recordId": "1771414542308-7vjvpnuzg",
+      "timestamp": 1771414542756,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523575
+    },
+    {
+      "recordId": "1771414535929-0pgp7xzur",
+      "timestamp": 1771414536384,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523575
+    },
+    {
+      "recordId": "1771414388231-gly9u841p",
+      "timestamp": 1771414388492,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523573
+    },
+    {
+      "recordId": "1771414387173-qs514d6vz",
+      "timestamp": 1771414387442,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523573
+    },
+    {
+      "recordId": "1771414385913-waktdjp81",
+      "timestamp": 1771414386389,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523573
+    },
+    {
+      "recordId": "1771414382804-hl4qmrfrd",
+      "timestamp": 1771414383353,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523573
+    },
+    {
+      "recordId": "1771414239205-40sbw89sv",
+      "timestamp": 1771414239472,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523570
+    },
+    {
+      "recordId": "1771414237887-j6b7x2fjg",
+      "timestamp": 1771414238155,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523570
+    },
+    {
+      "recordId": "1771414236714-ttdzjfcw3",
+      "timestamp": 1771414237118,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523570
+    },
+    {
+      "recordId": "1771414233433-hekhoz77k",
+      "timestamp": 1771414233948,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523570
+    },
+    {
+      "recordId": "1771414100651-tftkysej3",
+      "timestamp": 1771414100922,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523568
+    },
+    {
+      "recordId": "1771414099395-emhvbm0cp",
+      "timestamp": 1771414099669,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523568
+    },
+    {
+      "recordId": "1771414098351-vk8bmw5yy",
+      "timestamp": 1771414098634,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523568
+    },
+    {
+      "recordId": "1771414091412-dlub194du",
+      "timestamp": 1771414091887,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523568
+    },
+    {
+      "recordId": "1771413660600-2wsqq3vsr",
+      "timestamp": 1771413662746,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523561
+    },
+    {
+      "recordId": "1771413661821-x7zbrl55n",
+      "timestamp": 1771413662094,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523561
+    },
+    {
+      "recordId": "1771413659248-qhw2coc2j",
+      "timestamp": 1771413661850,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523561
+    },
+    {
+      "recordId": "1771413626823-1r3jd36lj",
+      "timestamp": 1771413627334,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523560
+    },
+    {
+      "recordId": "1771413521177-3arfxz1ga",
+      "timestamp": 1771413521426,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523558
+    },
+    {
+      "recordId": "1771413520167-f8w3rog6s",
+      "timestamp": 1771413520414,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523558
+    },
+    {
+      "recordId": "1771413518689-h8hjtyxcj",
+      "timestamp": 1771413518937,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523558
+    },
+    {
+      "recordId": "1771413476762-iym69n28h",
+      "timestamp": 1771413477795,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523557
+    },
+    {
+      "recordId": "1771413361927-drv6n2in3",
+      "timestamp": 1771413362193,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523556
+    },
+    {
+      "recordId": "1771413360623-u2p9s6r08",
+      "timestamp": 1771413360890,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523556
+    },
+    {
+      "recordId": "1771413359356-091c5zsl2",
+      "timestamp": 1771413359743,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523555
+    },
+    {
+      "recordId": "1771413356207-dipgx7y6s",
+      "timestamp": 1771413358781,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523555
+    },
+    {
+      "recordId": "1771413216223-rzqsy57dg",
+      "timestamp": 1771413216485,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523553
+    },
+    {
+      "recordId": "1771413214634-rfjtfaxho",
+      "timestamp": 1771413214901,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523553
+    },
+    {
+      "recordId": "1771413213603-09w5s9oe3",
+      "timestamp": 1771413214081,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523553
+    },
+    {
+      "recordId": "1771413210546-472fdapru",
+      "timestamp": 1771413211058,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523553
+    },
+    {
+      "recordId": "1771413072775-hqe4si4or",
+      "timestamp": 1771413073044,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523551
+    },
+    {
+      "recordId": "1771413071726-2u2qdevw4",
+      "timestamp": 1771413071998,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523551
+    },
+    {
+      "recordId": "1771413070152-8yvu7tjma",
+      "timestamp": 1771413070657,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523551
+    },
+    {
+      "recordId": "1771413063081-ow730m77m",
+      "timestamp": 1771413063334,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523551
+    },
+    {
+      "recordId": "1771413055240-4hptxmcwe",
+      "timestamp": 1771413055241,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 17.25,
+      "windowKeyMs": 29523550
+    },
+    {
+      "recordId": "1771412916823-7gjy354us",
+      "timestamp": 1771412917080,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523548
+    },
+    {
+      "recordId": "1771412915558-4ik76a57n",
+      "timestamp": 1771412915820,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523548
+    },
+    {
+      "recordId": "1771412914238-82lcs47b0",
+      "timestamp": 1771412914623,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523548
+    },
+    {
+      "recordId": "1771412910200-x310ag18f",
+      "timestamp": 1771412910711,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523548
+    },
+    {
+      "recordId": "1771412766334-xkcrfgxw6",
+      "timestamp": 1771412766596,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523546
+    },
+    {
+      "recordId": "1771412765286-nd9o77pny",
+      "timestamp": 1771412765549,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523546
+    },
+    {
+      "recordId": "1771412763968-d8890nirc",
+      "timestamp": 1771412764424,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523546
+    },
+    {
+      "recordId": "1771412760658-vgx77y3a5",
+      "timestamp": 1771412761278,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523546
+    },
+    {
+      "recordId": "1771412620999-h68ezozlo",
+      "timestamp": 1771412621262,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523543
+    },
+    {
+      "recordId": "1771412620168-o7k2hy8qe",
+      "timestamp": 1771412620430,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523543
+    },
+    {
+      "recordId": "1771412618893-4yw0g82k9",
+      "timestamp": 1771412619342,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523543
+    },
+    {
+      "recordId": "1771412612806-ee9oi408r",
+      "timestamp": 1771412613295,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523543
+    },
+    {
+      "recordId": "1771412464992-aqrqgu5zy",
+      "timestamp": 1771412465251,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523541
+    },
+    {
+      "recordId": "1771412463816-9xpoozlw9",
+      "timestamp": 1771412464086,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523541
+    },
+    {
+      "recordId": "1771412462327-zuntw404h",
+      "timestamp": 1771412462769,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523541
+    },
+    {
+      "recordId": "1771412459152-ktc5g0x5y",
+      "timestamp": 1771412459717,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523540
+    },
+    {
+      "recordId": "1771412341446-mw4ko2542",
+      "timestamp": 1771412341708,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523539
+    },
+    {
+      "recordId": "1771412340387-toa4c5621",
+      "timestamp": 1771412340651,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523539
+    },
+    {
+      "recordId": "1771412339166-gjrsobu2l",
+      "timestamp": 1771412339623,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523538
+    },
+    {
+      "recordId": "1771412336122-7unjefi0a",
+      "timestamp": 1771412338861,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523538
+    },
+    {
+      "recordId": "1771412202393-zj9f8xbu6",
+      "timestamp": 1771412202653,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523536
+    },
+    {
+      "recordId": "1771412200821-3grw8nj93",
+      "timestamp": 1771412201085,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523536
+    },
+    {
+      "recordId": "1771412199496-uzt6d4q11",
+      "timestamp": 1771412199972,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523536
+    },
+    {
+      "recordId": "1771412193226-i5mzjujaj",
+      "timestamp": 1771412193730,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523536
+    },
+    {
+      "recordId": "1771412044777-u82mtgfif",
+      "timestamp": 1771412045107,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523534
+    },
+    {
+      "recordId": "1771412043806-feufhw9cs",
+      "timestamp": 1771412044079,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523534
+    },
+    {
+      "recordId": "1771412042569-qtn30op79",
+      "timestamp": 1771412043019,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523534
+    },
+    {
+      "recordId": "1771412039585-ie04lzvue",
+      "timestamp": 1771412040117,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523534
+    },
+    {
+      "recordId": "1771411900927-0bp8yl4q7",
+      "timestamp": 1771411901198,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523531
+    },
+    {
+      "recordId": "1771411899659-jt4crhzjz",
+      "timestamp": 1771411899922,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523531
+    },
+    {
+      "recordId": "1771411898360-frzs9ay89",
+      "timestamp": 1771411898742,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523531
+    },
+    {
+      "recordId": "1771411892071-hbyhsg84m",
+      "timestamp": 1771411892547,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523531
+    },
+    {
+      "recordId": "1771411741339-kr8vbh69q",
+      "timestamp": 1771411741631,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523529
+    },
+    {
+      "recordId": "1771411740063-9rajyezyy",
+      "timestamp": 1771411740328,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523529
+    },
+    {
+      "recordId": "1771411738973-w2gchszpl",
+      "timestamp": 1771411739447,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523528
+    },
+    {
+      "recordId": "1771411735828-ldu35ap1f",
+      "timestamp": 1771411738398,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523528
+    },
+    {
+      "recordId": "1771411613459-zvjjsxuao",
+      "timestamp": 1771411614666,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523526
+    },
+    {
+      "recordId": "1771411598450-zbd5ymguh",
+      "timestamp": 1771411600560,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523526
+    },
+    {
+      "recordId": "1771411597407-sfm0kduvy",
+      "timestamp": 1771411599320,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523526
+    },
+    {
+      "recordId": "1771411596043-8lrknte3o",
+      "timestamp": 1771411598798,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523526
+    },
+    {
+      "recordId": "1771411493446-ru2j3132g",
+      "timestamp": 1771411496274,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523524
+    },
+    {
+      "recordId": "1771411444993-ky0cvceuv",
+      "timestamp": 1771411445320,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523524
+    },
+    {
+      "recordId": "1771411443523-bdx2vedby",
+      "timestamp": 1771411443786,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523524
+    },
+    {
+      "recordId": "1771411442260-gmgpgej6c",
+      "timestamp": 1771411442607,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523524
+    },
+    {
+      "recordId": "1771411347891-a106z00u3",
+      "timestamp": 1771411348448,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523522
+    },
+    {
+      "recordId": "1771411292760-hnz4yxpxp",
+      "timestamp": 1771411295662,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523521
+    },
+    {
+      "recordId": "1771411291702-u7z38zme5",
+      "timestamp": 1771411294330,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523521
+    },
+    {
+      "recordId": "1771411290181-xlmu0hnzx",
+      "timestamp": 1771411293130,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523521
+    },
+    {
+      "recordId": "1771411197164-b439edgpl",
+      "timestamp": 1771411197861,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523519
+    },
+    {
+      "recordId": "1771411152281-fdo0qpxkh",
+      "timestamp": 1771411152551,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523519
+    },
+    {
+      "recordId": "1771411151235-ork1vl7r2",
+      "timestamp": 1771411151504,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523519
+    },
+    {
+      "recordId": "1771411149973-cvcqykv7z",
+      "timestamp": 1771411150411,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523519
+    },
+    {
+      "recordId": "1771411047605-gw7wz0cjr",
+      "timestamp": 1771411048027,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523517
+    },
+    {
+      "recordId": "1771410994464-19b4ixyui",
+      "timestamp": 1771410994729,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523516
+    },
+    {
+      "recordId": "1771410993423-4936tjckd",
+      "timestamp": 1771410993688,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523516
+    },
+    {
+      "recordId": "1771410992207-b6q7sfqgp",
+      "timestamp": 1771410992717,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523516
+    },
+    {
+      "recordId": "1771410924720-f0n34nu19",
+      "timestamp": 1771410927260,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523515
+    },
+    {
+      "recordId": "1771410851318-769fezt3x",
+      "timestamp": 1771410851585,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523514
+    },
+    {
+      "recordId": "1771410850224-8jnhn9dcd",
+      "timestamp": 1771410850501,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523514
+    },
+    {
+      "recordId": "1771410848797-7uldx6i13",
+      "timestamp": 1771410849260,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523514
+    },
+    {
+      "recordId": "1771410777433-go7j7sh7s",
+      "timestamp": 1771410778345,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523512
+    },
+    {
+      "recordId": "1771410693809-zkkokqv4e",
+      "timestamp": 1771410694081,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523511
+    },
+    {
+      "recordId": "1771410692404-8bkgvi2mg",
+      "timestamp": 1771410692680,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523511
+    },
+    {
+      "recordId": "1771410691338-fusz2lhpu",
+      "timestamp": 1771410691790,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523511
+    },
+    {
+      "recordId": "1771410626740-hca2dl5cp",
+      "timestamp": 1771410627247,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523510
+    },
+    {
+      "recordId": "1771410569895-lm8j7nh2y",
+      "timestamp": 1771410571818,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523509
+    },
+    {
+      "recordId": "1771410571239-f6bj9w3r5",
+      "timestamp": 1771410571505,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523509
+    },
+    {
+      "recordId": "1771410568781-78yzb5blo",
+      "timestamp": 1771410571202,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523509
+    },
+    {
+      "recordId": "1771410477032-e4zerklzz",
+      "timestamp": 1771410477542,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523507
+    },
+    {
+      "recordId": "1771410430379-767uefsyz",
+      "timestamp": 1771410430640,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523507
+    },
+    {
+      "recordId": "1771410429306-pf85uo0vh",
+      "timestamp": 1771410429569,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523507
+    },
+    {
+      "recordId": "1771410427882-px0b33jbf",
+      "timestamp": 1771410428341,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523507
+    },
+    {
+      "recordId": "1771410326902-najtkn8ut",
+      "timestamp": 1771410327518,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523505
+    },
+    {
+      "recordId": "1771410270956-7soo3bbkm",
+      "timestamp": 1771410273196,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523504
+    },
+    {
+      "recordId": "1771410272131-qvasmr5x6",
+      "timestamp": 1771410272395,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523504
+    },
+    {
+      "recordId": "1771410268984-tgougmxp5",
+      "timestamp": 1771410272248,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523504
+    },
+    {
+      "recordId": "1771410177313-wobmbkefh",
+      "timestamp": 1771410177829,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523502
+    },
+    {
+      "recordId": "1771410124307-gkwaqjfkq",
+      "timestamp": 1771410124569,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523502
+    },
+    {
+      "recordId": "1771410123218-4q49w9a05",
+      "timestamp": 1771410123484,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523502
+    },
+    {
+      "recordId": "1771410122197-rtppienlz",
+      "timestamp": 1771410122611,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523502
+    },
+    {
+      "recordId": "1771410026866-bm42niguz",
+      "timestamp": 1771410027383,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523500
+    },
+    {
+      "recordId": "1771409976703-glzw9oyz2",
+      "timestamp": 1771409979570,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523499
+    },
+    {
+      "recordId": "1771409978037-sbc5dlg32",
+      "timestamp": 1771409978303,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523499
+    },
+    {
+      "recordId": "1771409975495-kru3zonfe",
+      "timestamp": 1771409978298,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523499
+    },
+    {
+      "recordId": "1771409877126-267c5kaci",
+      "timestamp": 1771409877639,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523497
+    },
+    {
+      "recordId": "1771409823359-k62owxzwp",
+      "timestamp": 1771409823637,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523497
+    },
+    {
+      "recordId": "1771409822200-t2ni77a4b",
+      "timestamp": 1771409822498,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523497
+    },
+    {
+      "recordId": "1771409820886-frx4kdabx",
+      "timestamp": 1771409821301,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523497
+    },
+    {
+      "recordId": "1771409727245-6vrqklxj7",
+      "timestamp": 1771409728136,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523495
+    },
+    {
+      "recordId": "1771409671157-zkv7irnb8",
+      "timestamp": 1771409673666,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523494
+    },
+    {
+      "recordId": "1771409672344-ne98ryy22",
+      "timestamp": 1771409672619,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523494
+    },
+    {
+      "recordId": "1771409669031-q7ibsa1s1",
+      "timestamp": 1771409671695,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523494
+    },
+    {
+      "recordId": "1771409578089-0szq9hav4",
+      "timestamp": 1771409578598,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523492
+    },
+    {
+      "recordId": "1771409530666-9ib6isd7f",
+      "timestamp": 1771409530937,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523492
+    },
+    {
+      "recordId": "1771409529575-94nqgm9fq",
+      "timestamp": 1771409529843,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523492
+    },
+    {
+      "recordId": "1771409528289-15e4y2ef8",
+      "timestamp": 1771409528741,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523492
+    },
+    {
+      "recordId": "1771409426070-flutcnsuy",
+      "timestamp": 1771409426980,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523490
+    },
+    {
+      "recordId": "1771409370865-27lch00tw",
+      "timestamp": 1771409373373,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523489
+    },
+    {
+      "recordId": "1771409370029-chu27hjwp",
+      "timestamp": 1771409372338,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523489
+    },
+    {
+      "recordId": "1771409368667-i6vk31ncy",
+      "timestamp": 1771409371172,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523489
+    },
+    {
+      "recordId": "1771409276543-vr2mnbbye",
+      "timestamp": 1771409277053,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523487
+    },
+    {
+      "recordId": "1771409225063-8ez50565r",
+      "timestamp": 1771409225326,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523487
+    },
+    {
+      "recordId": "1771409223627-y1y15ao46",
+      "timestamp": 1771409223892,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523487
+    },
+    {
+      "recordId": "1771409222348-f7ovmm7y7",
+      "timestamp": 1771409222769,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523487
+    },
+    {
+      "recordId": "1771409126685-vxo3r2l9p",
+      "timestamp": 1771409127197,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523485
+    },
+    {
+      "recordId": "1771409082035-ivwcfcrzy",
+      "timestamp": 1771409082314,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523484
+    },
+    {
+      "recordId": "1771409080993-q2z4vowi6",
+      "timestamp": 1771409081260,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523484
+    },
+    {
+      "recordId": "1771409079284-n82wli5ek",
+      "timestamp": 1771409079751,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523484
+    },
+    {
+      "recordId": "1771409003584-ojjj6krvp",
+      "timestamp": 1771409006153,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523483
+    },
+    {
+      "recordId": "1771408922007-gkbr7t0am",
+      "timestamp": 1771408924179,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523482
+    },
+    {
+      "recordId": "1771408923666-w5tsg8061",
+      "timestamp": 1771408923929,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523482
+    },
+    {
+      "recordId": "1771408920474-rmlfr3u7p",
+      "timestamp": 1771408923459,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523482
+    },
+    {
+      "recordId": "1771408883339-p37mflltg",
+      "timestamp": 1771408885433,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523481
+    },
+    {
+      "recordId": "1771408776205-c0289uxpa",
+      "timestamp": 1771408778924,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523479
+    },
+    {
+      "recordId": "1771408777823-j0h77b3po",
+      "timestamp": 1771408778079,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523479
+    },
+    {
+      "recordId": "1771408775203-401111c7b",
+      "timestamp": 1771408777894,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523479
+    },
+    {
+      "recordId": "1771408736658-5153102lo",
+      "timestamp": 1771408737564,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523478
+    },
+    {
+      "recordId": "1771408623962-1h2z1c3wf",
+      "timestamp": 1771408624227,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523477
+    },
+    {
+      "recordId": "1771408622846-oqby1f15o",
+      "timestamp": 1771408623133,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523477
+    },
+    {
+      "recordId": "1771408621556-6ijkfh1ba",
+      "timestamp": 1771408621979,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523477
+    },
+    {
+      "recordId": "1771408586434-q2xcu37db",
+      "timestamp": 1771408586943,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523476
+    },
+    {
+      "recordId": "1771408471081-34tfarq0v",
+      "timestamp": 1771408471348,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523474
+    },
+    {
+      "recordId": "1771408470020-bgem8pr4i",
+      "timestamp": 1771408470285,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523474
+    },
+    {
+      "recordId": "1771408468704-wku31qndr",
+      "timestamp": 1771408469159,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523474
+    },
+    {
+      "recordId": "1771408465685-oljl7bh2b",
+      "timestamp": 1771408467913,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523474
+    },
+    {
+      "recordId": "1771408334008-591dalgor",
+      "timestamp": 1771408334264,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523472
+    },
+    {
+      "recordId": "1771408331728-27a2yzop8",
+      "timestamp": 1771408332039,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523472
+    },
+    {
+      "recordId": "1771408329910-jp2aifjxm",
+      "timestamp": 1771408330429,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523472
+    },
+    {
+      "recordId": "1771408323365-614bd74k3",
+      "timestamp": 1771408324011,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523472
+    },
+    {
+      "recordId": "1771408174473-skmrpio9d",
+      "timestamp": 1771408174740,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523469
+    },
+    {
+      "recordId": "1771408173432-kbzw83pz8",
+      "timestamp": 1771408173705,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523469
+    },
+    {
+      "recordId": "1771408172119-ky4j9jb1d",
+      "timestamp": 1771408172623,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523469
+    },
+    {
+      "recordId": "1771408169038-4oj9daul7",
+      "timestamp": 1771408169494,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523469
+    },
+    {
+      "recordId": "1771408029880-mkz8coy83",
+      "timestamp": 1771408030150,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523467
+    },
+    {
+      "recordId": "1771408028721-03hrekdwm",
+      "timestamp": 1771408028990,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523467
+    },
+    {
+      "recordId": "1771408027326-jvt9s630w",
+      "timestamp": 1771408027777,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523467
+    },
+    {
+      "recordId": "1771408021203-3jkbhyen5",
+      "timestamp": 1771408021622,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523467
+    },
+    {
+      "recordId": "1771407903302-3o8vekn3p",
+      "timestamp": 1771407903574,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523465
+    },
+    {
+      "recordId": "1771407901977-yv1pcffgl",
+      "timestamp": 1771407902252,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523465
+    },
+    {
+      "recordId": "1771407869142-hjdmdhn5x",
+      "timestamp": 1771407869446,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523464
+    },
+    {
+      "recordId": "1771407868521-9cppuhlv6",
+      "timestamp": 1771407868979,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523464
+    },
+    {
+      "recordId": "1771407751230-3bpye9m4e",
+      "timestamp": 1771407751494,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523462
+    },
+    {
+      "recordId": "1771407750285-viiqvk1yh",
+      "timestamp": 1771407750560,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523462
+    },
+    {
+      "recordId": "1771407749070-qmzkdkt5t",
+      "timestamp": 1771407749524,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523462
+    },
+    {
+      "recordId": "1771407745777-6chh7b032",
+      "timestamp": 1771407748395,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523462
+    },
+    {
+      "recordId": "1771407611054-km3ekvc4t",
+      "timestamp": 1771407611314,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523460
+    },
+    {
+      "recordId": "1771407610100-pf36s2vlg",
+      "timestamp": 1771407610382,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523460
+    },
+    {
+      "recordId": "1771407608634-54kxgaeun",
+      "timestamp": 1771407609077,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523460
+    },
+    {
+      "recordId": "1771407602429-xk5z6y2gt",
+      "timestamp": 1771407602843,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523460
+    },
+    {
+      "recordId": "1771407450787-ryrcvlwwv",
+      "timestamp": 1771407451053,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523457
+    },
+    {
+      "recordId": "1771407449960-4402n3f5i",
+      "timestamp": 1771407450235,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523457
+    },
+    {
+      "recordId": "1771407448742-zj70uyo84",
+      "timestamp": 1771407449192,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523457
+    },
+    {
+      "recordId": "1771407445926-bsuayiktf",
+      "timestamp": 1771407448417,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523457
+    },
+    {
+      "recordId": "1771407303835-zprifdco4",
+      "timestamp": 1771407304104,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523455
+    },
+    {
+      "recordId": "1771407302774-2p1y5p6ji",
+      "timestamp": 1771407303043,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523455
+    },
+    {
+      "recordId": "1771407301548-wzta9lmtb",
+      "timestamp": 1771407301990,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523455
+    },
+    {
+      "recordId": "1771407298413-cvnv7rj31",
+      "timestamp": 1771407298953,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523454
+    },
+    {
+      "recordId": "1771407157878-tx9qx5c28",
+      "timestamp": 1771407158144,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523452
+    },
+    {
+      "recordId": "1771407156758-1w49e26vs",
+      "timestamp": 1771407157025,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523452
+    },
+    {
+      "recordId": "1771407155264-lwxaqr9ip",
+      "timestamp": 1771407155770,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523452
+    },
+    {
+      "recordId": "1771407148947-rt4rigb9a",
+      "timestamp": 1771407151586,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523452
+    },
+    {
+      "recordId": "1771407004628-6zst12yo7",
+      "timestamp": 1771407004980,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523450
+    },
+    {
+      "recordId": "1771407003506-lo22m2ddy",
+      "timestamp": 1771407003773,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523450
+    },
+    {
+      "recordId": "1771407002261-cnqya8c7j",
+      "timestamp": 1771407002687,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523450
+    },
+    {
+      "recordId": "1771406999199-8nn0eztjg",
+      "timestamp": 1771406999654,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523449
+    },
+    {
+      "recordId": "1771406855650-n647d94xc",
+      "timestamp": 1771406855900,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523447
+    },
+    {
+      "recordId": "1771406854617-xbs978sne",
+      "timestamp": 1771406854860,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523447
+    },
+    {
+      "recordId": "1771406853408-n8hrni3nw",
+      "timestamp": 1771406853865,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523447
+    },
+    {
+      "recordId": "1771406850358-k66aug2n0",
+      "timestamp": 1771406850838,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523447
+    },
+    {
+      "recordId": "1771406710600-f16tox574",
+      "timestamp": 1771406710866,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523445
+    },
+    {
+      "recordId": "1771406709549-njoj7z3qm",
+      "timestamp": 1771406709824,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523445
+    },
+    {
+      "recordId": "1771406708114-8zojzom3x",
+      "timestamp": 1771406708625,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523445
+    },
+    {
+      "recordId": "1771406702023-au5a2o8zo",
+      "timestamp": 1771406702441,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523445
+    },
+    {
+      "recordId": "1771406553467-wb8tj5c2g",
+      "timestamp": 1771406553828,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523442
+    },
+    {
+      "recordId": "1771406552610-2o58op6ij",
+      "timestamp": 1771406552883,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523442
+    },
+    {
+      "recordId": "1771406551370-tigj29868",
+      "timestamp": 1771406551828,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523442
+    },
+    {
+      "recordId": "1771406548335-sqco1qqk8",
+      "timestamp": 1771406548854,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523442
+    },
+    {
+      "recordId": "1771406431188-sffypwhq0",
+      "timestamp": 1771406431464,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523440
+    },
+    {
+      "recordId": "1771406429871-rgsif9puf",
+      "timestamp": 1771406430149,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523440
+    },
+    {
+      "recordId": "1771406428573-m783rys1k",
+      "timestamp": 1771406428962,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523440
+    },
+    {
+      "recordId": "1771406425682-xtskl8o2i",
+      "timestamp": 1771406428522,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523440
+    },
+    {
+      "recordId": "1771406291048-bjvth6tcv",
+      "timestamp": 1771406291325,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523438
+    },
+    {
+      "recordId": "1771406289943-aur59c0dw",
+      "timestamp": 1771406290220,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523438
+    },
+    {
+      "recordId": "1771406288628-7565csffs",
+      "timestamp": 1771406289114,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523438
+    },
+    {
+      "recordId": "1771406282252-qg5mc27hk",
+      "timestamp": 1771406282591,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523438
+    },
+    {
+      "recordId": "1771406131145-03cgyzg8p",
+      "timestamp": 1771406131423,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523435
+    },
+    {
+      "recordId": "1771406130053-uvbkloruz",
+      "timestamp": 1771406130327,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523435
+    },
+    {
+      "recordId": "1771406128697-nrk3pvw6e",
+      "timestamp": 1771406129201,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523435
+    },
+    {
+      "recordId": "1771406125659-snpoi9fa3",
+      "timestamp": 1771406128177,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523435
+    },
+    {
+      "recordId": "1771405984200-c3sw1t47s",
+      "timestamp": 1771405984470,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523433
+    },
+    {
+      "recordId": "1771405982616-3eyogiqt8",
+      "timestamp": 1771405982883,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523433
+    },
+    {
+      "recordId": "1771405981388-fnuqp7g8v",
+      "timestamp": 1771405981827,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523433
+    },
+    {
+      "recordId": "1771405978157-zpbu3mh7i",
+      "timestamp": 1771405978483,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523432
+    },
+    {
+      "recordId": "1771405837538-16euv5laj",
+      "timestamp": 1771405837802,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523430
+    },
+    {
+      "recordId": "1771405836474-63ubp4t33",
+      "timestamp": 1771405836744,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523430
+    },
+    {
+      "recordId": "1771405835192-e2mg9f6id",
+      "timestamp": 1771405835643,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523430
+    },
+    {
+      "recordId": "1771405828880-4bueqyfu5",
+      "timestamp": 1771405831459,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523430
+    },
+    {
+      "recordId": "1771405683246-udexbe4jl",
+      "timestamp": 1771405683507,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523428
+    },
+    {
+      "recordId": "1771405682195-cphwjjkil",
+      "timestamp": 1771405682459,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523428
+    },
+    {
+      "recordId": "1771405680967-6r8r6gkz0",
+      "timestamp": 1771405681417,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523428
+    },
+    {
+      "recordId": "1771405677853-6f4wf1lho",
+      "timestamp": 1771405678267,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523427
+    },
+    {
+      "recordId": "1771405535656-3to4hiy9s",
+      "timestamp": 1771405535930,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523425
+    },
+    {
+      "recordId": "1771405534478-24no3ssrl",
+      "timestamp": 1771405534770,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523425
+    },
+    {
+      "recordId": "1771405533088-v6ee84687",
+      "timestamp": 1771405533646,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523425
+    },
+    {
+      "recordId": "1771405526801-fak1gkfq6",
+      "timestamp": 1771405529183,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523425
+    },
+    {
+      "recordId": "1771405387283-es7uh02eo",
+      "timestamp": 1771405387548,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523423
+    },
+    {
+      "recordId": "1771405386139-fmrf9yb24",
+      "timestamp": 1771405386404,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523423
+    },
+    {
+      "recordId": "1771405384926-71pppcqdk",
+      "timestamp": 1771405385380,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523423
+    },
+    {
+      "recordId": "1771405382043-yjgvh0mg0",
+      "timestamp": 1771405382453,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523423
+    },
+    {
+      "recordId": "1771405235626-5ecww9uge",
+      "timestamp": 1771405235902,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523420
+    },
+    {
+      "recordId": "1771405234568-2jfj81ref",
+      "timestamp": 1771405234846,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523420
+    },
+    {
+      "recordId": "1771405233340-n641mbj3x",
+      "timestamp": 1771405233795,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523420
+    },
+    {
+      "recordId": "1771405229700-wzl7hgpmm",
+      "timestamp": 1771405230134,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523420
+    },
+    {
+      "recordId": "1771405092128-r8jlewari",
+      "timestamp": 1771405092390,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523418
+    },
+    {
+      "recordId": "1771405091071-8lumf21nd",
+      "timestamp": 1771405091331,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523418
+    },
+    {
+      "recordId": "1771405089794-24s46ryro",
+      "timestamp": 1771405090248,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523418
+    },
+    {
+      "recordId": "1771405083291-npa7wu8mp",
+      "timestamp": 1771405083779,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523418
+    },
+    {
+      "recordId": "1771404961825-khts1lbs0",
+      "timestamp": 1771404962087,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523416
+    },
+    {
+      "recordId": "1771404959760-bbhct5rel",
+      "timestamp": 1771404960021,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523416
+    },
+    {
+      "recordId": "1771404958703-is84w1ujb",
+      "timestamp": 1771404959154,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523415
+    },
+    {
+      "recordId": "1771404928721-nxj8h8cvd",
+      "timestamp": 1771404929239,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523415
+    },
+    {
+      "recordId": "1771404810855-46t69sopz",
+      "timestamp": 1771404812987,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523413
+    },
+    {
+      "recordId": "1771404811918-b9xbpy83l",
+      "timestamp": 1771404812182,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523413
+    },
+    {
+      "recordId": "1771404809398-ecqpmit2m",
+      "timestamp": 1771404811984,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523413
+    },
+    {
+      "recordId": "1771404777075-fi4m6nioc",
+      "timestamp": 1771404777649,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523412
+    },
+    {
+      "recordId": "1771404671126-4cah9wt14",
+      "timestamp": 1771404671378,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523411
+    },
+    {
+      "recordId": "1771404670100-yprif8g00",
+      "timestamp": 1771404670357,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523411
+    },
+    {
+      "recordId": "1771404668488-9axfh9num",
+      "timestamp": 1771404669061,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523411
+    },
+    {
+      "recordId": "1771404625549-nhrrebv4x",
+      "timestamp": 1771404626554,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523410
+    },
+    {
+      "recordId": "1771404510841-2bglx4tp8",
+      "timestamp": 1771404512925,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523408
+    },
+    {
+      "recordId": "1771404509806-n2i1j9t2a",
+      "timestamp": 1771404512232,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523408
+    },
+    {
+      "recordId": "1771404508182-i3j76baes",
+      "timestamp": 1771404511253,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523408
+    },
+    {
+      "recordId": "1771404478624-z4x2cx1h0",
+      "timestamp": 1771404479588,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523407
+    },
+    {
+      "recordId": "1771404365153-9s54w7j4q",
+      "timestamp": 1771404365439,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523406
+    },
+    {
+      "recordId": "1771404362510-2tprpbhbg",
+      "timestamp": 1771404363021,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523406
+    },
+    {
+      "recordId": "1771404326892-zqw298cwc",
+      "timestamp": 1771404327466,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523405
+    },
+    {
+      "recordId": "1771404217840-vf222eata",
+      "timestamp": 1771404218113,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523403
+    },
+    {
+      "recordId": "1771404215286-kh6z49wuw",
+      "timestamp": 1771404217776,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523403
+    },
+    {
+      "recordId": "1771404175226-8b1kq90oa",
+      "timestamp": 1771404176457,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523402
+    },
+    {
+      "recordId": "1771404063202-nfav0x8w4",
+      "timestamp": 1771404063465,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523401
+    },
+    {
+      "recordId": "1771404025964-hg8mcqcjd",
+      "timestamp": 1771404026474,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523400
+    },
+    {
+      "recordId": "1771403910956-z7yfroufx",
+      "timestamp": 1771403911226,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523398
+    },
+    {
+      "recordId": "1771403909669-kgpirayxx",
+      "timestamp": 1771403909935,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523398
+    },
+    {
+      "recordId": "1771403905470-76f6i7711",
+      "timestamp": 1771403907905,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523398
+    },
+    {
+      "recordId": "1771403772368-3ccyfd3jb",
+      "timestamp": 1771403772641,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523396
+    },
+    {
+      "recordId": "1771403762674-9xa09sd6g",
+      "timestamp": 1771403762917,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523396
+    },
+    {
+      "recordId": "1771403613776-6o4z3hqsa",
+      "timestamp": 1771403614030,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523393
+    },
+    {
+      "recordId": "1771403612511-6htwvhuz6",
+      "timestamp": 1771403612767,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523393
+    },
+    {
+      "recordId": "1771403611297-3tv523m0b",
+      "timestamp": 1771403611755,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523393
+    },
+    {
+      "recordId": "1771403608268-bq4nwa1tn",
+      "timestamp": 1771403608785,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523393
+    },
+    {
+      "recordId": "1771403491094-epk5mx4d0",
+      "timestamp": 1771403491368,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523391
+    },
+    {
+      "recordId": "1771403489676-e8e50oznu",
+      "timestamp": 1771403489955,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523391
+    },
+    {
+      "recordId": "1771403488659-0mi8upflr",
+      "timestamp": 1771403489116,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523391
+    },
+    {
+      "recordId": "1771403485387-69ofhq8c1",
+      "timestamp": 1771403488531,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523391
+    },
+    {
+      "recordId": "1771403350553-k9xii4bsq",
+      "timestamp": 1771403350818,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523389
+    },
+    {
+      "recordId": "1771403349507-soaiupilm",
+      "timestamp": 1771403349771,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523389
+    },
+    {
+      "recordId": "1771403348298-79jz2brn5",
+      "timestamp": 1771403348800,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523389
+    },
+    {
+      "recordId": "1771403341844-0tjsupl6z",
+      "timestamp": 1771403342379,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523389
+    },
+    {
+      "recordId": "1771403191280-uihp6djg9",
+      "timestamp": 1771403191545,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523386
+    },
+    {
+      "recordId": "1771403190130-2267vefeo",
+      "timestamp": 1771403190482,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523386
+    },
+    {
+      "recordId": "1771403188698-eqif6vzi2",
+      "timestamp": 1771403189090,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523386
+    },
+    {
+      "recordId": "1771403185556-30dydop1w",
+      "timestamp": 1771403188130,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523386
+    },
+    {
+      "recordId": "1771403045403-xtj23chsv",
+      "timestamp": 1771403045666,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523384
+    },
+    {
+      "recordId": "1771403044272-38uscglfq",
+      "timestamp": 1771403044538,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523384
+    },
+    {
+      "recordId": "1771403042981-whhmvgjgp",
+      "timestamp": 1771403043343,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523384
+    },
+    {
+      "recordId": "1771403039825-8mrdse7s0",
+      "timestamp": 1771403040384,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523384
+    },
+    {
+      "recordId": "1771402902476-15eiykyqm",
+      "timestamp": 1771402902737,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402899288-ur9kqbuvd",
+      "timestamp": 1771402899766,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402898627-vrxl1selc",
+      "timestamp": 1771402899135,
+      "asset": "ETH",
+      "signatures": [
+        "signal.quality.regime_aligned",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "risk.cooldown_respected",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "outcome": {
+        "realizedPnl": 133.04910194663057,
+        "realizedPnlPct": 20.788922179161027,
+        "profitable": true,
+        "exitReason": "partial_tp"
+      },
+      "decisionScore": 17.25,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402892999-gglqrcgrh",
+      "timestamp": 1771402893469,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402892043-6gopx9elz",
+      "timestamp": 1771402892556,
+      "asset": "BTC",
+      "signatures": [
+        "signal.quality.multi_source_confirmed",
+        "signal.quality.regime_aligned",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "risk.cooldown_respected",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "outcome": {
+        "realizedPnl": 359.3059052183389,
+        "realizedPnlPct": 56.141547690365456,
+        "profitable": true,
+        "exitReason": "take_profit"
+      },
+      "decisionScore": 17.25,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402886298-zx3cdh8g3",
+      "timestamp": 1771402886303,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "signal.quality.regime_aligned",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "risk.cooldown_respected",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "outcome": {
+        "realizedPnl": -78.64967265789048,
+        "realizedPnlPct": -4.718980359473428,
+        "profitable": false,
+        "exitReason": "stop_loss"
+      },
+      "decisionScore": 20.25,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402885442-vhwtcoayp",
+      "timestamp": 1771402885444,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "signal.quality.regime_aligned",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 18.75,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402885431-4xjxdaoc4",
+      "timestamp": 1771402885435,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.tp_structured",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 18.75,
+      "windowKeyMs": 29523381
+    },
+    {
+      "recordId": "1771402122132-zc6vzxdee",
+      "timestamp": 1771402122405,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523368
+    },
+    {
+      "recordId": "1771402120936-h2gygsu0k",
+      "timestamp": 1771402121206,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523368
+    },
+    {
+      "recordId": "1771402112874-ec6dpac33",
+      "timestamp": 1771402113382,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523368
+    },
+    {
+      "recordId": "1771401969679-apk32nuar",
+      "timestamp": 1771401969950,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523366
+    },
+    {
+      "recordId": "1771401963993-2m7k0h9jj",
+      "timestamp": 1771401964798,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523366
+    },
+    {
+      "recordId": "1771401817249-3i2i4b6zu",
+      "timestamp": 1771401817516,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523363
+    },
+    {
+      "recordId": "1771401814058-z3udiviz8",
+      "timestamp": 1771401814539,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523363
+    },
+    {
+      "recordId": "1771401811028-xggz795j9",
+      "timestamp": 1771401811546,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523363
+    },
+    {
+      "recordId": "1771401672757-qrpy0y172",
+      "timestamp": 1771401673023,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523361
+    },
+    {
+      "recordId": "1771401671747-20n32bn4s",
+      "timestamp": 1771401672015,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523361
+    },
+    {
+      "recordId": "1771401664447-csh81x7e5",
+      "timestamp": 1771401664860,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523361
+    },
+    {
+      "recordId": "1771401539265-wpeevhc4g",
+      "timestamp": 1771401539267,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 17.25,
+      "windowKeyMs": 29523358
+    },
+    {
+      "recordId": "1771401535288-bbvc8uepe",
+      "timestamp": 1771401535289,
+      "asset": "MSTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.tp_structured",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.session_favorable",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 18.75,
+      "windowKeyMs": 29523358
+    },
+    {
+      "recordId": "1771401514337-wi8doqg8y",
+      "timestamp": 1771401514605,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523358
+    },
+    {
+      "recordId": "1771401508050-8r8vimgdv",
+      "timestamp": 1771401510806,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523358
+    },
+    {
+      "recordId": "1771401363603-9oy7tq8y1",
+      "timestamp": 1771401363934,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523356
+    },
+    {
+      "recordId": "1771401361068-n7wpw4zo1",
+      "timestamp": 1771401361514,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523356
+    },
+    {
+      "recordId": "1771401357889-8yznbqihu",
+      "timestamp": 1771401360461,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523356
+    },
+    {
+      "recordId": "1771401219068-g7v2t371h",
+      "timestamp": 1771401219336,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523353
+    },
+    {
+      "recordId": "1771401217155-earhvz1r6",
+      "timestamp": 1771401217599,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523353
+    },
+    {
+      "recordId": "1771401210923-ojy5a824d",
+      "timestamp": 1771401213736,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523353
+    },
+    {
+      "recordId": "1771401063232-veowc3zev",
+      "timestamp": 1771401063496,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523351
+    },
+    {
+      "recordId": "1771401060889-irp7mzu80",
+      "timestamp": 1771401061302,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523351
+    },
+    {
+      "recordId": "1771401057820-n36fu89ay",
+      "timestamp": 1771401060640,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523351
+    },
+    {
+      "recordId": "1771400913505-74c2wr4ff",
+      "timestamp": 1771400913770,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523348
+    },
+    {
+      "recordId": "1771400911194-ek2mc195h",
+      "timestamp": 1771400911678,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523348
+    },
+    {
+      "recordId": "1771400908123-2rhl05ulh",
+      "timestamp": 1771400910929,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523348
+    },
+    {
+      "recordId": "1771400775354-7qi8f4ugr",
+      "timestamp": 1771400775621,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523346
+    },
+    {
+      "recordId": "1771400774046-touxziza1",
+      "timestamp": 1771400774310,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523346
+    },
+    {
+      "recordId": "1771400772538-2q3xjby9r",
+      "timestamp": 1771400773076,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523346
+    },
+    {
+      "recordId": "1771400766208-eugmm6x34",
+      "timestamp": 1771400769316,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29523346
+    },
+    {
+      "recordId": "1771372775591-sr8mebd0c",
+      "timestamp": 1771372778727,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522879
+    },
+    {
+      "recordId": "1771372776657-6ciwgoawv",
+      "timestamp": 1771372776928,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522879
+    },
+    {
+      "recordId": "1771372774230-les51ngrc",
+      "timestamp": 1771372776700,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522879
+    },
+    {
+      "recordId": "1771372734999-fpgz1aeol",
+      "timestamp": 1771372735507,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522878
+    },
+    {
+      "recordId": "1771372621996-hyg1s1t4z",
+      "timestamp": 1771372622261,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522877
+    },
+    {
+      "recordId": "1771372620946-dq6s4yi4w",
+      "timestamp": 1771372621219,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522877
+    },
+    {
+      "recordId": "1771372619863-1f8jd54w3",
+      "timestamp": 1771372620343,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522877
+    },
+    {
+      "recordId": "1771372584023-yf01xa7ys",
+      "timestamp": 1771372584828,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522876
+    },
+    {
+      "recordId": "1771372470026-avrh0frxr",
+      "timestamp": 1771372472219,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522874
+    },
+    {
+      "recordId": "1771372468719-qm8lyyta5",
+      "timestamp": 1771372470826,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522874
+    },
+    {
+      "recordId": "1771372467296-r217jxpz0",
+      "timestamp": 1771372470391,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522874
+    },
+    {
+      "recordId": "1771372433812-m3wbssugj",
+      "timestamp": 1771372434325,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522873
+    },
+    {
+      "recordId": "1771372329884-36c0nbhqb",
+      "timestamp": 1771372330146,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522872
+    },
+    {
+      "recordId": "1771372328594-n8umgrlvo",
+      "timestamp": 1771372328854,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522872
+    },
+    {
+      "recordId": "1771372327310-kzzhpbner",
+      "timestamp": 1771372327696,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522872
+    },
+    {
+      "recordId": "1771372284890-3tlx86h94",
+      "timestamp": 1771372285894,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522871
+    },
+    {
+      "recordId": "1771372169695-qlq2hkrbp",
+      "timestamp": 1771372169974,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522869
+    },
+    {
+      "recordId": "1771372168648-2g4wemryz",
+      "timestamp": 1771372168928,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522869
+    },
+    {
+      "recordId": "1771372167401-hh3cmzqdc",
+      "timestamp": 1771372167882,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522869
+    },
+    {
+      "recordId": "1771372164256-ao1b2lczn",
+      "timestamp": 1771372166836,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522869
+    },
+    {
+      "recordId": "1771372024747-rshunqvjk",
+      "timestamp": 1771372025011,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522867
+    },
+    {
+      "recordId": "1771372023438-ohtua7l2h",
+      "timestamp": 1771372023705,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522867
+    },
+    {
+      "recordId": "1771372022207-g7prsk1w5",
+      "timestamp": 1771372022653,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522867
+    },
+    {
+      "recordId": "1771372019045-h2jdna3dw",
+      "timestamp": 1771372019618,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522866
+    },
+    {
+      "recordId": "1771371881880-uzyqumyw6",
+      "timestamp": 1771371882142,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371880830-sxc2abqye",
+      "timestamp": 1771371881095,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371879610-nghrysy9q",
+      "timestamp": 1771371880059,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371872768-gqrfejkry",
+      "timestamp": 1771371873321,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371864403-i5n5ntql2",
+      "timestamp": 1771371864404,
+      "asset": "PLTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.tp_structured",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 17.75,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371864370-2kqhj26u0",
+      "timestamp": 1771371864384,
+      "asset": "PLTR",
+      "signatures": [
+        "signal.quality.high_confidence",
+        "signal.quality.multi_source_confirmed",
+        "signal.quality.regime_aligned",
+        "entry.session_optimal",
+        "entry.limit_order",
+        "risk.sl_atr_based",
+        "risk.leverage_appropriate",
+        "risk.circuit_breaker_respected",
+        "risk.max_exposure_within_limits",
+        "timing.cooldown_respected",
+        "regime.detected",
+        "regime.volatility_adjusted",
+        "regime.strategy_adapted"
+      ],
+      "decisionScore": 17.75,
+      "windowKeyMs": 29522864
+    },
+    {
+      "recordId": "1771371598367-tgk335bqr",
+      "timestamp": 1771371598634,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522859
+    },
+    {
+      "recordId": "1771371597288-c685k55g8",
+      "timestamp": 1771371597557,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522859
+    },
+    {
+      "recordId": "1771371595253-05c1utwj6",
+      "timestamp": 1771371595736,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522859
+    },
+    {
+      "recordId": "1771371589372-cumgc3bc4",
+      "timestamp": 1771371589888,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522859
+    },
+    {
+      "recordId": "1771371447810-itbkbu2dn",
+      "timestamp": 1771371448076,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522857
+    },
+    {
+      "recordId": "1771371446763-lp12k4vmb",
+      "timestamp": 1771371447027,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522857
+    },
+    {
+      "recordId": "1771371445540-zydktad87",
+      "timestamp": 1771371445997,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522857
+    },
+    {
+      "recordId": "1771371442151-d8tuysvhk",
+      "timestamp": 1771371442600,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522857
+    },
+    {
+      "recordId": "1771371320428-7etry6ig1",
+      "timestamp": 1771371320693,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522855
+    },
+    {
+      "recordId": "1771371319070-429awmahi",
+      "timestamp": 1771371319330,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522855
+    },
+    {
+      "recordId": "1771371318060-fqhdvj8kb",
+      "timestamp": 1771371318446,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522855
+    },
+    {
+      "recordId": "1771371315121-9078cnmer",
+      "timestamp": 1771371317265,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522855
+    },
+    {
+      "recordId": "1771371178317-qx5ze9klj",
+      "timestamp": 1771371178594,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522852
+    },
+    {
+      "recordId": "1771371176973-75gfojylj",
+      "timestamp": 1771371177253,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522852
+    },
+    {
+      "recordId": "1771371175586-b1vjkgae6",
+      "timestamp": 1771371176006,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522852
+    },
+    {
+      "recordId": "1771371169755-hs9ck0tc6",
+      "timestamp": 1771371170274,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522852
+    },
+    {
+      "recordId": "1771371028198-p73vm89xf",
+      "timestamp": 1771371028461,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522850
+    },
+    {
+      "recordId": "1771371027138-949vpc41x",
+      "timestamp": 1771371027402,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522850
+    },
+    {
+      "recordId": "1771371026142-i2zza3kst",
+      "timestamp": 1771371026600,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522850
+    },
+    {
+      "recordId": "1771371022719-kf1olgyaz",
+      "timestamp": 1771371023114,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522850
+    },
+    {
+      "recordId": "1771370874530-09si0ysns",
+      "timestamp": 1771370874803,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522847
+    },
+    {
+      "recordId": "1771370873455-chpzsf9aw",
+      "timestamp": 1771370873729,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522847
+    },
+    {
+      "recordId": "1771370872040-63qv5nmlv",
+      "timestamp": 1771370872484,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522847
+    },
+    {
+      "recordId": "1771370868926-7nha5jn0h",
+      "timestamp": 1771370869452,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522847
+    },
+    {
+      "recordId": "1771370731743-p3xbw8jp4",
+      "timestamp": 1771370732015,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522845
+    },
+    {
+      "recordId": "1771370730107-1f8osm9ps",
+      "timestamp": 1771370730378,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522845
+    },
+    {
+      "recordId": "1771370728810-3s3q86jsh",
+      "timestamp": 1771370729381,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522845
+    },
+    {
+      "recordId": "1771370722466-842votdto",
+      "timestamp": 1771370722943,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522845
+    },
+    {
+      "recordId": "1771370600462-fageqsrnj",
+      "timestamp": 1771370600779,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522843
+    },
+    {
+      "recordId": "1771370599493-2unj5zdlg",
+      "timestamp": 1771370599756,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522843
+    },
+    {
+      "recordId": "1771370598282-v6sk3ozj7",
+      "timestamp": 1771370598734,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522843
+    },
+    {
+      "recordId": "1771370595256-z6ogibgb3",
+      "timestamp": 1771370597896,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522843
+    },
+    {
+      "recordId": "1771370453059-csl3vi2i6",
+      "timestamp": 1771370453516,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522840
+    },
+    {
+      "recordId": "1771370451982-shi2ej2sc",
+      "timestamp": 1771370452253,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522840
+    },
+    {
+      "recordId": "1771370450566-ixj2mrsr0",
+      "timestamp": 1771370451021,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522840
+    },
+    {
+      "recordId": "1771370447741-1lerowt0t",
+      "timestamp": 1771370448278,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522840
+    },
+    {
+      "recordId": "1771370306735-d9rwul42g",
+      "timestamp": 1771370306999,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522838
+    },
+    {
+      "recordId": "1771370305687-86fxg30ry",
+      "timestamp": 1771370305956,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522838
+    },
+    {
+      "recordId": "1771370304602-o5olq5myd",
+      "timestamp": 1771370305081,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522838
+    },
+    {
+      "recordId": "1771370298335-muaov73oh",
+      "timestamp": 1771370301269,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522838
+    },
+    {
+      "recordId": "1771370153372-ry2ulo5ug",
+      "timestamp": 1771370153642,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522835
+    },
+    {
+      "recordId": "1771370152107-osz6ngqa0",
+      "timestamp": 1771370152383,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522835
+    },
+    {
+      "recordId": "1771370150818-ntmfs2sua",
+      "timestamp": 1771370151270,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522835
+    },
+    {
+      "recordId": "1771370147921-jl8y2suzx",
+      "timestamp": 1771370148437,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522835
+    },
+    {
+      "recordId": "1771370004381-hmraekei0",
+      "timestamp": 1771370005186,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522833
+    },
+    {
+      "recordId": "1771370002837-6l8gegly3",
+      "timestamp": 1771370003106,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522833
+    },
+    {
+      "recordId": "1771370001042-mgbzlv301",
+      "timestamp": 1771370001437,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522833
+    },
+    {
+      "recordId": "1771369997899-sysysvgy5",
+      "timestamp": 1771369998486,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522833
+    },
+    {
+      "recordId": "1771369861701-pvt8uryt5",
+      "timestamp": 1771369862057,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522831
+    },
+    {
+      "recordId": "1771369860815-0ei9rwndf",
+      "timestamp": 1771369861086,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522831
+    },
+    {
+      "recordId": "1771369859277-867co2znk",
+      "timestamp": 1771369859730,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522830
+    },
+    {
+      "recordId": "1771369852932-8wdfjmmmj",
+      "timestamp": 1771369853381,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522830
+    },
+    {
+      "recordId": "1771369703792-pytnxja3e",
+      "timestamp": 1771369704058,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522828
+    },
+    {
+      "recordId": "1771369702740-nxlwftztf",
+      "timestamp": 1771369703006,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522828
+    },
+    {
+      "recordId": "1771369701679-2bannn4g1",
+      "timestamp": 1771369702153,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522828
+    },
+    {
+      "recordId": "1771369698529-c4zgi0jnh",
+      "timestamp": 1771369699063,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522828
+    },
+    {
+      "recordId": "1771369555145-d8w7rwqrp",
+      "timestamp": 1771369555410,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522825
+    },
+    {
+      "recordId": "1771369554108-grtoypx8f",
+      "timestamp": 1771369554372,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522825
+    },
+    {
+      "recordId": "1771369552254-aa5vyuxsr",
+      "timestamp": 1771369552779,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522825
+    },
+    {
+      "recordId": "1771369549208-b5uu4eyl2",
+      "timestamp": 1771369549739,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522825
+    },
+    {
+      "recordId": "1771369411245-6ci42vzy9",
+      "timestamp": 1771369411582,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522823
+    },
+    {
+      "recordId": "1771369410210-namo4eoh4",
+      "timestamp": 1771369410482,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522823
+    },
+    {
+      "recordId": "1771369408721-r6ui9e0f5",
+      "timestamp": 1771369409241,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522823
+    },
+    {
+      "recordId": "1771369402381-8v2w66ibr",
+      "timestamp": 1771369402836,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522823
+    },
+    {
+      "recordId": "1771369280368-c35phfja0",
+      "timestamp": 1771369280639,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522821
+    },
+    {
+      "recordId": "1771369279314-6kaowrxy3",
+      "timestamp": 1771369279585,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522821
+    },
+    {
+      "recordId": "1771369278054-nsifiuhva",
+      "timestamp": 1771369278527,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522821
+    },
+    {
+      "recordId": "1771369275024-a2vildrx1",
+      "timestamp": 1771369277620,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522821
+    },
+    {
+      "recordId": "1771369133299-sguou82a9",
+      "timestamp": 1771369133563,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522818
+    },
+    {
+      "recordId": "1771369132054-gne578fsp",
+      "timestamp": 1771369132320,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522818
+    },
+    {
+      "recordId": "1771369131004-nqxsf4ot6",
+      "timestamp": 1771369131457,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522818
+    },
+    {
+      "recordId": "1771369128111-tuzcy551l",
+      "timestamp": 1771369128639,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522818
+    },
+    {
+      "recordId": "1771368986872-lennij6g9",
+      "timestamp": 1771368987137,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522816
+    },
+    {
+      "recordId": "1771368985826-clbfqh4k3",
+      "timestamp": 1771368986097,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522816
+    },
+    {
+      "recordId": "1771368984615-7k8egurjh",
+      "timestamp": 1771368985123,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522816
+    },
+    {
+      "recordId": "1771368978402-c5j2b4sdg",
+      "timestamp": 1771368980986,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522816
+    },
+    {
+      "recordId": "1771368833821-4d83w0c78",
+      "timestamp": 1771368834086,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522813
+    },
+    {
+      "recordId": "1771368832773-gjiv6d3jj",
+      "timestamp": 1771368833036,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522813
+    },
+    {
+      "recordId": "1771368831564-lk2tbyy3a",
+      "timestamp": 1771368832021,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522813
+    },
+    {
+      "recordId": "1771368828736-0cplsnsgg",
+      "timestamp": 1771368829268,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522813
+    },
+    {
+      "recordId": "1771368684525-2js3u2s8x",
+      "timestamp": 1771368684792,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522811
+    },
+    {
+      "recordId": "1771368683241-ibu7yju43",
+      "timestamp": 1771368683501,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522811
+    },
+    {
+      "recordId": "1771368682026-wgfbq7hsw",
+      "timestamp": 1771368682477,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522811
+    },
+    {
+      "recordId": "1771368678982-18tlaozzl",
+      "timestamp": 1771368679509,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522811
+    },
+    {
+      "recordId": "1771368542183-2p9jxk82b",
+      "timestamp": 1771368542450,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522809
+    },
+    {
+      "recordId": "1771368541120-l5739wk11",
+      "timestamp": 1771368541392,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522809
+    },
+    {
+      "recordId": "1771368539441-c763poaao",
+      "timestamp": 1771368539888,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522808
+    },
+    {
+      "recordId": "1771368532900-x1wmfrsie",
+      "timestamp": 1771368533407,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522808
+    },
+    {
+      "recordId": "1771368384374-ohdhqzl8p",
+      "timestamp": 1771368384643,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522806
+    },
+    {
+      "recordId": "1771368383302-94tlnsdq5",
+      "timestamp": 1771368383569,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522806
+    },
+    {
+      "recordId": "1771368382048-elegb4f7v",
+      "timestamp": 1771368382518,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522806
+    },
+    {
+      "recordId": "1771368378657-yqx20omgn",
+      "timestamp": 1771368379178,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522806
+    },
+    {
+      "recordId": "1771368260881-dwnmtj809",
+      "timestamp": 1771368261149,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522804
+    },
+    {
+      "recordId": "1771368259352-vd2ea0tw5",
+      "timestamp": 1771368259629,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522804
+    },
+    {
+      "recordId": "1771368258308-frs0vwyod",
+      "timestamp": 1771368258793,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522804
+    },
+    {
+      "recordId": "1771368255165-azxbcmv84",
+      "timestamp": 1771368258090,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522804
+    },
+    {
+      "recordId": "1771368121839-8880pgcap",
+      "timestamp": 1771368122109,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522802
+    },
+    {
+      "recordId": "1771368120499-lh193h50p",
+      "timestamp": 1771368120774,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522802
+    },
+    {
+      "recordId": "1771368118892-4j1xyiutb",
+      "timestamp": 1771368119376,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522801
+    },
+    {
+      "recordId": "1771368112373-ce2traip8",
+      "timestamp": 1771368112825,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522801
+    },
+    {
+      "recordId": "1771367965517-8qznr5ecm",
+      "timestamp": 1771367965786,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522799
+    },
+    {
+      "recordId": "1771367964467-ihl5sgk5t",
+      "timestamp": 1771367964731,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522799
+    },
+    {
+      "recordId": "1771367962615-84u1evky4",
+      "timestamp": 1771367963086,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522799
+    },
+    {
+      "recordId": "1771367959465-yzyyezqzm",
+      "timestamp": 1771367960008,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522799
+    },
+    {
+      "recordId": "1771367814490-k6lvxc5ji",
+      "timestamp": 1771367814751,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522796
+    },
+    {
+      "recordId": "1771367813434-lp000i0mf",
+      "timestamp": 1771367813693,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522796
+    },
+    {
+      "recordId": "1771367812141-vj745e8l8",
+      "timestamp": 1771367812669,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522796
+    },
+    {
+      "recordId": "1771367809107-i0ovwbhdy",
+      "timestamp": 1771367809619,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522796
+    },
+    {
+      "recordId": "1771367671057-io6ebxebs",
+      "timestamp": 1771367671321,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522794
+    },
+    {
+      "recordId": "1771367670034-dd6ltkx5k",
+      "timestamp": 1771367670301,
+      "asset": "SOL",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522794
+    },
+    {
+      "recordId": "1771367668648-ymuyoi9m7",
+      "timestamp": 1771367669103,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522794
+    },
+    {
+      "recordId": "1771367662302-5hzxvg26k",
+      "timestamp": 1771367662756,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522794
+    },
+    {
+      "recordId": "1771367540777-i550ttren",
+      "timestamp": 1771367541047,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522792
+    },
+    {
+      "recordId": "1771367538167-su197beno",
+      "timestamp": 1771367538622,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522792
+    },
+    {
+      "recordId": "1771367535137-99mmb32i3",
+      "timestamp": 1771367537257,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522792
+    },
+    {
+      "recordId": "1771367393189-19jm0aati",
+      "timestamp": 1771367393462,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522789
+    },
+    {
+      "recordId": "1771367390799-bnawpdu3g",
+      "timestamp": 1771367391259,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522789
+    },
+    {
+      "recordId": "1771367387762-dzm700ah3",
+      "timestamp": 1771367388317,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.book_imbalance_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522789
+    },
+    {
+      "recordId": "1771367246959-e112pi9ud",
+      "timestamp": 1771367247226,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522787
+    },
+    {
+      "recordId": "1771367245082-dbe61nyi2",
+      "timestamp": 1771367245511,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522787
+    },
+    {
+      "recordId": "1771367238613-yat2dn29e",
+      "timestamp": 1771367241141,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522787
+    },
+    {
+      "recordId": "1771367092890-4fib7xdet",
+      "timestamp": 1771367093151,
+      "asset": "HYPE",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522784
+    },
+    {
+      "recordId": "1771367090718-lqv6rupzg",
+      "timestamp": 1771367091099,
+      "asset": "ETH",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522784
+    },
+    {
+      "recordId": "1771367087574-bcslk61d0",
+      "timestamp": 1771367088106,
+      "asset": "BTC",
+      "signatures": [
+        "avoid.low_quality_rejected"
+      ],
+      "decisionScore": 1,
+      "windowKeyMs": 29522784
+    }
+  ],
+  "signatureCounts": {
+    "avoid.book_imbalance_rejected": 152,
+    "avoid.low_quality_rejected": 338,
+    "signal.quality.high_confidence": 8,
+    "signal.quality.multi_source_confirmed": 9,
+    "entry.session_optimal": 10,
+    "entry.limit_order": 10,
+    "risk.sl_atr_based": 10,
+    "risk.leverage_appropriate": 9,
+    "risk.circuit_breaker_respected": 10,
+    "risk.max_exposure_within_limits": 10,
+    "timing.session_favorable": 8,
+    "timing.cooldown_respected": 10,
+    "regime.detected": 10,
+    "regime.volatility_adjusted": 10,
+    "regime.strategy_adapted": 10,
+    "signal.quality.regime_aligned": 5,
+    "risk.cooldown_respected": 3,
+    "risk.tp_structured": 3
+  },
+  "unmappedSignatures": []
+}
