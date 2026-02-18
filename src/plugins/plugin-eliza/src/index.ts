@@ -68,10 +68,11 @@ import * as deduplicationService from "./services/deduplication.service";
 import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
 import * as researchAgendaService from "./services/researchAgenda.service";
+import { substackContextProvider } from "./providers/substackContext.provider";
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
-  description: `Eliza's knowledge & content plugin — 15 actions, 7 services.
+  description: `Eliza's knowledge & content plugin — 15 actions, 7 services, 1 provider (Substack).
 
 📚 KNOWLEDGE MANAGEMENT:
 - UPLOAD: Ingest text, URLs, YouTube → knowledge/
@@ -118,7 +119,10 @@ export const elizaPlugin: Plugin = {
   • Tracks sessions, progress, and files created
 
 📊 CONTENT AUDIT:
-- CONTENT_AUDIT: Top posts analysis from top X posts (hooks, topics, formats). Uses plugin-x-research for X data; set ELIZA_X_BEARER_TOKEN for Eliza.`,
+- CONTENT_AUDIT: Top posts analysis from top X posts (hooks, topics, formats). Uses plugin-x-research for X data; set ELIZA_X_BEARER_TOKEN for Eliza.
+- SUBSTACK_CONTEXT provider: Recent Ikigai Studio Substack posts (RSS) + optional profile (Substack API). Set SUBSTACK_FEED_URL / ELIZA_SUBSTACK_LINKEDIN_HANDLE.`,
+
+  providers: [substackContextProvider],
 
   routes: [
     {

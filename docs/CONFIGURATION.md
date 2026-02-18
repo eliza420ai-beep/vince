@@ -53,5 +53,7 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | `VINCE_APPLY_IMPROVEMENT_WEIGHTS` | `true` = align weights with training metadata |
 | `VINCE_BINANCE_BASE_URL` | Proxy for Binance in 451 regions |
 | `VITE_OTAKU_MODE` | Wallet UI: `normies` = simple/Coinbase; unset = DeFi mode. Build-time only. |
+| `SUBSTACK_FEED_URL` | Optional. RSS feed for Ikigai Studio Substack (default: https://ikigaistudio.substack.com/feed). Set empty to disable. |
+| `ELIZA_SUBSTACK_LINKEDIN_HANDLE` | Optional. LinkedIn handle linked to Substack (for profile stats via [Substack Developer API](https://support.substack.com/hc/en-us/articles/45099095296916)); requires API ToS. |
 
 See `.env.example` for the full list.

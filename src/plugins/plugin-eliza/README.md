@@ -17,6 +17,17 @@ There is **no dependency on plugin-vince** for these actions. The same env vars 
 
 - Set **`ELIZA_X_BEARER_TOKEN`** (or `X_BEARER_TOKEN`) so Eliza can call the X API. Without it, the action returns a clear "X API not configured" message.
 
+## Substack (SUBSTACK_CONTEXT provider)
+
+The **SUBSTACK_CONTEXT** provider injects recent Ikigai Studio Substack posts (from RSS) and optional profile stats into Eliza’s state. See [docs/SUBSTACK.md](../../../docs/SUBSTACK.md) for details.
+
+| Env | Purpose |
+|-----|--------|
+| **SUBSTACK_FEED_URL** | Optional. RSS feed URL (default: https://ikigaistudio.substack.com/feed). Set empty to disable. |
+| **ELIZA_SUBSTACK_LINKEDIN_HANDLE** | Optional. LinkedIn handle linked to Substack for profile stats (Substack Developer API; requires ToS). |
+
+Publishing is not automated: WRITE_ESSAY saves drafts to `knowledge/drafts/`; you publish manually.
+
 ## Knowledge and cache paths
 
 All knowledge paths are centralized in [src/config/paths.ts](src/config/paths.ts).
