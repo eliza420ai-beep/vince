@@ -151,6 +151,10 @@ This section is for developers (e.g. Roy) doing a code review or helping get Ota
 | @elizaos/plugin-sql | Database |
 | Others | Discord, x402, inter-agent, ERC-8004 as configured in otaku.ts |
 
+### Security Knowledge: EVMbench
+
+Otaku ingests `knowledge/security/`, which includes **EVMbench** (OpenAI + Paradigm): the benchmark for AI agents on EVM smart contract vulnerability detection, patching, and exploit. When advising on protocol risk, audit quality, or contract safety, Otaku can reference EVMbench as the emerging standard and prefer defensive use (AI-assisted auditing, hardened contracts). See [knowledge/security/evmbench-ai-smart-contract-benchmark.md](../knowledge/security/evmbench-ai-smart-contract-benchmark.md).
+
 ---
 
 ## Prerequisites & Scripts
