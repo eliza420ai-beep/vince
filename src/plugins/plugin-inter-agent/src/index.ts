@@ -20,6 +20,7 @@ import { logger } from "@elizaos/core";
 import { askAgentAction } from "./actions/askAgent.action";
 import { dailyReportAction } from "./actions/dailyReport.action";
 import { standupFacilitatorAction } from "./actions/standupFacilitator.action";
+import { feedbackAction } from "./actions/feedback.action";
 import { a2aLoopGuardEvaluator } from "./evaluators";
 import { a2aContextProvider } from "./providers";
 import { isStandupCoordinator, registerStandupTask } from "./standup";
@@ -142,7 +143,7 @@ export const interAgentPlugin: Plugin = {
   description:
     "Multi-agent coordination: ASK_AGENT (ask any agent, relay answer), Kelly-facilitated standups with Day Report, action item backlog, and Ralph loop (execute → verify → learn). One team, one dream.",
 
-  actions: [askAgentAction, dailyReportAction, standupFacilitatorAction],
+  actions: [askAgentAction, dailyReportAction, standupFacilitatorAction, feedbackAction],
   evaluators: [a2aLoopGuardEvaluator],
   providers: [a2aContextProvider],
 

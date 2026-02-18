@@ -14,7 +14,7 @@ import { logger } from "@elizaos/core";
 import { withLock } from "./fileLock";
 
 /** Action item status */
-export type ActionItemStatus = "new" | "in_progress" | "done" | "cancelled" | "failed";
+export type ActionItemStatus = "new" | "in_progress" | "done" | "cancelled" | "failed" | "pending_approval";
 
 /** Action item urgency */
 export type ActionItemUrgency = "now" | "today" | "this_week" | "backlog";

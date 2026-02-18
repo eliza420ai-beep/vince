@@ -17,6 +17,7 @@ import {
   STANDUP_ACTION_ITEM_TASK_NAME,
   STANDUP_RALPH_LOOP_TASK_NAME,
   getStandupRalphIntervalMs,
+  getStandupRequireApprovalTypes,
   STANDUP_REPORT_ORDER,
   isStandupTime,
   getStandupHours,
@@ -533,6 +534,31 @@ function getStandupDeliverablesDir(): string {
 }
 
 /**
+ * Append an action item to STANDUP_DELIVERABLES_DIR/pending-approval.ndjson when its type is in STANDUP_REQUIRE_APPROVAL_TYPES.
+ * Human (or an approve command) can move it back to executable status.
+ */
+function writePendingApprovalItem(item: ActionItem, standupItem: StandupActionItem): void {
+  const dir = getStandupDeliverablesDir();
+  const filepath = path.join(dir, "pending-approval.ndjson");
+  try {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const line =
+      JSON.stringify({
+        id: item.id,
+        type: standupItem.type,
+        what: item.what,
+        owner: item.owner,
+        date: item.date,
+        createdAt: new Date().toISOString(),
+      }) + "\n";
+    fs.appendFileSync(filepath, line, "utf-8");
+    logger.info({ itemId: item.id, type: standupItem.type }, "[Standup] Appended item to pending approval");
+  } catch (err) {
+    logger.warn({ err, filepath }, "[Standup] Failed to write pending approval item");
+  }
+}
+
+/**
  * Append agent-suggested improvements to STANDUP_DELIVERABLES_DIR/agent-suggestions.md (default docs/standup) for human review.
  */
 function persistStandupSuggestions(suggestions: string[] | undefined): void {
@@ -782,6 +808,17 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
       await updateActionItem(item.id, { status: "in_progress" });
 
       const standupItem = toStandupActionItem(item);
+      const requireApprovalTypes = getStandupRequireApprovalTypes();
+      if (requireApprovalTypes.size > 0 && requireApprovalTypes.has((standupItem.type ?? "").toLowerCase())) {
+        writePendingApprovalItem(item, standupItem);
+        await pushStandupSummaryToChannels(
+          rt,
+          `Action item requires approval: ${item.what.slice(0, 80)}… (type=${standupItem.type}) — see pending-approval.ndjson`,
+        );
+        await updateActionItem(item.id, { status: "pending_approval" });
+        return;
+      }
+
       let result: { path?: string; message?: string } | null = null;
       let outcome = "";
 
@@ -866,6 +903,27 @@ function registerStandupActionItemWorker(runtime: IAgentRuntime): void {
         type: type as StandupActionItem["type"],
       };
       if (type === "build" || isNorthStarType(item.type)) {
+        const requireApprovalTypes = getStandupRequireApprovalTypes();
+        if (requireApprovalTypes.size > 0 && requireApprovalTypes.has((item.type ?? "").toLowerCase())) {
+          const pseudoItem: ActionItem = {
+            id: `immediate-${Date.now()}`,
+            date: new Date().toISOString().slice(0, 10),
+            what: description,
+            how: "",
+            why: "",
+            owner: assigneeAgentName,
+            urgency: "today",
+            status: "pending_approval",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          writePendingApprovalItem(pseudoItem, item);
+          await pushStandupSummaryToChannels(
+            rt,
+            `Action item requires approval: ${description.slice(0, 60)}… (type=${item.type}) — see pending-approval.ndjson`,
+          );
+          return;
+        }
         const result = await executeBuildActionItem(rt, item);
         if (result?.path || result?.message) {
           const line = result.path

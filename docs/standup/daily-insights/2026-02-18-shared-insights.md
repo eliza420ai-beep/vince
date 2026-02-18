@@ -1,5 +1,5 @@
 ---
-date: 2026-02-18T09:21:05.872Z
+date: 2026-02-18T21:00:47.045Z
 type: shared-daily-insights
 ---
 
@@ -8,21 +8,21 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $68,176 +0.3% | F:0.264% L/S:2.02 Vol:1.0x | bearish |
-| SOL | $85.546 -0.3% | F:-0.020% L/S:2.74 Vol:1.0x | bearish |
-| HYPE | $29.553 -1.1% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $66,214 -2.2% | F:-0.000% L/S:2.49 Vol:1.0x | bearish |
+| SOL | $81.245 -4.4% | F:-0.017% L/S:3.10 Vol:1.0x | bearish |
+| HYPE | $28.727 -3.2% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
-**Signal (BTC):** short (64% conf, CoinGlass,BinanceLongShort,NewsSentiment,XSentiment,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+**Signal (BTC):** short (59% conf, CoinGlass,BinanceLongShort,NewsSentiment,XSentiment,DeribitIVSkew,MarketRegime,HyperliquidBias,HyperliquidFundingExtreme,DeribitPutCallRatio sources)
 
-**MandoMinutes:** Risk-off: regulatory. Themes: other, price, institutional, regulatory
-News sentiment: bearish (47% conf)
-TLDR: REGULATORY NOISE: Choppy ahead - trade smaller
+**MandoMinutes:** Risk-on ⚠️ Risk event active security. Themes: other, institutional, regulatory, price
+News sentiment: bullish (68% conf)
+TLDR: RISK EVENT: Security incident - reduce exposure
 Headlines:
-⚪ BTC ETFs: +$15m | ETH ETFs: +$10m
-⚪ Harvard rotates part of BTC ETF holdings to ETH
-🔴 Animoca Brands secures Dubai VASP license
-⚪ Bankr launches new real time token feed
-⚪ Strategy & Bitmine buy more BTC & ETH
+⚪ BTC ETFs: -$105m | ETH ETFs: +$49m
+⚪ Bitwise files for prediction market ETF
+⚪ Moonwell hack may be linked to Claude clode
+🔴 TON collabs with Banxa on stablecoins
+🟢 World Uncertainty Index hits ATH
 
 ## Eliza
 **Yesterday:** Solus's call: Above — BTC likely stays range-bound, sell covered call at $68,500 to capture premium.
@@ -69,12 +69,16 @@ State: strike price, directio…
 
 ## Sentinel
 Recent code (git log --oneline):
-243f0fc Add new trade analysis for February 18, 2026, focusing on MicroStrategy's leveraged Bitcoin exposure and potential institutional FOMO driven by Trump's crypto-friendly cabinet. Include detailed risk assessment and trading strategy in both JSON and Markdown formats. Additionally, introduce OpenClaw architecture documentation and a guide for running openclaw-agents, enhancing the knowledge base for Clawterm.
-ac6fb7a Merge pull request #31 from eliza420ai-beep/main
-de35155 docs: add comprehensive data sources deep reference for Sentinel
-b241ceb Add unicorn…
+29fddd7 web4 is the new web3
+c28431d Update documentation and configuration for X_SEARCH functionality
+139bd0f Add trading agent skill documentation for EVClaw integration
+56f7747 Enhance EVMbench documentation with additional sources and insights
+826f5a2 Add EVMbench security knowledge and benchmark documentation
+c798bfb Add release notes for v3.2.0, detailing new features and updates
+84fdf68 Release v3.2.0: perps paper bot, Polymarket desk, Synth API, Macs/local inference
+70b25f8 Add Substack posts integration to LeaderboardPage. Implemented fetching and disp…
 
 ## Clawterm
-Here's the daily standup summary:
+Daily Standup Summary:
 
-OpenClaw is gaining traction with a comprehensive freeCodeCamp tutorial showcasing local AI agent setup across messaging platforms like Telegram and WhatsApp. The tutorial highlights key skills including web search, task automation, and security practices like Docker-based sandboxing. The project is positioning itself as a conversation-first autonomous agent that enables users to interact with AI models through chat interfaces.
+OpenClaw is seeing early browser-hosted agent momentum with Kimi Claw, which enables cloud-based AI agents with scheduled automations and ClawHub skill integration. Two major tutorial channels (Snapper AI and Tech With Tim) are shipping comprehensive setup guides, focusing on VPS deployment, Docker configuration, and advanced agent capabilities like Telegram integration and voice features. However, current adoption remains low, with @andrewnaegele noting only 48 skills and minimal production usage.

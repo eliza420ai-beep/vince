@@ -537,6 +537,9 @@ export const askAgentAction: Action = {
             });
           });
           if (reply) {
+            logger.info(
+              `[ASK_AGENT] from=${fromName} target=${targetName} replyLen=${reply.length} timeout=false`
+            );
             await callback({
               text: `**${targetName} says:** ${reply}`,
               actions: ["ASK_AGENT"],
@@ -653,7 +656,14 @@ export const askAgentAction: Action = {
         }
 
         if (!reply) {
-          logger.debug("[ASK_AGENT] In-process path did not deliver reply, falling back to job API");
+          logger.info(
+            `[ASK_AGENT] from=${fromName} target=${targetName} replyLen=0 timeout=true`
+          );
+          await callback({
+            text: `I asked **${targetName}** but didn't get a reply in time. Don't treat this as their answer—try asking them directly or retry later.`,
+            actions: ["ASK_AGENT"],
+          });
+          return { success: false };
         }
       } else {
         logger.debug("[ASK_AGENT] Using job API (no elizaOS)");

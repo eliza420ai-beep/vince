@@ -93,6 +93,17 @@ export function getStandupRalphIntervalMs(): number {
   return Number.isFinite(v) && v >= 60_000 ? v : 5 * 60 * 1000;
 }
 
+/**
+ * Action item types that require human approval before execution.
+ * Env: STANDUP_REQUIRE_APPROVAL_TYPES (comma-separated, e.g. trades,prd).
+ * When an item's type is in this set, the Ralph loop writes it to pending-approval and does not execute.
+ */
+export function getStandupRequireApprovalTypes(): Set<string> {
+  const raw = process.env.STANDUP_REQUIRE_APPROVAL_TYPES?.trim();
+  if (!raw) return new Set();
+  return new Set(raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
+}
+
 /** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. */
 export const STANDUP_REPORT_ORDER = [
   "VINCE",

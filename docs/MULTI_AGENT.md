@@ -255,6 +255,37 @@ A different way to get “where we need to be” is to **run [OpenClaw](https://
 - **Then:** If the bottleneck becomes “too many good PRDs, not enough implementation capacity,” add a dev worker. Prefer **Milaidy** (extend the standup-action contract or add a PRD endpoint; same ElizaOS stack, existing Gateway hook) over OpenClaw (second stack, more ops). Only add OpenClaw if there is a clear reason to prefer its session/tool model.
 - **Rationale:** Shipping the feedback flow is a bounded, in-repo task. Autonomous “read PRD → edit repo → open PR” is non-trivial; add it only when the need is clear. Milaidy is the more coherent choice when we do.
 
+## Notes: AGI limitations and what they mean for multi-agent systems
+
+**How close are we to AGI?** Leading researchers (e.g. Stuart Russell, Nature correspondence Feb 2026) say we are still **several major breakthroughs away**. Benchmarks like ARC-AGI or "passing the Turing Test" measure pattern matching and narrow tasks, not the robust causal reasoning and open-world reliability that define serious AGI.
+
+**Biggest limitations relevant to our multi-agent setup:**
+
+1. **Causal non-guarantee**  
+   Systems trained only on passive data (e.g. next-token prediction on text) **cannot guarantee** correct "if I do X, then Y" reasoning in new situations. They approximate patterns; they don't learn true cause–effect structure from observation alone.
+
+2. **Multi-agent doesn't fix it**  
+   When multiple agents coordinate, the limitation persists and can **amplify**: hidden confounders, coordination failures, and "amplified causality" issues mean that agent-to-agent systems don't escape the fundamental constraint. Coordination via shared state (e.g. our ASK_AGENT, standups) is still pattern-driven, not grounded in guaranteed causal models of other agents or the world.
+
+3. **What this means in practice**  
+   Our agents (Vince, Kelly, Sentinel, etc.) are powerful **tools** for synthesis, routing, and deliverables within well-defined domains. They are not "true AGI": they can't guarantee correct interventional reasoning in novel, safety-critical, or open-ended environments. Design and review should assume human oversight for high-stakes or novel cases.
+
+*Summary derived from validated research (Nature, Anthropic, DeepMind, causal identifiability theory) as of Feb 2026; see full analysis in "Artificial General Intelligence Limitations: A Mathematical and Scientific Analysis" (kardashevscale1, 17 Feb 2026).*
+
+### High-stakes boundary
+
+- **Deliverables are suggestions until reviewed:** Build and north-star outputs (code, PRDs, trades, essays) are written to disk only; no auto-execution. Human reviews before use.
+- **Only Otaku executes with real funds:** Otaku is the single agent with a funded wallet; any real trade or DeFi execution is explicit user action, not standup auto-execution.
+- **Trades type = suggestions only:** The "trades" north-star deliverable produces disclaimer-only markdown (suggestions, not financial advice); standup never executes trades.
+
+### Design principles given AGI limitations
+
+- Human oversight for high-stakes or novel decisions; deliverables are suggestions until reviewed.
+- Prefer a single ASK_AGENT hop when possible (e.g. Kelly asks Vince and relays; avoid Kelly → Vince → Solus in one request) to reduce compound errors.
+- Surface "no reply" clearly so it is not treated as an answer—e.g. "I asked X but didn't get a reply in time."
+- Standup outputs (code, PRDs, trades, essays) are written to disk only; only Otaku executes with real funds, and only on explicit user action.
+- FEEDBACK flow (see [Feedback from agent testing](#feedback-from-agent-testing-planned)) is the primary way to correct agent behavior from testing.
+
 ## Troubleshooting
 
 ### Discord: "Could not find guild for channel (not in cache and fetch failed)"
