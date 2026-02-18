@@ -1,23 +1,24 @@
 {
   "date": "2024-02-18",
-  "thesis": "Trump's crypto-friendly cabinet and potential Bitcoin reserve drive institutional FOMO",
-  "primaryTicker": "MSTR",
-  "primaryDirection": "long",
+  "thesis": "SOL outperforms ETH as memecoin season and Solana ecosystem momentum drives relative strength while ETH faces continued staking yield compression concerns",
+  "primaryTicker": "COIN",
+  "primaryDirection": "short",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 129.59,
-  "primaryRiskUsd": 500,
-  "invalidateCondition": "BTC < $65k",
+  "primaryEntryPrice": 169.03,
+  "primaryRiskUsd": 800,
+  "invalidateCondition": "BTC > $70k",
   "killConditions": [
-    "dies if crypto regulation FUD"
+    "dies if CB/SOL integration",
+    "memecoin mania fades faster than expected"
   ],
   "rubric": {
     "alignment": "exposed",
     "edge": "emerging",
-    "payoffShape": "high",
+    "payoffShape": "moderate",
     "timingForgiveness": "punishing"
   },
-  "altTicker": "BTC",
+  "altTicker": "SOL",
   "altDirection": "long",
   "altInstrument": "perp",
-  "evThresholdPct": 15
+  "evThresholdPct": 60
 }
