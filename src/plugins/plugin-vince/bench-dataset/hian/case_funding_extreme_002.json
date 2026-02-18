@@ -1,0 +1,24 @@
+{
+  "id": "hian_funding_extreme_002",
+  "description": "Funding extreme contrarian: extreme negative funding with neutral sentiment elsewhere",
+  "context": {
+    "funding": -0.08,
+    "ls_ratio": 0.35,
+    "fear_greed": 28,
+    "dvol": 62,
+    "top_traders_long_pct": 0.45,
+    "news_sentiment": "neutral",
+    "x_sentiment": "neutral",
+    "whale_flow": "neutral",
+    "regime": "ranging"
+  },
+  "needle": "Extreme negative funding suggests contrarian long; funding_extreme signal should fire",
+  "ground_truth": {
+    "direction": "long",
+    "min_confidence": 60,
+    "required_signatures": [
+      "signal.quality.funding_extreme_used",
+      "signal.quality.regime_aligned"
+    ]
+  }
+}

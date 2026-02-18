@@ -1,0 +1,24 @@
+{
+  "id": "hian_regime_bear_003",
+  "description": "Clear bear regime with mixed short-term signals; strategy should adapt to regime",
+  "context": {
+    "funding": 0.02,
+    "ls_ratio": 0.58,
+    "fear_greed": 35,
+    "dvol": 78,
+    "market_regime": "bearish",
+    "volatility_regime": "high",
+    "news_sentiment": "bearish",
+    "x_sentiment": "bearish"
+  },
+  "needle": "Market regime is bearish; signal direction should align and leverage be reduced",
+  "ground_truth": {
+    "direction": "short",
+    "min_confidence": 55,
+    "required_signatures": [
+      "regime.detected",
+      "regime.strategy_adapted",
+      "regime.volatility_adjusted"
+    ]
+  }
+}

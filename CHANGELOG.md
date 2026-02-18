@@ -2,6 +2,23 @@
 
 All notable changes to the VINCE project will be documented in this file.
 
+## [v3.1.0] - 2026-02-18
+
+### VinceBench helps ML automatically
+
+- **labels.benchScore** — Per-decision VinceBench score stored on every closed trade; available to training as `label_benchScore`
+- **Training** — `--bench-score-weight`, `--min-bench-score`, `--bench-score-quantile`; metadata and improvement report record bench usage
+- **Backfill** — `backfill-bench-scores.ts` for historical JSONL (with `.bak` backup)
+- **Docs** — FEATURE-STORE.md § VinceBench and ML; README § Paper bot & ML with re-run training command
+
+### Training & ONNX
+
+- **README** — Re-run training command and note that `--output .elizadb/vince-paper-bot/models` needs no copy step
+- **train_models.py** — Final log: "Models are in the agent directory" when output is the agent models dir; otherwise remind to copy
+- **train_models.py** — Fewer pandas/numpy warnings (numeric coercion, float64 in outlier clip, infer_objects after fillna)
+
+---
+
 ## [v2.8.0] - 2026-02-16
 
 ### OpenClaw workspace orientation

@@ -10,6 +10,9 @@
     "test:e2e": "vitest run src/__tests__/realData.e2e.test.ts --dir=.",
     "test:watch": "vitest --dir=.",
     "improvement-weights": "bun run scripts/run-improvement-weights.ts",
+    "run-bench": "bun run scripts/run-bench.ts",
+    "bench-improve": "bun run scripts/bench-improve.ts",
+    "extract-scenarios": "bun run scripts/extract-scenarios.ts",
     "train-models": "cd ../../.. && python3 src/plugins/plugin-vince/scripts/train_models.py --data .elizadb/vince-paper-bot/features --output .elizadb/vince-paper-bot/models --min-samples 90 \"$@\""
   },
   "keywords": [
@@ -30,8 +33,9 @@
   "dependencies": {
     "@elizaos/core": "workspace:*",
     "drizzle-orm": "^0.45.0",
-    "uuid": "^9.0.0"
-  },
+"uuid": "^9.0.0",
+    "yaml": "^2.7.0"
+},
   "devDependencies": {
     "vitest": "^3.0.0"
   },

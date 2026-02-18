@@ -303,17 +303,27 @@ def _clip_outliers(df: pd.DataFrame, z_thresh: float = 3.0) -> pd.DataFrame:
         from scipy import stats
     except ImportError:
         return df
+    import warnings
     df = df.copy()
     numeric = df.select_dtypes(include=[np.number])
     for col in numeric.columns:
-        std = df[col].std()
-        if std == 0 or (hasattr(std, '__float__') and abs(std) < 1e-10):
+        ser = pd.to_numeric(df[col], errors="coerce")
+        if ser.isna().all():
             continue
-        z = np.abs(stats.zscore(df[col].fillna(df[col].median())))
+        df[col] = ser.astype(np.float64)
+        std = df[col].std()
+        if std == 0 or (hasattr(std, "__float__") and abs(std) < 1e-10):
+            continue
+        filled = df[col].fillna(df[col].median())
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            z = np.abs(stats.zscore(filled))
+        z = np.nan_to_num(z, nan=0.0, posinf=0.0, neginf=0.0)
         mask = z > z_thresh
         if mask.any():
-            cap = df[col].abs().quantile(0.99)
-            df.loc[mask, col] = df.loc[mask, col].clip(-cap, cap)
+            cap = float(df[col].abs().quantile(0.99))
+            clipped = df.loc[mask, col].clip(lower=-cap, upper=cap)
+            df.loc[mask, col] = clipped.astype(np.float64)
     return df
 
 
@@ -399,7 +409,10 @@ def _finalize_features(
     if label_transform is not None:
         y = label_transform(y)
 
+    for c in X.columns:
+        X[c] = pd.to_numeric(X[c], errors="coerce")
     X = X.fillna(0)
+    X = X.infer_objects(copy=False)
     X = X.select_dtypes(include=[np.number, "bool"])
     for c in X.select_dtypes(include=["bool"]).columns:
         X[c] = X[c].astype(int)
@@ -534,6 +547,28 @@ def _compute_sample_weights(
         counts = asset_series.value_counts()
         inv_freq = asset_series.map(lambda a: 1.0 / max(1, counts.get(a, 1)))
         w *= inv_freq.values
+    w /= w.max()
+    return w
+
+
+def _compute_bench_score_weights(
+    n: int,
+    bench_series: pd.Series,
+) -> np.ndarray:
+    """Weights from VinceBench per-decision score: normalize to [0,1], high score = high weight. Missing -> 0.5."""
+    w = np.ones(n, dtype=np.float64)
+    valid = bench_series.notna()
+    if not valid.any():
+        return w
+    vals = bench_series.values.astype(np.float64)
+    min_b = np.nanmin(vals)
+    max_b = np.nanmax(vals)
+    span = max_b - min_b + 1e-8
+    for i in range(n):
+        if valid.iloc[i] if hasattr(valid, "iloc") else valid[i]:
+            w[i] = (vals[i] - min_b) / span
+        else:
+            w[i] = 0.5
     w /= w.max()
     return w
 
@@ -1572,6 +1607,15 @@ def _train_single_model(
             args.balance_assets,
         ) if (args.recency_decay > 0 or args.balance_assets) else None
 
+        # VinceBench: upweight high bench-score decisions (signal_quality only)
+        if name == "signal_quality" and getattr(args, "bench_score_weight", False) and "label_benchScore" in df_sub.columns:
+            w_bench = _compute_bench_score_weights(len(X), df_sub["label_benchScore"])
+            if w is not None:
+                w = w * w_bench
+            else:
+                w = w_bench
+            w = w / w.max()
+
         # Train or tune
         tune = getattr(args, "tune_hyperparams", False)
         if name == "signal_quality":
@@ -1650,6 +1694,9 @@ def main():
     parser.add_argument("--optuna-trials", type=int, default=50, help="Number of Optuna trials when --tune-hyperparams is used (default 50)")
     parser.add_argument("--real-only", dest="real_only", action="store_true", help="Load only features_*.jsonl and combined.jsonl; exclude synthetic_*.jsonl (use for production when you have enough real trades)")
     parser.add_argument("--parallel", action="store_true", help="Train models in parallel using concurrent.futures (faster on multi-core)")
+    parser.add_argument("--bench-score-weight", action="store_true", help="Upweight samples by VinceBench per-decision score (label_benchScore); use with signal_quality")
+    parser.add_argument("--min-bench-score", type=float, default=None, help="Train only on rows with label_benchScore >= this value (optional filter)")
+    parser.add_argument("--bench-score-quantile", type=float, default=None, help="Train only on rows with label_benchScore >= this quantile (e.g. 0.5 for median); 0-1")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -1707,6 +1754,30 @@ def main():
     # Add lag features (temporal context from prior trades)
     df = add_lag_features(df)
 
+    # Optional VinceBench filter: train only on high-quality decisions
+    bench_filter_used = False
+    if "label_benchScore" in df.columns:
+        min_bench = getattr(args, "min_bench_score", None)
+        quantile = getattr(args, "bench_score_quantile", None)
+        if min_bench is not None:
+            before = len(df)
+            df = df[df["label_benchScore"].fillna(-np.inf) >= min_bench].copy()
+            dropped = before - len(df)
+            logger.info("VinceBench filter (--min-bench-score=%.2f): dropped %d rows, %d remaining", min_bench, dropped, len(df))
+            bench_filter_used = True
+        elif quantile is not None and 0 < quantile < 1:
+            threshold = float(df["label_benchScore"].quantile(quantile))
+            before = len(df)
+            df = df[df["label_benchScore"].fillna(-np.inf) >= threshold].copy()
+            dropped = before - len(df)
+            logger.info("VinceBench filter (--bench-score-quantile=%.2f, threshold=%.2f): dropped %d rows, %d remaining", quantile, threshold, dropped, len(df))
+            bench_filter_used = True
+    elif getattr(args, "min_bench_score", None) is not None or getattr(args, "bench_score_quantile", None) is not None:
+        logger.warning("--min-bench-score/--bench-score-quantile set but label_benchScore not in data; skipping filter")
+
+    bench_weight_enabled = getattr(args, "bench_score_weight", False)
+    bench_score_used = bench_filter_used or bench_weight_enabled
+
     model_names = ["signal_quality", "position_sizing", "tp_optimizer", "sl_optimizer"]
     improvement_entries: Dict[str, Dict[str, Any]] = {}
 
@@ -1735,6 +1806,13 @@ def main():
     improvement_report = build_improvement_report(df, improvement_entries) if improvement_entries else {}
     if improvement_entries.get("signal_quality", {}).get("signal_quality_calibration"):
         improvement_report["signal_quality_calibration"] = improvement_entries["signal_quality"]["signal_quality_calibration"]
+    if bench_score_used:
+        improvement_report["bench_score_used"] = True
+        improvement_report["bench_score_weight_enabled"] = bench_weight_enabled
+        if getattr(args, "min_bench_score", None) is not None:
+            improvement_report["min_bench_score"] = args.min_bench_score
+        if getattr(args, "bench_score_quantile", None) is not None:
+            improvement_report["bench_score_quantile"] = args.bench_score_quantile
 
     # Metadata with ONNX hashes for versioning
     onnx_hashes = {n: e["onnx_sha256"] for n, e in improvement_entries.items() if e.get("onnx_sha256")}
@@ -1748,6 +1826,13 @@ def main():
         "onnx_hashes": onnx_hashes,
         "improvement_report": improvement_report,
     }
+    if bench_score_used:
+        metadata["bench_score_used"] = True
+        metadata["bench_score_weight_enabled"] = bench_weight_enabled
+        if getattr(args, "min_bench_score", None) is not None:
+            metadata["min_bench_score"] = args.min_bench_score
+        if getattr(args, "bench_score_quantile", None) is not None:
+            metadata["bench_score_quantile"] = args.bench_score_quantile
     if improvement_entries.get("signal_quality", {}).get("feature_importances"):
         metadata["signal_quality_input_dim"] = len(improvement_entries["signal_quality"]["feature_importances"])
     if improvement_entries.get("signal_quality", {}).get("feature_names"):
@@ -1768,7 +1853,11 @@ def main():
     if improvement_report.get("action_items"):
         logger.info("Improvement report: %s", output_dir / "improvement_report.md")
     logger.info("Log file: %s", output_dir / "train.log")
-    logger.info("Next: copy .onnx to .elizadb/vince-paper-bot/models/ and restart the agent")
+    out_str = str(output_dir)
+    if "vince-paper-bot" in out_str and "models" in out_str:
+        logger.info("Models are in the agent directory. Restart the agent to load new ONNX.")
+    else:
+        logger.info("Copy .onnx (and *_features.json) from %s to .elizadb/vince-paper-bot/models/ and restart the agent.", output_dir)
 
 
 if __name__ == '__main__':

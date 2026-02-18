@@ -1306,6 +1306,7 @@ export class VincePaperTradingService extends Service {
           sizeUsd: finalSize,
           leverage,
           signal: tradeSignal,
+          usedPullbackEntry: false,
         });
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
@@ -1436,6 +1437,7 @@ export class VincePaperTradingService extends Service {
             sizeUsd: entry.sizeUsd,
             leverage: entry.leverage,
             signal: entry.signal,
+            usedPullbackEntry: true,
           });
 
           this.pendingEntries.delete(id);
@@ -1459,8 +1461,10 @@ export class VincePaperTradingService extends Service {
     sizeUsd: number;
     leverage: number;
     signal: AggregatedTradeSignal;
+    /** True when fill came from pending pullback target (vs immediate execution). */
+    usedPullbackEntry?: boolean;
   }): Promise<Position | null> {
-    const { asset, direction, sizeUsd, leverage, signal } = params;
+    const { asset, direction, sizeUsd, leverage, signal, usedPullbackEntry = false } = params;
 
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -1828,6 +1832,7 @@ export class VincePaperTradingService extends Service {
             : undefined,
         banditWeightsUsed:
           (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true,
+        usedPullbackEntry,
       },
     });
 
@@ -2083,10 +2088,12 @@ export class VincePaperTradingService extends Service {
         await featureStore.linkTrade(decisionId, position.id);
 
         // Record execution details (recordId, position, additionalDetails)
+        const usedPullbackEntry = (position.metadata as { usedPullbackEntry?: boolean } | undefined)?.usedPullbackEntry ?? false;
         await featureStore.recordExecution(decisionId, position, {
           entryAtrPct: entryATRPct ?? 2.5,
           streakMultiplier: streakInfo.multiplier,
           positionSizePct: 0,
+          usedPullbackEntry,
         });
 
         logger.debug(

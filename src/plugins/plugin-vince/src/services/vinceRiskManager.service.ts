@@ -331,7 +331,7 @@ export class VinceRiskManagerService extends Service {
 
     if (nearFunding) {
       shouldTrade = false;
-      reason = "Near funding settlement (±15 min window)";
+      reason = "Time filter blocked: Near funding settlement (±15 min window)";
     }
 
     return {

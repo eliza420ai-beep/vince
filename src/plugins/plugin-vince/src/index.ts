@@ -1150,3 +1150,22 @@ export type {
   AdjustmentRecord,
   TunedConfig,
 } from "./config/dynamicConfig";
+
+// ==========================================
+// VinceBench (decision-quality benchmark)
+// ==========================================
+export { runReplay } from "./bench/runner";
+export { toMarkdown, writeReports } from "./bench/reporter";
+export { loadConfig } from "./bench/configLoader";
+export { loadScenarios, recordsToEvaluations } from "./bench/scenarioLoader";
+export { normalize } from "./bench/normalizer";
+export { evaluate, scoreSingleDecision } from "./bench/evaluator";
+export { generateImprovementSuggestions } from "./bench/improvementLoop";
+export type {
+  VinceBenchReport,
+  VinceBenchConfig,
+  DecisionEvaluation,
+  Signature,
+  HiaNScenario,
+} from "./bench/types";
+export type { ImprovementSuggestion, CurrentParams } from "./bench/improvementLoop";

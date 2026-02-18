@@ -1,0 +1,25 @@
+{
+  "id": "hian_cascade_001",
+  "description": "15 conflicting signals, one liquidation cascade signal buried in noise",
+  "context": {
+    "funding": -0.01,
+    "ls_ratio": 0.48,
+    "fear_greed": 42,
+    "dvol": 55,
+    "top_traders_long_pct": 0.51,
+    "liquidation_cluster": "1200_longs_below_95k",
+    "news_sentiment": "neutral",
+    "x_sentiment": "slightly_bearish",
+    "whale_flow": "mixed",
+    "regime": "ranging"
+  },
+  "needle": "liquidation_cluster indicates cascade short opportunity",
+  "ground_truth": {
+    "direction": "short",
+    "min_confidence": 65,
+    "required_signatures": [
+      "signal.quality.cascade_detected",
+      "risk.sl_atr_based"
+    ]
+  }
+}

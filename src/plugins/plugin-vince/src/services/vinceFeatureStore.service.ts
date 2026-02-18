@@ -21,6 +21,10 @@ import { Service, type IAgentRuntime, logger } from "@elizaos/core";
 import * as fs from "fs";
 import * as path from "path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { loadConfig } from "../bench/configLoader";
+import { scoreSingleDecision } from "../bench/evaluator";
+import { normalize } from "../bench/normalizer";
+import type { VinceBenchConfig } from "../bench/types";
 import type {
   Position,
   TradeSignalDetail,
@@ -255,6 +259,8 @@ export interface TradeExecutionFeatures {
   streakMultiplier: number;
   /** Rejection reason if not executed */
   rejectionReason?: string;
+  /** True when fill came from pending pullback target (vs immediate execution) */
+  usedPullbackEntry?: boolean;
 }
 
 /**
@@ -303,6 +309,8 @@ export interface MLLabels {
   betterEntryAvailable: boolean;
   /** Stop was too tight (hit stop but then price reversed favorably) */
   stopTooTight: boolean;
+  /** VinceBench per-decision score (base contribution) for ML sample weighting */
+  benchScore?: number;
 }
 
 /**
@@ -436,6 +444,8 @@ export class VinceFeatureStoreService extends Service {
   private static readonly FEATURE_FETCH_TIMEOUT_MS = 6_000;
   /** Timeout for HIP-3 / Yahoo macro fetch in collectNewsFeatures */
   private static readonly NEWS_MACRO_TIMEOUT_MS = 6_000;
+  /** Cached VinceBench config for per-record benchScore (lazy-loaded). */
+  private benchConfig: VinceBenchConfig | null = null;
 
   constructor(protected runtime: IAgentRuntime) {
     super();
@@ -1482,7 +1492,7 @@ export class VinceFeatureStoreService extends Service {
     const betterEntryAvailable =
       outcome.maxAdverseExcursion > execution.stopLossDistancePct * 0.5;
 
-    return {
+    const labels: MLLabels = {
       profitable,
       winAmount,
       lossAmount,
@@ -1491,6 +1501,24 @@ export class VinceFeatureStoreService extends Service {
       betterEntryAvailable,
       stopTooTight,
     };
+
+    // VinceBench per-decision score for ML sample weighting (optional; skip on error)
+    try {
+      if (!this.benchConfig) {
+        const configPath =
+          (this.runtime.getSetting?.("VINCE_BENCH_CONFIG_PATH") as string) || undefined;
+        this.benchConfig = loadConfig(configPath);
+      }
+      const signatures = normalize(record);
+      const score = scoreSingleDecision(signatures, this.benchConfig);
+      labels.benchScore = Math.round(score * 100) / 100;
+    } catch (e) {
+      logger.debug(
+        `[VinceFeatureStore] Bench score skip for record ${record.id}: ${e}`,
+      );
+    }
+
+    return labels;
   }
 
   // ==========================================

@@ -133,6 +133,20 @@ Signals → trades → feature store → Python train → ONNX deploy. Four mode
 
 **Recent pipeline:** Optuna tuning, walk-forward validation, SHAP explainability, lag features, Platt calibration, feature manifests, ONNX hashing, parallel training; retrain when win rate &lt; 45%. No train/serve skew; no holdout leakage.
 
+**VinceBench helps ML automatically.** Every closed trade gets a per-decision *bench score* (process quality: signal, risk, timing, regime). That score is stored on the feature record (`labels.benchScore`) and used at training time: with `--bench-score-weight`, the signal-quality model learns more from high-quality decisions; optional `--min-bench-score` or `--bench-score-quantile` trains only on strong-process trades. New trades get the score when they close; historical JSONL can be backfilled with `bun run src/plugins/plugin-vince/scripts/backfill-bench-scores.ts --input .elizadb/vince-paper-bot/features`. Details → [FEATURE-STORE.md § VinceBench and ML](docs/FEATURE-STORE.md#vincebench-and-ml).
+
+**Re-run training** (from repo root; writes ONNX into the agent models dir so no copy step):
+
+```bash
+python3 src/plugins/plugin-vince/scripts/train_models.py \
+  --data .elizadb/vince-paper-bot/features \
+  --output .elizadb/vince-paper-bot/models \
+  --min-samples 90 \
+  --bench-score-weight
+```
+
+Or: `bun run train-models -- --bench-score-weight`. Restart the agent after training to load the new ONNX. If you use a different `--output`, copy the generated `.onnx` (and `*_features.json`) into `.elizadb/vince-paper-bot/models/` before restarting.
+
 Full loop, MandoMinutes, and improvements we claim → [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md). Pipeline and ONNX details → [ONNX.md](docs/ONNX.md). Feature store and Supabase → [FEATURE-STORE.md](docs/FEATURE-STORE.md).
 
 ---

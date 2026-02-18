@@ -1,0 +1,21 @@
+{
+  "id": "hian_avoid_weak_004",
+  "description": "Weak signal (low strength/confidence); agent should reject and emit avoid signature",
+  "context": {
+    "funding": 0.001,
+    "ls_ratio": 0.5,
+    "fear_greed": 50,
+    "strength": 38,
+    "confidence": 42,
+    "source_count": 2,
+    "regime": "neutral"
+  },
+  "needle": "Signal below threshold; correct action is to avoid and record avoid.low_quality_rejected",
+  "ground_truth": {
+    "direction": "neutral",
+    "min_confidence": 0,
+    "required_signatures": [
+      "avoid.low_quality_rejected"
+    ]
+  }
+}

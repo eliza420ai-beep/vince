@@ -1,0 +1,23 @@
+{
+  "id": "hian_session_overlap_005",
+  "description": "EU/US overlap session with trend alignment; open window boost should apply",
+  "context": {
+    "session": "overlap",
+    "utc_hour": 14,
+    "is_open_window": true,
+    "funding": -0.02,
+    "direction": "short",
+    "strength": 72,
+    "confidence": 68
+  },
+  "needle": "Favorable session and open window; entry.open_window_boost and timing.session_favorable",
+  "ground_truth": {
+    "direction": "short",
+    "min_confidence": 65,
+    "required_signatures": [
+      "entry.open_window_boost",
+      "timing.session_favorable",
+      "timing.window_open"
+    ]
+  }
+}

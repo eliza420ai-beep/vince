@@ -1,0 +1,43 @@
+version: "0.1"
+per_decision_window_ms: 60000
+# Cap per signature so "always do the right thing" (e.g. circuit breaker on every trade) isn't penalized.
+# With 500–1k scenarios, 500 keeps score readable; lower values suit few-shot runs.
+per_signature_cap: 500
+
+domains:
+  signal_quality:
+    weight: 1.5
+    description: "Did the agent combine signals correctly?"
+    allow:
+      - "signal.quality.*"
+
+  position_management:
+    weight: 1.25
+    description: "Was sizing, entry, and exit well-structured?"
+    allow:
+      - "position.sizing.*"
+      - "entry.*"
+
+  risk_discipline:
+    weight: 1.5
+    description: "Were risk controls respected?"
+    allow:
+      - "risk.*"
+
+  timing:
+    weight: 1.0
+    description: "Was the timing appropriate?"
+    allow:
+      - "timing.*"
+
+  regime_awareness:
+    weight: 1.25
+    description: "Did the agent adapt to market regime?"
+    allow:
+      - "regime.*"
+
+  avoidance_quality:
+    weight: 1.0
+    description: "Did the agent correctly reject bad trades?"
+    allow:
+      - "avoid.*"
