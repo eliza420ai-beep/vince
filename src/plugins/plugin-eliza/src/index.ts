@@ -69,6 +69,7 @@ import * as sourceQualityService from "./services/sourceQuality.service";
 import * as styleGuideService from "./services/styleGuide.service";
 import * as researchAgendaService from "./services/researchAgenda.service";
 import { substackContextProvider } from "./providers/substackContext.provider";
+import { getSubstackFeedUrl, fetchSubstackPosts } from "./services/substackFeed";
 
 export const elizaPlugin: Plugin = {
   name: "plugin-eliza",
@@ -161,6 +162,24 @@ export const elizaPlugin: Plugin = {
             success: false,
             error: err instanceof Error ? err.message : String(err),
           });
+        }
+      },
+    },
+    {
+      name: "eliza-substack",
+      path: "/eliza/substack",
+      type: "GET",
+      handler: async (
+        _req: { body?: unknown; [k: string]: unknown },
+        res: { status: (n: number) => { json: (o: object) => void }; json: (o: object) => void },
+      ) => {
+        try {
+          const feedUrl = getSubstackFeedUrl();
+          const posts = await fetchSubstackPosts(feedUrl);
+          res.status(200).json({ posts });
+        } catch (err) {
+          logger.warn(`[Eliza Plugin] Substack route error: ${err}`);
+          res.status(500).json({ posts: [], error: err instanceof Error ? err.message : String(err) });
         }
       },
     },

@@ -580,6 +580,46 @@ function toDisplayString(raw: unknown): string {
   return String(raw ?? "");
 }
 
+// ---------------------------------------------------------------------------
+// Substack (News tab — Ikigai Studio recent posts from plugin-eliza)
+// ---------------------------------------------------------------------------
+
+export interface SubstackPostItem {
+  title: string;
+  link: string;
+  date: string;
+}
+
+export interface SubstackPostsResponse {
+  posts: SubstackPostItem[];
+  error?: string;
+}
+
+export async function fetchSubstackPostsWithError(
+  agentId: string,
+): Promise<{ data: SubstackPostsResponse | null; error: string | null; status: number | null }> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/plugin-eliza/eliza/substack`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg = typeof raw === "string" ? raw : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    const data = body as SubstackPostsResponse;
+    return { data: { posts: data?.posts ?? [] }, error: null, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
 /**
  * Submit text or YouTube URL to the knowledge base.
  * Upload is handled only by Eliza (plugin-eliza). Pass Eliza's agentId; if Eliza isn't loaded, upload will 404.

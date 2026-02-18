@@ -30,6 +30,7 @@ import {
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
+  fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
 import type { PaperResponse, KnowledgeResponse } from "@/frontend/lib/leaderboardsApi";
@@ -172,6 +173,23 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
   });
   const polymarketData = polymarketResult?.data ?? null;
   const polymarketError = polymarketResult?.error ?? null;
+
+  // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
+  const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
+  const {
+    data: substackResult,
+    isLoading: substackLoading,
+    error: substackError,
+    isFetched: substackFetched,
+  } = useQuery({
+    queryKey: ["substack-posts", elizaAgentIdForSubstack],
+    queryFn: () => fetchSubstackPostsWithError(elizaAgentIdForSubstack!),
+    enabled: mainTab === "news" && !!elizaAgentIdForSubstack,
+    staleTime: 20 * 60 * 1000,
+    retry: 1,
+  });
+  const substackPosts = substackResult?.data?.posts ?? [];
+  const substackApiError = substackResult?.error ?? null;
 
   const leaderboardsData = leaderboardsResult?.data ?? null;
   const leaderboardsError = leaderboardsResult?.error ?? null;
@@ -1118,12 +1136,72 @@ export default function LeaderboardPage({ agentId, agents }: LeaderboardPageProp
                     <p className="text-muted-foreground py-4">No headlines yet. Run MANDO_MINUTES or ask VINCE for news.</p>
                   )}
                 </DashboardCard>
+
+                {/* Ikigai Studio Substack — always show card so we can see loading/error state */}
+                <DashboardCard title="Ikigai Studio Substack" className="min-h-0 flex-shrink-0">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Recent essays from <a href="https://ikigaistudio.substack.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ikigaistudio.substack.com</a>
+                  </p>
+                  {!elizaAgentIdForSubstack ? (
+                    <p className="text-sm text-muted-foreground">Select the <strong>Eliza</strong> agent in the sidebar (or ensure she is running) to load recent posts here.</p>
+                  ) : substackLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  ) : substackApiError || substackError ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      Couldn&apos;t load: {substackApiError ?? (substackError instanceof Error ? substackError.message : String(substackError))}. Ensure the backend is running and the <strong>Eliza</strong> agent is started.
+                    </p>
+                  ) : substackPosts.length > 0 ? (
+                    <ul className="space-y-2 text-sm">
+                      {substackPosts.map((p, i) => (
+                        <li key={i} className="flex gap-2 items-start">
+                          <span className="flex-1 line-clamp-2">{p.title}</span>
+                          {p.date ? <span className="shrink-0 text-muted-foreground text-xs">{p.date.slice(0, 10)}</span> : null}
+                          <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs">
+                            <ExternalLink className="w-3.5 h-3.5" /> Read
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No posts returned. Backend may need <code className="text-xs bg-muted px-1 rounded">SUBSTACK_FEED_URL</code> (default: ikigaistudio.substack.com/feed).</p>
+                  )}
+                </DashboardCard>
               </div>
             ) : (
-              <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
-                <Newspaper className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-                <p className="font-medium text-foreground">No news data</p>
-                <p className="text-sm text-muted-foreground mt-1">Switch to Markets to load data, or ask VINCE for &quot;mando minutes&quot;.</p>
+              <div className="flex flex-col gap-6">
+                <div className="rounded-xl border border-border bg-muted/30 px-6 py-10 text-center">
+                  <Newspaper className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                  <p className="font-medium text-foreground">No news data</p>
+                  <p className="text-sm text-muted-foreground mt-1">Switch to Markets to load data, or ask VINCE for &quot;mando minutes&quot;.</p>
+                </div>
+                <DashboardCard title="Ikigai Studio Substack" className="min-h-0 flex-shrink-0">
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Recent essays from <a href="https://ikigaistudio.substack.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">ikigaistudio.substack.com</a>
+                  </p>
+                  {!elizaAgentIdForSubstack ? (
+                    <p className="text-sm text-muted-foreground">Select the <strong>Eliza</strong> agent in the sidebar (or ensure she is running) to load recent posts here.</p>
+                  ) : substackLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading…</p>
+                  ) : substackApiError || substackError ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400">
+                      Couldn&apos;t load: {substackApiError ?? (substackError instanceof Error ? substackError.message : String(substackError))}. Ensure the backend is running and the <strong>Eliza</strong> agent is started.
+                    </p>
+                  ) : substackPosts.length > 0 ? (
+                    <ul className="space-y-2 text-sm">
+                      {substackPosts.map((p, i) => (
+                        <li key={i} className="flex gap-2 items-start">
+                          <span className="flex-1 line-clamp-2">{p.title}</span>
+                          {p.date ? <span className="shrink-0 text-muted-foreground text-xs">{p.date.slice(0, 10)}</span> : null}
+                          <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0 text-primary hover:underline flex items-center gap-1 text-xs">
+                            <ExternalLink className="w-3.5 h-3.5" /> Read
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No posts returned. Backend may need <code className="text-xs bg-muted px-1 rounded">SUBSTACK_FEED_URL</code> (default: ikigaistudio.substack.com/feed).</p>
+                  )}
+                </DashboardCard>
               </div>
             )}
           </TabsContent>

@@ -59,13 +59,14 @@ export const xResearchPlugin: Plugin = {
   evaluators: [],
 
   init: async (_config, runtime) => {
-    if (runtime.character?.name === 'ECHO') {
-      try {
-        await registerWhatsTheTradeDailyTask(runtime);
-      } catch (e) {
+    if (runtime.character?.name !== 'ECHO') return;
+    // Defer task registration so the runtime's database adapter is available (plugin-sql
+    // registers it during init; calling createTask in the same init phase can run before that).
+    setImmediate(() => {
+      registerWhatsTheTradeDailyTask(runtime).catch((e) => {
         logger.warn('[plugin-x-research] Failed to register ECHO whats-the-trade daily task:', e);
-      }
-    }
+      });
+    });
   },
 };
 
