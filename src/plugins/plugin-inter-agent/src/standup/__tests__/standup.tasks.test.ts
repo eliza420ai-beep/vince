@@ -54,6 +54,7 @@ describe("standup.tasks", () => {
         "Otaku",
         "Sentinel",
         "Clawterm",
+        "Naval",
       ];
       const agentsInWrongOrder = wrongOrder.map((name) => ({
         agentId: `id-${name.toLowerCase()}`,

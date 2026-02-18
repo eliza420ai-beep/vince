@@ -104,7 +104,7 @@ export function getStandupRequireApprovalTypes(): Set<string> {
   return new Set(raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean));
 }
 
-/** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. */
+/** Canonical standup report order (Kelly wraps up; not in list). Used by task round-robin and facilitator. Naval last = writes conclusion. */
 export const STANDUP_REPORT_ORDER = [
   "VINCE",
   "Eliza",
@@ -114,6 +114,7 @@ export const STANDUP_REPORT_ORDER = [
   "Otaku",
   "Sentinel",
   "Clawterm",
+  "Naval",
 ] as const;
 
 /** Get configured standup hours (UTC). Returns array of hours [0-23]. */

@@ -7,7 +7,8 @@
  *
  * Data ownership (no overlaps):
  * - VINCE: ALL market/trading data (enriched context, funding, L/S, regime, Fear/Greed,
- *          HIP-3, signals, Deribit DVOL, Binance top traders, paper bot, goals, MandoMinutes)
+ *          HIP-3, signals, Deribit DVOL, Binance top traders, paper bot, goals, MandoMinutes,
+ *          liquidations, OI delta, market regime)
  * - ECHO: CT/X sentiment (actual tweets)
  * - Oracle: Polymarket prediction markets
  * - Solus: directive referencing VINCE's data (no own price fetch)
@@ -54,7 +55,7 @@ export function extractKeyEventsFromVinceData(vinceText: string): string[] {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// VINCE: enriched context + 9 data sources (all parallel via Promise.allSettled)
+// VINCE: enriched context + 12 data sources (all parallel via Promise.allSettled)
 // ═══════════════════════════════════════════════════════════════════════
 
 async function fetchEnrichedContext(runtime: IAgentRuntime): Promise<string> {
@@ -192,10 +193,55 @@ async function fetchAlliumOnChain(runtime: IAgentRuntime): Promise<string> {
   return (await allium.getStandupOnChainSummary?.()) ?? "";
 }
 
+async function fetchLiquidations(runtime: IAgentRuntime): Promise<string> {
+  const binanceLiq = runtime.getService("VINCE_BINANCE_LIQUIDATION_SERVICE") as {
+    getLiquidationPressure?: (symbol?: string) => {
+      direction: string;
+      intensity: number;
+      longLiqsCount: number;
+      shortLiqsCount: number;
+      longLiqsValue: number;
+      shortLiqsValue: number;
+    };
+  } | null;
+  const pressure = binanceLiq?.getLiquidationPressure?.();
+  if (!pressure || (pressure.longLiqsCount === 0 && pressure.shortLiqsCount === 0)) return "";
+  const dir = pressure.direction === "long_liquidations" ? "Longs" : pressure.direction === "short_liquidations" ? "Shorts" : "Mixed";
+  return `**Liquidations (5m):** ${dir} | ${pressure.longLiqsCount} long ($${(pressure.longLiqsValue / 1000).toFixed(0)}k) / ${pressure.shortLiqsCount} short ($${(pressure.shortLiqsValue / 1000).toFixed(0)}k) | intensity ${pressure.intensity}%`;
+}
+
+async function fetchOIDelta(runtime: IAgentRuntime): Promise<string> {
+  const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
+    getOpenInterest?: (asset: string) => { value: number; change24h: number | null } | null;
+  } | null;
+  if (!coinglass?.getOpenInterest) return "";
+  const assets = getStandupTrackedAssets();
+  const parts: string[] = [];
+  for (const asset of assets.slice(0, 3)) {
+    const oi = coinglass.getOpenInterest(asset);
+    if (!oi) continue;
+    const valueStr = oi.value >= 1e9 ? `$${(oi.value / 1e9).toFixed(1)}B` : oi.value >= 1e6 ? `$${(oi.value / 1e6).toFixed(0)}M` : `$${(oi.value / 1e3).toFixed(0)}k`;
+    const changeStr = oi.change24h != null ? `${oi.change24h >= 0 ? "+" : ""}${oi.change24h.toFixed(1)}%` : "—";
+    parts.push(`${asset} ${valueStr} (${changeStr})`);
+  }
+  return parts.length > 0 ? `**OI (24h Δ):** ${parts.join(" | ")}` : "";
+}
+
+async function fetchRegime(runtime: IAgentRuntime): Promise<string> {
+  const regimeSvc = runtime.getService("VINCE_MARKET_REGIME_SERVICE") as {
+    getRegime?: (asset: string) => Promise<{ regime: string; adx: number | null; positionSizeMultiplier: number } | null>;
+  } | null;
+  const regime = await regimeSvc?.getRegime?.("BTC").catch(() => null) ?? null;
+  if (!regime) return "";
+  const adxStr = regime.adx != null ? ` ADX ${regime.adx}` : "";
+  return `**Regime (BTC):** ${regime.regime}${adxStr} | size ${regime.positionSizeMultiplier}x`;
+}
+
 export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
   const blockLabels = [
     "EnrichedContext", "FearGreed", "HIP3", "SignalAgg",
     "Deribit", "Binance", "PaperBot", "Goals", "MandoMinutes", "Allium",
+    "Liquidations", "OIDelta", "Regime",
   ];
   const results = await Promise.allSettled([
     fetchEnrichedContext(runtime),
@@ -208,6 +254,9 @@ export async function fetchVinceData(runtime: IAgentRuntime): Promise<string> {
     fetchGoalTracker(runtime),
     fetchMandoMinutes(runtime),
     fetchAlliumOnChain(runtime),
+    fetchLiquidations(runtime),
+    fetchOIDelta(runtime),
+    fetchRegime(runtime),
   ]);
 
   const lines: string[] = [];
@@ -351,7 +400,24 @@ export async function fetchEchoData(
     });
 
     const queryNote = uniqueQueries.length > 1 ? ` [queries: ${uniqueQueries.join(", ")}]` : "";
-    return `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
+    let sentimentBlock = `**CT sentiment (${allTweets.length} posts, last 24h)${queryNote}:**\n${tweetLines.join("\n")}`;
+
+    // Append X content suggestions via LLM
+    if (runtime.useModel && tweetLines.length > 0) {
+      try {
+        const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
+          prompt: `You are ECHO, the crypto-twitter sentiment agent. Based on the tweets below, suggest 1–2 tweet or post ideas for our X account that would resonate with today's CT pulse. Specific hooks, not generic. One sentence each. No filler.\n\nTweets:\n${tweetLines.slice(0, 6).join("\n")}`,
+          maxTokens: 150,
+          temperature: 0.6,
+        });
+        const text = String(suggestion ?? "").trim();
+        if (text && text.length > 15) sentimentBlock += `\n\n**X content ideas:** ${text}`;
+      } catch {
+        // non-fatal; content ideas are a bonus
+      }
+    }
+
+    return sentimentBlock;
   } catch (err) {
     logger.warn({ err, lastQuery: "init or format" }, "[STANDUP_DATA] fetchEchoData: X unavailable");
     return "**CT sentiment:** X API unavailable. Report from character knowledge only.";
@@ -481,7 +547,7 @@ export async function fetchSentinelData(runtime: IAgentRuntime): Promise<string>
 
   sections.push("**Today's dev task (OpenClaw):** Using our OpenClaw setup as dev on the vince repo (IkigaiLabsETH/vince), what should we work on today? Consider: open PRDs, recent git activity, knowledge gaps, and agent improvements. One concrete task with expected outcome.");
 
-  sections.push("**Your job:** What shipped, what's next, one architecture item, the dev task above, and flag any macro news that affects our trades.");
+  sections.push("**Your job:** What shipped, what's next, one architecture item, the dev task above, **proactively suggest 1–2 tech focus areas** for the team (what to build, fix, or prioritize — name the plugin, file, or feature), and flag any macro news that affects our trades.");
   return sections.join("\n\n");
 }
 
@@ -543,17 +609,26 @@ export async function fetchElizaData(runtime: IAgentRuntime): Promise<string> {
     sections.push("**Facts:** Query failed.");
   }
 
-  // Substack + knowledge expansion suggestions via LLM
+  // Substack + knowledge expansion suggestions via LLM (with clear labels)
   if (runtime.useModel) {
     try {
       const context = sections.join("\n");
       const suggestion = await runtime.useModel(ModelType.TEXT_SMALL, {
-        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, suggest:\n1. One Substack content topic for Ikigai Studio (specific, timely, tied to what's happening in crypto/AI/DeFi today)\n2. One area in the knowledge/ directory to expand or update (be specific: which category, what's missing)\n\nKeep each to one sentence. No filler.\n\nContext:\n${context}`,
+        prompt: `You are Eliza (CEO, Knowledge & Research). Based on today's standup context below, output exactly two labeled lines:\n**Substack idea:** [One specific, timely content topic for Ikigai Studio Substack — tied to what's happening in crypto/AI/DeFi today]\n**Knowledge to expand:** [One specific area in the knowledge/ directory to add or update — name the category and what's missing]\n\nOne sentence each. No filler, no intro.\n\nContext:\n${context}`,
         maxTokens: 200,
         temperature: 0.6,
       });
       const text = String(suggestion ?? "").trim();
-      if (text && text.length > 20) sections.push(text);
+      if (text && text.length > 20) {
+        const hasLabels = text.includes("**Substack idea:**") || text.includes("**Knowledge to expand:**");
+        if (hasLabels) {
+          sections.push(text);
+        } else {
+          const lines = text.split("\n").filter((l) => l.trim());
+          sections.push(`**Substack idea:** ${lines[0] ?? text}`);
+          if (lines[1]) sections.push(`**Knowledge to expand:** ${lines[1]}`);
+        }
+      }
     } catch {
       sections.push("**Substack idea:** [LLM unavailable -- suggest based on yesterday's delta]");
       sections.push("**Knowledge to expand:** [LLM unavailable -- review knowledge/INDEX.md for stale categories]");
@@ -655,7 +730,7 @@ export async function fetchClawtermData(
     if (runtime.useModel) {
       try {
         const summary = await runtime.useModel(ModelType.TEXT_SMALL, {
-          prompt: `You are Clawterm, the OpenClaw terminal. Summarize the data below for the daily standup in 2-4 sentences. Focus on: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Be concrete and specific. No filler intros, no AI slop (banned: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, delve, landscape, dive into). If the data is thin, say so in one sentence.\n\nData:\n${rawData}`,
+          prompt: `You are Clawterm, the OpenClaw terminal. Summarize the data below for the daily standup in 2-4 sentences. Focus on: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Be concrete and specific. No filler intros, no AI slop (banned: leverage, utilize, streamline, robust, cutting-edge, game-changer, synergy, delve, landscape, dive into). If the data is thin, say so in one sentence. End with **one concrete tech-focus suggestion**: what the team should focus on or try next (OpenClaw skill, setup, or tooling). Be specific and actionable — name the skill or tool.\n\nData:\n${rawData}`,
           maxTokens: 300,
           temperature: 0.5,
         });

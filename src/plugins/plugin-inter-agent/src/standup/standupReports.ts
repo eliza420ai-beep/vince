@@ -59,6 +59,11 @@ export const AGENT_ROLES = {
     focus: "OpenClaw Skills, Setup & Trending",
     reportSections: ["openclaw_skills_trending", "setup_tips", "gateway_status"],
   },
+  Naval: {
+    title: "Philosophy & Synthesis",
+    focus: "Standup conclusion",
+    reportSections: ["thesis", "signal_to_watch", "one_team_one_dream"],
+  },
 } as const;
 
 export type AgentName = keyof typeof AGENT_ROLES;
@@ -123,6 +128,7 @@ Show insights from X (plugin-x-research): sentiment, key voices, narrative.
 
 **Narrative:** [What's driving CT today in one sentence]
 **Contrarian?** [Yes/No — if extreme, flag it]
+**Content for X:** [1–2 tweet or post ideas that would resonate with today's CT pulse — specific hooks, not generic]
 
 **Action:** [One sentiment-based trade implication]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
@@ -149,6 +155,7 @@ Answer the essential question (e.g. "Will BTC be above $70K by next Friday?") in
 **Weekly View:** Bull/Bear/Neutral — [why in 10 words]
 **Invalidation:** [specific level or event]
 
+**Hypersurface recommendation:** [Strike, direction (above/below), invalidation for this week's covered call or CSP on Hypersurface. One line.]
 **My take:** [Yes/No] — [one sentence path]. Then **Action:** [Size/Skip + strike recommendation]
 
 Your last 5 calls are in the standup context above (Prediction scoreboard). Adjust your confidence calibration accordingly.
@@ -182,11 +189,26 @@ Report concrete progress. If blocked, say what's needed to unblock.`,
 | APIs | 🟢/🟡/🔴 |
 
 **Today's dev task (OpenClaw):** [One specific thing to work on in the vince repo using OpenClaw setup, with expected outcome]
+**Tech focus (proactive):** [1–2 concrete things the team should focus on this week: what to build, fix, prioritize, or learn. Be specific — name the file, plugin, or feature.]
 **Action:** [One tech recommendation]`,
 
   Clawterm: `## Clawterm — AI Terminal — {{date}}
 
-Use the LIVE DATA below (X + web for OpenClaw skills, setup, trending). Write one short ALOHA-style narrative: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Gateway status if available. No bullet dumps — flowing prose. End with one action or recommendation.`,
+Use the LIVE DATA below (X + web for OpenClaw skills, setup, trending). Write one short ALOHA-style narrative: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Gateway status if available. No bullet dumps — flowing prose.
+
+**Tech focus suggestion:** [One concrete, actionable thing the team should focus on or try next on the tech/OpenClaw side — name the skill, tool, or integration.]
+End with one action or recommendation.`,
+
+  Naval: `## Naval — Standup conclusion — {{date}}
+
+You are writing the conclusion of the daily standup. Read the full transcript above (what VINCE, Eliza, ECHO, Oracle, Solus, Otaku, Sentinel, and Clawterm reported).
+
+Write 2–4 short sentences only. No bullets, no fluff. Include:
+1. One thesis: what today's data and sentiment add up to.
+2. One signal to watch: the one thing that would confirm or invalidate that thesis.
+3. One team one dream: one line that ties the room together (push not pull, thesis first, or agents as leverage).
+
+Speak as Naval: clear, benefit-led, no status games.`,
 };
 
 /**

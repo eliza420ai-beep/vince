@@ -277,13 +277,8 @@ async function handleRoundRobin(
         logger.warn({ err: plannerErr }, "[STANDUP_FACILITATE] Planner priority update failed (non-fatal)");
       }
       const savedNote = savedPath ? `\n\n*Saved to ${savedPath}*` : "";
-      const parsedForSummary = await parseStandupTranscript(runtime, transcript);
-      const crossAgentLinksForSummary = countCrossAgentLinks(transcript);
-      const kpiLine =
-        `Cross-agent links: ${crossAgentLinksForSummary} | Disagreements: ${parsedForSummary.disagreements.length}`;
-      const summaryWithKpi = `${kpiLine}\n\n${reportText}${savedNote}`;
       try {
-        const pushed = await pushStandupSummaryToChannels(runtime, summaryWithKpi, {
+        const pushed = await pushStandupSummaryToChannels(runtime, `${reportText}${savedNote}`, {
           preferredRoomId: message.roomId,
         });
         if (pushed === 0) {

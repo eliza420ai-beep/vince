@@ -42,16 +42,16 @@ import { validatePredictions } from "./predictionTracker";
 
 const STANDUP_SOURCE = "standup";
 
-/** Default per-agent caps (chars). Data-rich agents get more; total stays under ~8k. Override via STANDUP_INSIGHTS_CAP_<AGENT>=N. */
+/** Default per-agent caps (chars). Raised so every agent can bring enough value; override via STANDUP_INSIGHTS_CAP_<AGENT>=N. */
 const DEFAULT_INSIGHTS_CAP_BY_AGENT: Record<string, number> = {
-  vince: 1200,
-  oracle: 800,
-  echo: 600,
-  solus: 600,
-  sentinel: 600,
-  clawterm: 800,
-  eliza: 500,
-  otaku: 400,
+  vince: 2800,
+  oracle: 1200,
+  echo: 1100,
+  solus: 1000,
+  sentinel: 1200,
+  clawterm: 1200,
+  eliza: 900,
+  otaku: 500,
   kelly: 400,
 };
 
@@ -61,7 +61,10 @@ function getSharedInsightsCapForAgent(displayName: string): number {
   const envVal = process.env[envKey]?.trim();
   if (envVal !== undefined && envVal !== "") {
     const n = parseInt(envVal, 10);
-    if (!isNaN(n) && n > 0) return Math.min(n, 2000);
+    if (!isNaN(n) && n > 0) {
+      const max = key === "vince" ? 3500 : 2000;
+      return Math.min(n, max);
+    }
   }
   return DEFAULT_INSIGHTS_CAP_BY_AGENT[key] ?? 500;
 }
@@ -306,6 +309,8 @@ async function runOneStandupTurn(
       ? transcript.slice(-MAX_TRANSCRIPT_CHARS)
       : transcript;
 
+  const isConclusionTurn = agentName.toLowerCase() === "naval";
+
   // Direct path: bypass handleMessage / shouldRespond / IGNORE
   const getAgent = eliza.getAgent?.bind?.(eliza) ?? eliza.getAgent;
   const agentRuntime = getAgent?.(agentId);
@@ -314,10 +319,13 @@ async function runOneStandupTurn(
       const template =
         (getReportTemplate(agentName) || "").replace(/\{\{date\}\}/g, formatReportDate());
       const systemPrompt = agentRuntime.character?.system || "";
-      const prompt = `You are ${agentName}. ${systemPrompt}\n\n${template}\n\nContext:\n${truncated}\n\nReport now. Concise.`;
+      const reportInstruction = isConclusionTurn
+        ? "Synthesize the standup into a short conclusion (2-4 sentences)."
+        : "Report now. Concise.";
+      const prompt = `You are ${agentName}. ${systemPrompt}\n\n${template}\n\nContext:\n${truncated}\n\n${reportInstruction}`;
       const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
         prompt,
-        maxTokens: 800,
+        maxTokens: isConclusionTurn ? 400 : 800,
         temperature: 0.7,
       });
       const text = String(resp ?? "").trim();
@@ -333,7 +341,9 @@ async function runOneStandupTurn(
   // Fallback: handleMessage path
   const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
   const roleHint = agentRole ? ` (${agentRole.focus})` : "";
-  const directAddress = `@${agentName}${roleHint}, it's your turn. Report your domain data for the standup. Keep it concise.\n\n`;
+  const directAddress = isConclusionTurn
+    ? `@${agentName}, write the standup conclusion. Based on the transcript above, 2-4 sentences: one thesis, one signal to watch, one team one dream. No bullets.\n\n`
+    : `@${agentName}${roleHint}, it's your turn. Report your domain data for the standup. Keep it concise.\n\n`;
   const userMsg = {
     id: uuidv4(),
     entityId: facilitatorEntityId,
@@ -1059,21 +1069,23 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           `[Standup] Done: ${replies.length} replies, ${Object.keys(parsed.lessonsByAgentName).length} lessons, ${parsed.actionItems.length} action items (${buildCount} build, ${northStarCount} north-star, ${remindCount} remind), ${parsed.disagreements.length} disagreements.`,
         );
         await persistStandupSuggestions(parsed.suggestions);
+        const dateStr = new Date().toISOString().slice(0, 10);
         let dayReportPath: string | null = null;
+        let reportText: string | null = null;
         try {
-          const { savedPath } = await generateAndSaveDayReport(rt, transcript, {
+          const result = await generateAndSaveDayReport(rt, transcript, {
             replies: replies.map((r) => ({ agentName: r.agentName, structuredSignals: r.structuredSignals })),
           });
-          dayReportPath = savedPath;
+          dayReportPath = result.savedPath;
+          reportText = result.reportText ?? null;
           if (dayReportPath) {
             logger.info(`[Standup] Day Report saved to ${dayReportPath}`);
           }
         } catch (dayReportErr) {
           logger.warn({ err: dayReportErr }, "[Standup] Day Report generation failed; continuing with summary only");
         }
-        const dateStr = new Date().toISOString().slice(0, 10);
 
-        // Token estimation (~4 chars per token)
+        // Token estimation (~4 chars per token) — logs and metrics only, not pushed to Discord
         const estimateTokens = (text: string) => Math.ceil((text?.length ?? 0) / 4);
         let totalInputTokens = estimateTokens(kickoffText);
         for (let i = 0; i < replies.length; i++) {
@@ -1104,19 +1116,27 @@ export async function registerStandupTask(runtime: IAgentRuntime): Promise<void>
           fs.appendFileSync(path.join(metricsDir, "standup-metrics.jsonl"), metricsLine + "\n");
         } catch { /* non-fatal */ }
 
-        const summaryLines = [
-          `**Standup ${dateStr}** (one team, one dream)`,
-          `• ${replies.length} agents spoke`,
-          crossAgentLinks > 0 ? `• ${crossAgentLinks} cross-agent link(s)` : "",
-          `• Lessons: ${Object.keys(parsed.lessonsByAgentName).length}`,
-          `• Action items: ${parsed.actionItems.length}${deliverableCount > 0 ? ` (${deliverableCount} deliverables — will be posted when ready)` : ""}`,
-          dayReportPath ? `• Day Report: \`${dayReportPath}\`` : "",
-          parsed.disagreements.length > 0 ? `• Disagreements noted: ${parsed.disagreements.length}` : "",
-          `• Tokens: ~${totalEstimatedTokens} (~$${estimatedCost.toFixed(3)})`,
-          "",
-          transcript.slice(-2000),
-        ].filter(Boolean);
-        await pushStandupSummaryToChannels(rt, summaryLines.join("\n"));
+        // Who did not report this round (participation visibility)
+        const reportedNames = new Set(replies.map((r) => r.agentName.trim().toLowerCase()));
+        const noReportAgents = STANDUP_REPORT_ORDER.filter(
+          (name) => !reportedNames.has(name.trim().toLowerCase()),
+        );
+        const noReportLine =
+          noReportAgents.length > 0
+            ? `\n\n*No report this round: ${noReportAgents.join(", ")}.*`
+            : "";
+
+        // Push one fluent message: Day Report (ALOHA-style) or short fallback; optional footer; optional participation line
+        let messageToPush: string;
+        if (reportText?.trim()) {
+          const footer = dayReportPath ? `\n\n*Saved to \`${dayReportPath}\`*` : "";
+          messageToPush = reportText.trim() + footer + noReportLine;
+        } else {
+          messageToPush =
+            `Standup ${dateStr} completed; ${replies.length} agents reported. Day Report generation failed — see logs.` +
+            noReportLine;
+        }
+        await pushStandupSummaryToChannels(rt, messageToPush);
       } catch (error) {
         logger.error("[Standup] Failed:", error);
       }

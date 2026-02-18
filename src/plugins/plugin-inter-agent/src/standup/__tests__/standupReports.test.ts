@@ -18,9 +18,9 @@ import type { Memory, UUID } from "@elizaos/core";
 
 describe("Standup Reports", () => {
   describe("AGENT_ROLES", () => {
-    it("defines all 9 agents", () => {
+    it("defines all 10 agents", () => {
       const agents = Object.keys(AGENT_ROLES);
-      expect(agents).toHaveLength(9);
+      expect(agents).toHaveLength(10);
       expect(agents).toContain("Eliza");
       expect(agents).toContain("VINCE");
       expect(agents).toContain("ECHO");
@@ -29,6 +29,8 @@ describe("Standup Reports", () => {
       expect(agents).toContain("Otaku");
       expect(agents).toContain("Kelly");
       expect(agents).toContain("Sentinel");
+      expect(agents).toContain("Clawterm");
+      expect(agents).toContain("Naval");
     });
 
     it("each agent has title, focus, and reportSections", () => {
