@@ -41,6 +41,8 @@ export interface NewsDataContext {
     sentiment: string;
     impact: string;
   }[];
+  /** Additional headlines (rest of feed) so the LLM can reference or group by theme */
+  alsoInFeed?: { title: string }[];
   stats: { total: number; bullish: number; bearish: number; neutral: number };
 }
 
@@ -82,6 +84,14 @@ export function buildNewsDataContext(ctx: NewsDataContext): string {
     lines.push("");
   }
 
+  if (ctx.alsoInFeed && ctx.alsoInFeed.length > 0) {
+    lines.push("ALSO IN THE FEED:");
+    for (const h of ctx.alsoInFeed) {
+      lines.push(`  ${h.title}`);
+    }
+    lines.push("");
+  }
+
   lines.push("STATS:");
   lines.push(
     `Total: ${ctx.stats.total} articles | Bullish: ${ctx.stats.bullish} | Bearish: ${ctx.stats.bearish} | Neutral: ${ctx.stats.neutral}`,
@@ -112,13 +122,15 @@ Write a news briefing that:
 5. Separate signal from noise - most crypto news is noise. Highlight what actually matters for trading.
 6. End with the take - should they be paying attention to news today or is it mostly irrelevant?
 
+Use the FULL list (TOP HEADLINES + ALSO IN THE FEED) to decide what matters. Cover the most important 12-15 items with a brief take; you can group lower-priority items by theme (e.g. "AI/agents", "macro", "DeFi") so the user sees more of the day's feed without a long bullet list.
+
 STYLE RULES:
 - Write like explaining this to a smart friend over coffee
 - Mix short punchy takes with context
 - Use specific numbers but naturally - "$200M inflow" not "Inflow: $200,000,000"
 - No bullet points or headers - flow naturally
 - Have opinions. If the news is mostly noise, say it.
-- Around 150-250 words. Dense insight, no padding.
+- Around 300-450 words. Dense insight, no padding - cover more of the feed.
 
 AVOID:
 - "Interestingly", "notably"
@@ -196,10 +208,12 @@ export const vinceNewsAction: Action = {
         return;
       }
 
-      // Build context
+      // Build context: top 12 by impact + rest of feed (up to 25) so LLM can cover more
       const sentiment = newsService.getOverallSentiment();
       const riskEvents = newsService.getCriticalRiskEvents();
-      const topNews = newsService.getTopHeadlines(8);
+      const topNews = newsService.getTopHeadlines(12);
+      const allHeadlines = newsService.getAllHeadlines();
+      const alsoInFeed = allHeadlines.slice(12, 12 + 40).map((n) => ({ title: n.title }));
       const stats = newsService.getDebugStats();
 
       const assetSentiments: NewsDataContext["assetSentiments"] = [];
@@ -218,7 +232,7 @@ export const vinceNewsAction: Action = {
       const ctx: NewsDataContext = {
         overallSentiment: sentiment.sentiment,
         overallConfidence: Math.round(sentiment.confidence),
-        riskEvents: riskEvents.slice(0, 3).map((e) => ({
+        riskEvents: riskEvents.slice(0, 5).map((e) => ({
           severity: e.severity,
           description: e.description,
           assets: e.assets,
@@ -230,6 +244,7 @@ export const vinceNewsAction: Action = {
           sentiment: n.sentiment,
           impact: n.impact,
         })),
+        alsoInFeed: alsoInFeed.length > 0 ? alsoInFeed : undefined,
         stats: {
           total: stats.totalNews,
           bullish: stats.bullishCount,

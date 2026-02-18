@@ -104,7 +104,9 @@ export async function registerNewsDailyTask(
       try {
         const sentiment = newsService.getOverallSentiment();
         const riskEvents = newsService.getCriticalRiskEvents();
-        const topNews = newsService.getTopHeadlines(8);
+        const topNews = newsService.getTopHeadlines(12);
+        const allHeadlines = newsService.getAllHeadlines();
+        const alsoInFeed = allHeadlines.slice(12, 12 + 40).map((n) => ({ title: n.title }));
         const stats = newsService.getDebugStats();
 
         const assetSentiments: NewsDataContext["assetSentiments"] = [];
@@ -123,7 +125,7 @@ export async function registerNewsDailyTask(
         const ctx: NewsDataContext = {
           overallSentiment: sentiment.sentiment,
           overallConfidence: Math.round(sentiment.confidence),
-          riskEvents: riskEvents.slice(0, 3).map((e) => ({
+          riskEvents: riskEvents.slice(0, 5).map((e) => ({
             severity: e.severity,
             description: e.description,
             assets: e.assets,
@@ -135,6 +137,7 @@ export async function registerNewsDailyTask(
             sentiment: n.sentiment,
             impact: n.impact,
           })),
+          alsoInFeed: alsoInFeed.length > 0 ? alsoInFeed : undefined,
           stats: {
             total: stats.totalNews,
             bullish: stats.bullishCount,
