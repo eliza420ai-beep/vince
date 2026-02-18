@@ -14,11 +14,77 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
+import type { IAgentRuntime } from "@elizaos/core";
 import {
   SIGNAL_THRESHOLDS,
   PERSISTENCE_DIR,
   DEFAULT_RISK_LIMITS,
 } from "../constants/paperTradingDefaults";
+
+// ==========================================
+// Trading mode (conservative / balanced / aggressive)
+// ==========================================
+
+export type TradingMode = "conservative" | "balanced" | "aggressive";
+
+const MODE_PRESETS: Record<
+  TradingMode,
+  { minStrengthDelta: number; minConfidenceDelta: number; riskMultiplier: number }
+> = {
+  conservative: {
+    minStrengthDelta: 10,
+    minConfidenceDelta: 10,
+    riskMultiplier: 0.8,
+  },
+  balanced: {
+    minStrengthDelta: 0,
+    minConfidenceDelta: 0,
+    riskMultiplier: 1.0,
+  },
+  aggressive: {
+    minStrengthDelta: -5,
+    minConfidenceDelta: -5,
+    riskMultiplier: 1.2,
+  },
+};
+
+/**
+ * Resolve trading mode from runtime setting or env. Default: balanced.
+ * Change this first; tune individual sliders only when explicitly needed.
+ */
+export function getTradingMode(runtime?: IAgentRuntime | null): TradingMode {
+  const raw =
+    (runtime?.getSetting?.("VINCE_TRADING_MODE") as string) ??
+    process.env.VINCE_TRADING_MODE;
+  const v = String(raw ?? "").trim().toLowerCase();
+  if (v === "conservative" || v === "aggressive") return v;
+  return "balanced";
+}
+
+/**
+ * Risk multiplier by mode (e.g. 0.8 conservative, 1.2 aggressive). Apply to base risk per trade.
+ */
+export function getModeRiskMultiplier(runtime?: IAgentRuntime | null): number {
+  return MODE_PRESETS[getTradingMode(runtime)].riskMultiplier;
+}
+
+/**
+ * Thresholds with mode overlay applied. Use this where trading decisions are made (e.g. risk/signal checks).
+ */
+export function getEffectiveThresholds(
+  runtime?: IAgentRuntime | null,
+): SignalThresholds {
+  const base = dynamicConfig.getThresholds();
+  const mode = getTradingMode(runtime);
+  const preset = MODE_PRESETS[mode];
+  if (mode === "balanced") return { ...base };
+
+  return {
+    ...base,
+    minStrength: Math.max(30, Math.min(90, base.minStrength + preset.minStrengthDelta)),
+    minConfidence: Math.max(30, Math.min(90, base.minConfidence + preset.minConfidenceDelta)),
+  };
+}
 
 // ==========================================
 // Types
@@ -428,14 +494,18 @@ export function getSourceWeight(source: string): number {
 }
 
 /**
- * Check if a signal meets the minimum thresholds
+ * Check if a signal meets the minimum thresholds (optionally with mode overlay).
+ * Pass runtime to apply conservative/aggressive mode.
  */
 export function meetsThresholds(
   strength: number,
   confidence: number,
   confirmingCount: number,
+  runtime?: IAgentRuntime | null,
 ): boolean {
-  const thresholds = dynamicConfig.getThresholds();
+  const thresholds = runtime
+    ? getEffectiveThresholds(runtime)
+    : dynamicConfig.getThresholds();
   return (
     strength >= thresholds.minStrength &&
     confidence >= thresholds.minConfidence &&

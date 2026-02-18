@@ -212,6 +212,26 @@ export const AGGRESSIVE_RISK_LIMITS: RiskLimits = {
   cooldownAfterLossMs: 0,
 };
 
+/**
+ * Primary signal sources: at least one must contribute to allow a trade.
+ * Secondary sources only raise conviction; they cannot open a trade alone.
+ * Aligns with EVClaw-style signal hierarchy.
+ */
+export const PRIMARY_SIGNAL_SOURCES = new Set([
+  "BinanceTopTraders",
+  "LiquidationCascade",
+  "LiquidationPressure",
+  "BinanceFundingExtreme",
+  "HyperliquidFundingExtreme",
+  "HyperliquidCrowding",
+  "DeribitPutCallRatio",
+  "HIP3Funding",
+  "CoinGlass",
+  "BinanceTakerFlow",
+  "BinanceLongShort",
+  "MarketRegime",
+]);
+
 /** Slippage settings */
 export const SLIPPAGE = {
   /** Base slippage in basis points */

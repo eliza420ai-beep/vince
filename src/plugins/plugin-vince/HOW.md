@@ -39,6 +39,7 @@ This is the **hands-on development guide** for plugin-vince: workflows, adding a
 | Add a user-facing command | `src/actions/*.action.ts` → register in `src/index.ts` |
 | Add a data source or bot component | `src/services/*.service.ts` → register in `src/index.ts` |
 | Change what context the LLM sees | `src/providers/vinceContext.provider.ts`, `trenchKnowledge.provider.ts` |
+| Change trading behavior (one knob) | `VINCE_TRADING_MODE=conservative\|balanced\|aggressive` (env or runtime setting); see [Mode controller](#mode-controller) |
 | Change signal weights or thresholds | `src/constants/paperTradingDefaults.ts`, `src/config/dynamicConfig.ts` |
 | See which signal sources contributed | [SIGNAL_SOURCES.md](./SIGNAL_SOURCES.md); logs: `[VinceSignalAggregator]` |
 | Inspect paper bot / ML state | `.elizadb/vince-paper-bot/` (see [Data Persistence Paths](#data-persistence-paths) below) |
@@ -469,6 +470,28 @@ if (newDataService) {
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Flow contract (producer vs executor)
+
+Signal and candidate **producers** (aggregator, tasks) never send orders. Only the **paper-trading service** (`openTrade`) or **Otaku** (live) executes. All paper opens go through `VincePaperTradingService.openTrade()` from (1) `evaluateAndTrade()` or (2) `VINCE_BOT_TRADE`. See [docs/TRADING_RUNTIME_CONTRACT.md](../../../docs/TRADING_RUNTIME_CONTRACT.md) for CRON_CONTEXT vs MANUAL_COMMANDS.
+
+### Mode controller
+
+Single switch: `VINCE_TRADING_MODE=conservative | balanced | aggressive` (env or runtime setting). Change this first; tune individual sliders only when explicitly needed.
+
+- **conservative:** Stricter entry (minStrength +10, minConfidence +10), 0.8× risk/size.
+- **balanced:** Default (no delta, 1.0×).
+- **aggressive:** Looser entry (−5 each), 1.2× risk/size.
+
+Implemented in `src/config/dynamicConfig.ts` (`getTradingMode`, `getEffectiveThresholds`, `getModeRiskMultiplier`) and applied in risk manager sync and paper trading size calculation.
+
+### Context learning (context_adjustment)
+
+Per-context win-rate stats drive a **sizing multiplier (0.5–1.5)**. Context buckets: `marketRegime` (trending/ranging/neutral/volatile), `vol_regime` (high/mid from DVOL), `session`. Stats are stored in `.elizadb/vince-paper-bot/context_feature_stats.json`; on each close we record outcome per bucket; when sizing we apply `getContextAdjustmentMultiplier(keys)`. Implemented in `src/utils/contextFeatureStats.ts` and applied in `evaluateAndTrade` (sizing) and `closeTrade` (recording). **ML/VinceBench:** Context stats are separate from the feature-store schema; training and bench scoring use existing record fields (signal, regime, session, execution, outcome). No pipeline changes required.
+
+### Optional LLM entry gate
+
+When `VINCE_ENTRY_GATE_ENABLED=true` (or runtime setting `vince_entry_gate_enabled`), before each paper open the service calls an LLM with one candidate (asset, direction, size, strength, confidence, regime, sources) and asks APPROVE or VETO. On **VETO** the trade is skipped; on **APPROVE**, timeout, or error the flow proceeds to `openTrade()`. Timeout 10s; fallback is always to proceed. See [docs/TRADING_RUNTIME_CONTRACT.md](../../docs/TRADING_RUNTIME_CONTRACT.md).
 
 ### Key Commands
 

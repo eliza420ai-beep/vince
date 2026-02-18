@@ -2,7 +2,7 @@
 
 **TL;DR:** The EXO Inference Cluster runs inference locally: prefill on a DGX Spark, decode on Mac Studio and MacBook Pro, with models on NAS, all orchestrated by a Mac Mini M4 running OpenCLAW. You get low-latency, private, controllable inference with no third-party API rate limits; cost is front-loaded (hardware) instead of ongoing cloud API spend.
 
-**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Caveats: mistakes in local vs API comparisons](#caveats-mistakes-in-local-vs-api-comparisons) · [Relation to VINCE](#relation-to-vince) · [Links](#links)
+**Contents:** [Architecture](#architecture) · [exo (local AI cluster)](#exo-local-ai-cluster) · [Use cases](#use-cases) · [WHY this setup](#why-this-setup) · [Cost](#cost) · [Caveats: mistakes in local vs API comparisons](#caveats-mistakes-in-local-vs-api-comparisons) · [Relation to VINCE](#relation-to-vince) · [Idle Mac Minis and the privacy wall](#idle-mac-minis-and-the-privacy-wall) · [Links](#links)
 
 ---
 
@@ -165,6 +165,28 @@ Many “local vs API” analyses understate the benefit of local (e.g. M3 Ultra 
 
 ---
 
+## Idle Mac Minis and the privacy wall
+
+**We predicted this.** People are buying Mac Minis (especially 48GB+ models) to run serious open-source models locally. Once the novelty wears off, most of those machines sit idle most of the day. That’s a huge amount of compute doing nothing—collectively it could be one of the largest inference networks in the world, on hardware people already own, at roughly a dollar a month in electricity per machine.
+
+The obvious idea: connect them. Let anyone with a Mac Mini serve inference and earn from idle compute. Hardware paid for, electricity negligible, models open source. Everything is in place except one thing.
+
+**The Privacy Wall.** When you send a prompt to someone else’s Mac Mini, the operator can read it—medical questions, legal worries, private conversations. Every decentralized-inference project either assumes you trust the node operator or punts on the problem. Nobody has solved privacy at the inference layer for consumer hardware.
+
+The goal: **blind inference.** The Mac does the work, returns the result, and has zero knowledge of what the data contained.
+
+- **Why crypto fails at full speed:** Additive masking breaks on nonlinear ops (RMSNorm, softmax, etc.). At noise levels that defeat an attacker, the model output collapses. Per-layer cryptographic correction gives exact output and privacy but needs a round-trip per layer—at internet latency that’s a small fraction of a token per second. Two-party secure compute works on a LAN but hits the same sequential-layer wall over the internet. The bottleneck is architectural: transformers have dozens of sequential layers; any protocol that needs communication at each layer multiplies latency by layer count. Speed of light sets the limit.
+
+- **What works on macOS:** Don’t hide the data from the model; hide the *process* from the operator. **System Integrity Protection (SIP):** root cannot read hardened process memory; the kernel denies it. **Secure Enclave:** keys never leave the chip; you can’t export them. **Hardened Runtime + Code Signing:** the Enclave can restrict key access to a specific signed binary. So: to decrypt user data the daemon needs the Enclave key; the Enclave only gives it to the unmodified binary; the binary checks SIP at startup and refuses to run if SIP is off; SIP can’t be toggled without a reboot (observable). Modify the binary → different code signing hash → Enclave refuses. Disable SIP and reboot → daemon sees SIP off and refuses work. Every attack path terminates. The operator cannot simultaneously have a binary that gets the key and a system where they can read memory. Inference then runs at full native speed inside a process the machine’s owner cannot inspect.
+
+- **The one missing piece:** When a node registers, it sends its Secure Enclave public key so the network can encrypt data for it. A malicious operator could register a *software* key pair, decrypt everything, and break the chain. The network needs to verify that the key came from a real Secure Enclave. On **iOS**, **App Attest** (DeviceCheck) does exactly that: attestation that a key was created in a genuine Secure Enclave, chained to Apple’s root. On **macOS**, same Silicon, same Secure Enclave, same SDK—the API exists and compiles. It just returns false. One boolean. That’s the distance between “decentralized private inference is a research problem” and “decentralized private inference works on hardware people already own.”
+
+**Why it matters beyond one network:** App Attest on macOS would unlock hardware-attested private compute on consumer devices—medical AI at a clinic without the clinic seeing prompts, legal doc analysis without the firm reading the docs, financial modeling on sensitive data on idle trading-floor machines. Today that requires datacenter confidential computing (e.g. H100 TEE); retail doesn’t have it. Apple already runs a similar architecture (Private Cloud Compute for Apple Intelligence). Enabling App Attest on macOS would extend that model to the hundreds of millions of Macs already in the world.
+
+*Summary: idle Mac Minis could form a private inference network at full speed; the blocker is proving the key is in a real Enclave. We predicted the Mac Mini wave and the idle-compute opportunity; the privacy wall and the one-API gap are the next thing to track.*
+
+---
+
 ## Links
 
 | What | URL / doc |
@@ -179,4 +201,4 @@ Many “local vs API” analyses understate the benefit of local (e.g. M3 Ultra 
 
 ---
 
-*Last updated: 2026-02-13. Cost model for ~2B tokens/month; added caveats (five common mistakes in local vs API comparisons).*
+*Last updated: 2026-02-18. Added “Idle Mac Minis and the privacy wall”: predicted trend, why crypto fails at full speed, macOS SIP/Secure Enclave path to blind inference, App Attest gap on macOS.*

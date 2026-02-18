@@ -32,6 +32,7 @@ This repository is the **VINCE** project: a unified data-intelligence **multi-ag
 | **Multi-agent (ASK_AGENT, Discord, A2A)** | [docs/MULTI_AGENT.md](docs/MULTI_AGENT.md) |
 | **Agent briefs (OpenClaw / PRD)** | [docs/AGENTS_INDEX.md](docs/AGENTS_INDEX.md) — one doc per agent (can/cannot, key files, PRD focus). Use to brief OpenClaw or draft next-iteration PRDs. |
 | **Deploy** | [docs/DEPLOY.md](docs/DEPLOY.md) |
+| **Trading runtime contract** | [docs/TRADING_RUNTIME_CONTRACT.md](docs/TRADING_RUNTIME_CONTRACT.md) — CRON vs MANUAL, producer/executor flow. |
 | **Project overview** | [README.md](README.md) |
 
 **Otaku** is the only agent with a wallet that holds funds (DeFi, NFT mint, Vince signal execution). **Eliza** focuses on knowledge expansion and content; **Sentinel** on ops, PRDs, cost, and OpenClaw. Use the sections below for **generic ElizaOS** patterns; for VINCE-specific implementation (signals, paper bot, ML), prefer the plugin and agent docs above.

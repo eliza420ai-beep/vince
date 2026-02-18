@@ -45,29 +45,32 @@ describe("VinceXResearchService", () => {
   describe("search cache", () => {
     it("returns cached result on second identical search (no second API call)", async () => {
       const runtime = createMockRuntimeWithCache();
+      const searchPayload = {
+        data: [
+          {
+            id: "123",
+            text: "test",
+            author_id: "u1",
+            created_at: new Date().toISOString(),
+            conversation_id: "123",
+            public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
+            entities: { urls: [], mentions: [], hashtags: [] },
+          },
+        ],
+        includes: { users: [{ id: "u1", username: "u", name: "U" }] },
+        meta: {},
+      };
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
         ok: true,
         status: 200,
         headers: new Headers(),
-        json: async () => ({
-          data: [
-            {
-              id: "123",
-              text: "test",
-              author_id: "u1",
-              created_at: new Date().toISOString(),
-              conversation_id: "123",
-              public_metrics: { like_count: 0, retweet_count: 0, reply_count: 0, quote_count: 0, impression_count: 0, bookmark_count: 0 },
-              entities: { urls: [], mentions: [], hashtags: [] },
-            },
-          ],
-          includes: { users: [{ id: "u1", username: "u", name: "U" }] },
-          meta: {},
-        }),
+        text: async () => JSON.stringify(searchPayload),
+        json: async () => searchPayload,
       } as Response);
 
       const service = new VinceXResearchService(runtime);
       (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue({});
 
       const query = "test query";
       const opts = { pages: 1, sortOrder: "relevancy" as const };
@@ -280,6 +283,7 @@ describe("VinceXResearchService", () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch");
       const service = new VinceXResearchService(runtime);
       (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue({});
 
       await expect(
         service.search("test", { pages: 1, sortOrder: "relevancy" }),
@@ -309,6 +313,7 @@ describe("VinceXResearchService", () => {
 
       const service = new VinceXResearchService(runtime);
       (service as any).getToken = () => "fake-token";
+      (service as any).getClient = vi.fn().mockResolvedValue({});
 
       await expect(
         service.search("test", { pages: 1, sortOrder: "relevancy" }),

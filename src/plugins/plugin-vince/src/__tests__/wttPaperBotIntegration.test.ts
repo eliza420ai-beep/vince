@@ -179,9 +179,9 @@ describe("WTT → Paper Bot: wttPickToWttBlock", () => {
 // =============================================================================
 
 describe("WTT → Paper Bot: isWttEnabled", () => {
-  it("returns false when vince_paper_wtt_enabled is not set", () => {
+  it("returns true when vince_paper_wtt_enabled is not set (default on)", () => {
     const runtime = createMockRuntime({ settings: {} });
-    expect(isWttEnabled(runtime)).toBe(false);
+    expect(isWttEnabled(runtime)).toBe(true);
   });
 
   it("returns true when vince_paper_wtt_enabled is true (boolean)", () => {

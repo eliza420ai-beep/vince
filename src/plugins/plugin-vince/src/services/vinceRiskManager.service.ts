@@ -32,6 +32,9 @@ import type { VinceMarketDataService } from "./marketData.service";
 import {
   dynamicConfig,
   initializeDynamicConfig,
+  getEffectiveThresholds,
+  getTradingMode,
+  getModeRiskMultiplier,
 } from "../config/dynamicConfig";
 
 // ==========================================
@@ -110,27 +113,34 @@ export class VinceRiskManagerService extends Service {
   }
 
   /**
-   * Sync signal thresholds from dynamic config (self-improving architecture)
-   * Called on startup and can be called periodically to pick up tuned values
-   * In aggressive mode we keep 40/35 (AGGRESSIVE_RISK_LIMITS) and only use 2 confirming — do not overwrite with tuned-config/training_metadata so we actually get more trades for ML data.
+   * Sync signal thresholds from dynamic config (self-improving architecture).
+   * Applies trading mode (conservative/balanced/aggressive) via getEffectiveThresholds.
+   * In vince_paper_aggressive we keep 40/35 and 2 confirming for ML data.
    */
   syncFromDynamicConfig(): void {
-    const thresholds = dynamicConfig.getThresholds();
     const aggressive = this.runtime.getSetting?.("vince_paper_aggressive") === true || this.runtime.getSetting?.("vince_paper_aggressive") === "true";
+    const thresholds = getEffectiveThresholds(this.runtime);
 
     if (!aggressive) {
       this.limits.minSignalStrength = thresholds.minStrength;
       this.limits.minSignalConfidence = thresholds.minConfidence;
       this.limits.minConfirmingSignals = thresholds.minConfirming;
     } else {
-      // Aggressive: keep preset 40/35 (already set from AGGRESSIVE_RISK_LIMITS in start()); only force 2 confirming
       this.limits.minConfirmingSignals = 2;
     }
 
+    const mode = getTradingMode(this.runtime);
     logger.debug(
-      `[VinceRiskManager] Synced from dynamic config: ` +
-        `strength=${this.limits.minSignalStrength}, confidence=${this.limits.minSignalConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (aggressive)" : ""}`,
+      `[VinceRiskManager] Synced from dynamic config (mode=${mode}): ` +
+        `strength=${this.limits.minSignalStrength}, confidence=${this.limits.minSignalConfidence}, confirming=${this.limits.minConfirmingSignals}${aggressive ? " (vince_paper_aggressive)" : ""}`,
     );
+  }
+
+  /**
+   * Risk multiplier from trading mode (0.8 conservative, 1.0 balanced, 1.2 aggressive). Apply to base risk per trade.
+   */
+  getModeRiskMultiplier(): number {
+    return getModeRiskMultiplier(this.runtime);
   }
 
   // ==========================================

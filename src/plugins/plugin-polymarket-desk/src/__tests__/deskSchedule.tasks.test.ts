@@ -1,0 +1,268 @@
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { registerDeskSchedule } from "../tasks/deskSchedule.tasks";
+import type { IAgentRuntime, Task } from "@elizaos/core";
+
+function createMockRuntime(characterName: string): IAgentRuntime {
+  const taskWorkers: Array<{ name: string; execute: (rt: IAgentRuntime, opts: unknown, task: Task) => Promise<void> }> = [];
+  const createdTasks: Array<{ name: string; description: string; tags: string[]; metadata: Record<string, unknown> }> = [];
+  return {
+    character: { name: characterName },
+    agentId: "test-agent",
+    registerTaskWorker: (worker: { name: string; execute: (rt: IAgentRuntime, opts: unknown, task: Task) => Promise<void> }) => {
+      taskWorkers.push(worker);
+    },
+    createTask: async (task: { name: string; description: string; tags: string[]; metadata?: Record<string, unknown> }) => {
+      createdTasks.push({
+        name: task.name,
+        description: task.description,
+        tags: task.tags,
+        metadata: task.metadata ?? {},
+      });
+      return "task-id" as any;
+    },
+    updateTask: async () => {},
+    actions: [],
+    getConnection: async () => null,
+    getSetting: () => undefined,
+    // Expose for assertions
+    _taskWorkers: taskWorkers,
+    _createdTasks: createdTasks,
+  } as unknown as IAgentRuntime & {
+    _taskWorkers: Array<{ name: string }>;
+    _createdTasks: Array<{ name: string; description: string; tags: string[] }>;
+  };
+}
+
+describe("plugin-polymarket-desk: deskSchedule.tasks", () => {
+  const origEnv = process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+  const origCondition = process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID;
+
+  afterEach(() => {
+    if (origEnv !== undefined) process.env.POLYMARKET_DESK_SCHEDULE_ENABLED = origEnv;
+    else delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    if (origCondition !== undefined) process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID = origCondition;
+    else delete process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID;
+  });
+
+  it("registerDeskSchedule does nothing for unknown character name", () => {
+    const runtime = createMockRuntime("Other Agent");
+    registerDeskSchedule(runtime);
+    expect((runtime as any)._taskWorkers.length).toBe(0);
+    expect((runtime as any)._createdTasks.length).toBe(0);
+  });
+
+  it("registerDeskSchedule registers POLYMARKET_ANALYST_HOURLY for Oracle", () => {
+    const runtime = createMockRuntime("Oracle");
+    registerDeskSchedule(runtime);
+    expect((runtime as any)._taskWorkers.length).toBe(1);
+    expect((runtime as any)._taskWorkers[0].name).toBe("POLYMARKET_ANALYST_HOURLY");
+    expect((runtime as any)._createdTasks.length).toBe(1);
+    expect((runtime as any)._createdTasks[0].name).toBe("POLYMARKET_ANALYST_HOURLY");
+    expect((runtime as any)._createdTasks[0].tags).toContain("analyst");
+  });
+
+  it("registerDeskSchedule registers POLYMARKET_RISK_15M for Polymarket Risk", () => {
+    const runtime = createMockRuntime("Polymarket Risk");
+    registerDeskSchedule(runtime);
+    expect((runtime as any)._taskWorkers.length).toBe(1);
+    expect((runtime as any)._taskWorkers[0].name).toBe("POLYMARKET_RISK_15M");
+    expect((runtime as any)._createdTasks[0].name).toBe("POLYMARKET_RISK_15M");
+    expect((runtime as any)._createdTasks[0].tags).toContain("risk");
+  });
+
+  it("registerDeskSchedule registers POLYMARKET_PERF_4H for Polymarket Performance", () => {
+    const runtime = createMockRuntime("Polymarket Performance");
+    registerDeskSchedule(runtime);
+    expect((runtime as any)._taskWorkers.length).toBe(1);
+    expect((runtime as any)._taskWorkers[0].name).toBe("POLYMARKET_PERF_4H");
+    expect((runtime as any)._createdTasks[0].name).toBe("POLYMARKET_PERF_4H");
+    expect((runtime as any)._createdTasks[0].tags).toContain("performance");
+  });
+
+  it("analyst task worker respects POLYMARKET_DESK_SCHEDULE_ENABLED=false", async () => {
+    process.env.POLYMARKET_DESK_SCHEDULE_ENABLED = "false";
+    const runtime = createMockRuntime("Oracle");
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    expect(worker).toBeDefined();
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t1", name: "POLYMARKET_ANALYST_HOURLY", tags: [], metadata: {} } as Task);
+    // When schedule is disabled, worker returns early and does not call updateTask
+    expect(updateCalled).toBe(false);
+  });
+
+  it("analyst task worker skips when POLYMARKET_DESK_DEFAULT_CONDITION_ID not set", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    delete process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID;
+    const runtime = createMockRuntime("Oracle");
+    runtime.actions = [];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t1", name: "POLYMARKET_ANALYST_HOURLY", tags: [], metadata: {} } as Task);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("analyst task worker runs edge check and updateTask when condition_id set", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID = "0xcond123";
+    let handlerCalled = false;
+    const runtime = createMockRuntime("Oracle");
+    runtime.actions = [
+      {
+        name: "POLYMARKET_EDGE_CHECK",
+        handler: async (_rt, _msg, _state, options) => {
+          handlerCalled = true;
+          expect(options?.condition_id).toBe("0xcond123");
+          expect(options?.asset).toBe("BTC");
+        },
+      } as any,
+    ];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t1", name: "POLYMARKET_ANALYST_HOURLY", tags: [], metadata: {} } as Task);
+    expect(handlerCalled).toBe(true);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("risk 15m worker queries pending signals and calls updateTask", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    let queryCalled = false;
+    const runtime = createMockRuntime("Polymarket Risk");
+    (runtime as any).getConnection = async () => ({
+      query: async (sql: string) => {
+        queryCalled = true;
+        expect(sql).toContain("plugin_polymarket_desk.signals");
+        expect(sql).toContain("pending");
+        return { rows: [{ cnt: "3" }] };
+      },
+    });
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t2", name: "POLYMARKET_RISK_15M", tags: [], metadata: {} } as Task);
+    expect(queryCalled).toBe(true);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("risk 15m worker skips DB when getConnection returns null", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    const runtime = createMockRuntime("Polymarket Risk");
+    (runtime as any).getConnection = async () => null;
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t2", name: "POLYMARKET_RISK_15M", tags: [], metadata: {} } as Task);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("perf 4h worker runs desk report action and updateTask", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    let reportHandlerCalled = false;
+    const runtime = createMockRuntime("Polymarket Performance");
+    runtime.actions = [
+      {
+        name: "POLYMARKET_DESK_REPORT",
+        handler: async (_rt: any, _msg: any, _state: any, options: any) => {
+          reportHandlerCalled = true;
+          expect(options?.hours).toBe(24 * 7);
+        },
+      } as any,
+    ];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t3", name: "POLYMARKET_PERF_4H", tags: [], metadata: {} } as Task);
+    expect(reportHandlerCalled).toBe(true);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("perf 4h worker respects POLYMARKET_DESK_SCHEDULE_ENABLED=false", async () => {
+    process.env.POLYMARKET_DESK_SCHEDULE_ENABLED = "false";
+    const runtime = createMockRuntime("Polymarket Performance");
+    runtime.actions = [{ name: "POLYMARKET_DESK_REPORT", handler: async () => {} } as any];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t3", name: "POLYMARKET_PERF_4H", tags: [], metadata: {} } as Task);
+    expect(updateCalled).toBe(false);
+  });
+
+  it("analyst task worker runs updateTask only when condition_id set but no edge check action", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    process.env.POLYMARKET_DESK_DEFAULT_CONDITION_ID = "0xcond456";
+    const runtime = createMockRuntime("Oracle");
+    runtime.actions = [];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t1", name: "POLYMARKET_ANALYST_HOURLY", tags: [], metadata: {} } as Task);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("perf 4h worker runs updateTask only when no desk report action", async () => {
+    delete process.env.POLYMARKET_DESK_SCHEDULE_ENABLED;
+    const runtime = createMockRuntime("Polymarket Performance");
+    runtime.actions = [];
+    registerDeskSchedule(runtime);
+    const worker = (runtime as any)._taskWorkers[0];
+    let updateCalled = false;
+    (runtime as any).updateTask = async () => {
+      updateCalled = true;
+    };
+    await worker.execute(runtime, {}, { id: "t3", name: "POLYMARKET_PERF_4H", tags: [], metadata: {} } as Task);
+    expect(updateCalled).toBe(true);
+  });
+
+  it("createTask analyst catch runs when createTask rejects", async () => {
+    let catchErr: unknown;
+    const runtime = createMockRuntime("Oracle");
+    (runtime as any).createTask = () => Promise.reject((catchErr = new Error("createTask analyst failed")));
+    registerDeskSchedule(runtime);
+    await new Promise((r) => setImmediate(r));
+    expect(catchErr).toBeDefined();
+  });
+
+  it("createTask risk catch runs when createTask rejects", async () => {
+    let catchErr: unknown;
+    const runtime = createMockRuntime("Polymarket Risk");
+    (runtime as any).createTask = () => Promise.reject((catchErr = new Error("createTask risk failed")));
+    registerDeskSchedule(runtime);
+    await new Promise((r) => setImmediate(r));
+    expect(catchErr).toBeDefined();
+  });
+
+  it("createTask perf catch runs when createTask rejects", async () => {
+    let catchErr: unknown;
+    const runtime = createMockRuntime("Polymarket Performance");
+    (runtime as any).createTask = () => Promise.reject((catchErr = new Error("createTask perf failed")));
+    registerDeskSchedule(runtime);
+    await new Promise((r) => setImmediate(r));
+    expect(catchErr).toBeDefined();
+  });
+});

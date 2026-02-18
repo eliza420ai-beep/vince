@@ -11,3 +11,4 @@ export { otakuNftMintAction } from "./otakuNftMint.action";
 export { otakuYieldRecommendAction } from "./otakuYieldRecommend.action";
 export { otakuSetRebalanceAction } from "./otakuSetRebalance.action";
 export { otakuExecuteVinceSignalAction } from "./otakuExecuteVinceSignal.action";
+export { polymarketExecutePendingOrderAction } from "./polymarketExecutePendingOrder.action";

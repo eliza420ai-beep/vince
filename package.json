@@ -1,7 +1,7 @@
 {
   "name": "vince",
   "description": "Project starter for elizaOS",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type": "module",
   "main": "dist/src/index.js",
   "module": "dist/src/index.js",
@@ -55,7 +55,9 @@
     "@morpho-org/blue-sdk-viem": "^4.2.3",
     "@morpho-org/morpho-ts": "^2.4.6",
     "@number-flow/react": "^0.5.10",
+    "@polymarket/clob-client": "^4.0.0",
     "@polymarket/sdk": "^6.0.1",
+    "ethers": "^6.13.0",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-collapsible": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.4",

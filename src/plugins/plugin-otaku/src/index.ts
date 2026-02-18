@@ -36,6 +36,7 @@
 import type { Plugin } from "@elizaos/core";
 import { OtakuService } from "./services/otaku.service";
 import { registerOtakuRebalanceTaskWorker } from "./tasks/rebalance.tasks";
+import { registerPolymarketExecutePollTask } from "./tasks/polymarketExecutePoll.tasks";
 import {
   otakuSwapAction,
   otakuLimitOrderAction,
@@ -50,6 +51,7 @@ import {
   otakuYieldRecommendAction,
   otakuSetRebalanceAction,
   otakuExecuteVinceSignalAction,
+  polymarketExecutePendingOrderAction,
 } from "./actions";
 import { walletStatusProvider, vinceSignalProvider } from "./providers";
 import {
@@ -83,10 +85,12 @@ export const otakuPlugin: Plugin = {
     otakuYieldRecommendAction,
     otakuSetRebalanceAction,
     otakuExecuteVinceSignalAction,
+    polymarketExecutePendingOrderAction,
   ],
   services: [OtakuService],
   init: async (_config, runtime) => {
     registerOtakuRebalanceTaskWorker(runtime);
+    registerPolymarketExecutePollTask(runtime);
   },
   providers: [walletStatusProvider, vinceSignalProvider],
   evaluators: [portfolioEvaluator],

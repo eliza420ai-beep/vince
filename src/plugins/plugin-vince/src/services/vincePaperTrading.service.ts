@@ -8,7 +8,7 @@
  * - State persistence
  */
 
-import { Service, type IAgentRuntime, logger } from "@elizaos/core";
+import { Service, type IAgentRuntime, logger, ModelType } from "@elizaos/core";
 import type {
   Position,
   SimulatedOrder,
@@ -55,6 +55,7 @@ import {
   getAssetMaxLeverage,
   TIMING,
   PERSISTENCE_DIR,
+  PRIMARY_SIGNAL_SOURCES,
   isWttEnabled,
   wttRubricToSignal,
   wttPickToWttBlock,
@@ -71,6 +72,11 @@ import {
   type ExtendedSnapshot,
   type MarketContext,
 } from "../utils/extendedSnapshotLogic";
+import {
+  buildContextBucketKeys,
+  getContextAdjustmentMultiplier,
+  recordContextOutcome,
+} from "../utils/contextFeatureStats";
 
 // ==========================================
 // Pending Entry Types
@@ -491,6 +497,42 @@ export class VincePaperTradingService extends Service {
     logger.debug(
       `[VincePaperTrading] Trade blocked: ${asset} ${direction} | ${reason.substring(0, 60)}`,
     );
+  }
+
+  /** Optional LLM entry gate: approve or veto a single candidate. On timeout/error returns true (proceed). */
+  private static readonly ENTRY_GATE_TIMEOUT_MS = 10_000;
+
+  private async runEntryGate(
+    asset: string,
+    direction: "long" | "short",
+    sizeUsd: number,
+    signal: AggregatedTradeSignal,
+    regime: MarketRegime | null,
+  ): Promise<boolean> {
+    const topSources = Object.keys(signal.sourceBreakdown ?? {}).slice(0, 5).join(", ") || "—";
+    const regimeStr = regime?.regime ?? "unknown";
+    const prompt = `You are a paper-trade entry gate. One candidate only. Reply with exactly one line: APPROVE or VETO, then a short reason.
+
+Candidate: ${asset} ${direction.toUpperCase()} | size $${sizeUsd.toFixed(0)} | strength ${signal.strength}% confidence ${signal.confidence}% | regime ${regimeStr} | sources ${topSources}.
+
+Reply format: APPROVE reason or VETO reason`;
+
+    try {
+      const result = await Promise.race([
+        this.runtime.useModel(ModelType.TEXT_SMALL, { prompt }),
+        new Promise<string>((_, rej) =>
+          setTimeout(() => rej(new Error("entry gate timeout")), VincePaperTradingService.ENTRY_GATE_TIMEOUT_MS),
+        ),
+      ]);
+      const line = (typeof result === "string" ? result : String(result)).trim().toUpperCase();
+      if (line.startsWith("VETO")) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      logger.debug(`[VincePaperTrading] Entry gate fallback (proceed): ${(e as Error).message}`);
+      return true;
+    }
   }
 
   /**
@@ -1052,6 +1094,18 @@ export class VincePaperTradingService extends Service {
           );
         }
 
+        // Signal hierarchy: at least one primary source required (secondary-only cannot open)
+        const contributingSources = Object.keys(tradeSignal.sourceBreakdown ?? {});
+        const hasPrimary = contributingSources.some((s) =>
+          PRIMARY_SIGNAL_SOURCES.has(s),
+        );
+        if (!hasPrimary && contributingSources.length > 0) {
+          logger.debug(
+            `[VincePaperTrading] ${asset} skipped: no primary signal (contributing: ${contributingSources.join(", ")})`,
+          );
+          continue;
+        }
+
         // Validate signal
         const signalValidation = riskManager.validateSignal(tradeSignal);
         if (!signalValidation.valid) {
@@ -1100,6 +1154,15 @@ export class VincePaperTradingService extends Service {
         if (correlationResult.reason) {
           logger.debug(
             `[VincePaperTrading] ${asset}: ${correlationResult.reason}`,
+          );
+        }
+
+        // Mode controller: conservative 0.8x, balanced 1.0x, aggressive 1.2x (change VINCE_TRADING_MODE first)
+        const modeRiskMult = riskManager.getModeRiskMultiplier?.() ?? 1.0;
+        if (modeRiskMult !== 1.0) {
+          baseSizeUsd = baseSizeUsd * modeRiskMult;
+          logger.debug(
+            `[VincePaperTrading] ${asset} mode risk multiplier: ${modeRiskMult}x`,
           );
         }
 
@@ -1225,6 +1288,18 @@ export class VincePaperTradingService extends Service {
           }
         }
 
+        // Context learning: adjust size by historical win-rate per context (marketRegime, vol_regime, session)
+        const contextKeys = buildContextBucketKeys(regime, timeModifiers?.session?.session);
+        if (contextKeys.length > 0) {
+          const contextMult = getContextAdjustmentMultiplier(contextKeys);
+          if (contextMult !== 1.0) {
+            baseSizeUsd = baseSizeUsd * contextMult;
+            logger.debug(
+              `[VincePaperTrading] ${asset} context adjustment: ${contextMult.toFixed(2)}x (${contextKeys.join(", ")})`,
+            );
+          }
+        }
+
         // ML position sizing: scale base size by model prediction (when model available)
         if (mlService) {
           try {
@@ -1287,10 +1362,26 @@ export class VincePaperTradingService extends Service {
 
         const finalSize = tradeValidation.adjustedSize || baseSizeUsd;
 
-        // Check if this is a cascade signal (requires immediate entry)
-        const isCascadeSignal =
-          signal.sources?.includes("LiquidationCascade") ||
-          signal.sources?.includes("LiquidationPressure");
+        // Optional LLM entry gate: approve/veto before opening (on timeout/error → proceed)
+        const entryGateEnabled =
+          this.runtime.getSetting?.("vince_entry_gate_enabled") === true ||
+          this.runtime.getSetting?.("vince_entry_gate_enabled") === "true" ||
+          process.env.VINCE_ENTRY_GATE_ENABLED === "true";
+        if (entryGateEnabled) {
+          const proceed = await this.runEntryGate(
+            asset,
+            signal.direction as "long" | "short",
+            finalSize,
+            tradeSignal,
+            regime,
+          );
+          if (!proceed) {
+            logger.debug(
+              `[VincePaperTrading] ${asset} entry gate veto – skipping trade`,
+            );
+            continue;
+          }
+        }
 
         // Get current price
         let currentPrice = 0;
@@ -1307,6 +1398,7 @@ export class VincePaperTradingService extends Service {
           leverage,
           signal: tradeSignal,
           usedPullbackEntry: false,
+          contextBucketKeys: contextKeys.length > 0 ? contextKeys : undefined,
         });
       } catch (error) {
         logger.error(`[VincePaperTrading] Error evaluating ${asset}: ${error}`);
@@ -1463,8 +1555,10 @@ export class VincePaperTradingService extends Service {
     signal: AggregatedTradeSignal;
     /** True when fill came from pending pullback target (vs immediate execution). */
     usedPullbackEntry?: boolean;
+    /** Context bucket keys for context_adjustment learning (recorded on close). */
+    contextBucketKeys?: string[];
   }): Promise<Position | null> {
-    const { asset, direction, sizeUsd, leverage, signal, usedPullbackEntry = false } = params;
+    const { asset, direction, sizeUsd, leverage, signal, usedPullbackEntry = false, contextBucketKeys } = params;
 
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();
@@ -1475,6 +1569,22 @@ export class VincePaperTradingService extends Service {
       return null;
     }
 
+    // Layer 2: Duplicate position check (no pyramiding; flip = close then enter)
+    const existingPosition = positionManager.getPositionByAsset(asset);
+    if (existingPosition) {
+      if (existingPosition.direction === direction) {
+        logger.warn(
+          `[VincePaperTrading] DUPLICATE POSITION REJECTED: ${asset} ${direction} (existing position same direction)`,
+        );
+        return null;
+      }
+      // Opposite direction: flip — close existing then proceed with new entry
+      logger.info(
+        `[VincePaperTrading] POSITION FLIP DETECTED: closing existing ${asset} ${existingPosition.direction} before ${direction}`,
+      );
+      await this.closeTrade(existingPosition.id, "signal_flip");
+    }
+
     // Get current price
     let entryPrice: number;
     try {
@@ -1482,7 +1592,8 @@ export class VincePaperTradingService extends Service {
         ? await (marketData as any).getEnrichedContext(asset)
         : null;
       entryPrice = ctx?.currentPrice;
-      if (!entryPrice) {
+      // Layer 1: Symbol validation (reject invalid / zero price)
+      if (entryPrice == null || entryPrice <= 0) {
         const now = Date.now();
         const lastWarn = this.lastEntryPriceWarnByAsset.get(asset) ?? 0;
         if (
@@ -1490,13 +1601,9 @@ export class VincePaperTradingService extends Service {
           VincePaperTradingService.ENTRY_PRICE_WARN_THROTTLE_MS
         ) {
           logger.warn(
-            `[VincePaperTrading] Could not get entry price for ${asset}`,
+            `[VincePaperTrading] SYMBOL VALIDATION FAILED: ${asset} (mid price missing or <= 0)`,
           );
           this.lastEntryPriceWarnByAsset.set(asset, now);
-        } else {
-          logger.debug(
-            `[VincePaperTrading] Could not get entry price for ${asset} (throttled)`,
-          );
         }
         return null;
       }
@@ -1833,6 +1940,7 @@ export class VincePaperTradingService extends Service {
         banditWeightsUsed:
           (signal as AggregatedTradeSignal & { banditWeightsUsed?: boolean }).banditWeightsUsed === true,
         usedPullbackEntry,
+        ...(contextBucketKeys && contextBucketKeys.length > 0 ? { contextBucketKeys } : {}),
       },
     });
 
@@ -1969,6 +2077,14 @@ export class VincePaperTradingService extends Service {
 
       // Track for win-streak sizing
       this.recordTradeOutcome(isWin);
+
+      // Context learning: record outcome per bucket for context_adjustment multiplier
+      const contextBucketKeys = closedPosition.metadata?.contextBucketKeys as string[] | undefined;
+      if (contextBucketKeys?.length) {
+        for (const key of contextBucketKeys) {
+          recordContextOutcome(key, isWin);
+        }
+      }
     }
 
     // Journal exit

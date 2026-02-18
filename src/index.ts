@@ -37,6 +37,8 @@ import { kellyAgent } from "./agents/kelly.ts";
 import { sentinelAgent } from "./agents/sentinel.ts";
 import { echoAgent } from "./agents/echo.ts";
 import { oracleAgent } from "./agents/oracle.ts";
+import { polymarketRiskAgent } from "./agents/polymarketRisk.ts";
+import { polymarketPerformanceAgent } from "./agents/polymarketPerformance.ts";
 import { navalAgent } from "./agents/naval.ts";
 import { clawtermAgent } from "./agents/clawterm.ts";
 import logFilterPlugin from "./plugins/plugin-log-filter/src/index.ts";
@@ -92,6 +94,22 @@ addIfDiscordEnabled(
   "Oracle",
   !!(process.env.ORACLE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim()),
   process.env.ORACLE_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+);
+addIfDiscordEnabled(
+  "Polymarket Risk",
+  !!(
+    process.env.POLYMARKET_RISK_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.POLYMARKET_RISK_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
+);
+addIfDiscordEnabled(
+  "Polymarket Performance",
+  !!(
+    process.env.POLYMARKET_PERF_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
+  ),
+  process.env.POLYMARKET_PERF_DISCORD_APPLICATION_ID ?? process.env.DISCORD_APPLICATION_ID,
 );
 addIfDiscordEnabled(
   "Naval",
@@ -158,6 +176,14 @@ const project: Project = {
       plugins: [logFilterPlugin, interAgentPlugin, ...(oracleAgent.plugins ?? [])],
     },
     {
+      ...polymarketRiskAgent,
+      plugins: [logFilterPlugin, interAgentPlugin, ...(polymarketRiskAgent.plugins ?? [])],
+    },
+    {
+      ...polymarketPerformanceAgent,
+      plugins: [logFilterPlugin, interAgentPlugin, ...(polymarketPerformanceAgent.plugins ?? [])],
+    },
+    {
       ...navalAgent,
       plugins: [logFilterPlugin, interAgentPlugin, ...(navalAgent.plugins ?? [])],
     },
@@ -176,6 +202,8 @@ export { kellyAgent } from "./agents/kelly.ts";
 export { sentinelAgent } from "./agents/sentinel.ts";
 export { echoAgent } from "./agents/echo.ts";
 export { oracleAgent } from "./agents/oracle.ts";
+export { polymarketRiskAgent } from "./agents/polymarketRisk.ts";
+export { polymarketPerformanceAgent } from "./agents/polymarketPerformance.ts";
 export { navalAgent } from "./agents/naval.ts";
 export { clawtermAgent } from "./agents/clawterm.ts";
 export { character } from "./agents/eliza.ts";

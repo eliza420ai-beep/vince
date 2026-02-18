@@ -20,6 +20,7 @@ import bootstrapPlugin from "@elizaos/plugin-bootstrap";
 import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
+import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const oracleHasDiscord =
@@ -97,6 +98,8 @@ You operate under **LIVETHELIFETV**: IKIGAI STUDIO (content), IKIGAI LABS (produ
 **Discovery:** Trending and active markets (GET_ACTIVE_POLYMARKETS), search by keyword or category (SEARCH_POLYMARKETS), VINCE-priority markets only (GET_VINCE_POLYMARKET_MARKETS), market detail (GET_POLYMARKET_DETAIL), real-time prices (GET_POLYMARKET_PRICE), price history, categories (GET_POLYMARKET_CATEGORIES), events (GET_POLYMARKET_EVENTS, GET_POLYMARKET_EVENT_DETAIL). Real-time odds come from the CLOB via **GET_POLYMARKET_PRICE**—list/search show Gamma-derived odds; for current odds use that action with \`condition_id\`.
 
 **Orderbooks & analytics:** Single or batch orderbooks (GET_POLYMARKET_ORDERBOOK, GET_POLYMARKET_ORDERBOOKS), open interest (GET_POLYMARKET_OPEN_INTEREST), live volume (GET_POLYMARKET_LIVE_VOLUME), spreads (GET_POLYMARKET_SPREADS).
+
+**Edge (trading desk):** POLYMARKET_EDGE_CHECK compares Synth (or other) forecast to Polymarket price for a market; when edge is above threshold, emits a structured signal for the Risk agent. Use condition_id and optional asset (e.g. BTC). No execution.
 
 **Portfolio (wallet required):** Positions (GET_POLYMARKET_POSITIONS), balance (GET_POLYMARKET_BALANCE), trade history (GET_POLYMARKET_TRADE_HISTORY), closed positions (GET_POLYMARKET_CLOSED_POSITIONS), user activity (GET_POLYMARKET_USER_ACTIVITY), top holders for a market (GET_POLYMARKET_TOP_HOLDERS).
 
@@ -290,6 +293,7 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(oracleHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
     polymarketDiscoveryPlugin,
+    pluginPolymarketDesk, // Trading desk: signals table, POLYMARKET_EDGE_CHECK (Synth vs Polymarket)
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 

@@ -142,6 +142,7 @@ import { registerTrainOnnxTask } from "./tasks/trainOnnx.tasks";
 import { registerDailyReportTask } from "./tasks/dailyReport.tasks";
 import { registerLifestyleDailyTask } from "./tasks/lifestyleDaily.tasks";
 import { registerNewsDailyTask } from "./tasks/newsDaily.tasks";
+import { registerPaperOpsTask } from "./tasks/paperOps.tasks";
 
 // Evaluators - Self-Improving Architecture
 import { tradePerformanceEvaluator } from "./evaluators/tradePerformance.evaluator";
@@ -1007,6 +1008,17 @@ export const vincePlugin: Plugin = {
       });
     }
 
+    // Paper ops: deterministic 15m consistency + ops_summary.txt (optional push to #ops / #sentinel)
+    if (isVinceAgent(runtime)) {
+      setImmediate(async () => {
+        try {
+          await registerPaperOpsTask(runtime);
+        } catch (e) {
+          logger.warn("[VINCE] Failed to register paper ops task:", e);
+        }
+      });
+    }
+
     // Optional: stagger second Discord bot so both can connect in same process (see DISCORD.md).
     // When both Eliza and VINCE have Discord enabled, delaying VINCE init gives the first bot time to connect before the second starts.
     if (isVinceAgent(runtime)) {
@@ -1144,11 +1156,15 @@ export {
   getThresholds,
   getSourceWeight,
   meetsThresholds,
+  getTradingMode,
+  getEffectiveThresholds,
+  getModeRiskMultiplier,
 } from "./config/dynamicConfig";
 export type {
   SourceWeights,
   AdjustmentRecord,
   TunedConfig,
+  TradingMode,
 } from "./config/dynamicConfig";
 
 // ==========================================
