@@ -444,17 +444,54 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
   const dexscreener = runtime.getService("VINCE_DEXSCREENER_SERVICE") as VinceDexScreenerService | null;
   if (!dexscreener) return null;
 
-  const hot = await safe("Memes hot", () =>
-    Promise.resolve(dexscreener.getTrendingTokens(10).filter((t: { priceChange24h: number }) => t.priceChange24h >= 21)),
-  );
-  const ape = await safe("Memes ape", () => Promise.resolve(dexscreener.getApeTokens().slice(0, 5)));
-  const watch = await safe("Memes watch", () =>
-    Promise.resolve(dexscreener.getTrendingTokens(50).filter((t: { verdict: string }) => t.verdict === "WATCH").slice(0, 5)),
-  );
-  const avoid = await safe("Memes avoid", () =>
-    Promise.resolve(dexscreener.getTrendingTokens(50).filter((t: { verdict: string }) => t.verdict === "AVOID").slice(0, 5)),
-  );
-  const { mood, summary } = dexscreener.getMarketMood();
+  const solanaSection = await safe("Memes Solana", async () => {
+    const solanaTokens = dexscreener.getTokensByChain("solana");
+    if (solanaTokens.length === 0) return null;
+
+    const hot = solanaTokens.filter((t) => t.priceChange24h >= 21).slice(0, 10);
+    const ape = solanaTokens.filter((t) => t.verdict === "APE").slice(0, 5);
+    const watch = solanaTokens.filter((t) => t.verdict === "WATCH").slice(0, 5);
+    const avoid = solanaTokens.filter((t) => t.verdict === "AVOID").slice(0, 5);
+    const { mood, summary } = dexscreener.getMarketMoodForTokens(solanaTokens);
+
+    const toRow = (
+      t: {
+        symbol: string;
+        price?: number;
+        priceUsd?: number;
+        priceChange24h?: number;
+        volume24h?: number;
+        volumeLiquidityRatio?: number;
+        verdict?: string;
+        marketCap?: number;
+      },
+      i: number,
+    ): LeaderboardRow => ({
+      rank: i + 1,
+      symbol: t.symbol ?? "—",
+      price: t.price ?? t.priceUsd,
+      change24h: t.priceChange24h,
+      volume: t.volume24h,
+      volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
+      extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
+      verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
+      volumeLiquidityRatio: t.volumeLiquidityRatio,
+      marketCap: t.marketCap,
+    });
+
+    const result: MemesLeaderboardSection = {
+      title: "Memes (Solana)",
+      hot: hot.map((t, i) => toRow(t, i)),
+      ape: ape.map((t, i) => toRow(t, i)),
+      mood: mood ?? "unknown",
+      moodSummary: summary ?? "Meme scanner active.",
+    };
+    if (watch.length > 0) result.watch = watch.map((t, i) => toRow(t, i));
+    if (avoid.length > 0) result.avoid = avoid.map((t, i) => toRow(t, i));
+    return result;
+  });
+
+  if (!solanaSection) return null;
 
   const news = runtime.getService("VINCE_NEWS_SENTIMENT_SERVICE") as VinceNewsSentimentService | null;
   const leftcurve =
@@ -468,44 +505,10 @@ async function buildMemesSection(runtime: IAgentRuntime): Promise<MemesLeaderboa
         })
       : null;
 
-  const toRow = (
-    t: {
-      symbol: string;
-      price?: number;
-      priceUsd?: number;
-      priceChange24h?: number;
-      volume24h?: number;
-      volumeLiquidityRatio?: number;
-      verdict?: string;
-      marketCap?: number;
-    },
-    i: number,
-  ): LeaderboardRow => ({
-    rank: i + 1,
-    symbol: t.symbol ?? "—",
-    price: t.price ?? t.priceUsd,
-    change24h: t.priceChange24h,
-    volume: t.volume24h,
-    volumeFormatted: t.volume24h != null ? formatVol(t.volume24h) : undefined,
-    extra: t.volumeLiquidityRatio != null ? `V/L: ${t.volumeLiquidityRatio.toFixed(1)}x` : undefined,
-    verdict: t.verdict as "APE" | "WATCH" | "AVOID" | undefined,
-    volumeLiquidityRatio: t.volumeLiquidityRatio,
-    marketCap: t.marketCap,
-  });
-
-  const result: MemesLeaderboardSection = {
-    title: "Memes (Solana)",
-    hot: (hot ?? []).map((t: any, i: number) => toRow(t, i)),
-    ape: (ape ?? []).map((t: any, i: number) => toRow(t, i)),
-    mood: mood ?? "unknown",
-    moodSummary: summary ?? "Meme scanner active.",
-  };
-  if ((watch ?? []).length > 0) result.watch = (watch ?? []).map((t: any, i: number) => toRow(t, i));
-  if ((avoid ?? []).length > 0) result.avoid = (avoid ?? []).map((t: any, i: number) => toRow(t, i));
   if (leftcurve && Array.isArray(leftcurve) && leftcurve.length > 0) {
-    result.leftcurve = { title: "Left Curve (MandoMinutes)", headlines: leftcurve };
+    solanaSection.leftcurve = { title: "Left Curve (MandoMinutes)", headlines: leftcurve };
   }
-  return result;
+  return solanaSection;
 }
 
 async function buildMemesBaseSection(runtime: IAgentRuntime): Promise<MemesLeaderboardSection | null> {
