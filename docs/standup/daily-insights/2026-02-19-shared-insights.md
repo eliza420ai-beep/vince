@@ -1,5 +1,5 @@
 ---
-date: 2026-02-19T11:31:01.064Z
+date: 2026-02-19T11:50:21.631Z
 type: shared-daily-insights
 ---
 
@@ -8,13 +8,15 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $66,815 -0.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
-| SOL | $81.625 -2.3% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
-| HYPE | $28.373 -2.1% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $66,645 -1.3% | F:0.005% L/S:2.26 Vol:1.0x | bearish |
+| SOL | $81.27 -2.4% | F:-0.006% L/S:3.03 Vol:1.0x | bearish |
+| HYPE | $28.429 -1.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
 **Fear & Greed:** 9 (extreme fear)
 
-**Signal (BTC):** short (50% conf, BinanceTakerFlow,BinanceLongShort,NewsSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+**Signal (BTC):** short (58% conf, CoinGlass,BinanceLongShort,NewsSentiment,XSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+
+**Paper bot:** 0W/0L (+$0) | 2 open, 0 pending
 
 **MandoMinutes:** Risk-on ⚠️ Risk event active security. Themes: other, institutional, regulatory, price
 News sentiment: bullish (68% conf)
@@ -26,7 +28,9 @@ Headlines:
 🔴 TON collabs with Banxa on stablecoins
 🟢 World Uncertainty Index hits ATH
 
-**Regime (BTC):** ranging ADX 15.564653701808258 | size 0.8x
+**OI (24h Δ):** BTC $5.4B (+0.5%) | SOL $823M (+4.3%)
+
+**Regime (BTC):** neutral ADX 22.591824644549764 | size 0.8x
 
 ## Eliza
 **Yesterday:** Solus's call: Below — Sell covered call at $67,500, capture premium in range-bound environment
@@ -47,7 +51,7 @@ Regulatory announcement or Fed policy shift could break range in either directio
 
 **Yesterday TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
-**Today (from shared insights):** | BTC | $66,891 -0.7% | F:0.262% L/S:2.26 Vol:1.0x | bearish | | SOL | $81.745 -2.0% | F:-0.450% L/S:3.03 Vol:1.0x …
+**Today (from shared insights):** | BTC | $66,815 -0.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish | | SOL | $81.625 -2.3% | F:0.000% L/S:1.00 Vol:1.0x |…
 
 ## ECHO
 **CT sentiment (19 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
@@ -77,16 +81,13 @@ UAE announces Bitcoin mining worth $453.6M, signaling increased competition in d
  BTC falling while tech rips?
 
 According to Grayscale, BTC’s drop tracked the rally in U.S. tech stocks — po… (0 likes)
+@36Crypto2: $XRP hits a 5-week high in social sentiment as Ripple’s partnerships with Aviva, Zand Bank, LMAX, and BNY Mellon drive o… (1 likes)
 @KrutiCrypto: GM ☕️ Crypto Check-In
 
 BTC mood: 🟢 | 🔴
 Market sentiment in one word: Mixed
 
-Today I’m watching: $SOL 👀
-
-Your move 👇 (2 likes)
-@cryptoWZRD_: XRP Daily Technical Outlook:
-$XRP closed slightly bearish as XRPBTC declined due to the lack of weakness …
+Today I’m watching: $SOL 👀…
 
 ## Oracle
 | Priority market | YES% | condition_id |
@@ -128,6 +129,9 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+3bb6e0d chore(standup): update 2026-02-19 artifacts (shared insights, day report, action items, predictions, metrics)
+e8506d9 test(standup): add extractAgentSection/buildStandupPrompt tests + TESTING.md guide
+41cab04 fix(standup): stop agent parroting — domain-locked prompts, shared-insights-only context
 e51787f Fix standup feedback loop and sync method type mismatches
 68331d7 Update README.md for v3.3: Refine project description, enhance Day Report format, and clarify team structure. Key changes include improved narrative style for daily standups, integration of strategic priorities, and fixes for duplicate trade issues and TypeScript declarations. Documentation now reflects a more cohesive team approach and streamlined reporting processes.
 b76d822 Update whats-the-trade submodule pointer
@@ -135,21 +139,16 @@ b76d822 Update whats-the-trade submodule pointer
 e98f0a2 LFG
 e8ad739 Fix stale agent ID causing leaderboard 404s on startup
 b4e924b Filter stale Polymarket Risk/Performance agents from dropdown
-7540bda Add pre-commit hook for type-check and format check; create OPEN_TODOS and daily insights documentation
-3c602db V3.3: Day Report as team report of the day, 102 tests pass, build clean
-1ca282f Refine documentation and guidelines for agent communication and reporting
 
 **Recent PRDs:** 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md
 
 **Macro news:**
-The Federal Reserve's monetary policy decisions increasingly influence cr…
+Tether CEO launches new US-based stableco…
 
 ## Clawterm
-Daily Standup Summary:
+OpenClaw is gaining browser-hosted momentum with Kimi Claw, a cloud-based AI agent platform that enables scheduled automations and ClawHub skill integration, but current traction is low with only 48 skills and minimal social engagement. The AI agent landscape is shifting towards proactive, conversation-first platforms that run locally or in-browser, with OpenClaw positioning itself as a key player in autonomous task automation. 
 
-OpenClaw is gaining visibility with setup guides spreading, but current traction shows low engagement—48 skills with zero likes suggest early-stage adoption challenges. Web content is emerging, with tutorials focusing on beginner setup and security, indicating growing interest but limited practical implementation.
-
-**Tech Focus Suggestion**: Prioritize developing a comprehensive, one-click Docker deployment script that simplifies VPS installation and includes pre-configured security settings to lower the barrier to entry for new users.
+**Tech Focus Suggestion**: Prioritize ClawHub skill discoverability and developer onboarding - create a clear, gamified pathway for builders to contribute and showcase skills, potentially with reputation scoring or bounty systems to incentivize high-quality skill development.
 
 ## Naval
 (no data)

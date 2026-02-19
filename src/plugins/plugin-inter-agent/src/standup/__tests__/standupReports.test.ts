@@ -70,40 +70,40 @@ describe("Standup Reports", () => {
       expect(REPORT_TEMPLATES.VINCE).toContain("Signal");
     });
 
-    it("Eliza template has listening/knowledge gaps/essay/research", () => {
+    it("Eliza template has gaps, essay idea, research", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Knowledge gaps spotted");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Gaps");
       expect(REPORT_TEMPLATES.Eliza).toContain("Essay idea");
-      expect(REPORT_TEMPLATES.Eliza).toContain(
-        "Research to upload to knowledge",
-      );
+      expect(REPORT_TEMPLATES.Eliza).toContain("Research");
     });
 
-    it("Oracle template uses LIVE DATA and priority markets (condition_id)", () => {
+    it("Oracle template uses LIVE DATA and condition_id", () => {
       expect(REPORT_TEMPLATES.Oracle).toContain("LIVE DATA");
       expect(REPORT_TEMPLATES.Oracle).toContain("condition_id");
-      expect(REPORT_TEMPLATES.Oracle).toMatch(/Priority|priority/);
       expect(REPORT_TEMPLATES.Oracle).not.toContain("under construction");
       expect(REPORT_TEMPLATES.Oracle).not.toContain("unreliable");
     });
 
-    it("Otaku template focuses on wallet setup progress", () => {
-      expect(REPORT_TEMPLATES.Otaku).toContain("wallet");
+    it("Otaku template has Status and Blocked", () => {
       expect(REPORT_TEMPLATES.Otaku).toContain("Status");
+      expect(REPORT_TEMPLATES.Otaku).toContain("Blocked");
     });
 
-    it("Sentinel template has what's next / what's pushed", () => {
-      expect(REPORT_TEMPLATES.Sentinel).toContain("What's next in coding");
-      expect(REPORT_TEMPLATES.Sentinel).toContain("What's been pushed");
+    it("Sentinel template has Next, Pushed, OpenClaw", () => {
+      expect(REPORT_TEMPLATES.Sentinel).toContain("Next");
+      expect(REPORT_TEMPLATES.Sentinel).toContain("Pushed");
+      expect(REPORT_TEMPLATES.Sentinel).toContain("OpenClaw");
     });
 
-    it("ECHO template references X insights", () => {
-      expect(REPORT_TEMPLATES.ECHO).toContain("plugin-x-research");
+    it("ECHO template has CT Sentiment and Narrative", () => {
+      expect(REPORT_TEMPLATES.ECHO).toContain("CT Sentiment");
+      expect(REPORT_TEMPLATES.ECHO).toContain("Narrative");
     });
 
-    it("Solus template has essential question and My take", () => {
-      expect(REPORT_TEMPLATES.Solus).toContain("essential question");
-      expect(REPORT_TEMPLATES.Solus).toContain("My take");
+    it("Solus template has Essential Q and strike/options", () => {
+      expect(REPORT_TEMPLATES.Solus).toContain("Essential Q");
+      expect(REPORT_TEMPLATES.Solus).toContain("Strike");
+      expect(REPORT_TEMPLATES.Solus).toContain("Invalidation");
     });
 
     it("Kelly template is standup facilitator", () => {
@@ -293,7 +293,7 @@ Conclusion slot.`;
       const prompt = buildStandupPrompt("Eliza", shared, transcript, dateStr);
       expect(prompt).toContain("CEO");
       expect(prompt).toContain('Do NOT write a "Day Report"');
-      expect(prompt).toContain("Under 250 words");
+      expect(prompt).toContain("Under 120 words");
     });
   });
 });

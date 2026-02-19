@@ -280,3 +280,17 @@
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
 - **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @Solus: BTC Covered Call Setup
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-btc-covered-call-setup.ts
+- **2026-02-19** [in_progress] @Otaku: Wallet Key Generation
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-wallet-key-generation.ts
+- **2026-02-19** [in_progress] @Sentinel: OpenClaw Adapter Integration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-sentinel-openclaw-adapter-integration.ts
+- **2026-02-19** [in_progress] @ECHO: CT Sentiment Contrarian Monitor
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-echo-ct-sentiment-contrarian-monitor.ts
+- **2026-02-19** [in_progress] @Eliza: DeFi Yield Research Sprint
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-defi-yield-research-sprint.ts
+- **2026-02-19** [in_progress] @Clawterm: ClawHub Skill Development Challenge
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-clawhub-skill-development-challenge.ts
+- **2026-02-19** [in_progress] @VINCE: Paper Bot Signal Refinement
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-paper-bot-signal-refinement.ts

@@ -416,7 +416,7 @@ async function runOneStandupTurn(
       );
       const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
         prompt,
-        maxTokens: isConclusionTurn ? 400 : 600,
+        maxTokens: isConclusionTurn ? 180 : 500,
         temperature: 0.7,
       });
       const text = String(resp ?? "").trim();
@@ -436,8 +436,8 @@ async function runOneStandupTurn(
   const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
   const roleHint = agentRole ? ` (${agentRole.focus})` : "";
   const directAddress = isConclusionTurn
-    ? `@${agentName}, write the standup conclusion. Based on the transcript above, 2-4 sentences: one thesis, one signal to watch, one team one dream. No bullets.\n\n`
-    : `@${agentName}${roleHint}, it's your turn. Report your domain data for the standup. Keep it concise.\n\n`;
+    ? `@${agentName}, conclusion only. 2-4 short sentences: thesis, signal to watch, one team one dream. No bullets, no paragraphs.\n\n`
+    : `@${agentName}${roleHint}, your turn. Report your domain only. Under 120 words.\n\n`;
   const userMsg = {
     id: uuidv4(),
     entityId: facilitatorEntityId,
@@ -1361,7 +1361,7 @@ export async function registerStandupTask(
           );
         }
         const totalOutputTokens =
-          replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 2800; // 2800 = Day Report cap (800-1200 word narrative + structured block)
+          replies.reduce((s, r) => s + estimateTokens(r.text), 0) + 1200; // Day Report cap (structured block first + short narrative)
         const totalEstimatedTokens = totalInputTokens + totalOutputTokens;
         const costPer1K = parseFloat(
           process.env.VINCE_USAGE_COST_PER_1K_TOKENS || "0.006",

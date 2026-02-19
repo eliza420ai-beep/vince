@@ -101,11 +101,11 @@ export type AgentName = keyof typeof AGENT_ROLES;
 /** Hard constraints so agents stay in their lane and do not parrot other agents. */
 export const STANDUP_CONSTRAINTS = `
 RULES:
-- ONLY report on your assigned sections (listed above). Do NOT repeat other agents' data.
-- Do NOT write a "Day Report" — that is generated separately at the end.
-- Do NOT use filler phrases ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
-- Under 250 words. End with one ACTION item.
-- Reference other agents' data by name if relevant (e.g. "Per VINCE's data") but do NOT restate it.`;
+- ONLY report on your assigned sections. Do NOT repeat other agents' data.
+- Do NOT write a "Day Report" — that is generated at the end.
+- No filler ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
+- Under 120 words total (excluding the JSON block). One ACTION line at the end.
+- Reference others by name if needed (e.g. "Per VINCE's data") but do NOT restate.`;
 
 /**
  * Extract one agent's section from the shared daily insights markdown.
@@ -184,147 +184,72 @@ ${yourData}
 Output your report now. Concise.`;
 }
 
-/** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. */
+/** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. One line only. */
 export const STRUCTURED_SIGNAL_INSTRUCTION = `
 
-End with a fenced JSON block so the team can parse signals. Use this exact format (no other keys):
-\`\`\`json
-{"signals":[{"asset":"BTC","direction":"bullish","confidence_pct":70},{"asset":"SOL","direction":"neutral","confidence_pct":50}]}
-\`\`\`
-- asset: one of BTC, SOL, HYPE (or other tracked asset)
-- direction: "bullish" | "bearish" | "neutral"
-- confidence_pct: 0-100 (optional)`;
+End with one line of JSON (no extra keys): \`{"signals":[{"asset":"BTC","direction":"bullish","confidence_pct":70}]}\` — asset: BTC|SOL|HYPE, direction: bullish|bearish|neutral, confidence_pct: 0-100.`;
 
-/** For Solus only: structured call block for prediction tracking. */
+/** For Solus only: structured call block for prediction tracking. One line. */
 export const STRUCTURED_CALL_INSTRUCTION = `
 
-End with a fenced JSON block for your call (required):
-\`\`\`json
-{"call":{"asset":"BTC","direction":"above","strike":70000,"confidence_pct":70,"expiry":"2026-02-21T08:00:00Z","invalidation":68000}}
-\`\`\`
-- direction: "above" | "below"
-- strike: number (e.g. 70000)
-- confidence_pct: 0-100
-- expiry: ISO date when option settles
-- invalidation: price level that invalidates the thesis (optional)`;
+End with one line of JSON: \`{"call":{"asset":"BTC","direction":"above","strike":70000,"confidence_pct":70,"expiry":"2026-02-21T08:00:00Z","invalidation":68000}}\` — direction: above|below, strike, confidence_pct, expiry ISO, invalidation optional.`;
 
 /**
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  Eliza: `## Eliza — Research (Listening) — {{date}}
-
-**Knowledge gaps spotted:** [What we don't know yet that would help]
-**Essay idea (Ikigai Studio Substack):** [One topic worth a long-form piece]
-**Research to upload to knowledge/:** [What to ingest or add to knowledge base]
-
-**Action:** [One specific recommendation inspired by what you heard]`,
+  Eliza: `## Eliza — Research — {{date}}
+**Gaps:** [1 line] **Essay idea:** [1 line] **Research to add:** [1 line]
+**Action:** [One recommendation]`,
 
   VINCE: `## VINCE — Data — {{date}}
-
 | Asset | Price | 24h | Funding | OI Δ | Signal |
 |-------|-------|-----|---------|------|--------|
 | BTC | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
 | SOL | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
 | HYPE | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
-
-**BTC focus:** [Key level or setup for Hypersurface strike selection]
-**Paper bot:** XW/XL | PnL: $X
-**Action:** [One specific trade signal]
+**BTC focus:** [1 line] **Paper bot:** XW/XL | PnL: $X **Action:** [1 line]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
-  ECHO: `## ECHO — CT Sentiment (X insights) — {{date}}
-
-Show insights from X (plugin-x-research): sentiment, key voices, narrative.
-
+  ECHO: `## ECHO — CT Sentiment — {{date}}
 | Asset | CT Mood | Key Voice |
 |-------|---------|-----------|
-| BTC | 📈/📉/😐 (+/-X) | @handle: "[quote]" |
-| SOL | 📈/📉/😐 (+/-X) | @handle: "[quote]" |
-
-**Narrative:** [What's driving CT today in one sentence]
-**Contrarian?** [Yes/No — if extreme, flag it]
-**Content for X:** [1–2 tweet or post ideas that would resonate with today's CT pulse — specific hooks, not generic]
-
-**Action:** [One sentiment-based trade implication]
+| BTC | 📈/📉/😐 | @handle: "[short quote]" |
+| SOL | 📈/📉/😐 | @handle: "[short quote]" |
+**Narrative:** [1 sentence] **Contrarian?** Yes/No **Action:** [1 line]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Oracle: `## Oracle — {{date}}
-
-Use the LIVE DATA below (Priority markets table). Report one line per market or a short summary; cite condition_id for follow-ups.
-
-| Priority market | YES% | condition_id |
-(Use LIVE DATA table from fetcher)
-
-**Action:** [One prediction-market implication for paper bot or Hypersurface strike — 10 words or less]
+| Market | YES% | condition_id |
+(Use LIVE DATA) **Key insight:** [1 line] **Action:** [1 line]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Solus: `## Solus — Hypersurface — {{date}}
-
-Answer the essential question (e.g. "Will BTC be above $70K by next Friday?") in Grok-style: current data, sentiment, Polymarket/options, clear Yes/No, short-term path.
-
-**BTC Options (Core Income)**
+**Essential Q:** Will BTC be above $70K by Friday? Answer: Above/Below/Uncertain + one sentence.
 | Strike | Type | Expiry | Thesis |
-|--------|------|--------|--------|
-| $Xk | Call/Put | Fri 08:00 UTC | [one sentence] |
-
-**Weekly View:** Bull/Bear/Neutral — [why in 10 words]
-**Invalidation:** [specific level or event]
-
-**Hypersurface recommendation:** [Strike, direction (above/below), invalidation for this week's covered call or CSP on Hypersurface. One line.]
-**My take:** [Yes/No] — [one sentence path]. Then **Action:** [Size/Skip + strike recommendation]
-
-Your last 5 calls are in the standup context above (Prediction scoreboard). Adjust your confidence calibration accordingly.
+| $Xk | Call/Put | Fri 08:00 UTC | [1 line] |
+**View:** Bull/Bear/Neutral. **Invalidation:** [level] **Action:** [Size/Skip + strike]
 ${STRUCTURED_CALL_INSTRUCTION}`,
 
   Otaku: `## Otaku — {{date}}
+**Status:** [1 line] **Today:** [1 line] **Blocked:** [or "Nothing"]`,
 
-**Status:** [wallet setup progress -- which step are we on?]
-**Today's task:** [specific next step: wallet keys, balance check, or yield scan]
-**Blocked:** [what's preventing progress, or "Nothing -- ready to proceed"]
-
-Report concrete progress. If blocked, say what's needed to unblock.`,
-
-  Kelly: `Good morning team. {{date}} standup.
-
-**Focus:** BTC options (Hypersurface) + perps (Hyperliquid)
-
-@VINCE — market data, go.`,
+  Kelly: `Good morning team. {{date}} standup. @VINCE — market data, go.`,
 
   Sentinel: `## Sentinel — Tech — {{date}}
-
-**What's next in coding:** [What still needs to be done]
-**What's been pushed to the repo:** [Recent commits/PRs or "Nothing new"]
-
-**In Progress:** [Current dev work]
-**Blocked:** [Blockers or "None"]
-
-| System | Status |
-|--------|--------|
-| Agents | 🟢/🟡/🔴 |
-| APIs | 🟢/🟡/🔴 |
-
-**Today's dev task (OpenClaw):** [One specific thing to work on in the vince repo using OpenClaw setup, with expected outcome]
-**Tech focus (proactive):** [1–2 concrete things the team should focus on this week: what to build, fix, prioritize, or learn. Be specific — name the file, plugin, or feature.]
-**Action:** [One tech recommendation]`,
+**Next:** [1 line] **Pushed:** [1 line] **In progress:** [1 line] **Blocked:** [or None]
+| Agents | APIs |
+| 🟢/🟡/🔴 | 🟢/🟡/🔴 |
+**OpenClaw task:** [1 line] **Action:** [1 line]`,
 
   Clawterm: `## Clawterm — AI Terminal — {{date}}
+[2-3 sentences: what's trending on OpenClaw, one setup or gateway note. No bullet dumps.]
+**Action:** [1 line]`,
 
-Use the LIVE DATA below (X + web for OpenClaw skills, setup, trending). Write one short ALOHA-style narrative: what OpenClaw skills are trending, any setup tips or popular articles, what builders are shipping. Gateway status if available. No bullet dumps — flowing prose.
-
-**Tech focus suggestion:** [One concrete, actionable thing the team should focus on or try next on the tech/OpenClaw side — name the skill, tool, or integration.]
-End with one action or recommendation.`,
-
-  Naval: `## Naval — Standup conclusion — {{date}}
-
-You are writing the conclusion of the daily standup. Read the full transcript above (what VINCE, Eliza, ECHO, Oracle, Solus, Otaku, Sentinel, and Clawterm reported).
-
-Write 2–4 short sentences only. No bullets, no fluff. Include:
-1. One thesis: what today's data and sentiment add up to.
-2. One signal to watch: the one thing that would confirm or invalidate that thesis.
-3. One team one dream: one line that ties the room together (push not pull, thesis first, or agents as leverage).
-
-Speak as Naval: clear, benefit-led, no status games.`,
+  Naval: `## Naval — {{date}}
+Conclusion only. Exactly 2-4 short sentences. No bullets, no paragraphs.
+1. Thesis: what today's data adds up to. 2. Signal to watch. 3. One team one dream (one line).
+Speak as Naval: clear, benefit-led.`,
 };
 
 /**
