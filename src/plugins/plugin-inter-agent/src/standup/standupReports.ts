@@ -102,14 +102,13 @@ export type AgentName = keyof typeof AGENT_ROLES;
 
 /** Hard constraints so agents stay in their lane and do not parrot other agents. */
 export const STANDUP_CONSTRAINTS = `
-RULES:
-- ONLY report on your assigned sections. Do NOT repeat other agents' data.
-- Do NOT write a "Day Report" — that is generated at the end.
-- No filler ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
-- Under 120 words total (excluding the JSON block). One ACTION line at the end.
-- Reference others by name if needed (e.g. "Per VINCE's data") but do NOT restate.
-- Do not output any JSON except the single required line at the end (signals or call). No system_status, steps, task, cost_tracking, security_alerts, or other structured blocks.
-VOICE: Write like you're messaging a friend or teammate — direct, human, one quick take. Not a status log or dashboard dump. Tables are for data; the line after the table should read like something you'd say in chat.`;
+HARD RULES:
+- MAX 60 words of prose (tables don't count, JSON line doesn't count). If you go over 60 words, you failed.
+- ONLY your lane. Do NOT repeat other agents' data or write a "Day Report."
+- NO filler, NO intros, NO "here's my update", NO "let me break this down." Start with the info.
+- One clear action at the end starting with "Action:" (one sentence).
+- No extra JSON. Only the single required JSON line at the end if your template asks for it.
+VOICE: You're texting a teammate. Short sentences. Say what matters, skip the rest.`;
 
 /**
  * Extract one agent's section from the shared daily insights markdown.
@@ -179,23 +178,20 @@ ${transcript}`;
     ? "\nDo not output any JSON or code blocks."
     : "";
 
-  return `You are ${agentName} (${role?.title ?? ""} - ${role?.focus ?? ""}).
-Daily standup report. Fill in YOUR template below with real data — like a short update you'd send the team in chat, not a formal log.
-Use the date in your section header as given in the template (e.g. ${dateStr}). Do not use 2024.
+  return `You are ${agentName} (${role?.title ?? ""} — ${role?.focus ?? ""}).
+Write a quick standup update — the kind you'd text a teammate, not a report you'd put in a slide deck.
 
-Focus ONLY on: ${sectionsList}
+Date: ${dateStr} (never 2024). Your lane: ${sectionsList}.
 ${STANDUP_CONSTRAINTS}
 
-${ALOHA_STYLE_BLOCK}
-
-TEMPLATE (fill this in; weave numbers in naturally, one sentence of context or take after any table):
+EXAMPLE FORMAT (fill in with real data, keep same brevity):
 ${template}
 
-YOUR DATA (from shared insights):
+YOUR DATA:
 ${yourData}
 ${noJsonLine}
 
-Output your report now. Concise, human.`;
+Go. No intro, no signoff. Just the update.`;
 }
 
 /** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. One line only. */
@@ -212,60 +208,49 @@ End with one line of JSON: \`{"call":{"asset":"BTC","direction":"above","strike"
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  Eliza: `## Eliza — Research — {{date}}
-**Gaps:** [1 line] **Essay idea:** [1 line] **Research to add:** [1 line]
-**Action:** [One recommendation]`,
-
-  VINCE: `## VINCE — Data — {{date}}
-| Asset | Price | 24h | Funding | OI Δ | Signal |
-|-------|-------|-----|---------|------|--------|
-| BTC | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
-| SOL | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
-| HYPE | $X | ±X% | X% | ±X% | 🟢/🟡/🔴 |
-**BTC focus:** [1 line] **Paper bot:** XW/XL | PnL: $X **Action:** [1 line]
+  VINCE: `VINCE — {{date}}
+BTC $X (±X%), SOL $X (±X%), HYPE $X (±X%). Funding X%, OI X%.
+[One sentence: what the numbers mean today. Paper bot: XW/XL, $X PnL.]
+Action: [one sentence]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
-  ECHO: `## ECHO — CT Sentiment — {{date}}
-| Asset | CT Mood | Key Voice |
-|-------|---------|-----------|
-| BTC | 📈/📉/😐 | @handle: "[short quote]" |
-| SOL | 📈/📉/😐 | @handle: "[short quote]" |
-**Narrative:** [1 sentence] **Contrarian?** Yes/No **Action:** [1 line]
+  Eliza: `Eliza — {{date}}
+[Gap I spotted, essay I'm working on, or research I'm adding. 2-3 sentences max, like a quick Slack message.]
+Action: [one sentence]`,
+
+  ECHO: `ECHO — {{date}}
+CT mood: BTC [📈/📉/😐], SOL [📈/📉/😐]. Loudest voice: @handle on [topic].
+[One sentence: what CT is saying and whether it's contrarian.]
+Action: [one sentence]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
-  Oracle: `## Oracle — {{date}}
-| Market | YES% | condition_id |
-(Use LIVE DATA) **Key insight:** [1 line] **Action:** [1 line]
+  Oracle: `Oracle — {{date}}
+[Top 2 markets with odds, e.g. "Warsh Fed chair 95%, Iran strike 28%."]
+[One sentence: what it means.]
+Action: [one sentence]
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
-  Solus: `## Solus — Hypersurface — {{date}}
-**Essential Q:** Will BTC be above $70K by Friday? Answer: Above/Below/Uncertain + one sentence.
-| Strike | Type | Expiry | Thesis |
-| $Xk | Call/Put | Fri 08:00 UTC | [1 line] |
-**View:** Bull/Bear/Neutral. **Invalidation:** [level] **Action:** [Size/Skip + strike]
+  Solus: `Solus — {{date}}
+BTC above $70K by Friday? [Above/Below/Uncertain] — [one sentence why].
+Selling $Xk covered call, Friday expiry, X% stack. Invalidation: $Xk.
+Action: [one sentence]
 ${STRUCTURED_CALL_INSTRUCTION}`,
 
-  Otaku: `## Otaku — {{date}}
-**Status:** [1 line] **Today:** [1 line] **Blocked:** [or "Nothing"]
-No JSON. Only the three lines (Status, Today, Blocked).`,
+  Otaku: `Otaku — {{date}}
+[Status in one sentence. What I'm doing today. Blocked: X or nothing.]`,
 
-  Kelly: `Good morning team. {{date}} standup. @VINCE — market data, go.`,
+  Kelly: `Good morning team. {{date}} standup. @VINCE, go.`,
 
-  Sentinel: `## Sentinel — Tech — {{date}}
-**Next:** [1 line] **Pushed:** [1 line] **In progress:** [1 line] **Blocked:** [or None]
-| Agents | APIs |
-| 🟢/🟡/🔴 | 🟢/🟡/🔴 |
-**OpenClaw task:** [1 line] **Action:** [1 line]
-No JSON. Only the template lines and the status table.`,
+  Sentinel: `Sentinel — {{date}}
+Shipped: [what]. Next: [what]. Agents 🟢/🟡/🔴, APIs 🟢/🟡/🔴.
+Action: [one sentence]`,
 
-  Clawterm: `## Clawterm — AI Terminal — {{date}}
-[2-3 sentences: what's trending on OpenClaw, one setup or gateway note. No bullet dumps.]
-**Action:** [1 line]`,
+  Clawterm: `Clawterm — {{date}}
+[What's trending on OpenClaw in 1-2 sentences.]
+Action: [one sentence]`,
 
-  Naval: `## Naval — {{date}}
-Conclusion only. Exactly 2-4 short sentences. No bullets, no paragraphs.
-1. Thesis: what today's data adds up to. 2. Signal to watch. 3. One team one dream (one line).
-Speak as Naval: clear, benefit-led.`,
+  Naval: `Naval — {{date}}
+[2-3 sentences max. Thesis, signal to watch, one team one dream. No bullets.]`,
 };
 
 /**

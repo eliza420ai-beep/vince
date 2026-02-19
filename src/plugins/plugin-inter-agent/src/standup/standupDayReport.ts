@@ -30,47 +30,38 @@ import {
 export function buildDayReportPrompt(conversationContext: string): string {
   const essentialQ = getEssentialStandupQuestion();
   const date = formatReportDate();
-  return `You are Kelly, writing the team's Day Report for ${date}. Write it like a quick update you'd send the team in chat — scannable but human, not a formal report or log. Put the takeaway first so readers get it in 10 seconds.
+  return `You are Kelly. Write the Day Report for ${date} like you're texting the team a quick recap. Not a formal document. Not a slide. A message.
 
-${ALOHA_STYLE_BLOCK}
-
-STANDUP TRANSCRIPT:
+TRANSCRIPT:
 ${conversationContext}
 
-TEAM PRIORITIES (assign TODO items that move these forward; pick 5-7 specific tasks):
-- BTC macro, Solus/Hypersurface options, VINCE paper bot, Otaku wallet, Sentinel repo, Eliza content/knowledge, Clawterm AI agents, Oracle Polymarket, ECHO X alpha, Kelly/Naval live the life.
+FORMAT — this exact order, nothing extra:
 
-OUTPUT FORMAT — use this exact order. Do not add extra sections.
+Day Report — ${date}
 
-## Day Report — ${date}
+Solus's call: [Above/Below/Uncertain] — [why, one sentence]
+TL;DR: [One sentence you'd text a friend. What's happening, what we're doing.]
 
-**Essential question:** ${essentialQ}
+TODO
+| WHAT | WHY | OWNER |
+|------|-----|-------|
+| [task] | [why today] | @Agent |
+(5-7 rows. Specific tasks, specific owners. No "monitor X" filler.)
 
-**Solus's call:** [Above/Below/Uncertain] — [one sentence from Solus, something you'd say out loud]
+Risk: [One line or "Clear"]
 
-**TL;DR:** [ONE sentence you'd text a friend: asset + direction + what we're doing. No jargon.]
-
-### Daily TODO
-
-| WHAT | HOW | WHY | OWNER |
-|------|-----|-----|-------|
-| [task] | [step] | [why today] | @Agent |
-| ... 5-7 rows total ... |
-
-### Risks
-[One line or "Clear"]
+Wrap-up
+[3-4 sentences max. What mattered today, one cross-agent connection, one thing to watch. Write it like you'd say it out loud. 50 words max.]
 
 ---
-*One team, one dream. Ship it.*
+One team, one dream.
 
-### In brief
-[3-5 short lines you'd actually text a friend. What happened today, one cross-agent link, one thing to watch. No bullet jargon, no corporate speak. 60 words max.]
-
-RULES:
-- Structured block (Essential Q through Risks) comes FIRST. "In brief" comes LAST and reads like a voice note or text, not a bullet list from a slide.
-- TL;DR and Solus's call = one sentence each, something you'd say out loud.
-- Daily TODO = 5-7 rows. Each row: specific @Owner. No generic "monitor" items.
-- In brief = lines you'd send in chat. No "leverage", "utilize", "streamline", "paradigm", "holistic", "delve", "landscape", "circle back", "touch base", "at the end of the day", "notably", "interestingly".`;
+HARD RULES:
+- Total output under 300 words. If it's longer, you failed.
+- No "Essential question" header. No "###" headers. No "In brief" header. Just the content.
+- TL;DR = one sentence. Risk = one line.
+- Wrap-up = a short paragraph, not bullets. Something you'd actually say.
+- No: leverage, utilize, streamline, paradigm, holistic, delve, landscape, notably, interestingly, circle back, touch base.`;
 }
 
 export interface GenerateDayReportOptions {
@@ -112,7 +103,7 @@ export async function generateAndSaveDayReport(
     accuracyPrompt;
   const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt,
-    maxTokens: 1200,
+    maxTokens: 800,
     temperature: 0.7,
   });
   const reportText = String(dayReport).trim();

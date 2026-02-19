@@ -64,46 +64,40 @@ describe("Standup Reports", () => {
       }
     });
 
-    it("VINCE template has trading sections", () => {
+    it("VINCE template mentions BTC and SOL", () => {
       expect(REPORT_TEMPLATES.VINCE).toContain("VINCE");
       expect(REPORT_TEMPLATES.VINCE).toContain("BTC");
       expect(REPORT_TEMPLATES.VINCE).toContain("SOL");
-      expect(REPORT_TEMPLATES.VINCE).toContain("Signal");
     });
 
-    it("Eliza template has gaps, essay idea, research", () => {
+    it("Eliza template mentions essay and action", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Gaps");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Essay idea");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Research");
+      expect(REPORT_TEMPLATES.Eliza).toContain("essay");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Action");
     });
 
-    it("Oracle template uses LIVE DATA and condition_id", () => {
-      expect(REPORT_TEMPLATES.Oracle).toContain("LIVE DATA");
-      expect(REPORT_TEMPLATES.Oracle).toContain("condition_id");
-      expect(REPORT_TEMPLATES.Oracle).not.toContain("under construction");
-      expect(REPORT_TEMPLATES.Oracle).not.toContain("unreliable");
+    it("Oracle template mentions odds", () => {
+      expect(REPORT_TEMPLATES.Oracle).toContain("Oracle");
+      expect(REPORT_TEMPLATES.Oracle).toContain("odds");
     });
 
-    it("Otaku template has Status and Blocked", () => {
+    it("Otaku template mentions Status and Blocked", () => {
       expect(REPORT_TEMPLATES.Otaku).toContain("Status");
       expect(REPORT_TEMPLATES.Otaku).toContain("Blocked");
     });
 
-    it("Sentinel template has Next, Pushed, OpenClaw", () => {
+    it("Sentinel template mentions Shipped and Next", () => {
+      expect(REPORT_TEMPLATES.Sentinel).toContain("Shipped");
       expect(REPORT_TEMPLATES.Sentinel).toContain("Next");
-      expect(REPORT_TEMPLATES.Sentinel).toContain("Pushed");
-      expect(REPORT_TEMPLATES.Sentinel).toContain("OpenClaw");
     });
 
-    it("ECHO template has CT Sentiment and Narrative", () => {
-      expect(REPORT_TEMPLATES.ECHO).toContain("CT Sentiment");
-      expect(REPORT_TEMPLATES.ECHO).toContain("Narrative");
+    it("ECHO template mentions CT mood", () => {
+      expect(REPORT_TEMPLATES.ECHO).toContain("ECHO");
+      expect(REPORT_TEMPLATES.ECHO).toContain("CT mood");
     });
 
-    it("Solus template has Essential Q and strike/options", () => {
-      expect(REPORT_TEMPLATES.Solus).toContain("Essential Q");
-      expect(REPORT_TEMPLATES.Solus).toContain("Strike");
+    it("Solus template mentions covered call and invalidation", () => {
+      expect(REPORT_TEMPLATES.Solus).toContain("covered call");
       expect(REPORT_TEMPLATES.Solus).toContain("Invalidation");
     });
 
@@ -281,9 +275,9 @@ Conclusion slot.`;
       expect(prompt).not.toContain("TEMPLATE (fill this in)");
     });
 
-    it("non-Naval gets template and only their data section", () => {
+    it("non-Naval gets example format and only their data section", () => {
       const prompt = buildStandupPrompt("VINCE", shared, transcript, dateStr);
-      expect(prompt).toContain("TEMPLATE (fill this in");
+      expect(prompt).toContain("EXAMPLE FORMAT");
       expect(prompt).toContain("YOUR DATA");
       expect(prompt).toContain("BTC 66k");
       expect(prompt).not.toContain("FULL TRANSCRIPT");
@@ -293,8 +287,8 @@ Conclusion slot.`;
     it("includes role and constraints", () => {
       const prompt = buildStandupPrompt("Eliza", shared, transcript, dateStr);
       expect(prompt).toContain("CEO");
-      expect(prompt).toContain('Do NOT write a "Day Report"');
-      expect(prompt).toContain("Under 120 words");
+      expect(prompt).toContain("Day Report");
+      expect(prompt).toContain("60 words");
     });
   });
 

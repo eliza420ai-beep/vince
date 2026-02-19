@@ -417,7 +417,7 @@ async function runOneStandupTurn(
       );
       const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
         prompt,
-        maxTokens: isConclusionTurn ? 180 : 360,
+        maxTokens: isConclusionTurn ? 120 : 200,
         temperature: 0.7,
       });
       const text = String(resp ?? "").trim();
