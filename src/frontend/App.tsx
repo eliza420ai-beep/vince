@@ -439,7 +439,14 @@ function App() {
     "Solus",
     "Otaku",
     "Sentinel",
+    "Clawterm",
+    "ECHO",
+    "Naval",
+    "Oracle",
   ];
+
+  // Stale agents removed from the project but still in the DB
+  const REMOVED_AGENTS = new Set(["POLYMARKET RISK", "POLYMARKET PERFORMANCE"]);
 
   // Fetch the agent list first to get the ID (retry when empty so we wait for backend to register agents)
   const {
@@ -450,10 +457,14 @@ function App() {
     queryKey: ["agents"],
     queryFn: async () => {
       const result = await elizaClient.agents.listAgents();
-      const agents = result?.agents ?? [];
-      if (agents.length === 0) {
+      const allAgents = result?.agents ?? [];
+      if (allAgents.length === 0) {
         throw new Error("NO_AGENTS_YET"); // Trigger retry so we wait for backend to start agents
       }
+      // Filter out stale agents that were removed from the project but persist in the DB
+      const agents = allAgents.filter(
+        (a) => !REMOVED_AGENTS.has((a.name ?? "").toUpperCase()),
+      );
       // Sort so all agents (including Kelly) appear in a consistent order in the switcher
       const orderMap = new Map(
         AGENT_DISPLAY_ORDER.map((name, i) => [name.toUpperCase(), i]),
