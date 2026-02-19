@@ -7,7 +7,6 @@
 
 import { type IAgentRuntime, type Memory, logger } from "@elizaos/core";
 import { getStandupHumanName } from "./standup.constants";
-import { ALOHA_STYLE_BLOCK } from "./standupStyle";
 
 /**
  * Agent roles and their report focus areas
@@ -179,19 +178,19 @@ ${transcript}`;
     : "";
 
   return `You are ${agentName} (${role?.title ?? ""} — ${role?.focus ?? ""}).
-Write a quick standup update — the kind you'd text a teammate, not a report you'd put in a slide deck.
+Text the team your update. Same length and tone as the example — 2-4 sentences, like you'd type in Slack.
 
 Date: ${dateStr} (never 2024). Your lane: ${sectionsList}.
 ${STANDUP_CONSTRAINTS}
 
-EXAMPLE FORMAT (fill in with real data, keep same brevity):
+EXAMPLE (match this length and tone — swap in real data from YOUR DATA below):
 ${template}
 
 YOUR DATA:
 ${yourData}
 ${noJsonLine}
 
-Go. No intro, no signoff. Just the update.`;
+Go. No intro, no headers, no signoff.`;
 }
 
 /** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. One line only. */
@@ -209,48 +208,37 @@ End with one line of JSON: \`{"call":{"asset":"BTC","direction":"above","strike"
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
   VINCE: `VINCE — {{date}}
-BTC $X (±X%), SOL $X (±X%), HYPE $X (±X%). Funding X%, OI X%.
-[One sentence: what the numbers mean today. Paper bot: XW/XL, $X PnL.]
-Action: [one sentence]
+BTC $66.5k (-1.4%), SOL $81 (-2.3%), HYPE $28.3 (-2.7%). Everything red, fear index at 9. Paper bot sitting this out — no trades yet. Watching for a range break before doing anything.
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Eliza: `Eliza — {{date}}
-[Gap I spotted, essay I'm working on, or research I'm adding. 2-3 sentences max, like a quick Slack message.]
-Action: [one sentence]`,
+Thin on Meteora DLMM — need to map that out. Working on a meme LP piece for Substack. Corpus is solid otherwise.`,
 
   ECHO: `ECHO — {{date}}
-CT mood: BTC [📈/📉/😐], SOL [📈/📉/😐]. Loudest voice: @handle on [topic].
-[One sentence: what CT is saying and whether it's contrarian.]
-Action: [one sentence]
+BTC 📉 — @signalyzevip flagging UAE's $453M mining play. SOL flat, nobody talking. CT is cautious but the infrastructure money is moving. Worth watching.
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Oracle: `Oracle — {{date}}
-[Top 2 markets with odds, e.g. "Warsh Fed chair 95%, Iran strike 28%."]
-[One sentence: what it means.]
-Action: [one sentence]
+Warsh Fed chair locked at 95%. Iran strike sitting at 28% — not nothing. Macro's pricing in some real uncertainty.
 ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 
   Solus: `Solus — {{date}}
-BTC above $70K by Friday? [Above/Below/Uncertain] — [one sentence why].
-Selling $Xk covered call, Friday expiry, X% stack. Invalidation: $Xk.
-Action: [one sentence]
+Not convinced BTC clears $70K by Friday. Selling the $72K covered call anyway — premium's there, invalidation at $68K. Light position, 25% stack.
 ${STRUCTURED_CALL_INSTRUCTION}`,
 
   Otaku: `Otaku — {{date}}
-[Status in one sentence. What I'm doing today. Blocked: X or nothing.]`,
+Still setting up. Getting wallet keys into Bankr today. Nothing blocking, just need to do it.`,
 
   Kelly: `Good morning team. {{date}} standup. @VINCE, go.`,
 
   Sentinel: `Sentinel — {{date}}
-Shipped: [what]. Next: [what]. Agents 🟢/🟡/🔴, APIs 🟢/🟡/🔴.
-Action: [one sentence]`,
+Shipped standup docs overhaul and CONTRIBUTING.md. Next up: Otaku wallet PR. Agents 🟢, APIs 🟢.`,
 
   Clawterm: `Clawterm — {{date}}
-[What's trending on OpenClaw in 1-2 sentences.]
-Action: [one sentence]`,
+48 skills on OpenClaw, still low engagement. Kimi Claw's cloud agent is the interesting one — scheduled automations in browser. Needs easier install flow.`,
 
   Naval: `Naval — {{date}}
-[2-3 sentences max. Thesis, signal to watch, one team one dream. No bullets.]`,
+[2-3 sentences. What today adds up to, one thing to watch, one team one dream. Talk like a person.]`,
 };
 
 /**
@@ -345,94 +333,35 @@ Focus on: ${role.reportSections.join(", ")}
   return baseContext + humanContext;
 }
 
-/** Agents that may output exactly one canonical JSON block: signals (VINCE, ECHO, Oracle) or call (Solus). */
-const AGENTS_WITH_CANONICAL_JSON = new Set([
-  "vince",
-  "echo",
-  "oracle",
-  "solus",
-]);
+/** Filler intros that models add despite instructions. */
+const FILLER_INTROS = [
+  /^Here'?s (?:the |my |a )?(?:Naval[- ]style )?(?:synthesis|update|report|take|summary)[.:]\s*/i,
+  /^(?:Let me |I'll |Allow me to )(?:break|summarize|share|give)[^.]*\.\s*/i,
+  /^(?:Good (?:morning|afternoon|evening)[.,!]?\s*)?(?:Here'?s what|Today'?s update)[^.]*[.:]\s*/i,
+];
 
 /**
- * Return true if parsed object is the canonical structured block (only signals array of {asset, direction} objects, or only call object with asset and strike/direction).
- */
-function isCanonicalStructuredBlock(parsed: Record<string, unknown>): boolean {
-  if (!parsed || typeof parsed !== "object") return false;
-  const keys = Object.keys(parsed);
-  if (keys.length === 0) return false;
-  if (keys.length === 1 && keys[0] === "signals") {
-    if (!Array.isArray(parsed.signals) || parsed.signals.length === 0)
-      return false;
-    return (parsed.signals as unknown[]).every(
-      (s) =>
-        s != null &&
-        typeof s === "object" &&
-        typeof (s as Record<string, unknown>).asset === "string",
-    );
-  }
-  if (keys.length === 1 && keys[0] === "call") {
-    const c = parsed.call as Record<string, unknown> | undefined;
-    if (!c || typeof c !== "object") return false;
-    return (
-      typeof c.asset === "string" &&
-      (typeof c.strike === "number" || typeof c.direction === "string")
-    );
-  }
-  return false;
-}
-
-/**
- * Sanitize standup reply: keep only template prose and at most one canonical JSON block (signals or call).
- * Strips non-canonical fenced ```json``` blocks and multiline raw JSON (e.g. system_status, steps, task).
+ * Sanitize standup reply: strip ALL JSON (canonical is already parsed before this runs),
+ * remove filler intros, and clean up whitespace. Display-only output.
  */
 export function sanitizeStandupReply(
   reply: string | null,
-  agentName: string,
+  _agentName: string,
 ): string | null {
   if (!reply || typeof reply !== "string") return reply;
-  const name = agentName.trim().toLowerCase();
-  const allowCanonical = AGENTS_WITH_CANONICAL_JSON.has(name);
 
-  const fencedRe = /```(?:json)?\s*([\s\S]*?)```/g;
-  let keptCanonical = false;
   let result = reply;
 
-  result = result.replace(fencedRe, (fullMatch, inner) => {
+  result = result.replace(/```(?:json)?\s*[\s\S]*?```/g, "");
+
+  result = result.replace(/\{\s*\n[\s\S]*?\n\s*\}/g, (full) => {
     try {
-      const parsed = JSON.parse(inner.trim()) as Record<string, unknown>;
-      if (
-        isCanonicalStructuredBlock(parsed) &&
-        allowCanonical &&
-        !keptCanonical
-      ) {
-        keptCanonical = true;
-        return fullMatch;
-      }
+      JSON.parse(full);
+      return "";
     } catch {
-      /* not valid JSON */
+      return full;
     }
-    return "";
   });
-
-  result = result.replace(/\n{3,}/g, "\n\n").trim();
-
-  const multilineJsonRe =
-    /\{\s*\n\s*"(?:steps|task|system_status|cost_tracking|security_alerts|pending_updates|optimization_potential|monthly_infra_spend|projected_quarterly|open_vulnerabilities|last_scan|typescript_version|runtime_patches)"[\s\S]*?\n\s*\}/g;
-  result = result
-    .replace(multilineJsonRe, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  result = result.replace(/\{\s*\n([\s\S]*?)\n\s*\}/g, (full) => {
-    try {
-      const p = JSON.parse(full) as Record<string, unknown>;
-      if (!isCanonicalStructuredBlock(p)) return "";
-    } catch {
-      /* keep non-JSON or invalid */
-    }
-    return full;
-  });
-  result = result.replace(/\n{3,}/g, "\n\n").trim();
 
   result = result
     .split("\n")
@@ -440,16 +369,19 @@ export function sanitizeStandupReply(
       const t = line.trim();
       if (!t.startsWith("{") || !t.endsWith("}")) return true;
       try {
-        const p = JSON.parse(t) as Record<string, unknown>;
-        return isCanonicalStructuredBlock(p);
+        JSON.parse(t);
+        return false;
       } catch {
         return true;
       }
     })
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .join("\n");
 
+  for (const re of FILLER_INTROS) {
+    result = result.replace(re, "");
+  }
+
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
   return result || null;
 }
 

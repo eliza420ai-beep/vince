@@ -65,45 +65,40 @@ describe("Standup Reports", () => {
     });
 
     it("VINCE template mentions BTC and SOL", () => {
-      expect(REPORT_TEMPLATES.VINCE).toContain("VINCE");
       expect(REPORT_TEMPLATES.VINCE).toContain("BTC");
       expect(REPORT_TEMPLATES.VINCE).toContain("SOL");
     });
 
-    it("Eliza template mentions essay and action", () => {
+    it("Eliza template is short and casual", () => {
       expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
-      expect(REPORT_TEMPLATES.Eliza).toContain("essay");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Action");
+      expect(REPORT_TEMPLATES.Eliza).toContain("Substack");
     });
 
     it("Oracle template mentions odds", () => {
       expect(REPORT_TEMPLATES.Oracle).toContain("Oracle");
-      expect(REPORT_TEMPLATES.Oracle).toContain("odds");
+      expect(REPORT_TEMPLATES.Oracle).toContain("95%");
     });
 
-    it("Otaku template mentions Status and Blocked", () => {
-      expect(REPORT_TEMPLATES.Otaku).toContain("Status");
-      expect(REPORT_TEMPLATES.Otaku).toContain("Blocked");
+    it("Otaku template mentions wallet setup", () => {
+      expect(REPORT_TEMPLATES.Otaku).toContain("Otaku");
+      expect(REPORT_TEMPLATES.Otaku).toContain("wallet");
     });
 
-    it("Sentinel template mentions Shipped and Next", () => {
+    it("Sentinel template mentions shipped", () => {
       expect(REPORT_TEMPLATES.Sentinel).toContain("Shipped");
-      expect(REPORT_TEMPLATES.Sentinel).toContain("Next");
     });
 
-    it("ECHO template mentions CT mood", () => {
+    it("ECHO template mentions CT", () => {
       expect(REPORT_TEMPLATES.ECHO).toContain("ECHO");
-      expect(REPORT_TEMPLATES.ECHO).toContain("CT mood");
     });
 
-    it("Solus template mentions covered call and invalidation", () => {
+    it("Solus template mentions covered call", () => {
       expect(REPORT_TEMPLATES.Solus).toContain("covered call");
-      expect(REPORT_TEMPLATES.Solus).toContain("Invalidation");
+      expect(REPORT_TEMPLATES.Solus).toContain("invalidation");
     });
 
     it("Kelly template is standup facilitator", () => {
       expect(REPORT_TEMPLATES.Kelly).toContain("standup");
-      expect(REPORT_TEMPLATES.Kelly).toContain("{{date}}");
       expect(REPORT_TEMPLATES.Kelly).toContain("@VINCE");
     });
   });
@@ -275,9 +270,9 @@ Conclusion slot.`;
       expect(prompt).not.toContain("TEMPLATE (fill this in)");
     });
 
-    it("non-Naval gets example format and only their data section", () => {
+    it("non-Naval gets example and only their data section", () => {
       const prompt = buildStandupPrompt("VINCE", shared, transcript, dateStr);
-      expect(prompt).toContain("EXAMPLE FORMAT");
+      expect(prompt).toContain("EXAMPLE");
       expect(prompt).toContain("YOUR DATA");
       expect(prompt).toContain("BTC 66k");
       expect(prompt).not.toContain("FULL TRANSCRIPT");
@@ -298,16 +293,16 @@ Conclusion slot.`;
       expect(sanitizeStandupReply("", "Eliza")).toBe("");
     });
 
-    it("keeps canonical signals block for VINCE and strips non-canonical", () => {
+    it("strips all JSON including canonical signals (already parsed before sanitize)", () => {
       const reply =
-        "## VINCE — Data — 2026-02-19\n| BTC | $66k |\n\n" +
+        "VINCE — 2026-02-19\nBTC $66k, everything red.\n\n" +
         '```json\n{"signals":[{"asset":"BTC","direction":"bearish","confidence_pct":58}]}\n```\n\n' +
         '```json\n{"system_status":{"overall_health":"GREEN"}}\n```';
       const out = sanitizeStandupReply(reply, "VINCE");
-      expect(out).toContain("## VINCE");
-      expect(out).toContain('"signals"');
+      expect(out).toContain("VINCE");
+      expect(out).toContain("everything red");
+      expect(out).not.toContain("signals");
       expect(out).not.toContain("system_status");
-      expect(out).not.toContain("overall_health");
     });
 
     it("strips all fenced blocks for agents without canonical JSON", () => {
@@ -343,13 +338,12 @@ Conclusion slot.`;
       expect(out).not.toContain("multi_agent_protocol_design");
     });
 
-    it("strips single-line non-canonical JSON (signal/priority object)", () => {
+    it("strips single-line JSON of any kind", () => {
       const reply =
-        "## Eliza — Research — 2026-02-19\nGaps: DeFi yield.\nAction: Initiate research.\n" +
+        "Eliza — 2026-02-19\nWorking on yield strategies.\n" +
         '{"signal": "research_expansion", "priority": "high"}';
       const out = sanitizeStandupReply(reply, "Eliza");
-      expect(out).toContain("## Eliza");
-      expect(out).toContain("Initiate research");
+      expect(out).toContain("yield strategies");
       expect(out).not.toContain("research_expansion");
       expect(out).not.toContain('"priority"');
     });

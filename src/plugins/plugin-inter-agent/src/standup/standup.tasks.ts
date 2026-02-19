@@ -545,10 +545,10 @@ export async function runStandupRoundRobin(
         transcript,
         sharedInsights,
       );
-      reply = sanitizeStandupReply(reply, agentName) ?? reply;
       const structuredSignals = reply
         ? (parseStructuredBlockFromText(reply) ?? undefined)
         : undefined;
+      reply = sanitizeStandupReply(reply, agentName) ?? reply;
       const line = reply
         ? `${agentName}: ${reply}`
         : `${agentName}: (no reply)`;
