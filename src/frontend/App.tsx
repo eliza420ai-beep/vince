@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CDPReactProvider } from "@coinbase/cdp-react";
@@ -484,15 +484,22 @@ function App() {
     refetchOnWindowFocus: true,
   });
 
-  // Use selected agent, or first agent when list loads; sync selection when list changes (e.g. selected no longer in list)
-  const agentId = selectedAgentId ?? agentsData?.[0]?.id ?? null;
+  // Use selected agent, or first agent when list loads; sync selection when list changes (e.g. selected no longer in list).
+  // Only trust selectedAgentId when agents are loaded and the ID is in the list (prevents stale localStorage IDs from firing API calls).
+  const agentIds = useMemo(
+    () => new Set(agentsData?.map((a: { id?: string }) => a.id) ?? []),
+    [agentsData],
+  );
+  const agentId =
+    selectedAgentId && agentIds.has(selectedAgentId)
+      ? selectedAgentId
+      : (agentsData?.[0]?.id ?? null);
   useEffect(() => {
     if (!agentsData?.length) return;
-    const ids = new Set(agentsData.map((a: { id?: string }) => a.id));
-    if (selectedAgentId && !ids.has(selectedAgentId)) {
+    if (selectedAgentId && !agentIds.has(selectedAgentId)) {
       setSelectedAgentId(agentsData[0]?.id ?? null);
     }
-  }, [agentsData, selectedAgentId, setSelectedAgentId]);
+  }, [agentsData, agentIds, selectedAgentId, setSelectedAgentId]);
 
   // Resolve wallet mode from backend when agentId is available (fallback remains VITE_OTAKU_MODE)
   useEffect(() => {
