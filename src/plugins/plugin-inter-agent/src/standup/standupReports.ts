@@ -105,7 +105,7 @@ HARD RULES:
 - MAX 60 words of prose (tables don't count, JSON line doesn't count). If you go over 60 words, you failed.
 - ONLY your lane. Do NOT repeat other agents' data or write a "Day Report."
 - NO filler, NO intros, NO "here's my update", NO "let me break this down." Start with the info.
-- One clear action at the end starting with "Action:" (one sentence).
+- End with what you'd do next, one sentence. No "Action:" prefix.
 - No extra JSON. Only the single required JSON line at the end if your template asks for it.
 VOICE: You're texting a teammate. Short sentences. Say what matters, skip the rest.`;
 
@@ -171,10 +171,24 @@ ${transcript}`;
   const sectionsList = role?.reportSections?.join(", ") ?? "your domain";
   const yourData = extractAgentSection(sharedInsights, agentName);
 
-  const hasStructuredOutput =
-    template.includes("signals") || template.includes('"call"');
+  const structuredSignalAgents = ["VINCE", "ECHO", "Oracle"];
+  const structuredCallAgents = ["Solus"];
+  const needsSignal = structuredSignalAgents.some(
+    (a) => a.toLowerCase() === agentName.trim().toLowerCase(),
+  );
+  const needsCall = structuredCallAgents.some(
+    (a) => a.toLowerCase() === agentName.trim().toLowerCase(),
+  );
+  const hasStructuredOutput = needsSignal || needsCall;
   const noJsonLine = !hasStructuredOutput
     ? "\nDo not output any JSON or code blocks."
+    : "";
+
+  const machineBlock = hasStructuredOutput
+    ? `
+
+MACHINE OUTPUT (not part of your message — add this as a single line after your text):
+${needsCall ? STRUCTURED_CALL_INSTRUCTION.trim() : STRUCTURED_SIGNAL_INSTRUCTION.trim()}`
     : "";
 
   return `You are ${agentName} (${role?.title ?? ""} — ${role?.focus ?? ""}).
@@ -189,6 +203,7 @@ ${template}
 YOUR DATA:
 ${yourData}
 ${noJsonLine}
+${machineBlock}
 
 Go. No intro, no headers, no signoff.`;
 }
@@ -207,38 +222,25 @@ End with one line of JSON: \`{"call":{"asset":"BTC","direction":"above","strike"
  * Report template for each agent
  */
 export const REPORT_TEMPLATES: Record<AgentName, string> = {
-  VINCE: `VINCE — {{date}}
-BTC $66.5k (-1.4%), SOL $81 (-2.3%), HYPE $28.3 (-2.7%). Everything red, fear index at 9. Paper bot sitting this out — no trades yet. Watching for a range break before doing anything.
-${STRUCTURED_SIGNAL_INSTRUCTION}`,
+  VINCE: `everything's red. BTC 66.5k, SOL 81, HYPE 28.3 all down. fear index at 9. paper bot sitting this out. not touching anything until the range breaks.`,
 
-  Eliza: `Eliza — {{date}}
-Thin on Meteora DLMM — need to map that out. Working on a meme LP piece for Substack. Corpus is solid otherwise.`,
+  Eliza: `thin on meteora dlmm, need to map that out. working on a meme lp piece for substack. corpus is solid otherwise.`,
 
-  ECHO: `ECHO — {{date}}
-BTC 📉 — @signalyzevip flagging UAE's $453M mining play. SOL flat, nobody talking. CT is cautious but the infrastructure money is moving. Worth watching.
-${STRUCTURED_SIGNAL_INSTRUCTION}`,
+  ECHO: `btc red, @signalyzevip flagging uae's big mining play. sol flat, nobody talking. ct cautious but infra money moving. worth watching.`,
 
-  Oracle: `Oracle — {{date}}
-Warsh Fed chair locked at 95%. Iran strike sitting at 28% — not nothing. Macro's pricing in some real uncertainty.
-${STRUCTURED_SIGNAL_INSTRUCTION}`,
+  Oracle: `warsh fed chair locked at 95%. iran strike at 28%, not nothing. macro pricing in real uncertainty.`,
 
-  Solus: `Solus — {{date}}
-Not convinced BTC clears $70K by Friday. Selling the $72K covered call anyway — premium's there, invalidation at $68K. Light position, 25% stack.
-${STRUCTURED_CALL_INSTRUCTION}`,
+  Solus: `not convinced btc clears 70k by friday. selling the 72k covered call anyway, premium's there, invalidation 68k. light position, 25% stack.`,
 
-  Otaku: `Otaku — {{date}}
-Still setting up. Getting wallet keys into Bankr today. Nothing blocking, just need to do it.`,
+  Otaku: `still setting up. getting wallet keys into bankr today. nothing blocking, just need to do it.`,
 
-  Kelly: `Good morning team. {{date}} standup. @VINCE, go.`,
+  Kelly: `good morning team. standup. @VINCE, go.`,
 
-  Sentinel: `Sentinel — {{date}}
-Shipped standup docs overhaul and CONTRIBUTING.md. Next up: Otaku wallet PR. Agents 🟢, APIs 🟢.`,
+  Sentinel: `shipped standup docs overhaul and contributing. next up: otaku wallet pr. agents green, apis green.`,
 
-  Clawterm: `Clawterm — {{date}}
-48 skills on OpenClaw, still low engagement. Kimi Claw's cloud agent is the interesting one — scheduled automations in browser. Needs easier install flow.`,
+  Clawterm: `48 skills on openclaw, still low engagement. kimi claw's cloud agent is the interesting one, scheduled automations in browser. needs easier install.`,
 
-  Naval: `Naval — {{date}}
-[2-3 sentences. What today adds up to, one thing to watch, one team one dream. Talk like a person.]`,
+  Naval: `[2-3 sentences. what today adds up to, one thing to watch, one team one dream. talk like a person.]`,
 };
 
 /**
@@ -382,7 +384,7 @@ export function sanitizeStandupReply(
   }
 
   result = result.replace(/\n{3,}/g, "\n\n").trim();
-  return result || null;
+  return result || "";
 }
 
 /**

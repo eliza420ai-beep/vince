@@ -548,7 +548,11 @@ export async function runStandupRoundRobin(
       const structuredSignals = reply
         ? (parseStructuredBlockFromText(reply) ?? undefined)
         : undefined;
-      reply = sanitizeStandupReply(reply, agentName) ?? reply;
+      const sanitized = sanitizeStandupReply(reply, agentName);
+      reply =
+        sanitized !== null && sanitized !== undefined
+          ? sanitized
+          : (reply ?? "");
       const line = reply
         ? `${agentName}: ${reply}`
         : `${agentName}: (no reply)`;

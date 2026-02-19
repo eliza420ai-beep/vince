@@ -58,9 +58,10 @@ describe("Standup Reports", () => {
       }
     });
 
-    it("templates include {{date}} placeholder", () => {
+    it("templates are non-empty and casual (no date headers)", () => {
       for (const template of Object.values(REPORT_TEMPLATES)) {
-        expect(template).toContain("{{date}}");
+        expect(template.length).toBeGreaterThan(0);
+        expect(template).not.toContain("Action:");
       }
     });
 
@@ -70,26 +71,25 @@ describe("Standup Reports", () => {
     });
 
     it("Eliza template is short and casual", () => {
-      expect(REPORT_TEMPLATES.Eliza).toContain("Eliza");
-      expect(REPORT_TEMPLATES.Eliza).toContain("Substack");
+      expect(REPORT_TEMPLATES.Eliza).toContain("substack");
+      expect(REPORT_TEMPLATES.Eliza).toContain("corpus");
     });
 
     it("Oracle template mentions odds", () => {
-      expect(REPORT_TEMPLATES.Oracle).toContain("Oracle");
       expect(REPORT_TEMPLATES.Oracle).toContain("95%");
     });
 
     it("Otaku template mentions wallet setup", () => {
-      expect(REPORT_TEMPLATES.Otaku).toContain("Otaku");
       expect(REPORT_TEMPLATES.Otaku).toContain("wallet");
+      expect(REPORT_TEMPLATES.Otaku).toContain("bankr");
     });
 
     it("Sentinel template mentions shipped", () => {
-      expect(REPORT_TEMPLATES.Sentinel).toContain("Shipped");
+      expect(REPORT_TEMPLATES.Sentinel).toContain("shipped");
     });
 
     it("ECHO template mentions CT", () => {
-      expect(REPORT_TEMPLATES.ECHO).toContain("ECHO");
+      expect(REPORT_TEMPLATES.ECHO).toContain("ct");
     });
 
     it("Solus template mentions covered call", () => {
@@ -293,54 +293,59 @@ Conclusion slot.`;
       expect(sanitizeStandupReply("", "Eliza")).toBe("");
     });
 
+    it("returns empty string when reply is only JSON (so raw JSON never leaks)", () => {
+      const onlyJson =
+        '{"signals":[{"asset":"BTC","direction":"bearish","confidence_pct":58}]}';
+      const out = sanitizeStandupReply(onlyJson, "VINCE");
+      expect(out).toBe("");
+      expect(typeof out).toBe("string");
+    });
+
     it("strips all JSON including canonical signals (already parsed before sanitize)", () => {
       const reply =
-        "VINCE — 2026-02-19\nBTC $66k, everything red.\n\n" +
+        "everything red. btc 66k.\n\n" +
         '```json\n{"signals":[{"asset":"BTC","direction":"bearish","confidence_pct":58}]}\n```\n\n' +
         '```json\n{"system_status":{"overall_health":"GREEN"}}\n```';
       const out = sanitizeStandupReply(reply, "VINCE");
-      expect(out).toContain("VINCE");
       expect(out).toContain("everything red");
+      expect(out).toContain("btc 66k");
       expect(out).not.toContain("signals");
       expect(out).not.toContain("system_status");
     });
 
     it("strips all fenced blocks for agents without canonical JSON", () => {
       const reply =
-        "## Sentinel — Tech — 2026-02-19\nNext: PRD.\n\n" +
+        "next up: prd.\n\n" +
         '```json\n{"system_status":{"overall_health":"GREEN"},"cost_tracking":{"monthly_infra_spend":"$1,842"}}\n```';
       const out = sanitizeStandupReply(reply, "Sentinel");
-      expect(out).toContain("## Sentinel");
-      expect(out).toContain("Next: PRD");
+      expect(out).toContain("next up: prd");
       expect(out).not.toContain("system_status");
       expect(out).not.toContain("cost_tracking");
     });
 
     it("strips multiline raw JSON (steps) for Otaku", () => {
       const reply =
-        "## Otaku — 2026-02-19\nStatus: Under construction.\n\n" +
+        "status: under construction.\n\n" +
         '{\n  "steps": ["Configure Bankr", "Test balance"],\n  "task": "Generate keys"\n}';
       const out = sanitizeStandupReply(reply, "Otaku");
-      expect(out).toContain("## Otaku");
-      expect(out).toContain("Under construction");
+      expect(out).toContain("under construction");
       expect(out).not.toContain("steps");
       expect(out).not.toContain("Configure Bankr");
     });
 
     it("strips multiline raw JSON when signals is array of strings (non-canonical)", () => {
       const reply =
-        "## Sentinel — Tech — 2026-02-19\nNext: PRD.\n\n" +
+        "next up: prd.\n\n" +
         '{\n  "signals": ["infrastructure_optimization", "multi_agent_protocol_design"]\n}';
       const out = sanitizeStandupReply(reply, "Sentinel");
-      expect(out).toContain("## Sentinel");
-      expect(out).toContain("Next: PRD");
+      expect(out).toContain("next up: prd");
       expect(out).not.toContain("infrastructure_optimization");
       expect(out).not.toContain("multi_agent_protocol_design");
     });
 
     it("strips single-line JSON of any kind", () => {
       const reply =
-        "Eliza — 2026-02-19\nWorking on yield strategies.\n" +
+        "working on yield strategies.\n" +
         '{"signal": "research_expansion", "priority": "high"}';
       const out = sanitizeStandupReply(reply, "Eliza");
       expect(out).toContain("yield strategies");
