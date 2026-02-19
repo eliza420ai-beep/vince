@@ -269,11 +269,26 @@ export const STANDUP_KICKOFF_PHRASES = [
   "do the standup",
   "run standup",
   "run the standup",
+  "restart standup",
+  "restart the standup",
   "team standup",
   "standup time",
   "facilitate standup",
   "new standup",
 ] as const;
+
+/** Intent verbs that, combined with "standup" anywhere in the text, indicate a kickoff. */
+const STANDUP_INTENT_VERBS = [
+  "start",
+  "restart",
+  "begin",
+  "run",
+  "kick off",
+  "kickoff",
+  "do",
+  "facilitate",
+  "launch",
+];
 
 /** Words near "standup" that indicate a status report, not a kickoff request. */
 const STANDUP_NEGATIVE_WORDS = [
@@ -288,6 +303,8 @@ const STANDUP_NEGATIVE_WORDS = [
 /**
  * Returns true if the message is asking to start/kick off a standup.
  * Normalizes text (collapse spaces, "stand up" -> "standup") so "let's do a daily stand up kelly" matches.
+ * Also matches when an intent verb (start, restart, run, etc.) and "standup" both appear
+ * anywhere in the text, covering word-order variants and typos like "restart our saily standup".
  * Returns false for status messages like "standup already complete" or "standup done".
  */
 export function isStandupKickoffRequest(text: string): boolean {
@@ -296,7 +313,6 @@ export function isStandupKickoffRequest(text: string): boolean {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .replace(/\bstand up\b/g, "standup");
-  // Reject status messages: "standup already complete", "standup done", etc.
   if (
     STANDUP_NEGATIVE_WORDS.some(
       (w) => normalized.includes(w) && normalized.includes("standup"),
@@ -304,10 +320,15 @@ export function isStandupKickoffRequest(text: string): boolean {
   ) {
     return false;
   }
-  return STANDUP_KICKOFF_PHRASES.some((phrase) => {
+  const phraseMatch = STANDUP_KICKOFF_PHRASES.some((phrase) => {
     const phraseNorm = phrase
       .replace(/\s+/g, " ")
       .replace(/\bstand up\b/g, "standup");
     return normalized.includes(phraseNorm);
   });
+  if (phraseMatch) return true;
+  if (normalized.includes("standup")) {
+    return STANDUP_INTENT_VERBS.some((verb) => normalized.includes(verb));
+  }
+  return false;
 }
