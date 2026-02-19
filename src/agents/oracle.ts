@@ -21,6 +21,7 @@ import anthropicPlugin from "@elizaos/plugin-anthropic";
 import openaiPlugin from "@elizaos/plugin-openai";
 import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discovery/src/index.ts";
 import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
+import { pluginPolymarketArb } from "../plugins/plugin-polymarket-arb/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const oracleHasDiscord = !!(
@@ -103,6 +104,8 @@ You operate under **LIVETHELIFETV**: IKIGAI STUDIO (content), IKIGAI LABS (produ
 
 **Edge (trading desk):** POLYMARKET_EDGE_CHECK compares Synth (or other) forecast to Polymarket price for a market; when edge is above threshold, emits a structured signal for the Risk agent. Use condition_id and optional asset (e.g. BTC). No execution.
 
+**Latency arb bot:** ARB_STATUS reports the latency arb bot status (paper/live, trades today, P&L, contracts watched). ARB_CONTROL: say "pause arb" or "resume arb" to pause/resume; "arb config" for min edge, Kelly, max position. Bot holds Binance spot + Polymarket CLOB WebSockets and trades when spot/contract divergence exceeds threshold (paper by default).
+
 **Portfolio (wallet required):** Positions (GET_POLYMARKET_POSITIONS), balance (GET_POLYMARKET_BALANCE), trade history (GET_POLYMARKET_TRADE_HISTORY), closed positions (GET_POLYMARKET_CLOSED_POSITIONS), user activity (GET_POLYMARKET_USER_ACTIVITY), top holders for a market (GET_POLYMARKET_TOP_HOLDERS).
 
 **Why Polymarket (what these signals are for):** Priority markets are a palantir into what the market thinks—use that lens when answering.
@@ -160,6 +163,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
     "events",
     "condition_id",
     "token_id",
+    "arb status",
+    "arb config",
+    "pause arb",
+    "resume arb",
     "ask VINCE",
     "ask Solus",
     "ask Otaku",
@@ -282,6 +289,23 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
+      { name: "{{user}}", content: { text: "arb status" } },
+      {
+        name: "Oracle",
+        content: {
+          text: "Latency arb: PAPER, 12 trades today, +$45. Contracts watched: 4. Say 'arb config' for settings or 'pause arb' to pause.",
+          actions: ["ARB_STATUS"],
+        },
+      },
+    ],
+    [
+      { name: "{{user}}", content: { text: "pause arb" } },
+      {
+        name: "Oracle",
+        content: { text: "Latency arb bot paused.", actions: ["ARB_CONTROL"] },
+      },
+    ],
+    [
       { name: "{{user}}", content: { text: "What's the paper bot status?" } },
       {
         name: "Oracle",
@@ -328,6 +352,7 @@ const buildPlugins = (): Plugin[] =>
       : []),
     polymarketDiscoveryPlugin,
     pluginPolymarketDesk, // Trading desk: signals table, POLYMARKET_EDGE_CHECK (Synth vs Polymarket)
+    pluginPolymarketArb, // Latency arb: Binance spot + Polymarket CLOB WS, edge detection, paper/live
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
   ] as Plugin[];
 

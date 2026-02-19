@@ -34,6 +34,7 @@ import {
   fetchKnowledgeQualityResults,
   submitKnowledgeUpload,
   fetchPolymarketPriorityMarkets,
+  fetchPolymarketArbStatus,
   fetchSubstackPostsWithError,
   LEADERBOARDS_STALE_MS,
 } from "@/frontend/lib/leaderboardsApi";
@@ -308,6 +309,19 @@ export default function LeaderboardPage({
   });
   const polymarketData = polymarketResult?.data ?? null;
   const polymarketError = polymarketResult?.error ?? null;
+
+  const {
+    data: arbStatusResult,
+    isLoading: arbStatusLoading,
+    isFetching: arbStatusFetching,
+  } = useQuery({
+    queryKey: ["polymarket-arb-status", oracleAgentId],
+    queryFn: () => fetchPolymarketArbStatus(oracleAgentId!),
+    enabled: mainTab === "polymarket" && !!oracleAgentId,
+    staleTime: 30 * 1000,
+    refetchInterval: mainTab === "polymarket" && oracleAgentId ? 30_000 : false,
+  });
+  const arbStatus = arbStatusResult?.data ?? null;
 
   // Substack route lives on Eliza only (plugin-eliza). Must use her agentId; no fallback to VINCE.
   const elizaAgentIdForSubstack = (elizaAgent?.id ?? null) as string | null;
@@ -2961,6 +2975,57 @@ export default function LeaderboardPage({
             className="mt-6 flex-1 min-h-0 overflow-auto"
           >
             <div className="space-y-6">
+              {/* Paper trading (latency arb) bot status */}
+              {oracleAgentId && (
+                <DashboardCard title="Paper trading bot">
+                  {(arbStatusLoading || arbStatusFetching) && !arbStatus ? (
+                    <p className="text-sm text-muted-foreground">
+                      Checking status…
+                    </p>
+                  ) : arbStatus?.running ? (
+                    <div className="flex flex-wrap items-center gap-3 text-sm">
+                      <span
+                        className={cn(
+                          "font-medium",
+                          arbStatus.paused
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-green-600 dark:text-green-400",
+                        )}
+                      >
+                        {arbStatus.paused ? "Paused" : "Running"}
+                      </span>
+                      <span className="text-muted-foreground">
+                        Mode: {arbStatus.liveExecution ? "Live" : "Paper"}
+                      </span>
+                      {arbStatus.tradesToday != null &&
+                        arbStatus.tradesToday > 0 && (
+                          <span className="text-muted-foreground">
+                            Trades today: {arbStatus.tradesToday}
+                            {arbStatus.winCountToday != null &&
+                              ` (${arbStatus.winCountToday} wins)`}
+                          </span>
+                        )}
+                      {arbStatus.todayPnlUsd != null &&
+                        arbStatus.todayPnlUsd !== 0 && (
+                          <span
+                            className={cn(
+                              arbStatus.todayPnlUsd >= 0
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400",
+                            )}
+                          >
+                            Today P&amp;L: ${arbStatus.todayPnlUsd.toFixed(2)}
+                          </span>
+                        )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Not running or arb engine not available on Oracle.
+                    </p>
+                  )}
+                </DashboardCard>
+              )}
+
               {/* Why we track — static fallback + API copy when available */}
               <DashboardCard title="Why we track these markets">
                 <p className="text-sm font-medium text-foreground/95">

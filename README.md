@@ -103,6 +103,12 @@ One conversation, ask any teammate by name; standups 2x/day. [MULTI_AGENT.md](do
 
 ---
 
+### Polymarket: paper trading that proves the edge
+
+When spot moves, prediction markets often lag. Oracle runs a **latency arb engine**: Binance spot and Polymarket CLOB in real time, implied probability from the option-like payoff of binary contracts, edge above a threshold, Kelly-sized paper trades. No execution by default—only logs and learns. The goal is to show that the edge is real before a single dollar is at risk. You see whether it’s running or paused on the leaderboard Polymarket tab; chat with Oracle for status, pause, or resume. Small edges, captured in code, 24/7.
+
+---
+
 ## TL;DR
 
 VINCE pushes daily intel (options, perps, memes, DeFi) to Discord/Slack. One command, **ALOHA**, gives you vibe check + PERPS + OPTIONS + "trade today?". Under the hood: a **self-improving paper trading bot** (ML loop, feature store, ONNX) that trains in prod and stores models in Supabase. Kelly is the lifestyle concierge (travel, wine, dining, health, fitness); she never gives trading advice.

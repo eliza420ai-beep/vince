@@ -348,6 +348,58 @@ export interface PolymarketPriorityMarketsFetchResult {
   status: number | null;
 }
 
+/** Latency arb (paper trading) bot status for Polymarket tab */
+export interface PolymarketArbStatus {
+  running: boolean;
+  liveExecution: boolean;
+  paused: boolean;
+  tradesToday: number;
+  winCountToday: number;
+  todayPnlUsd: number;
+  bankrollUsd: number;
+  contractsWatched: number;
+  btcLastPrice: number | null;
+  error?: string;
+  hint?: string;
+}
+
+export interface PolymarketArbStatusFetchResult {
+  data: PolymarketArbStatus | null;
+  error: string | null;
+  status: number | null;
+}
+
+export async function fetchPolymarketArbStatus(
+  agentId: string,
+): Promise<PolymarketArbStatusFetchResult> {
+  const base = window.location.origin;
+  const url = `${base}/api/agents/${agentId}/plugins/polymarket-arb/arb/status`;
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const raw = body?.error ?? body?.message ?? `HTTP ${res.status}`;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : (raw?.message ?? raw?.code ?? JSON.stringify(raw));
+      return { data: null, error: msg, status: res.status };
+    }
+    return {
+      data: body as PolymarketArbStatus,
+      error: null,
+      status: res.status,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Network or timeout error";
+    return { data: null, error: msg, status: null };
+  }
+}
+
 export async function fetchPolymarketPriorityMarkets(
   agentId: string,
 ): Promise<PolymarketPriorityMarketsFetchResult> {
