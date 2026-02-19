@@ -1,23 +1,22 @@
 {
   "date": "2026-02-19",
-  "thesis": "BTC breaks above previous ATH resistance as institutional FOMO accelerates into month-end rebalancing",
-  "primaryTicker": "MSTR",
+  "thesis": "Defense AI spending will accelerate faster than commercial AI, making PLTR the pure play on government AI contracts",
+  "primaryTicker": "PLTR",
   "primaryDirection": "long",
   "primaryInstrument": "perp",
-  "primaryEntryPrice": 126.11,
-  "primaryRiskUsd": 500,
-  "invalidateCondition": "BTC <$64k",
+  "primaryEntryPrice": 133.09,
+  "primaryRiskUsd": 665,
+  "invalidateCondition": "PLTR < $126",
   "killConditions": [
-    "dies if tech selloff"
+    "dies if peace breaks out"
   ],
   "rubric": {
-    "alignment": "exposed",
+    "alignment": "pure_play",
     "edge": "emerging",
     "payoffShape": "high",
     "timingForgiveness": "punishing"
   },
-  "altTicker": "BTC",
-  "altDirection": "long",
-  "altInstrument": "perp",
-  "evThresholdPct": 15
+  "altTicker": "NVDA",
+  "altDirection": "short",
+  "evThresholdPct": 9
 }
