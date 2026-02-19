@@ -687,13 +687,71 @@ function readWeeklyOptionsContext(): string {
   return "";
 }
 
-export async function fetchSolusData(_runtime: IAgentRuntime): Promise<string> {
+const HYPERSURFACE_COIN_IDS = [
+  "bitcoin",
+  "ethereum",
+  "solana",
+  "hyperliquid",
+] as const;
+
+function formatHypersurfaceSpotPrices(prices: Record<string, number>): string {
+  const btc = prices.bitcoin;
+  const eth = prices.ethereum;
+  const sol = prices.solana;
+  const hype = prices.hyperliquid;
+  const parts: string[] = [];
+  if (typeof btc === "number")
+    parts.push(
+      `BTC $${btc.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+    );
+  if (typeof eth === "number")
+    parts.push(
+      `ETH $${eth.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    );
+  if (typeof sol === "number")
+    parts.push(
+      `SOL $${sol.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    );
+  if (typeof hype === "number")
+    parts.push(
+      `HYPE $${hype.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    );
+  if (parts.length === 0) return "";
+  return parts.join(", ");
+}
+
+export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
+  let spotBlock = "";
+  const coingecko = runtime.getService("COINGECKO_SERVICE") as {
+    getSimplePrices: (ids: string[]) => Promise<Record<string, number>>;
+  } | null;
+  if (coingecko?.getSimplePrices) {
+    try {
+      const prices = await coingecko.getSimplePrices([
+        ...HYPERSURFACE_COIN_IDS,
+      ]);
+      const formatted = formatHypersurfaceSpotPrices(prices);
+      if (formatted)
+        spotBlock = `**Live spot (use these — do not guess):** [Hypersurface spot USD] ${formatted}\n\n`;
+    } catch (err) {
+      logger.debug(
+        { err: err instanceof Error ? err.message : String(err) },
+        "[Standup] Solus spot prices fetch failed",
+      );
+      spotBlock =
+        "**Live spot:** Unavailable this run. Do not guess prices; if VINCE's section is in shared insights, use his BTC/ETH/SOL/HYPE.\n\n";
+    }
+  } else {
+    spotBlock =
+      "**Live spot:** CoinGecko not available. Do not guess prices; use VINCE's section for current levels if present.\n\n";
+  }
+
   const lastWeek =
     process.env.SOLUS_LAST_WEEK_STRATEGY?.trim() ||
     readWeeklyOptionsContext() ||
     "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
 
-  return `**Last week's strategy:** ${lastWeek}
+  return `${spotBlock}**Last week's strategy:** ${lastWeek}
 
 **Options context (use VINCE's data from shared insights above):**
 Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
@@ -701,7 +759,7 @@ Read Oracle's section for: Polymarket odds that inform confidence.
 
 **Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
 State: strike price, direction (above/below), premium target, invalidation level.
-Reference VINCE's DVOL, funding, and regime. Reference Oracle's odds.
+Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
 If uncertain (like last week), say so and explain why with data.`;
 }
 
