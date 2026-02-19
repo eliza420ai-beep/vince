@@ -471,3 +471,69 @@ describe("WTT → Paper Bot: Feature store wtt block and invalidateHit", () => {
     expect(solRecord?.wtt?.invalidateHit).toBe(false);
   });
 });
+
+// =============================================================================
+// E2E: Fixture WTT JSON → evaluateWttPick path (research → structured output → bot)
+// =============================================================================
+
+describe("WTT E2E: fixture JSON → bot evaluation path", () => {
+  let tmpDir: string;
+
+  beforeAll(() => {
+    tmpDir = path.join(process.cwd(), ".tmp-wtt-e2e-" + Date.now());
+    fs.mkdirSync(path.join(tmpDir, "whats-the-trade"), { recursive: true });
+  });
+
+  afterAll(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true });
+    } catch {
+      // ignore
+    }
+  });
+
+  it("writes valid WTT fixture, reads back, and signal/asset pass bot gates", async () => {
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fixturePath = path.join(
+      tmpDir,
+      "whats-the-trade",
+      `${dateStr}-whats-the-trade.json`,
+    );
+    const fixture: Record<string, unknown> = {
+      date: dateStr,
+      thesis:
+        "Defense AI spending will accelerate faster than commercial AI; PLTR pure play.",
+      primaryTicker: "PLTR",
+      primaryDirection: "long",
+      primaryInstrument: "perp",
+      primaryEntryPrice: 133.09,
+      primaryRiskUsd: 665,
+      invalidateCondition: "dies if peace breaks out",
+      killConditions: ["peace breaks out"],
+      rubric: {
+        alignment: "pure_play",
+        edge: "emerging",
+        payoffShape: "high",
+        timingForgiveness: "forgiving",
+      },
+    };
+    fs.writeFileSync(fixturePath, JSON.stringify(fixture, null, 2), "utf-8");
+
+    const raw = fs.readFileSync(fixturePath, "utf-8");
+    const parsed = JSON.parse(raw) as {
+      primaryTicker: string;
+      rubric: Parameters<typeof wttRubricToSignal>[0];
+    };
+    expect(parsed.primaryTicker).toBe("PLTR");
+    expect(normalizeWttTicker(parsed.primaryTicker)).toBe("PLTR");
+
+    const { strength, confidence } = wttRubricToSignal(parsed.rubric);
+    expect(strength).toBeGreaterThanOrEqual(70);
+    expect(confidence).toBeGreaterThanOrEqual(65);
+  });
+
+  it("rejects fixture with ticker not in universe when normalized", () => {
+    expect(normalizeWttTicker("TLT")).toBeNull();
+    expect(normalizeWttTicker("SPY")).toBeNull();
+  });
+});

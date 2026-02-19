@@ -188,6 +188,9 @@ const DEFAULT_SOURCE_WEIGHTS: SourceWeights = {
 
   // Narrative / daily pulse (0.5x) — grok-auto-*.md Top 3 Research Ideas nudge
   GrokExpert: 0.5,
+
+  // Standup / Solus (Day Report → signals file) — default 0.6x
+  StandupSignal: 0.6,
 };
 
 const CONFIG_FILE_NAME = "tuned-config.json";

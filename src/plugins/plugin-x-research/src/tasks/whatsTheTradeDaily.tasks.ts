@@ -5,11 +5,16 @@
  * the whats-the-trade skill (Kalshi, Robinhood, Hyperliquid), then one
  * ALOHA-style narrative. Fits ECHO's lane: sentiment/vibe → one trade expression.
  *
+ * Thesis derivation:
+ * - Default (generic): suggestThesis() — LLM suggests one tradeable thesis with asymmetry (no X data).
+ * - X-driven (ECHO_WTT_X_DRIVEN=true): fetchCtNarrativeForWtt() → suggestThesisFromX() — CT narrative from X search, then LLM turns it into one thesis.
+ *
  * Output: docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.md
  * Sidecar: docs/standup/whats-the-trade/YYYY-MM-DD-whats-the-trade.json (for paper bot).
  *
  * Set ECHO_WHATS_THE_TRADE_ENABLED=false to disable.
  * Set ECHO_WHATS_THE_TRADE_HOUR=9 (UTC) to run at 9:00 UTC (default).
+ * Set ECHO_WTT_X_DRIVEN=true to derive thesis from X (Crypto Twitter) research.
  * Skill path: WHATS_THE_TRADE_SKILL_DIR or cwd/skills/whats-the-trade
  */
 
@@ -19,6 +24,9 @@ import { spawn } from "node:child_process";
 import type { IAgentRuntime, UUID } from "@elizaos/core";
 import { logger, ModelType } from "@elizaos/core";
 import { ALOHA_STYLE_RULES, NO_AI_SLOP } from "../utils/alohaStyle";
+import { initXClientFromEnv } from "../services/xClient.service";
+import { getXSearchService } from "../services/xSearch.service";
+import { ALL_TOPICS } from "../constants/topics";
 // HIP-3 + core perp universe (mirrored from plugin-vince/constants/targetAssets.ts).
 // Kept in sync manually; add new HIP-3 assets here when they go live on Hyperliquid.
 const WTT_UNIVERSE_TICKERS = [
@@ -169,12 +177,16 @@ function runBunScript(
   });
 }
 
+/**
+ * Thesis is derived from a generic LLM suggestion (no X data injected yet).
+ * When X-driven thesis is enabled, suggestThesisFromX() can use X_PULSE or a dedicated X scan.
+ */
 async function suggestThesis(
   runtime: IAgentRuntime,
   dateStr: string,
   hip3Only: boolean,
 ): Promise<string> {
-  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that fits a sentiment/vibe lens: what narrative could CT or macro be pricing that we can express in one trade? Examples: "Fed holds in March", "AI defense spending will accelerate", "SOL outperforms ETH on relative strength".`;
+  const base = `Today is ${dateStr}. Suggest exactly one short tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or relative strength the market hasn't fully priced. Examples: "Defense AI spending will accelerate faster than commercial AI (PLTR vs NVDA)", "SOL outperforms ETH on relative strength this week", "Fed holds in March and risk-on rotates into crypto". Do not give generic sentiment ("CT is bullish"); name the specific asymmetry.`;
   const constraint = hip3Only
     ? ` The trade MUST be expressible onchain via a Hyperliquid perp. Available tickers: ${WTT_UNIVERSE_LABEL}. Pick a thesis that maps to one of these assets.`
     : "";
@@ -193,6 +205,89 @@ async function suggestThesis(
   } catch (e) {
     logger.warn(
       "[ECHO WhatstheTrade] Thesis suggestion failed, using fallback",
+    );
+    return "Risk-on rotation; crypto and risk assets may outperform on the week.";
+  }
+}
+
+/**
+ * Fetch a short CT narrative from X for use as thesis context.
+ * Used when ECHO_WTT_X_DRIVEN=true to derive thesis from live X research.
+ * Returns null if X client or search fails (caller falls back to generic suggestThesis).
+ */
+async function fetchCtNarrativeForWtt(
+  runtime: IAgentRuntime,
+): Promise<string | null> {
+  try {
+    initXClientFromEnv(runtime);
+    const searchService = getXSearchService();
+    const highPriorityIds = ALL_TOPICS.filter((t) => t.priority === "high")
+      .map((t) => t.id)
+      .slice(0, 2);
+    const topicResults = await searchService.searchMultipleTopics({
+      topicsIds: highPriorityIds,
+      maxResultsPerTopic: 15,
+      cacheTtlMs: 5 * 60 * 1000,
+      quick: true,
+    });
+    const allTweets = Array.from(topicResults.values()).flat();
+    if (allTweets.length === 0) return null;
+    const sample = allTweets
+      .slice(0, 20)
+      .map((t) => (t.text ?? "").slice(0, 200))
+      .join("\n---\n");
+    const out = await runtime.useModel(ModelType.TEXT_SMALL, {
+      prompt: `Below are recent Crypto Twitter posts. Summarize in 2–3 sentences what CT is saying about crypto or macro right now. If there is a clear narrative or asymmetry (e.g. one segment vs another), mention it. No preamble.
+
+Posts:
+${sample}
+
+Summary:`,
+      maxTokens: 150,
+    });
+    const text = String(out).trim();
+    return text.length > 0 ? text : null;
+  } catch (e) {
+    logger.debug(
+      "[ECHO WhatstheTrade] X-driven narrative fetch failed: " +
+        (e as Error).message,
+    );
+    return null;
+  }
+}
+
+/**
+ * Turn a CT narrative (from X) into one tradeable thesis with a clear asymmetry.
+ * Use when ECHO_WTT_X_DRIVEN=true; thesis is then X-derived instead of generic.
+ */
+async function suggestThesisFromX(
+  runtime: IAgentRuntime,
+  dateStr: string,
+  xNarrative: string,
+  hip3Only: boolean,
+): Promise<string> {
+  const constraint = hip3Only
+    ? ` The trade MUST be expressible as a Hyperliquid perp. Tickers: ${WTT_UNIVERSE_LABEL}.`
+    : "";
+  const prompt = `Today is ${dateStr}. Below is a short summary of what Crypto Twitter is saying.
+
+CT summary:
+${xNarrative}
+
+Turn this into exactly one tradeable thesis (one sentence) that states a clear mispricing or asymmetry—e.g. one segment priced wrong vs another, or a narrative the market hasn't fully priced. Do not give generic sentiment; name the specific asymmetry.${constraint}
+
+Reply with only that one sentence, no quotes or preamble.`;
+  try {
+    const out = await runtime.useModel(ModelType.TEXT_LARGE, {
+      prompt,
+      maxTokens: 80,
+    });
+    return String(out)
+      .trim()
+      .replace(/^["']|["']$/g, "");
+  } catch (e) {
+    logger.warn(
+      "[ECHO WhatstheTrade] X-driven thesis suggestion failed, using fallback",
     );
     return "Risk-on rotation; crypto and risk assets may outperform on the week.";
   }
@@ -332,9 +427,9 @@ Live data from prediction markets, stocks, and perps:
 ${dataContext}
 
 Write a short narrative (150–250 words) that:
-1. States the single best way to express this thesis (${instrumentOptions}) and why it beats the obvious play.
+1. Names the asymmetry clearly (what is mispriced vs what, or which relative move) and states the single best way to express this thesis (${instrumentOptions}). Say why this expression beats the obvious play.
 2. Weaves in specific numbers from the data above.
-3. Includes the downside: what you risk and what would kill the trade.
+3. Includes the downside: what you risk and what would invalidate or kill the trade (one concrete condition).
 4. Ends with one minimal trade card in this format (≤6 lines):
 
 [TICKER] · ${instrumentLabel} · [DIRECTION]
@@ -360,6 +455,53 @@ Write the narrative and card (no "Here is your report" wrapper):`;
     logger.error("[ECHO WhatstheTrade] LLM failed: " + (e as Error).message);
     return "Couldn't generate the narrative today. Data was gathered but the write step failed.";
   }
+}
+
+const ALIGNMENT_VALUES: Set<string> = new Set([
+  "direct",
+  "pure_play",
+  "exposed",
+  "partial",
+  "tangential",
+]);
+const EDGE_VALUES: Set<string> = new Set([
+  "undiscovered",
+  "emerging",
+  "consensus",
+  "crowded",
+]);
+const PAYOFF_VALUES: Set<string> = new Set([
+  "max_asymmetry",
+  "high",
+  "moderate",
+  "linear",
+  "capped",
+]);
+const TIMING_VALUES: Set<string> = new Set([
+  "very_forgiving",
+  "forgiving",
+  "punishing",
+  "very_punishing",
+]);
+
+function safeRubricValue<K extends keyof WttPick["rubric"]>(
+  value: unknown,
+  key: K,
+  defaultVal: WttPick["rubric"][K],
+): WttPick["rubric"][K] {
+  const s = String(value ?? "")
+    .toLowerCase()
+    .replace(/-/g, "_")
+    .replace(/\s+/g, "_");
+  const set =
+    key === "alignment"
+      ? ALIGNMENT_VALUES
+      : key === "edge"
+        ? EDGE_VALUES
+        : key === "payoffShape"
+          ? PAYOFF_VALUES
+          : TIMING_VALUES;
+  return (set.has(s) ? s : defaultVal) as WttPick["rubric"][K];
 }
 
 async function extractStructuredPick(
@@ -414,11 +556,13 @@ Output only the JSON object, no markdown or explanation.`;
       return null;
     }
     const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
-    const rubric = parsed.rubric as Record<string, string>;
+    const rubricRaw = parsed.rubric as Record<string, unknown> | undefined;
     const pick: WttPick = {
       date: String(parsed.date ?? dateStr),
       thesis: String(parsed.thesis ?? thesis),
-      primaryTicker: String(parsed.primaryTicker ?? "").toUpperCase(),
+      primaryTicker: String(parsed.primaryTicker ?? "")
+        .trim()
+        .toUpperCase(),
       primaryDirection: parsed.primaryDirection === "short" ? "short" : "long",
       primaryInstrument: String(parsed.primaryInstrument ?? "perp"),
       primaryEntryPrice: Number(parsed.primaryEntryPrice) || 0,
@@ -428,19 +572,26 @@ Output only the JSON object, no markdown or explanation.`;
         ? (parsed.killConditions as string[])
         : [],
       rubric: {
-        alignment:
-          (rubric?.alignment as WttPick["rubric"]["alignment"]) ?? "partial",
-        edge: (rubric?.edge as WttPick["rubric"]["edge"]) ?? "consensus",
-        payoffShape:
-          (rubric?.payoffShape as WttPick["rubric"]["payoffShape"]) ??
+        alignment: safeRubricValue(
+          rubricRaw?.alignment,
+          "alignment",
+          "partial",
+        ),
+        edge: safeRubricValue(rubricRaw?.edge, "edge", "consensus"),
+        payoffShape: safeRubricValue(
+          rubricRaw?.payoffShape,
+          "payoffShape",
           "moderate",
-        timingForgiveness:
-          (rubric?.timingForgiveness as WttPick["rubric"]["timingForgiveness"]) ??
+        ),
+        timingForgiveness: safeRubricValue(
+          rubricRaw?.timingForgiveness,
+          "timingForgiveness",
           "punishing",
+        ),
       },
     };
     if (parsed.altTicker != null)
-      pick.altTicker = String(parsed.altTicker).toUpperCase();
+      pick.altTicker = String(parsed.altTicker).trim().toUpperCase();
     if (parsed.altDirection === "short" || parsed.altDirection === "long")
       pick.altDirection = parsed.altDirection;
     if (parsed.altInstrument != null)
@@ -450,6 +601,14 @@ Output only the JSON object, no markdown or explanation.`;
       !Number.isNaN(parsed.evThresholdPct)
     )
       pick.evThresholdPct = parsed.evThresholdPct;
+
+    if (hip3Only && !isWttUniverseTicker(pick.primaryTicker)) {
+      logger.warn(
+        "[ECHO WhatstheTrade] primaryTicker not in WTT universe: " +
+          pick.primaryTicker,
+      );
+      return null;
+    }
     return pick;
   } catch (e) {
     logger.warn(
@@ -529,7 +688,22 @@ export async function runWhatsTheTradeReport(
   }
 
   const skillDir = getSkillDir();
-  const thesis = await suggestThesis(runtime, dateLabel, hip3Only);
+  const xDriven =
+    (runtime.getSetting("ECHO_WTT_X_DRIVEN") ??
+      process.env.ECHO_WTT_X_DRIVEN ??
+      "false") === "true";
+  let thesis: string;
+  if (xDriven) {
+    const xNarrative = await fetchCtNarrativeForWtt(runtime);
+    if (xNarrative) {
+      logger.info("[ECHO WhatstheTrade] Using X-driven thesis");
+      thesis = await suggestThesisFromX(runtime, dateStr, xNarrative, hip3Only);
+    } else {
+      thesis = await suggestThesis(runtime, dateLabel, hip3Only);
+    }
+  } else {
+    thesis = await suggestThesis(runtime, dateLabel, hip3Only);
+  }
   const dataContext = await fetchAdapterData(
     skillDir,
     thesis,

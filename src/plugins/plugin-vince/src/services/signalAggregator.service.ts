@@ -81,6 +81,12 @@ import type {
 // Grok Auto-Pulse (daily narrative → paper algo nudge)
 import { loadLatestGrokPulse } from "../utils/grokPulseParser";
 
+// Standup/Solus signals (Day Report → paper algo)
+import {
+  loadStandupSignals,
+  getStandupSignalForAsset,
+} from "../utils/standupSignalsReader";
+
 // ==========================================
 // ML-Enhanced Configuration
 // ==========================================
@@ -1050,6 +1056,51 @@ export class VinceSignalAggregatorService extends Service {
     } catch (e) {
       logger.debug(`[VinceSignalAggregator] GrokExpert pulse error: ${e}`);
       triedNoContribution.push("GrokExpert");
+    }
+
+    // =========================================
+    // 5d. Standup / Solus signals (Day Report → docs/standup/signals/YYYY-MM-DD-signals.json)
+    // =========================================
+    const standupSignalsEnabled = (
+      process.env.VINCE_PAPER_STANDUP_SIGNALS_ENABLED ?? "true"
+    ).trim();
+    if (!/^(0|false|no)$/i.test(standupSignalsEnabled)) {
+      try {
+        const standupData = await loadStandupSignals();
+        const entry = standupData
+          ? getStandupSignalForAsset(standupData, asset)
+          : undefined;
+        if (entry && entry.direction !== "neutral") {
+          const confidence = Math.min(
+            100,
+            Math.max(0, entry.confidence_pct ?? 50),
+          );
+          if (confidence >= 25) {
+            const strength = 48 + Math.min(12, confidence / 8);
+            const label =
+              entry.source === "solus"
+                ? `Solus standup ${entry.direction} (${confidence}%)`
+                : `Standup ${entry.direction} (${confidence}%)`;
+            signals.push({
+              asset,
+              direction: entry.direction,
+              strength: Math.round(strength),
+              confidence,
+              source: "StandupSignal",
+              factors: [label],
+              timestamp: Date.now(),
+            });
+            sources.push("StandupSignal");
+            allFactors.push(label);
+          }
+        }
+        if (!sources.includes("StandupSignal")) {
+          triedNoContribution.push("StandupSignal");
+        }
+      } catch (e) {
+        logger.debug(`[VinceSignalAggregator] StandupSignal error: ${e}`);
+        triedNoContribution.push("StandupSignal");
+      }
     }
 
     // =========================================
@@ -2406,6 +2457,12 @@ export class VinceSignalAggregatorService extends Service {
               "VINCE_X_SENTIMENT_SERVICE",
             ) as VinceXSentimentService | null
           )?.isConfigured?.() ?? false,
+      },
+      {
+        name: "StandupSignal",
+        available: !/^(0|false|no)$/i.test(
+          (process.env.VINCE_PAPER_STANDUP_SIGNALS_ENABLED ?? "true").trim(),
+        ),
       },
       {
         name: "Deribit",

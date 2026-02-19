@@ -497,7 +497,11 @@ export function isWttEnabled(runtime: IAgentRuntime): boolean {
   return true; // default on — WTT is the primary HIP-3 entry path
 }
 
-/** Map WTT rubric to signal strength/confidence for the paper bot (0–100). */
+/**
+ * Map WTT rubric to signal strength/confidence for the paper bot (0–100).
+ * WTT path uses confirmingCount 2–3 in evaluateWttPick; rubric defaults (e.g. partial + consensus)
+ * yield strength ~74, confidence ~72, so the risk manager's gate is passed when rubric is at least moderate.
+ */
 export function wttRubricToSignal(rubric: WttRubricStrings): {
   strength: number;
   confidence: number;

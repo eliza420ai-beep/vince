@@ -843,13 +843,52 @@ Reply format: APPROVE reason or VETO reason`;
   }
 
   /**
+   * Append a skipped row when no valid WTT pick was available (missing or invalid JSON).
+   * Keeps ML history consistent so we have a record of days with no pick.
+   */
+  private async appendWttPickSkippedNoPick(reason: string): Promise<void> {
+    try {
+      const dir = path.join(process.cwd(), ".elizadb", "vince-paper-bot");
+      await fs.promises.mkdir(dir, { recursive: true });
+      const filepath = path.join(dir, "wtt-picks.jsonl");
+      const row = {
+        ts: Date.now(),
+        date: new Date().toISOString().slice(0, 10),
+        primaryTicker: null,
+        altTicker: null,
+        direction: null,
+        instrument: null,
+        entryPrice: null,
+        riskUsd: null,
+        thesis: null,
+        rubric: null,
+        invalidateCondition: null,
+        evThresholdPct: null,
+        outcome: "skipped" as const,
+        rejectReason: reason,
+      };
+      await fs.promises.appendFile(filepath, JSON.stringify(row) + "\n");
+    } catch (e) {
+      logger.debug(
+        `[VincePaperTrading] Failed to append WTT skipped-no-pick JSONL: ${e}`,
+      );
+    }
+  }
+
+  /**
    * If WTT is enabled, read today's pick and open a paper trade if the primary (or alt) is perp/HIP-3 eligible.
    * Called before the regular signal loop so WTT gets first shot at the asset.
    * Every pick is appended to wtt-picks.jsonl for ML regardless of outcome.
    */
   private async evaluateWttPick(): Promise<boolean> {
     const pick = await this.readLatestWttPick();
-    if (!pick) return false;
+    if (!pick) {
+      logger.info(
+        "[VincePaperTrading] No WTT pick for today (missing or invalid JSON); skipping WTT evaluation",
+      );
+      await this.appendWttPickSkippedNoPick("no_valid_pick");
+      return false;
+    }
 
     const positionManager = this.getPositionManager();
     const riskManager = this.getRiskManager();

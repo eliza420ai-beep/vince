@@ -34,20 +34,26 @@ We run daily standups where Kelly orchestrates all ten agents in sequence (VINCE
 
 ### 2. X research to paper trade pipeline: the thing that works
 
-Our proudest result so far: ECHO runs `X_PULSE` to scan Crypto Twitter, finds a narrative (e.g. defense AI spending favoring PLTR), writes a structured trade thesis with entry/risk/invalidation, and the paper trading bot actually picks up that signal and opens a position on Hyperliquid. Research becomes a trade, automatically.
+Our proudest result so far: ECHO runs the WTT (What's the Trade) daily task, produces a structured trade thesis with entry/risk/invalidation, and the paper trading bot picks up that signal and opens a position on Hyperliquid. Research becomes a trade, automatically.
+
+**What's in place:**
+- **WTT task** (`whatsTheTradeDaily.tasks.ts`): Thesis (generic or X-driven when `ECHO_WTT_X_DRIVEN=true`), adapter data (Kalshi, Robinhood, Hyperliquid), narrative with explicit asymmetry and "what would kill the trade," and structured pick extraction. Prompts require one clear mispricing/asymmetry; optional X narrative from CT search feeds the thesis step.
+- **Paper bot WTT path**: When `VINCE_PAPER_WTT_ENABLED` is on, `evaluateWttPick()` runs first: reads today's JSON from `docs/standup/whats-the-trade/`, maps ticker via `normalizeWttTicker`, builds signal from rubric, opens (or skips) and records the `wtt` block in the feature store. Extraction is robust: ticker validated against WTT universe, safe rubric defaults; no valid pick logs clearly and can append a skipped row to wtt-picks.jsonl for ML.
+- **Standup/Solus as first-class signals**: After the Day Report, plugin-inter-agent writes `docs/standup/signals/YYYY-MM-DD-signals.json` (Solus call and/or parsed "Solus's call" from report). The paper bot aggregator has a **StandupSignal** source (weight 0.6) that reads that file for today; set `VINCE_PAPER_STANDUP_SIGNALS_ENABLED=false` to disable.
+- **E2E coverage**: `wttPaperBotIntegration.test.ts` includes fixture JSON → normalize/signal → trade-or-reject and ticker-universe checks.
 
 **What we want more of:**
-- Higher-quality X research that produces tradeable theses, not just sentiment summaries. The PLTR example worked because ECHO found a specific asymmetry (defense AI priced cheaply vs commercial AI), not because it said "CT is bullish."
-- Better signal parsing so the paper bot can consume theses from X_PULSE, standup signals, and Solus options calls as first-class inputs alongside the quantitative signal sources.
-- More "What's the Trade" outputs that the bot actually acts on. The full loop is: ECHO writes `docs/standup/whats-the-trade/*.md` → bot parses it → bot evaluates against risk rules → bot opens (or skips) the trade → leaderboard shows the result.
+- Even sharper X-driven theses when `ECHO_WTT_X_DRIVEN=true` (richer CT narrative, better "mispricing in one sentence").
+- Tuning StandupSignal weight and confidence floor so Solus/standup votes matter without overwhelming quant sources.
+- More WTT outputs that pass the bot's gates (rubric quality, ticker in universe) so the loop fires more often.
 
 **Where to look:**
-- X research plugin: `src/plugins/plugin-x-research/`
-- "What's the Trade" task and output: `docs/standup/whats-the-trade/`
-- Signal aggregation and paper bot: `src/plugins/plugin-vince/` (see [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md) for architecture)
-- Signal source configuration: `src/plugins/plugin-vince/SIGNAL_SOURCES.md`
+- X research plugin: `src/plugins/plugin-x-research/` (WTT task, X_PULSE, thesis/narrative prompts)
+- "What's the Trade" output and contract: `docs/standup/whats-the-trade/`, [INTEGRATION-WITH-PAPER-BOT.md](docs/standup/whats-the-trade/INTEGRATION-WITH-PAPER-BOT.md)
+- Standup signals writer: `src/plugins/plugin-inter-agent/src/standup/standupSignals.ts`; aggregator reader: `src/plugins/plugin-vince/src/utils/standupSignalsReader.ts`
+- Signal aggregation and paper bot: `src/plugins/plugin-vince/` (see [CLAUDE.md](src/plugins/plugin-vince/CLAUDE.md)); [SIGNAL_SOURCES.md](src/plugins/plugin-vince/SIGNAL_SOURCES.md) for StandupSignal and WTT
 
-**How to contribute:** Improve X_PULSE prompt quality to produce sharper theses. Add new signal sources or improve how the aggregator weighs narrative-driven signals vs pure quant signals. Build tests that verify the end-to-end loop (research → structured output → bot evaluation → trade or no-trade). If you find the bot ignoring good signals or trading on bad ones, that's a high-value bug.
+**How to contribute:** Improve thesis and narrative prompts for asymmetry. Add or tune signal sources (e.g. StandupSignal weight, WTT rubric→signal mapping). Add tests that run research → JSON → bot evaluation. If the bot ignores good signals or trades on bad ones, that's a high-value bug.
 
 ### 3. Paper bot trade lifecycle: better WHY, faster TP1, more training data
 

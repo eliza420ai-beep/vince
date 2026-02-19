@@ -20,7 +20,13 @@ import {
   savePrediction,
   loadPredictions,
   getAccuracyStats,
+  type PredictionInput,
 } from "./predictionTracker";
+import {
+  writeStandupSignalsFile,
+  parseSignalsFromDayReportContent,
+  type StandupSignalEntry,
+} from "./standupSignals";
 
 /**
  * Build the core Day Report prompt from conversation context.
@@ -131,6 +137,7 @@ export async function generateAndSaveDayReport(
       });
     }
   }
+  let solusPredictionInput: PredictionInput | null = null;
   if (options?.replies) {
     const solusReply = options.replies.find(
       (r) => r.agentName.toLowerCase() === "solus",
@@ -139,6 +146,7 @@ export async function generateAndSaveDayReport(
       ? predictionFromStructuredCall(solusReply.structuredSignals, date)
       : null;
     if (input) {
+      solusPredictionInput = input;
       try {
         await savePrediction(input);
       } catch (e) {
@@ -146,5 +154,39 @@ export async function generateAndSaveDayReport(
       }
     }
   }
+
+  const signals: StandupSignalEntry[] = [];
+  if (solusPredictionInput?.asset) {
+    const d = (solusPredictionInput.direction ?? "").toLowerCase();
+    const direction: StandupSignalEntry["direction"] =
+      d === "above" || d === "bullish"
+        ? "long"
+        : d === "below" || d === "bearish"
+          ? "short"
+          : "neutral";
+    signals.push({
+      asset: solusPredictionInput.asset.toUpperCase(),
+      direction,
+      confidence_pct:
+        typeof solusPredictionInput.confidence === "number"
+          ? solusPredictionInput.confidence
+          : undefined,
+      source: "solus",
+      raw:
+        solusPredictionInput.strike != null
+          ? `strike ${solusPredictionInput.strike}`
+          : undefined,
+    });
+  }
+  if (signals.length === 0) {
+    const fromReport = parseSignalsFromDayReportContent(reportText);
+    signals.push(...fromReport);
+  }
+  if (signals.length > 0) {
+    const reportDate = new Date();
+    reportDate.setHours(0, 0, 0, 0);
+    await writeStandupSignalsFile(signals, reportDate);
+  }
+
   return { reportText, savedPath, parsedItems };
 }
