@@ -115,11 +115,13 @@ Eliza has two jobs: absorb knowledge and produce publishable content. Both need 
 
 ### 6. Solus options context: portfolio awareness and daily monitoring
 
-Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface. Right now he's missing critical context that a human options advisor would never lack.
+**Status: Implemented.** Portfolio and open positions are read from `docs/standup/weekly-options-context.md` (or `SOLUS_PORTFOLIO_CONTEXT`); the hypersurfaceContext provider injects them into every Solus reply. Standup includes open position status and daily hold/close/adjust when positions exist; strike ritual and optimal-strike respect covered-call mode. See [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md).
 
-**Portfolio state.** Solus doesn't know our BTC cost basis. We acquired BTC at ~$70K when our secured puts got exercised a few weeks ago. That means we're now running covered calls (selling calls against BTC we own), not deciding between calls and puts from scratch. Solus should know: we hold BTC, our cost basis is $70K, and the strategic goal is to sell covered calls above cost basis to earn premium while we hold. This context should live in a persistent file (e.g. `docs/standup/weekly-options-context.md` or a `SOLUS_PORTFOLIO_CONTEXT` env var) that gets injected into every Solus reply via the `hypersurfaceContext.provider.ts`.
+Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface. The following was the original gap (now addressed):
 
-**Daily monitoring, not weekly-only.** Hypersurface now supports early exercise and early close, so positions can be managed any day, not just at Friday 08:00 UTC expiry. Solus still thinks in weekly cycles ("Friday ritual," "Mon-Thu monitor"). He should track open positions daily: is the call approaching ITM? Should we close early to lock in profit or roll to a new strike? The standup prompt for Solus should include current position status (strike, premium collected, distance to strike) and ask whether to hold, close early, or adjust.
+**Portfolio state.** Solus didn't know our BTC cost basis. We acquired BTC at ~$70K when our secured puts got exercised a few weeks ago. That means we're now running covered calls (selling calls against BTC we own), not deciding between calls and puts from scratch. Solus should know: we hold BTC, our cost basis is $70K, and the strategic goal is to sell covered calls above cost basis to earn premium while we hold. This context should live in a persistent file (e.g. `docs/standup/weekly-options-context.md` or a `SOLUS_PORTFOLIO_CONTEXT` env var) that gets injected into every Solus reply via the `hypersurfaceContext.provider.ts`.
+
+**Daily monitoring.** Hypersurface supports early exercise and early close. The standup prompt for Solus now includes current position status (from the context file) and asks whether to hold, close early, or adjust when open positions exist.
 
 **Where to look:**
 - Hypersurface context provider: `src/plugins/plugin-solus/src/providers/hypersurfaceContext.provider.ts`
@@ -130,7 +132,7 @@ Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface.
 - Standup data for Solus: `src/plugins/plugin-inter-agent/src/standup/standup.build.ts`
 - North star doc: `docs/SOLUS_NORTH_STAR.md`
 
-**How to contribute:** Add a portfolio context file (`docs/standup/weekly-options-context.md`) that captures current holdings, cost basis, and open option positions, and inject it into the hypersurfaceContext provider. Update the standup prompt for Solus so it includes open position status and asks for daily hold/close/adjust advice, not just weekly strike picks. Update the strike ritual to understand that we're in "covered call mode" because we own BTC, not deciding from neutral. If Solus can say "your $70K covered call at $72K strike has $800 premium with BTC at $71.5K, 2 days to expiry, recommend: hold and let it expire OTM" instead of "pick an asset and choose CC vs CSP," that's the improvement.
+**How to contribute:** Keep `docs/standup/weekly-options-context.md` up to date (format in [WEEKLY-OPTIONS-CONTEXT.md](docs/standup/WEEKLY-OPTIONS-CONTEXT.md)). Optional: add tooling to sync positions from Hypersurface when an API becomes available, or extend the shared helper (`src/plugins/plugin-solus/src/utils/weeklyOptionsContext.ts`) if the file format evolves.
 
 ### 7. Sentinel to OpenClaw: AI agent shipping code improvements
 

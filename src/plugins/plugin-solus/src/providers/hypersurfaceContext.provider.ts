@@ -1,6 +1,7 @@
 /**
  * SOLUS_HYPERSURFACE_CONTEXT — Injects Hypersurface mechanics into state on every Solus reply.
  * Ensures mechanics are always in context even when RAG doesn't retrieve the right chunk.
+ * When portfolio/open positions are set (file or SOLUS_PORTFOLIO_CONTEXT), appends [Portfolio context].
  */
 
 import type {
@@ -10,6 +11,7 @@ import type {
   ProviderResult,
   State,
 } from "@elizaos/core";
+import { getPortfolioContextBlock } from "../utils/weeklyOptionsContext";
 
 const HYPERSURFACE_CHEAT_SHEET = `
 Hypersurface (execution only): hypersurface.io. Deribit = IV/data only, not trading.
@@ -36,10 +38,16 @@ export const hypersurfaceContextProvider: Provider = {
     _message: Memory,
     _state?: State,
   ): Promise<ProviderResult> => {
+    const portfolioBlock = getPortfolioContextBlock();
+    const portfolioText = portfolioBlock
+      ? `\n\n[Portfolio context]\n${portfolioBlock}`
+      : "";
+    const text = `[Hypersurface context]\n${HYPERSURFACE_CHEAT_SHEET}${portfolioText}`;
     return {
-      text: `[Hypersurface context]\n${HYPERSURFACE_CHEAT_SHEET}`,
+      text,
       values: {
         hypersurfaceCheatSheet: HYPERSURFACE_CHEAT_SHEET,
+        portfolioContext: portfolioBlock || undefined,
       },
     };
   },

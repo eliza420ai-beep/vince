@@ -213,6 +213,26 @@ describe("Hypersurface mechanics — full understanding", () => {
       expect(text).toMatch(/where price lands by friday|pasted context|paste/);
       expect(text).toContain("vince");
     });
+
+    it("when SOLUS_PORTFOLIO_CONTEXT is set, appends [Portfolio context] and sets values.portfolioContext", async () => {
+      const saved = process.env.SOLUS_PORTFOLIO_CONTEXT;
+      process.env.SOLUS_PORTFOLIO_CONTEXT =
+        "We hold BTC. Cost basis ~$70K. Mode: covered calls above cost basis.";
+      try {
+        const result = await hypersurfaceContextProvider.get(
+          createSolusRuntime() as IAgentRuntime,
+          createMessage(""),
+        );
+        expect(result?.text).toContain("[Portfolio context]");
+        expect(result?.text).toContain("Cost basis ~$70K");
+        expect(result?.values?.portfolioContext).toContain(
+          "covered calls above cost basis",
+        );
+      } finally {
+        if (saved !== undefined) process.env.SOLUS_PORTFOLIO_CONTEXT = saved;
+        else delete process.env.SOLUS_PORTFOLIO_CONTEXT;
+      }
+    });
   });
 
   describe("SOLUS_POSITION_ASSESS: interprets $70K secured puts correctly", () => {

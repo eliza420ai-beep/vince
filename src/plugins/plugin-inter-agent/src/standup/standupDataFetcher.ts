@@ -22,6 +22,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { type IAgentRuntime, logger, ModelType } from "@elizaos/core";
 import { PolymarketService } from "../../../plugin-polymarket-discovery/src/services/polymarket.service";
+import {
+  getWeeklyOptionsContext,
+  hasOpenPositions,
+} from "../../../plugin-solus/src/utils/weeklyOptionsContext";
 import { getRecentCodeContext } from "./standup.context";
 import {
   getStandupTrackedAssets,
@@ -669,23 +673,8 @@ Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Solus: directive referencing VINCE's data + last-week options strategy
+// Solus: directive referencing VINCE's data + last-week options strategy + portfolio + daily monitoring
 // ═══════════════════════════════════════════════════════════════════════
-
-function readWeeklyOptionsContext(): string {
-  try {
-    const filePath = path.join(
-      process.cwd(),
-      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
-      "weekly-options-context.md",
-    );
-    if (fs.existsSync(filePath))
-      return fs.readFileSync(filePath, "utf-8").trim();
-  } catch {
-    /* non-fatal */
-  }
-  return "";
-}
 
 const HYPERSURFACE_COIN_IDS = [
   "bitcoin",
@@ -746,21 +735,41 @@ export async function fetchSolusData(runtime: IAgentRuntime): Promise<string> {
       "**Live spot:** CoinGecko not available. Do not guess prices; use VINCE's section for current levels if present.\n\n";
   }
 
+  const {
+    portfolioSection,
+    openPositionsSection,
+    lastWeekStrategy: lastWeekFromFile,
+  } = getWeeklyOptionsContext();
   const lastWeek =
     process.env.SOLUS_LAST_WEEK_STRATEGY?.trim() ||
-    readWeeklyOptionsContext() ||
+    lastWeekFromFile ||
     "No last-week strategy context provided. Set SOLUS_LAST_WEEK_STRATEGY or create docs/standup/weekly-options-context.md (or STANDUP_DELIVERABLES_DIR).";
 
-  return `${spotBlock}**Last week's strategy:** ${lastWeek}
+  const portfolioLine =
+    portfolioSection.trim().length > 0
+      ? `**Portfolio:** ${portfolioSection.trim().slice(0, 200)}${portfolioSection.length > 200 ? "…" : ""}\n\n`
+      : "";
+
+  const openPositionsBlock =
+    openPositionsSection.trim().length > 0
+      ? `**Current open positions:**\n${openPositionsSection.trim()}\n\n`
+      : "";
+
+  const hasOpen = hasOpenPositions();
+  const yourJobBlock = hasOpen
+    ? `**Your job:** (1) Current position status: strike, premium, distance to strike, DTE when available. (2) Daily question: hold, close early, or adjust? (3) If relevant, this week's strike recommendation. Hypersurface settles Friday 08:00 UTC; early exercise/close possible. State your call and invalidation. Reference live spot above and VINCE's section for regime/DVOL; Oracle's odds for confidence.`
+    : `**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
+State: strike price, direction (above/below), premium target, invalidation level.
+Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
+If uncertain (like last week), say so and explain why with data.`;
+
+  return `${spotBlock}${portfolioLine}${openPositionsBlock}**Last week's strategy:** ${lastWeek}
 
 **Options context (use VINCE's data from shared insights above):**
 Read VINCE's section for: BTC price, funding, L/S ratio, market regime, DVOL, best covered call strike, signal direction.
 Read Oracle's section for: Polymarket odds that inform confidence.
 
-**Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
-State: strike price, direction (above/below), premium target, invalidation level.
-Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
-If uncertain (like last week), say so and explain why with data.`;
+${yourJobBlock}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
