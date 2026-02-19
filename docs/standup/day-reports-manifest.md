@@ -26,3 +26,4 @@
 | 2026-02-19 | BTC stuck in neutral with extreme fear readings - we're selling premium and wait | [View](day-reports/2026-02-19-day-report.md) |
 | 2026-02-19 | Day report generated | [View](day-reports/2026-02-19-day-report.md) |
 | 2026-02-19 | BTC consolidating around $66K with extreme fear (9) — we're selling premium into | [View](day-reports/2026-02-19-day-report.md) |
+| 2026-02-19 | BTC stuck in fearful consolidation at 66k while we sell premium and wait for the | [View](day-reports/2026-02-19-day-report.md) |
