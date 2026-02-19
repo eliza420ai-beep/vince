@@ -15,6 +15,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "@elizaos/core";
+import { getOpenClawQueueDir } from "./openclawTaskBrief.service";
 
 const KNOWLEDGE_ROOT = path.join(process.cwd(), "knowledge", "sentinel-docs");
 
@@ -376,6 +377,14 @@ ${OPENCLAW_RESEARCH_SETUP.benefits.map((b) => `• ${b}`).join("\n")}
 }
 
 /**
+ * Get the OpenClaw task queue directory. Coding agents poll this path for pending task briefs (JSON).
+ * See docs/standup/OPENCLAW_TASK_CONTRACT.md for schema and consumer contract.
+ */
+export function getTaskQueuePath(): string {
+  return getOpenClawQueueDir();
+}
+
+/**
  * Check if OpenClaw adapter docs exist
  */
 export function hasAdapterDocs(): boolean {
@@ -473,6 +482,7 @@ export default {
   getOpenclawResearchSetup,
   getQuickReference,
   generateIntegrationInstructions,
+  getTaskQueuePath,
   hasAdapterDocs,
   getAdapterDocs,
   suggestOpenClawUsage,

@@ -1,9 +1,8 @@
 /**
  * Smoke test for PRD Generator - validates the core PRD generation pipeline
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import * as fs from "fs";
-import * as path from "path";
 import {
   generatePRD,
   generatePRDFromRequest,
@@ -12,8 +11,6 @@ import {
   generateTaskBrief,
   type PRDInput,
 } from "../services/prdGenerator.service";
-
-const TEST_PRD_DIR = path.join(process.cwd(), "standup-deliverables", "prds");
 
 describe("PRD Generator Smoke Test", () => {
   let generatedPRDPath: string | null = null;
@@ -111,7 +108,7 @@ describe("PRD Generator Smoke Test", () => {
   });
 
   describe("savePRD", () => {
-    it("saves PRD to standup-deliverables/prds/", () => {
+    it("saves PRD to configured output dir (standup-deliverables/prds or STANDUP_DELIVERABLES_DIR/prds)", () => {
       const prd = generatePRDFromRequest(
         "Test PRD for v2.1.0 release notes smoke test",
       );
@@ -119,7 +116,7 @@ describe("PRD Generator Smoke Test", () => {
       generatedPRDPath = savePRD(prd);
 
       expect(fs.existsSync(generatedPRDPath)).toBe(true);
-      expect(generatedPRDPath).toContain("standup-deliverables/prds/");
+      expect(generatedPRDPath).toContain("prds");
       expect(generatedPRDPath).toMatch(/\.md$/);
 
       const content = fs.readFileSync(generatedPRDPath, "utf-8");

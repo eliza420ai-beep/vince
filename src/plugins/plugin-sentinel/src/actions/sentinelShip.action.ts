@@ -36,6 +36,10 @@ import {
   formatScore,
   type WorkItem,
 } from "../services/impactScorer.service";
+import {
+  buildTaskFromTopPick,
+  writeTaskToQueue,
+} from "../services/openclawTaskBrief.service";
 
 const SHIP_TRIGGERS = [
   "what should we ship",
@@ -336,6 +340,24 @@ Uses Project Radar (scans plugins, progress, knowledge) and Impact Scorer (RICE 
       const suggestionLines = priorities.match(/^\d+\..+$/gm) || [];
       for (const line of suggestionLines.slice(0, 5)) {
         recordSuggestion(line, "ship-priority");
+      }
+
+      // Optional: write Top pick as OpenClaw task brief for coding agents
+      if (process.env.SENTINEL_SHIP_WRITE_OPENCLAW_TASK === "true") {
+        try {
+          const task = buildTaskFromTopPick(priorities, "sentinel_ship");
+          if (task) {
+            const writtenPath = writeTaskToQueue(task);
+            logger.info(
+              `[SENTINEL_SHIP] OpenClaw task brief written to ${writtenPath}`,
+            );
+          }
+        } catch (err) {
+          logger.warn(
+            "[SENTINEL_SHIP] Failed to write OpenClaw task brief:",
+            err,
+          );
+        }
       }
 
       const out = "Here's what to ship—\n\n" + response;

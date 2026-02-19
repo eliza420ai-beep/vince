@@ -18,6 +18,7 @@ Sentinel is the **CTO agent**: ops, architecture steward, cost steward, and proa
 ## What Sentinel Can Do Today
 
 - **Suggestions and PRD:** SENTINEL_SUGGEST (impact-scored, project-aware); SENTINEL_PRD (world-class PRD generation); SENTINEL_SHIP (what to ship for max impact).
+- **OpenClaw task queue:** When `SENTINEL_SHIP_WRITE_OPENCLAW_TASK=true`, SENTINEL_SHIP writes the "Top pick" as a structured JSON task brief to `docs/standup/openclaw-queue/`. When `SENTINEL_WEEKLY_WRITE_OPENCLAW_TASK=true`, the weekly task writes the #1 suggestion to the same queue. Coding agents (OpenClaw, Cursor, Claude Code) consume from that directory; see [docs/standup/OPENCLAW_TASK_CONTRACT.md](docs/standup/OPENCLAW_TASK_CONTRACT.md).
 - **Architecture and multi-agent:** SENTINEL_MULTI_AGENT (ASK_AGENT, standups, Option C); SENTINEL_TRADING_INTEL (paper bot, feature store, ML, Hypersurface, EV framework).
 - **OpenClaw and settings:** SENTINEL_OPENCLAW_GUIDE; SENTINEL_SETTINGS_SUGGEST.
 - **ONNX and docs:** SENTINEL_ONNX_STATUS (ML/ONNX health); SENTINEL_DOC_IMPROVE (documentation improvements).
@@ -34,7 +35,7 @@ Sentinel is the **CTO agent**: ops, architecture steward, cost steward, and proa
 - **Project radar scope:** Scans plugins, progress, knowledge, docs, todos; may not include every repo or external system. PRD: document scope and add key paths if needed.
 - **Daily digest optional:** SENTINEL_DAILY_ENABLED defaults false; daily digest and ONNX nudge require env and channel setup. PRD: runbook for enabling daily and Discord channel naming.
 - **Cost data source:** SENTINEL_COST_STATUS reads from TREASURY (e.g. docs/TREASURY.md and Usage tab); if TREASURY is not updated, numbers can be stale. PRD: sync process and ownership for TREASURY.
-- **PRD output location:** Standup can assign type “prd” to output in docs/standup/prds/; integration instructions in docs/standup/integration-instructions/. PRD: document standup types and deliverable paths for OpenClaw.
+- **PRD output location:** Standup can assign type “prd” to output in docs/standup/prds/; integration instructions in docs/standup/integration-instructions/. PRDs are written to `docs/standup/prds/` when `STANDUP_DELIVERABLES_DIR` is set (or `SENTINEL_PRD_OUTPUT_DIR`), otherwise `standup-deliverables/prds/`. OpenClaw task briefs: docs/standup/openclaw-queue/ (see OPENCLAW_TASK_CONTRACT.md).
 - **ART/NFT execution:** Sentinel suggests gen art and pitches; minting/execution is Otaku. PRD: keep handoff clear; optional “Sentinel idea → Otaku mint” flow doc.
 
 ---

@@ -20,7 +20,20 @@ import * as path from "path";
 import { logger } from "@elizaos/core";
 import { scanProject, type ProjectState } from "./projectRadar.service";
 
-const PRD_OUTPUT_DIR = path.join(process.cwd(), "standup-deliverables", "prds");
+/**
+ * PRD output directory. Precedence: SENTINEL_PRD_OUTPUT_DIR > STANDUP_DELIVERABLES_DIR/prds > standup-deliverables/prds.
+ */
+function getPRDOutputDir(): string {
+  const explicit = process.env.SENTINEL_PRD_OUTPUT_DIR?.trim();
+  if (explicit) {
+    return path.resolve(process.cwd(), explicit);
+  }
+  const standupDir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
+  if (standupDir) {
+    return path.join(process.cwd(), standupDir, "prds");
+  }
+  return path.join(process.cwd(), "standup-deliverables", "prds");
+}
 
 export interface PRDInput {
   title: string;
@@ -371,20 +384,20 @@ ${sections.map((s) => `## ${s.heading}\n\n${s.content}`).join("\n\n---\n\n")}
 }
 
 /**
- * Save PRD to standup-deliverables
+ * Save PRD to standup deliverables (docs/standup/prds when STANDUP_DELIVERABLES_DIR is set).
  */
 export function savePRD(prd: PRD): string {
+  const outputDir = getPRDOutputDir();
   const date = new Date().toISOString().slice(0, 10);
   const slug = prd.title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .slice(0, 50);
   const filename = `${date}-prd-${slug}.md`;
-  const filepath = path.join(PRD_OUTPUT_DIR, filename);
+  const filepath = path.join(outputDir, filename);
 
-  // Ensure directory exists
-  if (!fs.existsSync(PRD_OUTPUT_DIR)) {
-    fs.mkdirSync(PRD_OUTPUT_DIR, { recursive: true });
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
   }
 
   fs.writeFileSync(filepath, prd.markdown);
@@ -425,22 +438,23 @@ export function generateTaskBrief(
 }
 
 /**
- * List existing PRDs
+ * List existing PRDs (from configured output dir).
  */
 export function listPRDs(): Array<{
   filename: string;
   path: string;
   created: Date;
 }> {
-  if (!fs.existsSync(PRD_OUTPUT_DIR)) {
+  const outputDir = getPRDOutputDir();
+  if (!fs.existsSync(outputDir)) {
     return [];
   }
 
   return fs
-    .readdirSync(PRD_OUTPUT_DIR)
+    .readdirSync(outputDir)
     .filter((f) => f.endsWith(".md") && f.includes("-prd-"))
     .map((filename) => {
-      const filepath = path.join(PRD_OUTPUT_DIR, filename);
+      const filepath = path.join(outputDir, filename);
       const stat = fs.statSync(filepath);
       return { filename, path: filepath, created: stat.mtime };
     })

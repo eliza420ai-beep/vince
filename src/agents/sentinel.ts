@@ -519,7 +519,7 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
       {
         name: "Sentinel",
         content: {
-          text: "**OpenClaw workspace** — Start at [OPENCLAW.md](OPENCLAW.md) at repo root. You have four home dirs: **openclaw-agents/** (sub-agents, orchestrator, Brain/workspace), **vault/** (knowledge vault, todos, meetings), **skills/** (e.g. x-research for X), **tasks/** (lessons, quickstarts, todo). Implement PRDs from docs/standup/prds/; apply Eliza tasks from docs/standup/eliza-tasks/. Ask me for PRDs or where to implement next.",
+          text: "**OpenClaw workspace** — Start at [OPENCLAW.md](OPENCLAW.md) at repo root. You have four home dirs: **openclaw-agents/** (sub-agents, orchestrator, Brain/workspace), **vault/** (knowledge vault, todos, meetings), **skills/** (e.g. x-research for X), **tasks/** (lessons, quickstarts, todo). Implement PRDs from docs/standup/prds/; pick next task from docs/standup/openclaw-queue/ when available; apply Eliza tasks from docs/standup/eliza-tasks/. Ask me for PRDs or where to implement next.",
         },
       },
     ],

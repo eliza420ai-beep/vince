@@ -134,15 +134,15 @@ Solus advises on weekly BTC covered calls and cash-secured puts on Hypersurface.
 
 ### 7. Sentinel to OpenClaw: AI agent shipping code improvements
 
-Sentinel already produces proactive suggestions (SENTINEL_SUGGEST), impact-scored ship priorities (SENTINEL_SHIP), and PRDs (SENTINEL_PRD). The next step: those suggestions should flow into an AI coding agent (OpenClaw or similar) that opens PRs on a new branch, turning Sentinel's analysis into actual code changes without human prompting.
+Sentinel produces proactive suggestions (SENTINEL_SUGGEST), impact-scored ship priorities (SENTINEL_SHIP), and PRDs (SENTINEL_PRD). The bridge from Sentinel's output to an AI coding agent is in place: structured task briefs are written to a queue when enabled; coding agents (OpenClaw, Cursor, Claude Code) consume from that queue and open PRs on a new branch.
 
-**The loop we want:**
-1. Sentinel's weekly task scans the project (project radar, impact scorer, docs analysis) and produces ranked improvement suggestions.
-2. The highest-impact suggestion gets turned into a task brief with clear scope: what files to change, what the expected outcome is, and acceptance criteria.
-3. An AI coding agent (OpenClaw, Claude, or similar) picks up the brief, creates a feature branch, makes the changes, and opens a PR.
+**The loop (steps 1–3 implemented):**
+1. Sentinel's weekly task or SENTINEL_SHIP scans the project and produces ranked improvement suggestions.
+2. The highest-impact suggestion is turned into a structured task brief (JSON) with scope, acceptance criteria, and suggested branch name. Briefs are written to `docs/standup/openclaw-queue/` when `SENTINEL_SHIP_WRITE_OPENCLAW_TASK=true` or `SENTINEL_WEEKLY_WRITE_OPENCLAW_TASK=true`.
+3. An AI coding agent polls the queue, picks up the brief, creates a feature branch, makes the changes, and opens a PR (see [docs/standup/OPENCLAW_TASK_CONTRACT.md](docs/standup/OPENCLAW_TASK_CONTRACT.md)).
 4. A human reviews and merges (or gives feedback that goes back to the agent).
 
-Right now step 1 and 2 exist (Sentinel produces suggestions and can generate PRDs), but there's no bridge from step 2 to step 3. The `sentinelShip.action.ts` produces text output; it doesn't create a structured task that a coding agent can consume. The OpenClaw knowledge service (`openclawKnowledge.service.ts`) knows about OpenClaw's capabilities but doesn't dispatch work to it.
+**What's in place:** Task-brief schema and contract (OPENCLAW_TASK_CONTRACT.md), openclawTaskBrief.service (build + write to queue), SENTINEL_SHIP and weekly task optional writes, configurable PRD output path (STANDUP_DELIVERABLES_DIR / SENTINEL_PRD_OUTPUT_DIR), getTaskQueuePath() in openclawKnowledge. All code changes by the consumer must be on a new branch with a PR, never on main.
 
 **Where to look:**
 - Sentinel suggest action: `src/plugins/plugin-sentinel/src/actions/sentinelSuggest.action.ts`
@@ -154,7 +154,7 @@ Right now step 1 and 2 exist (Sentinel produces suggestions and can generate PRD
 - Weekly/daily tasks: `src/plugins/plugin-sentinel/src/tasks/`
 - Sentinel agent: `src/agents/sentinel.ts`
 
-**How to contribute:** Build the bridge between Sentinel's output and a coding agent's input. That could be: a structured JSON task format that Sentinel writes to a file or API, an OpenClaw adapter that consumes PRDs and creates branches, or an MCP tool call that dispatches work. The key constraint: all code changes happen on a new branch with a PR, never on main. If Sentinel can say "fix the daily report format" and a PR appears with the fix, that's the loop closed.
+**How to contribute:** The bridge is in place: when `SENTINEL_SHIP_WRITE_OPENCLAW_TASK=true` or `SENTINEL_WEEKLY_WRITE_OPENCLAW_TASK=true`, Sentinel writes structured task briefs (JSON) to `docs/standup/openclaw-queue/`. Coding agents poll that directory; see [docs/standup/OPENCLAW_TASK_CONTRACT.md](docs/standup/OPENCLAW_TASK_CONTRACT.md) for schema and consumer contract. You can extend the adapter (script, MCP tool, or OpenClaw integration) that reads the queue, creates a branch, and opens a PR. The key constraint: all code changes happen on a new branch with a PR, never on main.
 
 ### Per-agent improvement notes
 

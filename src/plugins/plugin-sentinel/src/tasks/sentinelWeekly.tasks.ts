@@ -11,6 +11,10 @@ import {
   ModelType,
 } from "@elizaos/core";
 import { generateInvestorBlock } from "../actions/sentinelInvestorReport.action";
+import {
+  buildTaskFromSuggestionLine,
+  writeTaskToQueue,
+} from "../services/openclawTaskBrief.service";
 
 const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 const ZERO_UUID = "00000000-0000-0000-0000-000000000000" as UUID;
@@ -139,10 +143,33 @@ export async function registerSentinelWeeklyTask(
       );
       try {
         const list = await generateWeeklySuggestions(rt);
+        const listTrimmed = list.trim();
+
+        if (process.env.SENTINEL_WEEKLY_WRITE_OPENCLAW_TASK === "true") {
+          try {
+            const firstLine = listTrimmed
+              .split("\n")
+              .map((l) => l.trim())
+              .find((l) => /^\d+\.\s+/.test(l));
+            if (firstLine) {
+              const task = buildTaskFromSuggestionLine(firstLine, "weekly");
+              const writtenPath = writeTaskToQueue(task);
+              logger.debug(
+                `[SentinelWeekly] OpenClaw task brief written to ${writtenPath}`,
+              );
+            }
+          } catch (err) {
+            logger.warn(
+              "[SentinelWeekly] Failed to write OpenClaw task brief:",
+              err,
+            );
+          }
+        }
+
         const suggestionsMessage = [
           "**Sentinel — weekly suggestions**",
           "",
-          list.trim(),
+          listTrimmed,
           "",
           "---",
           "_Ask me: suggest, what should we improve, task brief for Claude 4.6, ONNX status, openclaw guide, best settings, art gems._",
