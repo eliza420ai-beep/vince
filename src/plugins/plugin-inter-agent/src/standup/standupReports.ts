@@ -314,9 +314,9 @@ Focus on: ${role.reportSections.join(", ")}
 ### Standup Rules
 1. Lead with DATA, not pleasantries
 2. Name your sources
-3. Keep it concise (under 300 words)
-4. End with: ACTION items or DECISION items for ${humanName}
-5. If you disagree with another agent, explain why with evidence
+3. Keep it short — 2-4 sentences, 60 words max
+4. End with one clear action
+5. If you disagree with another agent, say why
 `;
 
   const humanContext = isHumanPresent

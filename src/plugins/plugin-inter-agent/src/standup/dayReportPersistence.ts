@@ -208,7 +208,7 @@ export async function getRecentReportsContext(
       const filename = path.basename(filepath);
       const date = filename.replace("-day-report.md", "");
       const tldrMatch = content.match(
-        /(?:\*\*TL;DR:\*\*\s*|### TL;DR\n)([^\n#]+)/,
+        /(?:\*\*TL;DR:\*\*\s*|### TL;DR\n|TL;DR:\s*)([^\n#]+)/,
       );
       const tldr = tldrMatch ? tldrMatch[1].trim() : "No summary";
       summaries.push(`**${date}**: ${tldr}`);

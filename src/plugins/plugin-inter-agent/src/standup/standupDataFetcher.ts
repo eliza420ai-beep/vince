@@ -818,7 +818,9 @@ async function buildDeltaReport(): Promise<string> {
         `**Yesterday:** Solus's call: ${solusMatch[1].trim()} — ${solusMatch[2].trim().slice(0, 120)}`,
       );
     }
-    const tldrMatch = yesterdayReport.match(/\*\*TL;DR:?\*\*\s*([^\n#]+)/);
+    const tldrMatch = yesterdayReport.match(
+      /(?:\*\*TL;DR:?\*\*\s*|TL;DR:\s*)([^\n#]+)/,
+    );
     if (tldrMatch)
       lines.push(`**Yesterday TL;DR:** ${tldrMatch[1].trim().slice(0, 100)}`);
   } else {

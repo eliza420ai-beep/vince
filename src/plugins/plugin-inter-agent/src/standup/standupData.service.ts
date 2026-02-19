@@ -345,13 +345,13 @@ export async function getFearGreed(
 }
 
 /**
- * Get X/CT sentiment data (for ECHO)
- * TODO: Wire up to plugin-x-research when ECHO generates reports
+ * Get X/CT sentiment data (for ECHO).
+ * ECHO uses plugin-x-research (X_PULSE, X_VIBE) via standupDataFetcher; this placeholder
+ * remains for the structured SentimentData interface if needed by future callers.
  */
 export async function getSentimentData(
-  runtime: IAgentRuntime,
+  _runtime: IAgentRuntime,
 ): Promise<SentimentData[]> {
-  // Placeholder - ECHO will use X_PULSE action data
   return [];
 }
 

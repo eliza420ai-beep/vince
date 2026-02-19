@@ -52,12 +52,12 @@ interface ActionItemStore {
 
 /** Get the action items file path */
 function getActionItemsPath(): string {
-  const dir =
-    process.env.STANDUP_DELIVERABLES_DIR?.trim() ||
-    path.join(
-      process.cwd(),
-      process.env.STANDUP_DELIVERABLES_DIR || "docs/standup",
-    );
+  const envDir = process.env.STANDUP_DELIVERABLES_DIR?.trim();
+  const dir = envDir
+    ? path.isAbsolute(envDir)
+      ? envDir
+      : path.join(process.cwd(), envDir)
+    : path.join(process.cwd(), "docs/standup");
   return path.join(dir, "action-items.json");
 }
 

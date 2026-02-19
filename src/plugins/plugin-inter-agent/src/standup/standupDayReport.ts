@@ -110,7 +110,7 @@ export async function generateAndSaveDayReport(
   const savedPath = await saveDayReport(reportText);
   if (savedPath) {
     const tldrMatch = reportText.match(
-      /(?:\*\*TL;DR:\*\*\s*|### TL;DR\n)([^\n#]+)/,
+      /(?:\*\*TL;DR:\*\*\s*|### TL;DR\n|TL;DR:\s*)([^\n#]+)/,
     );
     await updateDayReportManifest(
       savedPath,
