@@ -308,3 +308,17 @@
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-pendle-meridian-research-sprint.ts
 - **2026-02-19** [in_progress] @Oracle: Warsh Fed nomination monitor
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-oracle-warsh-fed-nomination-monitor.ts
+- **2026-02-19** [in_progress] @VINCE: Paper Bot Setup
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-paper-bot-setup.ts
+- **2026-02-19** [in_progress] @Solus: BTC Covered Call
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-btc-covered-call.ts
+- **2026-02-19** [in_progress] @Eliza: DeFi Yield Research
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-defi-yield-research.ts
+- **2026-02-19** [in_progress] @Oracle: Fed Chair Market
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-oracle-fed-chair-market.ts
+- **2026-02-19** [in_progress] @Otaku: Wallet Configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-wallet-configuration.ts
+- **2026-02-19** [in_progress] @ECHO: CT Sentiment Monitor
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-echo-ct-sentiment-monitor.ts
+- **2026-02-19** [in_progress] @Clawterm: OpenClaw Security Audit
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-openclaw-security-audit.ts

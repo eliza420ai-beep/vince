@@ -153,3 +153,10 @@
 | 2026-02-19 | Sentinel | OpenClaw integration PRD v0.5... | `2026-02-19-sentinel-openclaw-integration-prd-v0-5.ts` |
 | 2026-02-19 | Eliza | Pendle/Meridian research sprint... | `2026-02-19-eliza-pendle-meridian-research-sprint.ts` |
 | 2026-02-19 | Oracle | Warsh Fed nomination monitor... | `2026-02-19-oracle-warsh-fed-nomination-monitor.ts` |
+| 2026-02-19 | VINCE | Paper Bot Setup... | `2026-02-19-vince-paper-bot-setup.ts` |
+| 2026-02-19 | Solus | BTC Covered Call... | `2026-02-19-solus-btc-covered-call.ts` |
+| 2026-02-19 | Eliza | DeFi Yield Research... | `2026-02-19-eliza-defi-yield-research.ts` |
+| 2026-02-19 | Oracle | Fed Chair Market... | `2026-02-19-oracle-fed-chair-market.ts` |
+| 2026-02-19 | Otaku | Wallet Configuration... | `2026-02-19-otaku-wallet-configuration.ts` |
+| 2026-02-19 | ECHO | CT Sentiment Monitor... | `2026-02-19-echo-ct-sentiment-monitor.ts` |
+| 2026-02-19 | Clawterm | OpenClaw Security Audit... | `2026-02-19-clawterm-openclaw-security-audit.ts` |
