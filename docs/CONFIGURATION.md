@@ -55,5 +55,8 @@ Set `VINCE_DAILY_REPORT_ENABLED`, `VINCE_LIFESTYLE_DAILY_ENABLED`, `VINCE_NEWS_D
 | `VITE_OTAKU_MODE`                                          | Wallet UI: `normies` = simple/Coinbase; unset = DeFi mode. Build-time only.                                                                                                     |
 | `SUBSTACK_FEED_URL`                                        | Optional. RSS feed for Ikigai Studio Substack (default: https://ikigaistudio.substack.com/feed). Set empty to disable.                                                          |
 | `ELIZA_SUBSTACK_LINKEDIN_HANDLE`                           | Optional. LinkedIn handle linked to Substack (for profile stats via [Substack Developer API](https://support.substack.com/hc/en-us/articles/45099095296916)); requires API ToS. |
+| `FINNHUB_API_KEY`                                          | Optional. Solus offchain stock quotes and news (watchlist: Quantum, AI Infra, Nuclear, etc.). Free tier: 60 calls/min. Prefer over Alpha Vantage when both set.                       |
+| `ALPHA_VANTAGE_API_KEY`                                    | Optional. Solus stock pulse fallback (quotes + NEWS_SENTIMENT). Free tier: 25 req/day. In Cursor/IDE use the [Alpha Vantage MCP](https://mcp.alphavantage.co/) for ad-hoc research. |
+| `SOLUS_DISCORD_APPLICATION_ID` / `SOLUS_DISCORD_API_TOKEN` | Solus Discord bot (CFO, strike ritual, options + stock specialist).                                                                                                              |
 
 See `.env.example` for the full list.

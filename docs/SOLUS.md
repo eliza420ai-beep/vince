@@ -1,6 +1,6 @@
 # Solus: Options and Strike Agent (VINCE)
 
-Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options expert—mechanics, strike ritual, position assessment, and optimal strike brainstorming. He has spot prices (BTC, ETH, SOL, HYPE) and mechanics; direction and live options/IV come from pasted context (e.g. VINCE output) or the user. No execution; Otaku executes. Right curve: options income and execution framing.
+Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options expert—mechanics, strike ritual, position assessment, and optimal strike brainstorming—and **stock specialist** for offchain equities (not tradeable on Hyperliquid). He has spot prices (BTC, ETH, SOL, HYPE) and mechanics; direction and live options/IV come from pasted context (e.g. VINCE output) or the user. For offchain stocks (Quantum, AI Infra, Nuclear, AI Energy, Defense, Robotics, Battery, Space, Copper, Rare Earths, Semiconductors), Solus uses knowledge and **Finnhub** (preferred) or **Alpha Vantage** (fallback) when the corresponding API key is set. In Cursor/IDE you can also use the [Alpha Vantage MCP](https://mcp.alphavantage.co/) for ad-hoc stock research. No execution; Otaku executes. Right curve: options income and execution framing.
 
 **Use this doc** to brief OpenClaw (or any agent) on what Solus can and cannot do today, so you can draft a PRD for the next iteration.
 
@@ -20,7 +20,8 @@ Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options exper
 - **SOLUS_HYPERSURFACE_EXPLAIN:** Explain Hypersurface mechanics (secured puts, the wheel) in plain language; point to VINCE for live data.
 - **SOLUS_POSITION_ASSESS:** Interpret position, invalidation, hold/roll/adjust; ask for details if missing.
 - **SOLUS_OPTIMAL_STRIKE:** Strike call (asset, OTM %, size/skip, invalidation) when context has data; else ask for VINCE options output. Uses spot prices from context; frames weekly (expiry Friday).
-- **Providers:** SOLUS_HYPERSURFACE_CONTEXT (mechanics, no API); SOLUS_HYPERSURFACE_SPOT_PRICES (BTC, ETH, SOL, HYPE from CoinGecko, 60s cache via plugin-coingecko).
+- **Providers:** SOLUS_HYPERSURFACE_CONTEXT (mechanics, no API); SOLUS_HYPERSURFACE_SPOT_PRICES (BTC, ETH, SOL, HYPE from CoinGecko, 60s cache via plugin-coingecko); **SOLUS_STOCK_PULSE** (Finnhub preferred, Alpha Vantage fallback — quotes and recent news when the message mentions a sector or ticker; set `FINNHUB_API_KEY` or `ALPHA_VANTAGE_API_KEY`. [Alpha Vantage MCP](https://mcp.alphavantage.co/) for Cursor/IDE.).
+- **Stock specialist:** Offchain watchlist (see `knowledge/stocks/solus-offchain-watchlist.md`) and Finnhub keep Solus up to date on sectors/tickers; research and context only, not tradeable on Hyperliquid.
 - **Multi-agent:** ASK_AGENT (vincePluginNoX) for in-conversation options data; handoffs execution to Otaku, live perps/options data to VINCE.
 
 ---
@@ -28,6 +29,7 @@ Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options exper
 ## What Solus Cannot Do Yet / Gaps
 
 - **No funding, IV, or sentiment APIs:** Solus has spot (CoinGecko) and mechanics only. "Where price lands by Friday" comes from pasted context (VINCE, Grok daily) or user. PRD: keep boundary; optional "Solus plus VINCE options view" one-shot prompt to reduce paste.
+- **Offchain stocks:** No execution; Finnhub is for quotes and news only. Watchlist is fixed in plugin-solus constants; not user-editable in chat.
 - **No Deribit/Hypersurface API calls:** Plugin does not call Deribit or Hypersurface; options/IV data is from state and LLM. Live options/IV stay in VINCE. PRD: document clearly; optional read-only options endpoint for Solus context.
 - **Spot prices dependency:** Real-time BTC, ETH, SOL, HYPE from plugin-coingecko; if service missing, spot provider returns nothing. PRD: graceful degradation when spot missing.
 - **Friday reminder:** Optional Thursday 20:00 UTC push to solus/ops channels is not implemented; task is optional in plugin readme. PRD: implement Friday-reminder task if product wants it.
@@ -42,7 +44,10 @@ Solus is the **CFO (Chief Financial Officer)** agent: Hypersurface options exper
 | Agent definition | [src/agents/solus.ts](src/agents/solus.ts)                                                 |
 | Plugin entry     | [src/plugins/plugin-solus/src/index.ts](src/plugins/plugin-solus/src/index.ts)             |
 | Actions          | [src/plugins/plugin-solus/src/actions/](src/plugins/plugin-solus/src/actions/)             |
-| Providers        | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/)         |
+| Providers        | [src/plugins/plugin-solus/src/providers/](src/plugins/plugin-solus/src/providers/) (incl. solusStockPulse) |
+| Finnhub service   | [src/plugins/plugin-solus/src/services/finnhub.service.ts](src/plugins/plugin-solus/src/services/finnhub.service.ts) |
+| Alpha Vantage svc | [src/plugins/plugin-solus/src/services/alphaVantage.service.ts](src/plugins/plugin-solus/src/services/alphaVantage.service.ts) |
+| Offchain watchlist | [src/plugins/plugin-solus/src/constants/solusStockWatchlist.ts](src/plugins/plugin-solus/src/constants/solusStockWatchlist.ts) · [knowledge/stocks/solus-offchain-watchlist.md](knowledge/stocks/solus-offchain-watchlist.md) |
 | Utils (isSolus)  | [src/plugins/plugin-solus/src/utils/solus.ts](src/plugins/plugin-solus/src/utils/solus.ts) |
 | Three curves     | [knowledge/teammate/THREE-CURVES.md](knowledge/teammate/THREE-CURVES.md)                   |
 
