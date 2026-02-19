@@ -10,7 +10,7 @@
       "id": "ai-021ca6fe-d9fb-44ec-b7c3-0cedcd5e2340",
       "status": "done",
       "createdAt": "2026-02-19T11:17:24.092Z",
-      "updatedAt": "2026-02-19T11:19:35.483Z",
+      "updatedAt": "2026-02-19T11:33:10.948Z",
       "priority": 1,
       "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts",
       "completedAt": "2026-02-19T11:19:35.483Z"
@@ -25,7 +25,7 @@
       "id": "ai-c4cc3d98-7319-4390-8b5b-6dbeb5d9142e",
       "status": "done",
       "createdAt": "2026-02-19T11:17:24.093Z",
-      "updatedAt": "2026-02-19T11:19:42.753Z",
+      "updatedAt": "2026-02-19T11:33:10.948Z",
       "priority": 2,
       "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts",
       "completedAt": "2026-02-19T11:19:42.753Z"
@@ -40,7 +40,7 @@
       "id": "ai-5c733580-4911-433a-a5b0-01486b449f3a",
       "status": "done",
       "createdAt": "2026-02-19T11:17:24.096Z",
-      "updatedAt": "2026-02-19T11:19:58.667Z",
+      "updatedAt": "2026-02-19T11:33:10.948Z",
       "priority": 3,
       "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts",
       "completedAt": "2026-02-19T11:19:58.667Z"
@@ -55,7 +55,7 @@
       "id": "ai-41175747-4bac-46e3-b791-5296194ece8e",
       "status": "done",
       "createdAt": "2026-02-19T11:17:24.097Z",
-      "updatedAt": "2026-02-19T11:20:17.963Z",
+      "updatedAt": "2026-02-19T11:33:10.948Z",
       "priority": 4,
       "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts",
       "completedAt": "2026-02-19T11:20:17.963Z"
@@ -70,11 +70,76 @@
       "id": "ai-6c6c4c81-e0f4-404b-a5d9-3ca651c03a52",
       "status": "done",
       "createdAt": "2026-02-19T11:17:24.098Z",
-      "updatedAt": "2026-02-19T11:20:37.167Z",
+      "updatedAt": "2026-02-19T11:33:10.948Z",
       "priority": 5,
       "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts",
       "completedAt": "2026-02-19T11:20:37.167Z"
+    },
+    {
+      "date": "2026-02-19",
+      "what": "BTC Covered Call Execution",
+      "how": "Sell $67,500 strike, Friday expiry, 20% allocation",
+      "why": "Capture premium in low-vol environment",
+      "owner": "Solus",
+      "urgency": "today",
+      "id": "ai-25240151-749a-4540-9b9e-07bb38021c46",
+      "status": "in_progress",
+      "createdAt": "2026-02-19T11:33:10.941Z",
+      "updatedAt": "2026-02-19T11:34:49.848Z",
+      "priority": 6
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Complete Wallet Configuration",
+      "how": "Set EVM_PRIVATE_KEY and SOLANA_PRIVATE_KEY in .env",
+      "why": "Enable DeFi execution capability",
+      "owner": "Otaku",
+      "urgency": "today",
+      "id": "ai-eb92aeb9-f961-49ca-be62-7e4df548874f",
+      "status": "in_progress",
+      "createdAt": "2026-02-19T11:33:10.942Z",
+      "updatedAt": "2026-02-19T11:34:50.848Z",
+      "priority": 7
+    },
+    {
+      "date": "2026-02-19",
+      "what": "CT Sentiment Deep Dive",
+      "how": "Query specific BTC support/resistance narratives",
+      "why": "Track contrarian signals above current bearish levels",
+      "owner": "ECHO",
+      "urgency": "today",
+      "id": "ai-f7a65611-bcd5-40d7-8376-04ee6bab264b",
+      "status": "in_progress",
+      "createdAt": "2026-02-19T11:33:10.943Z",
+      "updatedAt": "2026-02-19T11:34:51.847Z",
+      "priority": 8
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Paper Bot Signal Optimization",
+      "how": "Test new ML features on current bearish regime",
+      "why": "Improve performance during range-bound markets",
+      "owner": "VINCE",
+      "urgency": "today",
+      "id": "ai-5763a603-68f8-413f-856e-ec623c4dd69c",
+      "status": "in_progress",
+      "createdAt": "2026-02-19T11:33:10.944Z",
+      "updatedAt": "2026-02-19T11:34:52.851Z",
+      "priority": 9
+    },
+    {
+      "date": "2026-02-19",
+      "what": "OpenClaw Docker Deployment",
+      "how": "Create one-click VPS installation script",
+      "why": "Lower barrier to entry for new users",
+      "owner": "Clawterm",
+      "urgency": "today",
+      "id": "ai-1994042f-4082-4a00-95c4-c34b2a4105b9",
+      "status": "in_progress",
+      "createdAt": "2026-02-19T11:33:10.945Z",
+      "updatedAt": "2026-02-19T11:34:53.852Z",
+      "priority": 10
     }
   ],
-  "lastUpdated": "2026-02-19T11:20:37.167Z"
+  "lastUpdated": "2026-02-19T11:34:53.852Z"
 }
