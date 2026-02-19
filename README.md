@@ -19,6 +19,52 @@
 
 ---
 
+## Why
+
+Humans are not wired to win in modern markets.
+
+For most of history, investing rewarded relationships, judgment, and conviction. That edge worked when information was scarce and markets moved slowly enough for humans to process them.
+
+Today, public and private information is priced in within milliseconds. Strategies that depend on reading filings, reacting to news, or "having an opinion" compete in a game where the half-life of new information approaches zero. No human, no matter how smart, experienced, or well-connected, can manually process that volume of data in real time and execute with perfect discipline across thousands of instruments.
+
+The best long-term returns in modern investing come from code, not from humans.
+
+Renaissance Technologies' Medallion Fund has earned roughly 39% annual returns since the late 1980s, about double the S&P 500, sustained for decades. The fund closed to outside investors in 1993 because additional capital would dilute returns by pushing trades into less liquid, lower-edge opportunities. By comparison, Berkshire Hathaway's audited record shows roughly 19.9% annualized over the same period.
+
+Medallion's edge came from repeating small statistical advantages across thousands of instruments simultaneously. Tiny edges, captured over and over through rapid trades in highly liquid assets. Human investors can closely track a handful of positions. Code can monitor thousands in parallel, spot micro-opportunities in milliseconds, and execute that process with zero emotional drift.
+
+### The foundations
+
+Three breakthroughs between 1952 and 1973 made automation inevitable:
+
+1. **1952** — Harry Markowitz proved portfolio construction could be mathematical.
+2. **1964** — William Sharpe introduced CAPM: a way to measure risk, compare returns to a benchmark, and quantify performance.
+3. **1973** — Fischer Black and Myron Scholes published the Black-Scholes equation for pricing options, replacing human estimation with formulas.
+
+To automate investing, you need clear input data, predictable output results, rules that don't rely on human guesses, and the ability to adjust using formulas alone. Black-Scholes provided all four.
+
+Edward Thorp turned these frameworks into live returns at Princeton/Newport Partners. Jim Simons scaled them at Renaissance into what is often considered the greatest fund of all time by annual returns.
+
+### Five levels of autonomous investing
+
+| Level | Name | Edge |
+| :--- | :--- | :--- |
+| **1** | Manual | Information scarcity. Who you knew, what you believed, whether you had the conviction to act. |
+| **2** | Algorithmic | Pre-defined rules execute automatically. Speed and discipline, no learning. |
+| **3** | Automated | Integrated workflows: data feeds, portfolio models, execution. Reduced friction, no intelligence added. |
+| **4** | Autonomous | ML models that update on new data without explicit reprogramming. |
+| **5** | Agentic AI | Plans, chooses actions, uses tools, monitors outcomes, and self-corrects across multi-step workflows. |
+
+### Where VINCE sits
+
+VINCE is built at **Level 5**. Ten agents that research, analyze, paper-trade, evaluate outcomes, and improve their own models. No human in the loop for signal generation, position sizing, or risk management. The self-improving paper trading bot trains in production, stores features in a feature store, and deploys ONNX models back into the decision loop.
+
+The shift from Level 1 to Level 5 is not about replacing human judgment. It is about recognizing that the primary source of competitive advantage has moved from information access to integrated, code-driven research, risk, and execution, running 24/7 with zero emotional drift.
+
+The goal: stay in the game without 12+ hours on screens. Push, not pull.
+
+---
+
 ## What's New in v3.3
 
 **102 tests pass, 0 fail. Build clean. Type check clean.**
