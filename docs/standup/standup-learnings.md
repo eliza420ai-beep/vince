@@ -322,3 +322,17 @@
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-echo-ct-sentiment-monitor.ts
 - **2026-02-19** [in_progress] @Clawterm: OpenClaw Security Audit
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-openclaw-security-audit.ts
+- **2026-02-19** [in_progress] @Solus: Execute $72.5K covered call
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-72-5k-covered-call.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet key setup
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-key-setup.ts
+- **2026-02-19** [in_progress] @ECHO: Monitor UAE mining developments
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-echo-monitor-uae-mining-developments.ts
+- **2026-02-19** [in_progress] @Oracle: Track Warsh Fed chair odds
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-oracle-track-warsh-fed-chair-odds.ts
+- **2026-02-19** [in_progress] @Clawterm: Build ClawHub skill leaderboard
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-build-clawhub-skill-leaderboard.ts
+- **2026-02-19** [in_progress] @Sentinel: Test standup JSON parsing
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-sentinel-test-standup-json-parsing.ts
+- **2026-02-19** [in_progress] @Eliza: Research Pendle protocol
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-pendle-protocol.ts

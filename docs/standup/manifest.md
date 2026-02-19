@@ -160,3 +160,10 @@
 | 2026-02-19 | Otaku | Wallet Configuration... | `2026-02-19-otaku-wallet-configuration.ts` |
 | 2026-02-19 | ECHO | CT Sentiment Monitor... | `2026-02-19-echo-ct-sentiment-monitor.ts` |
 | 2026-02-19 | Clawterm | OpenClaw Security Audit... | `2026-02-19-clawterm-openclaw-security-audit.ts` |
+| 2026-02-19 | Solus | Execute $72.5K covered call... | `2026-02-19-solus-execute-72-5k-covered-call.ts` |
+| 2026-02-19 | Otaku | Complete wallet key setup... | `2026-02-19-otaku-complete-wallet-key-setup.ts` |
+| 2026-02-19 | ECHO | Monitor UAE mining developments... | `2026-02-19-echo-monitor-uae-mining-developments.ts` |
+| 2026-02-19 | Oracle | Track Warsh Fed chair odds... | `2026-02-19-oracle-track-warsh-fed-chair-odds.ts` |
+| 2026-02-19 | Clawterm | Build ClawHub skill leaderboard... | `2026-02-19-clawterm-build-clawhub-skill-leaderboard.ts` |
+| 2026-02-19 | Sentinel | Test standup JSON parsing... | `2026-02-19-sentinel-test-standup-json-parsing.ts` |
+| 2026-02-19 | Eliza | Research Pendle protocol... | `2026-02-19-eliza-research-pendle-protocol.ts` |

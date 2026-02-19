@@ -25,12 +25,14 @@ import {
 /**
  * Build the core Day Report prompt from conversation context.
  * Single source of truth for the Day Report format.
- * Output is scannable-first: structured block (TL;DR, Essential Q, Solus call, TODO, Risks) then a short narrative (100-200 words).
+ * Reads like a quick update you'd send the team in chat — scannable but human, not a formal log.
  */
 export function buildDayReportPrompt(conversationContext: string): string {
   const essentialQ = getEssentialStandupQuestion();
   const date = formatReportDate();
-  return `You are Kelly, writing the team's Day Report for ${date}. Output must be SHORT and SCANNABLE. Put the structured block FIRST so readers get the takeaway in 10 seconds.
+  return `You are Kelly, writing the team's Day Report for ${date}. Write it like a quick update you'd send the team in chat — scannable but human, not a formal report or log. Put the takeaway first so readers get it in 10 seconds.
+
+${ALOHA_STYLE_BLOCK}
 
 STANDUP TRANSCRIPT:
 ${conversationContext}
@@ -44,9 +46,9 @@ OUTPUT FORMAT — use this exact order. Do not add extra sections.
 
 **Essential question:** ${essentialQ}
 
-**Solus's call:** [Above/Below/Uncertain] — [one sentence from Solus]
+**Solus's call:** [Above/Below/Uncertain] — [one sentence from Solus, something you'd say out loud]
 
-**TL;DR:** [ONE sentence: asset + direction + action]
+**TL;DR:** [ONE sentence you'd text a friend: asset + direction + what we're doing. No jargon.]
 
 ### Daily TODO
 
@@ -62,13 +64,13 @@ OUTPUT FORMAT — use this exact order. Do not add extra sections.
 *One team, one dream. Ship it.*
 
 ### In brief
-[3-5 bullets only. 60 words max. One cross-agent link and one recommendation. No paragraphs.]
+[3-5 short lines you'd actually text a friend. What happened today, one cross-agent link, one thing to watch. No bullet jargon, no corporate speak. 60 words max.]
 
 RULES:
-- Structured block (Essential Q through Risks) comes FIRST. Narrative ("In brief") comes LAST and is SHORT.
-- TL;DR = ONE sentence. Risks = one line.
-- Daily TODO = 5-7 rows. Each row: specific @Owner (VINCE, Eliza, ECHO, Oracle, Solus, Otaku, Sentinel, Clawterm, Naval). No generic "monitor" items.
-- In brief = 3-5 bullets, 60 words max. No paragraphs. No "Interestingly", "notably", "leverage", "utilize", "streamline", "paradigm", "holistic", "delve", "landscape", "circle back", "touch base", "at the end of the day".`;
+- Structured block (Essential Q through Risks) comes FIRST. "In brief" comes LAST and reads like a voice note or text, not a bullet list from a slide.
+- TL;DR and Solus's call = one sentence each, something you'd say out loud.
+- Daily TODO = 5-7 rows. Each row: specific @Owner. No generic "monitor" items.
+- In brief = lines you'd send in chat. No "leverage", "utilize", "streamline", "paradigm", "holistic", "delve", "landscape", "circle back", "touch base", "at the end of the day", "notably", "interestingly".`;
 }
 
 export interface GenerateDayReportOptions {

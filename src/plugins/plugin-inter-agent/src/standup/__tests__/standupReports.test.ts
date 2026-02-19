@@ -283,7 +283,7 @@ Conclusion slot.`;
 
     it("non-Naval gets template and only their data section", () => {
       const prompt = buildStandupPrompt("VINCE", shared, transcript, dateStr);
-      expect(prompt).toContain("TEMPLATE (fill this in)");
+      expect(prompt).toContain("TEMPLATE (fill this in");
       expect(prompt).toContain("YOUR DATA");
       expect(prompt).toContain("BTC 66k");
       expect(prompt).not.toContain("FULL TRANSCRIPT");

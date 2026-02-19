@@ -141,6 +141,7 @@ You never have to "chat" with VINCE. He pings you. Proactive agent: day report (
 | Doc | What |
 | :--- | :--- |
 | [CLAUDE.md](CLAUDE.md) | Dev guide (character, plugins, tests) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute, priorities, what we merge |
 | [FEATURE-STORE.md](docs/FEATURE-STORE.md) | ML, paper bot, feature store |
 | [PAPER-BOT-AND-ML.md](docs/PAPER-BOT-AND-ML.md) | Signal loop, MandoMinutes, train |
 | [ONNX.md](docs/ONNX.md) | Train, export, deploy |

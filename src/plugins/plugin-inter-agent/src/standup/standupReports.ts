@@ -7,6 +7,7 @@
 
 import { type IAgentRuntime, type Memory, logger } from "@elizaos/core";
 import { getStandupHumanName } from "./standup.constants";
+import { ALOHA_STYLE_BLOCK } from "./standupStyle";
 
 /**
  * Agent roles and their report focus areas
@@ -107,7 +108,8 @@ RULES:
 - No filler ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
 - Under 120 words total (excluding the JSON block). One ACTION line at the end.
 - Reference others by name if needed (e.g. "Per VINCE's data") but do NOT restate.
-- Do not output any JSON except the single required line at the end (signals or call). No system_status, steps, task, cost_tracking, security_alerts, or other structured blocks.`;
+- Do not output any JSON except the single required line at the end (signals or call). No system_status, steps, task, cost_tracking, security_alerts, or other structured blocks.
+VOICE: Write like you're messaging a friend or teammate — direct, human, one quick take. Not a status log or dashboard dump. Tables are for data; the line after the table should read like something you'd say in chat.`;
 
 /**
  * Extract one agent's section from the shared daily insights markdown.
@@ -155,14 +157,14 @@ export function buildStandupPrompt(
 
   if (isConclusionTurn) {
     return `You are ${agentName} (${role?.title ?? "Synthesis"} - ${role?.focus ?? "Standup conclusion"}).
-Daily standup conclusion. Read the full transcript below and write 2–4 short sentences only. No bullets, no fluff.
+Daily standup conclusion. Read the full transcript and write 2–4 short sentences — like you're summarizing for a friend over coffee. No bullets, no fluff.
 
 Include:
 1. One thesis: what today's data and sentiment add up to.
 2. One signal to watch: the one thing that would confirm or invalidate that thesis.
 3. One team one dream: one line that ties the room together.
 
-Do NOT repeat other agents' reports verbatim. Synthesize.
+Do NOT repeat other agents' reports verbatim. Synthesize. Sound human.
 
 FULL TRANSCRIPT:
 ${transcript}`;
@@ -178,20 +180,22 @@ ${transcript}`;
     : "";
 
   return `You are ${agentName} (${role?.title ?? ""} - ${role?.focus ?? ""}).
-Daily standup report. Fill in YOUR template below with real data.
+Daily standup report. Fill in YOUR template below with real data — like a short update you'd send the team in chat, not a formal log.
 Use the date in your section header as given in the template (e.g. ${dateStr}). Do not use 2024.
 
 Focus ONLY on: ${sectionsList}
 ${STANDUP_CONSTRAINTS}
 
-TEMPLATE (fill this in):
+${ALOHA_STYLE_BLOCK}
+
+TEMPLATE (fill this in; weave numbers in naturally, one sentence of context or take after any table):
 ${template}
 
 YOUR DATA (from shared insights):
 ${yourData}
 ${noJsonLine}
 
-Output your report now. Concise.`;
+Output your report now. Concise, human.`;
 }
 
 /** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. One line only. */

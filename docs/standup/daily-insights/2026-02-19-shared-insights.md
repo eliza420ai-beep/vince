@@ -1,5 +1,5 @@
 ---
-date: 2026-02-19T12:19:35.618Z
+date: 2026-02-19T12:30:49.539Z
 type: shared-daily-insights
 ---
 
@@ -8,13 +8,11 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $66,557 -1.5% | F:0.004% L/S:2.24 Vol:1.0x | bearish |
-| SOL | $81.175 -2.4% | F:-0.004% L/S:3.02 Vol:1.0x | bearish |
-| HYPE | $28.289 -2.7% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $66,614 -1.4% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
+| SOL | $81.105 -2.4% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
+| HYPE | $28.291 -2.7% | F:0.000% L/S:1.00 Vol:1.0x | neutral |
 
-**Fear & Greed:** 9 (extreme fear)
-
-**Signal (BTC):** short (58% conf, CoinGlass,BinanceLongShort,NewsSentiment,XSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+**Signal (BTC):** short (47% conf, BinanceLongShort,NewsSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
 
 **Paper bot:** 0W/0L (+$0) | 0 open, 0 pending
 
@@ -28,9 +26,7 @@ Headlines:
 🔴 TON collabs with Banxa on stablecoins
 🟢 World Uncertainty Index hits ATH
 
-**OI (24h Δ):** BTC $5.3B (-0.4%) | SOL $817M (+0.8%)
-
-**Regime (BTC):** neutral ADX 22.957546331932026 | size 0.8x
+**Regime (BTC):** neutral ADX 22.747919812857184 | size 0.8x
 
 ## Eliza
 **Yesterday:** Solus's call: Below — Sell covered call at $67,500, capture premium in range-bound environment
@@ -51,7 +47,7 @@ Regulatory announcement or Fed policy shift could break range in either directio
 
 **Yesterday TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
-**Today (from shared insights):** | BTC | $66,465 -1.3% | F:0.005% L/S:2.24 Vol:1.0x | bearish | | SOL | $81.118 -2.0% | F:-0.005% L/S:3.02 Vol:1.0x …
+**Today (from shared insights):** | BTC | $66,557 -1.5% | F:0.004% L/S:2.24 Vol:1.0x | bearish | | SOL | $81.175 -2.4% | F:-0.004% L/S:3.02 Vol:1.0x …
 
 ## ECHO
 **CT sentiment (20 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
@@ -94,7 +90,7 @@ $XRP closed slightly bearish as XRPBTC declined due to the lack of weakness …
 | US strikes Iran by January 31, 2026? | 0% | `0xabb86b080e9858dcb3f46954010e49b6f539c20036856c7f999395bfd58d01e6` |
 | Will Trump nominate Kevin Warsh as the next Fed ch… | 95% | `0x61b66d02793b4a68ab0cc25be60d65f517fe18c7d654041281bb130341244fcc` |
 | Will Trump nominate Kevin Hassett as the next Fed … | 0% | `0xdcc87b9ca36015e396bd0eebca29e854a136ed2b0b701049d1ee9da6bee3eb35` |
-| US strikes Iran by February 28, 2026? | 27% | `0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20` |
+| US strikes Iran by February 28, 2026? | 28% | `0x3488f31e6449f9803f99a8b5dd232c7ad883637f1c86e6953305a2ef19c77f20` |
 | Will Trump nominate Bill Pulte as the next Fed cha… | 0% | `0xc82669901de7cb0be25c1d8de39fbbe8e2ddc0aacba0a30a663ed13c3b9eb06d` |
 
 Use GET_POLYMARKET_PRICE with condition_id for current CLOB odds.
@@ -125,6 +121,8 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+727fc07 docs/standup: 2026-02-19 reports, action items, manifests, metrics
+9168f60 standup: stricter canonical JSON, strip non-canonical multiline and single-line
 f2a3583 fix(standup): form factor cleanup — sanitize replies, shorter prompts, bullets
 168116e fix(standup): compact form factor — scannable Day Report, shorter agent reports
 3bb6e0d chore(standup): update 2026-02-19 artifacts (shared insights, day report, action items, predictions, metrics)
@@ -133,17 +131,15 @@ e8506d9 test(standup): add extractAgentSection/buildStandupPrompt tests + TESTIN
 e51787f Fix standup feedback loop and sync method type mismatches
 68331d7 Update README.md for v3.3: Refine project description, enhance Day Report format, and clarify team structure. Key changes include improved narrative style for daily standups, integration of strategic priorities, and fixes for duplicate trade issues and TypeScript declarations. Documentation now reflects a more cohesive team approach and streamlined reporting processes.
 b76d822 Update whats-the-trade submodule pointer
-100ac1c Track whats-the-trade rename (.json -> .traded.json) and submodule update
-e98f0a2 LFG
 
-**Recent PRDs:** 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md
-
-**Macro news:**…
+**Recent PRDs:** 2026-02-12…
 
 ## Clawterm
-OpenClaw is gaining traction with browser-hosted agents like Kimi Claw, but current adoption remains low—only 48 skills with minimal engagement. The Kimi Claw tutorial highlights a key shift towards persistent, browser-based AI agents with scheduled automations and ClawHub skill integration. Despite growing interest, most builders aren't running OpenClaw in production yet.
+Daily OpenClaw Standup:
 
-**Tech Focus Suggestion**: Develop a comprehensive, one-click security hardening toolkit for OpenClaw agents, focusing on Docker-based sandboxing and credential management to increase enterprise and individual trust in running agents.
+@andrewnaegele highlights OpenClaw setup guides trending, but current engagement is low with 48 skills at 0 likes. The web research surfaces Kimi Claw, a browser-hosted OpenClaw agent in beta that enables scheduled automations, Telegram integration, and ClawHub skill library access—showing potential for cloud-based AI agent deployment.
+
+**Tech Focus Suggestion**: Prioritize ClawHub skill discoverability and engagement. Create a leaderboard or featured skills section to incentivize builders and increase visibility of top community-developed OpenClaw skills.
 
 ## Naval
 (no data)
