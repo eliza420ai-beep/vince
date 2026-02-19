@@ -1,5 +1,5 @@
 ---
-date: 2026-02-19T13:23:06.357Z
+date: 2026-02-19T13:32:50.598Z
 type: shared-daily-insights
 ---
 
@@ -8,15 +8,15 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $66,213 -1.8% | F:0.003% L/S:2.29 Vol:1.0x | bearish |
-| SOL | $80.425 -3.2% | F:-0.003% L/S:3.03 Vol:1.0x | bearish |
-| HYPE | $28.236 -3.7% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $66,185 -1.9% | F:0.002% L/S:2.29 Vol:1.0x | bearish |
+| SOL | $80.365 -3.2% | F:-0.002% L/S:3.03 Vol:1.0x | bearish |
+| HYPE | $28.201 -3.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
 **Fear & Greed:** 9 (extreme fear)
 
-**Signal (BTC):** short (64% conf, CoinGlass,BinanceLongShort,NewsSentiment,XSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
+**Signal (BTC):** short (63% conf, CoinGlass,BinanceTakerFlow,BinanceLongShort,NewsSentiment,GrokExpert,DeribitIVSkew,MarketRegime,HyperliquidBias,DeribitPutCallRatio sources)
 
-**Paper bot:** 0W/0L (+$0) | 3 open, 0 pending
+**Paper bot:** 0W/0L (+$0) | 0 open, 0 pending
 
 **MandoMinutes:** Risk-on ⚠️ Risk event active security. Themes: other, institutional, regulatory, price
 News sentiment: bullish (68% conf)
@@ -28,11 +28,9 @@ Headlines:
 🔴 TON collabs with Banxa on stablecoins
 🟢 World Uncertainty Index hits ATH
 
-**Liquidations (5m):** Shorts | 4 long ($2k) / 1 short ($4k) | intensity 0%
-
 **OI (24h Δ):** BTC $5.3B (-0.2%) | SOL $814M (-0.2%)
 
-**Regime (BTC):** neutral ADX 23.6708128863916 | size 0.8x
+**Regime (BTC):** neutral ADX 23.753836118070897 | size 0.8x
 
 ## Eliza
 **Yesterday:** Solus's call: Below — Sell covered call at $67,500, capture premium in range-bound environment
@@ -53,7 +51,7 @@ Regulatory announcement or Fed policy shift could break range in either directio
 
 **Yesterday TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
-**Today (from shared insights):** | BTC | $66,271 -1.8% | F:0.218% L/S:2.29 Vol:1.0x | bearish | | SOL | $80.196 -3.5% | F:-0.170% L/S:3.03 Vol:1.0x …
+**Today (from shared insights):** | BTC | $66,213 -1.8% | F:0.003% L/S:2.29 Vol:1.0x | bearish | | SOL | $80.425 -3.2% | F:-0.003% L/S:3.03 Vol:1.0x …
 
 ## ECHO
 **CT sentiment (20 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
@@ -80,15 +78,15 @@ Sentiment has deteriorated sharply since $BTC fell below $100,000, w… (0 likes
 UAE announces Bitcoin mining worth $453.6M, signaling increased competition in digital asset infra… (2 likes)
 @cryptoWZRD_: XRP Daily Technical Outlook:
 $XRP closed slightly bearish as XRPBTC declined due to the lack of weakness in BTC.D. Bitco… (34 likes)
-@36Crypto2: $XRP hits a 5-week high in social sentiment as Ripple’s partnerships with Aviva, Zand Bank, LMAX, and BNY Mellon drive o… (1 likes)
+@cryptov_news: Retail fear on Bitcoin reaching zero hits 2022 highs 📉. Meanwhile, institutions like MicroStrategy are still buying BTC… (1 likes)
 @Cryptofadil: $AXS / $USD Update 18/02/2026.
 
-Closed the last $AXS position in solid profit, but the market is giving us…
+Closed the last $AXS position in solid profit, but the market is giving…
 
 ## Oracle
 | Priority market | YES% | condition_id |
 |-----------------|------|--------------|
-| Will Trump nominate Judy Shelton as the next Fed c… | 3% | `0x46d40e851b24d9b0af4bc1942ccd86439cae82a9011767da14950df0ad997adf` |
+| Will Trump nominate Judy Shelton as the next Fed c… | 4% | `0x46d40e851b24d9b0af4bc1942ccd86439cae82a9011767da14950df0ad997adf` |
 | Will the Fed decrease interest rates by 50+ bps af… | 1% | `0xdeb615a52cd114e5aa27d8344ae506a72bea81f6ed13f5915f050b615a193c20` |
 | Will the Fed increase interest rates by 25+ bps af… | 1% | `0x25aa90b3cd98305e849189b4e8b770fc77fe89bccb7cf9656468414e01145d38` |
 | US strikes Iran by January 31, 2026? | 0% | `0xabb86b080e9858dcb3f46954010e49b6f539c20036856c7f999395bfd58d01e6` |
@@ -108,7 +106,7 @@ Read Oracle's section for: Polymarket odds that inform confidence.
 
 **Your job:** Given last week's position (above), propose this week's BTC covered call strike for Hypersurface (settle Friday 08:00 UTC).
 State: strike price, direction (above/below), premium target, invalidation level.
-Reference VINCE's DVOL, funding, and regime. Reference Oracle's odds.
+Reference the live spot prices above when present; otherwise VINCE's DVOL, funding, and regime. Reference Oracle's odds.
 If uncertain (like last week), say so and explain why with data.
 
 ## Otaku
@@ -125,6 +123,8 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+aefddb5 chore(standup): update 2026-02-19 deliverables and metrics
+1d5a42d fix(standup): inject live spot prices into Solus standup context to prevent BTC price hallucination
 833f35d standup: fix output style — friend-style voice, no JSON leak, casual templates
 be85c7a fix: code review fixes for plugin-inter-agent
 a45794f standup: strip all JSON from display, show-don't-tell templates
@@ -133,8 +133,6 @@ ea22346 standup: kill the formal report format, make it sound like a text
 21edeb1 Add CONTRIBUTING.md, standup friend-style voice, and standup docs
 727fc07 docs/standup: 2026-02-19 reports, action items, manifests, metrics
 9168f60 standup: stricter canonical JSON, strip non-canonical multiline and single-line
-f2a3583 fix(standup): form factor cleanup — sanitize replies, shorter prompts, bullets
-168116e fix(standup): compact form factor — scannable Day Report, shorter agent reports
 
 **Recent PRDs:** 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md
 
@@ -146,9 +144,9 @@ Tether C…
 ## Clawterm
 Daily Standup Summary:
 
-Kimi Claw, a browser-hosted OpenClaw agent, is emerging as a significant development, enabling cloud-based AI agents with scheduled automations and ClawHub skill integration. The tutorial highlights browser-based deployment, persistent agent models, and one-click setup, signaling a shift from local to cloud-based AI agent infrastructure. Web sources suggest growing interest in OpenClaw's conversational AI capabilities across messaging platforms like Telegram, WhatsApp, and Discord.
+The web reveals a growing focus on browser-hosted OpenClaw agents like Kimi Claw, which enables cloud-based AI automation without local infrastructure. The tutorial highlights key features including scheduled tasks, ClawHub skills, and multi-platform integrations (Telegram, WhatsApp, Discord). While the project is still in beta, it demonstrates the potential for persistent, conversational AI agents that can run background workflows.
 
-**Tech Focus Suggestion**: Prioritize developing a comprehensive ClawHub skill authentication and credential management system for hosted agents, addressing the current beta limitations in integration security.
+**Tech Focus Suggestion**: Team should prioritize developing a comprehensive ClawHub skill validation and security framework to ensure safe, reliable third-party skill integration as browser-hosted agents become more prevalent.
 
 ## Naval
 (no data)
