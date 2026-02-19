@@ -11,11 +11,14 @@ import { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPric
 import { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 import { AlphaVantageService } from "./services/alphaVantage.service";
 import { FinnhubService } from "./services/finnhub.service";
+import { FMPService } from "./services/fmp.service";
 import {
   solusStrikeRitualAction,
   solusHypersurfaceExplainAction,
   solusPositionAssessAction,
   solusOptimalStrikeAction,
+  solusAnalyzeAction,
+  solusEarningsCalendarAction,
 } from "./actions";
 
 export const solusPlugin: Plugin = {
@@ -23,7 +26,7 @@ export const solusPlugin: Plugin = {
   description:
     "Hypersurface expertise for Solus: mechanics, strike ritual, position assess, optimal strike. Offchain stock pulse via Finnhub. Solus only.",
 
-  services: [FinnhubService, AlphaVantageService],
+  services: [FinnhubService, AlphaVantageService, FMPService],
   providers: [
     hypersurfaceContextProvider,
     hypersurfaceSpotPricesProvider,
@@ -34,6 +37,8 @@ export const solusPlugin: Plugin = {
     solusHypersurfaceExplainAction,
     solusPositionAssessAction,
     solusOptimalStrikeAction,
+    solusAnalyzeAction,
+    solusEarningsCalendarAction,
   ],
 
   init: async (_config: Record<string, string>, runtime: IAgentRuntime) => {
@@ -58,7 +63,10 @@ export { hypersurfaceSpotPricesProvider } from "./providers/hypersurfaceSpotPric
 export { solusStockPulseProvider } from "./providers/solusStockPulse.provider";
 export { AlphaVantageService } from "./services/alphaVantage.service";
 export { FinnhubService } from "./services/finnhub.service";
+export { FMPService } from "./services/fmp.service";
 export { solusStrikeRitualAction } from "./actions/solusStrikeRitual.action";
 export { solusHypersurfaceExplainAction } from "./actions/solusHypersurfaceExplain.action";
 export { solusPositionAssessAction } from "./actions/solusPositionAssess.action";
 export { solusOptimalStrikeAction } from "./actions/solusOptimalStrike.action";
+export { solusAnalyzeAction } from "./actions/solusAnalyze.action";
+export { solusEarningsCalendarAction } from "./actions/solusEarningsCalendar.action";
