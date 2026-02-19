@@ -365,16 +365,30 @@ const AGENTS_WITH_CANONICAL_JSON = new Set([
 ]);
 
 /**
- * Return true if parsed object is the canonical structured block (only signals array or only call object).
+ * Return true if parsed object is the canonical structured block (only signals array of {asset, direction} objects, or only call object with asset and strike/direction).
  */
 function isCanonicalStructuredBlock(parsed: Record<string, unknown>): boolean {
   if (!parsed || typeof parsed !== "object") return false;
   const keys = Object.keys(parsed);
   if (keys.length === 0) return false;
-  if (keys.length === 1 && keys[0] === "signals")
-    return Array.isArray(parsed.signals);
-  if (keys.length === 1 && keys[0] === "call")
-    return parsed.call != null && typeof parsed.call === "object";
+  if (keys.length === 1 && keys[0] === "signals") {
+    if (!Array.isArray(parsed.signals) || parsed.signals.length === 0)
+      return false;
+    return (parsed.signals as unknown[]).every(
+      (s) =>
+        s != null &&
+        typeof s === "object" &&
+        typeof (s as Record<string, unknown>).asset === "string",
+    );
+  }
+  if (keys.length === 1 && keys[0] === "call") {
+    const c = parsed.call as Record<string, unknown> | undefined;
+    if (!c || typeof c !== "object") return false;
+    return (
+      typeof c.asset === "string" &&
+      (typeof c.strike === "number" || typeof c.direction === "string")
+    );
+  }
   return false;
 }
 
@@ -417,6 +431,33 @@ export function sanitizeStandupReply(
     /\{\s*\n\s*"(?:steps|task|system_status|cost_tracking|security_alerts|pending_updates|optimization_potential|monthly_infra_spend|projected_quarterly|open_vulnerabilities|last_scan|typescript_version|runtime_patches)"[\s\S]*?\n\s*\}/g;
   result = result
     .replace(multilineJsonRe, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  result = result.replace(/\{\s*\n([\s\S]*?)\n\s*\}/g, (full) => {
+    try {
+      const p = JSON.parse(full) as Record<string, unknown>;
+      if (!isCanonicalStructuredBlock(p)) return "";
+    } catch {
+      /* keep non-JSON or invalid */
+    }
+    return full;
+  });
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  result = result
+    .split("\n")
+    .filter((line) => {
+      const t = line.trim();
+      if (!t.startsWith("{") || !t.endsWith("}")) return true;
+      try {
+        const p = JSON.parse(t) as Record<string, unknown>;
+        return isCanonicalStructuredBlock(p);
+      } catch {
+        return true;
+      }
+    })
+    .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 

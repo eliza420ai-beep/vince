@@ -337,5 +337,27 @@ Conclusion slot.`;
       expect(out).not.toContain("steps");
       expect(out).not.toContain("Configure Bankr");
     });
+
+    it("strips multiline raw JSON when signals is array of strings (non-canonical)", () => {
+      const reply =
+        "## Sentinel — Tech — 2026-02-19\nNext: PRD.\n\n" +
+        '{\n  "signals": ["infrastructure_optimization", "multi_agent_protocol_design"]\n}';
+      const out = sanitizeStandupReply(reply, "Sentinel");
+      expect(out).toContain("## Sentinel");
+      expect(out).toContain("Next: PRD");
+      expect(out).not.toContain("infrastructure_optimization");
+      expect(out).not.toContain("multi_agent_protocol_design");
+    });
+
+    it("strips single-line non-canonical JSON (signal/priority object)", () => {
+      const reply =
+        "## Eliza — Research — 2026-02-19\nGaps: DeFi yield.\nAction: Initiate research.\n" +
+        '{"signal": "research_expansion", "priority": "high"}';
+      const out = sanitizeStandupReply(reply, "Eliza");
+      expect(out).toContain("## Eliza");
+      expect(out).toContain("Initiate research");
+      expect(out).not.toContain("research_expansion");
+      expect(out).not.toContain('"priority"');
+    });
   });
 });
