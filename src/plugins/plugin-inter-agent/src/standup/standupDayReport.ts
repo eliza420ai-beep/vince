@@ -62,13 +62,13 @@ OUTPUT FORMAT — use this exact order. Do not add extra sections.
 *One team, one dream. Ship it.*
 
 ### In brief
-[100-200 words max: 2-4 short paragraphs or 3-5 bullets. Cross-link one or two agent insights (e.g. ECHO sentiment + VINCE funding). One clear recommendation. No filler.]
+[3-5 bullets only. 60 words max. One cross-agent link and one recommendation. No paragraphs.]
 
 RULES:
 - Structured block (Essential Q through Risks) comes FIRST. Narrative ("In brief") comes LAST and is SHORT.
 - TL;DR = ONE sentence. Risks = one line.
 - Daily TODO = 5-7 rows. Each row: specific @Owner (VINCE, Eliza, ECHO, Oracle, Solus, Otaku, Sentinel, Clawterm, Naval). No generic "monitor" items.
-- In brief = 100-200 words only. Dense. No "Interestingly", "notably", "leverage", "utilize", "streamline", "paradigm", "holistic", "delve", "landscape", "circle back", "touch base", "at the end of the day". Use commas or short sentences; avoid long em-dash chains.`;
+- In brief = 3-5 bullets, 60 words max. No paragraphs. No "Interestingly", "notably", "leverage", "utilize", "streamline", "paradigm", "holistic", "delve", "landscape", "circle back", "touch base", "at the end of the day".`;
 }
 
 export interface GenerateDayReportOptions {
@@ -110,7 +110,7 @@ export async function generateAndSaveDayReport(
     accuracyPrompt;
   const dayReport = await runtime.useModel(ModelType.TEXT_LARGE, {
     prompt,
-    maxTokens: 1600,
+    maxTokens: 1200,
     temperature: 0.7,
   });
   const reportText = String(dayReport).trim();

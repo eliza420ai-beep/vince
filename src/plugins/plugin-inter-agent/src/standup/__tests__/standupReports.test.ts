@@ -14,6 +14,7 @@ import {
   getReportTemplate,
   isHumanMessage,
   buildStandupContext,
+  sanitizeStandupReply,
 } from "../standupReports";
 import {
   getEssentialStandupQuestion,
@@ -294,6 +295,47 @@ Conclusion slot.`;
       expect(prompt).toContain("CEO");
       expect(prompt).toContain('Do NOT write a "Day Report"');
       expect(prompt).toContain("Under 120 words");
+    });
+  });
+
+  describe("sanitizeStandupReply", () => {
+    it("returns null or empty as-is", () => {
+      expect(sanitizeStandupReply(null, "VINCE")).toBeNull();
+      expect(sanitizeStandupReply("", "Eliza")).toBe("");
+    });
+
+    it("keeps canonical signals block for VINCE and strips non-canonical", () => {
+      const reply =
+        "## VINCE — Data — 2026-02-19\n| BTC | $66k |\n\n" +
+        '```json\n{"signals":[{"asset":"BTC","direction":"bearish","confidence_pct":58}]}\n```\n\n' +
+        '```json\n{"system_status":{"overall_health":"GREEN"}}\n```';
+      const out = sanitizeStandupReply(reply, "VINCE");
+      expect(out).toContain("## VINCE");
+      expect(out).toContain('"signals"');
+      expect(out).not.toContain("system_status");
+      expect(out).not.toContain("overall_health");
+    });
+
+    it("strips all fenced blocks for agents without canonical JSON", () => {
+      const reply =
+        "## Sentinel — Tech — 2026-02-19\nNext: PRD.\n\n" +
+        '```json\n{"system_status":{"overall_health":"GREEN"},"cost_tracking":{"monthly_infra_spend":"$1,842"}}\n```';
+      const out = sanitizeStandupReply(reply, "Sentinel");
+      expect(out).toContain("## Sentinel");
+      expect(out).toContain("Next: PRD");
+      expect(out).not.toContain("system_status");
+      expect(out).not.toContain("cost_tracking");
+    });
+
+    it("strips multiline raw JSON (steps) for Otaku", () => {
+      const reply =
+        "## Otaku — 2026-02-19\nStatus: Under construction.\n\n" +
+        '{\n  "steps": ["Configure Bankr", "Test balance"],\n  "task": "Generate keys"\n}';
+      const out = sanitizeStandupReply(reply, "Otaku");
+      expect(out).toContain("## Otaku");
+      expect(out).toContain("Under construction");
+      expect(out).not.toContain("steps");
+      expect(out).not.toContain("Configure Bankr");
     });
   });
 });

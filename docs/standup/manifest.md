@@ -146,3 +146,10 @@
 | 2026-02-19 | Eliza | DeFi Yield Research Sprint... | `2026-02-19-eliza-defi-yield-research-sprint.ts` |
 | 2026-02-19 | Clawterm | ClawHub Skill Development Challenge... | `2026-02-19-clawterm-clawhub-skill-development-challenge.ts` |
 | 2026-02-19 | VINCE | Paper Bot Signal Refinement... | `2026-02-19-vince-paper-bot-signal-refinement.ts` |
+| 2026-02-19 | Solus | BTC covered call execution... | `2026-02-19-solus-btc-covered-call-execution.ts` |
+| 2026-02-19 | Otaku | Wallet configuration complete... | `2026-02-19-otaku-wallet-configuration-complete.ts` |
+| 2026-02-19 | VINCE | Paper bot perps setup... | `2026-02-19-vince-paper-bot-perps-setup.ts` |
+| 2026-02-19 | ECHO | UAE mining narrative tracking... | `2026-02-19-echo-uae-mining-narrative-tracking.ts` |
+| 2026-02-19 | Sentinel | OpenClaw integration PRD v0.5... | `2026-02-19-sentinel-openclaw-integration-prd-v0-5.ts` |
+| 2026-02-19 | Eliza | Pendle/Meridian research sprint... | `2026-02-19-eliza-pendle-meridian-research-sprint.ts` |
+| 2026-02-19 | Oracle | Warsh Fed nomination monitor... | `2026-02-19-oracle-warsh-fed-nomination-monitor.ts` |

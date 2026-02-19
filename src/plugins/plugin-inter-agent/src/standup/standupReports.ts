@@ -74,10 +74,11 @@ export const AGENT_ROLES = {
     title: "CTO",
     focus: "Ops & Infrastructure",
     reportSections: [
-      "system_status",
-      "cost_tracking",
-      "security_alerts",
-      "pending_updates",
+      "next",
+      "pushed",
+      "in_progress",
+      "blocked",
+      "openclaw_task",
     ],
   },
   Clawterm: {
@@ -105,7 +106,8 @@ RULES:
 - Do NOT write a "Day Report" — that is generated at the end.
 - No filler ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
 - Under 120 words total (excluding the JSON block). One ACTION line at the end.
-- Reference others by name if needed (e.g. "Per VINCE's data") but do NOT restate.`;
+- Reference others by name if needed (e.g. "Per VINCE's data") but do NOT restate.
+- Do not output any JSON except the single required line at the end (signals or call). No system_status, steps, task, cost_tracking, security_alerts, or other structured blocks.`;
 
 /**
  * Extract one agent's section from the shared daily insights markdown.
@@ -169,8 +171,15 @@ ${transcript}`;
   const sectionsList = role?.reportSections?.join(", ") ?? "your domain";
   const yourData = extractAgentSection(sharedInsights, agentName);
 
+  const hasStructuredOutput =
+    template.includes("signals") || template.includes('"call"');
+  const noJsonLine = !hasStructuredOutput
+    ? "\nDo not output any JSON or code blocks."
+    : "";
+
   return `You are ${agentName} (${role?.title ?? ""} - ${role?.focus ?? ""}).
 Daily standup report. Fill in YOUR template below with real data.
+Use the date in your section header as given in the template (e.g. ${dateStr}). Do not use 2024.
 
 Focus ONLY on: ${sectionsList}
 ${STANDUP_CONSTRAINTS}
@@ -180,6 +189,7 @@ ${template}
 
 YOUR DATA (from shared insights):
 ${yourData}
+${noJsonLine}
 
 Output your report now. Concise.`;
 }
@@ -232,7 +242,8 @@ ${STRUCTURED_SIGNAL_INSTRUCTION}`,
 ${STRUCTURED_CALL_INSTRUCTION}`,
 
   Otaku: `## Otaku — {{date}}
-**Status:** [1 line] **Today:** [1 line] **Blocked:** [or "Nothing"]`,
+**Status:** [1 line] **Today:** [1 line] **Blocked:** [or "Nothing"]
+No JSON. Only the three lines (Status, Today, Blocked).`,
 
   Kelly: `Good morning team. {{date}} standup. @VINCE — market data, go.`,
 
@@ -240,7 +251,8 @@ ${STRUCTURED_CALL_INSTRUCTION}`,
 **Next:** [1 line] **Pushed:** [1 line] **In progress:** [1 line] **Blocked:** [or None]
 | Agents | APIs |
 | 🟢/🟡/🔴 | 🟢/🟡/🔴 |
-**OpenClaw task:** [1 line] **Action:** [1 line]`,
+**OpenClaw task:** [1 line] **Action:** [1 line]
+No JSON. Only the template lines and the status table.`,
 
   Clawterm: `## Clawterm — AI Terminal — {{date}}
 [2-3 sentences: what's trending on OpenClaw, one setup or gateway note. No bullet dumps.]
@@ -342,6 +354,73 @@ Focus on: ${role.reportSections.join(", ")}
     : "";
 
   return baseContext + humanContext;
+}
+
+/** Agents that may output exactly one canonical JSON block: signals (VINCE, ECHO, Oracle) or call (Solus). */
+const AGENTS_WITH_CANONICAL_JSON = new Set([
+  "vince",
+  "echo",
+  "oracle",
+  "solus",
+]);
+
+/**
+ * Return true if parsed object is the canonical structured block (only signals array or only call object).
+ */
+function isCanonicalStructuredBlock(parsed: Record<string, unknown>): boolean {
+  if (!parsed || typeof parsed !== "object") return false;
+  const keys = Object.keys(parsed);
+  if (keys.length === 0) return false;
+  if (keys.length === 1 && keys[0] === "signals")
+    return Array.isArray(parsed.signals);
+  if (keys.length === 1 && keys[0] === "call")
+    return parsed.call != null && typeof parsed.call === "object";
+  return false;
+}
+
+/**
+ * Sanitize standup reply: keep only template prose and at most one canonical JSON block (signals or call).
+ * Strips non-canonical fenced ```json``` blocks and multiline raw JSON (e.g. system_status, steps, task).
+ */
+export function sanitizeStandupReply(
+  reply: string | null,
+  agentName: string,
+): string | null {
+  if (!reply || typeof reply !== "string") return reply;
+  const name = agentName.trim().toLowerCase();
+  const allowCanonical = AGENTS_WITH_CANONICAL_JSON.has(name);
+
+  const fencedRe = /```(?:json)?\s*([\s\S]*?)```/g;
+  let keptCanonical = false;
+  let result = reply;
+
+  result = result.replace(fencedRe, (fullMatch, inner) => {
+    try {
+      const parsed = JSON.parse(inner.trim()) as Record<string, unknown>;
+      if (
+        isCanonicalStructuredBlock(parsed) &&
+        allowCanonical &&
+        !keptCanonical
+      ) {
+        keptCanonical = true;
+        return fullMatch;
+      }
+    } catch {
+      /* not valid JSON */
+    }
+    return "";
+  });
+
+  result = result.replace(/\n{3,}/g, "\n\n").trim();
+
+  const multilineJsonRe =
+    /\{\s*\n\s*"(?:steps|task|system_status|cost_tracking|security_alerts|pending_updates|optimization_potential|monthly_infra_spend|projected_quarterly|open_vulnerabilities|last_scan|typescript_version|runtime_patches)"[\s\S]*?\n\s*\}/g;
+  result = result
+    .replace(multilineJsonRe, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return result || null;
 }
 
 /**

@@ -1,5 +1,5 @@
 ---
-date: 2026-02-19T11:50:21.631Z
+date: 2026-02-19T12:03:38.040Z
 type: shared-daily-insights
 ---
 
@@ -8,9 +8,9 @@ type: shared-daily-insights
 ## VINCE
 | Asset | Price | Funding/LS | Regime |
 |-------|-------|-----------|--------|
-| BTC | $66,645 -1.3% | F:0.005% L/S:2.26 Vol:1.0x | bearish |
-| SOL | $81.27 -2.4% | F:-0.006% L/S:3.03 Vol:1.0x | bearish |
-| HYPE | $28.429 -1.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
+| BTC | $66,465 -1.3% | F:0.005% L/S:2.24 Vol:1.0x | bearish |
+| SOL | $81.118 -2.0% | F:-0.005% L/S:3.02 Vol:1.0x | bearish |
+| HYPE | $28.304 -2.0% | F:0.000% L/S:1.00 Vol:1.0x | bearish |
 
 **Fear & Greed:** 9 (extreme fear)
 
@@ -28,9 +28,11 @@ Headlines:
 🔴 TON collabs with Banxa on stablecoins
 🟢 World Uncertainty Index hits ATH
 
-**OI (24h Δ):** BTC $5.4B (+0.5%) | SOL $823M (+4.3%)
+**Liquidations (5m):** Longs | 12 long ($12k) / 0 short ($0k) | intensity 0%
 
-**Regime (BTC):** neutral ADX 22.591824644549764 | size 0.8x
+**OI (24h Δ):** BTC $5.3B (-0.4%) | SOL $817M (+0.8%)
+
+**Regime (BTC):** neutral ADX 22.6018385137443 | size 0.8x
 
 ## Eliza
 **Yesterday:** Solus's call: Below — Sell covered call at $67,500, capture premium in range-bound environment
@@ -51,10 +53,10 @@ Regulatory announcement or Fed policy shift could break range in either directio
 
 **Yesterday TL;DR:** BTC consolidating with bearish sentiment extremes — sell premium, don't chase direction.
 
-**Today (from shared insights):** | BTC | $66,815 -0.9% | F:0.000% L/S:1.00 Vol:1.0x | bearish | | SOL | $81.625 -2.3% | F:0.000% L/S:1.00 Vol:1.0x |…
+**Today (from shared insights):** | BTC | $66,645 -1.3% | F:0.005% L/S:2.26 Vol:1.0x | bearish | | SOL | $81.27 -2.4% | F:-0.006% L/S:3.03 Vol:1.0x |…
 
 ## ECHO
-**CT sentiment (19 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
+**CT sentiment (20 posts, last 24h) [queries: BTC crypto market sentiment, SOL crypto sentiment]:**
 @rafiq3844274: Breaking crypto market update.
 
 On-chain data shows Bitcoin buyers holding at key levels.
@@ -82,12 +84,8 @@ UAE announces Bitcoin mining worth $453.6M, signaling increased competition in d
 
 According to Grayscale, BTC’s drop tracked the rally in U.S. tech stocks — po… (0 likes)
 @36Crypto2: $XRP hits a 5-week high in social sentiment as Ripple’s partnerships with Aviva, Zand Bank, LMAX, and BNY Mellon drive o… (1 likes)
-@KrutiCrypto: GM ☕️ Crypto Check-In
-
-BTC mood: 🟢 | 🔴
-Market sentiment in one word: Mixed
-
-Today I’m watching: $SOL 👀…
+@cryptoWZRD_: XRP Daily Technical Outlook:
+$XRP closed slightly bearish as XRPBTC declined due to the lack of weakness …
 
 ## Oracle
 | Priority market | YES% | condition_id |
@@ -129,6 +127,7 @@ If uncertain (like last week), say so and explain why with data.
 
 ## Sentinel
 Recent code (git log --oneline):
+168116e fix(standup): compact form factor — scannable Day Report, shorter agent reports
 3bb6e0d chore(standup): update 2026-02-19 artifacts (shared insights, day report, action items, predictions, metrics)
 e8506d9 test(standup): add extractAgentSection/buildStandupPrompt tests + TESTING.md guide
 41cab04 fix(standup): stop agent parroting — domain-locked prompts, shared-insights-only context
@@ -138,17 +137,16 @@ b76d822 Update whats-the-trade submodule pointer
 100ac1c Track whats-the-trade rename (.json -> .traded.json) and submodule update
 e98f0a2 LFG
 e8ad739 Fix stale agent ID causing leaderboard 404s on startup
-b4e924b Filter stale Polymarket Risk/Performance agents from dropdown
 
 **Recent PRDs:** 2026-02-12-prd-v2-1-0-release-notes-sentinel-eliza-upgrades.md
 
 **Macro news:**
-Tether CEO launches new US-based stableco…
+Learn how Federal Reser…
 
 ## Clawterm
-OpenClaw is gaining browser-hosted momentum with Kimi Claw, a cloud-based AI agent platform that enables scheduled automations and ClawHub skill integration, but current traction is low with only 48 skills and minimal social engagement. The AI agent landscape is shifting towards proactive, conversation-first platforms that run locally or in-browser, with OpenClaw positioning itself as a key player in autonomous task automation. 
+OpenClaw is gaining traction with browser-hosted agents like Kimi Claw, but adoption remains low—only 48 skills with zero engagement on X. The Kimi Claw tutorial highlights a key trend: moving from local deployments to cloud-based, always-on AI agents with scheduled automations and browser integration.
 
-**Tech Focus Suggestion**: Prioritize ClawHub skill discoverability and developer onboarding - create a clear, gamified pathway for builders to contribute and showcase skills, potentially with reputation scoring or bounty systems to incentivize high-quality skill development.
+**Tech Focus Suggestion**: Build a comprehensive ClawHub skill certification program to incentivize high-quality skill development and increase community engagement. Create a reputation system where top skill contributors get visibility, potential funding, or exclusive access.
 
 ## Naval
 (no data)

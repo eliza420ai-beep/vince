@@ -64,6 +64,7 @@ import {
   extractAgentSection,
   formatReportDate,
   getReportTemplate,
+  sanitizeStandupReply,
 } from "./standupReports";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning, markAgentReported } from "./standupState";
@@ -416,7 +417,7 @@ async function runOneStandupTurn(
       );
       const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
         prompt,
-        maxTokens: isConclusionTurn ? 180 : 500,
+        maxTokens: isConclusionTurn ? 180 : 360,
         temperature: 0.7,
       });
       const text = String(resp ?? "").trim();
@@ -534,7 +535,7 @@ export async function runStandupRoundRobin(
   let transcript = `[Standup kickoff]\n${kickoffText}`;
   for (const { agentId, agentName } of ordered) {
     try {
-      const reply = await runOneStandupTurn(
+      let reply = await runOneStandupTurn(
         runtime,
         eliza,
         agentId,
@@ -544,6 +545,7 @@ export async function runStandupRoundRobin(
         transcript,
         sharedInsights,
       );
+      reply = sanitizeStandupReply(reply, agentName) ?? reply;
       const structuredSignals = reply
         ? (parseStructuredBlockFromText(reply) ?? undefined)
         : undefined;

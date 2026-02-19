@@ -294,3 +294,17 @@
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-clawhub-skill-development-challenge.ts
 - **2026-02-19** [in_progress] @VINCE: Paper Bot Signal Refinement
   - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-paper-bot-signal-refinement.ts
+- **2026-02-19** [in_progress] @Solus: BTC covered call execution
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-btc-covered-call-execution.ts
+- **2026-02-19** [in_progress] @Otaku: Wallet configuration complete
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-wallet-configuration-complete.ts
+- **2026-02-19** [in_progress] @VINCE: Paper bot perps setup
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-paper-bot-perps-setup.ts
+- **2026-02-19** [in_progress] @ECHO: UAE mining narrative tracking
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-echo-uae-mining-narrative-tracking.ts
+- **2026-02-19** [in_progress] @Sentinel: OpenClaw integration PRD v0.5
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-sentinel-openclaw-integration-prd-v0-5.ts
+- **2026-02-19** [in_progress] @Eliza: Pendle/Meridian research sprint
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-pendle-meridian-research-sprint.ts
+- **2026-02-19** [in_progress] @Oracle: Warsh Fed nomination monitor
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-oracle-warsh-fed-nomination-monitor.ts
