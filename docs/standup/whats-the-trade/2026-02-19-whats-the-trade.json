@@ -1,0 +1,23 @@
+{
+  "date": "2026-02-19",
+  "thesis": "BTC breaks above previous ATH resistance as institutional FOMO accelerates into month-end rebalancing",
+  "primaryTicker": "MSTR",
+  "primaryDirection": "long",
+  "primaryInstrument": "perp",
+  "primaryEntryPrice": 126.11,
+  "primaryRiskUsd": 500,
+  "invalidateCondition": "BTC <$64k",
+  "killConditions": [
+    "dies if tech selloff"
+  ],
+  "rubric": {
+    "alignment": "exposed",
+    "edge": "emerging",
+    "payoffShape": "high",
+    "timingForgiveness": "punishing"
+  },
+  "altTicker": "BTC",
+  "altDirection": "long",
+  "altInstrument": "perp",
+  "evThresholdPct": 15
+}
