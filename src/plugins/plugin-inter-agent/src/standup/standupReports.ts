@@ -366,6 +366,8 @@ export function sanitizeStandupReply(
   });
 
   result = result
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
     .split("\n")
     .filter((line) => {
       const t = line.trim();
@@ -378,6 +380,26 @@ export function sanitizeStandupReply(
       }
     })
     .join("\n");
+
+  // Strip trailing JSON on same line as prose (e.g. "text here{"signals":[...]}" with no newline)
+  const stripTrailingJson = (s: string): string => {
+    for (let i = s.length - 1; i >= 0; i--) {
+      if (s[i] !== "{") continue;
+      const tail = s.slice(i);
+      try {
+        JSON.parse(tail);
+        return s.slice(0, i).trimEnd();
+      } catch {
+        /* not valid JSON from this brace */
+      }
+    }
+    return s;
+  };
+  let prev = "";
+  while (prev !== result) {
+    prev = result;
+    result = stripTrailingJson(result);
+  }
 
   for (const re of FILLER_INTROS) {
     result = result.replace(re, "");
