@@ -29,3 +29,4 @@
 | 2026-02-19 | BTC stuck in fearful consolidation at 66k while we sell premium and wait for the | [View](day-reports/2026-02-19-day-report.md) |
 | 2026-02-19 | Everything's red but institutions still buying—we're selling premium while waiti | [View](day-reports/2026-02-19-day-report.md) |
 | 2026-02-19 | BTC stuck in fear cycle at $65.8k, selling premium while waiting for range break | [View](day-reports/2026-02-19-day-report.md) |
+| 2026-02-19 | Everything's red but infrastructure money is quietly building—we're selling prem | [View](day-reports/2026-02-19-day-report.md) |
