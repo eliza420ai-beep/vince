@@ -147,6 +147,9 @@ export class VincePaperTradingService extends Service {
   private lastEntryPriceWarnByAsset: Map<string, number> = new Map();
   private static readonly ENTRY_PRICE_WARN_THROTTLE_MS = 60_000;
 
+  // Throttle "No WTT pick for today" to once per calendar day (update loop runs every 30s)
+  private lastNoWttLogDate: string | null = null;
+
   constructor(protected runtime: IAgentRuntime) {
     super();
   }
@@ -883,9 +886,17 @@ Reply format: APPROVE reason or VETO reason`;
   private async evaluateWttPick(): Promise<boolean> {
     const pick = await this.readLatestWttPick();
     if (!pick) {
-      logger.info(
-        "[VincePaperTrading] No WTT pick for today (missing or invalid JSON); skipping WTT evaluation",
-      );
+      const today = new Date().toISOString().slice(0, 10);
+      if (this.lastNoWttLogDate !== today) {
+        this.lastNoWttLogDate = today;
+        logger.info(
+          "[VincePaperTrading] No WTT pick for today (missing or invalid JSON); skipping WTT evaluation",
+        );
+      } else {
+        logger.debug(
+          "[VincePaperTrading] No WTT pick for today (missing or invalid JSON); skipping WTT evaluation",
+        );
+      }
       await this.appendWttPickSkippedNoPick("no_valid_pick");
       return false;
     }
