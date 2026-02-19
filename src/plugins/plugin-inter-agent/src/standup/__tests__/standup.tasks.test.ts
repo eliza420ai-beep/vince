@@ -75,6 +75,7 @@ describe("standup.tasks", () => {
         roomId,
         facilitatorEntityId,
         kickoffText,
+        "",
       );
 
       const replyNames = replies.map((r) => r.agentName);

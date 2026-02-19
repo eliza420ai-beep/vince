@@ -190,9 +190,9 @@ async function fetchBinanceTopTraders(runtime: IAgentRuntime): Promise<string> {
 async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
     getStats?: () => {
-      wins: number;
-      losses: number;
-      pnl: number;
+      winCount: number;
+      lossCount: number;
+      totalPnl: number;
     } | null;
   } | null;
   const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
@@ -201,7 +201,8 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
       pendingEntries?: number;
     } | null>;
   } | null;
-  let stats: { wins: number; losses: number; pnl: number } | null = null;
+  let stats: { winCount: number; lossCount: number; totalPnl: number } | null =
+    null;
   let botStatus: { openPositions?: number; pendingEntries?: number } | null =
     null;
   try {
@@ -215,7 +216,7 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
     /* non-fatal */
   }
   let line = stats
-    ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
+    ? `**Paper bot:** ${stats.winCount}W/${stats.lossCount}L (${stats.totalPnl >= 0 ? "+" : ""}$${stats.totalPnl.toFixed(0)})`
     : "**Paper bot:** No data";
   if (botStatus)
     line += ` | ${botStatus.openPositions ?? 0} open, ${botStatus.pendingEntries ?? 0} pending`;

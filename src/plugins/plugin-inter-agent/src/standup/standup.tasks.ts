@@ -60,8 +60,10 @@ import {
 } from "./standupDataFetcher";
 import {
   AGENT_ROLES,
-  getReportTemplate,
+  buildStandupPrompt,
+  extractAgentSection,
   formatReportDate,
+  getReportTemplate,
 } from "./standupReports";
 import { buildKickoffWithSharedInsights } from "./standup.context";
 import { isStandupRunning, markAgentReported } from "./standupState";
@@ -392,6 +394,7 @@ async function runOneStandupTurn(
   roomId: UUID,
   facilitatorEntityId: UUID,
   transcript: string,
+  sharedInsights: string,
 ): Promise<string | null> {
   const truncated =
     transcript.length > MAX_TRANSCRIPT_CHARS
@@ -405,18 +408,15 @@ async function runOneStandupTurn(
   const agentRuntime = getAgent?.(agentId);
   if (agentRuntime?.useModel) {
     try {
-      const template = (getReportTemplate(agentName) || "").replace(
-        /\{\{date\}\}/g,
+      const prompt = buildStandupPrompt(
+        agentName,
+        sharedInsights,
+        truncated,
         formatReportDate(),
       );
-      const systemPrompt = agentRuntime.character?.system || "";
-      const reportInstruction = isConclusionTurn
-        ? "Synthesize the standup into a short conclusion (2-4 sentences)."
-        : "Report now. Concise.";
-      const prompt = `You are ${agentName}. ${systemPrompt}\n\n${template}\n\nContext:\n${truncated}\n\n${reportInstruction}`;
       const resp = await agentRuntime.useModel(ModelType.TEXT_SMALL, {
         prompt,
-        maxTokens: isConclusionTurn ? 400 : 800,
+        maxTokens: isConclusionTurn ? 400 : 600,
         temperature: 0.7,
       });
       const text = String(resp ?? "").trim();
@@ -429,7 +429,10 @@ async function runOneStandupTurn(
     }
   }
 
-  // Fallback: handleMessage path
+  // Fallback: handleMessage path (same restricted context)
+  const contextBlock = isConclusionTurn
+    ? truncated
+    : extractAgentSection(sharedInsights, agentName);
   const agentRole = AGENT_ROLES[agentName as keyof typeof AGENT_ROLES];
   const roleHint = agentRole ? ` (${agentRole.focus})` : "";
   const directAddress = isConclusionTurn
@@ -440,7 +443,7 @@ async function runOneStandupTurn(
     entityId: facilitatorEntityId,
     roomId,
     content: {
-      text: directAddress + truncated,
+      text: directAddress + contextBlock,
       source: STANDUP_SOURCE,
     },
     createdAt: Date.now(),
@@ -490,6 +493,7 @@ export async function runStandupRoundRobin(
   roomId: UUID,
   facilitatorEntityId: UUID,
   kickoffText: string,
+  sharedInsights: string,
 ): Promise<{
   transcript: string;
   replies: {
@@ -538,6 +542,7 @@ export async function runStandupRoundRobin(
         roomId,
         facilitatorEntityId,
         transcript,
+        sharedInsights,
       );
       const structuredSignals = reply
         ? (parseStructuredBlockFromText(reply) ?? undefined)
@@ -1275,6 +1280,7 @@ export async function registerStandupTask(
           roomId,
           facilitatorEntityId,
           kickoffText,
+          sharedContent ?? "",
         );
         for (const r of replies) {
           const replyMemory = {

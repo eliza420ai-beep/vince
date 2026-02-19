@@ -320,11 +320,13 @@ async function handleRoundRobin(
   try {
     const { roomId: standupRoomId, facilitatorEntityId } =
       await ensureStandupWorldAndRoom(runtime);
+    const sharedContent = (await loadSharedDailyInsights())?.trim() ?? "";
     const { transcript, replies } = await runStandupRoundRobin(
       runtime,
       standupRoomId,
       facilitatorEntityId,
       kickoffText,
+      sharedContent,
     );
     for (const r of replies) {
       await pushStandupSummaryToChannels(

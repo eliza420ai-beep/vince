@@ -98,6 +98,92 @@ export const AGENT_ROLES = {
 
 export type AgentName = keyof typeof AGENT_ROLES;
 
+/** Hard constraints so agents stay in their lane and do not parrot other agents. */
+export const STANDUP_CONSTRAINTS = `
+RULES:
+- ONLY report on your assigned sections (listed above). Do NOT repeat other agents' data.
+- Do NOT write a "Day Report" — that is generated separately at the end.
+- Do NOT use filler phrases ("Would you like...", "Ship it", "Let me...", "I'll synthesize...").
+- Under 250 words. End with one ACTION item.
+- Reference other agents' data by name if relevant (e.g. "Per VINCE's data") but do NOT restate it.`;
+
+/**
+ * Extract one agent's section from the shared daily insights markdown.
+ * Sections are headed by ## AgentName (e.g. ## VINCE, ## Eliza). Returns content from that heading until the next ## or end.
+ */
+export function extractAgentSection(
+  sharedInsights: string,
+  agentName: string,
+): string {
+  if (!sharedInsights?.trim()) return "(No shared insights loaded.)";
+  const normalized = agentName.trim();
+  const heading = `## ${normalized}`;
+  let idx = sharedInsights.indexOf(heading);
+  if (idx === -1) {
+    const re = new RegExp(
+      `\\n##\\s+${normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`,
+      "i",
+    );
+    const match = sharedInsights.match(re);
+    idx = match?.index !== undefined ? match.index : -1;
+  }
+  if (idx === -1) return "(No section for this agent in shared insights.)";
+  const afterHeading = sharedInsights.slice(idx);
+  const nextH2 = afterHeading.indexOf("\n## ", 1);
+  const section = nextH2 > 0 ? afterHeading.slice(0, nextH2) : afterHeading;
+  return section.trim() || "(Empty section.)";
+}
+
+/**
+ * Build the domain-locked standup prompt for one agent.
+ * Naval gets the full transcript to synthesize; all others get only their own section from shared insights.
+ */
+export function buildStandupPrompt(
+  agentName: string,
+  sharedInsights: string,
+  transcript: string,
+  dateStr: string,
+): string {
+  const role = getAgentRole(agentName);
+  const template = (getReportTemplate(agentName) || "").replace(
+    /\{\{date\}\}/g,
+    dateStr,
+  );
+  const isConclusionTurn = agentName.toLowerCase() === "naval";
+
+  if (isConclusionTurn) {
+    return `You are ${agentName} (${role?.title ?? "Synthesis"} - ${role?.focus ?? "Standup conclusion"}).
+Daily standup conclusion. Read the full transcript below and write 2–4 short sentences only. No bullets, no fluff.
+
+Include:
+1. One thesis: what today's data and sentiment add up to.
+2. One signal to watch: the one thing that would confirm or invalidate that thesis.
+3. One team one dream: one line that ties the room together.
+
+Do NOT repeat other agents' reports verbatim. Synthesize.
+
+FULL TRANSCRIPT:
+${transcript}`;
+  }
+
+  const sectionsList = role?.reportSections?.join(", ") ?? "your domain";
+  const yourData = extractAgentSection(sharedInsights, agentName);
+
+  return `You are ${agentName} (${role?.title ?? ""} - ${role?.focus ?? ""}).
+Daily standup report. Fill in YOUR template below with real data.
+
+Focus ONLY on: ${sectionsList}
+${STANDUP_CONSTRAINTS}
+
+TEMPLATE (fill this in):
+${template}
+
+YOUR DATA (from shared insights):
+${yourData}
+
+Output your report now. Concise.`;
+}
+
 /** Instruction to append so agents output a machine-parseable JSON block for cross-agent validation. */
 export const STRUCTURED_SIGNAL_INSTRUCTION = `
 
