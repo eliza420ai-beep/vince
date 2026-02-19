@@ -137,6 +137,7 @@
     "test:coverage": "bun run test:install && bun test --coverage",
     "test:watch": "bun run test:install && bun test --watch",
     "test:openclaw": "bun test src/plugins/plugin-openclaw",
+    "test:solus-apis": "bunx dotenv-cli -e .env -- bunx vitest run --config vitest.config.solus.ts",
     "test:install": "node scripts/install-test-deps.js",
     "format": "prettier --write ./src",
     "format:check": "prettier --check ./src",

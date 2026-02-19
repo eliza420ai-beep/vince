@@ -11,45 +11,57 @@ import {
   type State,
   logger,
 } from "@elizaos/core";
-import { isSolusOffchainTicker, getSectorForTicker, SOLUS_OFFCHAIN_STOCKS } from "../constants/solusStockWatchlist";
+import {
+  isSolusOffchainTicker,
+  getSectorForTicker,
+  SOLUS_OFFCHAIN_STOCKS,
+} from "../constants/solusStockWatchlist";
 import { FinnhubService } from "../services/finnhub.service";
 import { FMPService } from "../services/fmp.service";
 
 export const solusAnalyzeAction: Action = {
   name: "SOLUS_ANALYZE",
-  description: "Get comprehensive stock analysis: quote, news, profile, fundamentals, ratios, and earnings",
+  description:
+    "Get comprehensive stock analysis: quote, news, profile, fundamentals, ratios, and earnings",
   examples: [
     [
       {
-        user: "Analyze NVDA",
+        name: "Analyze NVDA",
         content: { text: "Can you analyze NVDA for me?" },
       },
       {
-        user: "analyze AAPL",
+        name: "analyze AAPL",
         content: { text: "analyze AAPL" },
       },
       {
-        user: "full analysis for TSLA",
+        name: "full analysis for TSLA",
         content: { text: "Give me a full analysis of TSLA" },
       },
       {
-        user: "What's the fundamentals of AMD?",
+        name: "What's the fundamentals of AMD?",
         content: { text: "What's the fundamentals of AMD?" },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || "";
     // Check if message mentions "analyze" or "analysis" or "fundamentals"
-    return text.includes("analyze") || text.includes("analysis") || text.includes("fundamentals");
+    return (
+      text.includes("analyze") ||
+      text.includes("analysis") ||
+      text.includes("fundamentals")
+    );
   },
 
   handler: async (
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<boolean> => {
+  ): Promise<void> => {
     const text = message.content?.text || "";
 
     // Extract ticker from message
@@ -57,7 +69,7 @@ export const solusAnalyzeAction: Action = {
 
     if (!ticker) {
       logger.warn("[SolusAnalyze] No ticker found in message: " + text);
-      return false;
+      return;
     }
 
     logger.info(`[SolusAnalyze] Analyzing ticker: ${ticker}`);
@@ -79,9 +91,15 @@ export const solusAnalyzeAction: Action = {
       if (quote) {
         results.push(`## 📊 ${ticker} Quote`);
         results.push(`**Price:** $${quote.c.toFixed(2)}`);
-        results.push(`**Change:** ${quote.d >= 0 ? "+" : ""}${quote.d.toFixed(2)} (${quote.dp.toFixed(2)}%)`);
-        results.push(`**High:** $${quote.h.toFixed(2)} | **Low:** $${quote.l.toFixed(2)}`);
-        results.push(`**Open:** $${quote.o.toFixed(2)} | **Prev Close:** $${quote.pc.toFixed(2)}`);
+        results.push(
+          `**Change:** ${quote.d >= 0 ? "+" : ""}${quote.d.toFixed(2)} (${quote.dp.toFixed(2)}%)`,
+        );
+        results.push(
+          `**High:** $${quote.h.toFixed(2)} | **Low:** $${quote.l.toFixed(2)}`,
+        );
+        results.push(
+          `**Open:** $${quote.o.toFixed(2)} | **Prev Close:** $${quote.pc.toFixed(2)}`,
+        );
       }
 
       if (profile) {
@@ -116,25 +134,35 @@ export const solusAnalyzeAction: Action = {
           results.push(`**Price:** $${metrics.price.toFixed(2)}`);
         }
         if (metrics.marketCap > 0) {
-          results.push(`**Market Cap:** $${(metrics.marketCap / 1e9).toFixed(1)}B`);
+          results.push(
+            `**Market Cap:** $${(metrics.marketCap / 1e9).toFixed(1)}B`,
+          );
         }
         if (metrics.peRatio > 0) {
           results.push(`**P/E Ratio:** ${metrics.peRatio.toFixed(2)}`);
         }
         if (metrics.dividendYield > 0) {
-          results.push(`**Dividend Yield:** ${(metrics.dividendYield * 100).toFixed(2)}%`);
+          results.push(
+            `**Dividend Yield:** ${(metrics.dividendYield * 100).toFixed(2)}%`,
+          );
         }
         if (metrics.revenueGrowth !== 0) {
-          results.push(`**Revenue Growth:** ${(metrics.revenueGrowth * 100).toFixed(1)}%`);
+          results.push(
+            `**Revenue Growth:** ${(metrics.revenueGrowth * 100).toFixed(1)}%`,
+          );
         }
         if (metrics.profitMargin !== 0) {
-          results.push(`**Profit Margin:** ${(metrics.profitMargin * 100).toFixed(1)}%`);
+          results.push(
+            `**Profit Margin:** ${(metrics.profitMargin * 100).toFixed(1)}%`,
+          );
         }
         if (metrics.debtToEquity > 0) {
           results.push(`**Debt/Equity:** ${metrics.debtToEquity.toFixed(2)}`);
         }
         if (metrics.returnOnEquity !== 0) {
-          results.push(`**Return on Equity:** ${(metrics.returnOnEquity * 100).toFixed(1)}%`);
+          results.push(
+            `**Return on Equity:** ${(metrics.returnOnEquity * 100).toFixed(1)}%`,
+          );
         }
         if (metrics.beta > 0) {
           results.push(`**Beta:** ${metrics.beta.toFixed(2)}`);
@@ -145,13 +173,19 @@ export const solusAnalyzeAction: Action = {
           const le = metrics.lastEarnings;
           const actual = le.eps?.toFixed(2) || "N/A";
           const estimate = le.epsEstimate?.toFixed(2) || "N/A";
-          const surprise = le.eps && le.epsEstimate
-            ? ((le.eps - le.epsEstimate) / Math.abs(le.epsEstimate) * 100).toFixed(1)
-            : "N/A";
+          const surprise =
+            le.eps && le.epsEstimate
+              ? (
+                  ((le.eps - le.epsEstimate) / Math.abs(le.epsEstimate)) *
+                  100
+                ).toFixed(1)
+              : "N/A";
           results.push(`\n## 📅 Earnings (Last)`);
           results.push(`**Date:** ${le.date}`);
           results.push(`**EPS:** $${actual} (est: $${estimate})`);
-          results.push(`**Surprise:** ${surprise !== "N/A" ? (Number(surprise) >= 0 ? "+" : "") + surprise + "%" : "N/A"}`);
+          results.push(
+            `**Surprise:** ${surprise !== "N/A" ? (Number(surprise) >= 0 ? "+" : "") + surprise + "%" : "N/A"}`,
+          );
         }
 
         if (metrics.nextEarnings) {
@@ -159,11 +193,15 @@ export const solusAnalyzeAction: Action = {
           results.push(`\n## 📅 Earnings (Next)`);
           results.push(`**Date:** ${ne.date}`);
           results.push(`**EPS Est:** $${ne.epsEstimate?.toFixed(2) || "N/A"}`);
-          results.push(`**Revenue Est:** $${(ne.revenueEstimate / 1e9).toFixed(1)}B`);
+          results.push(
+            `**Revenue Est:** $${(ne.revenueEstimate / 1e9).toFixed(1)}B`,
+          );
         }
       }
     } else {
-      results.push(`\n⚠️ *FMP not configured — set FMP_API_KEY for fundamentals*`);
+      results.push(
+        `\n⚠️ *FMP not configured — set FMP_API_KEY for fundamentals*`,
+      );
     }
 
     // 3. Sector info
@@ -171,8 +209,12 @@ export const solusAnalyzeAction: Action = {
     if (sector) {
       results.push(`\n## 🏭 Sector`);
       results.push(`**Sector:** ${sector}`);
-      const sectorTickers = SOLUS_OFFCHAIN_STOCKS.filter(s => s.sector === sector).map(s => s.ticker);
-      results.push(`**Other in sector:** ${sectorTickers.filter(t => t !== ticker).join(", ")}`);
+      const sectorTickers = SOLUS_OFFCHAIN_STOCKS.filter(
+        (s) => s.sector === sector,
+      ).map((s) => s.ticker);
+      results.push(
+        `**Other in sector:** ${sectorTickers.filter((t) => t !== ticker).join(", ")}`,
+      );
     }
 
     // Build final response
@@ -182,7 +224,7 @@ export const solusAnalyzeAction: Action = {
     // TODO: Emit result as message or callback
     console.log(response);
 
-    return true;
+    return;
   },
 
   similes: ["ANALYZE_STOCK", "STOCK_ANALYSIS", "FUNDAMENTALS"],
@@ -193,7 +235,7 @@ function extractTicker(text: string): string | null {
   const upper = text.toUpperCase();
 
   // Check for known tickers in offchain watchlist
-  const watchlistTickers = SOLUS_OFFCHAIN_STOCKS.map(s => s.ticker);
+  const watchlistTickers = SOLUS_OFFCHAIN_STOCKS.map((s) => s.ticker);
   for (const ticker of watchlistTickers) {
     if (upper.includes(ticker)) {
       return ticker;
@@ -202,8 +244,20 @@ function extractTicker(text: string): string | null {
 
   // Also check for common tickers mentioned
   const commonTickers = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "AMD", "INTC",
-    "TSLA", "COIN", "MSTR", "PLTR", "SMCI", "ARM",
+    "AAPL",
+    "MSFT",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "NVDA",
+    "AMD",
+    "INTC",
+    "TSLA",
+    "COIN",
+    "MSTR",
+    "PLTR",
+    "SMCI",
+    "ARM",
   ];
   for (const ticker of commonTickers) {
     if (upper.includes(ticker)) {
@@ -220,16 +274,16 @@ function extractTicker(text: string): string | null {
   return null;
 }
 
-export const solusAnalyzeExamples: ActionExample[] = [
+export const solusAnalyzeExamples: ActionExample[][] = [
   [
     {
-      user: "Analyze NVDA",
+      name: "Analyze NVDA",
       content: { text: "Can you analyze NVDA for me?" },
     },
   ],
   [
     {
-      user: "full analysis for TSLA",
+      name: "full analysis for TSLA",
       content: { text: "Give me a full analysis of TSLA" },
     },
   ],

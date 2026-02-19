@@ -20,21 +20,24 @@ export const solusEarningsCalendarAction: Action = {
   examples: [
     [
       {
-        user: "earnings calendar",
+        name: "earnings calendar",
         content: { text: "What earnings are coming up this week?" },
       },
       {
-        user: "earnings",
+        name: "earnings",
         content: { text: "Show me the earnings calendar" },
       },
       {
-        user: "NVDA earnings",
+        name: "NVDA earnings",
         content: { text: "When is NVDA reporting earnings?" },
       },
     ],
   ],
 
-  validate: async (runtime: IAgentRuntime, message: Memory): Promise<boolean> => {
+  validate: async (
+    runtime: IAgentRuntime,
+    message: Memory,
+  ): Promise<boolean> => {
     const text = message.content?.text?.toLowerCase() || "";
     return text.includes("earnings") || text.includes("calendar");
   },
@@ -43,7 +46,7 @@ export const solusEarningsCalendarAction: Action = {
     runtime: IAgentRuntime,
     message: Memory,
     _state: State,
-  ): Promise<boolean> => {
+  ): Promise<void> => {
     const text = message.content?.text || "";
 
     // Extract specific ticker if mentioned
@@ -53,8 +56,10 @@ export const solusEarningsCalendarAction: Action = {
     const fmp = runtime.getService<FMPService>("FMP_SERVICE");
 
     if (!fmp || !fmp.isConfigured()) {
-      console.log("⚠️ FMP not configured — set FMP_API_KEY for earnings calendar");
-      return false;
+      console.log(
+        "⚠️ FMP not configured — set FMP_API_KEY for earnings calendar",
+      );
+      return;
     }
 
     try {
@@ -63,37 +68,43 @@ export const solusEarningsCalendarAction: Action = {
 
       if (specificTicker) {
         // Filter for specific ticker
-        const filtered = allEarnings.filter(e => e.symbol === specificTicker);
+        const filtered = allEarnings.filter((e) => e.symbol === specificTicker);
         if (filtered.length === 0) {
           console.log(`No upcoming earnings found for ${specificTicker}`);
-          return false;
+          return;
         }
         console.log(`## 📅 Earnings for ${specificTicker}`);
-        filtered.forEach(e => {
+        filtered.forEach((e) => {
           const isPast = new Date(e.date) <= new Date();
           console.log(`- **${e.date}** (${isPast ? "reported" : "upcoming"})`);
-          console.log(`  EPS: $${e.eps?.toFixed(2) || "N/A"} (est: $${e.epsEstimate?.toFixed(2) || "N/A"})`);
-          console.log(`  Revenue: $${(e.revenue / 1e9).toFixed(1)}B (est: $${(e.revenueEstimate / 1e9).toFixed(1)}B)`);
+          console.log(
+            `  EPS: $${e.eps?.toFixed(2) || "N/A"} (est: $${e.epsEstimate?.toFixed(2) || "N/A"})`,
+          );
+          console.log(
+            `  Revenue: $${(e.revenue / 1e9).toFixed(1)}B (est: $${(e.revenueEstimate / 1e9).toFixed(1)}B)`,
+          );
         });
       } else {
         // Show all watchlist earnings
-        const watchlistSymbols = SOLUS_OFFCHAIN_STOCKS.map(s => s.ticker);
-        const watchlistEarnings = allEarnings.filter(e =>
-          watchlistSymbols.includes(e.symbol)
+        const watchlistSymbols = SOLUS_OFFCHAIN_STOCKS.map((s) => s.ticker);
+        const watchlistEarnings = allEarnings.filter((e) =>
+          watchlistSymbols.includes(e.symbol),
         );
 
         // Sort by date
-        watchlistEarnings.sort((a, b) =>
-          new Date(a.date).getTime() - new Date(b.date).getTime()
+        watchlistEarnings.sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
 
         if (watchlistEarnings.length === 0) {
           console.log("No upcoming earnings found for watchlist stocks");
-          return false;
+          return;
         }
 
         console.log(`## 📅 Upcoming Earnings (Next 30 Days)`);
-        console.log(`Found ${watchlistEarnings.length} earnings from watchlist\n`);
+        console.log(
+          `Found ${watchlistEarnings.length} earnings from watchlist\n`,
+        );
 
         // Group by week
         const now = new Date();
@@ -101,9 +112,11 @@ export const solusEarningsCalendarAction: Action = {
         const nextWeek: typeof watchlistEarnings = [];
         const later: typeof watchlistEarnings = [];
 
-        watchlistEarnings.forEach(e => {
+        watchlistEarnings.forEach((e) => {
           const date = new Date(e.date);
-          const daysDiff = Math.floor((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          const daysDiff = Math.floor(
+            (date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+          );
 
           if (daysDiff <= 0) {
             // Already reported - show as recent
@@ -119,16 +132,20 @@ export const solusEarningsCalendarAction: Action = {
 
         if (thisWeek.length > 0) {
           console.log("### This Week");
-          thisWeek.forEach(e => {
+          thisWeek.forEach((e) => {
             const isPast = new Date(e.date) <= now;
-            console.log(`- **${e.symbol}** — ${e.date} ${isPast ? "(reported)" : ""}`);
-            console.log(`  EPS: $${e.eps?.toFixed(2) || "?"} (est: $${e.epsEstimate?.toFixed(2) || "?"})`);
+            console.log(
+              `- **${e.symbol}** — ${e.date} ${isPast ? "(reported)" : ""}`,
+            );
+            console.log(
+              `  EPS: $${e.eps?.toFixed(2) || "?"} (est: $${e.epsEstimate?.toFixed(2) || "?"})`,
+            );
           });
         }
 
         if (nextWeek.length > 0) {
           console.log("\n### Next Week");
-          nextWeek.forEach(e => {
+          nextWeek.forEach((e) => {
             console.log(`- **${e.symbol}** — ${e.date}`);
             console.log(`  EPS Est: $${e.epsEstimate?.toFixed(2) || "?"}`);
           });
@@ -136,17 +153,17 @@ export const solusEarningsCalendarAction: Action = {
 
         if (later.length > 0) {
           console.log("\n### Later");
-          later.forEach(e => {
+          later.forEach((e) => {
             console.log(`- **${e.symbol}** — ${e.date}`);
             console.log(`  EPS Est: $${e.epsEstimate?.toFixed(2) || "?"}`);
           });
         }
       }
 
-      return true;
+      return;
     } catch (e) {
       logger.error("[SolusEarningsCalendar] Error: " + (e as Error).message);
-      return false;
+      return;
     }
   },
 

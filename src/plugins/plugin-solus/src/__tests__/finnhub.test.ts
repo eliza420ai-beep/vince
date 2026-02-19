@@ -7,7 +7,7 @@ import type { IAgentRuntime } from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
 
 const TEST_API_KEY = process.env.FINNHUB_API_KEY || "test_api_key";
-const TEST_TICKER = "AAPL"; // Use a well-known ticker for testing
+const TEST_TICKER = "NVDA"; // Must be in Solus watchlist (SOLUS_OFFCHAIN_STOCKS)
 
 function createTestRuntime(apiKey: string | null): IAgentRuntime {
   return {
@@ -41,15 +41,28 @@ describe("FinnhubService API Test", () => {
     });
 
     it("returns false when no API key is set", () => {
-      const runtime = createTestRuntime(null);
-      const service = new FinnhubService(runtime);
-      expect(service.isConfigured()).toBe(false);
+      const saved = process.env.FINNHUB_API_KEY;
+      delete process.env.FINNHUB_API_KEY;
+      try {
+        const runtime = createTestRuntime(null);
+        const service = new FinnhubService(runtime);
+        expect(service.isConfigured()).toBe(false);
+      } finally {
+        if (saved !== undefined) process.env.FINNHUB_API_KEY = saved;
+      }
     });
 
     it("returns false when API key is empty string", () => {
-      const runtime = createTestRuntime("");
-      const service = new FinnhubService(runtime);
-      expect(service.isConfigured()).toBe(false);
+      const saved = process.env.FINNHUB_API_KEY;
+      process.env.FINNHUB_API_KEY = "";
+      try {
+        const runtime = createTestRuntime("");
+        const service = new FinnhubService(runtime);
+        expect(service.isConfigured()).toBe(false);
+      } finally {
+        if (saved !== undefined) process.env.FINNHUB_API_KEY = saved;
+        else delete process.env.FINNHUB_API_KEY;
+      }
     });
   });
 
@@ -73,7 +86,7 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const quote = await service.getQuote("AAPL");
+      const quote = await service.getQuote(TEST_TICKER);
 
       expect(quote).toEqual(mockQuote);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -89,26 +102,31 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const quote = await service.getQuote("AAPL");
+      const quote = await service.getQuote(TEST_TICKER);
 
       expect(quote).toBeNull();
     });
 
     it("should return null when no API key is configured", async () => {
-      const runtime = createTestRuntime(null);
-      const service = new FinnhubService(runtime);
-      const quote = await service.getQuote("AAPL");
-
-      expect(quote).toBeNull();
-      expect(global.fetch).not.toHaveBeenCalled();
+      const saved = process.env.FINNHUB_API_KEY;
+      delete process.env.FINNHUB_API_KEY;
+      try {
+        const runtime = createTestRuntime(null);
+        const service = new FinnhubService(runtime);
+        const quote = await service.getQuote(TEST_TICKER);
+        expect(quote).toBeNull();
+        expect(global.fetch).not.toHaveBeenCalled();
+      } finally {
+        if (saved !== undefined) process.env.FINNHUB_API_KEY = saved;
+      }
     });
   });
 
   describe("getCompanyProfile (API call)", () => {
     it("should fetch company profile successfully", async () => {
       const mockProfile = {
-        name: "Apple Inc.",
-        ticker: "AAPL",
+        name: "NVIDIA Corporation",
+        ticker: TEST_TICKER,
         weburl: "https://www.apple.com",
         logo: "https://logo.clearbit.com/apple.com",
         finnhubIndustry: "Technology",
@@ -122,7 +140,7 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const profile = await service.getCompanyProfile("AAPL");
+      const profile = await service.getCompanyProfile(TEST_TICKER);
 
       expect(profile).toEqual(mockProfile);
     });
@@ -135,7 +153,7 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const profile = await service.getCompanyProfile("AAPL");
+      const profile = await service.getCompanyProfile(TEST_TICKER);
 
       expect(profile).toBeNull();
     });
@@ -147,10 +165,10 @@ describe("FinnhubService API Test", () => {
         {
           category: "technology",
           datetime: Date.now() / 1000,
-          headline: "Apple announces new AI features",
+          headline: "NVIDIA announces new AI features",
           id: 12345,
           image: "https://example.com/image.jpg",
-          related: "AAPL",
+          related: TEST_TICKER,
           source: "Reuters",
           summary: "Apple Inc. announced new AI features...",
           url: "https://example.com/news",
@@ -164,7 +182,7 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const news = await service.getCompanyNews("AAPL", 5);
+      const news = await service.getCompanyNews(TEST_TICKER, 5);
 
       expect(news).toEqual(mockNews);
       expect(global.fetch).toHaveBeenCalledWith(
@@ -180,7 +198,7 @@ describe("FinnhubService API Test", () => {
 
       const runtime = createTestRuntime(TEST_API_KEY);
       const service = new FinnhubService(runtime);
-      const news = await service.getCompanyNews("AAPL");
+      const news = await service.getCompanyNews(TEST_TICKER);
 
       expect(news).toEqual([]);
     });
@@ -193,35 +211,39 @@ describe("FinnhubService API Test", () => {
  */
 describe("FinnhubService Integration Test", () => {
   const integrationApiKey = process.env.FINNHUB_API_KEY;
-
   // Skip if no API key provided
-  const it.skipIfNoKey = integrationApiKey ? it : it.skip;
+  const itOrSkip = integrationApiKey ? it : it.skip;
 
-  it.skipIfNoKey("should make real API call to Finnhub", async () => {
-    const runtime = createTestRuntime(integrationApiKey!);
-    const service = new FinnhubService(runtime);
+  itOrSkip(
+    "should make real API call to Finnhub",
+    async () => {
+      const runtime = createTestRuntime(integrationApiKey!);
+      const service = new FinnhubService(runtime);
+      const ticker = "NVDA"; // Must be in Solus watchlist
 
-    // Test quote endpoint
-    const quote = await service.getQuote("AAPL");
-    console.log("Finnhub quote response:", quote);
+      // Test quote endpoint
+      const quote = await service.getQuote(ticker);
+      console.log("Finnhub quote response:", quote);
 
-    // Should have valid data
-    expect(quote).toBeDefined();
-    expect(quote?.c).toBeGreaterThan(0); // Current price should be positive
+      // Should have valid data
+      expect(quote).toBeDefined();
+      expect(quote?.c).toBeGreaterThan(0); // Current price should be positive
 
-    // Test profile endpoint
-    const profile = await service.getCompanyProfile("AAPL");
-    console.log("Finnhub profile response:", profile);
+      // Test profile endpoint
+      const profile = await service.getCompanyProfile(ticker);
+      console.log("Finnhub profile response:", profile);
 
-    expect(profile).toBeDefined();
-    expect(profile?.name).toBe("Apple Inc.");
-    expect(profile?.ticker).toBe("AAPL");
+      expect(profile).toBeDefined();
+      expect(profile?.name).toBeDefined();
+      expect(profile?.ticker).toBe(ticker);
 
-    // Test news endpoint
-    const news = await service.getCompanyNews("NVDA", 3);
-    console.log("Finnhub news response:", news);
+      // Test news endpoint
+      const news = await service.getCompanyNews(ticker, 3);
+      console.log("Finnhub news response:", news);
 
-    expect(news).toBeDefined();
-    expect(Array.isArray(news)).toBe(true);
-  }, 30000); // 30 second timeout for API calls
+      expect(news).toBeDefined();
+      expect(Array.isArray(news)).toBe(true);
+    },
+    30000,
+  ); // 30 second timeout for API calls
 });
