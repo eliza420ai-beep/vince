@@ -6,12 +6,14 @@ import { describe, it, expect } from "bun:test";
 import {
   AGENT_ROLES,
   REPORT_TEMPLATES,
-  getReportTemplate,
+  buildStandupPrompt,
+  extractAgentSection,
+  formatReportDate,
   getAgentRole,
+  getDayOfWeek,
+  getReportTemplate,
   isHumanMessage,
   buildStandupContext,
-  formatReportDate,
-  getDayOfWeek,
 } from "../standupReports";
 import {
   getEssentialStandupQuestion,
@@ -226,6 +228,72 @@ describe("Standup Reports", () => {
       expect(q).toBeTruthy();
       expect(q).toContain("BTC");
       expect(q).toContain("Friday");
+    });
+  });
+
+  describe("extractAgentSection", () => {
+    const shared = `## VINCE
+BTC 66k, SOL 81. Paper bot: 3W 2L.
+
+## Eliza
+Knowledge gaps: none today. Essay: TBD.
+
+## Naval
+Conclusion slot.`;
+
+    it("returns section for exact ## AgentName match", () => {
+      const vince = extractAgentSection(shared, "VINCE");
+      expect(vince).toContain("BTC 66k");
+      expect(vince).not.toContain("Eliza");
+      expect(vince).not.toContain("Naval");
+    });
+
+    it("returns section for case-insensitive match when exact fails", () => {
+      const eliza = extractAgentSection(shared, "eliza");
+      expect(eliza).toContain("Knowledge gaps");
+      expect(eliza).not.toContain("VINCE");
+    });
+
+    it("returns fallback when agent section missing", () => {
+      const out = extractAgentSection(shared, "Oracle");
+      expect(out).toContain("No section for this agent");
+    });
+
+    it("returns fallback when shared insights empty", () => {
+      expect(extractAgentSection("", "VINCE")).toContain("No shared insights");
+      expect(extractAgentSection("   ", "VINCE")).toContain(
+        "No shared insights",
+      );
+    });
+  });
+
+  describe("buildStandupPrompt", () => {
+    const shared = "## VINCE\nBTC 66k.\n\n## Eliza\nGaps: none.";
+    const transcript = "VINCE: done.\nEliza: done.";
+    const dateStr = "2026-02-19";
+
+    it("Naval gets full transcript and synthesis instructions", () => {
+      const prompt = buildStandupPrompt("Naval", shared, transcript, dateStr);
+      expect(prompt).toContain("FULL TRANSCRIPT");
+      expect(prompt).toContain(transcript);
+      expect(prompt).toContain("2–4 short sentences");
+      expect(prompt).not.toContain("TEMPLATE (fill this in)");
+    });
+
+    it("non-Naval gets template and only their data section", () => {
+      const prompt = buildStandupPrompt("VINCE", shared, transcript, dateStr);
+      expect(prompt).toContain("TEMPLATE (fill this in)");
+      expect(prompt).toContain("YOUR DATA");
+      expect(prompt).toContain("BTC 66k");
+      expect(prompt).not.toContain("FULL TRANSCRIPT");
+      expect(prompt).not.toContain("Gaps: none"); // Eliza's section
+    });
+
+    it("includes role and constraints", () => {
+      const prompt = buildStandupPrompt("Eliza", shared, transcript, dateStr);
+      expect(prompt).toContain("CEO");
+      expect(prompt).toContain('Do NOT write a "Day Report"');
+      expect(prompt).toContain("Under 250 words");
     });
   });
 });
