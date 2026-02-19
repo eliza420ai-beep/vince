@@ -113,12 +113,17 @@ async function fetchEnrichedContext(runtime: IAgentRuntime): Promise<string> {
 
 async function fetchFearGreed(runtime: IAgentRuntime): Promise<string> {
   const coinglass = runtime.getService("VINCE_COINGLASS_SERVICE") as {
-    getFearGreed?: () => Promise<{
+    getFearGreed?: () => {
       value: number;
       classification: string;
-    } | null>;
+    } | null;
   } | null;
-  const fg = (await coinglass?.getFearGreed?.().catch(() => null)) ?? null;
+  let fg: { value: number; classification: string } | null = null;
+  try {
+    fg = coinglass?.getFearGreed?.() ?? null;
+  } catch {
+    /* non-fatal */
+  }
   return fg
     ? `**Fear & Greed:** ${fg.value} (${fg.classification?.replace(/_/g, " ")})`
     : "";
@@ -184,11 +189,11 @@ async function fetchBinanceTopTraders(runtime: IAgentRuntime): Promise<string> {
 
 async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
   const paperBot = runtime.getService("VINCE_TRADE_JOURNAL_SERVICE") as {
-    getStats?: () => Promise<{
+    getStats?: () => {
       wins: number;
       losses: number;
       pnl: number;
-    } | null>;
+    } | null;
   } | null;
   const paperTrading = runtime.getService("VINCE_PAPER_TRADING_SERVICE") as {
     getStatus?: () => Promise<{
@@ -196,10 +201,19 @@ async function fetchPaperBot(runtime: IAgentRuntime): Promise<string> {
       pendingEntries?: number;
     } | null>;
   } | null;
-  const [stats, botStatus] = await Promise.all([
-    paperBot?.getStats?.().catch(() => null) ?? null,
-    paperTrading?.getStatus?.().catch(() => null) ?? null,
-  ]);
+  let stats: { wins: number; losses: number; pnl: number } | null = null;
+  let botStatus: { openPositions?: number; pendingEntries?: number } | null =
+    null;
+  try {
+    stats = paperBot?.getStats?.() ?? null;
+  } catch {
+    /* non-fatal */
+  }
+  try {
+    botStatus = (await paperTrading?.getStatus?.()) ?? null;
+  } catch {
+    /* non-fatal */
+  }
   let line = stats
     ? `**Paper bot:** ${stats.wins}W/${stats.losses}L (${stats.pnl >= 0 ? "+" : ""}$${stats.pnl.toFixed(0)})`
     : "**Paper bot:** No data";
@@ -469,7 +483,7 @@ async function runXQueries(
     const tweets = await svc.searchQuery({
       ...opts,
       query: sanitized,
-      maxResults: 5,
+      maxResults: 10,
     });
     for (const t of tweets ?? []) {
       const key = (t as { id?: string }).id ?? t.text?.slice(0, 50) ?? "";

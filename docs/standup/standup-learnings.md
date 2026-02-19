@@ -1,0 +1,282 @@
+# Standup learnings
+
+*Append-only log of action item outcomes and learnings.*
+
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [new] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [new] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Solus: Execute BTC covered call strategy
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [new] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Otaku: Complete wallet configuration
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Eliza: Research Bitwise prediction market ETF
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [new] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [new] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @Clawterm: Develop Security Onboarding Skill
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts
+- **2026-02-19** [in_progress] @VINCE: Monitor paper bot performance
+  - Outcome: /Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts

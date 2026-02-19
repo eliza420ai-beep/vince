@@ -241,8 +241,27 @@ export const interAgentPlugin: Plugin = {
                 message.content.mentionContext = {};
               message.content.mentionContext.isMention = true;
               const rawText = (message?.content?.text ?? "").trim();
+              const isOwnBotMessage =
+                message?.content?.source === "discord" &&
+                String(message?.entityId ?? "") === String(rt.agentId ?? "");
+              const isDeliverableNotification =
+                rawText.startsWith("Standup deliverable:") ||
+                rawText.startsWith("Action item requires approval:") ||
+                rawText.startsWith("Standup 20") ||
+                rawText.includes("Day Report generation failed");
+              if (isOwnBotMessage || isDeliverableNotification) {
+                logger.debug(
+                  `[KELLY_STANDUP] Dropping bot/deliverable message in standup channel: "${rawText.slice(0, 60)}"`,
+                );
+                return {
+                  didRespond: false,
+                  responseContent: null,
+                  responseMessages: [],
+                  state: { values: {}, data: {}, text: "" },
+                  mode: "none",
+                };
+              }
               if (rawText && isStandupKickoffRequest(rawText)) {
-                // Replace user text with a direct imperative so the LLM doesn't reason about "weekend" / "18th request" and output REPLY
                 (message.content as any)._originalStandupText = rawText;
                 message.content.text =
                   "Run the daily standup now. Use only action STANDUP_FACILITATE. Do not use REPLY.";

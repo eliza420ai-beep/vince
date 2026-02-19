@@ -42,7 +42,11 @@ import {
 import { getElizaOS, type IElizaOSRegistry } from "../types";
 import { executeBuildActionItem, isNorthStarType } from "./standup.build";
 import { generateAndSaveDayReport } from "./standupDayReport";
-import { getPendingActionItems, updateActionItem } from "./actionItemTracker";
+import {
+  getPendingActionItems,
+  claimActionItem,
+  updateActionItem,
+} from "./actionItemTracker";
 import type { ActionItem } from "./actionItemTracker";
 import { verifyActionItem } from "./standupVerifier";
 import { appendLearning } from "./standupLearnings";
@@ -997,10 +1001,14 @@ function registerStandupRalphLoopWorker(runtime: IAgentRuntime): void {
         if (pa !== pb) return pa - pb;
         return (a.createdAt || "").localeCompare(b.createdAt || "");
       });
-      const item = sorted[0];
-      if (!item?.id) return;
 
-      await updateActionItem(item.id, { status: "in_progress" });
+      let item: ActionItem | null = null;
+      for (const candidate of sorted) {
+        if (!candidate?.id) continue;
+        item = await claimActionItem(candidate.id);
+        if (item) break;
+      }
+      if (!item) return;
 
       const standupItem = toStandupActionItem(item);
       const requireApprovalTypes = getStandupRequireApprovalTypes();

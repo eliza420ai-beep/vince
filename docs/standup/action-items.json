@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "date": "2026-02-19",
+      "what": "Execute BTC covered call strategy",
+      "how": "Sell $67,500 strike, Friday expiry, target $3-4K premium",
+      "why": "Capture volatility premium in ranging market",
+      "owner": "Solus",
+      "urgency": "today",
+      "id": "ai-021ca6fe-d9fb-44ec-b7c3-0cedcd5e2340",
+      "status": "done",
+      "createdAt": "2026-02-19T11:17:24.092Z",
+      "updatedAt": "2026-02-19T11:19:35.483Z",
+      "priority": 1,
+      "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-solus-execute-btc-covered-call-strategy.ts",
+      "completedAt": "2026-02-19T11:19:35.483Z"
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Complete wallet configuration",
+      "how": "Set EVM/Solana keys, verify Bankr connection, test balance check",
+      "why": "Enable live DeFi execution capabilities",
+      "owner": "Otaku",
+      "urgency": "today",
+      "id": "ai-c4cc3d98-7319-4390-8b5b-6dbeb5d9142e",
+      "status": "done",
+      "createdAt": "2026-02-19T11:17:24.093Z",
+      "updatedAt": "2026-02-19T11:19:42.753Z",
+      "priority": 2,
+      "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-otaku-complete-wallet-configuration.ts",
+      "completedAt": "2026-02-19T11:19:42.753Z"
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Research Bitwise prediction market ETF",
+      "how": "Deep dive into filing details and regulatory implications",
+      "why": "Understand emerging institutional structures",
+      "owner": "Eliza",
+      "urgency": "today",
+      "id": "ai-5c733580-4911-433a-a5b0-01486b449f3a",
+      "status": "done",
+      "createdAt": "2026-02-19T11:17:24.096Z",
+      "updatedAt": "2026-02-19T11:19:58.667Z",
+      "priority": 3,
+      "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-eliza-research-bitwise-prediction-market-etf.ts",
+      "completedAt": "2026-02-19T11:19:58.667Z"
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Develop Security Onboarding Skill",
+      "how": "Automate VPS hardening and Docker deployment for OpenClaw",
+      "why": "Reduce friction for new secure deployments",
+      "owner": "Clawterm",
+      "urgency": "today",
+      "id": "ai-41175747-4bac-46e3-b791-5296194ece8e",
+      "status": "done",
+      "createdAt": "2026-02-19T11:17:24.097Z",
+      "updatedAt": "2026-02-19T11:20:17.963Z",
+      "priority": 4,
+      "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-clawterm-develop-security-onboarding-skill.ts",
+      "completedAt": "2026-02-19T11:20:17.963Z"
+    },
+    {
+      "date": "2026-02-19",
+      "what": "Monitor paper bot performance",
+      "how": "Analyze current perps setup performance on Hyperliquid",
+      "why": "Optimize ML signals and sizing for better returns",
+      "owner": "VINCE",
+      "urgency": "today",
+      "id": "ai-6c6c4c81-e0f4-404b-a5d9-3ca651c03a52",
+      "status": "done",
+      "createdAt": "2026-02-19T11:17:24.098Z",
+      "updatedAt": "2026-02-19T11:20:37.167Z",
+      "priority": 5,
+      "outcome": "/Users/macbookpro16/vince/docs/standup/2026-02-19-vince-monitor-paper-bot-performance.ts",
+      "completedAt": "2026-02-19T11:20:37.167Z"
+    }
+  ],
+  "lastUpdated": "2026-02-19T11:20:37.167Z"
+}

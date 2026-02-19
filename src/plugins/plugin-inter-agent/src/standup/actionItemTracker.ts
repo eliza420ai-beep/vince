@@ -125,6 +125,31 @@ export async function addActionItem(
 }
 
 /**
+ * Atomically claim an action item for processing: inside the lock, verify it is
+ * still "new" (not already "in_progress", "done", etc.), set it to "in_progress",
+ * write, and return the item. Returns null if the item was already claimed/done.
+ */
+export async function claimActionItem(id: string): Promise<ActionItem | null> {
+  const filepath = getActionItemsPath();
+  let result: ActionItem | null = null;
+  await withLock(filepath, async () => {
+    const store = await loadStore();
+    const index = store.items.findIndex((item) => item.id === id);
+    if (index === -1) return;
+    if (store.items[index].status !== "new") return;
+    store.items[index] = {
+      ...store.items[index],
+      status: "in_progress",
+      updatedAt: new Date().toISOString(),
+    };
+    result = store.items[index];
+    await writeStoreUnlocked(store);
+  });
+  if (result) logger.info(`[ActionItems] Claimed ${id} for processing`);
+  return result;
+}
+
+/**
  * Update an action item (status, outcome, priority, etc.)
  */
 export async function updateActionItem(
