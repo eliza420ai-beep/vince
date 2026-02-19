@@ -298,9 +298,11 @@ Here is the pulse data:
 
 ${dataContext}
 
+CONTENT FOCUS — Strict: Do not mention meme coins, meme tokens, meme news, or meme season. Focus only on: BTC, ETH, SOL, HYPE, macro, geopolitics (when it affects crypto), and HIP-3 listed stocks. If the data includes meme-related tweets, omit them from your narrative.
+
 Write a single narrative (~150-250 words) that:
 1. Opens with the overall vibe — what is CT saying today? Give your gut take.
-2. Weaves in key themes, standout threads or breaking items, and whale/contrarian signals.
+2. Weaves in key themes, standout threads or breaking items, and whale/contrarian signals (majors, macro, geopolitics, HIP-3 only).
 3. Ends with one clear take — what's the read?
 
 ${ALOHA_STYLE_RULES}

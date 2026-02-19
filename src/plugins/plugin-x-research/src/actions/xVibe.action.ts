@@ -256,6 +256,8 @@ Here is the vibe data:
 
 ${dataContext}
 
+Do not mention meme coins, meme tokens, or meme news. Focus on the asset/macro/topic only (BTC, ETH, SOL, HYPE, macro, geopolitics, HIP-3).
+
 Write a short narrative (~100-150 words) that: opens with the read on this topic, weaves in where whales stand and any contrarian signal, and ends with one clear take.
 
 ${ALOHA_STYLE_RULES}
