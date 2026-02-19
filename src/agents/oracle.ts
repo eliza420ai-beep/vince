@@ -23,8 +23,10 @@ import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discover
 import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const oracleHasDiscord =
-  !!(process.env.ORACLE_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const oracleHasDiscord = !!(
+  process.env.ORACLE_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const oracleCharacter: Character = {
   name: "Oracle",
@@ -79,12 +81,12 @@ export const oracleCharacter: Character = {
   knowledge: [
     // Oracle = CPO: prediction markets, probability assessment, macro context
     { path: "teammate/POLYMARKET_PRIORITY_MARKETS.md", shared: false },
-    { directory: "macro-economy", shared: true },           // macro scenarios for predictions
-    { directory: "regulation", shared: true },              // regulatory outcome predictions
-    { directory: "stocks", shared: true },                  // equity/sector predictions
-    { directory: "bitcoin-maxi", shared: true },            // BTC price prediction context
-    { directory: "commodities", shared: true },             // commodity scenario planning
-    { directory: "research-daily", shared: true },          // daily intel for prediction context
+    { directory: "macro-economy", shared: true }, // macro scenarios for predictions
+    { directory: "regulation", shared: true }, // regulatory outcome predictions
+    { directory: "stocks", shared: true }, // equity/sector predictions
+    { directory: "bitcoin-maxi", shared: true }, // BTC price prediction context
+    { directory: "commodities", shared: true }, // commodity scenario planning
+    { directory: "research-daily", shared: true }, // daily intel for prediction context
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
@@ -164,7 +166,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
   ],
   messageExamples: [
     [
-      { name: "{{user}}", content: { text: "What are the trending polymarket predictions?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What are the trending polymarket predictions?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -174,7 +179,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Search polymarket for bitcoin predictions" } },
+      {
+        name: "{{user}}",
+        content: { text: "Search polymarket for bitcoin predictions" },
+      },
       {
         name: "Oracle",
         content: {
@@ -184,7 +192,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "What Polymarket markets matter for us?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What Polymarket markets matter for us?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -194,7 +205,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Why do we care about these Polymarket markets?" } },
+      {
+        name: "{{user}}",
+        content: { text: "Why do we care about these Polymarket markets?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -203,7 +217,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "What are the current odds for that market?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What are the current odds for that market?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -213,7 +230,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Get the latest price for the Bitcoin market" } },
+      {
+        name: "{{user}}",
+        content: { text: "Get the latest price for the Bitcoin market" },
+      },
       {
         name: "Oracle",
         content: {
@@ -223,7 +243,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "Show me the orderbook for token X" } },
+      {
+        name: "{{user}}",
+        content: { text: "Show me the orderbook for token X" },
+      },
       {
         name: "Oracle",
         content: {
@@ -233,7 +256,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "What categories are available on polymarket?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What categories are available on polymarket?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -243,7 +269,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "What are my polymarket positions for 0x1234…?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What are my polymarket positions for 0x1234…?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -262,7 +291,10 @@ When the user asks you to ask another agent, use ASK_AGENT with that agent's nam
       },
     ],
     [
-      { name: "{{user}}", content: { text: "What's your strike call for BTC this week?" } },
+      {
+        name: "{{user}}",
+        content: { text: "What's your strike call for BTC this week?" },
+      },
       {
         name: "Oracle",
         content: {
@@ -291,7 +323,9 @@ const buildPlugins = (): Plugin[] =>
     bootstrapPlugin,
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-    ...(oracleHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(oracleHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     polymarketDiscoveryPlugin,
     pluginPolymarketDesk, // Trading desk: signals table, POLYMARKET_EDGE_CHECK (Synth vs Polymarket)
     interAgentPlugin, // A2A loop guard + standup reports for multi-agent Discord
@@ -302,9 +336,13 @@ const initOracle = async (runtime: IAgentRuntime) => {
     "[Oracle] Prediction-markets specialist: Polymarket discovery, odds, portfolio (read-only); handoffs to VINCE/Solus/Otaku",
   );
   try {
-    const polymarketService = runtime.getService("POLYMARKET_DISCOVERY_SERVICE");
+    const polymarketService = runtime.getService(
+      "POLYMARKET_DISCOVERY_SERVICE",
+    );
     if (polymarketService) {
-      logger.info("[Oracle] Polymarket discovery ready (CLOB real-time prices).");
+      logger.info(
+        "[Oracle] Polymarket discovery ready (CLOB real-time prices).",
+      );
     }
   } catch {
     // Best-effort; do not throw if service not yet registered

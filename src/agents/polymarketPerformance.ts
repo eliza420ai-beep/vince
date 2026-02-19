@@ -20,11 +20,10 @@ import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discover
 import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const perfHasDiscord =
-  !!(
-    process.env.POLYMARKET_PERF_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  );
+const perfHasDiscord = !!(
+  process.env.POLYMARKET_PERF_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const polymarketPerformanceCharacter: Character = {
   name: "Polymarket Performance",
@@ -37,14 +36,17 @@ export const polymarketPerformanceCharacter: Character = {
   plugins: [
     "@elizaos/plugin-sql",
     "@elizaos/plugin-bootstrap",
-    ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
+    ...(process.env.ANTHROPIC_API_KEY?.trim()
+      ? ["@elizaos/plugin-anthropic"]
+      : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(perfHasDiscord ? ["@elizaos/plugin-discord"] : []),
   ],
   settings: {
     secrets: {
       ...(process.env.POLYMARKET_PERF_DISCORD_APPLICATION_ID?.trim() && {
-        DISCORD_APPLICATION_ID: process.env.POLYMARKET_PERF_DISCORD_APPLICATION_ID,
+        DISCORD_APPLICATION_ID:
+          process.env.POLYMARKET_PERF_DISCORD_APPLICATION_ID,
       }),
       ...(process.env.POLYMARKET_PERF_DISCORD_API_TOKEN?.trim() && {
         DISCORD_API_TOKEN: process.env.POLYMARKET_PERF_DISCORD_API_TOKEN,
@@ -80,7 +82,9 @@ const buildPlugins = (): Plugin[] =>
     bootstrapPlugin,
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-    ...(perfHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(perfHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     polymarketDiscoveryPlugin,
     pluginPolymarketDesk,
     interAgentPlugin,

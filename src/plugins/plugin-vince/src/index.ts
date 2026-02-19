@@ -102,6 +102,7 @@ import { vinceLifestyleAction } from "./actions/lifestyle.action";
 import { vinceNftFloorAction } from "./actions/nftFloor.action";
 import { vinceIntelAction } from "./actions/intel.action";
 import { vinceNewsAction } from "./actions/news.action";
+import { vinceReportAction } from "./actions/report.action";
 import { vinceHIP3Action } from "./actions/hip3.action";
 import {
   vinceHlCryptoAction,
@@ -229,6 +230,7 @@ export const vincePlugin: Plugin = {
     vinceNftFloorAction,
     vinceIntelAction,
     vinceNewsAction,
+    vinceReportAction,
     vinceHIP3Action,
     vinceHlCryptoAction,
     vinceChatAction,

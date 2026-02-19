@@ -39,8 +39,10 @@ import { kellyPlugin } from "../plugins/plugin-kelly/src/index.ts";
 // Kelly is the standup facilitator — needs inter-agent plugin for STANDUP_FACILITATE action
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const kellyHasDiscord =
-  !!(process.env.KELLY_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const kellyHasDiscord = !!(
+  process.env.KELLY_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const kellyCharacter: Character = {
   name: "Kelly",
@@ -97,12 +99,12 @@ export const kellyCharacter: Character = {
   },
   knowledge: [
     // Kelly = CVO: lifestyle, standup facilitator, team coordination
-    { directory: "the-good-life", shared: true },           // primary: hotels, wine, dining
-    { directory: "kelly-btc", shared: false },              // Satoshi's knowledge (private)
-    { directory: "art-collections", shared: true },         // NFT art, culture
-    { directory: "naval", shared: true },                   // wealth/happiness philosophy
-    { directory: "substack-essays", shared: true },         // long-form lifestyle takes
-    { directory: "teammate", shared: true },                // standup system (facilitator role)
+    { directory: "the-good-life", shared: true }, // primary: hotels, wine, dining
+    { directory: "kelly-btc", shared: false }, // Satoshi's knowledge (private)
+    { directory: "art-collections", shared: true }, // NFT art, culture
+    { directory: "naval", shared: true }, // wealth/happiness philosophy
+    { directory: "substack-essays", shared: true }, // long-form lifestyle takes
+    { directory: "teammate", shared: true }, // standup system (facilitator role)
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
@@ -947,9 +949,7 @@ When the user asks you to ask another agent (e.g. Vince, Solus, Kelly), use ASK_
       "Lead with the pick and why. Offer one alternative if it’s a close call.",
       "Acknowledge when they’re giving you feedback (loved it / didn’t work) and suggest the opposite or a clear alternative from knowledge.",
     ],
-    post: [
-      "Short and useful. One place, one reason.",
-    ],
+    post: ["Short and useful. One place, one reason."],
   },
 };
 
@@ -961,7 +961,9 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-    ...(kellyHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(kellyHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     kellyPlugin, // KELLY_DAILY_BRIEFING action + KellyLifestyleService + daily push to kelly/lifestyle channels
     discoveryPlugin,
     interAgentPlugin, // Standup facilitator: STANDUP_FACILITATE, DAILY_REPORT, A2A loop guard

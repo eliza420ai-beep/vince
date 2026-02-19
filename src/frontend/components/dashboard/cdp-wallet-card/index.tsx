@@ -662,7 +662,9 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                       ? "text-[10px] font-normal normal-case px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                       : "text-[10px] font-normal normal-case px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-primary/30"
                   }
-                  title={mode === "normies" ? "Simple & secure" : "BANKR & full DeFi"}
+                  title={
+                    mode === "normies" ? "Simple & secure" : "BANKR & full DeFi"
+                  }
                 >
                   {copy.headerPill}
                 </span>
@@ -893,7 +895,9 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                           {copy.buttons.swap}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>{copy.buttonTooltips.swap}</TooltipContent>
+                      <TooltipContent>
+                        {copy.buttonTooltips.swap}
+                      </TooltipContent>
                     </Tooltip>
                   ) : (
                     <Button
@@ -1124,7 +1128,9 @@ export const CDPWalletCard = forwardRef<CDPWalletCardRef, CDPWalletCardProps>(
                 ) : activeTab === "orders" ? (
                   <div className="flex flex-col items-center justify-center gap-4 py-6 px-3 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Limit, stop, DCA, and TWAP orders are available in chat with Otaku. Create orders, view open and filled orders, and cancel from there.
+                      Limit, stop, DCA, and TWAP orders are available in chat
+                      with Otaku. Create orders, view open and filled orders,
+                      and cancel from there.
                     </p>
                     <Button
                       onClick={() => {

@@ -21,21 +21,25 @@ import { defiLlamaPlugin } from "../plugins/plugin-defillama/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 import { erc8004Plugin } from "@elizaos/plugin-8004";
 
-const hasCdp =
-  !!(
-    process.env.CDP_API_KEY_ID?.trim() &&
-    process.env.CDP_API_KEY_SECRET?.trim() &&
-    process.env.CDP_WALLET_SECRET?.trim()
-  );
+const hasCdp = !!(
+  process.env.CDP_API_KEY_ID?.trim() &&
+  process.env.CDP_API_KEY_SECRET?.trim() &&
+  process.env.CDP_WALLET_SECRET?.trim()
+);
 
 // ERC-8004: on-chain agent identity & reputation (read-only without keys)
 const hasErc8004Contract = !!process.env.ERC8004_CONTRACT_ADDRESS?.trim();
 const hasErc8004Write =
   hasErc8004Contract &&
-  !!(process.env.ERC8004_PRIVATE_KEY?.trim() || process.env.EVM_PRIVATE_KEY?.trim());
+  !!(
+    process.env.ERC8004_PRIVATE_KEY?.trim() ||
+    process.env.EVM_PRIVATE_KEY?.trim()
+  );
 
-const otakuHasDiscord =
-  !!(process.env.OTAKU_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const otakuHasDiscord = !!(
+  process.env.OTAKU_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 const hasBankr = !!process.env.BANKR_API_KEY?.trim();
 const hasRelayKey = !!process.env.RELAY_API_KEY?.trim();
@@ -48,7 +52,9 @@ const x402PayTo = process.env.X402_PAY_TO?.trim();
 
 // OTAKU_MODE: degen (BANKR, full DeFi) | normies (Coinbase CEX, simple language)
 const otakuMode =
-  (process.env.OTAKU_MODE ?? "degen").toLowerCase() === "normies" ? "normies" : "degen";
+  (process.env.OTAKU_MODE ?? "degen").toLowerCase() === "normies"
+    ? "normies"
+    : "degen";
 const hasAdvancedTrade = !!(
   process.env.COINBASE_ADVANCED_TRADE_KEY_NAME?.trim() &&
   process.env.COINBASE_ADVANCED_TRADE_KEY_SECRET?.trim()
@@ -62,17 +68,17 @@ export const otakuCharacter: Character = {
   ],
   knowledge: [
     // Otaku = COO: DeFi ops, wallet, swaps, BANKR, on-chain execution
-    { directory: "bankr", shared: false },                  // primary: BANKR executor
-    { directory: "defi-metrics", shared: true },            // protocol evaluation for ops
-    { directory: "solana", shared: true },                  // Solana DeFi ops
-    { directory: "stablecoins", shared: true },             // stablecoin swaps, yield routing
-    { directory: "security", shared: true },                // smart contract safety for ops
-    { directory: "privacy", shared: true },                 // privacy-preserving txns
-    { directory: "chain-abstraction", shared: true },       // cross-chain UX, bridging
-    { directory: "restaking", shared: true },               // restaking ops, AVS management
-    { directory: "mev", shared: true },                     // MEV awareness for execution
-    { directory: "airdrops", shared: true },                // airdrop farming ops
-    { directory: "rwa", shared: true },                     // RWA token ops
+    { directory: "bankr", shared: false }, // primary: BANKR executor
+    { directory: "defi-metrics", shared: true }, // protocol evaluation for ops
+    { directory: "solana", shared: true }, // Solana DeFi ops
+    { directory: "stablecoins", shared: true }, // stablecoin swaps, yield routing
+    { directory: "security", shared: true }, // smart contract safety for ops
+    { directory: "privacy", shared: true }, // privacy-preserving txns
+    { directory: "chain-abstraction", shared: true }, // cross-chain UX, bridging
+    { directory: "restaking", shared: true }, // restaking ops, AVS management
+    { directory: "mev", shared: true }, // MEV awareness for execution
+    { directory: "airdrops", shared: true }, // airdrop farming ops
+    { directory: "rwa", shared: true }, // RWA token ops
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
@@ -95,8 +101,12 @@ export const otakuCharacter: Character = {
         }),
       ...(hasBankr && {
         BANKR_API_KEY: process.env.BANKR_API_KEY,
-        ...(process.env.BANKR_AGENT_URL?.trim() && { BANKR_AGENT_URL: process.env.BANKR_AGENT_URL }),
-        ...(process.env.BANKR_ORDER_URL?.trim() && { BANKR_ORDER_URL: process.env.BANKR_ORDER_URL }),
+        ...(process.env.BANKR_AGENT_URL?.trim() && {
+          BANKR_AGENT_URL: process.env.BANKR_AGENT_URL,
+        }),
+        ...(process.env.BANKR_ORDER_URL?.trim() && {
+          BANKR_ORDER_URL: process.env.BANKR_ORDER_URL,
+        }),
       }),
       ...(hasBiconomyKey && { BICONOMY_API_KEY: process.env.BICONOMY_API_KEY }),
       ...(hasErc8004Contract && {
@@ -104,8 +114,12 @@ export const otakuCharacter: Character = {
         ...(process.env.ERC8004_PRIVATE_KEY?.trim() && {
           ERC8004_PRIVATE_KEY: process.env.ERC8004_PRIVATE_KEY,
         }),
-        ...(process.env.ERC8004_RPC_URL?.trim() && { ERC8004_RPC_URL: process.env.ERC8004_RPC_URL }),
-        ...(process.env.ERC8004_CHAIN_ID?.trim() && { ERC8004_CHAIN_ID: process.env.ERC8004_CHAIN_ID }),
+        ...(process.env.ERC8004_RPC_URL?.trim() && {
+          ERC8004_RPC_URL: process.env.ERC8004_RPC_URL,
+        }),
+        ...(process.env.ERC8004_CHAIN_ID?.trim() && {
+          ERC8004_CHAIN_ID: process.env.ERC8004_CHAIN_ID,
+        }),
       }),
     },
     /**
@@ -142,7 +156,7 @@ You operate under **LIVETHELIFETV**: IKIGAI STUDIO (content), IKIGAI LABS (produ
 
 **WALLET & ONCHAIN — YOU ARE THE ONLY AGENT WITH FUNDS:** You are the only agent with a wallet that holds funds. Use it for DeFi experiments (swaps, bridges, Morpho, yield), minting NFTs (e.g. when Sentinel decides to create gen art and you mint), and exploring full onchain abilities. No other agent has a funded wallet. Consider expansion: more chains, protocols, NFT mint pipelines, gen-art → mint handoff with Sentinel.
 
-**MODE (OTAKU_MODE):** You are in **${otakuMode}** mode. ${otakuMode === "normies" ? "Prefer Coinbase (CEX) for simple buy/sell and portfolio: use COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER. Use plain language and avoid DeFi jargon. For \"buy $100 of Bitcoin\" or \"my Coinbase account\" use Coinbase actions first." : "Prefer BANKR and full DeFi: swaps, limit/DCA/TWAP, bridges, leveraged (Avantis), token launches, NFTs. Use BANKR_AGENT_PROMPT and OTAKU_* actions for power-user flows. When the user clearly asks for \"on Coinbase\" or \"my Coinbase orders\" use COINBASE_* actions if available."}
+**MODE (OTAKU_MODE):** You are in **${otakuMode}** mode. ${otakuMode === "normies" ? 'Prefer Coinbase (CEX) for simple buy/sell and portfolio: use COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER. Use plain language and avoid DeFi jargon. For "buy $100 of Bitcoin" or "my Coinbase account" use Coinbase actions first.' : 'Prefer BANKR and full DeFi: swaps, limit/DCA/TWAP, bridges, leveraged (Avantis), token launches, NFTs. Use BANKR_AGENT_PROMPT and OTAKU_* actions for power-user flows. When the user clearly asks for "on Coinbase" or "my Coinbase orders" use COINBASE_* actions if available.'}
 
 CRITICAL - Transaction Execution Protocol:
 **Questions = Guidance Only. Commands = Execute after verification.**
@@ -207,18 +221,30 @@ CRITICAL - Transaction Execution Protocol:
 - Cross-verify conflicting data
 - Acknowledge gaps honestly vs fabricating
 
-${hasBankr ? `**Bankr (when enabled):** For pre-flight balance checks and transfer confirmation use USER_WALLET_INFO and CDP actions; for portfolio, orders, limit/DCA/TWAP, and Bankr-native flows use BANKR_AGENT_PROMPT and BANKR_USER_INFO.
+${
+  hasBankr
+    ? `**Bankr (when enabled):** For pre-flight balance checks and transfer confirmation use USER_WALLET_INFO and CDP actions; for portfolio, orders, limit/DCA/TWAP, and Bankr-native flows use BANKR_AGENT_PROMPT and BANKR_USER_INFO.
 
 **High-Level Otaku Actions (plugin-otaku):**
 - **OTAKU_SWAP** — Quick token swap with built-in confirmation flow. Shows summary, waits for "confirm".
 - **OTAKU_LIMIT_ORDER** — Create limit orders with price targets. Supports "buy ETH at $3000" or "sell ETH if it hits $4000".
 - **OTAKU_DCA** — Dollar cost averaging schedules. "DCA $500 into ETH over 30 days" creates 30 daily buys.
 - **OTAKU_POSITIONS** — View portfolio positions and active orders (limit/stop/DCA/TWAP) in one place.
-Use these for cleaner UX with confirmation flows, or use raw BANKR_* actions for full control. Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.` : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`}
-${hasCdp ? `
-When CDP is configured, **DEPLOY_TOKEN** deploys a token on Base via the Clanker protocol (name, symbol, optional image/vanity); use it for direct Base token deploys, or use **BANKR_AGENT_PROMPT** for Bankr-hosted launch (Base or Solana).` : ""}
-${hasAdvancedTrade ? `
-**Coinbase Advanced Trade (CEX):** When the user asks for Coinbase accounts, balances, or to buy/sell on Coinbase, use **COINBASE_LIST_ACCOUNTS** (my Coinbase accounts), **COINBASE_LIST_ORDERS** (open orders), **COINBASE_CREATE_ORDER** (market buy/sell: product_id e.g. BTC-USD, side BUY/SELL, quote_size e.g. { value: "100", currency: "USD" }), **COINBASE_CANCEL_ORDER** (order_ids). Confirm before placing orders.` : ""}
+Use these for cleaner UX with confirmation flows, or use raw BANKR_* actions for full control. Portfolio, balances, transfers, swaps, limit/stop/DCA/TWAP order creation, leveraged trading (Avantis), and **NFTs** (view, buy, sell, list, mint, transfer via BANKR_AGENT_PROMPT; EVM only: Base, Ethereum, Polygon, Unichain; not Solana) are done via **BANKR_AGENT_PROMPT** — send the user's message as the prompt; Bankr executes or answers. Use for: "show my portfolio", "send 0.1 ETH to vitalik.eth", "swap $50 ETH to USDC", "DCA $100 into BNKR every day", "buy 100 BNKR if it drops 10%", "long BTC/USD with 5x leverage", token launch ("deploy a token called X on base" / "launch a token on solana"), "show my NFTs", "buy this NFT: [opensea link]", etc. The **Features Table** (knowledge/bankr/docs-features-table.md or docs.bankr.bot/features/features-table) is the full capability/chain reference. **BANKR_USER_INFO** — account wallets, Bankr Club, leaderboard; use for "what wallets do I have?", "am I in Bankr Club?", or when you need a maker address for orders. **BANKR_JOB_STATUS** / **BANKR_AGENT_CANCEL_JOB** — get status or cancel a prompt job by jobId. **BANKR_ORDER_QUOTE** — get a quote for a limit/stop/DCA/TWAP before creating. **BANKR_ORDER_LIST**, **BANKR_ORDER_STATUS**, **BANKR_ORDER_CANCEL** — list (requires maker address; get from BANKR_USER_INFO if user says "my orders"), status, and cancel External Orders. For "list my orders" you can use BANKR_AGENT_PROMPT with that phrase or BANKR_USER_INFO then BANKR_ORDER_LIST with the maker. See knowledge/bankr (including docs-features-prompts.md) for exact phrasings.`
+    : `**Bankr:** Not configured. Do NOT use BANKR_AGENT_PROMPT or any BANKR_* actions — they are unavailable. For balance/portfolio/swap/order questions, say that Bankr is not enabled (set BANKR_API_KEY to enable) and suggest CDP wallet or other tools you have.`
+}
+${
+  hasCdp
+    ? `
+When CDP is configured, **DEPLOY_TOKEN** deploys a token on Base via the Clanker protocol (name, symbol, optional image/vanity); use it for direct Base token deploys, or use **BANKR_AGENT_PROMPT** for Bankr-hosted launch (Base or Solana).`
+    : ""
+}
+${
+  hasAdvancedTrade
+    ? `
+**Coinbase Advanced Trade (CEX):** When the user asks for Coinbase accounts, balances, or to buy/sell on Coinbase, use **COINBASE_LIST_ACCOUNTS** (my Coinbase accounts), **COINBASE_LIST_ORDERS** (open orders), **COINBASE_CREATE_ORDER** (market buy/sell: product_id e.g. BTC-USD, side BUY/SELL, quote_size e.g. { value: "100", currency: "USD" }), **COINBASE_CANCEL_ORDER** (order_ids). Confirm before placing orders.`
+    : ""
+}
 
 **DefiLlama (protocol TVL and yields):** Use for TVL comparison, protocol lookup, history, and yield discovery. **GET_PROTOCOL_TVL** — current TVL by protocol name/symbol (e.g. Aave, Curve, Morpho). **GET_PROTOCOL_SLUG** — resolve name/symbol to DefiLlama slug(s) and basic info; use before TVL history if slug is unknown. **GET_PROTOCOL_TVL_HISTORY** — historical TVL for a protocol (optional chain, days, compact). **GET_CHAIN_TVL_HISTORY** — historical TVL for a chain (optional filter e.g. staking). **GET_YIELD_RATES** — APY/yield by protocol, token, and/or chain (e.g. "USDC yields on Base", "Aave USDC"). **GET_YIELD_HISTORY** — historical APY for a specific pool (protocol + token, optional chain).
 
@@ -494,83 +520,116 @@ const initOtaku = async (runtime: IAgentRuntime) => {
   const nansenKey = process.env.NANSEN_API_KEY;
   if (nansenKey) {
     logger.info(
-      `[Otaku] NANSEN_API_KEY found (length: ${nansenKey.length}) — Nansen MCP available`
+      `[Otaku] NANSEN_API_KEY found (length: ${nansenKey.length}) — Nansen MCP available`,
     );
   } else {
     logger.warn(
-      "[Otaku] NANSEN_API_KEY not found — Nansen MCP server may fail to connect"
+      "[Otaku] NANSEN_API_KEY not found — Nansen MCP server may fail to connect",
     );
   }
   if (hasCdp) {
     logger.info("[Otaku] CDP plugin enabled — wallet actions available");
   }
   if (hasBankr) {
-    const bankrSvc = runtime.getService("bankr_agent") as { isConfigured?: () => boolean } | null;
+    const bankrSvc = runtime.getService("bankr_agent") as {
+      isConfigured?: () => boolean;
+    } | null;
     if (bankrSvc?.isConfigured?.()) {
-      logger.info("[Otaku] Bankr plugin enabled — BANKR_AGENT_PROMPT and External Orders available");
+      logger.info(
+        "[Otaku] Bankr plugin enabled — BANKR_AGENT_PROMPT and External Orders available",
+      );
     } else {
       logger.warn(
-        "[Otaku] Bankr plugin loaded but BANKR_API_KEY not available at runtime — BANKR_* actions disabled. Set BANKR_API_KEY in .env and in the Otaku agent's secrets (if using stored config), then restart."
+        "[Otaku] Bankr plugin loaded but BANKR_API_KEY not available at runtime — BANKR_* actions disabled. Set BANKR_API_KEY in .env and in the Otaku agent's secrets (if using stored config), then restart.",
       );
     }
   }
   if (hasCdp) {
-    logger.info("[Otaku] Morpho plugin enabled — supply/borrow/withdraw/repay via CDP wallet");
+    logger.info(
+      "[Otaku] Morpho plugin enabled — supply/borrow/withdraw/repay via CDP wallet",
+    );
   }
   if (hasCdp) {
-    logger.info("[Otaku] Clanker plugin enabled — DEPLOY_TOKEN (Base token deploy via Clanker) available");
+    logger.info(
+      "[Otaku] Clanker plugin enabled — DEPLOY_TOKEN (Base token deploy via Clanker) available",
+    );
   }
   if (hasCdp && hasRelayKey) {
-    logger.info("[Otaku] Relay plugin enabled — cross-chain bridge quote/execute/status");
+    logger.info(
+      "[Otaku] Relay plugin enabled — cross-chain bridge quote/execute/status",
+    );
   } else if (hasCdp && !hasRelayKey) {
-    logger.info("[Otaku] Relay plugin not loaded — set RELAY_API_KEY to enable cross-chain bridging");
+    logger.info(
+      "[Otaku] Relay plugin not loaded — set RELAY_API_KEY to enable cross-chain bridging",
+    );
   }
   if (hasEtherscanKey) {
-    logger.info("[Otaku] Etherscan plugin enabled — CHECK_TRANSACTION_CONFIRMATION available");
+    logger.info(
+      "[Otaku] Etherscan plugin enabled — CHECK_TRANSACTION_CONFIRMATION available",
+    );
   } else {
-    logger.info("[Otaku] Tx confirmation via CDP CHECK_TX_CONFIRMATION (Etherscan optional; set ETHERSCAN_API_KEY for Etherscan actions)");
+    logger.info(
+      "[Otaku] Tx confirmation via CDP CHECK_TX_CONFIRMATION (Etherscan optional; set ETHERSCAN_API_KEY for Etherscan actions)",
+    );
   }
   if (hasCdp && hasBiconomyKey) {
-    logger.info("[Otaku] Biconomy (MEE) plugin enabled — gasless cross-chain swaps and rebalancing");
+    logger.info(
+      "[Otaku] Biconomy (MEE) plugin enabled — gasless cross-chain swaps and rebalancing",
+    );
   } else if (hasCdp && !hasBiconomyKey) {
-    logger.info("[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps");
+    logger.info(
+      "[Otaku] Biconomy not loaded — set BICONOMY_API_KEY to enable gasless MEE swaps",
+    );
   }
-  logger.info("[Otaku] DefiLlama plugin enabled — protocol TVL, slug search, TVL/chain history, yield rates and history");
+  logger.info(
+    "[Otaku] DefiLlama plugin enabled — protocol TVL, slug search, TVL/chain history, yield rates and history",
+  );
 
   // ERC-8004 on-chain identity & reputation
   if (hasErc8004Contract) {
     if (hasErc8004Write) {
       logger.info(
-        "[Otaku] ERC-8004 plugin enabled — on-chain identity, reputation, endorse/penalize (write mode)"
+        "[Otaku] ERC-8004 plugin enabled — on-chain identity, reputation, endorse/penalize (write mode)",
       );
     } else {
       logger.info(
-        "[Otaku] ERC-8004 plugin enabled — reputation queries and registration status (read-only; set ERC8004_PRIVATE_KEY for write)"
+        "[Otaku] ERC-8004 plugin enabled — reputation queries and registration status (read-only; set ERC8004_PRIVATE_KEY for write)",
       );
     }
   } else {
     logger.debug(
-      "[Otaku] ERC-8004 plugin loaded — set ERC8004_CONTRACT_ADDRESS to enable on-chain identity/reputation"
+      "[Otaku] ERC-8004 plugin loaded — set ERC8004_CONTRACT_ADDRESS to enable on-chain identity/reputation",
     );
   }
 
   // x402 payment protocol status
   if (x402Enabled && x402PayTo) {
     const network = process.env.X402_NETWORK || "base-sepolia";
-    logger.info(`[Otaku] x402 payments ENABLED — receiving USDC on ${network} to ${x402PayTo.slice(0, 10)}...`);
+    logger.info(
+      `[Otaku] x402 payments ENABLED — receiving USDC on ${network} to ${x402PayTo.slice(0, 10)}...`,
+    );
   } else if (x402Enabled && !x402PayTo) {
-    logger.warn("[Otaku] x402 enabled but X402_PAY_TO not set — payments won't work");
+    logger.warn(
+      "[Otaku] x402 enabled but X402_PAY_TO not set — payments won't work",
+    );
   } else {
-    logger.debug("[Otaku] x402 payments disabled (set X402_ENABLED=true + X402_PAY_TO to enable)");
+    logger.debug(
+      "[Otaku] x402 payments disabled (set X402_ENABLED=true + X402_PAY_TO to enable)",
+    );
   }
 
-  if (process.env.COINBASE_ADVANCED_TRADE_KEY_NAME?.trim() && process.env.COINBASE_ADVANCED_TRADE_KEY_SECRET?.trim()) {
-    logger.info("[Otaku] Coinbase Advanced Trade enabled — COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER available");
+  if (
+    process.env.COINBASE_ADVANCED_TRADE_KEY_NAME?.trim() &&
+    process.env.COINBASE_ADVANCED_TRADE_KEY_SECRET?.trim()
+  ) {
+    logger.info(
+      "[Otaku] Coinbase Advanced Trade enabled — COINBASE_LIST_ACCOUNTS, COINBASE_CREATE_ORDER, COINBASE_LIST_ORDERS, COINBASE_CANCEL_ORDER available",
+    );
   }
-  logger.info(`[Otaku] Mode: ${otakuMode} (set OTAKU_MODE=normies for Coinbase-first, OTAKU_MODE=degen for BANKR/DeFi-first)`);
   logger.info(
-    "[Otaku] ✅ DeFi research assistant ready"
+    `[Otaku] Mode: ${otakuMode} (set OTAKU_MODE=normies for Coinbase-first, OTAKU_MODE=degen for BANKR/DeFi-first)`,
   );
+  logger.info("[Otaku] ✅ DeFi research assistant ready");
 };
 
 export const otakuAgent: ProjectAgent = {

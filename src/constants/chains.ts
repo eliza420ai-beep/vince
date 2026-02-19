@@ -5,13 +5,7 @@
  * @see https://github.com/elizaOS/otaku/blob/master/src/constants/chains.ts
  */
 
-import {
-  base,
-  mainnet,
-  baseSepolia,
-  sepolia,
-  arbitrum,
-} from "viem/chains";
+import { base, mainnet, baseSepolia, sepolia, arbitrum } from "viem/chains";
 import type { Chain } from "viem/chains";
 
 export type SupportedNetwork =
@@ -128,7 +122,7 @@ export const TESTNET_NETWORKS: SupportedNetwork[] = [
 ];
 
 export const ALL_NETWORKS: SupportedNetwork[] = Object.keys(
-  CHAIN_CONFIGS
+  CHAIN_CONFIGS,
 ) as SupportedNetwork[];
 
 export function getChainConfig(network: string): ChainConfig | null {
@@ -152,7 +146,7 @@ export function getExplorerUrl(network: string): string | null {
 
 export function getTxExplorerUrl(
   network: string,
-  txHash: string
+  txHash: string,
 ): string | null {
   const explorerUrl = getExplorerUrl(network);
   return explorerUrl ? `${explorerUrl}/tx/${txHash}` : null;
@@ -160,7 +154,7 @@ export function getTxExplorerUrl(
 
 export function getAddressExplorerUrl(
   network: string,
-  address: string
+  address: string,
 ): string | null {
   const explorerUrl = getExplorerUrl(network);
   return explorerUrl ? `${explorerUrl}/address/${address}` : null;
@@ -177,7 +171,7 @@ export function getCoingeckoPlatform(network: string): string | null {
 }
 
 export function isSupportedNetwork(
-  network: string
+  network: string,
 ): network is SupportedNetwork {
   return network in CHAIN_CONFIGS;
 }

@@ -24,11 +24,10 @@ import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
 const clawtermHasXToken = !!process.env.X_BEARER_TOKEN?.trim();
 const clawtermHasTavily = !!process.env.TAVILY_API_KEY?.trim();
-const clawtermHasDiscord =
-  !!(
-    process.env.CLAWTERM_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  );
+const clawtermHasDiscord = !!(
+  process.env.CLAWTERM_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const clawtermCharacter: Character = {
   name: "Clawterm",
@@ -89,10 +88,10 @@ export const clawtermCharacter: Character = {
   },
   knowledge: [
     // Clawterm = AI terminal: OpenClaw expert, AI/LLM landscape, skills ecosystem
-    { directory: "clawterm", shared: true },                // All clawterm knowledge (AI 2027, HIP3, vision, OpenClaw deep ref, LLM landscape, skills)
+    { directory: "clawterm", shared: true }, // All clawterm knowledge (AI 2027, HIP3, vision, OpenClaw deep ref, LLM landscape, skills)
     { directory: "setup-guides", shared: true },
     { directory: "clawdbot", shared: true },
-    { directory: "ai-crypto", shared: true },               // AI x crypto intersection
+    { directory: "ai-crypto", shared: true }, // AI x crypto intersection
     { path: "sentinel-docs/OPENCLAW_VISION.md", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { path: "sentinel-docs/OPENCLAW_ADAPTER.md", shared: true },
@@ -166,9 +165,21 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
 - steipete (Peter Steinberger) leads OpenClaw: https://github.com/steipete — point users there when they ask about OpenClaw maintainer, author, or steipete.
 - One clear answer; then detail. No filler.`,
   topics: [
-    "AI 2027", "AGI", "alignment", "takeoff", "research agent",
-    "OpenBrain", "neuralese", "openclaw", "gateway", "setup",
-    "HIP-3", "terminal", "grind", "Bloomberg", "data integrity",
+    "AI 2027",
+    "AGI",
+    "alignment",
+    "takeoff",
+    "research agent",
+    "OpenBrain",
+    "neuralese",
+    "openclaw",
+    "gateway",
+    "setup",
+    "HIP-3",
+    "terminal",
+    "grind",
+    "Bloomberg",
+    "data integrity",
   ],
   bio: [
     "The terminal that grinds. AI 2027, AGI, research agents. OpenClaw runs 24/7 on 2 Mac Studios—I'm the interface. X + web search for AI insights. HIP-3 AI assets on Hyperliquid. For crypto prices/positions—ask Vince. Never invent. Never slop.",
@@ -218,7 +229,10 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
       },
     ],
     [
-      { name: "user", content: { text: "What's the X news on OpenClaw / AI?" } },
+      {
+        name: "user",
+        content: { text: "What's the X news on OpenClaw / AI?" },
+      },
       {
         name: "Clawterm",
         content: {
@@ -228,7 +242,10 @@ When the user asks for OpenClaw setup or security: emphasize security first. Bin
       },
     ],
     [
-      { name: "user", content: { text: "What's trending on X about research agents?" } },
+      {
+        name: "user",
+        content: { text: "What's trending on X about research agents?" },
+      },
       {
         name: "Clawterm",
         content: {
@@ -396,9 +413,15 @@ const buildPlugins = (): Plugin[] =>
   ] as Plugin[];
 
 const initClawterm = async (_runtime: IAgentRuntime) => {
-  const xStatus = clawtermHasXToken ? "X research" : "no X (set X_BEARER_TOKEN)";
-  const webStatus = clawtermHasTavily ? "web search" : "no web (set TAVILY_API_KEY)";
-  logger.info(`[Clawterm] AI-obsessed, OpenClaw expert ready. ${xStatus}, ${webStatus}.`);
+  const xStatus = clawtermHasXToken
+    ? "X research"
+    : "no X (set X_BEARER_TOKEN)";
+  const webStatus = clawtermHasTavily
+    ? "web search"
+    : "no web (set TAVILY_API_KEY)";
+  logger.info(
+    `[Clawterm] AI-obsessed, OpenClaw expert ready. ${xStatus}, ${webStatus}.`,
+  );
 };
 
 export const clawtermAgent: ProjectAgent = {

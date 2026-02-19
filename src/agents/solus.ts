@@ -37,8 +37,10 @@ import {
 } from "../plugins/plugin-vince/src/constants/targetAssets.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const solusHasDiscord =
-  !!(process.env.SOLUS_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const solusHasDiscord = !!(
+  process.env.SOLUS_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const solusCharacter: Character = {
   name: "Solus",
@@ -99,16 +101,16 @@ export const solusCharacter: Character = {
   },
   knowledge: [
     // Solus = CFO: trading execution, options, risk management, portfolio
-    { directory: "options", shared: true },                 // primary: wheel, strikes, Greeks
-    { directory: "perps-trading", shared: true },           // perps mechanics for hedging
-    { directory: "trading", shared: true },                 // general trading frameworks
-    { directory: "defi-metrics", shared: true },            // yield strategies, TVL context
-    { directory: "stablecoins", shared: true },             // stable yields, collateral
-    { directory: "mev", shared: true },                     // execution risk awareness
-    { directory: "macro-economy", shared: true },           // macro regime → strike direction
-    { directory: "bitcoin-maxi", shared: true },            // BTC dominance, cycles → core asset
-    { directory: "internal-docs", shared: true },           // Grok daily, treasury
-    { directory: "research-daily", shared: true },          // daily market context
+    { directory: "options", shared: true }, // primary: wheel, strikes, Greeks
+    { directory: "perps-trading", shared: true }, // perps mechanics for hedging
+    { directory: "trading", shared: true }, // general trading frameworks
+    { directory: "defi-metrics", shared: true }, // yield strategies, TVL context
+    { directory: "stablecoins", shared: true }, // stable yields, collateral
+    { directory: "mev", shared: true }, // execution risk awareness
+    { directory: "macro-economy", shared: true }, // macro regime → strike direction
+    { directory: "bitcoin-maxi", shared: true }, // BTC dominance, cycles → core asset
+    { directory: "internal-docs", shared: true }, // Grok daily, treasury
+    { directory: "research-daily", shared: true }, // daily market context
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
   ],
@@ -257,7 +259,10 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "What's BTC funding? I need it for my strike call." } },
+      {
+        name: "{{user1}}",
+        content: { text: "What's BTC funding? I need it for my strike call." },
+      },
       {
         name: "Solus",
         content: {
@@ -298,7 +303,12 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "What's the optimal strike for BTC covered calls this week?" } },
+      {
+        name: "{{user1}}",
+        content: {
+          text: "What's the optimal strike for BTC covered calls this week?",
+        },
+      },
       {
         name: "Solus",
         content: {
@@ -307,7 +317,10 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Give me the full $100K plan. How do I hit it?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "Give me the full $100K plan. How do I hit it?" },
+      },
       {
         name: "Solus",
         content: {
@@ -316,7 +329,10 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do I run my strike ritual?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "How do I run my strike ritual?" },
+      },
       {
         name: "Solus",
         content: {
@@ -339,7 +355,10 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do I do Echo DD on a seed deal?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "How do I do Echo DD on a seed deal?" },
+      },
       {
         name: "Solus",
         content: {
@@ -348,7 +367,10 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "How do we track agent costs or usage?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "How do we track agent costs or usage?" },
+      },
       {
         name: "Solus",
         content: {
@@ -382,7 +404,9 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-    ...(solusHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(solusHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     coingeckoPlugin, // Real-time spot prices for Solus Hypersurface context (BTC, ETH, SOL, HYPE)
     solusPlugin, // Hypersurface expertise: provider + strike ritual, explain, position assess, optimal strike
     vincePluginNoX, // Same as VINCE but no X API — only VINCE uses X_BEARER_TOKEN to avoid rate-limit conflict

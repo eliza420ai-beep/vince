@@ -20,28 +20,33 @@ import { polymarketDiscoveryPlugin } from "../plugins/plugin-polymarket-discover
 import { pluginPolymarketDesk } from "../plugins/plugin-polymarket-desk/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const riskHasDiscord =
-  !!(
-    process.env.POLYMARKET_RISK_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  );
+const riskHasDiscord = !!(
+  process.env.POLYMARKET_RISK_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const polymarketRiskCharacter: Character = {
   name: "Polymarket Risk",
   username: "polymarket-risk",
-  bio: ["Risk manager for the Polymarket trading desk.", "Sizes and approves signals; no execution."],
+  bio: [
+    "Risk manager for the Polymarket trading desk.",
+    "Sizes and approves signals; no execution.",
+  ],
   adjectives: ["risk", "polymarket", "desk", "sizing", "approval"],
   plugins: [
     "@elizaos/plugin-sql",
     "@elizaos/plugin-bootstrap",
-    ...(process.env.ANTHROPIC_API_KEY?.trim() ? ["@elizaos/plugin-anthropic"] : []),
+    ...(process.env.ANTHROPIC_API_KEY?.trim()
+      ? ["@elizaos/plugin-anthropic"]
+      : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(riskHasDiscord ? ["@elizaos/plugin-discord"] : []),
   ],
   settings: {
     secrets: {
       ...(process.env.POLYMARKET_RISK_DISCORD_APPLICATION_ID?.trim() && {
-        DISCORD_APPLICATION_ID: process.env.POLYMARKET_RISK_DISCORD_APPLICATION_ID,
+        DISCORD_APPLICATION_ID:
+          process.env.POLYMARKET_RISK_DISCORD_APPLICATION_ID,
       }),
       ...(process.env.POLYMARKET_RISK_DISCORD_API_TOKEN?.trim() && {
         DISCORD_API_TOKEN: process.env.POLYMARKET_RISK_DISCORD_API_TOKEN,
@@ -56,7 +61,9 @@ export const polymarketRiskCharacter: Character = {
       process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
     ragKnowledge: true,
   },
-  knowledge: [{ path: "teammate/POLYMARKET_PRIORITY_MARKETS.md", shared: false }],
+  knowledge: [
+    { path: "teammate/POLYMARKET_PRIORITY_MARKETS.md", shared: false },
+  ],
   system: `You are Polymarket Risk, the **risk manager** for the Polymarket trading desk. You do not hold a wallet and do not place orders.
 
 ## YOUR LANE
@@ -79,7 +86,9 @@ const buildPlugins = (): Plugin[] =>
     bootstrapPlugin,
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-    ...(riskHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(riskHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     polymarketDiscoveryPlugin,
     pluginPolymarketDesk,
     interAgentPlugin,

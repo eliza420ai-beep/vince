@@ -92,6 +92,8 @@ Push notifications go to Discord, Slack, and Telegram when those plugins are con
 | `SENTINEL_DAILY_HOUR_UTC` | `8` | Hour (UTC) for daily digest reference. |
 | `STANDUP_ENABLED` | — | Set to `true` to enable 2×/day agent standups. Coordinator (default Kelly) pushes summary to channels with "daily-standup" or "standup" in the name. See [MULTI_AGENT.md](MULTI_AGENT.md#standups-autonomous-agent-meetings). |
 | `STANDUP_COORDINATOR_AGENT` | `Kelly` | Agent that runs the standup task and pushes to #daily-standup. |
+| `STANDUP_VINCE_USE_REPORT` | — | Set to `true` to use VINCE's Report of the Day (standup-length) as his shared daily insights section, reducing duplicate fetches and giving the meeting one cohesive narrative. See [MULTI_AGENT.md](MULTI_AGENT.md#standup-shared-daily-insights-and-north-star). |
+| `STANDUP_INSIGHTS_CAP_VINCE` | `1200` | Max characters for VINCE's section in shared insights. Use `3500` when `STANDUP_VINCE_USE_REPORT=true` to avoid truncating the standup report. |
 
 ---
 

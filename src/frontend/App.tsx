@@ -226,7 +226,9 @@ function App() {
   // Wallet UI mode: degen (DeFi/on-chain) | normies (simple/Coinbase). Runtime from GET /otaku/config when available; fallback to VITE_OTAKU_MODE.
   const otakuModeFallback: "degen" | "normies" =
     import.meta.env.VITE_OTAKU_MODE === "normies" ? "normies" : "degen";
-  const [otakuMode, setOtakuMode] = useState<"degen" | "normies">(otakuModeFallback);
+  const [otakuMode, setOtakuMode] = useState<"degen" | "normies">(
+    otakuModeFallback,
+  );
 
   /**
    * Sign out handler - revokes JWT token on server before signing out from CDP
@@ -430,7 +432,14 @@ function App() {
   }, [isInitialized, isSignedIn, userEmail, userName, currentUser]); // Re-run when CDP state changes
 
   // Display order for agent switcher (so Kelly and others are easy to find)
-  const AGENT_DISPLAY_ORDER = ["Kelly", "VINCE", "Eliza", "Solus", "Otaku", "Sentinel"];
+  const AGENT_DISPLAY_ORDER = [
+    "Kelly",
+    "VINCE",
+    "Eliza",
+    "Solus",
+    "Otaku",
+    "Sentinel",
+  ];
 
   // Fetch the agent list first to get the ID (retry when empty so we wait for backend to register agents)
   const {
@@ -446,7 +455,9 @@ function App() {
         throw new Error("NO_AGENTS_YET"); // Trigger retry so we wait for backend to start agents
       }
       // Sort so all agents (including Kelly) appear in a consistent order in the switcher
-      const orderMap = new Map(AGENT_DISPLAY_ORDER.map((name, i) => [name.toUpperCase(), i]));
+      const orderMap = new Map(
+        AGENT_DISPLAY_ORDER.map((name, i) => [name.toUpperCase(), i]),
+      );
       return [...agents].sort((a, b) => {
         const aName = (a.name ?? "").toUpperCase();
         const bName = (b.name ?? "").toUpperCase();
@@ -1055,7 +1066,10 @@ function AppContent({
 
   const handleOpenAbout = () => {
     showModal(
-      <AboutModalContent agent={agent} onClose={() => hideModal(ABOUT_MODAL_ID)} />,
+      <AboutModalContent
+        agent={agent}
+        onClose={() => hideModal(ABOUT_MODAL_ID)}
+      />,
       ABOUT_MODAL_ID,
       {
         closeOnBackdropClick: true,
@@ -1135,7 +1149,14 @@ function AppContent({
         </div>
 
         {/* Center - Chat Interface / Account / Leaderboard */}
-        <div className={cn("col-span-1 lg:col-span-7 h-full overflow-auto overscroll-y-contain", (currentView === "leaderboard" || currentView === "points") ? "lg:overflow-auto min-h-[400px]" : "lg:overflow-hidden")}>
+        <div
+          className={cn(
+            "col-span-1 lg:col-span-7 h-full overflow-auto overscroll-y-contain",
+            currentView === "leaderboard" || currentView === "points"
+              ? "lg:overflow-auto min-h-[400px]"
+              : "lg:overflow-hidden",
+          )}
+        >
           {currentView === "account" ? (
             <AccountPage
               totalBalance={totalBalance}
@@ -1152,7 +1173,10 @@ function AppContent({
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
                 <p className="text-foreground font-medium">Loading agent…</p>
-                <p className="text-sm text-muted-foreground text-center max-w-sm">Select an agent from the sidebar or wait for the list to load. Leaderboard needs an agent to fetch market data.</p>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  Select an agent from the sidebar or wait for the list to load.
+                  Leaderboard needs an agent to fetch market data.
+                </p>
               </div>
             )
           ) : currentView === "points" ? (
@@ -1163,7 +1187,9 @@ function AppContent({
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[320px] gap-4 p-8 rounded-xl border border-border bg-muted/20">
                 <p className="text-foreground font-medium">Loading agent…</p>
-                <p className="text-sm text-muted-foreground text-center max-w-sm">Select an agent from the sidebar or wait for the list to load.</p>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  Select an agent from the sidebar or wait for the list to load.
+                </p>
               </div>
             )
           ) : (
@@ -1251,7 +1277,11 @@ function AppContent({
                 onOpenChat={() => navigate("/chat")}
               />
             )}
-            <NotificationsContainer userId={userId} agentId={agentId} mode={otakuMode} />
+            <NotificationsContainer
+              userId={userId}
+              agentId={agentId}
+              mode={otakuMode}
+            />
           </div>
         </div>
       </div>

@@ -1,8 +1,8 @@
 /**
  * VINCE Dream Team Agents
- * 
+ *
  * The complete roster of specialized AI agents.
- * 
+ *
  * | Agent    | Role | Lane |
  * |----------|------|------|
  * | Eliza    | CEO  | Knowledge base, research, brainstorm |
@@ -15,16 +15,16 @@
  * | Oracle   | —    | Prediction markets (Polymarket discovery, odds, portfolio) |
  */
 
-export { character as elizaCharacter } from './eliza';
-export { vinceCharacter } from './vince';
-export { solusCharacter } from './solus';
-export { otakuCharacter } from './otaku';
-export { kellyCharacter } from './kelly';
-export { sentinelCharacter } from './sentinel';
-export { echoCharacter } from './echo';
-export { oracleCharacter } from './oracle';
-export { navalCharacter } from './naval';
-export { clawtermCharacter, clawtermAgent } from './clawterm';
+export { character as elizaCharacter } from "./eliza";
+export { vinceCharacter } from "./vince";
+export { solusCharacter } from "./solus";
+export { otakuCharacter } from "./otaku";
+export { kellyCharacter } from "./kelly";
+export { sentinelCharacter } from "./sentinel";
+export { echoCharacter } from "./echo";
+export { oracleCharacter } from "./oracle";
+export { navalCharacter } from "./naval";
+export { clawtermCharacter, clawtermAgent } from "./clawterm";
 
 // Type exports
-export type { Character } from '@elizaos/core';
+export type { Character } from "@elizaos/core";

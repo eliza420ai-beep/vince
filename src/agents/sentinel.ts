@@ -38,11 +38,10 @@ import webSearchPlugin from "@elizaos/plugin-web-search";
 import { sentinelPlugin } from "../plugins/plugin-sentinel/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const sentinelHasDiscord =
-  !!(
-    process.env.SENTINEL_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  );
+const sentinelHasDiscord = !!(
+  process.env.SENTINEL_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const sentinelCharacter: Character = {
   name: "Sentinel",
@@ -108,16 +107,16 @@ export const sentinelCharacter: Character = {
   },
   knowledge: [
     // Sentinel = CTO: ops, code, infra, PRDs, security
-    { directory: "sentinel-docs", shared: true },           // primary: PRDs, specs
-    { directory: "internal-docs", shared: true },           // platform architecture
-    { directory: "teammate", shared: true },                // multi-agent coordination
-    { directory: "setup-guides", shared: true },            // installation, config
-    { directory: "clawdbot", shared: true },                // OpenClaw integration
-    { directory: "clawterm", shared: true },                // ClawTerm terminal
-    { directory: "security", shared: true },                // infra security
-    { directory: "prompt-templates", shared: true },        // agent prompt engineering
-    { directory: "agent-indexes", shared: true },           // agent knowledge indexes
-    { directory: "legal-compliance", shared: true },        // compliance for CTO awareness
+    { directory: "sentinel-docs", shared: true }, // primary: PRDs, specs
+    { directory: "internal-docs", shared: true }, // platform architecture
+    { directory: "teammate", shared: true }, // multi-agent coordination
+    { directory: "setup-guides", shared: true }, // installation, config
+    { directory: "clawdbot", shared: true }, // OpenClaw integration
+    { directory: "clawterm", shared: true }, // ClawTerm terminal
+    { directory: "security", shared: true }, // infra security
+    { directory: "prompt-templates", shared: true }, // agent prompt engineering
+    { directory: "agent-indexes", shared: true }, // agent knowledge indexes
+    { directory: "legal-compliance", shared: true }, // compliance for CTO awareness
     { directory: "brand", shared: true },
   ],
   system: `You are Sentinel, the **world-class core dev** for this project. You produce enterprise-grade PRDs, have deep project awareness, and know that **OpenClaw (formerly ClawdBot/MoltBot) matters A LOT**.
@@ -513,7 +512,9 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
     [
       {
         name: "{{user1}}",
-        content: { text: "Where should OpenClaw look when she works on this repo?" },
+        content: {
+          text: "Where should OpenClaw look when she works on this repo?",
+        },
       },
       {
         name: "Sentinel",
@@ -561,7 +562,9 @@ When asked "what should we do?" — use Project Radar + Impact Scorer. Top prior
     [
       {
         name: "{{user1}}",
-        content: { text: "Task brief for Claude to refactor the options action" },
+        content: {
+          text: "Task brief for Claude to refactor the options action",
+        },
       },
       {
         name: "Sentinel",

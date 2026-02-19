@@ -51,28 +51,33 @@ export const OtakuResponseTestSuite: TestSuite = {
       fn: async (runtime: IAgentRuntime) => {
         if (runtime.character?.name !== "Otaku") {
           logger.info(
-            "⚠ Otaku runtime not provided by runner; skip or run with Otaku as the loaded agent."
+            "⚠ Otaku runtime not provided by runner; skip or run with Otaku as the loaded agent.",
           );
           return;
         }
         const messageService = runtime.messageService as InstanceType<
           typeof OtakuMessageService
         > | null;
-        if (!messageService || typeof messageService.handleMessage !== "function") {
-          logger.info("⚠ OtakuMessageService not installed on runtime; skipping.");
+        if (
+          !messageService ||
+          typeof messageService.handleMessage !== "function"
+        ) {
+          logger.info(
+            "⚠ OtakuMessageService not installed on runtime; skipping.",
+          );
           return;
         }
 
         const originalUseModel = runtime.useModel?.bind(runtime);
-        (runtime as unknown as { useModel: typeof runtime.useModel }).useModel = mock(
-          async (modelType: string, params: { prompt?: string }) => {
+        (runtime as unknown as { useModel: typeof runtime.useModel }).useModel =
+          mock(async (modelType: string, params: { prompt?: string }) => {
             if (modelType === ModelType.TEXT_LARGE) return FIXED_XML_RESPONSE;
             if (modelType === ModelType.TEXT_SMALL)
-              return '<response><action>RESPOND</action></response>';
-            if (originalUseModel) return originalUseModel(modelType as any, params as any);
+              return "<response><action>RESPOND</action></response>";
+            if (originalUseModel)
+              return originalUseModel(modelType as any, params as any);
             return "";
-          }
-        ) as typeof runtime.useModel;
+          }) as typeof runtime.useModel;
 
         const roomId = uuidv4() as UUID;
         const message: Memory = {
@@ -94,18 +99,26 @@ export const OtakuResponseTestSuite: TestSuite = {
           collectedContent.push(content);
         };
 
-        const result = await messageService.handleMessage(runtime, message, callback, {
-          useMultiStep: false,
-        });
+        const result = await messageService.handleMessage(
+          runtime,
+          message,
+          callback,
+          {
+            useMultiStep: false,
+          },
+        );
 
         if (result.didRespond !== true) {
           throw new Error(
             `Expected didRespond true, got ${result.didRespond}; responseContent=${JSON.stringify(
-              result.responseContent
-            )}`
+              result.responseContent,
+            )}`,
           );
         }
-        if (!result.responseContent?.text || result.responseContent.text.length === 0) {
+        if (
+          !result.responseContent?.text ||
+          result.responseContent.text.length === 0
+        ) {
           throw new Error("Expected non-empty responseContent.text");
         }
         if (collectedContent.length === 0) {
@@ -115,7 +128,9 @@ export const OtakuResponseTestSuite: TestSuite = {
         if (!lastContent?.text || lastContent.text.length === 0) {
           throw new Error("Expected callback to receive non-empty text");
         }
-        logger.info("✓ Otaku agent produced reply and callback invoked with non-empty text");
+        logger.info(
+          "✓ Otaku agent produced reply and callback invoked with non-empty text",
+        );
       },
     },
   ],
@@ -133,7 +148,7 @@ describe("Otaku response integration (mocked runtime)", () => {
     const useModel = mock(async (modelType: string) => {
       if (modelType === ModelType.TEXT_LARGE) return FIXED_XML_RESPONSE;
       if (modelType === ModelType.TEXT_SMALL)
-        return '<response><action>RESPOND</action></response>';
+        return "<response><action>RESPOND</action></response>";
       return "";
     });
 
@@ -142,7 +157,7 @@ describe("Otaku response integration (mocked runtime)", () => {
         _message: Memory,
         _responseMessages: Memory[],
         _state: State,
-        callback?: (content: Content) => Promise<void>
+        callback?: (content: Content) => Promise<void>,
       ) => {
         if (callback) {
           await callback({
@@ -150,7 +165,7 @@ describe("Otaku response integration (mocked runtime)", () => {
             actions: ["REPLY"],
           });
         }
-      }
+      },
     );
 
     const runtime = {
@@ -167,7 +182,7 @@ describe("Otaku response integration (mocked runtime)", () => {
           id: rid ?? (uuidv4() as UUID),
           type: ChannelType.DM,
           worldId: rid ?? (uuidv4() as UUID),
-        })
+        }),
       ),
       getMemoryById: mock(() => Promise.resolve(null)),
       createMemory: mock(() => Promise.resolve(uuidv4() as UUID)),
@@ -183,7 +198,7 @@ describe("Otaku response integration (mocked runtime)", () => {
             },
           },
           text: "",
-        } as State)
+        } as State),
       ),
       useModel,
       processActions,
@@ -191,10 +206,12 @@ describe("Otaku response integration (mocked runtime)", () => {
       emitEvent: mock(() => Promise.resolve()),
       startRun: mock(() => roomId),
       getRoomsByIds: mock((ids: UUID[]) =>
-        Promise.resolve((ids ?? []).map((id) => ({ id, name: "test", worldId: id })))
+        Promise.resolve(
+          (ids ?? []).map((id) => ({ id, name: "test", worldId: id })),
+        ),
       ),
       getWorld: mock((wid?: UUID) =>
-        Promise.resolve({ id: wid ?? (uuidv4() as UUID), name: "test" })
+        Promise.resolve({ id: wid ?? (uuidv4() as UUID), name: "test" }),
       ),
       ensureConnection: mock(() => Promise.resolve()),
       addParticipant: mock(() => Promise.resolve(true)),
@@ -237,6 +254,8 @@ describe("Otaku response integration (mocked runtime)", () => {
     expect(result.responseContent).not.toBeNull();
     expect(result.responseContent?.text?.length).toBeGreaterThan(0);
     expect(collectedContent.length).toBeGreaterThan(0);
-    expect(collectedContent[collectedContent.length - 1]?.text?.length).toBeGreaterThan(0);
+    expect(
+      collectedContent[collectedContent.length - 1]?.text?.length,
+    ).toBeGreaterThan(0);
   });
 });

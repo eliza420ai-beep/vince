@@ -1,9 +1,6 @@
 import { Button } from "@/frontend/components/ui/button";
 import { Sparkles, X } from "lucide-react";
-import {
-  getAboutConfig,
-  getAboutAgentDisplayName,
-} from "./about-config";
+import { getAboutConfig, getAboutAgentDisplayName } from "./about-config";
 
 interface AboutModalContentProps {
   onClose: () => void;
@@ -47,10 +44,23 @@ export function AboutModalContent({ onClose, agent }: AboutModalContentProps) {
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs text-muted-foreground/90">
             <span className="flex flex-wrap items-center gap-x-1">
               {config.tags.map((tag, i) => (
-                <span key={tag.label} className="inline-flex items-center gap-1">
-                  {i > 0 && <span className="text-muted-foreground/50 px-0.5" aria-hidden>·</span>}
+                <span
+                  key={tag.label}
+                  className="inline-flex items-center gap-1"
+                >
+                  {i > 0 && (
+                    <span
+                      className="text-muted-foreground/50 px-0.5"
+                      aria-hidden
+                    >
+                      ·
+                    </span>
+                  )}
                   {tag.withSparkles && (
-                    <Sparkles className="size-3 text-primary/80 shrink-0" aria-hidden />
+                    <Sparkles
+                      className="size-3 text-primary/80 shrink-0"
+                      aria-hidden
+                    />
                   )}
                   {tag.label}
                 </span>
@@ -65,7 +75,10 @@ export function AboutModalContent({ onClose, agent }: AboutModalContentProps) {
         </header>
 
         {/* Capabilities - compact list with descriptions */}
-        <section className="space-y-1.5 shrink-0" aria-labelledby="capabilities-heading">
+        <section
+          className="space-y-1.5 shrink-0"
+          aria-labelledby="capabilities-heading"
+        >
           <h3
             id="capabilities-heading"
             className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90"
@@ -76,14 +89,20 @@ export function AboutModalContent({ onClose, agent }: AboutModalContentProps) {
             {config.capabilities.map((c) => (
               <li key={c.title} className="leading-snug">
                 <span className="font-medium text-foreground">{c.title}</span>
-                <span className="text-muted-foreground"> — {c.description}</span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  — {c.description}
+                </span>
               </li>
             ))}
           </ul>
         </section>
 
         {/* Powered by - compact list with summaries */}
-        <section className="space-y-1.5 shrink-0" aria-labelledby="plugins-heading">
+        <section
+          className="space-y-1.5 shrink-0"
+          aria-labelledby="plugins-heading"
+        >
           <h3
             id="plugins-heading"
             className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90"

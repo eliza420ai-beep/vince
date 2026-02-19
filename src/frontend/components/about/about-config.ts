@@ -52,8 +52,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
       {
         title: "Options on Hypersurface",
-        description:
-          "Covered calls. Secured puts. Onchain.",
+        description: "Covered calls. Secured puts. Onchain.",
       },
     ],
     plugins: [
@@ -76,30 +75,26 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "ElizaOS",
         category: "AI Engine",
-        summary:
-          "One voice.",
+        summary: "One voice.",
         points: [],
         example: "",
       },
       {
         name: "SQL",
         category: "Database",
-        summary:
-          "What the bot learns from.",
+        summary: "What the bot learns from.",
         points: [],
         example: "",
       },
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers.",
+        summary: "Remembers.",
         points: [],
         example: "",
       },
     ],
-    proTip:
-      "Say gm or ALOHA. One entry.",
+    proTip: "Say gm or ALOHA. One entry.",
   },
 
   Otaku: {
@@ -154,8 +149,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Coinbase CDP",
         category: "Wallet",
-        summary:
-          "Smart wallets. Balances, sends, approvals. Sign in chat.",
+        summary: "Smart wallets. Balances, sends, approvals. Sign in chat.",
         points: [
           "Wallets linked to session.",
           "Fund, send, approve without leaving chat.",
@@ -167,53 +161,41 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         category: "Execution",
         summary:
           "Swaps, limit orders, DCA. Agent API + Trading Engine on Base.",
-        points: [
-          "Swap and limit order execution.",
-          "DCA schedules.",
-        ],
+        points: ["Swap and limit order execution.", "DCA schedules."],
         example: '"Swap 0.1 ETH to USDC" or "DCA $50 into ETH over 5 days"',
       },
       {
         name: "Relay",
         category: "Bridge",
-        summary:
-          "Cross-chain bridge. Stays in chat.",
-        points: [
-          "Bridge assets between chains.",
-        ],
+        summary: "Cross-chain bridge. Stays in chat.",
+        points: ["Bridge assets between chains."],
         example: '"Bridge 2 ETH to Arbitrum"',
       },
       {
         name: "Morpho",
         category: "Yield",
-        summary:
-          "Morpho Blue. Supply/borrow, positions, rebalancing.",
-        points: [
-          "Supply and withdraw. Compare APRs.",
-        ],
+        summary: "Morpho Blue. Supply/borrow, positions, rebalancing.",
+        points: ["Supply and withdraw. Compare APRs."],
         example: '"Supply 1 ETH on Morpho" or "Compare ETH lending yields"',
       },
       {
         name: "DeFiLlama",
         category: "Data",
-        summary:
-          "TVL, yields, protocol discovery. No API key.",
+        summary: "TVL, yields, protocol discovery. No API key.",
         points: [],
         example: "",
       },
       {
         name: "ElizaOS",
         category: "AI Engine",
-        summary:
-          "DeFi in plain language. Confirms before sending.",
+        summary: "DeFi in plain language. Confirms before sending.",
         points: [],
         example: "",
       },
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers. Stays on task.",
+        summary: "Remembers. Stays on task.",
         points: [],
         example: "",
       },
@@ -280,26 +262,22 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
       {
         title: "Entertainment",
-        description:
-          "Books, music, Netflix, Apple TV. By your taste.",
+        description: "Books, music, Netflix, Apple TV. By your taste.",
       },
       {
         title: "Creative Tips",
-        description:
-          "Oil painting, photography, Ableton, cinema, Blender.",
+        description: "Oil painting, photography, Ableton, cinema, Blender.",
       },
       {
         title: "What can you do?",
-        description:
-          "Capability discovery: summary and detailed manifest.",
+        description: "Capability discovery: summary and detailed manifest.",
       },
     ],
     plugins: [
       {
         name: "Plugin-Kelly",
         category: "Lifestyle",
-        summary:
-          "Hotels, dining, wine, health, fitness. Uses the-good-life.",
+        summary: "Hotels, dining, wine, health, fitness. Uses the-good-life.",
         points: [
           "KELLY_DAILY_BRIEFING for scheduled push.",
           "Day-of-week suggestions.",
@@ -311,17 +289,13 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         category: "AI Engine",
         summary:
           "Wine pairings from sommelier playbook. Picks for occasion and budget.",
-        points: [
-          "Sommelier playbook.",
-          "Occasion, season, budget.",
-        ],
+        points: ["Sommelier playbook.", "Occasion, season, budget."],
         example: '"What wine pairs with duck confit?"',
       },
       {
         name: "Web Search",
         category: "News",
-        summary:
-          "Latest openings. Current MICHELIN stars.",
+        summary: "Latest openings. Current MICHELIN stars.",
         points: [
           "Find new restaurants and hotel openings.",
           "Verify current awards and ratings.",
@@ -333,9 +307,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         category: "Memory",
         summary:
           "Remembers what worked and what didn't. Refines picks from feedback.",
-        points: [
-          "Past picks. Feedback.",
-        ],
+        points: ["Past picks. Feedback."],
         example: "Past picks. Feedback.",
       },
     ],
@@ -403,7 +375,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "Knowledge: internal-docs. Strike ritual process, seven pillars.",
           "Plan and call from pasted context or internal-docs.",
         ],
-        example: '"full $100K plan" or paste VINCE output and ask "size or skip?"',
+        example:
+          '"full $100K plan" or paste VINCE output and ask "size or skip?"',
       },
       {
         name: "Powered by ElizaOS",
@@ -421,9 +394,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
         category: "Memory",
         summary:
           "Remembers goals and past context. Progress toward $100K/year.",
-        points: [
-          "Goals. Past allocations. What was recommended.",
-        ],
+        points: ["Goals. Past allocations. What was recommended."],
         example: "Consistent handoff and call style across sessions.",
       },
     ],
@@ -507,7 +478,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "SENTINEL_ART_GEMS, SENTINEL_CLAWDBOT_GUIDE, SENTINEL_DOC_IMPROVE.",
           "Knowledge: internal-docs, sentinel-docs, teammate.",
         ],
-        example: '"task brief for Claude 4.6" or "cost status" or "what should we do next"',
+        example:
+          '"task brief for Claude 4.6" or "cost status" or "what should we do next"',
       },
       {
         name: "Powered by ElizaOS",
@@ -523,21 +495,15 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "SQL",
         category: "Database",
-        summary:
-          "Memories and state. Progress, logs.",
-        points: [
-          "Persistent state for suggestions and outcomes.",
-        ],
+        summary: "Memories and state. Progress, logs.",
+        points: ["Persistent state for suggestions and outcomes."],
         example: "Remembers what was suggested and accepted.",
       },
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers. Learns from suggestion outcomes.",
-        points: [
-          "High-accept categories. Avoid repeating rejected ideas.",
-        ],
+        summary: "Remembers. Learns from suggestion outcomes.",
+        points: ["High-accept categories. Avoid repeating rejected ideas."],
         example: "Refines next suggestions from feedback.",
       },
     ],
@@ -577,7 +543,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         title: "Threads & Accounts",
         description:
-          "Thread discovery and summarization. Account analysis and reputation tiers. \"What did @user say about X?\"",
+          'Thread discovery and summarization. Account analysis and reputation tiers. "What did @user say about X?"',
       },
       {
         title: "Watchlist",
@@ -586,8 +552,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
       {
         title: "News from X",
-        description:
-          "X News API. Headlines and context.",
+        description: "X News API. Headlines and context.",
       },
       {
         title: "Save that",
@@ -626,14 +591,13 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers context.",
+        summary: "Remembers context.",
         points: [],
         example: "",
       },
     ],
     proTip:
-      "Say \"What's CT saying about BTC?\" or \"quick pulse\". For content audit or top posts playbook, ask Eliza.",
+      'Say "What\'s CT saying about BTC?" or "quick pulse". For content audit or top posts playbook, ask Eliza.',
   },
 
   Clawterm: {
@@ -706,7 +670,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "OPENCLAW_SETUP_GUIDE, OPENCLAW_SECURITY_GUIDE, OPENCLAW_GATEWAY_STATUS, OPENCLAW_AGENTS_GUIDE.",
           "OPENCLAW_TIPS, OPENCLAW_USE_CASES, OPENCLAW_WORKSPACE_SYNC, OPENCLAW_HIP3_AI_ASSETS.",
         ],
-        example: '"What\'s AI 2027?" or "gateway status" or "openclaw setup" or "openclaw security"',
+        example:
+          '"What\'s AI 2027?" or "gateway status" or "openclaw setup" or "openclaw security"',
       },
       {
         name: "X Research",
@@ -721,8 +686,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Web Search",
         category: "AI Insights",
-        summary:
-          "Find AI insights on the web. When TAVILY_API_KEY is set.",
+        summary: "Find AI insights on the web. When TAVILY_API_KEY is set.",
         points: [],
         example: "",
       },
@@ -748,16 +712,14 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "SQL",
         category: "Database",
-        summary:
-          "Memories and state.",
+        summary: "Memories and state.",
         points: [],
         example: "",
       },
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers.",
+        summary: "Remembers.",
         points: [],
         example: "",
       },
@@ -815,7 +777,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "GET_VINCE_POLYMARKET_MARKETS for focus topics.",
           "SEARCH_POLYMARKETS, GET_POLYMARKET_DETAIL, orderbooks, spreads.",
         ],
-        example: '"What Polymarket markets matter for us?" or "trending predictions"',
+        example:
+          '"What Polymarket markets matter for us?" or "trending predictions"',
       },
       {
         name: "Powered by ElizaOS",
@@ -828,18 +791,18 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers. Recent activity context for discovery.",
+        summary: "Remembers. Recent activity context for discovery.",
         points: [],
         example: "",
       },
     ],
     proTip:
-      "Ask \"What Polymarket markets matter for us?\" or \"Show our focus markets\". For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
+      'Ask "What Polymarket markets matter for us?" or "Show our focus markets". For live perps or paper bot ask VINCE; for strike/execution ask Solus.',
   },
 
   Naval: {
-    headline: "Frameworks for the trenches. No hype. Thesis first. Push not pull.",
+    headline:
+      "Frameworks for the trenches. No hype. Thesis first. Push not pull.",
     intro:
       "Philosophy of wealth, happiness, and long-term thinking—aligned with how we run: push not pull, one team one dream, thesis before execution, signal not hype. Naval runs 38 prompts: project-focused (push not pull, one command, size/skip/watch, why this trade, one terminal, agents as leverage, paper before live, touch grass, cover costs then profit) plus sovereignty, thesis first, signal not hype, and classic career audits (specific knowledge, leverage, expected value, long-term games). Paste your context and get a direct take. No trading, no execution—frameworks only.",
     tags: [
@@ -932,7 +895,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "On-brand: benefit-led, no hype, battle-tested signal. Paste context; get a direct take.",
           "Knowledge: naval, the-good-life, teammate.",
         ],
-        example: '"push not pull" or "thesis first" then paste your context, or "size skip watch" with your decision',
+        example:
+          '"push not pull" or "thesis first" then paste your context, or "size skip watch" with your decision',
       },
       {
         name: "Powered by ElizaOS",
@@ -945,8 +909,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers context.",
+        summary: "Remembers context.",
         points: [],
         example: "",
       },
@@ -972,28 +935,23 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
     capabilities: [
       {
         title: "Upload & Ingest",
-        description:
-          "URLs, YouTube, text into knowledge/.",
+        description: "URLs, YouTube, text into knowledge/.",
       },
       {
         title: "Knowledge Status & Audit",
-        description:
-          "Health, coverage, missing subtopics.",
+        description: "Health, coverage, missing subtopics.",
       },
       {
         title: "Fill Gaps & Research Agenda",
-        description:
-          "Generate topics, queue, research session.",
+        description: "Generate topics, queue, research session.",
       },
       {
         title: "Draft Essay",
-        description:
-          "Substack essays from knowledge (voice-aware).",
+        description: "Substack essays from knowledge (voice-aware).",
       },
       {
         title: "Draft Tweets",
-        description:
-          "Tweet suggestions for @ikigaistudioxyz.",
+        description: "Tweet suggestions for @ikigaistudioxyz.",
       },
       {
         title: "Legal & GTM",
@@ -1002,13 +960,11 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       },
       {
         title: "Explore & Brainstorm",
-        description:
-          "Open-ended research and ideation from corpus.",
+        description: "Open-ended research and ideation from corpus.",
       },
       {
         title: "Web Search",
-        description:
-          "When the knowledge base has gaps.",
+        description: "When the knowledge base has gaps.",
       },
     ],
     plugins: [
@@ -1021,16 +977,15 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
           "Upload/ingest, knowledge status, audit, fill gaps.",
           "WRITE_ESSAY (Substack), DRAFT_TWEETS.",
         ],
-        example: '"knowledge status", "audit knowledge", "write an essay", "draft tweets"',
+        example:
+          '"knowledge status", "audit knowledge", "write an essay", "draft tweets"',
       },
       {
         name: "Powered by ElizaOS",
         category: "AI Engine",
         summary:
           "One voice across corpus, research, and content. RAG over knowledge; no live data.",
-        points: [
-          "Corpus-first. Research and GTM from knowledge.",
-        ],
+        points: ["Corpus-first. Research and GTM from knowledge."],
         example: '"explore our knowledge", "what\'s our positioning?"',
       },
       {
@@ -1047,8 +1002,7 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Web Search",
         category: "Research",
-        summary:
-          "When the knowledge base has gaps.",
+        summary: "When the knowledge base has gaps.",
         points: [
           "Fills gaps in the knowledge base.",
           "Time-range and topic filters.",
@@ -1058,11 +1012,8 @@ export const ABOUT_CONFIG: Record<string, AboutConfig> = {
       {
         name: "Bootstrap",
         category: "Memory",
-        summary:
-          "Remembers. Learns from conversations.",
-        points: [
-          "Facts. Understanding. Preferences.",
-        ],
+        summary: "Remembers. Learns from conversations.",
+        points: ["Facts. Understanding. Preferences."],
         example: "Consistent context for research and drafts.",
       },
     ],

@@ -99,13 +99,20 @@ function runWithSolusRuntime(
   testFn: (runtime: IAgentRuntime) => Promise<void>,
 ): Promise<void> {
   if (!runtime || (runtime.character?.name ?? "").toUpperCase() !== "SOLUS") {
-    logger.info("⚠ Solus runtime not provided by runner; skip or run with Solus as the loaded agent.");
+    logger.info(
+      "⚠ Solus runtime not provided by runner; skip or run with Solus as the loaded agent.",
+    );
     return Promise.resolve();
   }
   return testFn(runtime);
 }
 
-function createMinimalSolusRuntime(useModelImpl: (modelType: string, params: { prompt?: string }) => Promise<string>): IAgentRuntime {
+function createMinimalSolusRuntime(
+  useModelImpl: (
+    modelType: string,
+    params: { prompt?: string },
+  ) => Promise<string>,
+): IAgentRuntime {
   const agentId = uuidv4() as UUID;
   return {
     agentId,
@@ -136,10 +143,18 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async (r) => {
           const canned =
             "That's VINCE—say 'aloha' to him for the daily. When you have his options or summary, paste it here and I'll give you the call (size/skip and invalidation).";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
           const msg = createMessage("Aloha");
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
           expect(collected.length).toBeGreaterThanOrEqual(1);
           const text = collected[collected.length - 1]?.text ?? "";
           expect(text).toMatch(/vince/i);
@@ -153,11 +168,21 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async () => {
           const canned =
             "That's VINCE—say 'options' to him, then paste his view here. I'll give you strike ritual and size/skip with invalidation.";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
           const msg = createMessage("Options for this week");
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/vince/);
           expect(text).toMatch(/paste|options/);
           assertNoAISlop(text);
@@ -169,11 +194,23 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async () => {
           const canned =
             "That's left curve—Vince. Say 'options' to him and paste here; then I'll give you the strike call.";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
-          const msg = createMessage("What's BTC funding? I need it for my strike call.");
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
+          const msg = createMessage(
+            "What's BTC funding? I need it for my strike call.",
+          );
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/vince|left curve/);
           expect(text).toMatch(/paste/);
           assertNoAISlop(text);
@@ -185,11 +222,21 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async () => {
           const canned =
             "That's VINCE. Say 'What's CT saying about BTC' to him, paste his answer here, and I'll give you size/skip and invalidation.";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
           const msg = createMessage("What's CT saying about BTC?");
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/vince/);
           expect(text).toMatch(/paste/);
           assertNoAISlop(text);
@@ -204,10 +251,20 @@ export const SolusResponseTestSuite: TestSuite = {
           const rt = createMinimalSolusRuntime(async () => canned);
           const msg = createMessage("How does Hypersurface work?");
           const collected: Content[] = [];
-          await solusHypersurfaceExplainAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await solusHypersurfaceExplainAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/friday 08:00|08:00 utc/);
-          expect(text).toMatch(/covered call|secured put|wheel|premium|cost basis/);
+          expect(text).toMatch(
+            /covered call|secured put|wheel|premium|cost basis/,
+          );
           assertNoAISlop(text);
         }),
     },
@@ -220,8 +277,16 @@ export const SolusResponseTestSuite: TestSuite = {
           const rt = createMinimalSolusRuntime(async () => canned);
           const msg = createMessage("How do I run my strike ritual?");
           const collected: Content[] = [];
-          await solusStrikeRitualAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await solusStrikeRitualAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/vince|options/);
           expect(text).toMatch(/paste|size|skip|invalidation/);
           assertNoAISlop(text);
@@ -233,11 +298,21 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async () => {
           const canned =
             "The $100K stack: (1) HYPERSURFACE options $3K/week min. (2) Yield USDC/USDT0. (3) Stack sats. (4) Echo DD. (5) Paper perps. (6) HIP-3 spot. (7) Airdrops. Options carry the target; the rest compounds. I can break down allocations and weekly targets, or you grab VINCE's live yield/options and we tune.";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
           const msg = createMessage("Give me the full $100K plan.");
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/100k|hypersurface|options|stack|pillar|seven/);
           assertNoAISlop(text);
         }),
@@ -253,9 +328,19 @@ export const SolusResponseTestSuite: TestSuite = {
             "We bought $70K secured puts on Hypersurface, expiry next Friday, $3800 premium, $150K USDT0.",
           );
           const collected: Content[] = [];
-          await solusPositionAssessAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
-          expect(text).toMatch(/strike|premium|assigned|cost basis|invalidation|hold|roll/);
+          await solusPositionAssessAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
+          expect(text).toMatch(
+            /strike|premium|assigned|cost basis|invalidation|hold|roll/,
+          );
           expect(text).toMatch(/70|3800|150|usdt0/);
           assertNoAISlop(text);
         }),
@@ -267,10 +352,20 @@ export const SolusResponseTestSuite: TestSuite = {
           const canned =
             "Size. Invalidation: funding above 0.02% or spot above 102k before expiry. If either hits, roll or close. That's the move.";
           const rt = createMinimalSolusRuntime(async () => canned);
-          const msg = createMessage("VINCE said: BTC 105k strike, funding 0.01%. What's your call?");
+          const msg = createMessage(
+            "VINCE said: BTC 105k strike, funding 0.01%. What's your call?",
+          );
           const collected: Content[] = [];
-          await solusOptimalStrikeAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await solusOptimalStrikeAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/size|skip|watch/);
           expect(text).toMatch(/invalidation/);
           assertNoAISlop(text);
@@ -282,11 +377,21 @@ export const SolusResponseTestSuite: TestSuite = {
         runWithSolusRuntime(runtime, async () => {
           const canned =
             "**VINCE** — aloha, options, perps, memes, news, X/CT, bot status, yield. **Me** — $100K plan, strike ritual how-to, size/skip when you paste his (or any) context, Echo DD process, rebalance. Data → him. Call → me.";
-          const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+          const rt = createMinimalSolusRuntime(async (t) =>
+            t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+          );
           const msg = createMessage("Who do I ask for what?");
           const collected: Content[] = [];
-          await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await replyAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           expect(text).toMatch(/vince/);
           expect(text).toMatch(/data|call|paste|options|strike/);
           assertNoAISlop(text);
@@ -313,10 +418,20 @@ export const SolusResponseTestSuite: TestSuite = {
           const canned =
             "Size. Invalidation: funding above 0.02% or spot above 102k before expiry. If either hits, roll or close.";
           const rt = createMinimalSolusRuntime(async () => canned);
-          const msg = createMessage("VINCE said: BTC 105k strike, funding 0.01%. What's your call?");
+          const msg = createMessage(
+            "VINCE said: BTC 105k strike, funding 0.01%. What's your call?",
+          );
           const collected: Content[] = [];
-          await solusOptimalStrikeAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
-          const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
+          await solusOptimalStrikeAction.handler!(
+            rt,
+            msg,
+            defaultState(),
+            undefined,
+            async (c) => collected.push(c),
+          );
+          const text = (
+            collected[collected.length - 1]?.text ?? ""
+          ).toLowerCase();
           const hasCall = /size|skip|watch/.test(text);
           const hasInvalidation = /invalidation|hold|roll/.test(text);
           expect(hasCall).toBe(true);
@@ -330,10 +445,14 @@ describe("Solus response (mocked runtime)", () => {
   it("handoff — Aloha returns VINCE and paste", async () => {
     const canned =
       "That's VINCE—say 'aloha' to him for the daily. When you have his options or summary, paste it here and I'll give you the call (size/skip and invalidation).";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
     const msg = createMessage("Aloha");
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = collected[collected.length - 1]?.text ?? "";
     expect(text).toMatch(/vince/i);
     expect(text).toMatch(/paste|paste it here/i);
@@ -343,10 +462,14 @@ describe("Solus response (mocked runtime)", () => {
   it("handoff — Options for this week returns VINCE and paste", async () => {
     const canned =
       "That's VINCE—say 'options' to him, then paste his view here. I'll give you strike ritual and size/skip with invalidation.";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
     const msg = createMessage("Options for this week");
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/vince/);
     expect(text).toMatch(/paste|options/);
@@ -356,10 +479,16 @@ describe("Solus response (mocked runtime)", () => {
   it("handoff — funding returns left curve / Vince", async () => {
     const canned =
       "That's left curve—Vince. Say 'options' to him and paste here; then I'll give you the strike call.";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
-    const msg = createMessage("What's BTC funding? I need it for my strike call.");
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
+    const msg = createMessage(
+      "What's BTC funding? I need it for my strike call.",
+    );
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/vince|left curve/);
     expect(text).toMatch(/paste/);
@@ -369,10 +498,14 @@ describe("Solus response (mocked runtime)", () => {
   it("handoff — CT returns VINCE and paste", async () => {
     const canned =
       "That's VINCE. Say 'What's CT saying about BTC' to him, paste his answer here, and I'll give you size/skip and invalidation.";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
     const msg = createMessage("What's CT saying about BTC?");
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/vince/);
     expect(text).toMatch(/paste/);
@@ -385,7 +518,13 @@ describe("Solus response (mocked runtime)", () => {
     const rt = createMinimalSolusRuntime(async () => canned);
     const msg = createMessage("How does Hypersurface work?");
     const collected: Content[] = [];
-    await solusHypersurfaceExplainAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await solusHypersurfaceExplainAction.handler!(
+      rt,
+      msg,
+      defaultState(),
+      undefined,
+      async (c) => collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/friday 08:00|08:00 utc/);
     expect(text).toMatch(/covered call|secured put|wheel|premium|cost basis/);
@@ -398,7 +537,13 @@ describe("Solus response (mocked runtime)", () => {
     const rt = createMinimalSolusRuntime(async () => canned);
     const msg = createMessage("How do I run my strike ritual?");
     const collected: Content[] = [];
-    await solusStrikeRitualAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await solusStrikeRitualAction.handler!(
+      rt,
+      msg,
+      defaultState(),
+      undefined,
+      async (c) => collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/vince|options/);
     expect(text).toMatch(/paste|size|skip|invalidation/);
@@ -408,10 +553,14 @@ describe("Solus response (mocked runtime)", () => {
   it("own — $100K plan contains seven pillars / HYPERSURFACE options / stack", async () => {
     const canned =
       "The $100K stack: (1) HYPERSURFACE options $3K/week min. (2) Yield USDC/USDT0. (3) Stack sats. (4) Echo DD. (5) Paper perps. (6) HIP-3 spot. (7) Airdrops. Options carry the target; the rest compounds.";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
     const msg = createMessage("Give me the full $100K plan.");
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/100k|hypersurface|options|stack|pillar|seven/);
     assertNoAISlop(text);
@@ -425,9 +574,17 @@ describe("Solus response (mocked runtime)", () => {
       "We bought $70K secured puts on Hypersurface, expiry next Friday, $3800 premium, $150K USDT0.",
     );
     const collected: Content[] = [];
-    await solusPositionAssessAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await solusPositionAssessAction.handler!(
+      rt,
+      msg,
+      defaultState(),
+      undefined,
+      async (c) => collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
-    expect(text).toMatch(/strike|premium|assigned|cost basis|invalidation|hold|roll/);
+    expect(text).toMatch(
+      /strike|premium|assigned|cost basis|invalidation|hold|roll/,
+    );
     expect(text).toMatch(/70|3800|150|usdt0/);
     assertNoAISlop(text);
   });
@@ -436,9 +593,17 @@ describe("Solus response (mocked runtime)", () => {
     const canned =
       "Size. Invalidation: funding above 0.02% or spot above 102k before expiry. If either hits, roll or close. That's the move.";
     const rt = createMinimalSolusRuntime(async () => canned);
-    const msg = createMessage("VINCE said: BTC 105k strike, funding 0.01%. What's your call?");
+    const msg = createMessage(
+      "VINCE said: BTC 105k strike, funding 0.01%. What's your call?",
+    );
     const collected: Content[] = [];
-    await solusOptimalStrikeAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await solusOptimalStrikeAction.handler!(
+      rt,
+      msg,
+      defaultState(),
+      undefined,
+      async (c) => collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/size|skip|watch/);
     expect(text).toMatch(/invalidation/);
@@ -448,10 +613,14 @@ describe("Solus response (mocked runtime)", () => {
   it("curve naming — Who do I ask for what? contains clear lane split", async () => {
     const canned =
       "**VINCE** — aloha, options, perps, memes, news, X/CT, bot status, yield. **Me** — $100K plan, strike ritual how-to, size/skip when you paste his (or any) context, Echo DD process, rebalance. Data → him. Call → me.";
-    const rt = createMinimalSolusRuntime(async (t) => (t === ModelType.TEXT_LARGE ? xmlMessage(canned) : ""));
+    const rt = createMinimalSolusRuntime(async (t) =>
+      t === ModelType.TEXT_LARGE ? xmlMessage(canned) : "",
+    );
     const msg = createMessage("Who do I ask for what?");
     const collected: Content[] = [];
-    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await replyAction.handler!(rt, msg, defaultState(), undefined, async (c) =>
+      collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(text).toMatch(/vince/);
     expect(text).toMatch(/data|call|paste|options|strike/);
@@ -473,9 +642,17 @@ describe("Solus response (mocked runtime)", () => {
     const canned =
       "Size. Invalidation: funding above 0.02% or spot above 102k before expiry. If either hits, roll or close.";
     const rt = createMinimalSolusRuntime(async () => canned);
-    const msg = createMessage("VINCE said: BTC 105k strike, funding 0.01%. What's your call?");
+    const msg = createMessage(
+      "VINCE said: BTC 105k strike, funding 0.01%. What's your call?",
+    );
     const collected: Content[] = [];
-    await solusOptimalStrikeAction.handler!(rt, msg, defaultState(), undefined, async (c) => collected.push(c));
+    await solusOptimalStrikeAction.handler!(
+      rt,
+      msg,
+      defaultState(),
+      undefined,
+      async (c) => collected.push(c),
+    );
     const text = (collected[collected.length - 1]?.text ?? "").toLowerCase();
     expect(/size|skip|watch/.test(text)).toBe(true);
     expect(/invalidation|hold|roll/.test(text)).toBe(true);

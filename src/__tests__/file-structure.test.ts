@@ -28,7 +28,9 @@ describe("Project Structure Validation", () => {
       // Skip if build has not been run (e.g. CI may run tests without building first)
       const distPath = path.join(rootDir, "dist");
       if (!directoryExists(distPath)) {
-        logger.warn("Dist directory not found - run 'bun run build' first; skipping");
+        logger.warn(
+          "Dist directory not found - run 'bun run build' first; skipping",
+        );
         return;
       }
       expect(directoryExists(distPath)).toBe(true);
@@ -48,8 +50,7 @@ describe("Project Structure Validation", () => {
         "utf8",
       );
       const hasIndexExport =
-        indexContent.includes("character") ||
-        indexContent.includes("project");
+        indexContent.includes("character") || indexContent.includes("project");
       const hasPluginOrAgents =
         indexContent.includes("plugin") || indexContent.includes("agents");
       expect(hasIndexExport).toBe(true);
@@ -131,7 +132,10 @@ describe("Project Structure Validation", () => {
         fs.readdirSync(srcDir).some((f) => f.endsWith(".js"));
       const hasFrontendDir = files.includes("frontend");
       const hasAnyBuildArtifact =
-        hasJsAtTop || hasJsUnderSrc || hasFrontendDir || files.some((f) => f.endsWith(".tsbuildinfo"));
+        hasJsAtTop ||
+        hasJsUnderSrc ||
+        hasFrontendDir ||
+        files.some((f) => f.endsWith(".tsbuildinfo"));
       expect(hasAnyBuildArtifact).toBe(true);
     });
 

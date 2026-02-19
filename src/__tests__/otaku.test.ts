@@ -4,11 +4,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import {
-  otakuCharacter,
-  otakuAgent,
-  character,
-} from "../agents/otaku";
+import { otakuCharacter, otakuAgent, character } from "../agents/otaku";
 import type { Character, IAgentRuntime, Plugin } from "@elizaos/core";
 
 describe("Otaku agent", () => {
@@ -48,9 +44,14 @@ describe("Otaku agent", () => {
 
     it("has Bankr knowledge directory for RAG", () => {
       expect(otakuCharacter).toHaveProperty("knowledge");
-      const knowledge = otakuCharacter.knowledge as Array<{ directory?: string; path?: string }>;
+      const knowledge = otakuCharacter.knowledge as Array<{
+        directory?: string;
+        path?: string;
+      }>;
       expect(Array.isArray(knowledge)).toBe(true);
-      const bankrEntry = knowledge?.find((k) => k.directory === "bankr" || k.path?.includes("bankr"));
+      const bankrEntry = knowledge?.find(
+        (k) => k.directory === "bankr" || k.path?.includes("bankr"),
+      );
       expect(bankrEntry).toBeDefined();
     });
 
@@ -86,11 +87,17 @@ describe("Otaku agent", () => {
       expect(otakuCharacter.settings).toBeDefined();
       expect(typeof otakuCharacter.settings).toBe("object");
       expect(otakuCharacter.settings).toHaveProperty("secrets");
-      expect(otakuCharacter.settings).toHaveProperty("avatar", "/avatars/otaku.png");
+      expect(otakuCharacter.settings).toHaveProperty(
+        "avatar",
+        "/avatars/otaku.png",
+      );
       expect(otakuCharacter.settings).toHaveProperty("mcp");
-      const mcp = (otakuCharacter.settings as Record<string, unknown>).mcp as Record<string, unknown>;
+      const mcp = (otakuCharacter.settings as Record<string, unknown>)
+        .mcp as Record<string, unknown>;
       expect(mcp).toHaveProperty("servers");
-      expect((mcp.servers as Record<string, unknown>)["nansen-ai"]).toBeDefined();
+      expect(
+        (mcp.servers as Record<string, unknown>)["nansen-ai"],
+      ).toBeDefined();
     });
 
     it("has style.all and style.chat arrays", () => {
@@ -98,13 +105,17 @@ describe("Otaku agent", () => {
       expect(Array.isArray(otakuCharacter.style?.all)).toBe(true);
       expect(Array.isArray(otakuCharacter.style?.chat)).toBe(true);
       expect((otakuCharacter.style!.all as string[]).length).toBeGreaterThan(0);
-      expect((otakuCharacter.style!.chat as string[]).length).toBeGreaterThan(0);
+      expect((otakuCharacter.style!.chat as string[]).length).toBeGreaterThan(
+        0,
+      );
     });
 
     it("has messageExamples as array of conversation arrays", () => {
       expect(Array.isArray(otakuCharacter.messageExamples)).toBe(true);
       expect(otakuCharacter.messageExamples!.length).toBeGreaterThan(0);
-      for (const conv of otakuCharacter.messageExamples as Array<Array<{ name: string; content: { text?: string } }>>) {
+      for (const conv of otakuCharacter.messageExamples as Array<
+        Array<{ name: string; content: { text?: string } }>
+      >) {
         expect(Array.isArray(conv)).toBe(true);
         expect(conv.length).toBeGreaterThan(0);
         for (const msg of conv) {
@@ -140,13 +151,21 @@ describe("Otaku agent", () => {
     });
 
     it("includes Bankr section (either enabled or not configured)", () => {
-      const hasBankrEnabled = system.includes("BANKR_AGENT_PROMPT") && system.includes("Portfolio, balances");
-      const hasBankrDisabled = system.includes("Bankr is not enabled") || system.includes("Do NOT use BANKR_AGENT_PROMPT");
+      const hasBankrEnabled =
+        system.includes("BANKR_AGENT_PROMPT") &&
+        system.includes("Portfolio, balances");
+      const hasBankrDisabled =
+        system.includes("Bankr is not enabled") ||
+        system.includes("Do NOT use BANKR_AGENT_PROMPT");
       expect(hasBankrEnabled || hasBankrDisabled).toBe(true);
     });
 
     it("when Bankr enabled, mentions BANKR_USER_INFO and BANKR_ORDER_LIST and maker flow", () => {
-      if (!system.includes("BANKR_ORDER_LIST") || !system.includes("BANKR_USER_INFO")) return;
+      if (
+        !system.includes("BANKR_ORDER_LIST") ||
+        !system.includes("BANKR_USER_INFO")
+      )
+        return;
       expect(system).toContain("BANKR_USER_INFO");
       expect(system).toContain("BANKR_ORDER_LIST");
       expect(system).toMatch(/maker|BANKR_ORDER_LIST|list my orders/i);
@@ -186,7 +205,9 @@ describe("Otaku agent", () => {
   });
 
   describe("messageExamples content", () => {
-    const examples = otakuCharacter.messageExamples as Array<Array<{ name: string; content: { text?: string } }>>;
+    const examples = otakuCharacter.messageExamples as Array<
+      Array<{ name: string; content: { text?: string } }>
+    >;
 
     it("includes at least one Otaku response per conversation", () => {
       for (const conv of examples) {
@@ -196,7 +217,9 @@ describe("Otaku agent", () => {
     });
 
     it("covers CME gap, DeFi protocol risk, bridge/swap, transfer confirm, LP decline", () => {
-      const allText = examples.flatMap((c) => c.map((m) => m.content?.text ?? "")).join(" ");
+      const allText = examples
+        .flatMap((c) => c.map((m) => m.content?.text ?? ""))
+        .join(" ");
       expect(allText).toMatch(/CME|gap|search|WEB_SEARCH/i);
       expect(allText).toMatch(/APY|TVL|risk|reflexive/i);
       expect(allText).toMatch(/bridge|swap|ETH|USDC|Relay/i);
@@ -205,10 +228,21 @@ describe("Otaku agent", () => {
     });
 
     it("includes Bankr examples (portfolio and user info) when present", () => {
-      const allText = examples.flatMap((c) => c.map((m) => m.content?.text ?? "")).join(" ");
-      const hasPortfolioExample = allText.includes("Show my portfolio") || allText.includes("portfolio");
+      const allText = examples
+        .flatMap((c) => c.map((m) => m.content?.text ?? ""))
+        .join(" ");
+      const hasPortfolioExample =
+        allText.includes("Show my portfolio") || allText.includes("portfolio");
       const hasBankrAction = examples.some((conv) =>
-        conv.some((m) => (m.content as { actions?: string[] })?.actions?.includes("BANKR_AGENT_PROMPT") || (m.content as { actions?: string[] })?.actions?.includes("BANKR_USER_INFO"))
+        conv.some(
+          (m) =>
+            (m.content as { actions?: string[] })?.actions?.includes(
+              "BANKR_AGENT_PROMPT",
+            ) ||
+            (m.content as { actions?: string[] })?.actions?.includes(
+              "BANKR_USER_INFO",
+            ),
+        ),
       );
       expect(hasPortfolioExample || hasBankrAction).toBe(true);
     });
@@ -218,11 +252,15 @@ describe("Otaku agent", () => {
     const allStyle = (otakuCharacter.style?.all as string[]) ?? [];
 
     it("includes confirmation and transfer safety rules", () => {
-      expect(allStyle.some((s) => /confirm|transfer|IRREVERSIBLE/.test(s))).toBe(true);
+      expect(
+        allStyle.some((s) => /confirm|transfer|IRREVERSIBLE/.test(s)),
+      ).toBe(true);
     });
 
     it("includes question vs command guidance", () => {
-      expect(allStyle.some((s) => /question|guidance|execute|command/.test(s))).toBe(true);
+      expect(
+        allStyle.some((s) => /question|guidance|execute|command/.test(s)),
+      ).toBe(true);
     });
 
     it("includes Nansen and evidence-based phrasing", () => {
@@ -260,13 +298,19 @@ describe("Otaku agent", () => {
     it("may include openrouter, openai, web-search, cdp, bankr when env is set", () => {
       const names = plugins.map((p) => (p as Plugin).name);
       // At least one model provider is typically present in dev
-      const hasModel = names.some((n) => ["openrouter", "openai", "anthropic"].includes(n));
-      const hasSearch = names.includes("web-search") || names.some((n) => n?.includes("search"));
+      const hasModel = names.some((n) =>
+        ["openrouter", "openai", "anthropic"].includes(n),
+      );
+      const hasSearch =
+        names.includes("web-search") ||
+        names.some((n) => n?.includes("search"));
       const hasCdp = names.includes("cdp");
       const hasBankr = names.includes("bankr");
       // We only assert structure: core plugins present; optional ones may or may not be
       expect(names.length).toBeGreaterThanOrEqual(2);
-      expect(hasModel || hasSearch || hasCdp || hasBankr || names.length > 2).toBe(true);
+      expect(
+        hasModel || hasSearch || hasCdp || hasBankr || names.length > 2,
+      ).toBe(true);
     });
   });
 
@@ -312,7 +356,9 @@ describe("Otaku agent", () => {
     });
 
     it("when Bankr env is set, secrets may include BANKR_* keys", () => {
-      const secrets = otakuCharacter.settings?.secrets as Record<string, unknown> | undefined;
+      const secrets = otakuCharacter.settings?.secrets as
+        | Record<string, unknown>
+        | undefined;
       if (!secrets) return;
       const keys = Object.keys(secrets);
       // If BANKR_API_KEY was set at load time, we should see Bankr keys
@@ -324,18 +370,22 @@ describe("Otaku agent", () => {
 
   describe("mcp configuration", () => {
     it("nansen-ai server has type stdio and command bunx", () => {
-      const mcp = (otakuCharacter.settings as Record<string, unknown>).mcp as Record<string, unknown>;
+      const mcp = (otakuCharacter.settings as Record<string, unknown>)
+        .mcp as Record<string, unknown>;
       const servers = mcp?.servers as Record<string, Record<string, unknown>>;
       const nansen = servers?.["nansen-ai"];
       expect(nansen).toBeDefined();
       expect(nansen?.type).toBe("stdio");
       expect(nansen?.command).toBe("bunx");
       expect(Array.isArray(nansen?.args)).toBe(true);
-      expect((nansen?.args as string[]).some((a) => a.includes("mcp.nansen.ai"))).toBe(true);
+      expect(
+        (nansen?.args as string[]).some((a) => a.includes("mcp.nansen.ai")),
+      ).toBe(true);
     });
 
     it("mcp has maxRetries", () => {
-      const mcp = (otakuCharacter.settings as Record<string, unknown>).mcp as Record<string, unknown>;
+      const mcp = (otakuCharacter.settings as Record<string, unknown>)
+        .mcp as Record<string, unknown>;
       expect(mcp?.maxRetries).toBe(20);
     });
   });
@@ -352,8 +402,11 @@ describe("Otaku agent", () => {
   describe("regression: Bankr conditional copy", () => {
     it("system prompt either describes Bankr actions or says not configured", () => {
       const system = otakuCharacter.system!;
-      const describesBankrActions = system.includes("BANKR_ORDER_QUOTE") || system.includes("limit/stop/DCA/TWAP");
-      const saysNotConfigured = system.includes("Not configured") && system.includes("BANKR_API_KEY");
+      const describesBankrActions =
+        system.includes("BANKR_ORDER_QUOTE") ||
+        system.includes("limit/stop/DCA/TWAP");
+      const saysNotConfigured =
+        system.includes("Not configured") && system.includes("BANKR_API_KEY");
       expect(describesBankrActions || saysNotConfigured).toBe(true);
     });
   });

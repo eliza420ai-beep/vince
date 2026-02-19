@@ -36,29 +36,37 @@ import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 import { xResearchPlugin } from "../plugins/plugin-x-research/src/index.ts";
 
 // Include Discord when Eliza has her own token so both bots can run in the same server (see DISCORD.md).
-const elizaHasDiscord = !!(process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim());
+const elizaHasDiscord = !!(
+  process.env.ELIZA_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 const elizaHasXToken = !!(
   process.env.ELIZA_X_BEARER_TOKEN?.trim() || process.env.X_BEARER_TOKEN?.trim()
 );
 
-const buildPlugins = (): Plugin[] => [
-  sqlPlugin,
-  bootstrapPlugin,
-  ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
-  ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
-  ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
-  ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
-  ...(elizaHasDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
-  elizaPlugin, // Eliza's own: UPLOAD + ADD_MICHELIN_RESTAURANT (knowledge ingestion only)
-  interAgentPlugin, // ASK_AGENT for asking other agents (VINCE, Kelly, Solus, etc.)
-  ...(elizaHasXToken ? [xResearchPlugin] : []), // CONTENT_AUDIT uses x-research for X data; use ELIZA_X_BEARER_TOKEN to avoid rate limits with ECHO
-] as Plugin[];
+const buildPlugins = (): Plugin[] =>
+  [
+    sqlPlugin,
+    bootstrapPlugin,
+    ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
+    ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
+    ...(process.env.OPENROUTER_API_KEY?.trim() ? [openrouterPlugin] : []),
+    ...(process.env.TAVILY_API_KEY?.trim() ? [webSearchPlugin] : []),
+    ...(elizaHasDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
+    elizaPlugin, // Eliza's own: UPLOAD + ADD_MICHELIN_RESTAURANT (knowledge ingestion only)
+    interAgentPlugin, // ASK_AGENT for asking other agents (VINCE, Kelly, Solus, etc.)
+    ...(elizaHasXToken ? [xResearchPlugin] : []), // CONTENT_AUDIT uses x-research for X data; use ELIZA_X_BEARER_TOKEN to avoid rate limits with ECHO
+  ] as Plugin[];
 
 const initEliza = async (_runtime: IAgentRuntime) => {
   const webSearch = process.env.TAVILY_API_KEY?.trim()
     ? " web search available;"
     : "";
-  const contentAudit = elizaHasXToken ? " CONTENT_AUDIT (content playbook);" : "";
+  const contentAudit = elizaHasXToken
+    ? " CONTENT_AUDIT (content playbook);"
+    : "";
   logger.info(
     `[Eliza] ✅ 24/7 research & knowledge expansion ready — plugin-eliza (UPLOAD, ADD_MICHELIN); ASK_AGENT for other agents;${webSearch}${contentAudit} execution → VINCE`,
   );
@@ -96,7 +104,8 @@ const elizaCharacter: Character = {
     ...(process.env.OLLAMA_API_ENDPOINT?.trim()
       ? ["@elizaos/plugin-ollama"]
       : []),
-    ...((process.env.ELIZA_DISCORD_API_TOKEN?.trim() || process.env.DISCORD_API_TOKEN?.trim())
+    ...(process.env.ELIZA_DISCORD_API_TOKEN?.trim() ||
+    process.env.DISCORD_API_TOKEN?.trim()
       ? ["@elizaos/plugin-discord"]
       : []),
     ...(process.env.TWITTER_API_KEY?.trim() &&
@@ -176,7 +185,7 @@ const elizaCharacter: Character = {
     { directory: "restaking", shared: true },
     { directory: "trading", shared: true },
     { directory: "research-daily", shared: true },
-    { directory: "satoshi-private", shared: false },        // private: BTC treasury, asset analysis
+    { directory: "satoshi-private", shared: false }, // private: BTC treasury, asset analysis
     { directory: "agent-indexes", shared: true },
     { path: "sentinel-docs/BRANDING.md", shared: true },
     { directory: "brand", shared: true },
@@ -615,7 +624,6 @@ When another agent (e.g. Kelly) asks on behalf of the user, answer as if the use
     post: ["Concise. Frameworks not noise. One insight, one call."],
   },
 };
-
 
 const elizaAgent: ProjectAgent = {
   character: elizaCharacter,

@@ -760,8 +760,20 @@ export async function fetchAgentData(
   const normalized = agentName.toLowerCase();
 
   switch (normalized) {
-    case "vince":
+    case "vince": {
+      if (process.env.STANDUP_VINCE_USE_REPORT === "true") {
+        try {
+          const { generateStandupReport } = await import(
+            "../../../plugin-vince/src/actions/report.action"
+          );
+          const report = await generateStandupReport(runtime);
+          if (report?.trim()) return report.trim();
+        } catch (err) {
+          logger.warn({ err }, "[STANDUP_DATA] VINCE report-for-standup failed, falling back to fetchVinceData");
+        }
+      }
       return fetchVinceData(runtime);
+    }
     case "echo":
       return fetchEchoData(runtime, contextHints);
     case "oracle":

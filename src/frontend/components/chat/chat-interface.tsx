@@ -135,10 +135,11 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   string,
   { label: string; message: string }[]
 > = {
-  // VINCE (CDO): Locked in on data and flagship actions (ALOHA, perps, options, paper bot, news, HIP3, memes, intel). X research is on Echo.
+  // VINCE (CDO): Locked in on data and flagship actions (ALOHA, report, perps, options, paper bot, news, HIP3, memes, intel). X research is on Echo.
   vince: [
     { label: "What can the CDO do?", message: "What can you do?" },
     { label: "ALOHA", message: "aloha" },
+    { label: "Report of the day", message: "report of the day" },
     { label: "Options", message: "options" },
     { label: "Perps", message: "perps" },
     { label: "Trading Bot", message: "bot status" },
@@ -167,29 +168,60 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   kelly: [
     { label: "Live the life", message: "What can you do?" },
     { label: "Today's move", message: "What should I do today?" },
-    { label: "Best table", message: "Where should I eat? Somewhere within 2 hours of home." },
+    {
+      label: "Best table",
+      message: "Where should I eat? Somewhere within 2 hours of home.",
+    },
     { label: "Where to stay", message: "Where should I stay this weekend?" },
     { label: "Open something good", message: "Recommend a wine for tonight" },
-    { label: "Cook tonight", message: "What should I cook for dinner tonight?" },
+    {
+      label: "Cook tonight",
+      message: "What should I cook for dinner tonight?",
+    },
     { label: "The ocean", message: "How's the surf in Biarritz?" },
     { label: "Pool or rower?", message: "Recommend a workout for today" },
-    { label: "Week ahead", message: "What's the week ahead? This week's picks" },
+    {
+      label: "Week ahead",
+      message: "What's the week ahead? This week's picks",
+    },
     { label: "Coast road", message: "Plan me a road trip this week" },
     { label: "The 1000m", message: "Tips for my daily 1000m" },
     { label: "Dammann Frères", message: "What tea for this evening?" },
     { label: "Touch grass", message: "I've been grinding—need to rebalance" },
-    { label: "Make something", message: "Creative tips—what should I work on?" },
+    {
+      label: "Make something",
+      message: "Creative tips—what should I work on?",
+    },
     { label: "Ask me something", message: "Ask me an interesting question" },
   ],
   // Solus (CFO): on-chain options expert, Hypersurface mechanics, strike ritual, plan and call.
   solus: [
     { label: "What can the CFO do?", message: "What can you do?" },
     { label: "How Hypersurface works", message: "How does Hypersurface work?" },
-    { label: "Optimal strike this week", message: "What's the optimal strike for BTC this week? I'll paste VINCE's options view." },
-    { label: "Strike ritual", message: "Walk me through strike ritual for Friday — covered calls vs secured puts" },
-    { label: "Secured puts vs calls", message: "When do I sell secured puts vs covered calls on Hypersurface?" },
-    { label: "Assess my position", message: "I have a Hypersurface position — here are the details: [paste strike, notional, premium, expiry]" },
-    { label: "Size or Skip?", message: "Give me size, skip, or watch and invalidation — I'll paste context" },
+    {
+      label: "Optimal strike this week",
+      message:
+        "What's the optimal strike for BTC this week? I'll paste VINCE's options view.",
+    },
+    {
+      label: "Strike ritual",
+      message:
+        "Walk me through strike ritual for Friday — covered calls vs secured puts",
+    },
+    {
+      label: "Secured puts vs calls",
+      message: "When do I sell secured puts vs covered calls on Hypersurface?",
+    },
+    {
+      label: "Assess my position",
+      message:
+        "I have a Hypersurface position — here are the details: [paste strike, notional, premium, expiry]",
+    },
+    {
+      label: "Size or Skip?",
+      message:
+        "Give me size, skip, or watch and invalidation — I'll paste context",
+    },
     { label: "$100K Plan", message: "full $100K plan" },
     { label: "What's Your Call?", message: "what's your call?" },
   ],
@@ -218,10 +250,23 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Yield Rates", message: "best DeFi yield rates" },
     { label: "Token Flows", message: "token flows" },
     { label: "Portfolio", message: "Show my portfolio" },
-    { label: "Bankr: Balance", message: "Ask Bankr: what is my ETH balance on Base?" },
-    { label: "Bankr: Swap", message: "Ask Bankr to swap 10 USDC for ETH on Base" },
-    { label: "Launch Token", message: "Ask Bankr to deploy a token called MyAgent with symbol AGENT on base" },
-    { label: "Limit Order Quote", message: "Get a limit buy quote for ETH on Base via Bankr" },
+    {
+      label: "Bankr: Balance",
+      message: "Ask Bankr: what is my ETH balance on Base?",
+    },
+    {
+      label: "Bankr: Swap",
+      message: "Ask Bankr to swap 10 USDC for ETH on Base",
+    },
+    {
+      label: "Launch Token",
+      message:
+        "Ask Bankr to deploy a token called MyAgent with symbol AGENT on base",
+    },
+    {
+      label: "Limit Order Quote",
+      message: "Get a limit buy quote for ETH on Base via Bankr",
+    },
   ],
   // ECHO (CSO): CT sentiment, X pulse, vibe, threads, account analysis, news (plugin-x-research). What's the trade = belief-router (thesis → one expression).
   echo: [
@@ -231,7 +276,11 @@ const QUICK_ACTIONS_BY_AGENT: Record<
     { label: "Vibe: BTC", message: "What's the vibe on BTC?" },
     { label: "Vibe: ETH", message: "Sentiment on ETH" },
     { label: "Vibe: SOL", message: "What's the sentiment on SOL?" },
-    { label: "Summarize thread", message: "Summarize a thread — paste a tweet URL in your next message (e.g. https://x.com/user/status/123)." },
+    {
+      label: "Summarize thread",
+      message:
+        "Summarize a thread — paste a tweet URL in your next message (e.g. https://x.com/user/status/123).",
+    },
     { label: "Who is @user?", message: "Who is @crediblecrypto?" },
     { label: "X News", message: "What's the crypto news on X?" },
     { label: "CT Headlines", message: "Headlines from crypto Twitter" },
@@ -239,11 +288,26 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   // Oracle: Polymarket discovery, priority markets (palantir → paper bot, Hypersurface strikes, vibe check).
   oracle: [
     { label: "What can you do?", message: "What can you do?" },
-    { label: "Our focus markets", message: "What Polymarket markets matter for us?" },
-    { label: "Trending predictions", message: "What are the trending polymarket predictions?" },
-    { label: "Search: Bitcoin", message: "Search polymarket for bitcoin predictions" },
-    { label: "Why we care", message: "Why do we care about these Polymarket markets?" },
-    { label: "Categories", message: "What categories are available on polymarket?" },
+    {
+      label: "Our focus markets",
+      message: "What Polymarket markets matter for us?",
+    },
+    {
+      label: "Trending predictions",
+      message: "What are the trending polymarket predictions?",
+    },
+    {
+      label: "Search: Bitcoin",
+      message: "Search polymarket for bitcoin predictions",
+    },
+    {
+      label: "Why we care",
+      message: "Why do we care about these Polymarket markets?",
+    },
+    {
+      label: "Categories",
+      message: "What categories are available on polymarket?",
+    },
   ],
   // Naval: on-topic, on-brand (push not pull, thesis first, one team one dream, signal not hype, paper before live, one command, size/skip/watch, why this trade, one terminal, agents as leverage, touch grass, cover costs). Paste context after clicking.
   naval: [
@@ -282,7 +346,9 @@ const QUICK_ACTIONS_BY_AGENT: Record<
   ],
 };
 
-function getQuickActionsForAgent(agentName: string): { label: string; message: string }[] {
+function getQuickActionsForAgent(
+  agentName: string,
+): { label: string; message: string }[] {
   const key = (agentName || "").toLowerCase().trim();
   return QUICK_ACTIONS_BY_AGENT[key] ?? QUICK_ACTIONS_BY_AGENT.vince;
 }
@@ -295,10 +361,8 @@ const QUICK_ACTIONS_LIMITATIONS: Record<string, string> = {
     "Knowledge and research only. For live data, bot status, or execution, ask VINCE.",
   kelly:
     "Hotels, dining, wine, surf, wellness, creative. No trading advice—Kelly asks the team for you.",
-  echo:
-    "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
-  sentinel:
-    "Core dev and ops only. No trading—ask VINCE or Solus.",
+  echo: "Requires X_BEARER_TOKEN. Subject to X API rate limits and 7-day window.",
+  sentinel: "Core dev and ops only. No trading—ask VINCE or Solus.",
   oracle:
     "Read-only. For live perps or paper bot ask VINCE; for strike/execution ask Solus.",
   clawterm:
@@ -324,7 +388,12 @@ const ALPHA_CATEGORIES: Record<
 // Eliza: research & knowledge expansion — ingest, brainstorm, explore corpus
 const ELIZA_CATEGORIES: Record<
   string,
-  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+  {
+    title: string;
+    icon: typeof Wallet;
+    promptToAsk: string;
+    description: string;
+  }
 > = {
   upload: {
     title: "Upload",
@@ -403,24 +472,32 @@ const ELIZA_CATEGORIES: Record<
 // Solus: execution architect — plan, process, call only. Data (yield, options chains, bot, X) = VINCE.
 const SOLUS_CATEGORIES: Record<
   string,
-  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+  {
+    title: string;
+    icon: typeof Wallet;
+    promptToAsk: string;
+    description: string;
+  }
 > = {
   stack: {
     title: "$100K Stack Plan",
     icon: Target,
     promptToAsk: "full $100K plan",
-    description: "Seven pillars: sats, yield, Echo DD, options, paper perps, HIP-3, airdrops",
+    description:
+      "Seven pillars: sats, yield, Echo DD, options, paper perps, HIP-3, airdrops",
   },
   targets: {
     title: "This Week's Targets",
     icon: TrendingUp,
     promptToAsk: "this week's targets",
-    description: "Strike ritual output — size, expiry, invalidation (get options data from VINCE first)",
+    description:
+      "Strike ritual output — size, expiry, invalidation (get options data from VINCE first)",
   },
   sizeSkip: {
     title: "Size or Skip?",
     icon: Target,
-    promptToAsk: "Give me size, skip, or watch and invalidation — I'll paste context",
+    promptToAsk:
+      "Give me size, skip, or watch and invalidation — I'll paste context",
     description: "Paste VINCE's (or any) context; Solus gives the call",
   },
   echo: {
@@ -439,20 +516,27 @@ const SOLUS_CATEGORIES: Record<
     title: "What's Your Call?",
     icon: TrendingUp,
     promptToAsk: "what's your call?",
-    description: "Clear buy/sell/watch with invalidation — architect's decision",
+    description:
+      "Clear buy/sell/watch with invalidation — architect's decision",
   },
 };
 
 // Sentinel: core dev — task brief, cost, ONNX, ART, clawdbot, suggestions, docs. No trading.
 const SENTINEL_CATEGORIES: Record<
   string,
-  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+  {
+    title: string;
+    icon: typeof Wallet;
+    promptToAsk: string;
+    description: string;
+  }
 > = {
   taskBrief: {
     title: "Task Brief",
     icon: FileCode,
     promptToAsk: "task brief for Claude 4.6",
-    description: "Pasteable block for Claude Code / Cursor — task + architecture rules",
+    description:
+      "Pasteable block for Claude Code / Cursor — task + architecture rules",
   },
   costStatus: {
     title: "Cost Status",
@@ -464,7 +548,8 @@ const SENTINEL_CATEGORIES: Record<
     title: "ONNX Status",
     icon: Zap,
     promptToAsk: "ONNX status",
-    description: "Feature-store, training readiness, next step (train_models, Supabase)",
+    description:
+      "Feature-store, training readiness, next step (train_models, Supabase)",
   },
   artGems: {
     title: "ART Gems",
@@ -476,7 +561,8 @@ const SENTINEL_CATEGORIES: Record<
     title: "Clawdbot Guide",
     icon: BookOpen,
     promptToAsk: "clawdbot setup",
-    description: "Knowledge research without X API — curated X + Birdy → pipeline",
+    description:
+      "Knowledge research without X API — curated X + Birdy → pipeline",
   },
   whatsNext: {
     title: "What's Next?",
@@ -494,7 +580,8 @@ const SENTINEL_CATEGORIES: Record<
     title: "PRD for Cursor",
     icon: FileCode,
     promptToAsk: "prd for cursor",
-    description: "World-class PRDs for Cursor/Claude Code — north star, acceptance criteria, architecture rules",
+    description:
+      "World-class PRDs for Cursor/Claude Code — north star, acceptance criteria, architecture rules",
   },
   ship: {
     title: "What to Ship?",
@@ -531,19 +618,26 @@ const SENTINEL_CATEGORIES: Record<
 // Clawterm: OpenClaw research terminal — research, gateway status, setup, watchlist, portfolio, alerts, analytics
 const CLAWTERM_CATEGORIES: Record<
   string,
-  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+  {
+    title: string;
+    icon: typeof Wallet;
+    promptToAsk: string;
+    description: string;
+  }
 > = {
   research: {
     title: "Run Research",
     icon: Search,
     promptToAsk: "research SOL BTC",
-    description: "Alpha, market, onchain, news—or all in parallel. Default tokens or specify.",
+    description:
+      "Alpha, market, onchain, news—or all in parallel. Default tokens or specify.",
   },
   gateway: {
     title: "Gateway Status",
     icon: Zap,
     promptToAsk: "gateway status",
-    description: "Check OpenClaw Gateway health when OPENCLAW_GATEWAY_URL is set.",
+    description:
+      "Check OpenClaw Gateway health when OPENCLAW_GATEWAY_URL is set.",
   },
   setup: {
     title: "OpenClaw Setup",
@@ -586,7 +680,12 @@ const CLAWTERM_CATEGORIES: Record<
 // Kelly: lifestyle concierge — benefit-led, concrete, evocative. No filler. Live the life.
 const KELLY_CATEGORIES: Record<
   string,
-  { title: string; icon: typeof Wallet; promptToAsk: string; description: string }
+  {
+    title: string;
+    icon: typeof Wallet;
+    promptToAsk: string;
+    description: string;
+  }
 > = {
   daily: {
     title: "Today's Move",
@@ -598,7 +697,8 @@ const KELLY_CATEGORIES: Record<
     title: "Best Table",
     icon: UtensilsCrossed,
     promptToAsk: "Where should I eat? Somewhere within 2 hours of home.",
-    description: "One Michelin spot open today. Landes, Basque coast, Saint-Émilion.",
+    description:
+      "One Michelin spot open today. Landes, Basque coast, Saint-Émilion.",
   },
   hotel: {
     title: "Where to Stay",
@@ -616,67 +716,78 @@ const KELLY_CATEGORIES: Record<
     title: "Cook Tonight",
     icon: Flame,
     promptToAsk: "What should I cook for dinner tonight?",
-    description: "Green Egg, Thermomix, or long oven cook. Wine pairing included.",
+    description:
+      "Green Egg, Thermomix, or long oven cook. Wine pairing included.",
   },
   surf: {
     title: "The Ocean",
     icon: Waves,
     promptToAsk: "How's the surf in Biarritz?",
-    description: "Wave height, period, direction, water temp. When it's on, you'll know.",
+    description:
+      "Wave height, period, direction, water temp. When it's on, you'll know.",
   },
   workout: {
     title: "Pool or Rower?",
     icon: Dumbbell,
     promptToAsk: "Recommend a workout for today",
-    description: "One session: pool, rower, surfer yoga, or swim. Season-aware.",
+    description:
+      "One session: pool, rower, surfer yoga, or swim. Season-aware.",
   },
   swimming: {
     title: "The 1000m",
     icon: Activity,
     promptToAsk: "Tips for my daily 1000m",
-    description: "When and where to swim. Palace pools in winter, backyard in summer.",
+    description:
+      "When and where to swim. Palace pools in winter, backyard in summer.",
   },
   weekAhead: {
     title: "Week Ahead",
     icon: CalendarDays,
     promptToAsk: "What's the week ahead? This week's picks",
-    description: "3–5 picks across dining, stay, and wellness. Your week, sorted.",
+    description:
+      "3–5 picks across dining, stay, and wellness. Your week, sorted.",
   },
   itinerary: {
     title: "Coast Road",
     icon: MapPin,
     promptToAsk: "Plan me 2 days in Bordeaux",
-    description: "Hotel, lunch, activities—day by day. Burmester on, no agenda required.",
+    description:
+      "Hotel, lunch, activities—day by day. Burmester on, no agenda required.",
   },
   experience: {
     title: "Something Special",
     icon: Sparkles,
-    promptToAsk: "Recommend something special—wine tasting, spa, or cooking class",
+    promptToAsk:
+      "Recommend something special—wine tasting, spa, or cooking class",
     description: "One experience you'll remember. Tasting, spa, or tour.",
   },
   tea: {
     title: "Dammann Frères",
     icon: CupSoda,
     promptToAsk: "What tea for this evening?",
-    description: "Morning or evening, by occasion. One pick, no caffeine after dark.",
+    description:
+      "Morning or evening, by occasion. One pick, no caffeine after dark.",
   },
   rebalance: {
     title: "Touch Grass",
     icon: TreePine,
     promptToAsk: "I've been grinding—need to rebalance",
-    description: "One concrete move: escape, pool, wine and a great meal. No screens.",
+    description:
+      "One concrete move: escape, pool, wine and a great meal. No screens.",
   },
   entertainment: {
     title: "What to Watch",
     icon: BookOpen,
     promptToAsk: "Recommend a book or something to watch",
-    description: "One book, series, or album. By your taste, no scrolling required.",
+    description:
+      "One book, series, or album. By your taste, no scrolling required.",
   },
   creative: {
     title: "Make Something",
     icon: Palette,
     promptToAsk: "Creative tips—what should I work on?",
-    description: "Oil painting, Hasselblad, Ableton, Blackmagic, Blender. Hands on.",
+    description:
+      "Oil painting, Hasselblad, Ableton, Blackmagic, Blender. Hands on.",
   },
   question: {
     title: "Ask Me Something",
@@ -1372,27 +1483,36 @@ export function ChatInterface({
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mr-1">
                       Quick:
                     </span>
-                    {getQuickActionsForAgent(agent.name ?? "").map(({ label, message }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={() => handleQuickPrompt(message)}
-                        disabled={isTyping || isCreatingChannel}
-                        className={cn(
-                          "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
-                          (isTyping || isCreatingChannel) &&
-                            "opacity-50 pointer-events-none",
-                        )}
-                      >
-                        {label}
-                      </button>
-                    ))}
+                    {getQuickActionsForAgent(agent.name ?? "").map(
+                      ({ label, message }) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => handleQuickPrompt(message)}
+                          disabled={isTyping || isCreatingChannel}
+                          className={cn(
+                            "px-2.5 py-1.5 text-xs font-medium rounded-md border border-border bg-card hover:bg-accent/80 text-foreground transition-colors",
+                            (isTyping || isCreatingChannel) &&
+                              "opacity-50 pointer-events-none",
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ),
+                    )}
                   </div>
-                  {agent.name && QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()] && (
-                    <p className="text-[10px] text-muted-foreground mt-1.5 max-w-2xl">
-                      {QUICK_ACTIONS_LIMITATIONS[(agent.name as string).toLowerCase()]}
-                    </p>
-                  )}
+                  {agent.name &&
+                    QUICK_ACTIONS_LIMITATIONS[
+                      (agent.name as string).toLowerCase()
+                    ] && (
+                      <p className="text-[10px] text-muted-foreground mt-1.5 max-w-2xl">
+                        {
+                          QUICK_ACTIONS_LIMITATIONS[
+                            (agent.name as string).toLowerCase()
+                          ]
+                        }
+                      </p>
+                    )}
                 </div>
               )}
               {/* Connection status: only show "Connecting…" when socket isn't connected and we're not already showing API error */}
@@ -1704,314 +1824,324 @@ export function ChatInterface({
                   <div className="pt-3 md:pt-4 border-t border-border">
                     {/* Alpha at a glance - VINCE only: TLDR from terminal dashboards */}
                     {(agent.name || "").toLowerCase().trim() === "vince" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        Alpha at a glance
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(ALPHA_CATEGORIES) as Array<
-                            keyof typeof ALPHA_CATEGORIES
-                          >
-                        ).map((alphaKey) => {
-                          const alpha = ALPHA_CATEGORIES[alphaKey];
-                          const Icon = alpha.icon;
-                          const stored = lastAlphaByCategory[alphaKey];
-                          return (
-                            <button
-                              key={alphaKey}
-                              type="button"
-                              onClick={() =>
-                                handlePromptClick(alpha.promptToAsk)
-                              }
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          Alpha at a glance
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(ALPHA_CATEGORIES) as Array<
+                              keyof typeof ALPHA_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {alpha.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {stored?.summary ??
-                                  `Ask "${alpha.promptToAsk}" for live alpha`}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((alphaKey) => {
+                            const alpha = ALPHA_CATEGORIES[alphaKey];
+                            const Icon = alpha.icon;
+                            const stored = lastAlphaByCategory[alphaKey];
+                            return (
+                              <button
+                                key={alphaKey}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(alpha.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {alpha.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {stored?.summary ??
+                                    `Ask "${alpha.promptToAsk}" for live alpha`}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* Knowledge & Research - Eliza only: upload, ingest, brainstorm, explore */}
                     {(agent.name || "").toLowerCase().trim() === "eliza" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        Knowledge & Research
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(ELIZA_CATEGORIES) as Array<
-                            keyof typeof ELIZA_CATEGORIES
-                          >
-                        ).map((key) => {
-                          const item = ELIZA_CATEGORIES[key];
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => handlePromptClick(item.promptToAsk)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          Knowledge & Research
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(ELIZA_CATEGORIES) as Array<
+                              keyof typeof ELIZA_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {item.description}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((key) => {
+                            const item = ELIZA_CATEGORIES[key];
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(item.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* $100K Stack - Solus only: options, paper bot, perps, HIP-3, airdrops */}
                     {(agent.name || "").toLowerCase().trim() === "solus" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        $100K Stack
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(SOLUS_CATEGORIES) as Array<
-                            keyof typeof SOLUS_CATEGORIES
-                          >
-                        ).map((key) => {
-                          const item = SOLUS_CATEGORIES[key];
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => handlePromptClick(item.promptToAsk)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          $100K Stack
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(SOLUS_CATEGORIES) as Array<
+                              keyof typeof SOLUS_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {item.description}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((key) => {
+                            const item = SOLUS_CATEGORIES[key];
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(item.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* Lifestyle & Concierge - Kelly only: daily briefing, dining, wine, itinerary, surf, workout */}
                     {(agent.name || "").toLowerCase().trim() === "kelly" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        Lifestyle & Concierge
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(KELLY_CATEGORIES) as Array<
-                            keyof typeof KELLY_CATEGORIES
-                          >
-                        ).map((key) => {
-                          const item = KELLY_CATEGORIES[key];
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => handlePromptClick(item.promptToAsk)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          Lifestyle & Concierge
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(KELLY_CATEGORIES) as Array<
+                              keyof typeof KELLY_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {item.description}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((key) => {
+                            const item = KELLY_CATEGORIES[key];
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(item.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* Core Dev & Ops - Sentinel only: task brief, cost, ONNX, ART, clawdbot, docs */}
                     {(agent.name || "").toLowerCase().trim() === "sentinel" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        Core Dev & Ops
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(SENTINEL_CATEGORIES) as Array<
-                            keyof typeof SENTINEL_CATEGORIES
-                          >
-                        ).map((key) => {
-                          const item = SENTINEL_CATEGORIES[key];
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => handlePromptClick(item.promptToAsk)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          Core Dev & Ops
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(SENTINEL_CATEGORIES) as Array<
+                              keyof typeof SENTINEL_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {item.description}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((key) => {
+                            const item = SENTINEL_CATEGORIES[key];
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(item.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* OpenClaw Research - Clawterm only: research, gateway, setup, watchlist, portfolio, alerts, analytics */}
                     {(agent.name || "").toLowerCase().trim() === "clawterm" && (
-                    <div className="mb-4">
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
-                        OpenClaw Research
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-                        {(
-                          Object.keys(CLAWTERM_CATEGORIES) as Array<
-                            keyof typeof CLAWTERM_CATEGORIES
-                          >
-                        ).map((key) => {
-                          const item = CLAWTERM_CATEGORIES[key];
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => handlePromptClick(item.promptToAsk)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                      <div className="mb-4">
+                        <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono mb-2 md:mb-3">
+                          OpenClaw Research
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
+                          {(
+                            Object.keys(CLAWTERM_CATEGORIES) as Array<
+                              keyof typeof CLAWTERM_CATEGORIES
                             >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {item.title}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
-                                {item.description}
-                              </p>
-                            </button>
-                          );
-                        })}
+                          ).map((key) => {
+                            const item = CLAWTERM_CATEGORIES[key];
+                            const Icon = item.icon;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() =>
+                                  handlePromptClick(item.promptToAsk)
+                                }
+                                className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                              >
+                                <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                  <Icon
+                                    className="size-3 md:size-3.5 text-primary shrink-0"
+                                    strokeWidth={2}
+                                  />
+                                  <span className="text-foreground">
+                                    {item.title}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed line-clamp-2">
+                                  {item.description}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
                     )}
                     {/* Quick Start - Otaku only: CDP, Price, DeFi, Bridge, etc. */}
                     {(agent.name || "").toLowerCase().trim() === "otaku" && (
-                    <>
-                    <div className="flex items-center gap-2 mb-2 md:mb-3">
-                      {selectedPlugin && (
-                        <button
-                          onClick={() => setSelectedPlugin(null)}
-                          className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <ArrowLeft className="size-3" />
-                          <span className="uppercase tracking-wider font-mono">
-                            Back
-                          </span>
-                        </button>
-                      )}
-                      <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">
-                        {selectedPlugin
-                          ? PLUGIN_ACTIONS[selectedPlugin].name
-                          : "Quick Start"}
-                      </p>
-                    </div>
+                      <>
+                        <div className="flex items-center gap-2 mb-2 md:mb-3">
+                          {selectedPlugin && (
+                            <button
+                              onClick={() => setSelectedPlugin(null)}
+                              className="flex items-center gap-1 text-[10px] md:text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <ArrowLeft className="size-3" />
+                              <span className="uppercase tracking-wider font-mono">
+                                Back
+                              </span>
+                            </button>
+                          )}
+                          <p className="text-[10px] md:text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                            {selectedPlugin
+                              ? PLUGIN_ACTIONS[selectedPlugin].name
+                              : "Quick Start"}
+                          </p>
+                        </div>
 
-                    {/* Show plugins or plugin-specific prompts */}
-                    {!selectedPlugin ? (
-                      // Plugin Grid
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
-                        {(
-                          Object.keys(PLUGIN_ACTIONS) as Array<
-                            keyof typeof PLUGIN_ACTIONS
-                          >
-                        ).map((pluginKey) => {
-                          const plugin = PLUGIN_ACTIONS[pluginKey];
-                          const Icon = plugin.icon;
-                          return (
-                            <button
-                              key={pluginKey}
-                              onClick={() => setSelectedPlugin(pluginKey)}
-                              className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
-                            >
-                              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                <Icon
-                                  className="size-3 md:size-3.5 text-primary shrink-0"
-                                  strokeWidth={2}
-                                />
-                                <span className="text-foreground">
-                                  {plugin.name}
-                                </span>
-                              </div>
-                              <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed">
-                                {plugin.description}
-                              </p>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      // Plugin-specific prompts
-                      <div className="flex flex-col gap-1.5 md:gap-2">
-                        {PLUGIN_ACTIONS[selectedPlugin].prompts.map(
-                          (prompt, index) => (
-                            <button
-                              key={index}
-                              onClick={() => handlePromptClick(prompt)}
-                              className="px-2.5 md:px-3 py-2 text-xs md:text-sm bg-accent hover:bg-accent/80 text-foreground rounded border border-border transition-colors text-left"
-                            >
-                              {prompt}
-                            </button>
-                          ),
+                        {/* Show plugins or plugin-specific prompts */}
+                        {!selectedPlugin ? (
+                          // Plugin Grid
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+                            {(
+                              Object.keys(PLUGIN_ACTIONS) as Array<
+                                keyof typeof PLUGIN_ACTIONS
+                              >
+                            ).map((pluginKey) => {
+                              const plugin = PLUGIN_ACTIONS[pluginKey];
+                              const Icon = plugin.icon;
+                              return (
+                                <button
+                                  key={pluginKey}
+                                  onClick={() => setSelectedPlugin(pluginKey)}
+                                  className="flex flex-col gap-2 md:gap-3 p-3 md:p-4 bg-card/80 hover:bg-card rounded-lg md:rounded-xl border border-border/40 transition-all group hover:border-primary/40 text-left"
+                                >
+                                  <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                                    <Icon
+                                      className="size-3 md:size-3.5 text-primary shrink-0"
+                                      strokeWidth={2}
+                                    />
+                                    <span className="text-foreground">
+                                      {plugin.name}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] md:text-sm text-muted-foreground/80 leading-snug md:leading-relaxed">
+                                    {plugin.description}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          // Plugin-specific prompts
+                          <div className="flex flex-col gap-1.5 md:gap-2">
+                            {PLUGIN_ACTIONS[selectedPlugin].prompts.map(
+                              (prompt, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handlePromptClick(prompt)}
+                                  className="px-2.5 md:px-3 py-2 text-xs md:text-sm bg-accent hover:bg-accent/80 text-foreground rounded border border-border transition-colors text-left"
+                                >
+                                  {prompt}
+                                </button>
+                              ),
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                    </>
+                      </>
                     )}
                   </div>
                 )}

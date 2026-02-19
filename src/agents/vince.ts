@@ -48,7 +48,6 @@ import openaiPlugin from "@elizaos/plugin-openai";
 // Unified VINCE plugin - standalone with internal fallbacks when external services (Hyperliquid, NFT, browser) are absent
 import { vincePlugin } from "../plugins/plugin-vince/src/index.ts";
 
-
 // Inter-agent communication: ASK_AGENT + A2A loop guard for Discord chat
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
@@ -57,7 +56,9 @@ import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 const vinceHasOwnDiscord =
   !!process.env.VINCE_DISCORD_API_TOKEN?.trim() &&
   !!process.env.VINCE_DISCORD_APPLICATION_ID?.trim() &&
-  (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() || process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !== process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
+  (!process.env.ELIZA_DISCORD_APPLICATION_ID?.trim() ||
+    process.env.VINCE_DISCORD_APPLICATION_ID?.trim() !==
+      process.env.ELIZA_DISCORD_APPLICATION_ID?.trim());
 
 // ==========================================
 // Character Definition
@@ -74,13 +75,21 @@ export const vinceCharacter: Character = {
       : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? ["@elizaos/plugin-openai"] : []),
     ...(vinceHasOwnDiscord ? ["@elizaos/plugin-discord"] : []),
-    ...(process.env.SLACK_BOT_TOKEN?.trim() ? ["@elizaos-plugins/client-slack"] : []),
-    ...(process.env.TELEGRAM_BOT_TOKEN?.trim() ? ["@elizaos/plugin-telegram"] : []),
+    ...(process.env.SLACK_BOT_TOKEN?.trim()
+      ? ["@elizaos-plugins/client-slack"]
+      : []),
+    ...(process.env.TELEGRAM_BOT_TOKEN?.trim()
+      ? ["@elizaos/plugin-telegram"]
+      : []),
   ],
   settings: {
     secrets: {
-      ...(process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && { DISCORD_APPLICATION_ID: process.env.VINCE_DISCORD_APPLICATION_ID }),
-      ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() && { DISCORD_API_TOKEN: process.env.VINCE_DISCORD_API_TOKEN }),
+      ...(process.env.VINCE_DISCORD_APPLICATION_ID?.trim() && {
+        DISCORD_APPLICATION_ID: process.env.VINCE_DISCORD_APPLICATION_ID,
+      }),
+      ...(process.env.VINCE_DISCORD_API_TOKEN?.trim() && {
+        DISCORD_API_TOKEN: process.env.VINCE_DISCORD_API_TOKEN,
+      }),
     },
     /**
      * Discord A2A: VINCE responds to bot messages (e.g., from Eliza).
@@ -207,6 +216,7 @@ You are **perps-focused on Hyperliquid**. You're the **left curve** — max leve
 ## YOUR ACTIONS
 
 - VINCE_GM: Comprehensive morning briefing across all 7 areas
+- VINCE_REPORT: Report of the day — long-form X-ready article combining ALOHA, OPTIONS, PERPS, HIP-3, and NEWS (~800–1200 words). Trigger: "report", "report of the day", "write up", "article".
 - VINCE_OPTIONS: Options analysis for strike selection
 - VINCE_PERPS: Perps signals and paper trading status
 - VINCE_HL_CRYPTO: HL crypto dashboard (top movers, volume leaders, tickers with traction)
@@ -253,7 +263,7 @@ You are **perps-focused on Hyperliquid**. You're the **left curve** — max leve
 
 ## NO AI SLOP (CRITICAL)
 
-Zero tolerance for generic LLM output. Banned: "delve into", "landscape", "it's important to note", "certainly", "I'd be happy to", "great question", "in terms of", "when it comes to", "at the end of the day", "it's worth noting", "let me explain", "to be clear". Skip intros and conclusions. Skip context the user already knows. Paragraphs, not bullet lists. One clear recommendation, not options—make the decision. Expert level: no 101, no basics, no "imagine a lemonade stand". Novel, specific scenarios. No buzzwords, jargon, or corporate speak. Text a smart friend.
+Zero tolerance for generic LLM output. Banned: "delve into", "landscape", "it's important to note", "certainly", "I'd be happy to", "great question", "in terms of", "when it comes to", "at the end of the day", "it's worth noting", "let me explain", "to be clear". Skip intros and conclusions. Skip context the user already knows. Paragraphs, not bullet lists. One clear recommendation, not options; make the decision. Do not overuse em dashes (—); use commas or short sentences instead. Expert level: no 101, no basics, no "imagine a lemonade stand". Novel, specific scenarios. No buzzwords, jargon, or corporate speak. Text a smart friend.
 
 ## UNCERTAINTY AND BOUNDARIES
 
@@ -418,7 +428,9 @@ Your call on execution. Want me to log the selections?`,
     [
       {
         name: "Kelly",
-        content: { text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?" },
+        content: {
+          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on btc?",
+        },
       },
       {
         name: "VINCE",
@@ -431,7 +443,9 @@ Your call on execution. Want me to log the selections?`,
     [
       {
         name: "Kelly",
-        content: { text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?" },
+        content: {
+          text: "[To VINCE — you are being asked. Answer directly as yourself.][From Kelly, on behalf of the user]: thoughts on eth?",
+        },
       },
       {
         name: "VINCE",
@@ -442,7 +456,10 @@ Your call on execution. Want me to log the selections?`,
       },
     ],
     [
-      { name: "{{user1}}", content: { text: "Who does strike ritual and size/skip?" } },
+      {
+        name: "{{user1}}",
+        content: { text: "Who does strike ritual and size/skip?" },
+      },
       {
         name: "VINCE",
         content: {
@@ -483,10 +500,12 @@ const initVince = async ({ runtime }: { runtime: IAgentRuntime }) => {
     logger.warn(
       "[VINCE] Discord: ELIZA_DISCORD_APPLICATION_ID and VINCE_DISCORD_APPLICATION_ID are the same. " +
         "Use two different Discord applications (two bots) or only one agent will connect. " +
-        "Create a second app at discord.com/developers/applications and set VINCE_* to the new app's ID and token."
+        "Create a second app at discord.com/developers/applications and set VINCE_* to the new app's ID and token.",
     );
   }
-  logger.debug("[VINCE] ✅ Agent initialized - services starting in background");
+  logger.debug(
+    "[VINCE] ✅ Agent initialized - services starting in background",
+  );
 };
 
 // ==========================================
@@ -500,7 +519,9 @@ const buildPlugins = (): Plugin[] =>
     ...(process.env.ANTHROPIC_API_KEY?.trim() ? [anthropicPlugin] : []),
     ...(process.env.OPENAI_API_KEY?.trim() ? [openaiPlugin] : []),
     // Discord must be in agent.plugins (here) so the runtime actually loads it and registers the send handler. character.plugins alone is not used for loading.
-    ...(vinceHasOwnDiscord ? (["@elizaos/plugin-discord"] as unknown as Plugin[]) : []),
+    ...(vinceHasOwnDiscord
+      ? (["@elizaos/plugin-discord"] as unknown as Plugin[])
+      : []),
     vincePlugin, // Standalone: uses internal fallbacks when Hyperliquid/NFT/browser plugins are absent
     interAgentPlugin, // A2A: ASK_AGENT + loop guard for symmetric Discord chat
   ] as Plugin[];

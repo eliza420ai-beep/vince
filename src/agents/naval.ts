@@ -31,11 +31,10 @@ import openaiPlugin from "@elizaos/plugin-openai";
 import { navalPlugin } from "../plugins/plugin-naval/src/index.ts";
 import { interAgentPlugin } from "../plugins/plugin-inter-agent/src/index.ts";
 
-const navalHasDiscord =
-  !!(
-    process.env.NAVAL_DISCORD_API_TOKEN?.trim() ||
-    process.env.DISCORD_API_TOKEN?.trim()
-  );
+const navalHasDiscord = !!(
+  process.env.NAVAL_DISCORD_API_TOKEN?.trim() ||
+  process.env.DISCORD_API_TOKEN?.trim()
+);
 
 export const navalCharacter: Character = {
   name: "Naval",
@@ -147,7 +146,10 @@ Your knowledge includes the full nav.al archive: essay titles by year and an int
   ],
   messageExamples: [
     [
-      { name: "{{user}}", content: { text: "Give me a Naval quote on wealth" } },
+      {
+        name: "{{user}}",
+        content: { text: "Give me a Naval quote on wealth" },
+      },
       {
         name: "Naval",
         content: {

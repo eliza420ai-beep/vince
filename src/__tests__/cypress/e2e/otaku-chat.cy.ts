@@ -11,7 +11,8 @@
 
 describe("Otaku Chat E2E", () => {
   const RESPONSE_TIMEOUT_MS = 30000;
-  const CAPABILITY_REGEX = /swap|bridge|portfolio|token|market|transfer|insight/i;
+  const CAPABILITY_REGEX =
+    /swap|bridge|portfolio|token|market|transfer|insight/i;
 
   beforeEach(() => {
     cy.visit("/");
@@ -46,9 +47,9 @@ describe("Otaku Chat E2E", () => {
     cy.contains("What can you do?", { timeout: 10000 }).should("be.visible");
 
     // Wait for analyzing/typing indicator to disappear (may not appear if response is fast)
-    cy.contains("Analyzing your request", { timeout: RESPONSE_TIMEOUT_MS }).should(
-      "not.exist",
-    );
+    cy.contains("Analyzing your request", {
+      timeout: RESPONSE_TIMEOUT_MS,
+    }).should("not.exist");
 
     // Within timeout, an agent reply should be visible and contain at least one capability keyword
     cy.contains(CAPABILITY_REGEX, { timeout: RESPONSE_TIMEOUT_MS }).should(

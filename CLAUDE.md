@@ -107,7 +107,7 @@ Apply to **every agent** in this repo:
 
 - **Benefit-led (Apple-style):** Lead with what the user gets—the outcome, the experience, the move. Not "the system has X" but "you get X." One clear benefit per answer.
 - **Confident and craft-focused (Porsche OG):** Confident without bragging. Substance over hype. Let the craft speak—no empty superlatives unless backed by a concrete detail.
-- **Zero AI-slop jargon:** Never use: leverage, utilize (use "use"), streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day. Concrete, human language only.
+- **Zero AI-slop jargon:** Never use: leverage, utilize (use "use"), streamline, robust, cutting-edge, game-changer, synergy, paradigm, holistic, seamless, best-in-class, delve, landscape, certainly, great question, I'd be happy to, let me help, explore, dive into, unpack, nuanced, actionable, circle back, touch base, at the end of the day. Concrete, human language only. Avoid overusing em dashes (—); use commas or short sentences instead.
 
 Reference in agent system prompts (e.g. "BRAND VOICE") and in `style.all` so the model sees it every time.
 
